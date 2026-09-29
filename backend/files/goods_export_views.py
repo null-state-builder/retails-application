@@ -59,16 +59,28 @@ def _responses(status: int, schema: dict[str, Any], codes: tuple[int, ...]) -> d
 
 
 def _readable(access: AccessContext, intent: OutboxIntent) -> bool:
-    """E190: the original requester, or an administrator whose scope covers the job.
+    """Only current authority over the job's declared and produced data may see it."""
+    from core.kernel_models import JobArtifact
+    from files.goods_services import readable_by, scope_cells
 
-    "Scoped administrator" is `audit.view` - the grant that reads what other people
-    did - checked at the export's own site, or tenant-wide when it names none.
-    """
+    try:
+        spec = exports.parse_spec((intent.payload or {}).get("export_spec"))
+        kind = exports.resolve_kind(spec.kind)
+    except Refusal:
+        return False
+    artifact = JobArtifact.objects.select_related("evidence").filter(intent_id=intent.pk).first()
+    if artifact is not None and not readable_by(access, artifact.evidence):
+        return False
     if intent.actor_id is not None and intent.actor_id == access.human_id:
+        if exports.EXPORT_GRANT not in access.all_actions():
+            return False
+        try:
+            kind.check(access, spec)
+        except Refusal:
+            return False
         return True
-    payload = intent.payload or {}
-    site_id = int(payload["site_id"]) if payload.get("site_id") else None
-    return access.can("audit.view", site_id=site_id)
+    cells, entity_id = scope_cells(spec.scope)
+    return access.covers_all({"audit.view"}, cells, spec.field_set, entity_id=entity_id)
 
 
 class GoodsExportCreateView(GoodsAPIView):
@@ -144,7 +156,9 @@ class GoodsExportCreateView(GoodsAPIView):
             subject_key=spec.subject_key or f"export:{meta.command_id}",
         )
         intent = OutboxIntent.objects.get(pk=uuid.UUID(str(result.resource_id)))
-        return Response(exports.export_job_dto(intent), status=result.status_code)
+        if not access.refresh():
+            raise Refusal("AUTH_REQUIRED", "Your access changed. Sign in again.")
+        return Response(exports.export_job_dto(intent, access=access), status=result.status_code)
 
 
 class GoodsExportDetailView(GoodsAPIView):
@@ -161,8 +175,5 @@ class GoodsExportDetailView(GoodsAPIView):
         ).first()
         if intent is None or not _readable(access, intent):
             raise Refusal("NOT_FOUND", "That export was not found.")
-        # E190 step 5: reauthorise *now*, not at request time. A caller who no
-        # longer covers the file's cells and fields still sees their job and its
-        # progress, but neither its hash nor a link - "no broader cached file is
-        # returned after access changes" is about this answer, not only E121's.
+        # E190 step 5: reauthorise now, including the file when it exists.
         return Response(exports.export_job_dto(intent, access=access))

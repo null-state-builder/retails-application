@@ -36,12 +36,12 @@ from rest_framework.response import Response
 
 from accounts.goods_api import GoodsAPIView, business_body, check_query, check_revision, parse_meta
 from accounts.goods_models import HumanIdentity
-from accounts.permissions import user_can
-from accounts.role_lists import TAX_SETTING_EDITOR_ROLES
+from accounts.permissions import user_can_at
+from accounts.principal import access_for_user
 from accounts.sections import CAP_MANAGE, CAP_VIEW
 from core.commands import CommandResult, CommandRun, LockRank
 from core.refusals import Refusal, issue
-from masters.scoping import actionable_store_ids, actionable_stores
+from masters.scoping import actionable_stores
 from masters.store_feature_registry import StoreFeature
 from masters.store_features import feature, real_stores, switch_states
 from masters.tax_setting_models import TaxSettingVersion
@@ -64,15 +64,8 @@ SAVE_ACTION = "masters.tax_setting.save"
 
 
 def may_change_tax_settings(user: Any) -> bool:
-    """Admin only, with a company-wide scope (or break-glass)."""
-    if getattr(user, "is_superuser", False):
-        return True
-    code = getattr(getattr(user, "role", None), "code", "")
-    return (
-        user_can(user, "setup", CAP_MANAGE)
-        and code in TAX_SETTING_EDITOR_ROLES
-        and actionable_store_ids(user) is None
-    )
+    """Admin with company-wide authority on one current assignment."""
+    return access_for_user(user).covers_all({'tax.settings.manage'}, [(None, None)], [])
 
 
 class TaxRuleSerializer(serializers.Serializer[Any]):
@@ -219,9 +212,9 @@ class GoodsTaxSettingsView(GoodsAPIView):
     def get(self, request: Request) -> Response:
         access = self.access(request)
         check_query(request, allowed=())
-        if not user_can(request.user, "setup", CAP_VIEW):
+        if not user_can_at(request.user, "setup", CAP_VIEW):
             raise Refusal("ACTION_DENIED", "You do not have access to Setup.")
-        stores = list(actionable_stores(request.user))
+        stores = list(actionable_stores(request.user, section="setup", minimum=CAP_VIEW))
         real = real_stores(stores)
         today = timezone.localdate()
         versions = [
@@ -302,7 +295,7 @@ class GoodsTaxSettingVersionCreateView(GoodsAPIView):
         access = self.access(request)
         if not may_change_tax_settings(request.user):
             raise Refusal("ACTION_DENIED", "Only Admin can change the tax settings.")
-        stores = list(actionable_stores(request.user))
+        stores = list(actionable_stores(request.user, section="setup", minimum=CAP_MANAGE))
         if not any(state.enabled for state in switch_states(stores, [_tax_feature()])):
             raise Refusal(
                 "FEATURE_OFF",

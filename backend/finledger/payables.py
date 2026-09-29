@@ -40,7 +40,7 @@ from django.db.models import Sum
 from django.db.models.functions import Lower, Trim
 
 from accounts.permissions import user_can
-from accounts.role_lists import PAYABLE_EDITOR_ROLES
+from accounts.principal import access_for_user
 from accounts.sections import CAP_MANAGE
 from core.commands import CommandRun, LockRank
 from core.goods_money import MoneyInvalid, paise_from_json
@@ -224,29 +224,21 @@ def summarise(
 # ---------------------------------------------------------------------------
 
 
-def _role(user: Any) -> str:
-    return str(getattr(getattr(user, "role", None), "code", "") or "")
-
-
 def may_read(user: Any) -> bool:
     """Owner and Accounts: ``money: manage``. Store roles never see payables."""
-    if getattr(user, "is_superuser", False):
-        return True
     return user_can(user, "money", CAP_MANAGE)
 
 
-def may_edit(user: Any) -> bool:
+def may_edit(user: Any, site_id: int | None = None, brand_id: int | None = None) -> bool:
     """Accounts (``money: manage`` narrowed to the declared editors)."""
-    if getattr(user, "is_superuser", False):
-        return True
-    return may_read(user) and _role(user) in PAYABLE_EDITOR_ROLES
+    return access_for_user(user).covers_all({'payable.manage'}, [(site_id, brand_id)], ['financial'])
 
 
 def readable_stores(user: Any, tenant_id: Any) -> list[Store]:
     """The stores whose payables this person reads, in their own company."""
     if not may_read(user):
         return []
-    ids = actionable_store_ids(user)
+    ids = actionable_store_ids(user, section="money", minimum=CAP_MANAGE)
     rows = Store.objects.filter(tenant_id=tenant_id).order_by("code")
     return list(rows if ids is None else rows.filter(pk__in=ids))
 

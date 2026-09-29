@@ -17,18 +17,18 @@ from __future__ import annotations
 
 from typing import Any
 
-from django.db.models import Count, Sum
+from django.db.models import Count, Q, Sum
 from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from core.gl import GLAccount, GLEntry, account_balance, trial_balance
+from core.gl import GLAccount
 from core.money import paise_to_rupees_str
-from finledger.models import CashLedgerEntry, VendorLedgerEntry
+from core.tenancy import require_tenant_id
+from finledger.access import IsBooksKeeper, cash_entries, gl_entries, vendor_entries
 from finledger.posting import CASH_CONTROL_ACCOUNTS, gl_control_for
-from finledger.views import IsBooksKeeper
 from stockledger.models import StockOnHand
 
 #: How many stranded rows to name before the list is just a count.
@@ -163,8 +163,13 @@ class BooksHealthView(APIView):
 
     @extend_schema(responses={200: _BOOKS_HEALTH_RESPONSE})
     def get(self, request: Request) -> Response:
-        balances = {code: account_balance(code) for code, _, _ in ACCOUNTS}
-        tb = trial_balance()
+        books = gl_entries()
+        sums = {
+            row["account"]: row["balance"] or 0
+            for row in books.values("account").annotate(balance=Sum("amount"))
+        }
+        balances = {code: sums.get(code, 0) for code, _, _ in ACCOUNTS}
+        tb = sum(sums.values())
         assets = sum(balances[c] for c, _, side in ACCOUNTS if side == "asset")
         # liabilities/contra are credit-side (negative paise); present magnitude.
         liabilities = -sum(balances[c] for c, _, side in ACCOUNTS if side == "liability")
@@ -179,8 +184,8 @@ class BooksHealthView(APIView):
                 "assets_rupees": paise_to_rupees_str(assets),
                 "liabilities_paise": liabilities,
                 "liabilities_rupees": paise_to_rupees_str(liabilities),
-                "leg_count": GLEntry.objects.count(),
-                "voucher_count": GLEntry.objects.values("doc_number").distinct().count(),
+                "leg_count": books.count(),
+                "voucher_count": books.values("doc_number").distinct().count(),
                 "accounts": _accounts(balances),
             }
         )
@@ -204,7 +209,7 @@ def _reconciliation(balances: dict[str, int]) -> dict[str, Any]:
     wrong number; the totals are still reported for the screen, but `reconciled`
     is every account agreeing.
     """
-    vendor_sub = VendorLedgerEntry.objects.aggregate(b=Sum("amount"))["b"] or 0
+    vendor_sub = vendor_entries().aggregate(b=Sum("amount"))["b"] or 0
     gl_payable = balances[GLAccount.VENDOR_PAYABLE]
     vendor_reconciled = vendor_sub == -gl_payable
     cash = _cash_reconciliation(balances)
@@ -225,7 +230,7 @@ def _reconciliation(balances: dict[str, int]) -> dict[str, Any]:
 def _cash_reconciliation(balances: dict[str, int]) -> dict[str, Any]:
     """The cash subledger against each of its value control accounts."""
     subledger: dict[str, int] = dict.fromkeys(CASH_CONTROL_ACCOUNTS.values(), 0)
-    for row in CashLedgerEntry.objects.values("account").annotate(total=Sum("amount")):
+    for row in cash_entries().values("account").annotate(total=Sum("amount")):
         subledger[gl_control_for(row["account"])] += row["total"] or 0
     pairs = sorted(subledger.items())
     by_account = [
@@ -261,7 +266,12 @@ def _stranded_stock_value() -> dict[str, Any]:
     reconciliation passes over it, including a physical count, because the piece
     count is right; only a value-per-piece read like this one ever sees it.
     """
-    stranded_qs = StockOnHand.objects.filter(net_qty=0).exclude(net_value_paise=0)
+    tenant_id = require_tenant_id()
+    stranded_qs = (
+        StockOnHand.objects.filter(store__tenant_id=tenant_id, net_qty=0)
+        .filter(Q(gstin__isnull=True) | Q(gstin__tenant_id=tenant_id))
+        .exclude(net_value_paise=0)
+    )
     totals = stranded_qs.aggregate(rows=Count("id"), value=Sum("net_value_paise"))
     count = totals["rows"] or 0
     total = totals["value"] or 0

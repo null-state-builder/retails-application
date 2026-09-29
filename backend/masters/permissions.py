@@ -14,10 +14,7 @@ from typing import Any
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.request import Request
 
-from accounts.actor_policies import user_may_act
-
-MASTER_WRITES = "masters.writes"
-
+from accounts.principal import resolve_access
 
 class IsMasterSteward(BasePermission):
     """Read-open, write-gated to master-data stewards.
@@ -35,4 +32,4 @@ class IsMasterSteward(BasePermission):
         user = request.user
         if not (user and user.is_authenticated):
             return False
-        return user_may_act(user, MASTER_WRITES)
+        return resolve_access(request).can("org.tenant.manage")

@@ -626,7 +626,7 @@ function MappingRules() {
 export function PtWorkPage() {
   const { session } = useAuth();
   const [params, setParams] = useSearchParams();
-  const shown = ptWorkTabs(session?.actions ?? []);
+  const shown = ptWorkTabs(session?.display_actions ?? []);
   const ptId = params.get("pt");
   const grnId = params.get("grn");
   // A PT or a GRN always opens on To prepare, which is where the grid lives.

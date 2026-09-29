@@ -31,13 +31,7 @@ from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any, Protocol
 
-from accounts.permissions import user_can
-from accounts.role_lists import (
-    BRAND_TERM_APPROVER_ROLES,
-    BRAND_TERM_EDITOR_ROLES,
-    BRAND_TERM_READER_ROLES,
-)
-from accounts.sections import CAP_MANAGE, CAP_OPERATE, CAP_VIEW
+from accounts.principal import access_for_user
 from core.refusals import Refusal, issue
 from masters.brand_terms_models import (
     BrandPromotionVersion,
@@ -46,7 +40,7 @@ from masters.brand_terms_models import (
     CommercialModel,
 )
 from masters.models import Brand, Store
-from masters.scoping import actionable_stores, is_brand_scoped, visible_store_ids
+from core.tenancy import require_tenant_id
 from masters.store_feature_registry import BRAND_TERMS
 from masters.store_features import feature, switch_states
 
@@ -211,40 +205,36 @@ def has_agreement(tenant_id: Any, brand_id: int, day: date, at: datetime | None 
 # -- who may do what ---------------------------------------------------------
 
 
-def _role(user: Any) -> str:
-    return str(getattr(getattr(user, "role", None), "code", "") or "")
+def _brand_ids(user: Any, action: str) -> list[int]:
+    """A term is company-wide for one brand, including its protected fields."""
+    return [brand_id for brand_id in Brand.objects.filter(tenant_id=require_tenant_id()).values_list("id", flat=True)
+            if access_for_user(user).covers_all({action}, [(None, brand_id)], {"cost", "margin"})]
 
 
-def may_read(user: Any) -> bool:
-    """Owner, Brand Manager and Accounts (``setup: view`` narrowed to the declared
-    readers). A store person holds no Setup; the warehouse, the data steward and
-    Admin hold Setup for other work and do not read a brand's margins."""
-    if getattr(user, "is_superuser", False):
-        return True
-    return user_can(user, "setup", CAP_VIEW) and _role(user) in BRAND_TERM_READER_ROLES
+def _may_use_terms(user: Any, action: str, brand_id: int | None) -> bool:
+    if brand_id is None:
+        return bool(_brand_ids(user, action))
+    return access_for_user(user).covers_all({action}, [(None, brand_id)], {"cost", "margin"})
 
 
-def may_propose(user: Any) -> bool:
-    """Brand Manager (``setup: operate`` narrowed to the declared editors)."""
-    if getattr(user, "is_superuser", False):
-        return True
-    return user_can(user, "setup", CAP_OPERATE) and _role(user) in BRAND_TERM_EDITOR_ROLES
+def may_read(user: Any, brand_id: int | None = None) -> bool:
+    return _may_use_terms(user, "brand_terms.view", brand_id)
 
 
-def may_approve(user: Any) -> bool:
-    """Owner (``setup: manage`` narrowed to the declared approvers)."""
-    if getattr(user, "is_superuser", False):
-        return True
-    return user_can(user, "setup", CAP_MANAGE) and _role(user) in BRAND_TERM_APPROVER_ROLES
+def may_propose(user: Any, brand_id: int | None = None) -> bool:
+    return _may_use_terms(user, "brand_terms.propose", brand_id)
+
+
+def may_approve(user: Any, brand_id: int | None = None) -> bool:
+    return _may_use_terms(user, "brand_terms.approve", brand_id)
 
 
 def readable_brands(user: Any) -> Any:
-    """The brands whose terms this person reads: a brand manager's own brands,
-    everyone else's every brand. Terms belong to a brand, not to a store."""
-    rows = Brand.objects.order_by("name")
-    if is_brand_scoped(user):
-        return rows.filter(pk__in=user.brands.values_list("pk", flat=True))
-    return rows
+    """Only brands covered by a qualifying all-sites assignment."""
+    return Brand.objects.filter(
+        tenant_id=require_tenant_id(),
+        pk__in=_brand_ids(user, "brand_terms.view"),
+    ).order_by("name")
 
 
 def changeable_brands(user: Any) -> Any:
@@ -254,11 +244,11 @@ def changeable_brands(user: Any) -> Any:
     store, not a set of brands) changes none of them.
     """
     # A retired brand keeps its history to read, but nothing new is agreed for it.
-    if is_brand_scoped(user):
-        return readable_brands(user).filter(is_active=True)
-    if getattr(user, "is_superuser", False) or visible_store_ids(user) is None:
-        return Brand.objects.filter(is_active=True).order_by("name")
-    return Brand.objects.none()
+    editable = set(_brand_ids(user, "brand_terms.propose"))
+    editable.update(_brand_ids(user, "brand_terms.approve"))
+    return Brand.objects.filter(
+        tenant_id=require_tenant_id(), pk__in=editable, is_active=True
+    ).order_by("name")
 
 
 def switch_stores(user: Any) -> list[Store]:
@@ -267,9 +257,11 @@ def switch_stores(user: Any) -> list[Store]:
     A brand manager's work spans every store, so every active store counts; for
     everyone else, the stores they may act at.
     """
-    if is_brand_scoped(user):
-        return list(Store.objects.filter(is_active=True).order_by("code"))
-    return list(actionable_stores(user))
+    if not (may_read(user) or may_propose(user) or may_approve(user)):
+        return []
+    return list(
+        Store.objects.filter(tenant_id=require_tenant_id(), is_active=True).order_by("code")
+    )
 
 
 def brand_terms_sites(user: Any) -> list[str]:

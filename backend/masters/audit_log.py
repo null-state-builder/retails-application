@@ -115,7 +115,7 @@ def reader_scope(access: AccessContext, audit_feature: StoreFeature) -> Scope:
     access.require_action(READ_ACTION)
     candidates = [
         store
-        for store in actionable_stores(access.user)
+        for store in actionable_stores(access.user, section="reports", minimum="view")
         if access.can_at_store(READ_ACTION, store.pk)
     ]
     on = {state.site_id for state in switch_states(candidates, [audit_feature]) if state.enabled}

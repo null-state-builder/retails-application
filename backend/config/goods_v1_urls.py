@@ -20,7 +20,6 @@ from config.goods_ops_views import CommandStatusView, OperationsHealthView
 
 urlpatterns = [
     path("", include("core.goods_history_urls")),
-    path("auth/", include("accounts.goods_urls")),
     path("masters/", include("masters.goods_urls")),
     path("inbound/", include("inbound.goods_urls")),
     path("ptmapper/", include("ptmapper.goods_urls")),

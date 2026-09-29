@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.contrib import admin
+from accounts.admin import AccessReadOnlyAdmin
 
 from masters.models import Brand, CategoryMargin, Gstin, LegalEntity, Season, Store
 
@@ -13,27 +14,27 @@ from masters.models import Brand, CategoryMargin, Gstin, LegalEntity, Season, St
 
 
 @admin.register(LegalEntity)
-class LegalEntityAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+class LegalEntityAdmin(AccessReadOnlyAdmin, admin.ModelAdmin):  # type: ignore[type-arg]
     list_display = ["name", "code", "pan", "is_active"]
     search_fields = ["name", "code", "pan"]
 
 
 @admin.register(Gstin)
-class GstinAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+class GstinAdmin(AccessReadOnlyAdmin, admin.ModelAdmin):  # type: ignore[type-arg]
     list_display = ["gstin", "state_name", "state_code", "legal_entity", "is_active"]
     list_filter = ["state_name", "is_active"]
     search_fields = ["gstin", "state_name"]
 
 
 @admin.register(Store)
-class StoreAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+class StoreAdmin(AccessReadOnlyAdmin, admin.ModelAdmin):  # type: ignore[type-arg]
     list_display = ["code", "name", "store_type", "gstin", "city", "is_active"]
     list_filter = ["store_type", "gstin__state_name", "is_active"]
     search_fields = ["code", "name", "city"]
 
 
 @admin.register(Season)
-class SeasonAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+class SeasonAdmin(AccessReadOnlyAdmin, admin.ModelAdmin):  # type: ignore[type-arg]
     list_display = ["code", "name", "status", "sort_order", "ended_on"]
     list_filter = ["status"]
     #: Written only by the audited season-end command (store operations ticket 33).
@@ -41,13 +42,13 @@ class SeasonAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
 
 
 @admin.register(Brand)
-class BrandAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+class BrandAdmin(AccessReadOnlyAdmin, admin.ModelAdmin):  # type: ignore[type-arg]
     list_display = ["name", "code", "ownership", "return_terms", "commercial_label", "is_active"]
     list_filter = ["ownership", "return_terms", "is_active"]
     search_fields = ["name", "code"]
 
 
 @admin.register(CategoryMargin)
-class CategoryMarginAdmin(admin.ModelAdmin):  # type: ignore[type-arg]
+class CategoryMarginAdmin(AccessReadOnlyAdmin, admin.ModelAdmin):  # type: ignore[type-arg]
     list_display = ["item", "margin_pct", "band_min_pct", "band_max_pct", "is_active"]
     search_fields = ["item"]

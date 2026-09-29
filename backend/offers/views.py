@@ -28,7 +28,7 @@ from accounts.sections import CAP_OPERATE, CAP_VIEW
 from approvals.services import AlreadyPendingError, ApprovalError
 from core.refusals import first_message, refusal_body
 from masters.models import Store
-from masters.scoping import active_brand_names, active_store_ids, is_brand_scoped
+from masters.scoping import active_brand_ids, active_store_ids, is_brand_scoped
 from offers import tax_settings as offer_tax_settings
 from offers.approval import ask_for_countersignature, pending_offer_ids
 from offers.models import Offer, OfferQuerySet
@@ -88,16 +88,18 @@ def visible_offers(user: Any, *, include_ended: bool = False) -> OfferQuerySet:
     # history of stopped promotions. One rule named directly is a different
     # question - head office has to be able to read, and refuse to change, an
     # offer whose bills are still syncing.
-    rows = OfferQuerySet(Offer).select_related("brand", "approved_by")
+    rows = Offer.objects.for_tenant(getattr(user, "tenant_id", None)).select_related(
+        "brand", "approved_by"
+    )
     if not include_ended:
         rows = rows.exclude(status=Offer.Status.ENDED)
     if is_brand_scoped(user):
-        names = active_brand_names(user)
-        if names is not None:
-            rows = rows.filter(Q(brand__name__in=names) | Q(brand__isnull=True))
+        ids = active_brand_ids(user, section="offers_price", minimum="view")
+        if ids is not None:
+            rows = rows.filter(brand_id__in=ids)
         return rows
 
-    store_ids = active_store_ids(user)
+    store_ids = active_store_ids(user, section="offers_price", minimum="view")
     if store_ids is None:  # head office: the network's rulebook
         return rows
     # Upper-cased, because `store_scope.stores` is normalised on the way in and

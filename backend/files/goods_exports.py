@@ -279,6 +279,12 @@ def requester_access(intent: Any) -> AccessContext:
     """
     if intent.actor_id is None:
         raise Refusal("ACTION_DENIED", "An export is requested by a named person.")
+    from accounts.models import User
+
+    if not User.objects.filter(
+        tenant_id=intent.tenant_id, human_id=intent.actor_id, is_active=True
+    ).exists():
+        raise Refusal("ACTION_DENIED", "The export requester is no longer active.")
     return AccessContext(
         user=None,
         human_id=intent.actor_id,
@@ -286,6 +292,26 @@ def requester_access(intent: Any) -> AccessContext:
         session=None,
         grants=effective_grants(intent.actor_id),
     )
+
+
+def _current_export_access(
+    intent: Any, spec: ExportSpec, produced: ExportFile | None = None
+) -> AccessContext:
+    """Re-authorise a queued export at the point it is about to publish bytes.
+
+    Producing a large file can take longer than the requester's assignment. The
+    producer's initial check is therefore insufficient: the actual output cells
+    and protected fields must still be covered immediately before publication.
+    """
+    access = requester_access(intent)
+    if EXPORT_GRANT not in access.all_actions():
+        raise Refusal("ACTION_DENIED", "You may no longer run exports.")
+    resolve_kind(spec.kind).check(access, spec)
+    if produced is not None and not access.covers_all(
+        {EXPORT_GRANT}, produced.cells, produced.contains_fields
+    ):
+        raise Refusal("ACTION_DENIED", "You may no longer access the exported rows.")
+    return access
 
 
 def run_export(intent: Any) -> JobOutcome:
@@ -303,15 +329,10 @@ def run_export(intent: Any) -> JobOutcome:
         return JobOutcome("confirmed", provider_ref=f"evidence:{done.evidence_id}")
     try:
         spec = parse_spec((intent.payload or {}).get("export_spec"))
-        access = requester_access(intent)
-        # The grant first, before any row is read: a requester who lost
-        # `export.run` is refused for that reason, not for whatever their
-        # narrowed scope happens to refuse first.
-        if EXPORT_GRANT not in access.all_actions():
-            raise Refusal("ACTION_DENIED", "You may no longer run exports.")
+        access = _current_export_access(intent, spec)
         kind = resolve_kind(spec.kind)
-        kind.check(access, spec)
         produced = kind.produce(access, spec)
+        _current_export_access(intent, spec, produced)
     except Refusal as refusal:
         _open_failure(intent, refusal.code)
         # A refusal refuses again: five more attempts would only delay the
@@ -325,8 +346,10 @@ def run_export(intent: Any) -> JobOutcome:
         # Storage may simply be down: this one *is* worth retrying.
         return _retryable_failure(intent, "EVIDENCE_UNAVAILABLE", str(exc))
     except Refusal as refusal:
-        # The produce command lost a race (COMMAND_CONFLICT) or the kernel refused
-        # the write. The rows are already built, so the next attempt may well win.
+        if refusal.code == "ACTION_DENIED":
+            _open_failure(intent, refusal.code)
+            return JobOutcome("failed", diagnostic=refusal.code, terminal=True)
+        # A command conflict or other transient kernel refusal can retry.
         return _retryable_failure(intent, refusal.code, refusal.message)
     return JobOutcome("confirmed", provider_ref=f"evidence:{evidence.pk}")
 
@@ -371,6 +394,9 @@ def _store(intent: Any, spec: ExportSpec, produced: ExportFile) -> EvidenceObjec
     def handler(run: CommandRun) -> CommandResult:
         from core.kernel_models import JobArtifact
 
+        # Recheck inside the artifact transaction too. A policy edit or revoked
+        # assignment during off-box storage must not publish a cached file.
+        _current_export_access(intent, spec, produced)
         existing = EvidenceObject.objects.filter(
             tenant_id=run.tenant_id, object_key=stored.key, object_version=stored.version
         ).first()
@@ -486,14 +512,13 @@ def _open_failure(intent: Any, code: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-def export_job_dto(intent: Any, *, access: AccessContext | None = None) -> dict[str, Any]:
+def export_job_dto(intent: Any, *, access: AccessContext) -> dict[str, Any]:
     """``ExportJobDTO`` (design §6.1): progress, confirmed hash, or a typed failure.
 
-    ``access`` is the caller E190 answers, reauthorised here (step 5). Someone who
+    ``access`` is the caller E189/E190 answers, reauthorised here. Someone who
     no longer covers every cell and sensitive field of the produced file keeps
     their job and its progress but loses the hash and the link, so a grant revoked
-    after the run cannot be read back off this endpoint. Omit it only where there
-    is no caller to reauthorise - the worker's own tests.
+    after the run cannot receive its hash or link on either endpoint.
     """
     from core.kernel_models import JobArtifact, JobState
     from files.goods_services import readable_by
@@ -501,9 +526,7 @@ def export_job_dto(intent: Any, *, access: AccessContext | None = None) -> dict[
     job = JobState.objects.filter(intent_id=intent.pk).first()
     artifact = JobArtifact.objects.select_related("evidence").filter(intent_id=intent.pk).first()
     spec = (intent.payload or {}).get("export_spec") or {}
-    withheld = (
-        artifact is not None and access is not None and not readable_by(access, artifact.evidence)
-    )
+    withheld = artifact is not None and not readable_by(access, artifact.evidence)
     # §6.1's ExportJobDTO is a closed list: id, state, progress, as_of, sha256,
     # download_url, error_code. Nothing else goes on the wire from here.
     state = job.state if job is not None else "pending"

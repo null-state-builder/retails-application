@@ -22,7 +22,6 @@ from typing import Any
 
 from core.commands import CommandResult, CommandRun, CommandSpec, Principal, execute_command
 from core.tenancy import current_tenant_id
-from masters.models import Store
 from offers.models import Offer
 from offers.resolution import ALLOCATIONS, REDUCES_VALUE, allocation_of, reduces_value
 
@@ -95,10 +94,14 @@ def audit(offer: Offer, before: dict[str, Any], actor: Any) -> None:
 
 
 def _tenant_of(offer: Offer) -> Any:
-    """The tenant of the stores the offer runs in (one company per deployment)."""
-    codes = list((offer.store_scope or {}).get("stores") or [])
-    return (
-        Store.objects.filter(code__in=codes).values_list("tenant_id", flat=True).first()
-        if codes
-        else None
-    )
+    """Use stable provenance; store codes can belong to multiple tenants."""
+    brand = offer.brand
+    if brand is not None:
+        return brand.tenant_id
+    author = offer.created_by
+    approving_user = offer.approved_by
+    creator_tenant = author.tenant_id if author is not None else None
+    approver_tenant = approving_user.tenant_id if approving_user is not None else None
+    if creator_tenant is not None and approver_tenant is not None and creator_tenant != approver_tenant:
+        return None
+    return creator_tenant or approver_tenant

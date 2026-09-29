@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from django.urls import include, path
 
+from masters.brand_reconciliation_views import BrandReconciliationView
+
 from masters.goods_audit_log_views import GoodsAuditLogExportView, GoodsAuditLogView
 from masters.goods_brand_terms_views import (
     GoodsBrandPromotionProposeView,
@@ -62,7 +64,6 @@ from masters.goods_views import (
     GoodsSiteReadinessView,
     GoodsSiteRetireView,
     GoodsSiteSbuListView,
-    GoodsSiteSbuRetireView,
     GoodsSubbrandDetailView,
     GoodsSubbrandListCreateView,
     GoodsSubbrandRetireView,
@@ -71,6 +72,7 @@ from masters.goods_views import (
 )
 
 urlpatterns = [
+    path("brand-reconciliation", BrandReconciliationView.as_view(), name="brand-reconciliation"),
     # Setup > Feature Switches (store operations PRD ST-OPS-6).
     path("store-features", GoodsStoreFeatureListView.as_view(), name="goods-store-feature-list"),
     path(
@@ -197,11 +199,6 @@ urlpatterns = [
         name="goods-site-readiness",
     ),
     path("stores/<int:site_id>/sbus", GoodsSiteSbuListView.as_view(), name="goods-site-sbus"),
-    path(
-        "stores/<int:site_id>/sbus/<uuid:pk>/retire",
-        GoodsSiteSbuRetireView.as_view(),
-        name="goods-site-sbu-retire",
-    ),
     path(
         "stores/<int:site_id>/locations/<uuid:pk>/retire",
         GoodsSiteLocationRetireView.as_view(),

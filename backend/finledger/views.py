@@ -16,12 +16,20 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.permissions import require_section, user_can
-from accounts.sections import CAP_MANAGE
 from core.money import paise_to_rupees_str
 from core.textsearch import search_term, text_filter
+from core.tenancy import require_tenant_id
 from files.models import StoredFile, UploadTooLarge
 from finledger import api_schema as contract
+from finledger.access import (
+    IsBooksKeeper,
+    bank_imports,
+    bank_lines,
+    cash_entries,
+    guarded_book_write,
+    keeps_books,
+    vendor_entries,
+)
 from finledger.models import (
     BankStatementImport,
     BankStatementLine,
@@ -45,21 +53,8 @@ from vendors.models import Vendor
 if TYPE_CHECKING:
     from accounts.models import User
 
-# Vendor/cash payables, balances and ageing are the books (ADR-0003) — gated by
-# the SIDEBAR RBAC contract, not by a hand-kept role list. `money: manage` is the
-# rung only Owner and Accounts hold: a store person or warehouse operator holds
-# `money: operate` ("Expenses only"), which creates an expense but never opens
-# the books, and Admin holds `none` (Sheet-1 note 2 — deliberately no Money).
-#
-# It was a role list until #87 browser-testing found `it_admin` sitting in it, so
-# the sidebar hid Money from Admin while this API still served vendor payables.
-# Reading the same `Role.section_access` the sidebar reads is what keeps the two
-# from drifting again — and retuning it stays data, never a release (Rule 12).
-IsBooksKeeper = require_section("money", CAP_MANAGE)
-
-
 def _keeps_books(user: Any) -> bool:
-    return user_can(user, "money", CAP_MANAGE)
+    return keeps_books(user)
 
 
 class LedgerPagination(PageNumberPagination):
@@ -81,7 +76,7 @@ class VendorEntriesView(generics.ListAPIView[VendorLedgerEntry]):
     pagination_class = LedgerPagination
 
     def get_queryset(self) -> Any:
-        qs = VendorLedgerEntry.objects.select_related("vendor")
+        qs = vendor_entries().select_related("vendor")
         vendor = self.request.query_params.get("vendor")
         if vendor:
             qs = qs.filter(vendor_id=vendor)
@@ -95,7 +90,7 @@ class VendorBalancesView(APIView):
     @extend_schema(responses={200: contract.VENDOR_BALANCES})
     def get(self, request: Request) -> Response:
         rows = (
-            VendorLedgerEntry.objects.values("vendor_id", "vendor__code", "vendor__name")
+            vendor_entries().values("vendor_id", "vendor__code", "vendor__name")
             .annotate(outstanding=Sum("amount"), entries=Count("id"))
             .order_by("-outstanding")
         )
@@ -164,7 +159,7 @@ class VendorAgeingView(APIView):
     @extend_schema(responses={200: contract.VENDOR_AGEING})
     def get(self, request: Request) -> Response:
         grouped: dict[int, list[VendorLedgerEntry]] = defaultdict(list)
-        entries = VendorLedgerEntry.objects.select_related("vendor").order_by(
+        entries = vendor_entries().select_related("vendor").order_by(
             "vendor_id", "created_at", "id"
         )
         for entry in entries:
@@ -173,11 +168,11 @@ class VendorAgeingView(APIView):
         today = timezone.localdate()
         totals = {"bucket_0_30": 0, "bucket_31_60": 0, "bucket_60_plus": 0}
         rows = []
-        for vendor_id, vendor_entries in grouped.items():
-            first = vendor_entries[0]
+        for vendor_id, vendor_rows in grouped.items():
+            first = vendor_rows[0]
             buckets = {"bucket_0_30": 0, "bucket_31_60": 0, "bucket_60_plus": 0}
             oldest_days = 0
-            open_lots = _open_vendor_lots(vendor_entries)
+            open_lots = _open_vendor_lots(vendor_rows)
             for lot in open_lots:
                 local_date = timezone.localtime(lot["created_at"]).date()
                 age_days = max((today - local_date).days, 0)
@@ -228,6 +223,7 @@ class VendorAgeingView(APIView):
 class VendorBillView(APIView):
     permission_classes = [IsAuthenticated, IsBooksKeeper]
 
+    @guarded_book_write
     @extend_schema(
         request={"application/json": contract.VENDOR_POST},
         responses={201: VendorLedgerEntrySerializer, 400: contract.DETAIL, 403: contract.DETAIL},
@@ -236,7 +232,7 @@ class VendorBillView(APIView):
         if not _keeps_books(request.user):
             return Response({"detail": "Not permitted."}, status=403)
         vendor_id: Any = request.data.get("vendor_id")
-        vendor = Vendor.objects.filter(pk=vendor_id).first()
+        vendor = Vendor.objects.filter(tenant_id=require_tenant_id(), pk=vendor_id).first()
         if not vendor:
             return Response({"detail": "vendor_id is required / invalid."}, status=400)
         amount = rupees_to_paise(request.data.get("amount"))
@@ -255,6 +251,7 @@ class VendorBillView(APIView):
 class VendorPaymentView(APIView):
     permission_classes = [IsAuthenticated, IsBooksKeeper]
 
+    @guarded_book_write
     @extend_schema(
         request={"application/json": contract.VENDOR_PAYMENT},
         responses={201: VendorLedgerEntrySerializer, 400: contract.DETAIL, 403: contract.DETAIL},
@@ -263,7 +260,7 @@ class VendorPaymentView(APIView):
         if not _keeps_books(request.user):
             return Response({"detail": "Not permitted."}, status=403)
         vendor_id: Any = request.data.get("vendor_id")
-        vendor = Vendor.objects.filter(pk=vendor_id).first()
+        vendor = Vendor.objects.filter(tenant_id=require_tenant_id(), pk=vendor_id).first()
         if not vendor:
             return Response({"detail": "vendor_id is required / invalid."}, status=400)
         amount = rupees_to_paise(request.data.get("amount"))
@@ -288,6 +285,7 @@ class VendorPaymentView(APIView):
 class VendorReverseView(APIView):
     permission_classes = [IsAuthenticated, IsBooksKeeper]
 
+    @guarded_book_write
     @extend_schema(
         request=None,
         responses={201: VendorLedgerEntrySerializer, 403: contract.DETAIL, 404: contract.DETAIL,
@@ -296,7 +294,9 @@ class VendorReverseView(APIView):
     def post(self, request: Request, pk: int) -> Response:
         if not _keeps_books(request.user):
             return Response({"detail": "Not permitted."}, status=403)
-        entry = VendorLedgerEntry.objects.filter(pk=pk).first()
+        entry = vendor_entries().filter(
+            pk=pk, posted_by__tenant_id=require_tenant_id()
+        ).first()
         if not entry:
             return Response({"detail": "Not found."}, status=404)
         try:
@@ -320,7 +320,7 @@ class CashEntriesView(generics.ListAPIView[CashLedgerEntry]):
     pagination_class = LedgerPagination
 
     def get_queryset(self) -> Any:
-        qs = CashLedgerEntry.objects.select_related("vendor")
+        qs = cash_entries().select_related("vendor")
         account = self.request.query_params.get("account")
         if account:
             qs = qs.filter(account=account)
@@ -351,7 +351,7 @@ class CashDailyView(APIView):
             return Response({"detail": "date must be YYYY-MM-DD."}, status=400)
 
         qs = (
-            CashLedgerEntry.objects.select_related("vendor")
+            cash_entries().select_related("vendor")
             .filter(created_at__date=day)
             .order_by("-created_at")
         )
@@ -394,7 +394,7 @@ class CashSummaryView(APIView):
     @extend_schema(responses={200: contract.CASH_SUMMARY})
     def get(self, request: Request) -> Response:
         rows = (
-            CashLedgerEntry.objects.values("account")
+            cash_entries().values("account")
             .annotate(balance=Sum("amount"), entries=Count("id"))
             .order_by("account")
         )
@@ -423,6 +423,7 @@ class CashSummaryView(APIView):
 class CashMovementView(APIView):
     permission_classes = [IsAuthenticated, IsBooksKeeper]
 
+    @guarded_book_write
     @extend_schema(
         request={"application/json": contract.CASH_MOVEMENT},
         responses={201: CashLedgerEntrySerializer, 400: contract.DETAIL, 403: contract.DETAIL},
@@ -450,6 +451,7 @@ class CashMovementView(APIView):
 class CashReverseView(APIView):
     permission_classes = [IsAuthenticated, IsBooksKeeper]
 
+    @guarded_book_write
     @extend_schema(
         request=None,
         responses={201: CashLedgerEntrySerializer, 403: contract.DETAIL, 404: contract.DETAIL,
@@ -458,7 +460,9 @@ class CashReverseView(APIView):
     def post(self, request: Request, pk: int) -> Response:
         if not _keeps_books(request.user):
             return Response({"detail": "Not permitted."}, status=403)
-        entry = CashLedgerEntry.objects.filter(pk=pk).first()
+        entry = cash_entries().filter(
+            pk=pk, posted_by__tenant_id=require_tenant_id()
+        ).first()
         if not entry:
             return Response({"detail": "Not found."}, status=404)
         try:
@@ -468,7 +472,20 @@ class CashReverseView(APIView):
         return Response(CashLedgerEntrySerializer(rev).data, status=201)
 
 
-def _line_dict(line: BankStatementLine) -> dict[str, Any]:
+def _visible_candidate_ids(lines: list[BankStatementLine]) -> set[int]:
+    """Old cached candidate snapshots may name another tenant's cash row."""
+    candidate_ids: set[int] = set()
+    for line in lines:
+        for candidate in line.candidates if isinstance(line.candidates, list) else []:
+            if not isinstance(candidate, dict):
+                continue
+            entry_id = candidate.get("entry_id")
+            if isinstance(entry_id, int) and not isinstance(entry_id, bool):
+                candidate_ids.add(entry_id)
+    return set(cash_entries().filter(pk__in=candidate_ids).values_list("pk", flat=True))
+
+
+def _line_dict(line: BankStatementLine, visible_candidate_ids: set[int]) -> dict[str, Any]:
     return {
         "id": line.id,
         "import_id": line.import_batch_id,
@@ -479,7 +496,13 @@ def _line_dict(line: BankStatementLine) -> dict[str, Any]:
         "balance_paise": line.balance_paise,
         "status": line.status,
         "match_confidence": line.match_confidence,
-        "candidates": line.candidates,
+        "candidates": [
+            candidate
+            for candidate in (line.candidates if isinstance(line.candidates, list) else [])
+            if isinstance(candidate, dict)
+            and isinstance(candidate.get("entry_id"), int)
+            and candidate["entry_id"] in visible_candidate_ids
+        ],
         "matched_entry_id": line.matched_entry_id,
         "matched_entry_doc_number": line.matched_entry.doc_number if line.matched_entry else None,
         "matched_by_name": (
@@ -497,7 +520,7 @@ class BankStatementImportsView(APIView):
 
     @extend_schema(responses={200: contract.BANK_IMPORTS})
     def get(self, request: Request) -> Response:
-        batches = BankStatementImport.objects.select_related("file", "uploaded_by").order_by(
+        batches = bank_imports().select_related("file", "uploaded_by").order_by(
             "-created_at"
         )[:100]
         return Response(
@@ -521,6 +544,7 @@ class BankStatementImportsView(APIView):
             }
         )
 
+    @guarded_book_write
     @extend_schema(
         request={"multipart/form-data": contract.BANK_UPLOAD},
         responses={201: contract.BANK_UPLOAD_RESULT, 400: contract.DETAIL,
@@ -571,13 +595,15 @@ class BankStatementLinesView(APIView):
         responses={200: contract.BANK_LINES},
     )
     def get(self, request: Request, import_id: int) -> Response:
-        qs = BankStatementLine.objects.select_related("matched_entry", "matched_by").filter(
+        qs = bank_lines().select_related("matched_entry", "matched_by").filter(
             import_batch_id=import_id
         )
         status_filter = request.query_params.get("status")
         if status_filter:
             qs = qs.filter(status=status_filter)
-        return Response({"rows": [_line_dict(line) for line in qs]})
+        lines = list(qs)
+        visible_candidate_ids = _visible_candidate_ids(lines)
+        return Response({"rows": [_line_dict(line, visible_candidate_ids) for line in lines]})
 
 
 class BankStatementLineMatchView(APIView):
@@ -589,6 +615,7 @@ class BankStatementLineMatchView(APIView):
 
     permission_classes = [IsAuthenticated, IsBooksKeeper]
 
+    @guarded_book_write
     @extend_schema(
         request={"application/json": contract.BANK_MATCH},
         responses={200: contract.BANK_LINE, 400: contract.DETAIL, 403: contract.DETAIL,
@@ -597,7 +624,7 @@ class BankStatementLineMatchView(APIView):
     def post(self, request: Request, pk: int) -> Response:
         if not _keeps_books(request.user):
             return Response({"detail": "Not permitted."}, status=403)
-        line = BankStatementLine.objects.filter(pk=pk).first()
+        line = bank_lines().filter(pk=pk).first()
         if not line:
             return Response({"detail": "Not found."}, status=404)
 
@@ -616,7 +643,7 @@ class BankStatementLineMatchView(APIView):
             line.matched_by = None
         else:
             entry_id: Any = request.data.get("entry_id")
-            entry = CashLedgerEntry.objects.filter(pk=entry_id).first()
+            entry = cash_entries().filter(pk=entry_id).first()
             if not entry:
                 return Response(
                     {"detail": "entry_id is required and must be a cash ledger entry."}, status=400
@@ -630,4 +657,4 @@ class BankStatementLineMatchView(APIView):
             line.matched_entry = entry
             line.matched_by = cast("User", request.user)
         line.save(update_fields=["status", "matched_entry", "matched_by"])
-        return Response(_line_dict(line))
+        return Response(_line_dict(line, _visible_candidate_ids([line])))

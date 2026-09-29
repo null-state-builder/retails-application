@@ -31,8 +31,8 @@ from rest_framework.response import Response
 
 from accounts.goods_api import GoodsAPIView, business_body, check_query, check_revision, parse_meta
 from accounts.goods_models import HumanIdentity
-from accounts.permissions import user_can
-from accounts.role_lists import CONSENT_WORDING_EDITOR_ROLES
+from accounts.permissions import user_can_at
+from accounts.principal import access_for_user
 from accounts.sections import CAP_MANAGE, CAP_VIEW
 from core.commands import CommandResult, CommandRun, LockRank
 from core.refusals import Refusal, issue
@@ -43,7 +43,7 @@ from masters.consent_wording import (
     wording_of,
 )
 from masters.consent_wording_models import ConsentWording
-from masters.scoping import actionable_store_ids, actionable_stores
+from masters.scoping import actionable_stores
 from masters.store_feature_registry import CUSTOMER_CONSENT
 from masters.store_features import feature, switch_states
 
@@ -51,15 +51,8 @@ SAVE_ACTION = "masters.consent_wording.save"
 
 
 def may_change_consent_wording(user: Any) -> bool:
-    """Admin only, with a company-wide scope (or break-glass)."""
-    if getattr(user, "is_superuser", False):
-        return True
-    code = getattr(getattr(user, "role", None), "code", "")
-    return (
-        user_can(user, "setup", CAP_MANAGE)
-        and code in CONSENT_WORDING_EDITOR_ROLES
-        and actionable_store_ids(user) is None
-    )
+    """Admin with company-wide authority on one current assignment."""
+    return access_for_user(user).covers_all({'consent.wording.manage'}, [(None, None)], [])
 
 
 class ConsentWordingVersionSerializer(serializers.Serializer[Any]):
@@ -132,9 +125,9 @@ class GoodsConsentWordingView(GoodsAPIView):
     def get(self, request: Request) -> Response:
         access = self.access(request)
         check_query(request, allowed=())
-        if not user_can(request.user, "setup", CAP_VIEW):
+        if not user_can_at(request.user, "setup", CAP_VIEW):
             raise Refusal("ACTION_DENIED", "You do not have access to Setup.")
-        stores = list(actionable_stores(request.user))
+        stores = list(actionable_stores(request.user, section="setup", minimum=CAP_VIEW))
         states = switch_states(stores, [feature(CUSTOMER_CONSENT)])
         body = {
             "versions": _versions_json(access.tenant_id),
@@ -172,7 +165,7 @@ class GoodsConsentWordingVersionCreateView(GoodsAPIView):
         access = self.access(request)
         if not may_change_consent_wording(request.user):
             raise Refusal("ACTION_DENIED", "Only Admin can change the consent wording.")
-        stores = list(actionable_stores(request.user))
+        stores = list(actionable_stores(request.user, section="setup", minimum=CAP_MANAGE))
         if not any(state.enabled for state in switch_states(stores, [feature(CUSTOMER_CONSENT)])):
             raise Refusal(
                 "FEATURE_OFF",

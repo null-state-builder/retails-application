@@ -26,6 +26,7 @@ export interface ResourceDTO<T> {
   version?: number | null;
   data: T;
   allowed_actions: string[];
+  field_access?: { readable_fields: string[]; writable_fields: string[] };
   context?: Record<string, unknown>;
 }
 
@@ -627,8 +628,8 @@ export function useResourceDoc<T>(url: string | null) {
   return { doc: value, ...rest };
 }
 
-export function hold(session: { actions: string[] } | null, action: string): boolean {
-  return Boolean(session?.actions?.includes(action));
+export function hold(session: { display_actions: string[] } | null, action: string): boolean {
+  return Boolean(session?.display_actions?.includes(action));
 }
 
 /** A labelled control. Every control on a goods screen carries a visible label

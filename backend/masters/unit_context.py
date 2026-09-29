@@ -32,12 +32,12 @@ _active_brand: ContextVar[str] = ContextVar("kdps_active_brand", default="")
 
 
 def active_unit_code() -> str:
-    """Store code the caller is acting in, or `""` for their whole scope."""
+    """Stable store ID chosen by the caller, or empty for their whole scope."""
     return _active_unit.get()
 
 
 def active_brand_name() -> str:
-    """Brand the caller is filtered to, or `""` for all brands in scope."""
+    """Stable brand ID chosen by the caller, or empty for all brands in scope."""
     return _active_brand.get()
 
 

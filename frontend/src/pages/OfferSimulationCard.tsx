@@ -115,7 +115,7 @@ export function OfferSimulationCard({ offerId, status, updatedAt }: Props) {
 
   if (hidden) return null;
 
-  const mayRun = !!user?.is_superuser || RUNS.has(user?.capabilities?.offers_price ?? "none");
+  const mayRun = RUNS.has(user?.capabilities?.offers_price ?? "none");
   const canRun = status === "draft" && mayRun;
   const figures = data ? figuresFor(data) : [];
   const ran = data?.simulation != null;

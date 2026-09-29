@@ -32,15 +32,11 @@ extend these readers; the retirement rule itself does not change.
 
 from __future__ import annotations
 
-import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from core.refusals import Refusal, issue
 from masters.goods_models import Sbu
-
-if TYPE_CHECKING:
-    from core.commands import CommandRun
 
 #: Stock quantities that block retirement, in reporting order.
 SBU_QUANTITIES = ("physical_qty", "quarantined_qty", "unvalued_qty", "reserved_qty", "transit_qty")
@@ -478,66 +474,6 @@ def retirement_blockers(residuals: dict[str, Any]) -> list[dict[str, Any]]:
 # ---------------------------------------------------------------------------
 # After retirement: scoped grants end, new brand work is refused
 # ---------------------------------------------------------------------------
-
-
-def lock_grant_holders(run: CommandRun, sbu_id: uuid.UUID) -> None:
-    """Serialise on the security guard of everyone holding a grant scoped to the SBU.
-
-    Every access change locks the person's guard (``lock_person``); the SBU
-    retirement takes the same locks, at their lower rank, before the site guard.
-    """
-    from accounts.goods_models import RoleGrant, SecurityGuard
-    from core.commands import LockRank
-
-    humans = set(
-        RoleGrant.objects.filter(tenant_id=run.tenant_id, sbu_id=sbu_id).values_list(
-            "human_id", flat=True
-        )
-    )
-    for human_id in humans:
-        SecurityGuard.objects.get_or_create(tenant_id=run.tenant_id, human_id=human_id)
-    run.lock(
-        LockRank.SECURITY,
-        SecurityGuard.objects.filter(tenant_id=run.tenant_id, human_id__in=humans),
-    )
-
-
-def end_sbu_grants(run: CommandRun, sbu: Sbu) -> list[str]:
-    """End every live grant scoped to ``sbu`` at ``run.now``; returns their ids.
-
-    Change PRD rule P5 (as for a retiring person): a current grant closes now and a
-    future one never takes effect - retirement does not wait on them. Ending uses
-    the ordinary grant revocation, and each holder's security epoch moves so their
-    sessions and step-ups end with the grant.
-    """
-    from accounts.goods_admin_services import revoke_grant, unrevoked_grants
-    from accounts.sessions import bump_security_epoch
-    from masters.goods_models import EffectiveVersionPeriod
-
-    grants = unrevoked_grants(run.tenant_id, sbu_id=sbu.pk)
-    periods = {
-        period.target_id: period
-        for period in EffectiveVersionPeriod.objects.filter(
-            tenant_id=run.tenant_id, target_kind="grant", target_id__in=[g.pk for g in grants]
-        )
-    }
-    ended: list[str] = []
-    holders: set[uuid.UUID] = set()
-    for grant in grants:
-        period = periods.get(grant.pk)
-        ends = [
-            end
-            for end in (grant.effective_to, period.effective_to if period else None)
-            if end is not None
-        ]
-        if ends and min(ends) <= run.now:
-            continue  # already over; nothing to end
-        revoke_grant(run, grant, run.now)
-        ended.append(str(grant.pk))
-        holders.add(grant.human_id)
-    for human_id in sorted(holders, key=str):
-        bump_security_epoch(human_id, run.tenant_id)
-    return ended
 
 
 def require_active_sbu(site_id: int, brand_id: int | None, moment: datetime) -> None:

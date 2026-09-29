@@ -4,8 +4,8 @@ from datetime import date
 from typing import Any
 
 from rest_framework import serializers
-from rest_framework.validators import UniqueValidator
 
+from core.tenancy import current_tenant_id, require_tenant_id
 from masters.models import Brand, Gstin, LegalEntity, Season, Store, StoreTarget
 
 
@@ -29,9 +29,22 @@ class GstinSerializer(serializers.ModelSerializer[Gstin]):
             "legal_entity_name",
             "is_active",
         ]
-        extra_kwargs = {
-            "gstin": {"validators": [UniqueValidator(queryset=Gstin.objects.all())]},
-        }
+        extra_kwargs: dict[str, Any] = {"gstin": {"validators": []}}
+
+    def get_fields(self) -> dict[str, Any]:
+        fields = super().get_fields()
+        field = fields["legal_entity"]
+        tenant_id = current_tenant_id()
+        field.queryset = LegalEntity.objects.filter(tenant_id=tenant_id) if tenant_id else LegalEntity.objects.none()  # type: ignore[attr-defined]
+        return fields
+
+    def validate_gstin(self, value: str) -> str:
+        matches = Gstin.objects.filter(tenant_id=require_tenant_id(), gstin=value)
+        if self.instance is not None:
+            matches = matches.exclude(pk=self.instance.pk)
+        if matches.exists():
+            raise serializers.ValidationError("Another registration already uses that GSTIN.")
+        return value
 
 
 class StoreSerializer(serializers.ModelSerializer[Store]):
@@ -58,7 +71,22 @@ class StoreSerializer(serializers.ModelSerializer[Store]):
             "is_partner",
             "stock_contract",
         ]
-        extra_kwargs = {"code": {"validators": [UniqueValidator(queryset=Store.objects.all())]}}
+        extra_kwargs: dict[str, Any] = {"code": {"validators": []}}
+
+    def get_fields(self) -> dict[str, Any]:
+        fields = super().get_fields()
+        field = fields["gstin"]
+        tenant_id = current_tenant_id()
+        field.queryset = Gstin.objects.filter(tenant_id=tenant_id) if tenant_id else Gstin.objects.none()  # type: ignore[attr-defined]
+        return fields
+
+    def validate_code(self, value: str) -> str:
+        matches = Store.objects.filter(tenant_id=require_tenant_id(), code=value)
+        if self.instance is not None:
+            matches = matches.exclude(pk=self.instance.pk)
+        if matches.exists():
+            raise serializers.ValidationError("Another site already uses that code.")
+        return value
 
     def get_stock_contract(self, obj: Store) -> str:
         # A store with no guard row has never been moved off the legacy system.
@@ -144,6 +172,11 @@ class SeasonSerializer(serializers.ModelSerializer[Season]):
 
 
 class BrandSerializer(serializers.ModelSerializer[Brand]):
+    def validate_name(self, value: str) -> str:
+        if self.instance is not None and value != self.instance.name:
+            raise serializers.ValidationError("Brand renaming is paused until stable identity reconciliation and reader cutover are verified.")
+        return value
+
     commercial_label = serializers.CharField(read_only=True)
     #: Derived, so the return screen never re-implements the two-axis rules.
     takes_returns = serializers.BooleanField(read_only=True)
@@ -164,4 +197,12 @@ class BrandSerializer(serializers.ModelSerializer[Brand]):
             "cap_applies",
             "is_active",
         ]
-        extra_kwargs = {"code": {"validators": [UniqueValidator(queryset=Brand.objects.all())]}}
+        extra_kwargs: dict[str, Any] = {"code": {"validators": []}}
+
+    def validate_code(self, value: str) -> str:
+        matches = Brand.objects.filter(tenant_id=require_tenant_id(), code=value)
+        if self.instance is not None:
+            matches = matches.exclude(pk=self.instance.pk)
+        if matches.exists():
+            raise serializers.ValidationError("Another brand already uses that code.")
+        return value

@@ -38,8 +38,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from accounts.goods_api import GoodsAPIView, business_body, check_query, check_revision, parse_meta
-from accounts.permissions import user_can
-from accounts.role_lists import DOCUMENT_SERIES_EDITOR_ROLES
+from accounts.permissions import user_can_at
+from accounts.principal import access_for_user
 from accounts.sections import CAP_MANAGE, CAP_VIEW
 from core.commands import CommandResult, CommandRun, LockRank
 from core.fiscal import financial_year
@@ -66,15 +66,8 @@ MAX_BLOCK_SIZE = 5000
 
 
 def may_change_numbering(user: Any) -> bool:
-    """Admin only, with a company-wide scope (or break-glass)."""
-    if getattr(user, "is_superuser", False):
-        return True
-    code = getattr(getattr(user, "role", None), "code", "")
-    return (
-        user_can(user, "setup", CAP_MANAGE)
-        and code in DOCUMENT_SERIES_EDITOR_ROLES
-        and actionable_store_ids(user) is None
-    )
+    """Admin with company-wide authority on one current assignment."""
+    return access_for_user(user).covers_all({'document.series.manage'}, [(None, None)], [])
 
 
 class SeriesSerializer(serializers.Serializer[Any]):
@@ -190,8 +183,8 @@ def _series_json(fy: str) -> list[dict[str, Any]]:
     ]
 
 
-def _stores_in_scope(user: Any) -> list[Store]:
-    return list(actionable_stores(user).select_related("gstin"))
+def _stores_in_scope(user: Any, *, minimum: str = CAP_VIEW) -> list[Store]:
+    return list(actionable_stores(user, section="setup", minimum=minimum).select_related("gstin"))
 
 
 def _require_switch(stores: list[Store]) -> None:
@@ -209,7 +202,7 @@ class GoodsDocumentSeriesView(GoodsAPIView):
     def get(self, request: Request) -> Response:
         access = self.access(request)
         check_query(request, allowed=())
-        if not user_can(request.user, "setup", CAP_VIEW):
+        if not user_can_at(request.user, "setup", CAP_VIEW):
             raise Refusal("ACTION_DENIED", "You do not have access to Setup.")
         from sell.services.invoice_numbers import blocks_in_use
 
@@ -231,7 +224,7 @@ class GoodsDocumentSeriesView(GoodsAPIView):
             }
 
         gstin_ids = {store.gstin_id for store in stores}
-        company_wide = actionable_store_ids(request.user) is None
+        company_wide = actionable_store_ids(request.user, section="setup", minimum=CAP_VIEW) is None
         gstins = Gstin.objects.filter(is_active=True).order_by("state_name")
         if not company_wide:
             gstins = gstins.filter(pk__in=gstin_ids)
@@ -372,7 +365,7 @@ class GoodsDocumentPrefixView(GoodsAPIView):
         access = self.access(request)
         if not may_change_numbering(request.user):
             raise Refusal("ACTION_DENIED", "Only Admin can set a document prefix.")
-        _require_switch(_stores_in_scope(request.user))
+        _require_switch(_stores_in_scope(request.user, minimum=CAP_MANAGE))
         meta = parse_meta(request.data, revision_bound=False)
         body = business_body(request.data, {"site_id", "gstin_id", "code"}, required=["code"])
         code = _code(body["code"])
@@ -446,7 +439,7 @@ class GoodsNumberingSettingView(GoodsAPIView):
             raise Refusal(
                 "ACTION_DENIED", "Only Admin can change when the new number format starts."
             )
-        _require_switch(_stores_in_scope(request.user))
+        _require_switch(_stores_in_scope(request.user, minimum=CAP_MANAGE))
         meta = parse_meta(request.data, revision_bound=False)
         body = business_body(
             request.data,

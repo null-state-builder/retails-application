@@ -3,34 +3,48 @@ from __future__ import annotations
 from typing import Any
 
 from rest_framework import serializers
-from rest_framework.validators import UniqueValidator
 
-from accounts.role_lists import declare_role_list
+from accounts.actions import TENANT_MASTER_READ_ACTIONS
+from accounts.principal import AccessContext, effective_grants
+from accounts.role_assignments import effective_assignments
+from accounts.sections import meets
+from accounts.unified_policy import role_capability
+from core.tenancy import current_tenant_id, require_tenant_id
 from masters.models import Brand, Season
 from vendors.models import Booking, BookingLine, Vendor
 
-#: Legacy roles that never see what KDPS pays a vendor. A booking's cost per
-#: piece is indicative buying data, the same kind the goods-v1 grants keep from
-#: store, cashier and warehouse roles (their templates carry no ``cost`` field).
-COST_BLIND_ROLES = declare_role_list(
-    "vendors.booking_cost_blind_roles",
-    ("store_person", "warehouse"),
-    reason=(
-        "A booking's cost per piece is what KDPS pays a vendor. The section ladder "
-        "says which screens a role reaches, not which fields on a shared screen it "
-        "may read, so the store and warehouse seats that open Bookings are named "
-        "here to keep the cost column from them."
-    ),
-)
+def shows_booking_cost(
+    user: Any, cells: list[tuple[int | None, int]] | None = None, *, minimum: str = "view"
+) -> bool:
+    """Cost needs one qualifying assignment for every site/brand cell.
 
-
-def shows_booking_cost(user: Any) -> bool:
-    """Whether ``user`` may read a booking's cost. An unknown caller, or a login
-    with no role, sees none."""
-    if user is None or not getattr(user, "is_authenticated", False):
+    Before a draft identifies its brand and destinations, only an explicit
+    all-sites/all-brands assignment may see the extracted cost.
+    """
+    if (
+        user is None or not getattr(user, "is_authenticated", False)
+        or getattr(user, "tenant_id", None) != require_tenant_id()
+        or not getattr(user, "human_id", None)
+    ):
         return False
-    role = getattr(user, "role", None)
-    return role is not None and role.code not in COST_BLIND_ROLES
+    assignments = effective_assignments(user.human_id)
+    roles = {row.pk: row.role for row in assignments}
+    access = AccessContext(
+        user=user, human_id=user.human_id, tenant_id=user.tenant_id,
+        session=None, grants=effective_grants(user.human_id),
+    )
+    qualifying = [
+        grant for grant in access.grants
+        if "cost" in grant.fields
+        and (role := roles.get(grant.id)) is not None
+        and meets(role_capability(role, "booking"), minimum)
+    ]
+    if cells is None:
+        return any(grant.all_sites and grant.all_brands for grant in qualifying)
+    return bool(cells) and all(
+        any(access.grant_covers(grant, site_id, brand_id) for grant in qualifying)
+        for site_id, brand_id in cells
+    )
 
 
 class VendorSerializer(serializers.ModelSerializer[Vendor]):
@@ -57,12 +71,34 @@ class VendorSerializer(serializers.ModelSerializer[Vendor]):
             "brand_names",
             "is_active",
         ]
-        extra_kwargs = {"code": {"validators": [UniqueValidator(queryset=Vendor.objects.all())]}}
+    def get_fields(self) -> dict[str, Any]:
+        fields = super().get_fields()
+        # `many=True` wraps the PK field. Narrow its lookup before DRF resolves
+        # an input ID, so foreign and nonexistent brands get the same refusal.
+        request = self.context.get("request")
+        actor_tenant = getattr(getattr(request, "user", None), "tenant_id", None)
+        tenant_id = current_tenant_id()
+        if tenant_id != actor_tenant:
+            tenant_id = None
+        brand_field = fields["brands"]
+        assert isinstance(brand_field, serializers.ManyRelatedField)
+        child = brand_field.child_relation
+        assert isinstance(child, serializers.PrimaryKeyRelatedField)
+        child.queryset = Brand.objects.filter(tenant_id=tenant_id) if tenant_id else Brand.objects.none()
+        return fields
+
+    def validate_code(self, value: str) -> str:
+        clash = Vendor.objects.filter(tenant_id=require_tenant_id(), code=value)
+        if self.instance is not None:
+            clash = clash.exclude(pk=self.instance.pk)
+        if clash.exists():
+            raise serializers.ValidationError("Another vendor already uses that code.")
+        return value
 
     def validate_gstin(self, value: str) -> str:
         """A nonblank GSTIN identifies at most one vendor in the tenant."""
         if value:
-            clash = Vendor.objects.filter(gstin=value)
+            clash = Vendor.objects.filter(tenant_id=require_tenant_id(), gstin=value)
             if self.instance is not None:
                 clash = clash.exclude(pk=self.instance.pk)
             if clash.exists():
@@ -70,7 +106,22 @@ class VendorSerializer(serializers.ModelSerializer[Vendor]):
         return value
 
     def get_brand_names(self, obj: Vendor) -> list[str]:
-        return [b.name for b in obj.brands.all()]
+        return [b.name for b in self._readable_brands(obj)]
+
+    def _readable_brands(self, obj: Vendor) -> list[Brand]:
+        access = self.context.get("vendor_access")
+        if not isinstance(access, AccessContext):
+            return []
+        return [
+            brand for brand in obj.brands.all()
+            if brand.tenant_id == access.tenant_id
+            and access.can_reach_brand(TENANT_MASTER_READ_ACTIONS, brand.pk)
+        ]
+
+    def to_representation(self, instance: Vendor) -> dict[str, Any]:
+        data = super().to_representation(instance)
+        data["brands"] = [brand.pk for brand in self._readable_brands(instance)]
+        return data
 
 
 class BookingLineSerializer(serializers.ModelSerializer[BookingLine]):
@@ -161,7 +212,11 @@ class BookingSerializer(serializers.ModelSerializer[Booking]):
         request = self.context.get("request")
         # Omitted, never nulled: a missing key says "not yours to see", a null
         # says "nobody gave one". Without a request nobody is known, so no cost.
-        if not shows_booking_cost(getattr(request, "user", None)):
+        cells = [
+            (line.store_id or instance.destination_store_id, instance.brand_id)
+            for line in instance.lines.all()
+        ]
+        if not shows_booking_cost(getattr(request, "user", None), cells):
             data.pop("cost_total_paise", None)
             for line in data.get("lines") or []:
                 line.pop("cost_paise", None)

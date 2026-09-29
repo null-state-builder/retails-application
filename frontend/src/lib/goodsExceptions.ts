@@ -606,6 +606,6 @@ export function groupExceptionsByKind(rows: ExceptionRow[]): ExceptionGroup[] {
 
 /** Does this session hold a grant that shows exceptions and goods
  *  notifications? The one gate Action Needed and its top-bar button ask. */
-export function canSeeExceptions(session: { actions: string[] } | null): boolean {
+export function canSeeExceptions(session: { display_actions: string[] } | null): boolean {
   return hold(session, "exception.view") || hold(session, "exception.manage");
 }

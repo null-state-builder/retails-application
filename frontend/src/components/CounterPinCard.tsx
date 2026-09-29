@@ -19,7 +19,7 @@ interface PinState {
 }
 
 export function CounterPinCard({ userId }: { userId: number | string }) {
-  const login = useResourceDoc<PinState>(`/goods-v1/auth/admin/users/${userId}`);
+  const login = useResourceDoc<PinState>(`/auth/admin/users/${userId}`);
   const stepUp = useStepUp();
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
@@ -48,15 +48,14 @@ export function CounterPinCard({ userId }: { userId: number | string }) {
   function setCounterPin() {
     const typed = pin;
     void run(
-      () =>
-        api.post(`/goods-v1/auth/admin/users/${userId}/till-pin`, { pin: typed, ...goodsMeta() }),
+      () => api.post(`/auth/admin/users/${userId}/till-pin`, { pin: typed, ...goodsMeta() }),
       "Counter PIN set. It works now, and on each till after its next sync.",
     );
   }
 
   function resetCounterPin() {
     void run(
-      () => api.post(`/goods-v1/auth/admin/users/${userId}/till-pin/reset`, goodsMeta()),
+      () => api.post(`/auth/admin/users/${userId}/till-pin/reset`, goodsMeta()),
       "Counter PIN cleared. The tills drop it on their next sync.",
     );
   }

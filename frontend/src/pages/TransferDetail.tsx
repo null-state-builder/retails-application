@@ -60,7 +60,6 @@ import {
   originLabel,
   originsOf,
   outstandingNote,
-  seesStockValue,
   outstandingOf,
   isHeldCustody,
   prePtSource,
@@ -174,7 +173,6 @@ export function NewTransferPanel({
   onDone: (transferId: string) => void;
   onCancel: () => void;
 }) {
-  const { session } = useAuth();
   // Where this site may send to is the server's answer, not the sites in this
   // person's session: a store person reads one site, their own, and a list
   // built from that offers nowhere to send (OPS-11). The server offers every
@@ -201,7 +199,7 @@ export function NewTransferPanel({
   // (goods ticket 13A). The cost basis carries both. A person whose cost grant
   // does not reach this site is refused that basis (FIELD_DENIED) and gets the
   // same list without values - never a broken form, never a zero.
-  const [valued, setValued] = useState(() => seesStockValue(session?.field_grants));
+  const [valued, setValued] = useState(false);
   const stock = useGoodsFetch<{ items: StockRow[] }, StockRow[]>(
     heldPool
       ? null
@@ -225,6 +223,10 @@ export function NewTransferPanel({
   useEffect(() => {
     if (stock.deniedField) setValued(false);
   }, [stock.deniedField]);
+
+  useEffect(() => {
+    setValued(false);
+  }, [sourceSiteId]);
 
   useEffect(() => {
     if (!prePt) return;
@@ -409,6 +411,12 @@ export function NewTransferPanel({
             "There is nowhere this site can send to: no other site of this company can receive goods."}
         </p>
       ) : null}
+      {!heldPool && (
+        <label className="check-row" data-testid="transfer-show-values">
+          <input type="checkbox" checked={valued} onChange={(event) => setValued(event.target.checked)} />
+          Show cost and MRP for this site
+        </label>
+      )}
       {listing ?? (
         <table data-testid="transfer-new-lines">
           <thead>

@@ -69,12 +69,6 @@ export function managesGoodsBookings(session: Session): boolean {
   return hold(session, "booking.manage");
 }
 
-/** Whether this session's grants carry the `cost` field at all. The server
- *  decides per booking; this only decides whether the form asks for it. */
-export function goodsSeesCost(session: Session): boolean {
-  return Boolean(session?.field_grants?.includes("cost"));
-}
-
 /** The goods-v1 booking list, for the one Bookings list to merge. */
 export function useGoodsBookingSummaries(enabled: boolean) {
   return useGoodsFetch<Page<BookingSummary>, BookingSummary[]>(
@@ -676,7 +670,7 @@ export function GoodsBookingDetail({ bookingId }: { bookingId: string }) {
         toComeTestId="gb-outstanding-total"
       />
 
-      {canManage && booking.state === "draft" && goodsSeesCost(session) && (
+      {canManage && booking.state === "draft" && booking.field_access?.writable_fields.includes("cost") && (
         <OpenToBuyPanel
           bookingId={booking.id}
           revision={booking.revision}

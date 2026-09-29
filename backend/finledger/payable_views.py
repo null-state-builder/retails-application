@@ -312,8 +312,8 @@ def _require_reader(user: Any) -> None:
         raise Refusal("ACTION_DENIED", "Payables are Accounts' and the Owner's work.")
 
 
-def _require_editor(user: Any) -> None:
-    if not pay.may_edit(user):
+def _require_editor(user: Any, site_id: int | None, brand_id: int | None = None) -> None:
+    if not pay.may_edit(user, site_id, brand_id):
         raise Refusal(
             "ACTION_DENIED", "Accounts records vendor invoices and the payments made on them."
         )
@@ -343,7 +343,7 @@ def _invoice_answer(user: Any, tenant_id: Any, pk: int) -> dict[str, Any]:
         invoice,
         paid=pay.paid_by_invoice([pk]).get(pk, 0),
         today=timezone.localdate(),
-        editor=pay.may_edit(user),
+        editor=pay.may_edit(user, invoice.store_id, invoice.brand_id),
         switched_on=is_feature_on(invoice.store_id, pay.FEATURE_KEY),
     )
 
@@ -357,7 +357,7 @@ def _payment_answer(user: Any, tenant_id: Any, pk: int) -> dict[str, Any]:
     return payment_json(
         payment,
         invoices=invoices,
-        editor=pay.may_edit(user),
+        editor=pay.may_edit(user, payment.store_id),
         switched_on=is_feature_on(payment.store_id, pay.FEATURE_KEY),
     )
 
@@ -390,7 +390,6 @@ class GoodsPayablesView(GoodsAPIView):
         stores = pay.readable_stores(user, access.tenant_id)
         store_id = _store_filter(params.get("store", ""), stores)
         switches = {store.pk: is_feature_on(store, pay.FEATURE_KEY) for store in stores}
-        editor = pay.may_edit(user)
         today = timezone.localdate()
 
         invoices = pay.readable_invoices(user, access.tenant_id)
@@ -399,6 +398,9 @@ class GoodsPayablesView(GoodsAPIView):
             invoices = invoices.filter(store_id=store_id)
             payments = payments.filter(store_id=store_id)
         every = list(invoices)
+        editor = pay.may_edit(user) or any(
+            pay.may_edit(user, invoice.store_id, invoice.brand_id) for invoice in every
+        )
         paid = pay.paid_by_invoice(inv.pk for inv in every)
         rows, totals, unknown = pay.summarise(pay.figures_of(every, paid), today, group=group)
         by_id = {inv.pk: inv for inv in every}
@@ -431,7 +433,7 @@ class GoodsPayablesView(GoodsAPIView):
                     inv,
                     paid=paid.get(inv.pk, 0),
                     today=today,
-                    editor=editor,
+                    editor=pay.may_edit(user, inv.store_id, inv.brand_id),
                     switched_on=switches.get(inv.store_id, False),
                 )
                 for inv in shown
@@ -440,7 +442,7 @@ class GoodsPayablesView(GoodsAPIView):
                 payment_json(
                     payment,
                     invoices=by_id,
-                    editor=editor,
+                    editor=pay.may_edit(user, payment.store_id),
                     switched_on=switches.get(payment.store_id, False),
                 )
                 for payment in paid_rows
@@ -491,7 +493,6 @@ class GoodsPayableInvoiceCreateView(GoodsAPIView):
         access = self.access(request)
         user = request.user
         _require_reader(user)
-        _require_editor(user)
         meta = parse_meta(request.data, revision_bound=False)
         body = business_body(
             request.data,
@@ -516,6 +517,8 @@ class GoodsPayableInvoiceCreateView(GoodsAPIView):
             ),
         )
         store_id = body.get("store_id") if isinstance(body.get("store_id"), int) else None
+        brand_id = body.get("brand_id") if isinstance(body.get("brand_id"), int) else None
+        _require_editor(user, store_id, brand_id)
 
         def handler(run: CommandRun) -> CommandResult:
             invoice = pay.record_invoice(
@@ -552,7 +555,6 @@ class GoodsPayablePaymentCreateView(GoodsAPIView):
         access = self.access(request)
         user = request.user
         _require_reader(user)
-        _require_editor(user)
         meta = parse_meta(request.data, revision_bound=False)
         body = business_body(
             request.data,
@@ -577,6 +579,7 @@ class GoodsPayablePaymentCreateView(GoodsAPIView):
             ),
         )
         store_id = body.get("store_id") if isinstance(body.get("store_id"), int) else None
+        _require_editor(user, store_id)
 
         def handler(run: CommandRun) -> CommandResult:
             payment = pay.record_payment(
@@ -618,7 +621,7 @@ class GoodsPayableInvoiceCancelView(GoodsAPIView):
         user = request.user
         _require_reader(user)
         current = _invoice_answer(user, access.tenant_id, pk)
-        _require_editor(user)
+        _require_editor(user, current["store"]["id"], current["brand"]["id"])
         meta = parse_meta(request.data, revision_bound=True)
         body = business_body(request.data, {"reason"}, required=("reason",))
 
@@ -657,7 +660,7 @@ class GoodsPayablePaymentCancelView(GoodsAPIView):
         user = request.user
         _require_reader(user)
         current = _payment_answer(user, access.tenant_id, pk)
-        _require_editor(user)
+        _require_editor(user, current["store"]["id"])
         meta = parse_meta(request.data, revision_bound=True)
         body = business_body(request.data, {"reason"}, required=("reason",))
 

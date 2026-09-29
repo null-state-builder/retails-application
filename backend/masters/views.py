@@ -21,21 +21,24 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.serializers import BaseSerializer
 from rest_framework.views import APIView
 
 from accounts.models import User
 from accounts.permissions import require_section
+from accounts.principal import resolve_access
 from accounts.sections import CAP_MANAGE, CAP_VIEW
 from core.fiscal import financial_year_months
-from core.refusals import first_message, refusal_body
+from core.refusals import Refusal, first_message, refusal_body
 from core.textsearch import search_term, text_filter
-from masters.models import Brand, Gstin, LegalEntity, Season, Sku, Store, StoreTarget
+from core.tenancy import require_tenant_id
+from masters.models import Brand, Gstin, LegalEntity, Season, Store, StoreTarget
 
 # Re-exported: the gate moved to `masters.permissions` so the vendor master —
 # which lives in `vendors` because it carries bookings — is gated by the same
 # rule. Imported here so `from masters.views import IsMasterSteward` still reads.
 from masters.permissions import IsMasterSteward
-from masters.scoping import scope_by_entitlement, scoped_stores
+from masters.scoping import scope_by_entitlement, scoped_brands, scoped_stores
 from masters.serializers import (
     BrandSerializer,
     GstinSerializer,
@@ -63,8 +66,14 @@ class StoreListView(generics.ListCreateAPIView[Store]):
     permission_classes = [IsAuthenticated, IsMasterSteward]
 
     def get_queryset(self) -> Any:
-        qs = scoped_stores(self.request.user).select_related("gstin", "goods_guard")
+        qs = scoped_stores(self.request.user, section="setup", minimum="view").select_related("gstin", "goods_guard")
         return text_filter(qs, search_term(self.request), STORE_SEARCH_FIELDS)
+
+    def perform_create(self, serializer: BaseSerializer[Store]) -> None:
+        access = resolve_access(self.request)
+        access.require("org.site.manage")
+        with access.guard_legacy_write(lambda fresh: fresh.can("org.site.manage")):
+            serializer.save()
 
 
 class LocationListView(generics.ListAPIView[Store]):
@@ -83,13 +92,29 @@ class LocationListView(generics.ListAPIView[Store]):
 
     serializer_class = LocationSerializer
     permission_classes = [IsAuthenticated]
-    queryset = Store.objects.filter(is_active=True).select_related("gstin").order_by("code")
+    def get_queryset(self) -> Any:
+        resolve_access(self.request).require_action("org.site.route")
+        return Store.objects.filter(
+            tenant_id=require_tenant_id(), is_active=True
+        ).select_related("gstin").order_by("code")
 
 
 class StoreDetailView(generics.RetrieveUpdateAPIView[Store]):
     serializer_class = StoreSerializer
     permission_classes = [IsAuthenticated, IsMasterSteward]
-    queryset = Store.objects.select_related("gstin", "goods_guard").all()
+    def get_queryset(self) -> Any:
+        return scoped_stores(self.request.user, section="setup", minimum="view").select_related("gstin", "goods_guard")
+
+    def perform_update(self, serializer: BaseSerializer[Store]) -> None:
+        access = resolve_access(self.request)
+        instance = serializer.instance
+        assert instance is not None
+        site_id = instance.pk
+        access.require("org.site.manage", site_id=site_id)
+        with access.guard_legacy_write(
+            lambda fresh: fresh.can("org.site.manage", site_id=site_id)
+        ):
+            serializer.save()
 
 
 # --- Brands --------------------------------------------------------------
@@ -100,14 +125,32 @@ class BrandListView(generics.ListCreateAPIView[Brand]):
     permission_classes = [IsAuthenticated, IsMasterSteward]
 
     def get_queryset(self) -> Any:
-        qs = Brand.objects.filter(is_active=True)
+        qs = scoped_brands(self.request.user, section="setup", minimum="view").filter(is_active=True)
         return text_filter(qs, search_term(self.request), BRAND_SEARCH_FIELDS)
+
+    def perform_create(self, serializer: BaseSerializer[Brand]) -> None:
+        access = resolve_access(self.request)
+        access.require("vendor.manage")
+        with access.guard_legacy_write(lambda fresh: fresh.can("vendor.manage")):
+            serializer.save()
 
 
 class BrandDetailView(generics.RetrieveUpdateAPIView[Brand]):
     serializer_class = BrandSerializer
     permission_classes = [IsAuthenticated, IsMasterSteward]
-    queryset = Brand.objects.all()
+    def get_queryset(self) -> Any:
+        return scoped_brands(self.request.user, section="setup", minimum="view")
+
+    def perform_update(self, serializer: BaseSerializer[Brand]) -> None:
+        access = resolve_access(self.request)
+        instance = serializer.instance
+        assert instance is not None
+        brand_id = instance.pk
+        access.require("vendor.manage", brand_id=brand_id)
+        with access.guard_legacy_write(
+            lambda fresh: fresh.can("vendor.manage", brand_id=brand_id)
+        ):
+            serializer.save()
 
 
 # --- Seasons -------------------------------------------------------------
@@ -118,14 +161,31 @@ class SeasonListView(generics.ListCreateAPIView[Season]):
     permission_classes = [IsAuthenticated, IsMasterSteward]
 
     def get_queryset(self) -> Any:
+        resolve_access(self.request).require_action("org.site.route")
         qs = Season.objects.all()
         return text_filter(qs, search_term(self.request), SEASON_SEARCH_FIELDS)
+
+    def perform_create(self, serializer: BaseSerializer[Season]) -> None:
+        raise Refusal(
+            "TENANT_SCOPE_UNRESOLVED",
+            "Legacy seasons need tenant ownership before they can be changed.",
+            status=409,
+        )
 
 
 class SeasonDetailView(generics.RetrieveUpdateAPIView[Season]):
     serializer_class = SeasonSerializer
     permission_classes = [IsAuthenticated, IsMasterSteward]
-    queryset = Season.objects.all()
+    def get_queryset(self) -> Any:
+        resolve_access(self.request).require_action("org.site.route")
+        return Season.objects.all()
+
+    def perform_update(self, serializer: BaseSerializer[Season]) -> None:
+        raise Refusal(
+            "TENANT_SCOPE_UNRESOLVED",
+            "Legacy seasons need tenant ownership before they can be changed.",
+            status=409,
+        )
 
 
 # --- GSTINs --------------------------------------------------------------
@@ -136,14 +196,33 @@ class GstinListView(generics.ListCreateAPIView[Gstin]):
     permission_classes = [IsAuthenticated, IsMasterSteward]
 
     def get_queryset(self) -> Any:
-        qs = Gstin.objects.select_related("legal_entity").filter(is_active=True)
+        qs = Gstin.objects.select_related("legal_entity").filter(
+            tenant_id=require_tenant_id(), is_active=True,
+            pk__in=scoped_stores(self.request.user, section="setup", minimum="view").values("gstin_id"),
+        )
         return text_filter(qs, search_term(self.request), GSTIN_SEARCH_FIELDS)
+
+    def perform_create(self, serializer: BaseSerializer[Gstin]) -> None:
+        access = resolve_access(self.request)
+        access.require("org.entity.manage")
+        with access.guard_legacy_write(lambda fresh: fresh.can("org.entity.manage")):
+            serializer.save()
 
 
 class GstinDetailView(generics.RetrieveUpdateAPIView[Gstin]):
     serializer_class = GstinSerializer
     permission_classes = [IsAuthenticated, IsMasterSteward]
-    queryset = Gstin.objects.select_related("legal_entity").all()
+    def get_queryset(self) -> Any:
+        return Gstin.objects.select_related("legal_entity").filter(
+            tenant_id=require_tenant_id(),
+            pk__in=scoped_stores(self.request.user, section="setup", minimum="view").values("gstin_id"),
+        )
+
+    def perform_update(self, serializer: BaseSerializer[Gstin]) -> None:
+        access = resolve_access(self.request)
+        access.require("org.entity.manage")
+        with access.guard_legacy_write(lambda fresh: fresh.can("org.entity.manage")):
+            serializer.save()
 
 
 # --- Legal entities ------------------------------------------------------
@@ -152,7 +231,11 @@ class GstinDetailView(generics.RetrieveUpdateAPIView[Gstin]):
 class LegalEntityListView(generics.ListAPIView[LegalEntity]):
     serializer_class = LegalEntitySerializer
     permission_classes = [IsAuthenticated]
-    queryset = LegalEntity.objects.filter(is_active=True)
+    def get_queryset(self) -> Any:
+        return LegalEntity.objects.filter(
+            tenant_id=require_tenant_id(), is_active=True,
+            pk__in=scoped_stores(self.request.user, section="setup", minimum="view").values("gstin__legal_entity_id"),
+        )
 
 
 class SkuLookupView(APIView):
@@ -195,31 +278,21 @@ class SkuLookupView(APIView):
         }
     )
     def get(self, request: Request) -> Response:
+        resolve_access(request).require_action("product.master.propose")
         params = {
             key: (request.query_params.get(key) or "").strip()
             for key in ("design", "size", "brand", "barcode")
         }
         if not (params["design"] or params["barcode"]):
             return Response({"detail": "Pass design= or barcode= to look up."}, status=400)
-        qs = Sku.objects.filter(is_active=True)
-        for field in ("design", "size", "brand", "barcode"):
-            if params[field]:
-                qs = qs.filter(**{f"{field}__iexact": params[field]})
-        matches = [
-            {
-                "barcode": s.barcode,
-                "design": s.design,
-                "color": s.color,
-                "size": s.size,
-                "brand": s.brand,
-                "item": s.item,
-                "hsn": s.hsn,
-                "mrp": (s.mrp_paise / 100) if s.mrp_paise is not None else None,
-                "first_doc_number": s.first_doc_number,
-            }
-            for s in qs.order_by("-updated_at")[:10]
-        ]
-        return Response({"matches": matches, "count": len(matches)})
+        # The legacy Sku table has no tenant key. A barcode or matching display
+        # brand cannot establish ownership. An empty result would invite a
+        # duplicate barcode, so the old lookup refuses until SO-04 maps it.
+        raise Refusal(
+            "TENANT_SCOPE_UNRESOLVED",
+            "Use the tenant-owned product lookup after legacy SKU mapping.",
+            status=409,
+        )
 
 
 # --- Store targets -------------------------------------------------------
@@ -267,7 +340,7 @@ class StoreTargetView(APIView):
     def get(self, request: Request) -> Response:
         rows = scope_by_entitlement(
             StoreTarget.objects.select_related("store"), request.user, "store_id"
-        )
+        , section="money", minimum="view")
         code = (request.query_params.get("store") or "").strip()
         if code:
             # Narrows *within* scope: the filter is applied after the gate, so
@@ -289,7 +362,9 @@ class StoreTargetView(APIView):
         if not form.is_valid():
             return Response(refusal_body("VALIDATION", first_message(form.errors)), status=400)
         code = form.validated_data["store"]
-        store = Store.objects.filter(code__iexact=code, is_active=True).first()
+        store = Store.objects.filter(
+            tenant_id=require_tenant_id(), code__iexact=code, is_active=True
+        ).first()
         if store is None:
             # A closed store is not a store to plan against, so it answers the
             # same as one that never existed. The contract says only "store must
@@ -300,7 +375,7 @@ class StoreTargetView(APIView):
         # Beyond the contract's own steps, deliberately: `money: manage` says what
         # a person may do, never where. Without this, one rung would set targets
         # for stores the admin never entitled them to.
-        entitled = scope_by_entitlement(Store.objects.filter(pk=store.pk), request.user, "id")
+        entitled = scope_by_entitlement(Store.objects.filter(pk=store.pk), request.user, "id", section="money", minimum="manage")
         if not entitled.exists():
             return Response(
                 refusal_body("SCOPE_DENIED", f"{store.code} is not one of your locations."),
@@ -342,16 +417,24 @@ class SummaryView(APIView):
         }
     )
     def get(self, request: Request) -> Response:
-        stores = scoped_stores(request.user)
-        open_season = Season.objects.filter(status=Season.Status.OPEN).first()
+        resolve_access(request).require_action("org.site.route")
+        stores = scoped_stores(request.user, section="setup", minimum="view")
+        gstins = Gstin.objects.filter(
+            tenant_id=require_tenant_id(), pk__in=stores.values("gstin_id")
+        )
         return Response(
             {
-                "entities": LegalEntity.objects.filter(is_active=True).count(),
-                "gstins": Gstin.objects.filter(is_active=True).count(),
+                "entities": LegalEntity.objects.filter(
+                    tenant_id=require_tenant_id(), is_active=True,
+                    pk__in=gstins.values("legal_entity_id"),
+                ).count(),
+                "gstins": gstins.filter(is_active=True).count(),
                 "stores": stores.count(),
                 "warehouses": stores.filter(store_type=Store.StoreType.WAREHOUSE).count(),
-                "brands": Brand.objects.filter(is_active=True).count(),
-                "seasons": Season.objects.count(),
-                "open_season": open_season.name if open_season else None,
+                "brands": scoped_brands(request.user, section="setup", minimum="view").filter(is_active=True).count(),
+                # Legacy Season has no tenant key. SO-04 must map it before a
+                # tenant-specific count or open-season label can be shown.
+                "seasons": 0,
+                "open_season": None,
             }
         )

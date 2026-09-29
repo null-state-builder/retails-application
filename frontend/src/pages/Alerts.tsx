@@ -34,7 +34,7 @@ export function AlertsPage() {
   const { user, session } = useAuth();
   // Each block keeps the gate its old screen had: deadlines behind Home, the
   // goods notifications behind the exception grants.
-  const canSeeDeadlines = !!user?.is_superuser || (user?.capabilities?.home ?? "none") !== "none";
+  const canSeeDeadlines = (user?.capabilities?.home ?? "none") !== "none";
   const canSeeGoods = canSeeExceptions(session);
 
   return (

@@ -38,19 +38,20 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.permissions import user_can
+from accounts.principal import access_for_user
+from accounts.sections import CAP_VIEW
 from core.documents import DocStatus
 from core.textsearch import search_term
-from masters.models import Brand, Cohort, Sku
+from core.tenancy import require_tenant_id
+from masters.models import Brand
 from masters.scoping import (
-    active_store_ids,
-    is_brand_scoped,
     scope_by_store_and_brand,
 )
 from outbound.models import ReturnToVendor, StockAdjustment, StoreTransfer, VFlip, WriteOff
-from outbound.scoping import transfer_at_stores
+from outbound.scoping import scope_transfers, transfer_at_stores
 from stockledger.models import StockOnHand
 from vendors.models import Booking
-from vendors.scoping import booking_at_stores
+from vendors.scoping import booking_at_stores, scope_bookings
 
 #: Shortest query we will run. One character matches half the catalogue and the
 #: panel would be noise, not an answer.
@@ -119,6 +120,12 @@ class DocType:
     #: Where the document happened, for the result's second line.
     context: Callable[[Any], str]
     status: Callable[[Any], str] = _docstatus
+    brand_field: str | None = None
+    #: Every ownership link must belong to the bound tenant. Legacy documents
+    #: have no tenant column of their own, so an all-sites assignment alone is
+    #: not evidence that a row belongs to this deployment.
+    tenant_paths: tuple[str, ...] = ()
+    nullable_tenant_paths: tuple[str, ...] = ()
 
 
 DOC_TYPES: list[DocType] = [
@@ -132,6 +139,9 @@ DOC_TYPES: list[DocType] = [
         related=("brand", "vendor", "destination_store"),
         context=lambda d: d.brand.name,
         status=lambda d: str(d.get_status_display()),
+        brand_field="brand_id",
+        tenant_paths=("brand", "vendor"),
+        nullable_tenant_paths=("destination_store",),
     ),
     DocType(
         label="Transfer",
@@ -142,6 +152,7 @@ DOC_TYPES: list[DocType] = [
         scope=_scope_transfer,
         related=("source_store", "destination_store"),
         context=lambda d: f"{d.source_store.code} → {d.destination_store.code}",
+        tenant_paths=("source_store", "destination_store"),
     ),
     DocType(
         label="Return to brand",
@@ -152,6 +163,9 @@ DOC_TYPES: list[DocType] = [
         scope=_scope_store,
         related=("store", "brand"),
         context=lambda d: f"{_store_code(d)} · {d.brand.name}" if d.brand else _store_code(d),
+        brand_field="brand_id",
+        tenant_paths=("store", "vendor"),
+        nullable_tenant_paths=("brand",),
     ),
     DocType(
         label="Adjustment",
@@ -162,6 +176,7 @@ DOC_TYPES: list[DocType] = [
         scope=_scope_store,
         related=("store",),
         context=_store_code,
+        tenant_paths=("store",),
     ),
     DocType(
         label="Write-off",
@@ -172,6 +187,7 @@ DOC_TYPES: list[DocType] = [
         scope=_scope_store,
         related=("store",),
         context=_store_code,
+        tenant_paths=("store",),
     ),
     DocType(
         label="V-flip",
@@ -182,6 +198,8 @@ DOC_TYPES: list[DocType] = [
         scope=_scope_store,
         related=("store", "original_brand"),
         context=_store_code,
+        brand_field="original_brand_id",
+        tenant_paths=("store", "original_brand"),
     ),
 ]
 
@@ -191,22 +209,65 @@ DOC_TYPES: list[DocType] = [
 # --------------------------------------------------------------------------
 
 
+def _section_assignments(user: Any, section: str) -> list[Any]:
+    if (
+        not getattr(user, "is_authenticated", False)
+        or not getattr(user, "is_active", False)
+        or getattr(user, "tenant_id", None) != require_tenant_id()
+    ):
+        return []
+    human_id = getattr(user, "human_id", None)
+    if human_id is None:
+        return []
+    return access_for_user(user).section_grants(section, CAP_VIEW)
+
+
+def _stock_brands(user: Any) -> tuple[bool, set[int]]:
+    rows = _section_assignments(user, "stock")
+    return any(row.all_brands for row in rows), {
+        int(brand_id) for row in rows for brand_id in row.brand_ids
+    }
+
+
 def _search_documents(user: Any, q: str) -> tuple[list[dict[str, Any]], bool]:
     """Documents whose voucher number contains `q`, across every type the caller
     may see. Returns the capped rows and whether anything was dropped."""
-    # A document carries no brand, so a brand-scoped caller has nothing here that
-    # could be shown to be theirs. Fail closed rather than read their empty store
-    # list as "unrestricted" (ADR-0003).
-    if is_brand_scoped(user):
-        return [], False
-    store_ids = active_store_ids(user)
     per_type: list[list[dict[str, Any]]] = []
+    tenant_id = require_tenant_id()
     for spec in DOC_TYPES:
-        if not user_can(user, spec.section):
+        assignments = _section_assignments(user, spec.section)
+        if not assignments:
             continue
         qs = spec.model.objects.filter(**{f"{spec.number_field}__icontains": q})
-        if store_ids is not None:
-            qs = spec.scope(qs, store_ids)
+        for path in spec.tenant_paths:
+            qs = qs.filter(**{f"{path}__tenant_id": tenant_id})
+        for path in spec.nullable_tenant_paths:
+            qs = qs.filter(
+                Q(**{f"{path}__isnull": True}) | Q(**{f"{path}__tenant_id": tenant_id})
+            )
+        if spec.model is StoreTransfer:
+            # The transfer service checks snapshot brands across every line;
+            # treating this document as brandless would hide selected-brand
+            # assignments that its list/detail/file endpoints now accept.
+            qs = scope_transfers(qs, user)
+        elif spec.model is Booking:
+            # A booking can span several lines/sites. Its owning service checks
+            # every affected cell; matching just one line here would disclose a
+            # voucher its detail endpoint correctly refuses to show.
+            qs = scope_bookings(qs, user, minimum="view")
+        else:
+            scopes = Q(pk__in=[])
+            for assignment in assignments:
+                # A brandless document can only be proved in-scope by an
+                # all-brands assignment. Keep each assignment's site and brand
+                # halves together for branded documents.
+                if spec.brand_field is None and not assignment.all_brands:
+                    continue
+                part = qs if assignment.all_sites else spec.scope(qs, list(assignment.site_ids))
+                if spec.brand_field is not None and not assignment.all_brands:
+                    part = part.filter(**{f"{spec.brand_field}__in": assignment.brand_ids})
+                scopes |= Q(pk__in=part.values("pk"))
+            qs = qs.filter(scopes)
         found: list[dict[str, Any]] = []
         for doc in qs.select_related(*spec.related).order_by("-id")[: MAX_PER_GROUP + 1]:
             number = str(getattr(doc, spec.number_field) or "")
@@ -241,15 +302,15 @@ def _search_documents(user: Any, q: str) -> tuple[list[dict[str, Any]], bool]:
 def _stock_context(user: Any, barcodes: list[str]) -> dict[tuple[str, str], tuple[int, set[str]]]:
     """`(barcode, season) → (qty, store codes)` within the caller's scope only.
 
-    The item identity is master data everyone may look up; *how much is where*
-    is store data, so this is the line the anti-leak test guards — on both axes,
-    since a brand manager scanning another brand's barcode must be told the item
-    and nothing about its stock.
+    Search identity and quantity both come from tenant-owned stock projections:
+    the legacy SKU/cohort tables have no tenant key and cannot establish which
+    tenant owns a barcode or season.
     """
     rows = scope_by_store_and_brand(
         StockOnHand.objects.filter(sku_code__in=barcodes, net_qty__gt=0),
         user,
         "store_id",
+        section="stock",
     ).select_related("store")
     context: dict[tuple[str, str], tuple[int, set[str]]] = defaultdict(lambda: (0, set()))
     for row in rows:
@@ -273,68 +334,71 @@ def _stock_meta(context: dict[tuple[str, str], tuple[int, set[str]]], key: tuple
 def _search_items(user: Any, q: str) -> tuple[list[dict[str, Any]], bool]:
     """Items by scanned barcode or free text, each cohort carrying its own stock.
 
-    A barcode is a scan-alias, not a unique key for stock: the same barcode is
-    bought season after season at different locked costs, so an exact scan
-    answers with the SKU's cohorts (issue #86), each with its own stock line.
+    A barcode is a scan-alias, not a unique key for stock. Until SO-04 moves
+    legacy SKU/cohort history into tenant-owned masters, only a stock row at a
+    scoped site and brand proves that this tenant may see its item dimensions
+    and season. A global SKU row must never supply another tenant's metadata.
     """
     if not user_can(user, "stock"):
         return [], False
-    base = Sku.objects.filter(is_active=True)
-    exact = list(base.filter(barcode__iexact=q)[:1])
-    if exact:
-        skus = exact
-    else:
-        skus = list(
-            base.filter(
-                Q(barcode__icontains=q)
-                | Q(design__icontains=q)
-                | Q(item__icontains=q)
-                | Q(brand__icontains=q)
-            ).order_by("barcode")[: MAX_PER_GROUP + 1]
-        )
-    truncated = len(skus) > MAX_PER_GROUP
-    skus = skus[:MAX_PER_GROUP]
-    if not skus:
+    stock = scope_by_store_and_brand(StockOnHand.objects.all(), user, section="stock")
+    exact = list(stock.filter(sku_code__iexact=q).order_by("sku_code").values_list(
+        "sku_code", flat=True
+    ).distinct()[:1])
+    barcodes = exact or list(
+        stock.filter(
+            Q(sku_code__icontains=q)
+            | Q(design__icontains=q)
+            | Q(item__icontains=q)
+            | Q(brand__icontains=q)
+        ).order_by("sku_code").values_list("sku_code", flat=True).distinct()[: MAX_PER_GROUP + 1]
+    )
+    truncated = len(barcodes) > MAX_PER_GROUP
+    barcodes = barcodes[:MAX_PER_GROUP]
+    if not barcodes:
         return [], False
 
-    barcodes = [s.barcode for s in skus]
     context = _stock_context(user, barcodes)
-    cohorts: dict[str, list[Cohort]] = defaultdict(list)
-    for cohort in Cohort.objects.filter(barcode__in=barcodes).order_by("-id"):
-        cohorts[cohort.barcode].append(cohort)
+    owned_rows: dict[str, list[StockOnHand]] = defaultdict(list)
+    for stock_row in stock.filter(sku_code__in=barcodes).order_by("-updated_at", "-pk"):
+        owned_rows[stock_row.sku_code].append(stock_row)
 
     rows: list[dict[str, Any]] = []
-    for sku in skus:
-        identity = " · ".join(p for p in (sku.design, sku.color, sku.size) if p)
-        subtitle = " · ".join(p for p in (sku.brand, identity or sku.item) if p)
-        is_exact = sku.barcode.lower() == q.lower()
-        to = f"/stock?sku={quote(sku.barcode)}"
-        found = cohorts.get(sku.barcode, [])[:MAX_COHORTS_PER_SKU]
-        if not found:
+    for barcode in barcodes:
+        projections = owned_rows[barcode]
+        if not projections:
+            continue
+        sample = projections[0]
+        identity = " · ".join(p for p in (sample.design, sample.color, sample.size) if p)
+        subtitle = " · ".join(p for p in (sample.brand, identity or sample.item) if p)
+        is_exact = barcode.lower() == q.lower()
+        to = f"/stock?sku={quote(barcode)}"
+        seasons = list(dict.fromkeys(row.season for row in projections if row.season))[
+            :MAX_COHORTS_PER_SKU
+        ]
+        if not seasons:
             rows.append(
                 {
                     "kind": "item",
-                    "title": sku.barcode,
+                    "title": barcode,
                     "subtitle": subtitle,
-                    "meta": _stock_meta(context, (sku.barcode, "")),
+                    "meta": _stock_meta(context, (barcode, "")),
                     "to": to,
                     "exact": is_exact,
-                    "mrp_paise": sku.mrp_paise,
+                    "mrp_paise": None,
                 }
             )
             continue
-        for cohort in found:
+        for season in seasons:
             rows.append(
                 {
                     "kind": "item",
-                    "title": sku.barcode,
-                    "subtitle": f"{subtitle} · {cohort.season}".strip(" ·"),
-                    "meta": _stock_meta(context, (sku.barcode, cohort.season)),
+                    "title": barcode,
+                    "subtitle": f"{subtitle} · {season}".strip(" ·"),
+                    "meta": _stock_meta(context, (barcode, season)),
                     "to": to,
                     "exact": is_exact,
-                    "mrp_paise": cohort.mrp_paise
-                    if cohort.mrp_paise is not None
-                    else sku.mrp_paise,
+                    "mrp_paise": None,
                 }
             )
     return rows[:MAX_PER_GROUP], truncated or len(rows) > MAX_PER_GROUP
@@ -350,10 +414,14 @@ def _search_brands(user: Any, q: str) -> tuple[list[dict[str, Any]], bool]:
     """
     if not user_can(user, "stock"):
         return [], False
+    all_brands, brand_ids = _stock_brands(user)
     found = list(
-        Brand.objects.filter(Q(name__icontains=q) | Q(code__icontains=q), is_active=True).order_by(
-            "name"
-        )[: MAX_PER_GROUP + 1]
+        Brand.objects.filter(
+            Q(name__icontains=q) | Q(code__icontains=q),
+            tenant_id=require_tenant_id(), is_active=True,
+        )
+        .filter(Q() if all_brands else Q(pk__in=brand_ids))
+        .order_by("name")[: MAX_PER_GROUP + 1]
     )
     rows = [
         {

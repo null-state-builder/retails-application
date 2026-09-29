@@ -34,7 +34,9 @@ from typing import Any
 from django.contrib.contenttypes.models import ContentType
 
 from accounts.principal import AccessContext
-from accounts.role_lists import OPEN_TO_BUY_APPROVER_ROLES, OPEN_TO_BUY_BUDGET_EDITOR_ROLES
+from accounts.principal import access_for_user
+from accounts.role_lists import OPEN_TO_BUY_APPROVER_ROLES
+from accounts.sections import CAP_OPERATE
 from approvals.models import Approval, ApprovalStatus
 from approvals.services import AlreadyPendingError, ApprovalError, request_approval
 from core.commands import (
@@ -47,7 +49,7 @@ from core.commands import (
 )
 from core.kernel_models import DocumentHead
 from core.refusals import Refusal, issue
-from core.tenancy import current_tenant_id
+from core.tenancy import current_tenant_id, require_tenant_id
 from masters.models import Brand, Season, Store
 from masters.scoping import actionable_store_ids
 from masters.store_feature_registry import OPEN_TO_BUY
@@ -310,32 +312,24 @@ def reaches(access: AccessContext, site_id: int | None, brand_id: int) -> bool:
     reaching that site; the company's needs one reaching no particular site
     (tenant or brand scope).
     """
-    return "cost" in access.field_grants(site_id=site_id, brand_id=brand_id)
+    return access.covers_all_actions(
+        {"booking.manage"}, {(site_id, brand_id)}, {"cost"}
+    )
 
 
-def reaches_site(access: AccessContext, site_id: int) -> bool:
-    """A grant carrying ``cost`` reaches this site, for some brand."""
-    return any("cost" in g.fields and access.reaches_site(g, site_id) for g in access.grants)
+def may_set(user: Any, *, site_id: int | None, brand_id: int) -> bool:
+    """The Owner role/scope gate, used only before an access context is available."""
+    return access_for_user(user).covers_all({'booking.budget.manage'}, [(site_id, brand_id)], ['cost'])
 
 
-def sees_cost_somewhere(access: AccessContext) -> bool:
-    return any("cost" in grant.fields for grant in access.grants)
-
-
-def _role(user: Any) -> str:
-    return str(getattr(getattr(user, "role", None), "code", "") or "")
-
-
-def may_set(user: Any) -> bool:
-    """The Owner (B161), or break-glass; the cost reach is checked per budget."""
-    if getattr(user, "is_superuser", False):
-        return True
-    return _role(user) in OPEN_TO_BUY_BUDGET_EDITOR_ROLES
+def can_set_budget(access: AccessContext, *, site_id: int | None, brand_id: int) -> bool:
+    """The role, booking action and cost field must come from one assignment."""
+    return access.covers_all({"booking.budget.manage"}, [(site_id, brand_id)], {"cost"})
 
 
 def sites_switched_on(site_ids: Iterable[int]) -> set[int]:
     """Which of these sites have open-to-buy on."""
-    stores = list(Store.objects.filter(pk__in=list(site_ids)))
+    stores = list(Store.objects.filter(tenant_id=require_tenant_id(), pk__in=list(site_ids)))
     return {
         state.site_id
         for state in switch_states(stores, [registered_feature(FEATURE_KEY)])
@@ -345,9 +339,9 @@ def sites_switched_on(site_ids: Iterable[int]) -> set[int]:
 
 def on_anywhere(user: Any | None = None) -> bool:
     """On at an active site - one the person acts at, when a person is given."""
-    stores = Store.objects.filter(is_active=True)
+    stores = Store.objects.filter(tenant_id=require_tenant_id(), is_active=True)
     if user is not None:
-        ids = actionable_store_ids(user)
+        ids = actionable_store_ids(user, section="booking", minimum=CAP_OPERATE)
         if ids is not None:
             stores = stores.filter(pk__in=ids)
     return bool(sites_switched_on(stores.values_list("pk", flat=True)))
@@ -405,17 +399,17 @@ def _check_target(
     budget_paise: int,
 ) -> None:
     """Who may set this budget, for what, and whether the switch allows it."""
-    if not may_set(user):
+    if not can_set_budget(access, site_id=site_id, brand_id=brand_id):
         raise Refusal(
             "ACTION_DENIED",
             "The Owner sets open-to-buy budgets. The buyer reads them here.",
         )
-    if not Brand.objects.filter(pk=brand_id, is_active=True).exists():
+    if not Brand.objects.filter(tenant_id=access.tenant_id, pk=brand_id, is_active=True).exists():
         raise Refusal("INVALID_REQUEST", "No active brand has that ID.", status=422)
     if not Season.objects.filter(pk=season_id).exists():
         raise Refusal("INVALID_REQUEST", "No season has that ID.", status=422)
     if site_id is not None:
-        site = Store.objects.filter(pk=site_id, is_active=True).first()
+        site = Store.objects.filter(tenant_id=access.tenant_id, pk=site_id, is_active=True).first()
         if site is None:
             raise Refusal("INVALID_REQUEST", "No active site has that ID.", status=422)
     if not reaches(access, site_id, brand_id):

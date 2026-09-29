@@ -29,6 +29,7 @@ from __future__ import annotations
 
 from datetime import date
 from typing import Any
+import uuid
 
 from django.conf import settings
 from django.db import models
@@ -38,6 +39,25 @@ from offers.resolution import Rule
 
 
 class OfferQuerySet(models.QuerySet["Offer"]):
+    def for_tenant(self, tenant_id: uuid.UUID | None) -> OfferQuerySet:
+        """Only rules attributable to this tenant through a stable parent.
+
+        Offer predates tenant-owned records. A brand identifies its tenant;
+        brandless rules need an author or approver from this tenant. If both
+        people remain, they must agree. Store codes are deliberately not
+        evidence of ownership: two tenants may use the same code.
+        """
+        if tenant_id is None:
+            return self.none()
+        branded = models.Q(brand__tenant_id=tenant_id)
+        authored = models.Q(
+            brand__isnull=True, created_by__tenant_id=tenant_id,
+        ) & (models.Q(approved_by__isnull=True) | models.Q(approved_by__tenant_id=tenant_id))
+        approved_only = models.Q(
+            brand__isnull=True, created_by__isnull=True, approved_by__tenant_id=tenant_id,
+        )
+        return self.filter(branded | authored | approved_only)
+
     def live_on(self, day: date) -> OfferQuerySet:
         """Rules a counter should be pricing with on `day`.
 

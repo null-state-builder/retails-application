@@ -55,7 +55,7 @@ export function InventoryPage() {
   const [params] = useSearchParams();
 
   const tabs = useMemo(
-    () => foldTabsFor(INVENTORY_FOLD, user, session?.actions ?? [], featuresOn),
+    () => foldTabsFor(INVENTORY_FOLD, user, session?.display_actions ?? [], featuresOn),
     [user, session, featuresOn],
   );
   const active = resolveFoldTab(tabs, params.get("tab"));

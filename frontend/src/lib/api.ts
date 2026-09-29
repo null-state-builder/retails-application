@@ -29,19 +29,19 @@ export const authSession = {
 // is a permission. Held outside React because the interceptor needs it
 // synchronously, before any screen's fetch runs.
 let activeUnitCode = "";
-let activeBrandName = "";
+let activeBrandId = "";
 
 export const unitContext = {
   get unit() {
     return activeUnitCode;
   },
   get brand() {
-    return activeBrandName;
+    return activeBrandId;
   },
   /** Both are set together: choosing one clears the other. */
   set(next: { unit?: string; brand?: string }) {
     activeUnitCode = next.unit ?? "";
-    activeBrandName = next.brand ?? "";
+    activeBrandId = next.brand ?? "";
   },
 };
 
@@ -118,7 +118,10 @@ api.interceptors.response.use(
     // A goods request refused for authority: the menu this tab drew may be
     // older than the person's grants, so ask the session again (GSA-T02). The
     // refusal itself still reaches the screen unchanged.
-    if (error.response?.status === 403 && /\/goods-v1\//.test(String(original?.url ?? ""))) {
+    if (
+      error.response?.status === 403 &&
+      error.response?.data?.code !== "PASSWORD_CHANGE_REQUIRED"
+    ) {
       window.dispatchEvent(new Event("kdps:authority-refused"));
     }
     // GSA-T03/ticket 03A: a temporary-password session was refused for reaching

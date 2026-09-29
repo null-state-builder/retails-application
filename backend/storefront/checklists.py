@@ -46,9 +46,9 @@ from django.db import IntegrityError
 from django.db.models import Q
 from django.utils import timezone
 
-from accounts.permissions import user_can
-from accounts.role_lists import CHECKLIST_TEMPLATE_EDITOR_ROLES
-from accounts.sections import CAP_MANAGE, CAP_OPERATE, CAP_VIEW
+from accounts.permissions import user_can_at
+from accounts.principal import access_for_user
+from accounts.sections import CAP_OPERATE, CAP_VIEW
 from alerts.checks import AlertHit, sync_kind
 from alerts.models import Alert, AlertKind, AlertStatus
 from core.canonical import sha256_hex
@@ -116,20 +116,17 @@ def missed_days() -> int:
 
 
 def may_read_templates(user: Any) -> bool:
-    return bool(getattr(user, "is_superuser", False)) or user_can(user, "setup", CAP_VIEW)
+    return user_can_at(user, "setup", CAP_VIEW)
 
 
 def may_edit_templates(user: Any) -> bool:
-    """Admin: ``setup: manage`` and a declared editor role (or break-glass)."""
-    if getattr(user, "is_superuser", False):
-        return True
-    code = getattr(getattr(user, "role", None), "code", "")
-    return user_can(user, "setup", CAP_MANAGE) and code in CHECKLIST_TEMPLATE_EDITOR_ROLES
+    """A chain-wide template needs an Admin assignment covering all dimensions."""
+    return access_for_user(user).covers_all({'checklist.template.manage'}, [(None, None)], [])
 
 
-def may_tick(user: Any) -> bool:
+def may_tick(user: Any, site_id: int) -> bool:
     """The store's own staff at the counter: ``sell: operate`` or higher."""
-    return bool(getattr(user, "is_superuser", False)) or user_can(user, "sell", CAP_OPERATE)
+    return user_can_at(user, "sell", CAP_OPERATE, site_id=site_id)
 
 
 # ---------------------------------------------------------------------------

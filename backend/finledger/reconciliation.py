@@ -20,6 +20,7 @@ from typing import Any
 
 from django.db import transaction
 
+from finledger.access import bank_imports, cash_entries
 from finledger.models import BankStatementImport, BankStatementLine, CashLedgerEntry
 
 # `UnsupportedFormat` is re-exported deliberately: a statement this module cannot
@@ -216,7 +217,7 @@ def _score(row: ParsedRow, entry: CashLedgerEntry) -> int:
 def find_candidates(row: ParsedRow) -> list[tuple[CashLedgerEntry, int]]:
     window_start = row.txn_date - timedelta(days=CANDIDATE_WINDOW_DAYS)
     window_end = row.txn_date + timedelta(days=CANDIDATE_WINDOW_DAYS)
-    pool = CashLedgerEntry.objects.select_related("vendor").filter(
+    pool = cash_entries().select_related("vendor").filter(
         account__in=[CashLedgerEntry.Account.BANK, CashLedgerEntry.Account.UPI],
         created_at__date__gte=window_start,
         created_at__date__lte=window_end,
@@ -238,6 +239,8 @@ def process_import(batch: BankStatementImport, rows: list[ParsedRow]) -> None:
     candidates — Postgres lets a transaction see its own uncommitted writes,
     so `find_candidates`' `bank_statement_line__isnull=True` filter already
     catches this without extra bookkeeping."""
+    if not bank_imports().filter(pk=batch.pk).exists():
+        raise ValueError("The bank statement import is not owned by the current tenant.")
     matched = 0
     for row in rows:
         candidates = find_candidates(row)

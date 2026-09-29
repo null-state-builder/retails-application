@@ -372,7 +372,7 @@ export function ExceptionsPanel({
   }, [loading, openRows.length, onCount]);
 
   const myHumanId = session.user.human_id;
-  const myRoles = session.roles;
+  const myRoles = session.assignments.map((assignment) => assignment.role_code);
   // Kind and "mine" narrow first; the topic buttons then count what is left,
   // so each button's number is exactly what pressing it shows.
   const scoped = useMemo(

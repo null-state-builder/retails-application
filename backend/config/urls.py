@@ -42,10 +42,10 @@ def health(_request: HttpRequest) -> JsonResponse:
     )
 
 
-# Django admin ships with a seeded superuser; exposing /admin in production widens
-# the attack surface. Mount it only in DEBUG (preview/dev) or when explicitly
-# enabled via ENABLE_DJANGO_ADMIN=1.
-_ENABLE_ADMIN = settings.DEBUG or os.environ.get("ENABLE_DJANGO_ADMIN") == "1"
+# Django admin bypasses the tenant role-assignment authority. Keep it available
+# only for an explicitly enabled local development process; a production process
+# cannot mount it even if an old ENABLE_DJANGO_ADMIN flag remains configured.
+_ENABLE_ADMIN = settings.DEBUG and os.environ.get("ENABLE_DJANGO_ADMIN") == "1"
 
 urlpatterns = [
     path("api/health", health),

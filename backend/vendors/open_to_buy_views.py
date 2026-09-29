@@ -35,7 +35,7 @@ from core.commands import CommandResult, CommandRun
 from core.goods_money import MoneyInvalid, paise_from_json
 from core.refusals import Refusal
 from inbound import goods_input as inp
-from masters.models import Store
+from masters.models import Brand, Store
 from vendors import open_to_buy as otb
 from vendors.goods_services import BOOKING_ACTION, booking_by_document, booking_head, booking_lines
 from vendors.open_to_buy_models import OpenToBuyAsk, OpenToBuyBudget
@@ -218,14 +218,6 @@ def ask_json(
     }
 
 
-def _require_cost_reader(access: AccessContext) -> None:
-    if not otb.sees_cost_somewhere(access):
-        raise Refusal(
-            "ACTION_DENIED",
-            "Open-to-buy is money at cost. Your role does not see cost.",
-        )
-
-
 def _paise(value: Any, field: str) -> int:
     try:
         paise = paise_from_json(value)
@@ -324,21 +316,28 @@ class GoodsOpenToBuyListView(GoodsAPIView):
     def get(self, request: Request) -> Response:
         access = self.access(request)
         check_query(request, allowed=())
-        _require_cost_reader(access)
         budgets = otb.readable_budgets(access)
         figures = otb.positions(budgets)
         switches = otb.sites_switched_on({b.site_id for b in budgets if b.site_id})
         anywhere = otb.on_anywhere(request.user)
-        can_set = otb.may_set(request.user)
-        sites: list[dict[str, Any]] = []
-        if can_set:
-            active = Store.objects.filter(is_active=True).order_by("code")
-            on = otb.sites_switched_on(active.values_list("pk", flat=True))
-            sites = [
-                {"id": s.pk, "code": s.code, "name": s.name}
-                for s in active
-                if s.pk in on and otb.reaches_site(access, s.pk)
-            ]
+        active = Store.objects.filter(tenant_id=access.tenant_id, is_active=True).order_by("code")
+        brand_ids = list(
+            Brand.objects.filter(tenant_id=access.tenant_id, is_active=True)
+            .values_list("pk", flat=True)
+        )
+        on = otb.sites_switched_on(active.values_list("pk", flat=True))
+        sites: list[dict[str, Any]] = [
+            {"id": site.pk, "code": site.code, "name": site.name}
+            for site in active
+            if site.pk in on and any(
+                otb.can_set_budget(access, site_id=site.pk, brand_id=brand_id)
+                for brand_id in brand_ids
+            )
+        ]
+        can_set = bool(sites) or (anywhere and any(
+                otb.can_set_budget(access, site_id=None, brand_id=brand_id)
+            for brand_id in brand_ids
+        ))
         body = {
             "can_set": can_set,
             "sites": sites,
@@ -359,7 +358,6 @@ class GoodsOpenToBuySetView(GoodsAPIView):
     @extend_schema(request=OtbSetRequestSerializer, responses=OtbBudgetSerializer)
     def post(self, request: Request) -> Response:
         access = self.access(request)
-        _require_cost_reader(access)
         meta = parse_meta(request.data, revision_bound=False)
         body = business_body(
             request.data,
@@ -416,7 +414,6 @@ class GoodsOpenToBuyAskDetailView(GoodsAPIView):
     def get(self, request: Request, pk: int) -> Response:
         access = self.access(request)
         check_query(request, allowed=())
-        _require_cost_reader(access)
         ask = (
             OpenToBuyAsk.objects.select_related(
                 "booking__document", "brand", "season", "site", "asked_by"

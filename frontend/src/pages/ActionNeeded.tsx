@@ -38,8 +38,7 @@ export function ActionNeededPage() {
   // exceptions behind their goods grants. A person may hold either or both.
   // Someone who decides goods approvals sees their own goods inbox here too,
   // even without the older inbox (it only ever lists what they may decide).
-  const canSeeLegacyApprovals =
-    !!user?.is_superuser || (user?.capabilities?.home ?? "none") !== "none";
+  const canSeeLegacyApprovals = (user?.capabilities?.home ?? "none") !== "none";
   const canSeeApprovals = canSeeLegacyApprovals || holdsGoodsApprovals(session);
   const canSeeExceptions = holdsExceptions(session);
   const asked = params.get("show");

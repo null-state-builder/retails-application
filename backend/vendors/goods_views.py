@@ -25,6 +25,7 @@ from accounts.principal import AccessContext
 from core.commands import CommandResult, CommandRun
 from core.refusals import Refusal
 from inbound import goods_input as inp
+from masters.models import Brand, Store
 from vendors.goods_models import BookingReceiptLink, GoodsBooking
 from vendors.goods_services import (
     BOOKING_ACTION,
@@ -111,6 +112,14 @@ def _dto_response(data_schema: dict[str, Any], description: str) -> dict[str, An
             },
             "data": data_schema,
             "allowed_actions": {"type": "array", "items": {"type": "string"}},
+            "field_access": {
+                "type": "object",
+                "properties": {
+                    "readable_fields": {"type": "array", "items": {"type": "string"}},
+                    "writable_fields": {"type": "array", "items": {"type": "string"}},
+                },
+                "required": ["readable_fields", "writable_fields"],
+            },
         },
     }
 
@@ -594,12 +603,18 @@ def _writable_booking(access: AccessContext, pk: uuid.UUID) -> GoodsBooking:
 
 
 def _shows_cost(access: AccessContext, booking: GoodsBooking) -> bool:
-    """A booking's cost is read only through a reading grant that carries ``cost``."""
-    return "cost" in access.field_grants(
-        site_id=booking.document.site_id,
-        brand_id=booking.brand_id,
-        entity_id=booking.document.entity_id,
-        actions=BOOKING_READ_ACTIONS,
+    """Cost requires one read assignment covering every stable line cell."""
+    _head, header, lines, _root = booking_lines(booking, booking_head(booking))
+    sites = {booking.document.site_id}
+    sites.update(
+        int(line["destination_site_id"])
+        for line in lines
+        if line.get("destination_site_id") is not None
+    )
+    cells = {(site_id, booking.brand_id) for site_id in sites}
+    return any(
+        access.covers_all_actions([action], cells, ["cost"])
+        for action in BOOKING_READ_ACTIONS
     )
 
 
@@ -703,7 +718,22 @@ def _booking_resource(
         allowed_actions=allowed,
     )
     body["content_hash"] = booking_content_hash(booking, head)
+    body["field_access"] = {
+        "readable_fields": ["cost"] if shows_cost else [],
+        "writable_fields": ["cost"] if shows_cost and "bookings.update" in allowed else [],
+    }
     return body
+
+
+def _booking_field_access(
+    access: AccessContext, site_ids: set[int | None], brand_id: int
+) -> dict[str, list[str]]:
+    cells = {(site_id, brand_id) for site_id in site_ids}
+    allowed = bool(brand_id and cells) and access.covers_all_actions(
+        [BOOKING_ACTION], cells, ["cost"]
+    )
+    fields = ["cost"] if allowed else []
+    return {"readable_fields": fields, "writable_fields": fields}
 
 
 def _reload(pk: uuid.UUID) -> GoodsBooking:
@@ -716,6 +746,27 @@ def _reload(pk: uuid.UUID) -> GoodsBooking:
 #: The states `booking_state()` answers with. A `state` filter must name one
 #: of these rather than being silently ignored (ticket 02D).
 BOOKING_STATES = frozenset({"draft", "confirmed", "short_closed", "cancelled"})
+
+
+class GoodsBookingAccessPreviewView(GoodsAPIView):
+    """Return field decisions for an unsaved booking's selected stable scope."""
+
+    def get(self, request: Request) -> Response:
+        access = self.access(request)
+        params = check_query(request, {"site_id", "brand_id", "line_site_ids"})
+        site_id = inp.optional_legacy_id(params.get("site_id"), "site_id")
+        brand_id = inp.legacy_id(params.get("brand_id"), "brand_id")
+        site_ids = {site_id}
+        for raw_id in (params.get("line_site_ids") or "").split(","):
+            if raw_id:
+                site_ids.add(inp.legacy_id(raw_id, "line_site_ids"))
+        if not Brand.objects.filter(tenant_id=access.tenant_id, pk=brand_id, is_active=True).exists():
+            raise Refusal("NOT_FOUND", "That brand was not found.")
+        if any(site is not None and not Store.objects.filter(
+            tenant_id=access.tenant_id, pk=site, is_active=True
+        ).exists() for site in site_ids):
+            raise Refusal("NOT_FOUND", "That site was not found.")
+        return Response(_booking_field_access(access, site_ids, brand_id))
 
 
 class GoodsBookingListCreateView(GoodsAPIView):
@@ -859,6 +910,18 @@ class GoodsBookingListCreateView(GoodsAPIView):
         access.require(
             BOOKING_ACTION, site_id=home, brand_id=data.brand_id, entity_id=data.entity_id
         )
+        if any(line.get("cost_paise") is not None for _, line in data.lines):
+            cells = {
+                (
+                    int(line["destination_site_id"])
+                    if line.get("destination_site_id")
+                    else home,
+                    int(data.brand_id),
+                )
+                for _, line in data.lines
+            }
+            if not access.covers_all_actions([BOOKING_ACTION], cells, ["cost"]):
+                raise Refusal("FIELD_DENIED", "Cost is not available for this booking scope.")
 
         def handler(run: CommandRun) -> CommandResult:
             booking = create_booking(run, data)

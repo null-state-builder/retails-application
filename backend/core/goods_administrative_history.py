@@ -187,19 +187,12 @@ def _reader_covers_grant(access: AccessContext, grant: Any) -> bool:
     A login is its whole authority, so its history is hidden from anyone who could
     not see all of it - the same rule E074 uses before a login may be changed.
     """
-    if _tenant_reader(access):
-        return True
-    if grant.scope_kind in ("tenant", "brand"):
-        return False
-    if grant.scope_kind == "entity":
-        return any(
-            g.scope_kind == "entity"
-            and g.entity_id == grant.entity_id
-            and "audit.view" in g.actions
-            for g in access.grants
-        )
-    site_id = grant.site_id if grant.scope_kind == "site" else grant.sbu.site_id
-    return access.can_at_store("audit.view", site_id)
+    sites = [None] if grant.all_sites else list(grant.site_ids)
+    brands = [None] if grant.all_brands else list(grant.brand_ids)
+    return access.covers_all(
+        {"audit.view"},
+        ((site, brand) for site in sites for brand in brands),
+    )
 
 
 def _resolve_staff(access: AccessContext, subject_id: str) -> Subject:
@@ -229,7 +222,7 @@ def _resolve_staff(access: AccessContext, subject_id: str) -> Subject:
 
 
 def _resolve_login(access: AccessContext, subject_id: str) -> Subject:
-    from accounts.goods_admin_services import live_grants
+    from accounts.principal import effective_grants
     from accounts.models import User
 
     user_id = _integer_id(subject_id)
@@ -243,7 +236,7 @@ def _resolve_login(access: AccessContext, subject_id: str) -> Subject:
     _, site_id = _placed_site(access.tenant_id, human_id)
     if not access.can_at_store("audit.view", site_id):
         raise _hidden()
-    for grant, _period in live_grants(access.tenant_id, human_id=human_id):
+    for grant in effective_grants(human_id):
         if not _reader_covers_grant(access, grant):
             raise _hidden()
     return Subject(

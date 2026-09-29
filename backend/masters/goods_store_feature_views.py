@@ -34,7 +34,7 @@ from accounts.goods_api import (
 )
 from accounts.goods_models import HumanIdentity
 from accounts.permissions import user_can
-from accounts.role_lists import STORE_FEATURE_EDITOR_ROLES
+from accounts.principal import access_for_user
 from accounts.sections import CAP_MANAGE, CAP_VIEW
 from core.commands import CommandResult, CommandRun, LockRank
 from core.kernel_models import AuditEvent
@@ -62,13 +62,9 @@ RECENT_CHANGES = 20
 PROBE_KEY = "demo-probe"
 
 
-def may_change_switches(user: Any) -> bool:
-    """Admin only: ``setup: manage`` and an editor role code (or break-glass)."""
-    if getattr(user, "is_superuser", False):
-        return True
-    role = getattr(user, "role", None)
-    code = getattr(role, "code", "")
-    return user_can(user, "setup", CAP_MANAGE) and code in STORE_FEATURE_EDITOR_ROLES
+def may_change_switches(user: Any, store_id: int) -> bool:
+    """Admin authority at this store, from one current scoped assignment."""
+    return access_for_user(user).covers_all({'store.feature.manage'}, [(store_id, None)], [])
 
 
 def stores_in_scope(user: Any) -> list[Store]:
@@ -76,7 +72,7 @@ def stores_in_scope(user: Any) -> list[Store]:
 
     A brand-scoped person gets none - stores are not their boundary.
     """
-    return list(actionable_stores(user))
+    return list(actionable_stores(user, section="setup", minimum=CAP_VIEW))
 
 
 def state_json(state: SwitchState) -> dict[str, Any]:
@@ -211,7 +207,7 @@ class GoodsStoreFeatureListView(GoodsAPIView):
             ],
             "switches": [state_json(state) for state in switch_states(stores)],
             "open_gates": open_gates(),
-            "can_change": may_change_switches(request.user),
+            "can_change": any(may_change_switches(request.user, store.pk) for store in stores),
             "changes": _changes(stores),
         }
         return Response(FeatureSwitchesSerializer(body).data)
@@ -256,7 +252,7 @@ def store_in_scope(user: Any, store_id: Any) -> Store:
     """An active store the caller may act at, or ``NOT_FOUND`` - never a hint."""
     if isinstance(store_id, bool) or not isinstance(store_id, int):
         raise Refusal("INVALID_REQUEST", "store_id must be a store id.")
-    allowed = actionable_store_ids(user)
+    allowed = actionable_store_ids(user, section="setup", minimum=CAP_MANAGE)
     store = Store.objects.filter(pk=store_id, is_active=True).first()
     if store is None or (allowed is not None and store.pk not in allowed):
         raise Refusal("NOT_FOUND", "That store was not found.")
@@ -267,8 +263,6 @@ class GoodsStoreFeatureSwitchView(GoodsAPIView):
     @extend_schema(request=SwitchRequestSerializer, responses=SwitchStateSerializer)
     def post(self, request: Request) -> Response:
         access = self.access(request)
-        if not may_change_switches(request.user):
-            raise Refusal("ACTION_DENIED", "Only Admin can change a feature switch.")
         meta = parse_meta(request.data, revision_bound=False)
         body = business_body(
             request.data,
@@ -279,6 +273,8 @@ class GoodsStoreFeatureSwitchView(GoodsAPIView):
         target = _feature(body)
         mode = _mode(body, target)
         store = store_in_scope(request.user, body["store_id"])
+        if not may_change_switches(request.user, store.pk):
+            raise Refusal("ACTION_DENIED", "Only Admin can change a feature switch.")
         lock = gate_lock(target, real=is_real_store(store))
         if enabled and lock is not None:
             raise Refusal("FEATURE_GATED", lock, status=409)

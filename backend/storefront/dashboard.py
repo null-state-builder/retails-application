@@ -35,8 +35,9 @@ from django.db.models import F, Sum
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
-from accounts.permissions import user_can
-from accounts.sections import CAP_APPROVE, CAP_VIEW
+from accounts.role_assignments import effective_assignments
+from accounts.sections import CAP_APPROVE, CAP_VIEW, meets
+from accounts.unified_policy import role_capability, role_fields
 from alerts.models import Alert, AlertKind, AlertStatus
 from approvals.services import inbox_for
 from core.documents import DocStatus, VoucherSeries
@@ -128,7 +129,7 @@ def resolve_store(user: Any, requested_code: str) -> StorePick:
             "no store to open here.",
         )
     try:
-        ids = active_store_ids(user)
+        ids = active_store_ids(user, section="home", minimum="view")
     except PermissionDenied as exc:
         # An unknown or out-of-scope `X-KDPS-Unit`. Caught here, before any count
         # runs, so the caller gets this endpoint's own refusal shape: the
@@ -385,7 +386,16 @@ def manager_block(user: Any, store: Store, today: date) -> dict[str, Any] | None
     Both gates read the stored matrix, never a role name - which role holds
     either rung is admin-editable data (#173).
     """
-    if not (user_can(user, "sell", CAP_APPROVE) and user_can(user, "money", CAP_VIEW)):
+    if store.tenant_id != getattr(user, "tenant_id", None):
+        return None
+    if not any(
+        row.all_brands
+        and (row.all_sites or store.pk in row.site_ids)
+        and meets(role_capability(row.role, "sell"), CAP_APPROVE)
+        and meets(role_capability(row.role, "money"), CAP_VIEW)
+        and "financial" in role_fields(row.role)
+        for row in effective_assignments(user.human_id) if user.human_id
+    ):
         return None
     month_start = today.replace(day=1)
     target = StoreTarget.objects.filter(store_id=store.id, month=month_start).first()
@@ -413,7 +423,7 @@ def live_offers(store: Store, today: date) -> list[dict[str, Any]]:
     rather than typed beside it, because a hand-written summary drifts away from
     the thing it summarises and the summary is what the shop floor believes.
     """
-    rows = (Offer.objects.live_on(today).for_store(store.code).select_related("brand")).order_by(
+    rows = (Offer.objects.for_tenant(store.tenant_id).live_on(today).for_store(store.code).select_related("brand")).order_by(
         "priority", "id"
     )
     return [

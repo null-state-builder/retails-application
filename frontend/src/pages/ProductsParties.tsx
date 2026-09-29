@@ -4,7 +4,7 @@
 //
 // One area, a left list with a type switch and a search box, a detail panel on
 // the right (orchestrator UX brief). Enforcement is the server's (design §4.2):
-// `session.actions` only decides which controls this build offers — a person
+// Session display hints only decide which controls this build offers — a person
 // without the grant gets the same uniform hidden-object answer from the server
 // whether the record is outside their scope or does not exist (ADR-0003).
 //
@@ -39,6 +39,7 @@ import {
 } from "../lib/goodsConfig";
 import { useAuth } from "../auth/AuthContext";
 import { PageHeader } from "../components/PageHeader";
+import { BrandReconciliationPanel } from "./BrandReconciliation";
 import "./ProductsParties.css";
 
 // --------------------------------------------------------------------------
@@ -117,6 +118,7 @@ interface Resolution {
 }
 
 type MasterType =
+  | "brand-reconciliation"
   | "styles"
   | "skus"
   | "aliases"
@@ -2023,7 +2025,10 @@ const NAV: { group: string; items: { type: MasterType; label: string; icon: Reac
   },
   {
     group: "Mapping",
-    items: [{ type: "crosswalks", label: "Source mappings", icon: <Tags size={15} /> }],
+    items: [
+      { type: "crosswalks", label: "Source mappings", icon: <Tags size={15} /> },
+      { type: "brand-reconciliation", label: "Brand identity review", icon: <Tags size={15} /> },
+    ],
   },
   {
     group: "Parties",
@@ -2037,6 +2042,7 @@ const NAV: { group: string; items: { type: MasterType; label: string; icon: Reac
 ];
 
 export function ProductsPartiesPage() {
+  const { session } = useAuth();
   const [params, setParams] = useSearchParams();
   const type = (params.get("type") as MasterType | null) ?? "styles";
   const styleId = params.get("style");
@@ -2068,17 +2074,23 @@ export function ProductsPartiesPage() {
             <div className="org-nav-group" key={group.group}>
               <h4>{group.group}</h4>
               <ul className="org-nav-list">
-                {group.items.map((item) => (
-                  <li key={item.type}>
-                    <button
-                      className={`org-nav-item ${type === item.type ? "active" : ""}`}
-                      onClick={() => select(item.type)}
-                      data-testid={`pp-nav-${item.type}`}
-                    >
-                      {item.icon} {item.label}
-                    </button>
-                  </li>
-                ))}
+                {group.items
+                  .filter(
+                    (item) =>
+                      item.type !== "brand-reconciliation" ||
+                      session?.display_actions.includes("access.manage"),
+                  )
+                  .map((item) => (
+                    <li key={item.type}>
+                      <button
+                        className={`org-nav-item ${type === item.type ? "active" : ""}`}
+                        onClick={() => select(item.type)}
+                        data-testid={`pp-nav-${item.type}`}
+                      >
+                        {item.icon} {item.label}
+                      </button>
+                    </li>
+                  ))}
               </ul>
             </div>
           ))}
@@ -2095,6 +2107,7 @@ export function ProductsPartiesPage() {
           {type === "aliases" && <AliasesPanel search={search} />}
           {type === "lookup" && <LookupPanel />}
           {type === "crosswalks" && <CrosswalksPanel search={search} />}
+          {type === "brand-reconciliation" && <BrandReconciliationPanel />}
           {type === "vendors" && (
             <SimpleMasterPanel<VendorData>
               title="Vendors"

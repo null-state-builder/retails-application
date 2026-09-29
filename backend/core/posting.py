@@ -78,6 +78,7 @@ class PostingRef:
     store: Any = None
     gstin: Any = None
     posted_by: Any = None
+    brand_id: int | None = None
 
 
 #: The goods-v1 operational inventory ledger (design §7.1). Domain callers choose it
@@ -183,17 +184,28 @@ def _refuse_actor_outside_floor(doc: Any, actor: Any, legs: list[Leg], doc_type:
     the exact accounts they may touch, so a leg outside the allow-list drops back
     onto the floor even on a document the exception covers.
     """
-    if getattr(actor, "scope_type", "") == "store" and not _store_actor_within_exception(
-        doc, legs, doc_type
-    ):
-        raise PostingFloorError(
-            "A store-scoped user cannot post value to the books; "
-            "a named head-office person must perform this action."
-        )
+    from accounts.floors import STORE_SEATS
+    from accounts.principal import access_for_user
+    from accounts.role_lists import HEAD_OFFICE_VALUE_ACTORS
+
+    store = getattr(doc, "store", None)
+    site_id = getattr(doc, "store_id", None) or getattr(store, "pk", None)
+    brand_id = getattr(doc, "brand_id", None)
+    store_exception = _store_actor_within_exception(doc, legs, doc_type)
+    access = access_for_user(actor)
+    cell = [(site_id, brand_id)]
+    can_store_post = store_exception and bool(access.grants_with_roles(
+        "section.sell.operate", cell, STORE_SEATS | HEAD_OFFICE_VALUE_ACTORS,
+    ))
+    can_value_post = bool(access.grants_with_roles(
+        "section.money.approve", cell, HEAD_OFFICE_VALUE_ACTORS,
+    ))
+    if not (can_store_post or can_value_post):
+        raise PostingFloorError("Only an authorised Owner or Accounts person may post value to the books.")
     raises_brand_liability = any(leg.account == GLAccount.VENDOR_PAYABLE for leg in legs)
     actor_name = getattr(actor, "full_name", "") or getattr(actor, "username", "") if actor else ""
     if doc_type in {"PT", "VFL"}:
-        assert_pt_or_vflip_actor(actor)
+        assert_pt_or_vflip_actor(actor, site_id=site_id, brand_id=brand_id)
     # Reads as "head office", and for every path but one it is: a store actor has
     # already been refused above. The exception is the sale's own SOR accrual,
     # where the store *is* allowed to raise a payable — machine-computed from the
@@ -235,14 +247,20 @@ def _leg_within(leg: Leg, exception: FloorException) -> bool:
     return True
 
 
-def assert_pt_or_vflip_actor(actor: Any) -> None:
+def assert_pt_or_vflip_actor(
+    actor: Any, *, site_id: int | None = None, brand_id: int | None = None
+) -> None:
     """Floor shared by PT value posting and V-flip stock + value posting."""
+    from accounts.principal import access_for_user
+    from accounts.role_lists import HEAD_OFFICE_VALUE_ACTORS
+
     actor_name = getattr(actor, "full_name", "") or getattr(actor, "username", "") if actor else ""
     if (
-        getattr(actor, "scope_type", "") == "store"
-        or not getattr(actor, "pk", None)
+        not getattr(actor, "pk", None)
         or not actor_name
-        or not getattr(actor, "may_post_pt_or_vflip_floor", False)
+        or not access_for_user(actor).grants_with_roles(
+            "section.money.approve", [(site_id, brand_id)], HEAD_OFFICE_VALUE_ACTORS,
+        )
     ):
         raise PostingFloorError(
             "Only a named Accounts or Owner head-office person may post PT inwarding "

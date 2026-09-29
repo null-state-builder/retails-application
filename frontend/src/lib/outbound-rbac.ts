@@ -48,9 +48,9 @@ export function canWriteReturnToBrand(user: User | null | undefined): boolean {
  */
 export function canCreateReturnToBrand(user: User | null | undefined): boolean {
   if (!canWriteReturnToBrand(user)) return false;
-  const actions = user?.actions;
-  if (!actions) return true;
-  return actions.includes("outbound.create_return_to_brand");
+  const actions = user?.display_actions;
+  if (!actions) return false;
+  return actions.includes("rtv.execute");
 }
 
 /** Create or submit a stock adjustment or a write-off. */

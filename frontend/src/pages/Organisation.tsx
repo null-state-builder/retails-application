@@ -4,7 +4,7 @@
 // owner does this once, then rarely (orchestrator UX brief).
 //
 // Enforcement lives on the server (design §4.2): every screen here is a thin
-// client over `/api/goods-v1/masters/*`. `session.actions` only steers which controls
+// client over `/api/goods-v1/masters/*`. Session display hints only steer which controls
 // this build shows — a person who lacks the grant still gets the uniform
 // hidden-object 404/403 from the server if they reach for it anyway, and a
 // wrong-site read answers the same "not found" as a record that never
@@ -26,15 +26,12 @@ import {
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
-import { api, apiErrorCode, apiErrorMessage, goodsMeta, type ApiRead } from "../lib/api";
-import type { paths } from "../lib/api-schema";
+import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import { openHistoryAfterRetire, parseMasterHistory } from "../lib/administrativeHistory";
 import { AdministrativeHistory } from "../components/AdministrativeHistory";
-import { apiErrorIssues, type ApiIssue } from "../lib/goodsAcceptance";
 import {
   Denied,
   Feedback,
-  Field,
   hold,
   PickerField,
   usePagedPicker,
@@ -102,10 +99,12 @@ interface LocationData {
 }
 
 // E218/E246 (ticket 02A): the generated client carries the SBU shapes.
-type SbuRetireOperation = paths["/api/goods-v1/masters/stores/{site_id}/sbus/{id}/retire"]["post"];
-type SbuResource = ApiRead<SbuRetireOperation["responses"][200]["content"]["application/json"]>;
-type SbuData = ApiRead<NonNullable<SbuResource["data"]>>;
-type SbuRetireBody = NonNullable<SbuRetireOperation["requestBody"]>["content"]["application/json"];
+type SbuData = {
+  site_id: string;
+  brand_id: string | null;
+  code: string;
+  retired_at: string | null;
+};
 
 interface CheckItem {
   key: string;
@@ -1322,19 +1321,17 @@ function SiteSbusTab({ siteId }: { siteId: string }) {
     loading,
     denied,
     failure,
-    reload,
   } = useResourceList<SbuData>(`/goods-v1/masters/stores/${siteId}/sbus`);
-  const [retiring, setRetiring] = useState<string | null>(null);
 
   if (denied) return <Denied what="site" />;
   return (
     <div data-testid="site-sbus-tab">
       <p className="lead">
         Each brand at this site has its own business unit; a site with no brands configured has one
-        fallback unit. A unit is retired, never deleted, and only once nothing still refers to it:
-        no stock (including quarantined, unvalued, reserved or in-transit goods), no open document
-        and no unresolved exception. There is no override — each of those is handled through its own
-        step first.
+        fallback unit. A unit can be retired only once nothing still refers to it: no stock
+        (including quarantined, unvalued, reserved or in-transit goods), no open document and no
+        unresolved exception. There is no override — each of those is handled through its own step
+        first. Retirement is unavailable until the unified access cutover for this action.
       </p>
       <div className="table-wrap">
         <table className="data" data-testid="sbus-table">
@@ -1377,131 +1374,11 @@ function SiteSbusTab({ siteId }: { siteId: string }) {
                       {s.state === "retired" ? "Retired" : "Active"}
                     </span>
                   </td>
-                  <td>
-                    {s.allowed_actions.includes("retire") && retiring !== s.id && (
-                      <button
-                        className="btn btn-sm"
-                        onClick={() => setRetiring(s.id)}
-                        data-testid={`sbu-retire-${s.data.code}`}
-                      >
-                        Retire…
-                      </button>
-                    )}
-                  </td>
                 </tr>
               ))
             )}
           </tbody>
         </table>
-      </div>
-      {sbus
-        .filter((s) => s.id === retiring)
-        .map((s) => (
-          <SbuRetirePanel
-            key={s.id}
-            siteId={siteId}
-            sbu={s}
-            onClose={() => setRetiring(null)}
-            onRetired={() => {
-              setRetiring(null);
-              reload();
-            }}
-          />
-        ))}
-    </div>
-  );
-}
-
-/** E246: the owner names a reason and confirms the exact unit they reviewed; the
- *  server rechecks every residual and, if any remains, lists each one here. */
-function SbuRetirePanel({
-  siteId,
-  sbu,
-  onClose,
-  onRetired,
-}: {
-  siteId: string;
-  sbu: ResourceDTO<SbuData>;
-  onClose: () => void;
-  onRetired: () => void;
-}) {
-  const [reason, setReason] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [blockers, setBlockers] = useState<ApiIssue[]>([]);
-  const stepUp = useStepUp();
-
-  async function retire() {
-    setError("");
-    setBlockers([]);
-    setBusy(true);
-    try {
-      await stepUp.guarded(() => {
-        const body: SbuRetireBody = {
-          reason_code: reason.trim(),
-          reviewed_hash: sbu.content_hash,
-          ...goodsMeta(sbu.revision),
-          expected_revision: sbu.revision,
-        };
-        return api.post(`/goods-v1/masters/stores/${siteId}/sbus/${sbu.id}/retire`, body);
-      });
-      onRetired();
-    } catch (e) {
-      setError(apiErrorMessage(e));
-      if (apiErrorCode(e) === "SBU_RETIREMENT_BLOCKED") setBlockers(apiErrorIssues(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="card section-card" data-testid="sbu-retire-panel">
-      <h3 className="h3">Retire business unit {sbu.data.code}</h3>
-      <p className="lead">
-        The unit and its history stay on record. You will be asked to confirm your password.
-      </p>
-      {stepUp.dialog}
-      <Field id="sbu-retire-reason" label="Reason">
-        <input
-          id="sbu-retire-reason"
-          maxLength={60}
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          placeholder="e.g. BRAND_EXITED"
-          data-testid="sbu-retire-reason"
-        />
-      </Field>
-      {error && (
-        <div className="warn-note" role="alert" data-testid="sbu-retire-error">
-          {error}
-        </div>
-      )}
-      {blockers.length > 0 && (
-        <ul className="org-blockers" data-testid="sbu-retire-blockers">
-          {blockers.map((b, i) => (
-            <li key={`${b.code}-${b.field ?? i}`} data-testid={`sbu-blocker-${b.code}`}>
-              {b.message}
-            </li>
-          ))}
-        </ul>
-      )}
-      <div className="toolbar">
-        <button
-          className="btn btn-cta"
-          onClick={retire}
-          disabled={busy || !reason.trim()}
-          data-testid="sbu-retire-confirm"
-        >
-          Retire unit
-        </button>
-        <button
-          className="btn btn-sm"
-          onClick={onClose}
-          disabled={busy}
-          data-testid="sbu-retire-cancel"
-        >
-          <X size={14} /> Cancel
-        </button>
       </div>
     </div>
   );

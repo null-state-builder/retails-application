@@ -36,8 +36,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.permissions import require_section
-from accounts.sections import CAP_VIEW
+from accounts.permissions import require_section, user_can_at
+from accounts.sections import CAP_MANAGE, CAP_VIEW
 from core.refusals import Refusal, issue
 from masters.models import Store
 from masters.scoping import actionable_stores, active_store_ids
@@ -173,8 +173,8 @@ class ChecklistTemplateStopSerializer(serializers.Serializer[Any]):
 
 def _store(user: Any, code: Any) -> Store:
     pick = resolve_store(user, str(code or "").strip())
-    if pick.store is None:
-        raise Refusal("SCOPE_DENIED", pick.refusal, status=403)
+    if pick.store is None or not user_can_at(user, "home", CAP_VIEW, site_id=pick.store.pk):
+        raise Refusal("SCOPE_DENIED", pick.refusal or "That store is outside your access.", status=403)
     return pick.store
 
 
@@ -193,7 +193,7 @@ class ChecklistTodayView(APIView):
             "store_name": store.name,
             "today": timezone.localdate(),
             "on": on,
-            "can_tick": on and rules.may_tick(request.user),
+            "can_tick": on and rules.may_tick(request.user, store.pk),
             "missed_days": rules.missed_days(),
             "lists": today.lists,
             "missed": today.missed,
@@ -212,8 +212,6 @@ class ChecklistTickView(APIView):
         responses={200: ChecklistTickSavedSerializer, 201: ChecklistTickSavedSerializer},
     )
     def post(self, request: Request) -> Response:
-        if not rules.may_tick(request.user):
-            raise Refusal("ACTION_DENIED", "Only the store's staff tick its checklist.", status=403)
         form = ChecklistTickWriteSerializer(data=request.data)
         if not form.is_valid():
             field, errors = next(iter(form.errors.items()))
@@ -223,6 +221,8 @@ class ChecklistTickView(APIView):
             )
         data = form.validated_data
         store = _store(request.user, data["store"])
+        if not rules.may_tick(request.user, store.pk):
+            raise Refusal("ACTION_DENIED", "Only the store's staff tick its checklist.", status=403)
         require_feature(store, rules.FEATURE_KEY)
         photo = rules.read_photo(data.get("photo"))
         done = rules.tick(
@@ -262,7 +262,7 @@ class ChecklistTickPhotoView(APIView):
     )
     def get(self, request: Request, pk: uuid.UUID) -> HttpResponse:
         row = ChecklistTick.objects.select_related("store").filter(pk=pk).first()
-        ids = active_store_ids(request.user)
+        ids = active_store_ids(request.user, section="home", minimum="view")
         if row is None or (ids is not None and row.store_id not in ids) or not row.has_photo:
             raise Refusal("NOT_FOUND", "That photo was not found.", status=404)
         # The same gate as the list itself, so the photo never opens where it does not.
@@ -276,8 +276,8 @@ class ChecklistTickPhotoView(APIView):
 # -- Admin's templates -------------------------------------------------------------------
 
 
-def _stores_on(user: Any) -> list[Store]:
-    return rules.switched_on(list(actionable_stores(user)))
+def _stores_on(user: Any, *, minimum: str = CAP_VIEW) -> list[Store]:
+    return rules.switched_on(list(actionable_stores(user, section="setup", minimum=minimum)))
 
 
 def _require_editor(user: Any) -> None:
@@ -286,7 +286,7 @@ def _require_editor(user: Any) -> None:
 
 
 def _require_on_somewhere(user: Any) -> None:
-    if not _stores_on(user):
+    if not _stores_on(user, minimum=CAP_MANAGE):
         raise Refusal(
             "FEATURE_OFF",
             "Store task checklists are not switched on at any store you work at.",
@@ -315,6 +315,8 @@ class ChecklistTemplatesView(APIView):
         responses=ChecklistTemplatesPageSerializer,
     )
     def get(self, request: Request) -> Response:
+        if not rules.may_read_templates(request.user):
+            raise Refusal("ACTION_DENIED", "You cannot read store checklist templates.", status=403)
         on = _stores_on(request.user)
         body = {
             "can_edit": rules.may_edit_templates(request.user) and bool(on),

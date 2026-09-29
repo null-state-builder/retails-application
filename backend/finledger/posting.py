@@ -25,6 +25,8 @@ from django.db import transaction
 from core.documents import VoucherSeries
 from core.gl import GLAccount, GLEntry
 from core.posting import Leg, PostingRef, cr, dr, post_entries
+from core.refusals import Refusal
+from finledger.access import cash_entries, gl_entries
 from finledger.models import CashLedgerEntry, PartnerLedgerEntry, VendorLedgerEntry
 
 HO_CODE = "HO"
@@ -129,7 +131,14 @@ def _reverse_gl(orig_doc_number: str, rev_doc_number: str, doc_type: str, user: 
     books the payable itself), and a payment's paired cash row has no GL leg on its
     CASH number (the GL cash leg lives on the vendor voucher) — in both cases there is
     nothing to mirror here, so this is a safe no-op that never double-reverses."""
-    source = list(GLEntry.objects.filter(doc_number=orig_doc_number))
+    source_rows = GLEntry.objects.filter(doc_number=orig_doc_number)
+    if source_rows.exclude(pk__in=gl_entries().values("pk")).exists():
+        raise Refusal(
+            "UNOWNED_HISTORY",
+            "The original voucher needs tenant ownership reconciliation before reversal.",
+            status=409,
+        )
+    source = list(gl_entries().filter(doc_number=orig_doc_number))
     if not source:
         return
     ref = PostingRef(doc_type=doc_type, doc_number=rev_doc_number, posted_by=_user(user))
@@ -282,8 +291,9 @@ def reverse_vendor_entry(entry: VendorLedgerEntry, user: Any) -> VendorLedgerEnt
         reverses=entry,
         posted_by=_user(user),
     )
-    for cash in CashLedgerEntry.objects.filter(
-        link_doc=entry.doc_number, kind=CashLedgerEntry.Kind.PAYMENT
+    for cash in cash_entries().filter(
+        link_doc=entry.doc_number, vendor_id=entry.vendor_id,
+        kind=CashLedgerEntry.Kind.PAYMENT,
     ):
         if CashLedgerEntry.objects.filter(reverses=cash).exists():
             continue  # this paired cash-out was already reversed
@@ -533,7 +543,7 @@ def reverse_partner_settlement(entry: PartnerLedgerEntry, user: Any) -> PartnerL
         reverses=entry,
         posted_by=_user(user),
     )
-    for cash in CashLedgerEntry.objects.filter(
+    for cash in cash_entries().filter(
         link_doc=entry.doc_number, kind=CashLedgerEntry.Kind.RECEIPT
     ):
         if CashLedgerEntry.objects.filter(reverses=cash).exists():

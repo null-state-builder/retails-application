@@ -590,6 +590,7 @@ from masters.goods_identity_models import (  # noqa: E402, F401
 )
 from masters.goods_models import (  # noqa: E402, F401
     AliasRangeCounter,
+    BrandIdentityBinding,
     ConfigDraft,
     ConfigVersion,
     EffectiveVersionPeriod,

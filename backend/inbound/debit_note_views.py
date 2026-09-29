@@ -310,8 +310,8 @@ def _require_reader(user: Any) -> None:
         raise Refusal("ACTION_DENIED", "Debit notes are Accounts' and the Owner's work.")
 
 
-def _require_reviewer(user: Any) -> None:
-    if not dn.may_review(user):
+def _require_reviewer(user: Any, note: DebitNote) -> None:
+    if not dn.may_review(user, note.site_id, note.brand_id):
         raise Refusal(
             "ACTION_DENIED",
             "Accounts reviews and issues debit notes. The Owner approves them in the "
@@ -331,7 +331,7 @@ def _answer(user: Any, tenant_id: Any, pk: int) -> dict[str, Any]:
     return note_json(
         note,
         dn.approval_of(note),
-        reviewer=dn.may_review(user),
+        reviewer=dn.may_review(user, note.site_id, note.brand_id),
         switched_on=is_feature_on(note.site_id, DEBIT_NOTE_DRAFT),
     )
 
@@ -365,7 +365,7 @@ class GoodsDebitNoteListView(GoodsAPIView):
             site_id: is_feature_on(site_id, DEBIT_NOTE_DRAFT)
             for site_id in {note.site_id for note in notes}
         }
-        reviewer = dn.may_review(request.user)
+        reviewer = any(dn.may_review(request.user, note.site_id, note.brand_id) for note in notes)
         body = {
             "can_review": reviewer,
             "more": len(rows) > LIST_LIMIT,
@@ -374,7 +374,7 @@ class GoodsDebitNoteListView(GoodsAPIView):
                 note_json(
                     note,
                     newest.get(note.pk),
-                    reviewer=reviewer,
+                    reviewer=dn.may_review(request.user, note.site_id, note.brand_id),
                     switched_on=switches[note.site_id],
                 )
                 for note in notes
@@ -411,7 +411,7 @@ class _StepView(GoodsAPIView):
         user = request.user
         _require_reader(user)
         note = _readable(user, access.tenant_id, pk)
-        _require_reviewer(user)
+        _require_reviewer(user, note)
         meta = parse_meta(request.data, revision_bound=True)
         body = business_body(request.data, self.fields, required=self.required)
 

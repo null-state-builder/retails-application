@@ -12,6 +12,7 @@ from django.urls import path
 from vendors.goods_size_curve_views import GoodsSizeCurveFillView, GoodsSizeCurveView
 from vendors.goods_views import (
     GoodsBookingCloseView,
+    GoodsBookingAccessPreviewView,
     GoodsBookingConfirmView,
     GoodsBookingCorrectionsView,
     GoodsBookingDetailView,
@@ -34,6 +35,7 @@ urlpatterns = [
     path("vendors/<int:pk>/retire", GoodsVendorRetireView.as_view(), name="goods-vendor-retire"),
     path("vendors/<int:pk>", GoodsVendorDetailView.as_view(), name="goods-vendor-detail"),
     path("bookings", GoodsBookingListCreateView.as_view(), name="goods-booking-list"),
+    path("bookings/access-preview", GoodsBookingAccessPreviewView.as_view(), name="goods-booking-access-preview"),
     # Ticket 40: the size curve a style total is split by (before any booking exists).
     path("bookings/size-curve", GoodsSizeCurveView.as_view(), name="goods-booking-size-curve"),
     path(

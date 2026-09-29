@@ -860,7 +860,7 @@ export function AlertsButton() {
 export function ActionNeededButton() {
   const { user, session } = useAuth();
   // The same two gates the Action Needed page asks (pages/ActionNeeded.tsx).
-  const canSeeApprovals = !!user?.is_superuser || (user?.capabilities?.home ?? "none") !== "none";
+  const canSeeApprovals = (user?.capabilities?.home ?? "none") !== "none";
   const canSeeExc = holdsExceptions(session);
   // Only for someone who can open Action Needed at all: a row here that led to
   // a page they may not see would be a dead end.

@@ -218,14 +218,17 @@ def _check_not_frozen(site_id: int) -> None:
 
 
 def person_can_receive(tenant_id: uuid.UUID, human_id: uuid.UUID, site_id: int) -> bool:
-    human = HumanIdentity.objects.filter(pk=human_id, active=True).first()
+    human = HumanIdentity.objects.filter(tenant_id=tenant_id, pk=human_id, active=True).first()
     if human is None:
         return False
     grants = [g for g in effective_grants(human.pk) if RECEIVE_ACTION in g.actions]
     context = AccessContext(
         user=None, human_id=human.pk, tenant_id=tenant_id, session=None, grants=grants
     )
-    return context.can_reach_site(RECEIVE_ACTION, site_id)
+    # A count session can expose every brand in its arrival. Reaching the site
+    # through one selected-brand assignment is only a lookup hint, not authority
+    # over the full session; require one all-brand assignment at that site.
+    return context.can(RECEIVE_ACTION, site_id=site_id, brand_id=None)
 
 
 def _evidence_missing(ids: Iterable[uuid.UUID]) -> list[uuid.UUID]:

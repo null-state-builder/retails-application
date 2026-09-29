@@ -234,6 +234,10 @@ class EvidenceDownloadView(GoodsAPIView):
             ),
             handler,
         )
+        # Off-box retrieval and the audit command can both take time. Check the
+        # live session and complete file scope once more before bytes leave.
+        if not access.refresh() or not readable_by(access, evidence):
+            raise Refusal("NOT_FOUND", "That file was not found.")
         response = HttpResponse(data, content_type=evidence.media_type)
         safe = evidence.filename.replace('"', "")
         response["Content-Disposition"] = f'attachment; filename="{safe}"'

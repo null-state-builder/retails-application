@@ -37,7 +37,8 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 
 from accounts.permissions import user_can
-from accounts.role_lists import DEBIT_NOTE_APPROVER_ROLES, DEBIT_NOTE_REVIEWER_ROLES
+from accounts.principal import access_for_user
+from accounts.role_lists import DEBIT_NOTE_APPROVER_ROLES
 from accounts.sections import CAP_MANAGE
 from approvals.models import Approval, ApprovalStatus
 from approvals.services import AlreadyPendingError, ApprovalError, request_approval
@@ -285,29 +286,21 @@ def snapshot(note: DebitNote, stage: str) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def _role(user: Any) -> str:
-    return str(getattr(getattr(user, "role", None), "code", "") or "")
-
-
 def may_read(user: Any) -> bool:
     """Owner and Accounts: ``money: manage`` (B80 of ticket 47; B96)."""
-    if getattr(user, "is_superuser", False):
-        return True
     return user_can(user, "money", CAP_MANAGE)
 
 
-def may_review(user: Any) -> bool:
+def may_review(user: Any, site_id: int, brand_id: int) -> bool:
     """Accounts (``money: manage`` narrowed to the declared reviewers)."""
-    if getattr(user, "is_superuser", False):
-        return True
-    return may_read(user) and _role(user) in DEBIT_NOTE_REVIEWER_ROLES
+    return access_for_user(user).covers_all({'debit_note.manage'}, [(site_id, brand_id)], ['financial'])
 
 
 def readable_site_ids(user: Any) -> set[int] | None:
     """The sites whose notes this person reads; None means every site."""
     if not may_read(user):
         return set()
-    ids = actionable_store_ids(user)
+    ids = actionable_store_ids(user, section="money", minimum=CAP_MANAGE)
     return None if ids is None else set(ids)
 
 

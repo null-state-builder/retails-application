@@ -22,8 +22,6 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
-from django.db import transaction
-from django.db.models import Q
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.permissions import IsAuthenticated
@@ -31,11 +29,13 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from accounts.principal import resolve_access
 from accounts.permissions import require_section
 from accounts.sections import CAP_OPERATE, CAP_VIEW
-from core.refusals import refusal_body
-from masters.models import Cohort, PriceChange, Sku
-from masters.price_history import record_price_change
+from core.refusals import Refusal
+from masters.models import PriceChange, Sku
+from masters.scoping import scope_by_store_and_brand
+from stockledger.models import StockLedgerEntry, StockOnHand
 
 #: `view` reads the price list, `operate` moves a ticket (D11 §7, the re-ticket
 #: gate). `manage` stays what it has always been — configuration.
@@ -126,36 +126,53 @@ def _as_of(request: Request) -> date:
     return timezone.localdate()
 
 
-def _costs(barcodes: list[str]) -> dict[str, dict[str, Any]]:
-    """Landed cost per barcode — the newest cohort wins.
-
-    A barcode can carry several cohorts (one per season it came in under) and
-    they can be costed differently. The ticket is one number, so the comparison
-    has to be against one cost: the most recently inwarded one, which is the
-    stock a shop is holding now.
-    """
-    out: dict[str, dict[str, Any]] = {}
-    rows = (
-        Cohort.objects.filter(barcode__in=barcodes)
-        .order_by("barcode", "-id")
-        .values("barcode", "season", "unit_cost_paise", "mrp_paise")
+def _sources(request: Request) -> list[Any]:
+    """Only tenant-owned stock with proven identity establishes a price-book row."""
+    query = scope_by_store_and_brand(
+        StockOnHand.objects.all(), request.user, section="offers_price", minimum="view",
     )
-    for row in rows:
-        out.setdefault(row["barcode"], dict(row))
-    return out
+    return list(query.order_by("sku_code", "store_id"))
 
 
-def _as_of_prices(barcodes: list[str], day: date) -> dict[str, int]:
-    """The ticket each barcode carried on ``day``, where the trail knows."""
-    out: dict[str, int] = {}
-    rows = (
-        PriceChange.objects.filter(barcode__in=barcodes, effective_from__lte=day)
-        .order_by("barcode", "-effective_from", "-id")
-        .values("barcode", "to_paise")
-    )
-    for row in rows:
-        out.setdefault(row["barcode"], int(row["to_paise"]))
-    return out
+def _price_body(request: Request, sku: Sku, sources: list[Any], day: date) -> dict[str, Any]:
+    access = resolve_access(request)
+    cells = [(row.store_id, row._access_brand_id) for row in sources]
+    if len({brand for _, brand in cells}) != 1:
+        raise Refusal("IDENTITY_CONFLICT", "This barcode has conflicting brand ownership.")
+    fields = {field for field in ("cost", "margin", "personal") if access.covers_all_actions(
+        {"section.offers_price.view"}, cells, {field},
+    )}
+    ledger = scope_by_store_and_brand(
+        StockLedgerEntry.objects.filter(sku_code=sku.barcode, qty__gt=0), request.user,
+        section="offers_price", minimum="view",
+    ).filter(store_id__in=[row.store_id for row in sources]).order_by("-created_at", "-id")
+    latest = ledger.first()
+    cost = None
+    if latest is not None and "cost" in fields:
+        cost = {"unit_cost_paise": int(latest.amount or 0) // latest.qty, "season": latest.season}
+    history = PriceChange.objects.filter(
+        barcode=sku.barcode, changed_by__tenant_id=access.tenant_id,
+    ).select_related("changed_by")
+    then = history.filter(effective_from__lte=day).order_by("-effective_from", "-id").first()
+    body = _row(sku, cost, then.to_paise if then is not None else None)
+    # Shared SKU descriptions do not establish ownership or override its proven snapshot.
+    for key in ("design", "color", "size", "brand", "item", "hsn", "season"):
+        body[key] = getattr(sources[0], key)
+    if "margin" not in fields:
+        body["margin_pct"] = None
+    body["cohorts"] = [{
+        "season": row.season, "unit_cost_paise": int(row.amount or 0) // row.qty if "cost" in fields else None,
+        "mrp_paise": None, "last_doc_number": row.doc_number,
+    } for row in ledger[:200]]
+    body["history"] = [{
+        "id": row.pk, "effective_from": row.effective_from.isoformat(),
+        "from_paise": row.from_paise, "to_paise": row.to_paise,
+        "source": row.source, "source_label": row.get_source_display(),
+        "doc_number": row.doc_number, "reason": row.reason if "cost" in fields else "",
+        "changed_by_name": (getattr(row.changed_by, "full_name", "") or getattr(row.changed_by, "username", "")) if "personal" in fields else "Restricted person",
+        "at": row.created_at.isoformat(),
+    } for row in history[:200]]
+    return body
 
 
 def _margin_pct(mrp_paise: int | None, cost_paise: int | None) -> str | None:
@@ -202,41 +219,25 @@ class PriceListView(APIView):
     )
     def get(self, request: Request) -> Response:
         day = _as_of(request)
-        rows = Sku.objects.filter(is_active=True)
-        term = (request.query_params.get("q") or "").strip()
-        if term:
-            rows = rows.filter(
-                Q(barcode__icontains=term)
-                | Q(design__icontains=term)
-                | Q(item__icontains=term)
-                | Q(brand__icontains=term)
-            )
-        brand = (request.query_params.get("brand") or "").strip()
-        if brand:
-            rows = rows.filter(brand__iexact=brand)
+        by_code: dict[str, list[Any]] = {}
+        term = str(request.query_params.get("q") or "").strip().casefold()
+        brand = str(request.query_params.get("brand") or "").strip().casefold()
+        for row in _sources(request):
+            if brand and row.brand.casefold() != brand:
+                continue
+            if term and not any(term in str(getattr(row, key)).casefold() for key in ("sku_code", "design", "item", "brand")):
+                continue
+            by_code.setdefault(row.sku_code, []).append(row)
+        skus = Sku.objects.filter(barcode__in=by_code, is_active=True)
         if request.query_params.get("no_discount") == "true":
-            rows = rows.filter(no_discount=True)
-        page = list(rows.order_by("brand", "design", "barcode")[:PAGE])
-        barcodes = [sku.barcode for sku in page]
-        costs = _costs(barcodes)
-        then = _as_of_prices(barcodes, day) if day < timezone.localdate() else {}
-        return Response(
-            {
-                "as_of": day.isoformat(),
-                "count": len(page),
-                "truncated": len(page) == PAGE,
-                "brands": sorted(
-                    {
-                        name
-                        for name in Sku.objects.filter(is_active=True)
-                        .exclude(brand="")
-                        .values_list("brand", flat=True)
-                        .distinct()
-                    }
-                ),
-                "rows": [_row(sku, costs.get(sku.barcode), then.get(sku.barcode)) for sku in page],
-            }
-        )
+            skus = skus.filter(no_discount=True)
+        page = list(skus.order_by("barcode")[:PAGE + 1])
+        bodies = [_price_body(request, sku, by_code[sku.barcode], day) for sku in page[:PAGE]]
+        for body in bodies:
+            body.pop("cohorts")
+            body.pop("history")
+        return Response({"as_of": day.isoformat(), "count": len(bodies), "truncated": len(page) > PAGE,
+                         "brands": sorted({row.brand for rows in by_code.values() for row in rows}), "rows": bodies})
 
 
 class PriceDetailView(APIView):
@@ -249,33 +250,11 @@ class PriceDetailView(APIView):
         responses={200: PRICE_DETAIL_RESPONSE, 404: REFUSAL_RESPONSE},
     )
     def get(self, request: Request, barcode: str) -> Response:
-        sku = Sku.objects.filter(barcode=barcode).first()
+        sources = [row for row in _sources(request) if row.sku_code == barcode]
+        sku = Sku.objects.filter(barcode=barcode).first() if sources else None
         if sku is None:
-            return Response(refusal_body("NOT_FOUND", f"No piece with barcode {barcode}."), 404)
-        costs = _costs([barcode])
-        body = _row(sku, costs.get(barcode), None)
-        body["cohorts"] = list(
-            Cohort.objects.filter(barcode=barcode)
-            .order_by("-id")
-            .values("season", "unit_cost_paise", "mrp_paise", "last_doc_number")
-        )
-        body["history"] = [
-            {
-                "id": change.id,
-                "effective_from": change.effective_from.isoformat(),
-                "from_paise": change.from_paise,
-                "to_paise": change.to_paise,
-                "source": change.source,
-                "source_label": change.get_source_display(),
-                "doc_number": change.doc_number,
-                "reason": change.reason,
-                "changed_by_name": getattr(change.changed_by, "full_name", "")
-                or getattr(change.changed_by, "username", ""),
-                "at": change.created_at.isoformat(),
-            }
-            for change in PriceChange.objects.filter(barcode=barcode).select_related("changed_by")
-        ]
-        return Response(body)
+            raise Refusal("NOT_FOUND", "That price-book row was not found.", status=404)
+        return Response(_price_body(request, sku, sources, _as_of(request)))
 
 
 class PriceRepriceView(APIView):
@@ -292,66 +271,9 @@ class PriceRepriceView(APIView):
         request={"application/json": REPRICE_REQUEST},
         responses={200: PRICE_DETAIL_RESPONSE, 400: REFUSAL_RESPONSE, 404: REFUSAL_RESPONSE},
     )
-    @transaction.atomic
     def post(self, request: Request, barcode: str) -> Response:
-        sku = Sku.objects.select_for_update().filter(barcode=barcode).first()
-        if sku is None:
-            return Response(refusal_body("NOT_FOUND", f"No piece with barcode {barcode}."), 404)
-
-        reason = str(request.data.get("reason") or "").strip()
-        if len(reason) < 3:
-            return Response(
-                refusal_body(
-                    "VALIDATION",
-                    "Say why this ticket is moving — the reason is part of the record.",
-                ),
-                status=400,
-            )
-        try:
-            new_paise = _new_price_paise(request.data)
-        except ValueError as exc:
-            return Response(refusal_body("VALIDATION", str(exc)), status=400)
-
-        cost = max(
-            (
-                int(value or 0)
-                for value in Cohort.objects.filter(barcode=barcode).values_list(
-                    "unit_cost_paise", flat=True
-                )
-            ),
-            default=0,
-        )
-        if cost and new_paise < cost:
-            return Response(
-                refusal_body(
-                    "VALIDATION",
-                    f"₹{new_paise / 100:,.2f} is below what this piece cost to land "
-                    f"(₹{cost / 100:,.2f}). A ticket under cost is a loss booked by typing.",
-                ),
-                status=400,
-            )
-
-        was = sku.mrp_paise
-        if was == new_paise:
-            return Response(
-                refusal_body("VALIDATION", "That is the ticket it already carries."), status=400
-            )
-        sku.mrp_paise = new_paise
-        sku.save(update_fields=["mrp_paise", "updated_at"])
-        # The cohorts carry the ticket too — that is what the till's dataset and
-        # the sale line read. Leaving them behind would price tomorrow's bill
-        # under yesterday's ticket while the screen showed the new one.
-        Cohort.objects.filter(barcode=barcode).update(mrp_paise=new_paise)
-        record_price_change(
-            barcode=barcode,
-            sku=sku,
-            from_paise=was,
-            to_paise=new_paise,
-            source=PriceChange.Source.REPRICE,
-            reason=reason,
-            user=request.user,
-        )
-        return PriceDetailView().get(request, barcode)
+        # This shared master has no tenant owner. Scope cannot make its mutation safe.
+        raise Refusal("OWNERSHIP_UNRESOLVED", "Shared SKU repricing awaits SO-04 ownership and SO-06 price-book cutover.", status=409)
 
 
 def _new_price_paise(data: dict[str, Any]) -> int:

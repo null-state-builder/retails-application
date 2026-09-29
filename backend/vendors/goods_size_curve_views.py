@@ -7,11 +7,9 @@
     split one style total over one category's curve (audited; nothing else is
     written, and the booking itself is saved as before).
 
-Only someone who may book that brand for that store asks: on a goods-v1 store
-the goods-v1 ``booking.manage`` grant over the store and brand, as creating the
-booking itself needs; on an older store the ``booking: operate`` cell and the
-store (or, for a brand-scoped person, the brand) in their own scope. Anyone
-else is refused, and a store or brand outside scope is not found. Where the
+Only someone with ``booking.manage`` over that exact store and brand asks,
+regardless of the store's stock contract. Anyone else is refused, and a store
+or brand outside scope is not found. Where the
 switch is off at the store, the read answers "switched off" with no curve (the
 booking form asks for every store it books for, and switched off is not an
 error there), and a fill is refused.  No cost or price is in any answer: the
@@ -28,16 +26,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from accounts.goods_api import GoodsAPIView, business_body, check_query, parse_int_id, parse_meta
-from accounts.permissions import user_can
 from accounts.principal import AccessContext
-from accounts.sections import CAP_OPERATE
 from core.commands import CommandResult, CommandRun
 from core.refusals import Refusal, issue
 from masters.models import Brand, Season, Store
-from masters.scoping import actionable_store_ids, is_brand_scoped, visible_brand_names
 from masters.store_feature_registry import SIZE_CURVE
 from masters.store_features import is_feature_on, require_feature
-from stockledger.contracts import goods_v1_site_ids
 from vendors import size_curve
 from vendors.goods_services import BOOKING_ACTION, season_retired
 from vendors.size_curve_models import SizeCurveFill
@@ -135,22 +129,9 @@ def _row(rows: Any, pk: int, what: str) -> Any:
     return found
 
 
-def _may_book(request: Request, access: AccessContext, store: Store, brand: Brand) -> None:
+def _may_book(_request: Request, access: AccessContext, store: Store, brand: Brand) -> None:
     """Refuse unless this person may book ``brand`` for ``store`` (the booking's own rule)."""
-    if goods_v1_site_ids({store.pk}):
-        access.require(BOOKING_ACTION, site_id=store.pk, brand_id=brand.pk)
-        return
-    user = request.user
-    if not user_can(user, "booking", CAP_OPERATE):
-        raise Refusal("ACTION_DENIED", "You do not have permission to make bookings.")
-    if is_brand_scoped(user):
-        names = visible_brand_names(user)
-        if names is not None and brand.name not in names:
-            raise Refusal("NOT_FOUND", "That brand was not found.", status=404)
-        return
-    ids = actionable_store_ids(user)
-    if ids is not None and store.pk not in ids:
-        raise Refusal("NOT_FOUND", "That store was not found.", status=404)
+    access.require(BOOKING_ACTION, site_id=store.pk, brand_id=brand.pk)
 
 
 def _asked(

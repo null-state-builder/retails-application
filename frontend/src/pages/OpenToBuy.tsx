@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
-import { useAuth } from "../auth/AuthContext";
 import { PageHeader } from "../components/PageHeader";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
@@ -44,8 +43,6 @@ const EMPTY: Form = { brand_id: "", season_id: "", site_id: "", rupees: "" };
  *  sees cost, and the server says who may set a budget. */
 export function OpenToBuyPage() {
   const { id } = useParams();
-  const { session } = useAuth();
-  const seesCost = Boolean(session?.field_grants?.includes("cost"));
   const [list, setList] = useState<OtbList | null>(null);
   const [ask, setAsk] = useState<OtbAsk | null>(null);
   const [form, setForm] = useState<Form>(EMPTY);
@@ -93,8 +90,8 @@ export function OpenToBuyPage() {
   }, [id]);
 
   useEffect(() => {
-    if (seesCost) void load();
-  }, [load, seesCost]);
+    void load();
+  }, [load]);
 
   useEffect(() => {
     const up = () => {
@@ -178,17 +175,6 @@ export function OpenToBuyPage() {
   }
 
   const offline = !online || lost;
-
-  if (!seesCost) {
-    return (
-      <div className="page-pad">
-        <PageHeader title="Open-to-Buy" />
-        <p className="warn-note" data-testid="otb-no-cost">
-          Open-to-buy is money at cost. Your role does not see cost.
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div className="page-pad">
