@@ -23,6 +23,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.db import IntegrityError, models, transaction
 from django.utils import timezone
 
+from accounts.principal import access_for_user
 from approvals.hooks import run_on_approved, run_on_rejected
 from approvals.models import (
     CLEARED_STATUSES,
@@ -35,6 +36,9 @@ from approvals.models import (
 # Re-exported: it lives in ``approvals.names`` now that the model layer needs it
 # for the step trail, and every caller learned it here.
 from approvals.names import display_name as display_name
+from core.tenancy import require_tenant_id
+from masters.models import Brand
+from masters.brand_identity import identity_id
 from masters.scoping import scope_by_store_or_brand
 
 
@@ -82,7 +86,12 @@ def _create(
     value_paise: int = 0,
     reason: str = "",
     route: ApprovalRoute | None = None,
+    authority_pin: dict[str, Any] | None = None,
 ) -> Approval:
+    source_brand = next((value for name in ("brand", "original_brand")
+                         if isinstance(value := getattr(subject, name, None), Brand)), None)
+    if source_brand is not None and source_brand.tenant_id != require_tenant_id():
+        raise ApprovalRightsError("The approval source belongs to another tenant.")
     return Approval.objects.create(
         kind=kind,
         kind_label=kind_label,
@@ -91,6 +100,7 @@ def _create(
         object_id=subject.pk,
         store=store,
         brand=brand,
+        brand_ref=source_brand,
         value_paise=value_paise,
         approver_roles=list(approver_roles),
         made_by=made_by,
@@ -99,6 +109,7 @@ def _create(
         reason=reason,
         route=route,
         current_step=0,
+        authority_pin=authority_pin,
     )
 
 
@@ -141,11 +152,15 @@ def request_approval(
     chain is routed by the chain, and having two lists disagree about who
     approves step 1 is the one thing that must not be possible.
     """
-    route = route_for(kind)
-    if route is not None:
-        approver_roles = route.active_roles(0, value_paise)
     try:
         with transaction.atomic():
+            from approvals.unified_authority import pin
+
+            authority = pin(subject, made_by, requested_by)
+            steps = authority["steps"]
+            approver_roles = list(steps[0].get("roles") or [])
+            if not approver_roles:
+                raise ApprovalError("The active approval policy has no first-step reviewers.")
             return _create(
                 subject,
                 status=ApprovalStatus.PENDING,
@@ -157,8 +172,9 @@ def request_approval(
                 approver_roles=approver_roles,
                 store=store,
                 brand=brand,
-                value_paise=value_paise,
-                route=route,
+                value_paise=int(authority["value_paise"] or 0),
+                route=None,
+                authority_pin=authority,
             )
     except IntegrityError as exc:
         # The partial unique index is the one that actually binds — two people
@@ -229,7 +245,10 @@ def approval_for(subject: models.Model) -> Approval | None:
 
 
 @transaction.atomic
-def decide(approval: Approval, *, actor: Any, action: str, reason: str = "") -> Approval:
+def decide(
+    approval: Approval, *, actor: Any, action: str, reason: str = "",
+    access: Any = None,
+) -> Approval:
     """Approve or reject, as ``actor``. The single enforcement point.
 
     Re-reads the row ``FOR UPDATE`` so two seniors clicking at the same moment
@@ -248,16 +267,52 @@ def decide(approval: Approval, *, actor: Any, action: str, reason: str = "") -> 
     if locked.status != ApprovalStatus.PENDING:
         raise ApprovalError(f"This request was already {locked.status}.")
 
+    if access is None:
+        raise ApprovalRightsError("A live authenticated access context is required to decide.")
+    from approvals.unified_authority import validate
+
+    try:
+        validate(locked, access)
+    except Exception as exc:
+        # Refusal is the access kernel's stable boundary; translate only its
+        # expected domain refusal, allowing programming errors to surface.
+        from core.refusals import Refusal
+
+        if isinstance(exc, Refusal):
+            raise ApprovalRightsError(exc.message) from exc
+        raise
+
     _refuse_deciding_your_own(locked, actor)
 
-    if not can_decide(locked, actor):
-        raise NotAnApproverError("Your role cannot decide this approval.")
+    if not locked.authority_pin:
+        raise ApprovalRightsError("This historical request has no authority pin; resubmission is required.")
 
     reason = (reason or "").strip()
     if action == "reject" and not reason:
         raise ApprovalError("A reason is required when rejecting.")
 
     step_index = _step_being_decided(locked, actor)
+
+    pinned_steps = (locked.authority_pin or {}).get("steps") or []
+    if pinned_steps and not locked.route_id:
+        index = locked.current_step
+        if index >= len(pinned_steps):
+            raise ApprovalRightsError("This approval's pinned route is invalid.")
+        ApprovalStepDecision.objects.create(
+            approval=locked,
+            step_order=index,
+            step_label=str(pinned_steps[index].get("label") or f"Step {index + 1}")[:64],
+            decided_by=actor,
+            decided_at=timezone.now(),
+            note=reason,
+        )
+        if action == "approve" and index + 1 < len(pinned_steps):
+            locked.current_step = index + 1
+            locked.approver_roles = list(pinned_steps[index + 1].get("roles") or [])
+            locked.save(update_fields=["current_step", "approver_roles", "updated_at"])
+            with access.guard_legacy_write(lambda current: _pinned_authority_is_live(locked, current)):
+                pass
+            return locked
 
     if action == "approve" and locked.route_id:
         advanced = _advance_route(locked, actor=actor, step_index=step_index, note=reason)
@@ -284,7 +339,18 @@ def decide(approval: Approval, *, actor: Any, action: str, reason: str = "") -> 
         run_on_approved(locked.subject, actor=actor)
     else:
         run_on_rejected(locked.subject, actor=actor, reason=reason)
+    # The approval API is still a legacy view, so bracket its transaction with
+    # the same session/policy replay used by command-backed writes.
+    with access.guard_legacy_write(lambda current: _pinned_authority_is_live(locked, current)):
+        pass
     return locked
+
+
+def _pinned_authority_is_live(approval: Approval, access: Any) -> bool:
+    from approvals.unified_authority import validate
+
+    validate(approval, access)
+    return True
 
 
 def _refuse_deciding_your_own(approval: Approval, actor: Any) -> None:
@@ -300,22 +366,16 @@ def _refuse_deciding_your_own(approval: Approval, actor: Any) -> None:
     people. A route may list one role on two of them, and one person walking a
     request from end to end is maker-checker with extra steps all over again.
 
-    That between-steps rule is the one thing a superuser is let past, and only
-    that one. Break-glass exists so a request can never become unclearable, and
-    a superuser barred from step 2 by their own step 1 would be exactly that —
-    stuck, with no second superuser to call. The two bars that matter, maker and
-    asker, still hold for them, and the database holds them too.
+    The same distinct-person rule applies to every actor, including platform
+    support identities. A request needing another checker waits for another
+    authorised human; platform status cannot clear a business approval.
     """
     actor_id = getattr(actor, "id", None)
     if approval.made_by_id == actor_id:
         raise SelfApprovalError("You cannot approve a document you created.")
     if approval.requested_by_id == actor_id:
         raise SelfApprovalError("You cannot approve a request you raised.")
-    if (
-        approval.route_id
-        and not getattr(actor, "is_superuser", False)
-        and approval.step_decisions.filter(decided_by=actor).exists()
-    ):
+    if approval.route_id and approval.step_decisions.filter(decided_by=actor).exists():
         raise SelfApprovalError("You have already cleared a step on this request.")
 
 
@@ -333,11 +393,6 @@ def _step_being_decided(approval: Approval, actor: Any) -> int | None:
     the decision lands on the step now waiting, which is the promise the row made
     when it reached their inbox.
 
-    A superuser is break-glass and holds no business role, so they always act on
-    the waiting step: reaching forward is a permission the *route* grants to a
-    named role, not a way around the chain. They clear it one step per action,
-    which reads honestly in the trail.
-
     ``current_step`` is read clamped, so a request left past the end of a route
     someone shortened is still decidable instead of deadlocked.
     """
@@ -345,11 +400,11 @@ def _step_being_decided(approval: Approval, actor: Any) -> int | None:
     if route is None:
         return None
     here = route.clamped_step(approval.current_step)
-    if getattr(actor, "is_superuser", False):
-        return here
-    role_code = getattr(getattr(actor, "role", None), "code", "")
-    index = route.step_for_role(role_code, here, approval.value_paise)
-    return here if index is None else index
+    for role_code in _approval_role_codes(approval, actor):
+        index = route.step_for_role(role_code, here, approval.value_paise)
+        if index is not None:
+            return index
+    return here
 
 
 def _advance_route(
@@ -398,36 +453,53 @@ def _advance_route(
     return approval
 
 
-def holds_approver_role(user: Any, approver_roles: Any) -> bool:
-    """Does ``user``'s role sit on a list of approver roles?
+def holds_approver_role(
+    user: Any, approver_roles: Any, *, site_id: int | None = None,
+    brand_id: int | None = None,
+) -> bool:
+    """A recorded approver role must cover the resource in the same assignment."""
+    return bool(access_for_user(user).grants_with_roles(
+        "approvals.view", [(site_id, brand_id)], approver_roles or (),
+    ))
 
-    The one spelling of "senior enough", so superuser, a user with no role and
-    an empty list are reasoned about once. Used to ask whether someone may
-    decide an existing request (``can_decide``) and, in ``outbound``, whether a
-    maker already holds the rung the family would have asked (#138).
-    """
-    if getattr(user, "is_superuser", False):
-        return True
-    role_code = getattr(getattr(user, "role", None), "code", "")
-    return bool(role_code) and role_code in (approver_roles or [])
+
+def _approval_cell(approval: Approval) -> tuple[int | None, int | None] | None:
+    """Resolve reviewed identity. Snapshot text never establishes authority."""
+    tenant_id = require_tenant_id()
+    if approval.store_id is not None:
+        store = approval.store
+        if store is None or store.tenant_id != tenant_id:
+            return None
+    brand_id = None
+    if approval.brand:
+        brand_id = identity_id(approval, tenant_id)
+        if brand_id is None:
+            return None
+    if approval.store_id is None and brand_id is None:
+        subject = approval.subject
+        if getattr(subject, "tenant_id", None) != tenant_id:
+            return None
+    return approval.store_id, brand_id
+
+
+def _approval_role_codes(approval: Approval, user: Any) -> tuple[str, ...]:
+    cell = _approval_cell(approval)
+    if cell is None:
+        return ()
+    site_id, brand_id = cell
+    access = access_for_user(user)
+    return tuple(sorted({grant.role_code for grant in access.grants
+                         if access.grants_with_roles("approvals.view", [(site_id, brand_id)], (grant.role_code,))}))
 
 
 def can_decide(approval: Approval, user: Any) -> bool:
-    """May ``user``'s *role* decide this one? A role gate and nothing else.
+    """Check the recorded approver role against the approval's exact scope cell.
 
-    Two other gates exist and neither is here. ``decide`` bars the maker and the
-    asker. Record scope (ADR-0003) is applied where the row is *found* — by
-    ``inbox_for`` when listing, and by the decide view, which looks the approval
-    up through ``scope_by_entitlement_or_brand`` so an out-of-scope pk is a 404
-    before any of this runs; that is also what stops a brand manager deciding
-    another brand's return (#75). Deciding uses the entitlement, not the top-bar
-    unit: the switcher narrows what you read, never what you may act on.
-
-    It is deliberately not re-checked at decision time, so a caller
-    that hands ``decide`` a row it fetched some other way — a shell, a
-    management command — is responsible for scoping it first.
+    The view also filters lookups to avoid revealing an out-of-scope approval;
+    ``decide`` repeats this check under the row lock before writing. The maker
+    and asker exclusions are enforced separately there.
     """
-    return holds_approver_role(user, approval.approver_roles)
+    return bool(set(_approval_role_codes(approval, user)) & set(approval.approver_roles or []))
 
 
 # ---------------------------------------------------------------------------
@@ -435,7 +507,7 @@ def can_decide(approval: Approval, user: Any) -> bool:
 # ---------------------------------------------------------------------------
 
 
-def inbox_for(user: Any) -> Any:
+def inbox_for(user: Any, access: Any = None) -> Any:
     """Everything waiting for ``user``'s decision, across every document type.
 
     Fail-closed on three axes: pending only, never one's own — neither made nor
@@ -452,13 +524,19 @@ def inbox_for(user: Any) -> Any:
         .select_related("store", "made_by", "requested_by", "decided_by", "route")
         .prefetch_related("step_decisions__decided_by")
     )
-    qs = scope_by_store_or_brand(qs, user)
-    if not getattr(user, "is_superuser", False):
-        role_code = getattr(getattr(user, "role", None), "code", "")
-        if not role_code:
-            return qs.none()
-        qs = qs.filter(approver_roles__contains=[role_code])
-    return qs
+    if access is None:
+        return qs.none()
+    from approvals.unified_authority import validate
+    from core.refusals import Refusal
+
+    visible: list[int] = []
+    for row in qs:
+        try:
+            validate(row, access)
+        except Refusal:
+            continue
+        visible.append(row.pk)
+    return qs.filter(pk__in=visible)
 
 
 # ---------------------------------------------------------------------------

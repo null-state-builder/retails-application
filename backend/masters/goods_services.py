@@ -1271,6 +1271,10 @@ CONFIG_SCHEMAS: dict[str, Checker] = {
         {
             "action": _required(_text(100)),
             "roles": _required(_items(_text(40))),
+            "steps": _optional(_items(_object({
+                "label": _required(_text(64)),
+                "roles": _required(_items(_text(40))),
+            }))),
             "purpose": _optional(_text(60)),
             "site_ids": _required(_IDS),
             "brand_ids": _required(_IDS),

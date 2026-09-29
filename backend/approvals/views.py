@@ -31,6 +31,7 @@ from approvals.services import (
     decide,
     inbox_for,
 )
+from accounts.principal import resolve_access
 from core.dates import bad_since, parse_day
 from core.textsearch import search_term, text_filter
 from masters.scoping import scope_by_entitlement_or_brand, scope_by_store_or_brand
@@ -56,7 +57,7 @@ class ApprovalInboxView(generics.ListAPIView[Approval]):
     pagination_class = None
 
     def get_queryset(self) -> Any:
-        qs = inbox_for(self.request.user)
+        qs = inbox_for(self.request.user, resolve_access(self.request))
         # The screen's own search box (#102), applied last so it can only
         # narrow what the inbox's own scoping already allows.
         return text_filter(qs, search_term(self.request), APPROVAL_SEARCH_FIELDS)
@@ -92,7 +93,7 @@ class ApprovalListView(generics.ListAPIView[Approval]):
         qs = Approval.objects.select_related(
             "store", "requested_by", "decided_by", "route"
         ).prefetch_related("step_decisions__decided_by")
-        qs = scope_by_store_or_brand(qs, self.request.user)
+        qs = scope_by_store_or_brand(qs, self.request.user, section="home", minimum="view")
         st = self.request.query_params.get("status")
         if st:
             qs = qs.filter(status=st)
@@ -131,7 +132,7 @@ class ApprovalDecideView(APIView):
         # on screen must not narrow what the caller may act on. Or-brand, because
         # the brand manager the return policy names is bounded by brands and
         # would otherwise be scoped out of every row (#75).
-        visible = scope_by_entitlement_or_brand(Approval.objects.all(), request.user)
+        visible = scope_by_entitlement_or_brand(Approval.objects.all(), request.user, section="home", minimum="view")
         try:
             approval = visible.get(pk=pk)
         except Approval.DoesNotExist:
@@ -146,10 +147,11 @@ class ApprovalDecideView(APIView):
                 actor=request.user,
                 action=ser.validated_data["action"],
                 reason=ser.validated_data.get("reason", ""),
+                access=resolve_access(request),
             )
         except ApprovalRightsError as e:
             return Response({"error": str(e)}, status=status.HTTP_403_FORBIDDEN)
         except ApprovalError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(ApprovalReadSerializer(approval).data)
+        return Response(ApprovalReadSerializer(approval, context={"request": request}).data)

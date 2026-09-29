@@ -27,6 +27,29 @@ class ApprovalReadSerializer(serializers.ModelSerializer[Approval]):
     requested_at = serializers.DateTimeField(source="created_at", read_only=True)
     steps = serializers.SerializerMethodField()
 
+    def to_representation(self, instance: Approval) -> dict[str, Any]:
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        evidence = instance.authority_pin or {}
+        fields = set(evidence.get("fields") or ())
+        if request is None:
+            data.pop("value_paise", None)
+            for name in ("made_by_name", "requested_by_name", "decided_by_name"):
+                data.pop(name, None)
+            return data
+        from accounts.principal import resolve_access
+
+        access = resolve_access(request)
+        cells = {tuple(cell) for cell in evidence.get("cells") or ()}
+        if not cells or not access.covers_all_actions({"approvals.view"}, cells, fields):
+            data.pop("value_paise", None)
+        if not cells or not access.covers_all_actions(
+            {"approvals.view"}, cells, {"personal"}
+        ):
+            for name in ("made_by_name", "requested_by_name", "decided_by_name"):
+                data.pop(name, None)
+        return data
+
     def get_made_by_name(self, obj: Approval) -> str:
         return display_name(obj.made_by)
 

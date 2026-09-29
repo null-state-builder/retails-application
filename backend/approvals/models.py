@@ -243,6 +243,11 @@ class Approval(TimeStampedModel):
         "still imports no business model. Blank means the decision is not about "
         "one brand, and a brand-scoped user never sees it (#75).",
     )
+    # Stable scope identity; historical brand text is display evidence only.
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     value_paise = MoneyField(
         default=0,
         help_text="Value at stake, snapshotted — the input to value-banded approval.",
@@ -277,6 +282,9 @@ class Approval(TimeStampedModel):
         "where it means nothing; on a routed one it is the step now waiting, and "
         "once approved it sits past the last step.",
     )
+    # Immutable request-time authority evidence. Null historical rows are
+    # intentionally inactive until their source is validated and resubmitted.
+    authority_pin = models.JSONField(null=True, blank=True, editable=False)
 
     # --- maker -------------------------------------------------------------
     made_by = models.ForeignKey(

@@ -21,7 +21,6 @@ from accounts.goods_api import (
     GoodsAPIView,
     business_body,
     check_query,
-    check_reviewed_hash,
     page,
     paginate,
     parse_int_id,
@@ -521,6 +520,18 @@ POLICY_DATA: dict[str, Any] = {
     "properties": {
         "action": {"type": "string"},
         "roles": {"type": "array", "items": {"type": "string"}},
+        "steps": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "label": {"type": "string"},
+                    "roles": {"type": "array", "items": {"type": "string"}},
+                },
+                "required": ["label", "roles"],
+                "additionalProperties": False,
+            },
+        },
         "purpose": {"type": "string", "nullable": True},
         "site_ids": {"type": "array", "items": {"type": "integer"}},
         "brand_ids": {"type": "array", "items": {"type": "integer"}},
@@ -2338,13 +2349,6 @@ def _operation_for(action: str) -> str:
 
 def _sbu_dto(access: AccessContext, sbu: Sbu) -> dict[str, Any]:
     """ResourceDTO<Sbu> (design §5.8 allowlist: site_id, brand_id, code, retired_at)."""
-    allowed = (
-        ["retire"]
-        if sbu.retired_at is None
-        and access.holds("master.retire")
-        and access.can("master.retire", site_id=sbu.site_id, brand_id=sbu.brand_id)
-        else []
-    )
     return resource_dto(
         id=sbu.pk,
         data={
@@ -2356,7 +2360,7 @@ def _sbu_dto(access: AccessContext, sbu: Sbu) -> dict[str, Any]:
         revision=sbu.revision,
         state="retired" if sbu.retired_at else "active",
         context={"site_id": sbu.site_id, "brand_id": sbu.brand_id, "sbu_id": sbu.pk},
-        allowed_actions=allowed,
+        allowed_actions=[],
     )
 
 
@@ -2382,161 +2386,6 @@ class GoodsSiteSbuListView(GoodsAPIView):
         rows = list(Sbu.objects.filter(site=store).order_by("code"))
         window, cursor = paginate(rows, params)
         return Response(page([_sbu_dto(access, s) for s in window], cursor))
-
-
-#: E246 request body: why the SBU is retired and the exact content reviewed.
-SBU_RETIRE_REQUEST = {
-    "type": "object",
-    "required": [
-        "command_id",
-        "contract_version",
-        "expected_revision",
-        "reason_code",
-        "reviewed_hash",
-    ],
-    "properties": {
-        "command_id": {"type": "string", "format": "uuid"},
-        "contract_version": {"type": "string", "enum": ["goods-v1"]},
-        "expected_revision": {"type": "integer", "minimum": 1},
-        "reason_code": {"type": "string", "maxLength": 60},
-        "reviewed_hash": {"type": "string", "minLength": 64, "maxLength": 64},
-    },
-    "additionalProperties": False,
-}
-
-
-class GoodsSiteSbuRetireView(GoodsAPIView):
-    """E246: C-OWN retires one site SBU after a fresh password confirmation.
-
-    Refusals: ACTION_DENIED (no retire grant), NOT_FOUND (SBU outside scope, or not
-    at that site), INVALID_REQUEST (body), STEP_UP_REQUIRED, REVISION_SUPERSEDED
-    (stale expected_revision or reviewed_hash), COMMAND_CONFLICT (a reused command
-    id with a different body), SBU_RETIREMENT_BLOCKED (already retired, or any
-    residual still refers to it; ``details.issues`` names each one). There is no
-    residual override.
-    """
-
-    @extend_schema(
-        request={"application/json": SBU_RETIRE_REQUEST},
-        responses={
-            200: _resource_response(SBU_ITEM, "ResourceDTO<Sbu>."),
-            400: REFUSAL_RESPONSE,
-            401: REFUSAL_RESPONSE,
-            403: REFUSAL_RESPONSE,
-            404: REFUSAL_RESPONSE,
-            409: REFUSAL_RESPONSE,
-        },
-    )
-    def post(self, request: Request, site_id: int, pk: uuid.UUID) -> Response:
-        from masters.goods_sbu import (
-            end_sbu_grants,
-            lock_grant_holders,
-            retirement_blockers,
-            sbu_residuals,
-        )
-
-        access = self.access(request)
-        meta = parse_meta(request.data, revision_bound=True)
-        body = business_body(
-            request.data,
-            {"reason_code", "reviewed_hash"},
-            required=["reason_code", "reviewed_hash"],
-        )
-        reason_code = body["reason_code"]
-        if not isinstance(reason_code, str) or len(reason_code) > 60:
-            raise Refusal(
-                "INVALID_REQUEST",
-                "reason_code must be text of at most 60 characters.",
-                issues=[issue("INVALID", "reason_code is invalid", field="reason_code")],
-            )
-        reviewed_hash = body["reviewed_hash"]
-        if not isinstance(reviewed_hash, str) or len(reviewed_hash) != 64:
-            raise Refusal(
-                "INVALID_REQUEST",
-                "reviewed_hash must be the 64-character content hash you reviewed.",
-                issues=[issue("INVALID", "reviewed_hash is invalid", field="reviewed_hash")],
-            )
-        _location_authorised(access, site_id)
-        sbu = Sbu.objects.filter(pk=pk, site_id=site_id).first()
-        if sbu is None:
-            raise Refusal("NOT_FOUND", "That record was not found.")
-        access.require("master.retire", site_id=site_id, brand_id=sbu.brand_id)
-
-        def handler(run: CommandRun) -> CommandResult:
-            access.require_step_up()
-            # The holders of grants scoped to this SBU, at the security rank below
-            # the site: their grants end with the retirement, as any access change.
-            lock_grant_holders(run, pk)
-            # Then the site guard: receiving, acceptance, movement and approval
-            # commands lock it too, and writing it below makes any stock or
-            # document change that committed meanwhile a serialization conflict,
-            # so the residuals read here cannot be overtaken before this commits.
-            guards = run.lock(LockRank.SITE, SiteGuard.objects.filter(site_id=site_id))
-            locked = run.lock(LockRank.SITE, Sbu.objects.filter(pk=pk, site_id=site_id))
-            if not locked:
-                raise Refusal("NOT_FOUND", "That record was not found.")
-            row = locked[0]
-            if row.revision != meta.expected_revision:
-                raise Refusal(
-                    "REVISION_SUPERSEDED", "Someone changed this record after you loaded it."
-                )
-            check_reviewed_hash(reviewed_hash, _sbu_dto(access, row)["content_hash"])
-            if row.retired_at is not None:
-                raise Refusal(
-                    "SBU_RETIREMENT_BLOCKED", "This business unit is already retired.", status=409
-                )
-            blockers = retirement_blockers(sbu_residuals(row))
-            if blockers:
-                raise Refusal(
-                    "SBU_RETIREMENT_BLOCKED",
-                    "This business unit still has stock, documents or exceptions that must "
-                    "be handled first.",
-                    status=409,
-                    issues=blockers,
-                )
-            row.retired_at = run.now
-            row.revision += 1
-            row.save(update_fields=["retired_at", "revision"])
-            # Change PRD P5: grants scoped to the unit close rather than block.
-            grants_ended = end_sbu_grants(run, row)
-            for guard in guards:
-                guard.revision += 1
-                guard.save(update_fields=["revision"])
-            append_master_version(
-                run,
-                kind="sbu",
-                target_key=str(row.pk),
-                revision=row.revision,
-                payload={
-                    "site_id": str(row.site_id),
-                    "brand_id": str(row.brand_id) if row.brand_id else None,
-                    "code": row.code,
-                    "grants_ended": grants_ended,
-                },
-                retired=True,
-                reason_code=reason_code,
-            )
-            run.audit_after = {
-                "sbu_id": str(row.pk),
-                "retired_at": row.retired_at.isoformat(),
-                "reason_code": reason_code,
-                "grants_ended": grants_ended,
-            }
-            return CommandResult(resource_type="sbu", resource_id=str(row.pk), status_code=200)
-
-        result = self.run_command(
-            request,
-            access=access,
-            action="master.retire",
-            meta=meta,
-            business_input=body,
-            handler=handler,
-            subject_key=f"sbu:{pk}",
-            site_id=site_id,
-            reviewed_hash=reviewed_hash,
-        )
-        sbu.refresh_from_db()
-        return Response(_sbu_dto(access, sbu), status=result.status_code)
 
 
 # ==========================================================================
@@ -2750,6 +2599,8 @@ class _BrandLikeDetailView(GoodsAPIView):
         row = self.model.objects.filter(pk=pk).first()
         if row is None:
             raise Refusal("NOT_FOUND", "That record was not found.")
+        if self.brand_scoped and "name" in body and body["name"] != row.name:
+            raise Refusal("BRAND_RECONCILIATION_REQUIRED", "Brand renaming is paused until stable identity reconciliation and reader cutover are verified.")
 
         def handler(run: CommandRun) -> CommandResult:
             head = lock_revision(run, self.family, str(pk), rank=LockRank.DRAFT)
@@ -4121,6 +3972,7 @@ POLICY_FIELDS = frozenset(
     {
         "action",
         "roles",
+        "steps",
         "purpose",
         "site_ids",
         "brand_ids",
