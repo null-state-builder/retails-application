@@ -1,0 +1,129 @@
+/* The full mail screen (#mail-inbox-in-app).
+ *
+ * Beside `Mail.tsx` rather than in the shell's stylesheet, because these rules
+ * change when the screen changes and nothing else reads them. What stays in
+ * `AppShell.css` is the top-bar popup, which is genuinely shell furniture and
+ * shares the bell's `.bell-*` shell wholesale.
+ *
+ * Every colour is a token. The one white in here is `--mail-paper`, which is
+ * theme-invariant on purpose: a sender's HTML is written against white, and
+ * recolouring it is how somebody's dark-on-light table becomes invisible. It is
+ * mirrored as a literal inside the sandboxed frame's own document, which no
+ * custom property can reach — see `BODY_RESET` in `Mail.tsx`.
+ */
+
+.mail-layout {
+  display: grid; grid-template-columns: minmax(280px, 380px) 1fr; gap: 14px;
+  align-items: start; margin-top: 14px;
+}
+/* One column under 900px: two panes at phone width gives neither enough room
+   to be read, and the store staff who live on phones read mail too. */
+@media (max-width: 900px) { .mail-layout { grid-template-columns: 1fr; } }
+
+.mail-list-pane { padding: 0 12px 10px; max-height: calc(100vh - 220px); overflow-y: auto; }
+.mail-boxes { display: flex; border-bottom: 1px solid var(--hairline); margin: 0 -12px; }
+.mail-search { padding: 10px 0 4px; }
+.mail-rows { list-style: none; margin: 0; padding: 0; }
+.mail-row {
+  display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left;
+  padding: 10px 8px; border: none; border-bottom: 1px solid var(--hairline);
+  background: transparent; cursor: pointer; border-radius: 8px;
+}
+.mail-row:hover { background: var(--inner); }
+.mail-row.active { background: rgba(var(--rust-rgb), .10); }
+.mail-row-top { display: flex; align-items: baseline; gap: 8px; }
+.mail-row-from {
+  font-size: 13px; color: var(--ink); overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.mail-row-when { margin-left: auto; flex: none; font-size: 11.5px; color: var(--muted); }
+.mail-row-subject {
+  font-size: 13.5px; color: var(--ink); overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.mail-row-snippet {
+  font-size: 12px; color: var(--muted); overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+/* Weight, not colour, carries unread: a colour cue alone fails for the ~8% of
+   men with a colour vision deficiency, and this is the app's busiest signal. */
+.mail-row.unread .mail-row-from,
+.mail-row.unread .mail-row-subject { font-weight: 700; }
+.mail-row.unread { border-left: 2px solid var(--rust); }
+
+.mail-reader-pane { min-height: 360px; }
+.mail-reader-head { display: flex; align-items: flex-start; gap: 10px; }
+.mail-reader-subject { margin: 0; font-size: 18px; color: var(--ink); flex: 1; }
+.mail-reader-actions { display: flex; align-items: center; gap: 6px; flex: none; }
+.mail-reader-meta { margin: 6px 0 0; font-size: 12.5px; color: var(--muted); }
+.mail-reader-when { margin-left: 10px; color: var(--caption); }
+
+.mail-attachments { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
+.mail-attachment {
+  display: flex; align-items: center; gap: 6px; padding: 6px 11px;
+  border: 1px solid var(--hairline); border-radius: 999px; background: var(--inner);
+  cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--ink);
+}
+.mail-attachment:hover { border-color: var(--rust); color: var(--rust); }
+.mail-attachment-size { color: var(--muted); font-weight: 500; }
+
+/* The sandboxed body frame. Height is set inline from an estimate (see
+   `frameHeight`) and capped there, because a sender's stylesheet must never get
+   to decide how tall our page is; the frame scrolls if the estimate is short. */
+.mail-body-frame {
+  width: 100%; margin-top: 14px; border: 1px solid var(--hairline);
+  border-radius: 10px; background: var(--mail-paper);
+}
+/* A plain-text body. `pre` for the line breaks, which a plain-text mail means
+   literally — but NOT for the font: `pre` defaults to monospace, and a
+   plain-text mail then sits in the reader looking like a log file beside an
+   HTML one rendered in a normal face. The two have to read as the same screen,
+   so this carries the same stack as the frame's own reset. */
+.mail-body-text {
+  margin-top: 14px; padding: 14px 16px; border: 1px solid var(--hairline); border-radius: 10px;
+  background: var(--inner); color: var(--ink);
+  font: 14px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  white-space: pre-wrap; word-break: break-word; max-height: 460px; overflow-y: auto;
+}
+
+.mail-composer { display: flex; flex-direction: column; gap: 9px; }
+.mail-composer-head {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 14px; font-weight: 700; color: var(--ink);
+}
+.mail-composer-from { margin-left: auto; font-size: 12px; font-weight: 500; color: var(--muted); }
+.mail-composer-head .icon-btn { margin-left: 0; }
+/* Filled, not outlined. A hairline border on the card's own surface is almost
+   invisible in dark mode, and an input that does not look like an input is one
+   people click past — the same reason the search box in this app is a filled
+   pill rather than a rule. */
+.mail-field {
+  width: 100%; padding: 9px 12px; border: 1px solid var(--hairline); border-radius: 9px;
+  background: var(--inner); color: var(--ink); font: inherit; font-size: 13.5px;
+}
+.mail-field::placeholder { color: var(--caption); }
+.mail-field:focus {
+  outline: none; border-color: var(--rust); background: var(--surface);
+}
+.mail-body-input { resize: vertical; min-height: 160px; }
+.mail-composer-actions { display: flex; justify-content: flex-end; }
+.mail-error { margin: 0; font-size: 12.5px; color: var(--brand-red); }
+
+.mail-warn {
+  margin-top: 12px; padding: 11px 14px; font-size: 13px; color: var(--ink);
+  border-left: 3px solid var(--rust);
+}
+.mail-empty-state {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  padding: 46px 24px; text-align: center; color: var(--muted);
+}
+.mail-empty-state h3 { margin: 0; color: var(--ink); }
+.mail-empty-state p { margin: 0; max-width: 420px; }
+
+.mail-footer { margin-top: 16px; }
+.mail-disconnect { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.mail-disconnect:hover { color: var(--brand-red); }
+.mail-disconnect-confirm {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+  font-size: 13px; color: var(--ink);
+}

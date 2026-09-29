@@ -1,0 +1,303 @@
+/* KDPS design language — "Warm" direction (approved 28 Jun 2026).
+   Locked navy/rust palette + semantic status + five-layer bands, on a warm
+   paper canvas. Every visual decision is a token here. System fonts only;
+   ui-monospace for IDs / vouchers / money.
+   DARK MODE: every color must be a token; dark overrides live in the single
+   `html[data-theme="dark"]` block below. Never hardcode a hex outside :root. */
+:root {
+  /* warm surfaces */
+  --paper: #faf7f2;          /* app background */
+  --surface: #fffdfb;        /* card / panel / tile */
+  --sidebar: #f1ece4;        /* warm beige rail */
+  --sidebar-border: #e4dccf;
+  --hairline: #ece4d9;       /* card & divider borders on warm surfaces */
+  --inner: #f6f1ea;          /* inner box wash */
+
+  /* brand & structural (locked) */
+  --navy: #1f2d4d;
+  --navy2: #2c3e63;
+  --rust: #c4623f;
+  --rust-soft: #e8a07f;
+  --brand-red: #e53e35;      /* reserved: wordmark, login, ONE key CTA / screen */
+
+  /* text */
+  --ink: #222222;
+  --muted: #837a6e;          /* warm secondary */
+  --caption: #9a8f80;
+
+  /* semantic status (locked) */
+  --green: #1f7a4d;  --green-bg: #e7f4ee;  --green-bd: #bfe3cf;
+  --amber: #9a6700;  --amber-bg: #fdf3da;  --amber-bd: #eddca8;
+  --blue: #1e5fa8;   --blue-bg: #e6f0fb;   --blue-bd: #bcd6f3;
+  --purple: #6b3fb0; --purple-bg: #f3edfb; --purple-bd: #e2d6f4;
+  --red: #a32a2a;    --red-bg: #fde8e8;    --red-bd: #f1c4c4;
+  --grey: #837a6e;   --grey-bg: #efeae3;   --grey-bd: #e4dccf;
+
+  /* five-layer band accents */
+  --layer-master: #9aa1ad;
+  --layer-documents: #1f2d4d;
+  --layer-ledgers: #c4623f;
+  --layer-controls: #9a6700;
+  --layer-intelligence: #6b3fb0;
+  --layer-edges: #1e5fa8;
+  --layer-home: #c4623f;
+  --layer-store: #1f7a4d;
+  --layer-outbound: #b44d2d;
+
+  /* tinted band panels */
+  --band-edge-bg: #eef3fb;   --band-edge-bd: #dce8f6;
+  --band-ledger-bg: #f8efe8; --band-ledger-bd: #eaddd1;
+  --band-ai-bg: #f3edfb;     --band-ai-bd: #e2d6f4;
+
+  --radius: 16px;
+  --radius-inner: 11px;
+  --shadow-rest: 0 3px 14px rgba(20, 30, 60, 0.06);
+  --shadow-hover: 0 8px 26px rgba(20, 30, 60, 0.11);
+
+  --sidebar-w: 258px;
+  --topbar-h: 60px;
+  --mono: ui-monospace, Menlo, Consolas, "SFMono-Regular", monospace;
+
+  /* bridge tokens — light values are byte-identical to literals swept below,
+     so the light theme is unchanged; only the dark block re-values them. */
+  --hero-navy: #1f2d4d;          /* login brand panel — theme-invariant */
+  /* A mail body is somebody else's HTML, written against white. Recolouring it
+     for dark mode is how a sender's own dark-on-light table goes invisible, so
+     these two stay put in both themes — the same "theme-invariant on purpose"
+     exception as --hero-navy above. Mirrored as literals inside the sandboxed
+     frame, which no custom property can reach (see BODY_RESET in Mail.tsx). */
+  --mail-paper: #ffffff;
+  --mail-paper-ink: #222222;
+  --navy-fill: #1f2d4d;          /* navy as a solid fill under white text */
+  --navy-fill-hover: #2c3e63;
+  --navy-rgb: 31, 45, 77;        /* for rgba(var(--navy-rgb), a) washes */
+  --rust-rgb: 196, 98, 63;
+  --green-rgb: 31, 122, 77;
+  --rule: #e7dfd3;               /* hairline used by Combobox */
+  --field-bg: #ffffff;           /* input / menu backgrounds */
+  --row-hover: #fbf7f1;
+  --inner-hover: #f0e9e0;
+  --dropzone-hover: #f6efe8;
+  --selection: #f3e3da;
+  --scrim-nav: rgba(31, 41, 55, .42);
+  --scrim-modal: rgba(20, 30, 60, .35);
+  --drawer-shadow: 0 12px 40px rgba(31, 41, 55, .28);
+  --band-row-bg: rgba(255, 255, 255, .55);
+  --band-row-bd: rgba(255, 255, 255, .7);
+  --ai-fence-bg: rgba(255, 255, 255, .6);
+
+  color-scheme: light;
+
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Dark palette — the single override layer. Warm charcoal (hue ~35–40°),
+   never blue-black; layering preserved (sidebar darkest → paper → surface). */
+html[data-theme="dark"] {
+  /* surfaces */
+  --paper: #201d18;
+  --surface: #282420;
+  --sidebar: #1a1814;
+  --sidebar-border: #38322a;
+  --hairline: #363028;
+  --inner: #302b25;
+
+  /* text — warm off-whites */
+  --ink: #ece7df;
+  --muted: #a89d8e;
+  --caption: #8d8375;
+
+  /* brand split: text roles brighten; fills stay dark under white text */
+  --navy: #a6b6dc;
+  --navy2: #b8c5e6;
+  --navy-fill: #3a4e80;
+  --navy-fill-hover: #46598c;
+  --navy-rgb: 166, 182, 220;
+  --rust: #e07b52;
+  --rust-soft: #b06a4a;
+  --rust-rgb: 224, 123, 82;
+  --brand-red: #ff5a4f;
+  /* --hero-navy intentionally NOT overridden — login hero stays deep navy */
+
+  /* semantic status ×6 */
+  --green: #5fc98d;  --green-bg: #1c2b21;  --green-bd: #2f4f3a;  --green-rgb: 95, 201, 141;
+  --amber: #d9a337;  --amber-bg: #2e2715;  --amber-bd: #55461f;
+  --blue: #6ba6e8;   --blue-bg: #1b2434;   --blue-bd: #2c4665;
+  --purple: #b28ce8; --purple-bg: #262031; --purple-bd: #453460;
+  --red: #e57373;    --red-bg: #321d1b;    --red-bd: #5c3030;
+  --grey: #a89d8e;   --grey-bg: #2e2a24;   --grey-bd: #423c33;
+
+  /* layer accents — brightened to read as icons on the dark rail */
+  --layer-master: #a7aeba;
+  --layer-documents: #a6b6dc;
+  --layer-ledgers: #e07b52;
+  --layer-controls: #d9a337;
+  --layer-intelligence: #b28ce8;
+  --layer-edges: #6ba6e8;
+  --layer-home: #e07b52;
+  --layer-store: #5fc98d;
+  --layer-outbound: #e07b52;
+
+  /* tinted band panels — dark tints */
+  --band-edge-bg: #1e2530;   --band-edge-bd: #2c3a4e;
+  --band-ledger-bg: #2c241d; --band-ledger-bd: #46362a;
+  --band-ai-bg: #262031;     --band-ai-bd: #3c3153;
+
+  /* elevation — shadows barely read on dark, deepen to black */
+  --shadow-rest: 0 3px 14px rgba(0, 0, 0, .35);
+  --shadow-hover: 0 8px 26px rgba(0, 0, 0, .55);
+
+  /* bridge tokens — dark values */
+  --rule: #363028;
+  --field-bg: #211e19;
+  --row-hover: #2e2a24;
+  --inner-hover: #383229;
+  --dropzone-hover: #332b22;
+  --selection: #5a3c2e;
+  --scrim-nav: rgba(0, 0, 0, .6);
+  --scrim-modal: rgba(0, 0, 0, .55);
+  --drawer-shadow: 0 12px 40px rgba(0, 0, 0, .6);
+  --band-row-bg: rgba(255, 255, 255, .05);
+  --band-row-bd: rgba(255, 255, 255, .09);
+  --ai-fence-bg: rgba(255, 255, 255, .05);
+
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration: none; }
+.tabular, .mono { font-variant-numeric: tabular-nums; }
+.tabular { font-family: var(--tabular-font, inherit); }
+.mono { font-family: var(--mono); }
+::selection { background: var(--selection); }
+
+/* headings per the type scale */
+.h1 { font-size: 30px; font-weight: 700; color: var(--navy); letter-spacing: -0.3px; margin: 0; }
+.h2 { font-size: 21px; font-weight: 700; color: var(--ink); margin: 0; }
+.h2-rust { padding-left: 12px; border-left: 4px solid var(--rust); }
+.h3 { font-size: 17px; font-weight: 600; color: var(--navy2); margin: 0; }
+.eyebrow {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.7px; text-transform: uppercase;
+  color: var(--rust);
+}
+/* The screen a document belongs to, in the header caption — a breadcrumb, so
+   getting back to the list is a click and not a browser button. */
+.crumb-link { color: inherit; text-decoration: none; border-bottom: 1px dotted currentColor; }
+.crumb-link:hover { opacity: .8; }
+.lead { font-size: 15px; color: var(--muted); }
+
+/* buttons */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px; justify-content: center;
+  border: 1px solid var(--sidebar-border); background: var(--surface); color: var(--ink);
+  padding: 9px 15px; border-radius: var(--radius-inner); font-size: 14px; font-weight: 600;
+  cursor: pointer; transition: background-color .15s, border-color .15s, transform .05s, box-shadow .15s;
+}
+.btn:hover { background: var(--inner); }
+.btn:active { transform: translateY(1px); }
+/* A button nobody may press has to look like one. Without this a disabled
+   Save & Print is indistinguishable from a live one, and a cashier presses it
+   twice - which is requirement G3's whole worry. */
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn:disabled:hover { background: var(--surface); filter: none; }
+.btn:disabled:active { transform: none; }
+.btn-primary { background: var(--navy-fill); border-color: var(--navy-fill); color: #fff; }
+.btn-primary:hover { background: var(--navy-fill-hover); }
+.btn-primary:disabled:hover { background: var(--navy-fill); }
+.btn-cta { background: var(--brand-red); border-color: var(--brand-red); color: #fff; }
+.btn-cta:hover { filter: brightness(0.95); }
+.btn-cta:disabled:hover { background: var(--brand-red); }
+.btn-block { width: 100%; }
+.btn-lg { padding: 12px 18px; font-size: 15px; }
+/* The selected one of a row of buttons used as a tab or a view switch. Every
+   such row in the app already asked for this class; until now no rule defined
+   it, so the chosen tab was indistinguishable from the others. Rust border and
+   text, inner wash — the same "this is the current one" tone the nav rail uses. */
+.btn-active { background: var(--inner); border-color: var(--rust); color: var(--rust); }
+.btn-active:hover { background: var(--inner); }
+
+/* inputs */
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 12.5px; font-weight: 600; color: var(--muted); }
+/* The sentence under a control that says what it means — what "not given" is,
+   or why a value is required. A form primitive beside `.field`, not one
+   screen's decoration (goods-v1 `Field`, lib/goodsScreen.tsx). */
+.goods-hint { font-size: 12px; color: var(--muted); line-height: 1.4; }
+/* Reachable by a screen reader, invisible on screen: the name of a control
+   whose visible label is its row and column (a grid of checkboxes). */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+.input {
+  width: 100%; padding: 12px 14px; border: 1px solid var(--sidebar-border);
+  border-radius: var(--radius-inner); font-size: 15px; background: var(--surface); color: var(--ink);
+  transition: border-color .15s, box-shadow .15s;
+}
+.input:focus { outline: none; border-color: var(--navy); box-shadow: 0 0 0 3px rgba(var(--navy-rgb), 0.12); }
+
+/* chips — one primitive, tone-driven */
+.chip {
+  display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px;
+  font-size: 11.5px; font-weight: 700; letter-spacing: .2px; border: 1px solid transparent;
+  background: var(--grey-bg); color: var(--grey); border-color: var(--grey-bd);
+}
+.chip-green { background: var(--green-bg); color: var(--green); border-color: var(--green-bd); }
+.chip-amber { background: var(--amber-bg); color: var(--amber); border-color: var(--amber-bd); }
+.chip-red { background: var(--red-bg); color: var(--red); border-color: var(--red-bd); }
+.chip-blue { background: var(--blue-bg); color: var(--blue); border-color: var(--blue-bd); }
+.chip-purple { background: var(--purple-bg); color: var(--purple); border-color: var(--purple-bd); }
+.chip-navy { background: rgba(var(--navy-rgb), .09); color: var(--navy); border-color: rgba(var(--navy-rgb), .16); }
+/* A row of chips used as a multi-select (which brands a vendor supplies). */
+.chip-picker { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip-pick { cursor: pointer; transition: background-color .12s, color .12s, border-color .12s; }
+.chip-pick:hover { border-color: var(--rust); color: var(--rust); }
+.muted-cell { color: var(--caption); }
+
+/* card */
+.card {
+  background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--radius);
+  box-shadow: var(--shadow-rest);
+}
+
+/* sku line */
+.sku-line { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; }
+.sku-line b { color: var(--ink); font-weight: 700; }
+.sku-sep { color: var(--caption); }
+.sku-chip {
+  background: var(--inner); border: 1px solid var(--hairline); border-radius: 5px;
+  padding: 1px 7px; font-size: 11.5px; font-weight: 600; color: var(--muted);
+}
+
+.full-loader {
+  height: 100vh; display: flex; flex-direction: column; gap: 16px;
+  align-items: center; justify-content: center;
+  color: var(--muted); font-weight: 600; letter-spacing: .3px;
+}
+
+/* generic table */
+.table-wrap { overflow: auto; border: 1px solid var(--hairline); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-rest); }
+table.data { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.data th {
+  text-align: left; padding: 12px 18px; background: var(--inner); color: var(--muted);
+  font-weight: 700; font-size: 11.5px; text-transform: uppercase; letter-spacing: .5px;
+  border-bottom: 1px solid var(--hairline);
+}
+table.data td { padding: 13px 18px; border-bottom: 1px solid var(--hairline); }
+table.data tr:last-child td { border-bottom: none; }
+table.data tr:hover td { background: var(--row-hover); }
+.num { text-align: right; font-family: var(--mono); }
+
+.page-pad { padding: 28px 32px; width: 100%; box-sizing: border-box; }
+
+/* Goods ticket 13A: a transfer line's origins, and choosing them on a draft. */
+.origin-list { list-style: none; margin: 0; padding: 0; }
+.origin-choice { display: block; font-size: 0.875em; margin-top: 4px; }

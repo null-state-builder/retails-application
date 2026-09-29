@@ -1,0 +1,18 @@
+/* Find a bill (#185). House tokens only, so the dark theme's single override
+   block keeps working without touching this file. */
+
+.find-bar {
+  display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap;
+  padding: 14px 16px; margin-bottom: 16px;
+}
+.find-keys { display: flex; gap: 8px; flex-wrap: wrap; }
+.find-field { flex: 1; min-width: 220px; }
+.find-bar .btn { display: inline-flex; align-items: center; gap: 7px; }
+
+.find-totals {
+  display: flex; align-items: baseline; gap: 24px; flex-wrap: wrap; margin-top: 14px;
+}
+.find-figure { display: flex; flex-direction: column; gap: 3px; font-size: 14px; }
+.find-figure-label { font-size: 11.5px; text-transform: uppercase; color: var(--caption); }
+.find-figure-strong { font-size: 20px; font-weight: 700; }
+.find-tenders { margin-left: auto; font-size: 12.5px; color: var(--caption); text-transform: capitalize; }

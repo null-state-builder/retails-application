@@ -1,0 +1,296 @@
+/* Acceptance, putaway and stock (ticket 07): "Accept goods", "Stock" and
+ * "Origin journey". Scoped under `.accept-layout` and `.stock-layout` — page
+ * CSS is bundled app-wide, and an unscoped rule here would silently restyle
+ * other screens (the incident ticket 03 shipped and fixed, noted again in
+ * GoodsReceiving.css).
+ *
+ * "Accept goods" is built for a phone at a dock or backstore first: one
+ * column below 720px, a quantity box big enough to hit with a thumb, and
+ * conditions as full-width radio targets rather than a dropdown — the same
+ * shape as the ticket 05 count panel (`GoodsReceiving.css`).
+ */
+
+.accept-layout,
+.stock-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 1100px;
+}
+
+.accept-layout .h3,
+.stock-layout .h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--navy2);
+  margin: 14px 0 6px;
+}
+
+.accept-layout .lead,
+.stock-layout .lead {
+  color: var(--muted);
+  font-size: 13px;
+  max-width: 70ch;
+}
+
+/* Same `.form-grid` flex-basis trap as GoodsReceiving.css, PeopleAccess.css,
+ * ProductsParties.css and Configuration.css: a control nested in a `.field`'s
+ * column context reads `flex: 1 1 160px` as a height. */
+.accept-layout .form-grid .field,
+.stock-layout .form-grid .field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 200px;
+  max-width: 340px;
+}
+
+.accept-layout .form-grid .field .input,
+.accept-layout .form-grid .field .select,
+.stock-layout .form-grid .field .input,
+.stock-layout .form-grid .field .select {
+  flex: none;
+  width: 100%;
+  max-width: none;
+}
+
+.accept-layout .num,
+.stock-layout .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.accept-layout table,
+.stock-layout table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13.5px;
+}
+
+.accept-layout th,
+.accept-layout td,
+.stock-layout th,
+.stock-layout td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--sidebar-border);
+  text-align: left;
+}
+
+.accept-layout .acc-pt-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.accept-layout .acc-pt-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--sidebar-border);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.accept-layout .acc-offline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid color-mix(in srgb, var(--amber, #f59e0b) 60%, var(--sidebar-border));
+  background: color-mix(in srgb, var(--amber, #f59e0b) 8%, transparent);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+
+.accept-layout .acc-scan-form {
+  margin: 14px 0;
+}
+
+.accept-layout .acc-big {
+  font-size: 22px;
+  font-weight: 600;
+  padding: 10px 12px;
+  height: auto;
+  width: 100%;
+}
+
+.accept-layout input.acc-big[type="number"] {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  max-width: 140px;
+}
+
+.accept-layout .acc-conditions {
+  border: 1px solid var(--sidebar-border);
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin: 10px 0;
+}
+
+.accept-layout .acc-conditions legend {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 0 4px;
+}
+
+.accept-layout .acc-condition {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 4px;
+  cursor: pointer;
+  font-size: 13.5px;
+}
+
+.accept-layout .acc-condition span {
+  display: flex;
+  flex-direction: column;
+}
+
+.accept-layout .acc-condition small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.accept-layout .acc-putaway-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+}
+
+.accept-layout .acc-errors p {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--red, #b91c1c);
+  font-size: 13px;
+}
+
+/* Ticket 07B: more pieces than the PT covers. Amber, like the stock
+   limitation note: a thing to act on, not an error in what was typed. */
+.accept-layout .acc-extra {
+  border-color: color-mix(in srgb, var(--amber, #f59e0b) 60%, var(--sidebar-border));
+  background: color-mix(in srgb, var(--amber, #f59e0b) 6%, transparent);
+}
+
+.accept-layout .acc-extra-refs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  margin: 10px 0;
+}
+
+.accept-layout .acc-extra-refs dt {
+  font-size: 11.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.accept-layout .acc-extra-refs dd {
+  margin: 2px 0 0;
+  font-size: 13.5px;
+}
+
+.accept-layout .acc-extra-steps {
+  margin: 8px 0 12px;
+  padding-left: 20px;
+  font-size: 13.5px;
+}
+
+.accept-layout .acc-extra-steps li {
+  margin: 6px 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Stock                                                                */
+/* ------------------------------------------------------------------ */
+
+.stock-layout .stock-table-wrap {
+  overflow-x: auto;
+}
+
+.stock-layout .stock-reasons {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin: 0;
+  padding-left: 16px;
+}
+
+.stock-layout .stock-limitation {
+  border: 1px solid color-mix(in srgb, var(--amber, #f59e0b) 60%, var(--sidebar-border));
+  background: color-mix(in srgb, var(--amber, #f59e0b) 8%, transparent);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  margin: 10px 0;
+}
+
+.stock-layout .stock-limitation-intro {
+  margin: 0;
+}
+
+/* One line per limitation the server declared: the list length is the answer,
+   so the reasons stay countable rather than running into one paragraph. */
+.stock-layout .stock-limitation-list {
+  margin: 6px 0 0;
+  padding-left: 20px;
+}
+
+.stock-layout .stock-limitation-list li + li {
+  margin-top: 4px;
+}
+
+.stock-layout .journey-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-left: 2px solid var(--sidebar-border);
+}
+
+.stock-layout .journey-timeline li {
+  position: relative;
+  padding: 4px 0 14px 18px;
+}
+
+.stock-layout .journey-timeline li::before {
+  content: "";
+  position: absolute;
+  left: -5px;
+  top: 8px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--navy2);
+}
+
+.stock-layout .journey-kind {
+  font-weight: 600;
+}
+
+.stock-layout .journey-meta {
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+@media (max-width: 720px) {
+  .accept-layout .acc-pt-list li {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 400px) {
+  .accept-layout .form-grid .field,
+  .stock-layout .form-grid .field {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+}

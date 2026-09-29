@@ -1,0 +1,74 @@
+/* EOSS Planning (#318, docs/05-offers) - the markdown ladder's own screen. */
+
+.eoss-toolbar {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.eoss-tabs {
+  display: flex;
+  gap: 6px;
+  margin: 14px 0 16px;
+}
+
+.eoss-prog {
+  min-width: 160px;
+}
+.eoss-prog-bar {
+  height: 7px;
+  border-radius: 999px;
+  background: var(--inner);
+  overflow: hidden;
+  position: relative;
+}
+.eoss-prog-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--rust);
+}
+.eoss-prog-target {
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
+  background: var(--navy);
+  opacity: 0.55;
+}
+.eoss-prog-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 5px;
+}
+
+.eoss-reason {
+  font-size: 12.5px;
+  color: var(--muted);
+  max-width: 320px;
+  display: block;
+  margin-top: 4px;
+}
+
+.eoss-config-card {
+  margin-top: 18px;
+}
+.eoss-ladder-row,
+.eoss-target-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.eoss-ladder-row .input,
+.eoss-target-row .input {
+  width: 110px;
+}
+.eoss-config-cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 24px;
+  margin-top: 12px;
+}

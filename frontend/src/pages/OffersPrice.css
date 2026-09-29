@@ -1,0 +1,74 @@
+/* Offers & Price — the authoring, price-list and discount screens (D11). */
+
+.pattern-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+.pattern-grid .mode-btn {
+  text-align: left;
+  align-items: flex-start;
+}
+.pattern-hint {
+  display: block;
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+
+.hint {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+/* The four answers a month gives, side by side. */
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+.kpi {
+  padding: 16px 18px;
+}
+.kpi-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--navy);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+.kpi-value.rust {
+  color: var(--rust);
+}
+.kpi-note {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 5px;
+}
+
+/* Price detail: the ticket, then its trail. */
+.price-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 26px;
+  align-items: flex-start;
+}
+.price-figure {
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--navy);
+  font-variant-numeric: tabular-nums;
+}
+.price-sub {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+.trail-from {
+  color: var(--muted);
+  text-decoration: line-through;
+}

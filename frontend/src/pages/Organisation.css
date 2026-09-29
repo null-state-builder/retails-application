@@ -1,0 +1,151 @@
+/* Organisation setup: a left list of entities/registrations/sites and a detail
+ * panel on the right (ticket 02's UX brief). Two columns above ~860px, stacked
+ * below it — the list first, so a phone-width reader picks something before
+ * the detail panel (which has nothing to show yet) ever appears. */
+
+.org-layout {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.org-nav {
+  flex: 0 0 280px;
+  min-width: 0;
+}
+
+.org-detail {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+@media (max-width: 860px) {
+  .org-layout {
+    flex-direction: column;
+  }
+  .org-nav {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+}
+
+.org-nav-group {
+  margin-bottom: 18px;
+}
+
+.org-nav-group h4 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted, #6b7280);
+  margin: 0 0 6px;
+}
+
+.org-nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.org-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: none;
+  padding: 7px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13.5px;
+  color: inherit;
+}
+
+.org-nav-item:hover {
+  background: var(--surface-hover, rgba(0, 0, 0, 0.04));
+}
+
+.org-nav-item.active {
+  background: var(--accent-soft, rgba(37, 99, 235, 0.12));
+  font-weight: 600;
+}
+
+.org-nav-item .org-nav-sub {
+  color: var(--muted, #6b7280);
+  font-size: 12px;
+  margin-left: auto;
+}
+
+.org-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border, #e5e7eb);
+  margin-bottom: 16px;
+  overflow-x: auto;
+}
+
+.org-tab {
+  border: none;
+  background: none;
+  padding: 9px 14px;
+  font-size: 13.5px;
+  cursor: pointer;
+  color: var(--muted, #6b7280);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+
+.org-tab.active {
+  color: inherit;
+  font-weight: 600;
+  border-bottom-color: var(--accent, #2563eb);
+}
+
+.org-readiness-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.org-check-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-soft, rgba(0, 0, 0, 0.06));
+  font-size: 13.5px;
+}
+
+.org-check-row:last-child {
+  border-bottom: none;
+}
+
+.org-loc-tree {
+  list-style: none;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.org-loc-tree.top {
+  padding-left: 0;
+}
+
+.org-loc-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 0;
+  font-size: 13.5px;
+}
+
+.org-loc-lock {
+  color: var(--muted, #6b7280);
+  flex: 0 0 auto;
+}

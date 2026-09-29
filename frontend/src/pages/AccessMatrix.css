@@ -1,0 +1,85 @@
+/* Setup -> Access. The grid is wide (one column per role), so the section
+   column pins while the rest scrolls. Every colour is a token, so the dark
+   theme needs no override here. */
+
+.matrix-wrap {
+  overflow: auto;
+  max-height: 70vh;
+}
+
+table.matrix th.matrix-section,
+table.matrix td.matrix-section {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--surface);
+  border-right: 1px solid var(--hairline);
+  min-width: 190px;
+}
+
+table.matrix th.matrix-section {
+  background: var(--inner);
+  z-index: 2;
+}
+
+table.matrix thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+table.matrix td,
+table.matrix th {
+  padding: 9px 12px;
+  white-space: nowrap;
+}
+
+.matrix-role-head {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-start;
+}
+
+.matrix-pick {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-inner);
+  padding: 3px 7px;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.matrix-pick:hover {
+  border-color: var(--hairline);
+}
+
+.matrix-pick.active {
+  border-color: var(--rust);
+  color: var(--rust);
+}
+
+/* A cell the money floor holds shut. Greyed and never a control - the reason
+   rides along in the title so the answer is one hover away, and is repeated in
+   full under the grid for anyone who cannot hover. */
+.matrix-locked {
+  background: var(--grey-bg);
+  color: var(--caption);
+  cursor: not-allowed;
+}
+
+.matrix-editing {
+  background: var(--band-edge-bg);
+}
+
+.matrix-moved select {
+  border-color: var(--rust);
+}
+
+.matrix-rules li {
+  margin-bottom: 6px;
+}

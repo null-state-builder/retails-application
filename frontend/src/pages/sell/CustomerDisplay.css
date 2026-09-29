@@ -1,0 +1,162 @@
+/* The customer display (ticket 09): a screen turned to face the customer, read
+   from a step or two away. Large type, no staff controls. */
+
+.cdisplay {
+  min-height: 100vh;
+  box-sizing: border-box;
+  padding: 32px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.cdisplay-refused {
+  margin: auto;
+  max-width: 36em;
+  text-align: center;
+  color: var(--muted);
+}
+
+.cdisplay-centre {
+  margin: auto;
+  text-align: center;
+}
+
+.cdisplay-centre h1 {
+  font-size: 44px;
+  margin: 0 0 12px;
+  color: var(--navy);
+}
+
+.cdisplay-bill {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(260px, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .cdisplay-bill {
+    grid-template-columns: 1fr;
+  }
+}
+
+.cdisplay-lines {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.cdisplay-lines th,
+.cdisplay-lines td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--hairline);
+  text-align: left;
+  vertical-align: top;
+}
+
+.cdisplay-lines .num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.cdisplay-desc {
+  display: block;
+}
+
+.cdisplay-chip {
+  display: inline-block;
+  margin: 4px 6px 0 0;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 15px;
+  background: var(--green-bg);
+  border: 1px solid var(--green-bd);
+  color: var(--green);
+}
+
+.cdisplay-saved {
+  display: block;
+  font-size: 15px;
+  color: var(--green);
+}
+
+.cdisplay-return td {
+  color: var(--muted);
+}
+
+.cdisplay-totals {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cdisplay-offers ul {
+  margin: 4px 0 0;
+  padding-left: 1.2em;
+}
+
+.cdisplay-savings {
+  margin: 0;
+  color: var(--green);
+  font-weight: 600;
+}
+
+.cdisplay-total {
+  margin: 0;
+  display: flex;
+  justify-content: space-between;
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.cdisplay-upi {
+  padding: 16px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.cdisplay-upi p {
+  margin: 0;
+  font-weight: 600;
+}
+
+.cdisplay-question {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 32px;
+  background: var(--paper);
+}
+
+.cdisplay-question-text {
+  font-size: 32px;
+  text-align: center;
+  max-width: 24em;
+  margin: 0;
+}
+
+.cdisplay-question-choices {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.cdisplay-choice {
+  min-width: 160px;
+  padding: 18px 28px;
+  font-size: 24px;
+  border-radius: var(--radius);
+  border: 1px solid var(--navy);
+  background: var(--navy);
+  color: #fff;
+  cursor: pointer;
+}

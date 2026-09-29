@@ -1,0 +1,55 @@
+/* The in-page search box (#102). Deliberately the top bar's pill, one size
+   down: the same control doing the same job in a narrower place, so a store
+   person recognises it without being told. Every colour is a token, so dark
+   mode needs no rule of its own. */
+
+.searchbox {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  background: var(--inner);
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  padding: 8px 15px;
+  color: var(--caption);
+  flex: 1 1 260px;
+  min-width: 0;
+  max-width: 420px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.searchbox:focus-within {
+  border-color: var(--navy);
+  box-shadow: 0 0 0 3px rgba(var(--navy-rgb), 0.12);
+}
+
+.searchbox input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 14px;
+  color: var(--ink);
+  width: 100%;
+  min-width: 0;
+}
+
+.searchbox-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--grey-bg);
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.searchbox-clear:hover {
+  background: var(--inner-hover);
+  color: var(--ink);
+}

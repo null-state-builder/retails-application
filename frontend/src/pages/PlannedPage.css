@@ -1,0 +1,88 @@
+/* The planned page (#89). Tokens only — no hex here, so dark mode needs no
+   second stylesheet. */
+
+.planned-summary {
+  margin: 10px 0 20px;
+  max-width: 620px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.planned-card {
+  padding: 32px 34px;
+  max-width: 720px;
+}
+
+.planned-medallion {
+  width: 48px;
+  height: 48px;
+  border-radius: 13px;
+  background: var(--inner);
+  border: 1px solid var(--hairline);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.planned-card .h3 {
+  margin-bottom: 12px;
+}
+
+.planned-list {
+  margin: 0;
+  padding-left: 20px;
+  color: var(--ink);
+  font-size: 14.5px;
+  line-height: 1.6;
+}
+
+.planned-list li {
+  margin: 6px 0;
+}
+
+.planned-list li::marker {
+  color: var(--rust);
+}
+
+.planned-notes {
+  margin-top: 24px;
+  padding: 16px 18px;
+  border-radius: var(--radius-inner);
+  background: var(--inner);
+  border: 1px solid var(--hairline);
+}
+
+.planned-notes-head {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--caption);
+}
+
+.planned-notes p:not(.planned-notes-head) {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+
+/* Each caveat is its own point — run them together and they read as one blur. */
+.planned-notes p:not(.planned-notes-head) + p {
+  margin-top: 10px;
+}
+
+.planned-stamp {
+  margin: 18px 0 0;
+  max-width: 720px;
+  font-size: 12.5px;
+  color: var(--caption);
+}
+
+.planned-stamp b {
+  color: var(--muted);
+  font-weight: 600;
+}

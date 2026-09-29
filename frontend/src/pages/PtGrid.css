@@ -1,0 +1,363 @@
+/* The PT grid (OPS-16): a spreadsheet-style editor of goods-v1 PT lines.
+ *
+ * Scoped under `.ptg`, the editor's own root, because it renders on two hosts
+ * (the Prepare PT screen and the receiving workflow's PT step) and page CSS is
+ * bundled app-wide. The grid scrolls inside its own box, both ways, with its
+ * header row and its first four columns (row, select, item, review) frozen, so
+ * it works on a laptop at the dock without the page itself scrolling sideways.
+ *
+ * Colour marks follow the design language's fixed status set: grey for a value
+ * given by the file, a rule or the item; amber for a suggestion waiting; blue
+ * for a person's own choice; red for blank or wrong.
+ */
+
+.ptg {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ptg .ptg-head {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ptg .ptg-head .h3 {
+  margin: 0;
+}
+
+.ptg .ptg-spacer {
+  flex: 1;
+}
+
+.ptg .ptg-hint {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0;
+  max-width: 80ch;
+}
+
+/* --- legend -------------------------------------------------------------- */
+
+.ptg .ptg-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.ptg .ptg-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ptg .ptg-swatch {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  border: 1px solid var(--hairline);
+}
+
+.ptg .ptg-swatch[data-tone="given"] { background: var(--grey-bg); border-color: var(--grey); }
+.ptg .ptg-swatch[data-tone="waiting"] { background: var(--amber-bg); border-color: var(--amber); }
+.ptg .ptg-swatch[data-tone="person"] { background: var(--blue-bg); border-color: var(--blue); }
+.ptg .ptg-swatch[data-tone="problem"] { background: var(--red-bg); border-color: var(--red); }
+.ptg .ptg-swatch[data-tone="calculated"] { background: var(--inner); }
+.ptg .ptg-swatch[data-tone="dirty"] { background: transparent; border: 2px solid var(--rust); }
+
+/* --- tools: fill a column, quick fills, a rule ---------------------------- */
+
+.ptg .ptg-tools {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  padding: 10px 12px;
+  border: 1px dashed var(--rule);
+  border-radius: var(--radius-inner);
+  background: var(--surface);
+  font-size: 13px;
+}
+
+.ptg .ptg-tools-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.ptg .ptg-tools .select {
+  width: auto;
+  min-width: 150px;
+}
+
+.ptg .ptg-tools .ptg-tools-value {
+  width: 220px;
+}
+
+.ptg .ptg-rule {
+  border-style: solid;
+  border-color: var(--amber-bd);
+  background: var(--amber-bg);
+}
+
+.ptg .ptg-rule .input {
+  width: 180px;
+}
+
+/* --- the grid ------------------------------------------------------------- */
+
+.ptg .ptg-scroll {
+  overflow: auto;
+  max-height: 68vh;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-inner);
+  background: var(--surface);
+}
+
+.ptg table.ptg-grid {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  min-width: 100%;
+}
+
+.ptg .ptg-grid th,
+.ptg .ptg-grid td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--hairline);
+  border-right: 1px solid var(--hairline);
+  white-space: nowrap;
+  vertical-align: top;
+  background: var(--surface);
+}
+
+.ptg .ptg-grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--inner);
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  text-align: left;
+}
+
+.ptg .ptg-grid th.num,
+.ptg .ptg-grid td.num {
+  text-align: right;
+}
+
+.ptg .ptg-grid th.ptg-calc-head {
+  color: var(--caption);
+}
+
+/* Frozen first columns: row, select, item, review. */
+.ptg .ptg-grid .ptg-fz {
+  position: sticky;
+  z-index: 2;
+}
+
+.ptg .ptg-grid thead .ptg-fz {
+  z-index: 4;
+}
+
+.ptg .ptg-grid .ptg-fz-no { left: 0; width: 44px; min-width: 44px; color: var(--muted); }
+.ptg .ptg-grid .ptg-fz-sel { left: 44px; width: 34px; min-width: 34px; }
+.ptg .ptg-grid .ptg-fz-item { left: 78px; width: 176px; min-width: 176px; white-space: normal; }
+.ptg .ptg-grid .ptg-fz-rev {
+  left: 254px;
+  width: 104px;
+  min-width: 104px;
+  box-shadow: 3px 0 4px -2px rgba(var(--navy-rgb), 0.18);
+}
+
+.ptg .ptg-grid tr.ptg-row-dirty .ptg-fz-no {
+  box-shadow: inset 3px 0 0 var(--rust);
+}
+
+.ptg .ptg-grid tr.ptg-row-dirty td {
+  border-bottom-color: var(--rust-soft);
+}
+
+/* A cell's colour mark: a bar on its left edge, and a wash for anything that
+   asks a person to look (a suggestion, a person's choice, a problem). */
+.ptg .ptg-grid td.ptg-cell {
+  min-width: 92px;
+  box-shadow: inset 3px 0 0 var(--ptg-bar, transparent);
+}
+
+.ptg .ptg-grid td.ptg-cell.ptg-wide { min-width: 132px; }
+.ptg .ptg-grid td.ptg-cell.num { min-width: 78px; }
+
+.ptg .ptg-grid td[data-tone="given"] { --ptg-bar: var(--grey); }
+.ptg .ptg-grid td[data-tone="waiting"] { --ptg-bar: var(--amber); background: var(--amber-bg); }
+.ptg .ptg-grid td[data-tone="person"] { --ptg-bar: var(--blue); background: var(--blue-bg); }
+.ptg .ptg-grid td[data-tone="problem"] { --ptg-bar: var(--red); background: var(--red-bg); }
+.ptg .ptg-grid td[data-tone="calculated"] { background: var(--inner); color: var(--muted); }
+
+.ptg .ptg-grid td.ptg-cell:focus-within,
+.ptg .ptg-grid td.ptg-cell:focus {
+  outline: 2px solid var(--rust);
+  outline-offset: -2px;
+}
+
+.ptg .ptg-grid td.ptg-cell:focus {
+  outline-style: dashed;
+}
+
+.ptg .ptg-cell-input {
+  width: 100%;
+  min-width: 70px;
+  box-sizing: border-box;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 3px 6px;
+  font: inherit;
+  background: var(--field-bg);
+  color: var(--ink);
+}
+
+.ptg td.num .ptg-cell-input {
+  text-align: right;
+}
+
+.ptg .ptg-cell-input:focus {
+  outline: none;
+  border-color: var(--rust);
+  box-shadow: 0 0 0 2px rgba(var(--rust-rgb), 0.15);
+}
+
+.ptg .ptg-file-text {
+  display: block;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 10.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.ptg .ptg-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 3px;
+}
+
+.ptg .ptg-chip-btn {
+  border: 1px solid var(--amber-bd);
+  background: var(--surface);
+  color: var(--amber);
+  border-radius: 999px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ptg .ptg-chip-btn:hover {
+  border-color: var(--amber);
+}
+
+.ptg .ptg-link-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  margin-top: 2px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--rust);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.ptg .ptg-link-btn:disabled {
+  color: var(--caption);
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
+.ptg .ptg-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-start;
+}
+
+.ptg .ptg-item .chip {
+  font-size: 11px;
+}
+
+.ptg .ptg-row-issues summary {
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--red);
+  font-weight: 700;
+}
+
+.ptg .ptg-row-issues ul {
+  margin: 4px 0 0;
+  padding-left: 14px;
+  font-size: 11.5px;
+  color: var(--ink);
+  white-space: normal;
+}
+
+/* --- below the grid --------------------------------------------------------- */
+
+.ptg .ptg-pager,
+.ptg .ptg-actions,
+.ptg .ptg-progress {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ptg .ptg-progress progress {
+  width: 200px;
+}
+
+.ptg .ptg-blockers {
+  margin: 0;
+  padding: 10px 12px 10px 28px;
+  font-size: 13px;
+}
+
+.ptg .ptg-compare table {
+  margin: 8px 0;
+}
+
+@media (max-width: 720px) {
+  .ptg .ptg-grid .ptg-fz-item { width: 130px; min-width: 130px; }
+  .ptg .ptg-grid .ptg-fz-rev { left: 208px; }
+}
+
+/* --- hosts ------------------------------------------------------------------ */
+
+/* The grid scrolls inside its own box, so its host need not cap its width. */
+.pt-layout.pt-layout-wide,
+.pt-layout.ptg {
+  max-width: none;
+}
+
+/* Three ways to fill the grid, side by side where there is room. */
+.pt-layout .pt-start-actions.pt-start-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 900px) {
+  .pt-layout .pt-start-actions.pt-start-three {
+    grid-template-columns: 1fr;
+  }
+}

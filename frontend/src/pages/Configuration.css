@@ -1,0 +1,122 @@
+/* Governed configuration (ticket 04). The two-column shape is Organisation's
+ * (`.org-layout`/`.org-nav`/`.org-detail`), reused through `cfg-layout`.
+ *
+ * Every rule is scoped under `.cfg-layout`: page CSS is bundled app-wide, so
+ * an unscoped `.h4`, `.muted` or `.cfg-check` here would restyle other screens
+ * that already use those names. */
+
+.cfg-layout {
+  align-items: flex-start;
+}
+
+@media (max-width: 860px) {
+  .cfg-layout .org-detail {
+    width: 100%;
+  }
+}
+
+.cfg-layout .h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--navy2);
+  margin: 0 0 6px;
+}
+
+.cfg-layout .h5 {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 12px 0 4px;
+}
+
+.cfg-layout .muted {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* Same `.form-grid` flex-basis trap as PeopleAccess.css and
+ * ProductsParties.css: a control nested in a `.field`'s column context reads
+ * `flex: 1 1 160px` as a height. */
+.cfg-layout .form-grid .field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 200px;
+  max-width: 340px;
+}
+
+.cfg-layout .form-grid .field .input,
+.cfg-layout .form-grid .field .select {
+  flex: none;
+  width: 100%;
+  max-width: none;
+}
+
+.cfg-layout .cfg-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13.5px;
+  padding: 4px 0;
+}
+
+.cfg-layout .cfg-directions {
+  border: 1px solid var(--sidebar-border);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin: 12px 0;
+}
+
+.cfg-layout .cfg-directions legend {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 0 4px;
+}
+
+/* One row per step item: what it is, what state it is in, what can be done. */
+.cfg-layout .cfg-wizard-item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--sidebar-border);
+  font-size: 13.5px;
+}
+
+.cfg-layout .cfg-wizard-item:last-child {
+  border-bottom: none;
+}
+
+.cfg-layout .cfg-impact-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+
+.cfg-layout .cfg-impact-list li {
+  padding: 5px 0;
+  border-bottom: 1px solid var(--sidebar-border);
+}
+
+.cfg-layout .cfg-impact-list label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+@media (max-width: 400px) {
+  .cfg-layout .form-grid .field {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+  .cfg-layout .cfg-wizard-item {
+    align-items: flex-start;
+  }
+}

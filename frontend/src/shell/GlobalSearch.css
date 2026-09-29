@@ -1,0 +1,99 @@
+/* Global search (#86). Anchors the results panel under the top-bar box and
+   reuses the shell's dropdown primitives — every colour is a token, so dark
+   mode needs no rule of its own (see index.css). */
+
+.search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  max-width: 460px;
+}
+
+.search-panel {
+  width: 100%;
+  min-width: 320px;
+  max-height: min(70vh, 560px);
+  overflow-y: auto;
+  padding: 7px;
+}
+
+.search-group + .search-group {
+  border-top: 1px solid var(--hairline);
+  margin-top: 4px;
+  padding-top: 2px;
+}
+
+.search-hit {
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.search-hit-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.search-hit-title {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-hit-sub {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.search-hit-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex: none;
+}
+
+.search-hit-mrp {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.search-hit-meta {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--caption);
+  white-space: nowrap;
+}
+
+.search-note {
+  padding: 9px 12px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.search-note-bad {
+  color: var(--red);
+}
+
+@media (max-width: 768px) {
+  /* Search is the store person's most frequent action and stores are on
+     phones, so the box stays — the switcher label gives up the room. */
+  .search-wrap {
+    max-width: none;
+  }
+  /* The shell pins .dropdown to the viewport edges on a phone; let it. */
+  .search-panel {
+    width: auto;
+    min-width: 0;
+  }
+}

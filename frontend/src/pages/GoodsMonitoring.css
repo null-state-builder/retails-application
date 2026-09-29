@@ -1,0 +1,24 @@
+/* Monitoring and exports (ticket 18). Scoped under `.mon-*` — page CSS is
+ * bundled app-wide, and an unscoped rule here would silently restyle other
+ * screens (the incident noted in GoodsReceiving.css and GoodsAcceptance.css). */
+
+.mon-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mon-job {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.mon-result {
+  margin: 8px 0 0;
+  padding: 8px;
+  overflow-x: auto;
+  font-size: 12px;
+  background: var(--surface-2, transparent);
+}

@@ -1,0 +1,302 @@
+/* ScanScreen — the phone-first scan surface (#68).
+   Full-screen scan target, big count, distinct beeps, one confirm button.
+   Every later scan flow (receive, counting, returns) reuses this screen.
+   Colours ride the theme tokens only — no raw hex — so dark mode works free. */
+
+.scan-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+/* ---- header ---- */
+.scan-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--navy-fill);
+  color: #fff;
+  flex: 0 0 auto;
+}
+.scan-head-mode {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--rust);
+  color: #fff;
+  border-radius: 4px;
+  padding: 3px 8px;
+}
+.scan-head-doc {
+  min-width: 0;
+}
+.scan-head-doc .doc {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-weight: 700;
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.scan-head-doc .route {
+  font-size: 12px;
+  opacity: 0.85;
+}
+.scan-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+}
+
+/* ---- the big target ---- */
+.scan-target {
+  flex: 0 0 auto;
+  text-align: center;
+  padding: 18px 16px 14px;
+  border-bottom: 2px dashed var(--line, rgba(var(--navy-rgb), 0.25));
+  transition: background 120ms ease;
+}
+.scan-target.flash-ok { background: rgba(46, 125, 50, 0.18); }
+.scan-target.flash-bad { background: rgba(198, 40, 40, 0.22); }
+/* Accepted, but flagged (damaged / extra) — its own colour, so the operator can
+   tell "in, but not clean" from "in" without reading a word. */
+.scan-target.flash-flag { background: rgba(var(--rust-rgb), 0.18); }
+.scan-count {
+  font-size: 72px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--navy);
+}
+.scan-count .of {
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--ink-soft, var(--ink));
+  opacity: 0.6;
+}
+.scan-target .hint {
+  margin-top: 6px;
+  font-size: 13px;
+  opacity: 0.65;
+}
+.scan-last {
+  margin-top: 8px;
+  min-height: 22px;
+  font-size: 14px;
+  font-weight: 600;
+}
+.scan-last.ok { color: #2e7d32; }
+.scan-last.bad { color: #c62828; }
+.scan-last.flag { color: var(--rust); }
+
+/* ---- good / damaged mode switch (receive only, #71) ---- */
+.scan-modes {
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px 0;
+  flex: 0 0 auto;
+}
+.scan-mode {
+  flex: 1 1 0;
+  height: 46px;
+  border-radius: 10px;
+  border: 1px solid var(--line, rgba(var(--navy-rgb), 0.3));
+  background: transparent;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  cursor: pointer;
+}
+.scan-mode.active {
+  background: var(--navy-fill);
+  border-color: var(--navy-fill);
+  color: #fff;
+}
+.scan-mode.danger.active {
+  background: var(--rust);
+  border-color: var(--rust);
+}
+
+/* running tallies for the two flagged outcomes */
+.scan-tallies {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  padding: 10px 12px 0;
+  flex: 0 0 auto;
+}
+
+/* the shortfall note — only rendered once there is a shortfall to explain */
+.scan-notes {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line, rgba(var(--navy-rgb), 0.12));
+  flex: 0 0 auto;
+}
+.scan-notes-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line, rgba(var(--navy-rgb), 0.3));
+  background: var(--card, transparent);
+  color: var(--ink);
+  font-size: 15px;
+}
+
+/* invisible wedge-capture input — keeps focus, swallows scanner keystrokes */
+.scan-sink {
+  position: absolute;
+  opacity: 0;
+  height: 1px;
+  width: 1px;
+  border: none;
+  padding: 0;
+}
+
+/* ---- line list ---- */
+.scan-lines {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 8px 12px 90px;
+}
+.scan-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--line, rgba(var(--navy-rgb), 0.12));
+}
+.scan-line .code {
+  font-family: var(--mono, ui-monospace, monospace);
+  font-weight: 700;
+  font-size: 14px;
+}
+.scan-line .meta {
+  font-size: 12px;
+  opacity: 0.7;
+}
+.scan-line .counts {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  font-size: 18px;
+  white-space: nowrap;
+}
+.scan-line .counts .exp { opacity: 0.55; font-weight: 600; }
+.scan-line.done .counts { color: #2e7d32; }
+.scan-line.over .counts { color: var(--rust); }
+.scan-line .tick { color: #2e7d32; display: flex; }
+.scan-line .scan-line-flag { color: var(--rust); }
+.scan-line.extra { background: rgba(var(--rust-rgb), 0.07); }
+.scan-line.extra .counts { color: var(--rust); }
+
+/* ---- footer ---- */
+.scan-foot {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+  background: var(--paper);
+  border-top: 1px solid var(--line, rgba(var(--navy-rgb), 0.15));
+}
+.scan-undo {
+  flex: 0 0 auto;
+  padding: 0 16px;
+  border-radius: 10px;
+  border: 1px solid var(--line, rgba(var(--navy-rgb), 0.3));
+  background: transparent;
+  color: var(--ink);
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.scan-confirm {
+  flex: 1 1 auto;
+  height: 54px;
+  border: none;
+  border-radius: 10px;
+  background: var(--navy-fill);
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.scan-confirm:disabled { opacity: 0.45; cursor: default; }
+.scan-mismatch-note {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+  margin: 0 14px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(var(--rust-rgb), 0.12);
+  color: var(--rust);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+.scan-error {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(78px + env(safe-area-inset-bottom, 0px));
+  margin: 0 14px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: rgba(198, 40, 40, 0.14);
+  color: #c62828;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* manual entry (fallback when a piece won't scan) */
+.scan-manual {
+  display: flex;
+  gap: 8px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line, rgba(var(--navy-rgb), 0.12));
+}
+.scan-manual input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line, rgba(var(--navy-rgb), 0.3));
+  background: var(--card, transparent);
+  color: var(--ink);
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 15px;
+}
+.scan-manual button {
+  padding: 0 16px;
+  border-radius: 8px;
+  border: none;
+  background: var(--navy-fill);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}

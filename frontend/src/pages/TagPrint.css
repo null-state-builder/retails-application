@@ -1,0 +1,79 @@
+/* Real tag printing (see TagPrint.tsx). `.tag-print-sheet` stays invisible on
+   screen and `.no-print` stays invisible on paper — together they mean the
+   printed page shows only the 50mm x 50mm tags themselves, nothing of the
+   modal chrome around them, no matter where that modal sits in the DOM. */
+
+.tag-print-sheet {
+  display: none;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .tag-print-sheet,
+  .tag-print-sheet * {
+    visibility: visible;
+  }
+
+  .tag-print-sheet {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-tag {
+    width: 50mm;
+    height: 50mm;
+    box-sizing: border-box;
+    border: 0.3mm solid #000;
+    border-radius: 5mm;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 3mm;
+    page-break-after: always;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+
+  .print-tag:last-child {
+    page-break-after: auto;
+  }
+
+  .print-tag-brand {
+    font-size: 8pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin: 0 0 1mm;
+  }
+
+  .print-tag-item {
+    font-size: 7pt;
+    margin: 0 0 2mm;
+  }
+
+  .print-tag-mrp {
+    font-size: 13pt;
+    font-weight: 700;
+    margin: 0 0 1mm;
+  }
+
+  .print-tag-barcode {
+    font-size: 7pt;
+    font-family: "Courier New", monospace;
+    margin: 0;
+  }
+
+  @page {
+    size: 50mm 50mm;
+    margin: 0;
+  }
+}

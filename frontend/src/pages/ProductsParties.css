@@ -1,0 +1,120 @@
+/* Products and parties (ticket 04). The two-column shape is Organisation's
+ * (`.org-layout`/`.org-nav`/`.org-detail`), reused through `pp-layout`; this
+ * file only adds what is new here — the combination grid's cells and the
+ * side-by-side candidate cards.
+ *
+ * Every rule is scoped under `.pp-layout`. Page CSS is bundled app-wide, not
+ * per route, so an unscoped `.h4` or `.muted` here would restyle every other
+ * screen that already uses those names. */
+
+.pp-layout {
+  align-items: flex-start;
+}
+
+/* Organisation.css stacks `.org-nav` below 860px but leaves `.org-detail` at
+ * its shrink-to-fit cross-axis size, which lets this screen's wider tables
+ * grow the page instead of scrolling inside their own `.table-wrap`. */
+@media (max-width: 860px) {
+  .pp-layout .org-detail {
+    width: 100%;
+  }
+}
+
+.pp-layout .h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--navy2);
+  margin: 0 0 6px;
+}
+
+.pp-layout .h5 {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  margin: 12px 0 4px;
+}
+
+.pp-layout .muted {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* `.form-grid` (Shared.css) is a flex row whose `.input`/`.select` rule sets
+ * `flex: 1 1 160px` on direct children; a control nested inside a `.field`'s
+ * *column* context reads that basis as a height. Same fix, and the same
+ * reason, as PeopleAccess.css. */
+.pp-layout .form-grid .field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 200px;
+  max-width: 340px;
+}
+
+.pp-layout .form-grid .field .input,
+.pp-layout .form-grid .field .select {
+  flex: none;
+  width: 100%;
+  max-width: none;
+}
+
+/* The size × colour grid: the whole cell is the checkbox's label, so the tick
+ * target is the cell rather than a 13px square. */
+.pp-layout .pp-combo-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 32px;
+  cursor: pointer;
+}
+
+.pp-layout .pp-combo-cell input {
+  width: 18px;
+  height: 18px;
+}
+
+/* Candidates for one shared code, side by side so the difference is visible
+ * without scrolling between them. One column at phone width. */
+.pp-layout .pp-candidates {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.pp-layout .pp-candidate-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0 0 12px;
+  font-size: 13.5px;
+}
+
+.pp-layout .pp-candidate-facts dt {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.pp-layout .pp-candidate-facts dd {
+  margin: 0;
+}
+
+/* What actually tells these two apart. Marked, not merely coloured: colour
+ * alone is not a distinction everyone can see. */
+.pp-layout .pp-candidate-facts dd.pp-differs {
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 400px) {
+  .pp-layout .form-grid .field {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+  .pp-layout .pp-candidates {
+    grid-template-columns: 1fr;
+  }
+}

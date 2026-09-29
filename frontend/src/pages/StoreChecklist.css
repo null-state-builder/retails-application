@@ -1,0 +1,40 @@
+/* --- Today's checklist (store operations ticket 49) ---------------------- */
+/* Tokens only, so dark mode needs nothing here. Every row wraps rather than
+   scrolls sideways: the list is ticked on a phone, 375 px wide. */
+
+.cl-list { margin: 0 0 14px; }
+.cl-list-head {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px;
+  margin-bottom: 8px; font-size: 14px; color: var(--ink);
+}
+.cl-when { font-size: 12.5px; color: var(--muted); }
+.cl-items { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 7px; }
+.cl-item {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px;
+  background: var(--inner); border: 1px solid var(--hairline);
+  border-radius: var(--radius-inner); padding: 9px 12px; font-size: 13.5px;
+  min-width: 0;
+}
+.cl-done { background: var(--green-bg); border-color: var(--green-bd); }
+.cl-late { border-color: var(--amber-bd); background: var(--amber-bg); }
+.cl-mark {
+  flex: none; width: 20px; height: 20px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1.5px solid var(--caption); color: var(--green);
+}
+.cl-done .cl-mark { border-color: var(--green); }
+.cl-text { flex: 1 1 160px; min-width: 0; overflow-wrap: anywhere; color: var(--ink); }
+.cl-meta { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); }
+.cl-meta-late { color: var(--amber); font-weight: 600; }
+.cl-open { font-size: 12px; }
+.cl-actions { display: flex; gap: 6px; flex: none; margin-left: auto; }
+.cl-photo { position: relative; display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+.cl-photo input {
+  position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;
+}
+.cl-photo-off { opacity: .5; pointer-events: none; }
+.cl-missed { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--hairline); }
+.cl-missed-head {
+  margin: 0 0 10px; font-size: 11px; font-weight: 800; letter-spacing: .6px;
+  text-transform: uppercase; color: var(--amber);
+}

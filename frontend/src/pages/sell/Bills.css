@@ -1,0 +1,21 @@
+/* Bills (OPS-08): the day's work, and where each bill has got to.
+   It borrows the find-a-bill card styles next door - the two screens answer
+   different questions but draw the same object, and a bill should not look like
+   two different things depending on which door a person came through. */
+
+.bills-bar {
+  display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px;
+}
+.bills-bar .field { margin: 0; }
+/* The one box that grows: the dates are fixed-width by their own nature. */
+.bills-search { flex: 1 1 240px; min-width: 200px; }
+
+/* What a bill was paid with, and how each part of it was proved. Laid out as
+   rows rather than a sentence, because "recorded manually" is a fact about one
+   tender and joining them with a "+" would blur which. */
+.bills-tenders {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 18px;
+  margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--hairline);
+}
+.bills-tender { display: inline-flex; align-items: baseline; gap: 7px; font-size: 13px; }
+.bills-tender-proof { color: var(--caption); font-size: 11px; }

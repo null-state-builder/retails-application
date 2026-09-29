@@ -1,0 +1,60 @@
+/* The IRN queue's table (#187).
+ *
+ * Nine columns of identifiers, dates and money is more than `table.data`'s
+ * generous padding fits at a laptop width, and the browser's answer - wrapping -
+ * is the wrong one here: `26-27/DEO/SAL/2` is one identifier and "30 Aug 2026"
+ * is one date, and a clerk reading a deadline off two lines has to reassemble it
+ * before they can act on it.
+ *
+ * So these cells refuse to wrap and `.table-wrap` scrolls instead, which is what
+ * it is for. Nothing here carries a colour, so both themes are untouched.
+ */
+
+.irn-table td,
+.irn-table th {
+  white-space: nowrap;
+}
+
+/* `table.data`'s 18px of side padding is right for a five-column list and is
+ * 36px per column this table has not got: at eight columns it pushed the Record
+ * button - the only thing anybody comes here to press - off the right edge and
+ * behind a scrollbar. Tightened here alone, so no other list moves. */
+.irn-table td,
+.irn-table th {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+/* The buyer is the one column that may breathe: a trading name is prose, and it
+ * sits under the registration rather than beside it. */
+.irn-table .irn-buyer {
+  white-space: normal;
+  min-width: 180px;
+}
+
+/* Recording the reference is an input and two buttons on one row, not a stack:
+ * stacked, the row grew to three times the height of the ones above it. */
+.irn-record {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Sized here rather than with `.btn-sm`, which lives in `Shared.css`: a page
+ * that depended on another page's stylesheet having been loaded would look
+ * right only for as long as something else happened to import it. */
+.irn-record .input,
+.irn-record .btn {
+  padding: 6px 10px;
+  font-size: 12.5px;
+}
+
+.irn-record .input {
+  width: 150px;
+}
+
+/* The refusal, when the portal will not take it. Full width under the row it
+ * belongs to, so it cannot squeeze the controls that produced it. */
+.irn-record-error {
+  flex-basis: 100%;
+}

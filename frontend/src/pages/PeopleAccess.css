@@ -1,0 +1,125 @@
+/* People and access (ticket 03): the same two-column shape as Organisation
+ * (`.org-layout`/`.org-nav`/`.org-detail`, reused via `pa-layout`) — a left
+ * list, a detail panel on the right. This file only adds what is new here:
+ * clickable list rows, person-detail tabs and grant checkbox groups. */
+
+.pa-layout {
+  align-items: flex-start;
+}
+
+/* Organisation.css stacks `.org-nav` to `width: 100%` below 860px but leaves
+ * `.org-detail` at its default shrink-to-fit cross-axis size (`align-items:
+ * flex-start`) — harmless for Organisation's own narrower tables, but this
+ * screen's wider ones (grants, privileged changes) then grow the whole page
+ * past the viewport instead of scrolling inside their own `.table-wrap`.
+ * Force the detail column to the same full width so only the table itself
+ * scrolls horizontally. */
+@media (max-width: 860px) {
+  .pa-layout .org-detail {
+    width: 100%;
+  }
+}
+
+.pa-row {
+  cursor: pointer;
+}
+
+/* `.form-grid` (Shared.css) is a row flexbox whose `.input`/`.select` rule
+ * sets `flex: 1 1 160px` for direct children. This screen wraps every
+ * control in a visible `.field` label+input pair (the shared UX brief:
+ * "labels on every control") — `.field` is itself the row's flex item, and
+ * the same flex-basis on an `.input` nested inside its *column* flex
+ * context would be read as a height instead of a width, so it is reset here.
+ * Scoped to `.pa-layout`: `.form-grid` and `.field` are both shared, global
+ * classes other screens already combine (e.g. SellPolicySettings.tsx nests a
+ * `.field` label directly inside a `.form-grid`), and this file is bundled
+ * app-wide, not scoped to this page — an unscoped rule here would silently
+ * restyle their forms too. */
+.pa-layout .form-grid .field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 200px;
+  max-width: 340px;
+}
+
+.pa-layout .form-grid .field .input,
+.pa-layout .form-grid .field .select {
+  flex: none;
+  width: 100%;
+  max-width: none;
+}
+
+.pa-layout .form-grid .field label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.pa-row:hover {
+  background: var(--surface-hover, rgba(127, 127, 127, 0.08));
+}
+
+.pa-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  border-bottom: 1px solid var(--border, #e2e2e2);
+  margin-bottom: 16px;
+}
+
+.pa-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 8px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.7;
+}
+
+.pa-tab.active {
+  opacity: 1;
+  border-bottom-color: var(--accent, currentColor);
+  font-weight: 600;
+}
+
+.pa-tab-panel {
+  min-width: 0;
+}
+
+.pa-check-group {
+  border: 1px solid var(--border, #e2e2e2);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.pa-check-group legend {
+  font-size: 12px;
+  opacity: 0.7;
+  padding: 0 4px;
+}
+
+.pa-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 13px;
+  max-width: 100%;
+}
+
+@media (max-width: 400px) {
+  .pa-tabs {
+    gap: 0;
+  }
+  .pa-tab {
+    padding: 8px 6px;
+    font-size: 12px;
+  }
+}

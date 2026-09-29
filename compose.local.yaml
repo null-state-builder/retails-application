@@ -1,0 +1,14 @@
+name: kdps-local
+services:
+  database:
+    image: postgres:17.11
+    env_file: .local/postgres.env
+    ports:
+      - "127.0.0.1:55432:5432"
+    volumes:
+      - ./.local/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kdps_local -d kdps_local"]
+      interval: 2s
+      timeout: 5s
+      retries: 30

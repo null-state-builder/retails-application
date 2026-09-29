@@ -1,0 +1,27 @@
+/* Booking > Open-to-Buy (ticket 39). The Owner's budget form: one column on a
+ * phone, as many as fit on a wider screen. Scoped to the page, so the shared
+ * `.form-grid` flex rule never reaches it. */
+.otb-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.otb-form > * {
+  min-width: 0;
+}
+
+.otb-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+/* The search pill grows along its flex line; inside a `.field` column that line
+ * is height, so it would stand 260px tall. */
+.otb-form .searchbox {
+  flex: none;
+  max-width: none;
+}

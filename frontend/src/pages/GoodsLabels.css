@@ -1,0 +1,50 @@
+/* Print labels (ticket 11). Scoped under `.labels-layout`/`.labels-*` — page
+ * CSS is bundled app-wide, and an unscoped rule here would silently restyle
+ * other screens (the incident noted in GoodsReceiving.css and GoodsAcceptance.css). */
+
+.labels-layout {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.labels-sheet {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.labels-label {
+  border: 1px solid var(--line);
+  padding: 4px;
+  background: #fff;
+}
+
+.labels-label svg {
+  display: block;
+  width: 200px;
+  height: auto;
+}
+
+.labels-job .table {
+  margin: 8px 0;
+}
+
+/* Design language §10: print always uses the light palette, and only the
+ * labels themselves belong on the printed page — everything else on this
+ * screen is working chrome. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .labels-sheet,
+  .labels-sheet * {
+    visibility: visible;
+  }
+  .labels-sheet {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+}

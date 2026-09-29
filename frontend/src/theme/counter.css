@@ -1,0 +1,22 @@
+/* Billing is a scanner-first workspace inside KDPS, not a separate visual
+   application. Palette and UI typography intentionally inherit the global
+   light/dark theme; only operational data receives a dedicated mono face. */
+html[data-room="counter"] {
+  --mono-counter: "IBM Plex Mono", ui-monospace, monospace;
+  --mono: var(--mono-counter);
+  --tabular-font: var(--mono-counter);
+  --counter-return-blue: #6ea8ff;
+}
+
+/* Return & exchange is the same room with a blue operational accent. The
+   attribute sits on html so the top bar and sidebar change with the counter,
+   not just the page nested inside them. */
+html[data-room="counter"][data-counter-mode="return"] .topbar {
+  border-bottom-color: var(--counter-return-blue);
+}
+html[data-room="counter"][data-counter-mode="return"] .topbar-brand {
+  color: var(--counter-return-blue);
+}
+html[data-room="counter"][data-counter-mode="return"] .sidebar {
+  border-color: var(--counter-return-blue);
+}

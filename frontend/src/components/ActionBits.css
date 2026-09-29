@@ -1,0 +1,632 @@
+/* Action Needed and Alerts (23 Sep 2026). Every class here starts `an-`, so
+ * nothing in this file can restyle another screen: page CSS is bundled
+ * app-wide. Colours are index.css tokens only, so dark mode follows by itself.
+ *
+ * No `.form-grid` anywhere on these screens. Its global rule gives a control
+ * `flex: 1 1 160px`, and a control inside a column `.field` reads that 160px
+ * as a height: the 160px-tall Site/Kind/Owner boxes this redesign replaced. */
+
+/* ------------------------------------------------------------ Topic chip */
+
+/* Neutral on purpose: colour means urgency on these screens. */
+.an-topic {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  color: var(--navy2);
+  background: var(--inner);
+  border: 1px solid var(--hairline);
+}
+
+/* --------------------------------------------------------- Urgency badge */
+
+.an-due {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.an-due-late {
+  color: var(--red);
+  background: var(--red-bg);
+  border-color: var(--red-bd);
+}
+
+.an-due-today {
+  color: var(--amber);
+  background: var(--amber-bg);
+  border-color: var(--amber-bd);
+}
+
+.an-due-later {
+  color: var(--grey);
+  background: var(--grey-bg);
+  border-color: var(--grey-bd);
+}
+
+/* ------------------------------------------------------ Sections, stacks */
+
+.an-section {
+  margin-top: 26px;
+}
+
+.an-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  margin: 0 0 12px;
+}
+
+.an-section-head .h3 {
+  margin: 0;
+}
+
+.an-section-hint {
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.an-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.an-quiet {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* One calm line instead of a big empty card. */
+.an-empty-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 12px 14px;
+  font-size: 14px;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px dashed var(--hairline);
+  border-radius: var(--radius-inner);
+}
+
+.an-empty-line svg {
+  color: var(--green);
+  flex: 0 0 auto;
+}
+
+/* ---------------------------------------------------------------- Tiles */
+
+/* The house stat tiles, smaller: three numbers, not a third of the screen. */
+.an-tiles.stat-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.an-tiles .stat-card {
+  padding: 10px 14px;
+  gap: 2px;
+}
+
+.an-tiles .stat-value {
+  font-size: 22px;
+}
+
+.an-tiles .an-tile-today .stat-value {
+  color: var(--amber);
+}
+
+/* -------------------------------------------------------------- Toolbar */
+
+.an-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+}
+
+.an-toolbar-end {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin-left: auto;
+}
+
+.an-topics {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.an-topics .btn,
+.an-seg .btn {
+  min-height: 36px;
+}
+
+.an-seg {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.an-count {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.btn-active .an-count {
+  color: inherit;
+}
+
+.an-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.an-select {
+  height: 36px;
+  max-width: 240px;
+  padding: 0 10px;
+  border: 1px solid var(--sidebar-border);
+  border-radius: var(--radius-inner);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 13.5px;
+}
+
+.an-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.an-check input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+.an-showing {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.an-showing b {
+  color: var(--ink);
+}
+
+/* ------------------------------------------------ Exception group cards */
+
+/* The design language's action block: "someone must now do something". The
+ * left rule carries the group's urgency, with the badge saying it in words. */
+.an-group {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-left: 4px solid var(--grey-bd);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 14px 16px 8px;
+  box-shadow: var(--shadow-rest);
+}
+
+.an-group-late {
+  border-left-color: var(--red);
+}
+
+.an-group-today {
+  border-left-color: var(--amber);
+}
+
+.an-group-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}
+
+.an-group-title {
+  flex: 1 1 220px;
+  min-width: 0;
+  margin: 0;
+  font-size: 15.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.an-group-count {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.an-help {
+  margin: 6px 0 0;
+  font-size: 13.5px;
+  color: var(--muted);
+}
+
+.an-help b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.an-kind-name {
+  color: var(--caption);
+  font-size: 12px;
+}
+
+.an-rows {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+
+.an-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  padding: 10px 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.an-row-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+.an-row-side {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.an-row-side .btn {
+  min-height: 36px;
+}
+
+.an-doc {
+  font-weight: 600;
+}
+
+.an-meta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.an-meta > * + *::before {
+  content: "·";
+  margin: 0 8px;
+  color: var(--caption);
+}
+
+.an-age {
+  font-size: 12.5px;
+  color: var(--caption);
+  white-space: nowrap;
+}
+
+.an-fix {
+  white-space: nowrap;
+}
+
+.an-more {
+  margin: 2px 0 4px;
+  padding: 8px 0;
+  background: none;
+  border: none;
+  color: var(--rust);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.an-more:hover {
+  text-decoration: underline;
+}
+
+/* ---------------------------------------------------------------- Drawer */
+
+.an-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: var(--scrim-modal);
+}
+
+/* A panel beside the list, not a block under eighty rows of it. */
+.exc-drawer.an-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 71;
+  width: min(460px, 100vw);
+  overflow-y: auto;
+  border: none;
+  border-left: 1px solid var(--hairline);
+  border-radius: 0;
+  box-shadow: var(--drawer-shadow);
+  padding: 20px 22px;
+  gap: 12px;
+}
+
+.an-drawer .exc-drawer-head {
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.an-drawer-title {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  min-width: 0;
+}
+
+.an-drawer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.an-drawer-form label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.an-inline {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.an-inline .input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.an-drawer-form textarea.input {
+  min-height: 72px;
+  resize: vertical;
+}
+
+.an-drawer-form > .btn {
+  align-self: flex-start;
+}
+
+/* ------------------------------------------------------------- Approvals */
+
+.an-approvals {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.an-approval {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 18px;
+  padding: 12px 16px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-inner);
+}
+
+.an-approval-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.an-approval-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.an-approval-what {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.an-approval-value {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.an-approval-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.an-approval-actions .btn {
+  min-height: 36px;
+}
+
+.an-approval-actions .input {
+  min-width: 220px;
+}
+
+/* --------------------------------------------------------- Notifications */
+
+.an-days {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.an-day-head {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--caption);
+}
+
+.an-notes-list,
+.an-deadlines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.an-note,
+.an-deadline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-inner);
+}
+
+.an-note-seen > .an-note-text {
+  color: var(--muted);
+}
+
+.an-dot {
+  flex: 0 0 auto;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--hairline);
+}
+
+.an-dot-unread {
+  background: var(--rust);
+}
+
+.an-note-text,
+.an-deadline-main {
+  flex: 1 1 260px;
+  min-width: 0;
+  font-size: 14px;
+  color: var(--ink);
+}
+
+.an-note-where {
+  color: var(--muted);
+}
+
+.an-note-time {
+  font-size: 12.5px;
+  color: var(--caption);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.an-note-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.an-note-actions .btn {
+  min-height: 36px;
+}
+
+.an-bundle-rows {
+  list-style: none;
+  width: 100%;
+  margin: 4px 0 0;
+  padding: 0 0 0 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.an-bundle-rows .an-note {
+  padding: 8px 12px;
+  background: var(--inner);
+}
+
+.an-deadline-kind {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------- Narrow */
+
+@media (max-width: 720px) {
+  .an-toolbar-end,
+  .an-row-side,
+  .an-approval-actions,
+  .an-note-actions {
+    margin-left: 0;
+  }
+
+  .an-tiles .stat-card {
+    padding: 8px 10px;
+  }
+
+  .an-tiles .stat-value {
+    font-size: 19px;
+  }
+
+  .an-approval-actions .input {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+}

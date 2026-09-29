@@ -1,0 +1,67 @@
+/* Counter Plus preview: screens only. House tokens only, 12px+ text. */
+.plus-rail { display: flex; flex-direction: column; gap: 16px; }
+.plus-banner { margin: 0; padding: 6px 10px; border: 1px dashed var(--amber); border-radius: var(--radius-inner); color: var(--muted); font-size: 12px; }
+.plus-card { display: flex; flex-direction: column; gap: 10px; padding-top: 14px; border-top: 1px solid var(--hairline); }
+.plus-head { display: flex; align-items: baseline; gap: 8px; justify-content: space-between; }
+.plus-head .eyebrow { margin: 0; color: var(--muted); font-size: 12px; letter-spacing: .08em; }
+.plus-head > span { color: var(--caption); font-size: 12px; }
+.plus-row { display: flex; gap: 8px; align-items: center; }
+.plus-input { flex: 1; min-width: 0; height: 42px; font-size: 14px; }
+.plus-btn { height: 40px; padding: 0 14px; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.plus-wide { width: 100%; }
+.plus-note { margin: 0; color: var(--muted); font-size: 12.5px; }
+.plus-link { align-self: flex-start; padding: 0; border: 0; background: none; color: var(--blue); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+.plus-link:disabled { color: var(--caption); cursor: not-allowed; }
+.plus-x { display: inline-flex; padding: 4px; border: 0; background: none; color: var(--muted); cursor: pointer; border-radius: 8px; }
+.plus-demo { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0; font-size: 12px; color: var(--caption); }
+.plus-demo button { padding: 4px 10px; border: 1px solid var(--hairline); border-radius: 999px; background: var(--surface); color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; }
+.plus-earn-hint { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--muted); font-size: 12.5px; }
+.plus-who { display: flex; align-items: center; gap: 10px; }
+.plus-who > div { display: flex; flex-direction: column; flex: 1; min-width: 0; font-size: 12px; color: var(--muted); }
+.plus-who strong { color: var(--ink); font-size: 15px; }
+.plus-avatar { display: inline-flex; width: 36px; height: 36px; align-items: center; justify-content: center; border-radius: 50%; background: var(--inner); color: var(--muted); }
+.plus-tier { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; border: 1px solid var(--hairline); color: var(--muted); }
+.plus-tier.is-gold { color: var(--amber); border-color: var(--amber); }
+.plus-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.plus-chips li { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 1px solid var(--hairline); border-radius: 999px; background: var(--inner); font-size: 12.5px; color: var(--ink); }
+.plus-chips li.is-warn { color: var(--red); border-color: var(--red); }
+.plus-fields { display: grid; gap: 8px; }
+.plus-check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink); }
+.plus-wait { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--muted); font-size: 12.5px; }
+.plus-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--amber); flex: none; }
+.plus-stepper { display: inline-flex; align-items: center; gap: 4px; flex: 1; }
+.plus-stepper output { min-width: 56px; text-align: center; font-size: 17px; }
+.plus-step { width: 40px; height: 40px; padding: 0; font-size: 18px; }
+.plus-line { display: flex; justify-content: space-between; margin: 0; font-size: 13px; color: var(--muted); }
+.plus-line strong { color: var(--ink); font-family: var(--mono); }
+.plus-earn { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--green); font-size: 13px; font-weight: 600; }
+.plus-tender { display: flex; flex-direction: column; gap: 8px; padding-bottom: 10px; border-bottom: 1px solid var(--hairline); }
+.plus-remove { font-size: 12px; color: var(--muted); }
+.plus-add { position: relative; }
+.plus-menu { margin: 6px 0 0; padding: 4px; list-style: none; border: 1px solid var(--hairline); border-radius: var(--radius-inner); background: var(--surface); }
+.plus-menu button { display: flex; align-items: center; gap: 8px; width: 100%; height: 40px; padding: 0 10px; border: 0; border-radius: 8px; background: none; color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; text-align: left; }
+.plus-menu button:hover { background: var(--inner-hover); }
+.plus-credit { display: flex; flex-direction: column; gap: 8px; }
+.plus-bar { height: 8px; border-radius: 999px; background: var(--inner); overflow: hidden; }
+.plus-bar span { display: block; height: 100%; background: var(--green); border-radius: inherit; }
+.plus-bar span.is-over { background: var(--red); }
+.plus-due { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-size: 12.5px; color: var(--muted); }
+.plus-due button { height: 32px; padding: 0 12px; border: 1px solid var(--hairline); border-radius: 999px; background: var(--surface); color: var(--ink); font: inherit; font-size: 13px; cursor: pointer; }
+.plus-due button.is-on { background: var(--navy-fill); border-color: var(--navy-fill); color: #fff; }
+.plus-refusal { margin: 0; padding: 8px 10px; border: 1px solid var(--red); border-radius: var(--radius-inner); color: var(--red); font-size: 13px; }
+.plus-ruling { padding: 2px 8px; border: 1px solid var(--amber); border-radius: 999px; color: var(--amber); font-size: 12px; }
+.plus-sheet-wrap { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; padding: 16px; background: var(--scrim-modal); }
+.plus-sheet { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 380px; padding: 20px; border: 1px solid var(--hairline); border-radius: var(--radius); background: var(--surface); }
+.plus-sheet h3 { margin: 0; font-size: 16px; }
+
+@container counter (max-width: 719px) {
+  .plus-sheet-wrap { align-items: flex-end; padding: 0; }
+  .plus-sheet { max-width: none; border-radius: var(--radius) var(--radius) 0 0; }
+}
+@media (pointer: coarse) {
+  .plus-btn, .plus-input, .plus-step, .plus-menu button { min-height: 44px; height: 44px; }
+  .plus-due button { height: 44px; }
+  .plus-x { min-width: 44px; min-height: 44px; align-items: center; justify-content: center; }
+  .plus-demo button, .plus-link { min-height: 44px; display: inline-flex; align-items: center; }
+  .plus-check { min-height: 44px; }
+}

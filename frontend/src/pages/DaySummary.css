@@ -1,0 +1,151 @@
+/* The store's day summary (#188).
+ *
+ * Self-contained on purpose. Two of the shapes here - a row of money tiles and a
+ * strip of secondary counts under it - already exist on Home as `.net-grid` and
+ * `.collect-row`, and borrowing them would make this screen look right only for
+ * as long as Home's stylesheet happened to be in the bundle. They are also not
+ * quite the same shapes: Home's tiles are a network's three, this is a bill's
+ * four, and the money here is written in full rather than shortened, because a
+ * person is checking it against a drawer.
+ *
+ * Every colour is a token, so the one `html[data-theme="dark"]` block in
+ * index.css covers this file and nothing new is needed for dark.
+ */
+
+.day-panel { padding: 18px 20px; margin-bottom: 18px; }
+.day-panel-head { margin-bottom: 14px; }
+.day-panel-head .eyebrow { margin-bottom: 2px; }
+
+/* Picking the day. A date input rather than a chip row of the last few days:
+   a drawer is reconciled against whichever day somebody is holding a slip for,
+   and that is as often last Tuesday as it is yesterday. */
+.day-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 16px;
+  flex-wrap: wrap;
+}
+
+.day-picker-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.day-picker .input { width: auto; }
+
+/* The four tenders. */
+.day-modes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.day-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: var(--inner);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-inner);
+  padding: 13px 15px;
+}
+
+.day-num { font-size: 19px; font-weight: 700; color: var(--navy); }
+.day-label { font-size: 12px; color: var(--muted); }
+
+/* The UPI tile's only control: visibility, not a gate (#241). */
+.day-upi-split { font-size: 11px; color: var(--muted); }
+
+/* The counts behind the money - bills, pieces back, notes given. Secondary to
+   the tiles above and separated by a rule, so the eye reads the money first. */
+.day-counts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-top: 14px;
+  padding-top: 13px;
+  border-top: 1px solid var(--hairline);
+}
+
+.day-count {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.day-count b { font-size: 15px; color: var(--navy); }
+
+/* The one sentence somebody counts cash against. A credit note closes a
+   liability rather than filling a drawer, so the drawer figure is said out loud
+   instead of being left to be worked out from four tiles. */
+.day-drawer { margin-top: 12px; }
+
+/* --- the day's exceptions ---------------------------------------------- */
+
+/* The one line on the screen the day picker does not govern, said in the panel
+   head so nobody has to infer it from an empty list. */
+.day-flags-scope { margin: 6px 0 0; font-size: 12.5px; }
+
+.flag-list { display: flex; flex-direction: column; gap: 10px; }
+
+.flag-row {
+  background: var(--inner);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-inner);
+  padding: 12px 14px;
+}
+
+/* A settled row stays on the list rather than disappearing - "we looked at this
+   and here is what we said" is the record - but it steps back visually so the
+   open ones above it are what the eye lands on. */
+.flag-row[data-status="resolved"],
+.flag-row[data-status="ignored"] {
+  opacity: 0.72;
+}
+
+.flag-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  font-size: 13.5px;
+}
+
+.flag-ic { color: var(--amber); flex: none; }
+.flag-row[data-status="resolved"] .flag-ic,
+.flag-row[data-status="ignored"] .flag-ic { color: var(--caption); }
+
+.flag-bill { font-size: 12.5px; color: var(--navy); text-decoration: underline; }
+
+.flag-say { font-size: 13px; color: var(--muted); margin: 5px 0 0; }
+
+/* What the person who cleared it said. Quoted in the markup, italic here, so it
+   reads as somebody's sentence rather than as another machine finding. */
+.flag-note { font-size: 12.5px; color: var(--caption); font-style: italic; margin: 5px 0 0; }
+
+/* Clearing one: a note and two buttons on one row, not a stack - stacked, the
+   row grew to three times the height of the ones around it. */
+.flag-clear {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.flag-clear .input { flex: 1 1 220px; min-width: 180px; padding: 6px 10px; font-size: 12.5px; }
+.flag-clear .btn { padding: 6px 10px; font-size: 12.5px; }
+
+/* The refusal, full width under the row it belongs to, so it cannot squeeze the
+   controls that produced it. */
+.flag-error { flex-basis: 100%; }
+
+@media (max-width: 900px) {
+  .day-modes { grid-template-columns: repeat(2, 1fr); }
+}
