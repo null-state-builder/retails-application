@@ -1,8 +1,10 @@
-name: SO-02 engineering baseline
+name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -10,6 +12,7 @@ permissions:
 
 jobs:
   verify:
+    name: Verify
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -36,7 +39,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: so-02-browser-evidence
+          name: ci-browser-evidence
           path: |
             frontend/test-results/
             frontend/playwright-report/
