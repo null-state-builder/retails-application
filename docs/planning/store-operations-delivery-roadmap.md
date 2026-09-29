@@ -3,7 +3,7 @@
 **Project:** RetailsOps — KDPS first deployment\
 **Created:** 29 September 2026\
 **Purpose:** A discussion-by-discussion delivery checklist based on the decisions made in this conversation.\
-**Next item:** SO-03 — Unified access and consolidation plan. SO-02's hosted Linux CI run remains pending.
+**Next item:** SO-03 — Unified access and consolidation plan.
 
 ## 1. The delivery order we agreed
 
@@ -60,7 +60,7 @@ Acceptance checks, audit, permissions, feature controls and safe migration apply
 | --- | --- | --- | --- | --- |
 | 00 | SO-00 | Local startup and login | Foundation | Completed — limited to startup/login |
 | 01 | SO-01 | Requirement coverage and decision reconciliation | Foundation | Accepted — documented coverage and decisions, 29 September 2026 |
-| 02 | SO-02 | Reproducible build and engineering baseline | Foundation | Accepted for engineering baseline, 29 September 2026 — [Mac/Linux evidence](so-02-engineering-baseline-evidence.md); hosted CI pending |
+| 02 | SO-02 | Reproducible build and engineering baseline | Foundation | Accepted, 29 September 2026 — [Mac, Linux and hosted CI evidence](so-02-engineering-baseline-evidence.md) |
 | 03 | SO-03 | Unified access and consolidation plan | Foundation | Queued |
 | 04 | SO-04 | Organisation, product masters and opening-stock workflow | Foundation / P1 | Queued |
 | 05 | SO-05 | Staff, assignments and manager authority | P1 | Queued |
@@ -121,7 +121,7 @@ The dated decisions, gate ledger, implementation pointers and completion checks 
 - **Discuss:** Reconstructed dependency compatibility; strict TypeScript failures; absent original test tooling; missing app icons/PWA assets; generated API-contract checks; clean setup and restart behaviour.
 - **Work:** Fix the baseline without weakening the prescribed checks. Establish the relevant backend, frontend and browser test commands and requirement-linked acceptance evidence. Verify dependency installs from committed lockfiles.
 - **Done when:** Clean setup, build, required type checks and baseline checks pass; startup instructions are usable; later items have a repeatable way to demonstrate success and failure cases.
-- **Engineering verification:** The [SO-02 evidence record](so-02-engineering-baseline-evidence.md) records the committed code, clean disposable-checkout setup and two complete Mac verification passes, negative probes and a complete manual Linux verification pass. Engineering baseline acceptance is recorded on 29 September 2026. The hosted GitHub Actions result remains pending; the manual Linux pass is not a hosted CI run. Later SO items still own workflow, supported-device and release proofs.
+- **Engineering verification:** The [SO-02 evidence record](so-02-engineering-baseline-evidence.md) records the committed code, clean disposable-checkout setup and two complete Mac verification passes, negative probes, a complete manual Linux verification pass and a [successful hosted GitHub Actions run](https://github.com/null-state-builder/retails-application/actions/runs/36547922163). Engineering baseline acceptance is recorded on 29 September 2026. Later SO items still own workflow, supported-device and release proofs.
 
 ### SO-03 — Unified access and consolidation plan
 
