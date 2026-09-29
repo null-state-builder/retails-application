@@ -271,8 +271,7 @@ export function docRef(subjectId: string): { label: string; id: string } {
   const rawKind = subjectId.slice(0, at);
   const id = subjectId.slice(at + 1);
   const spaced = rawKind.replace(/_/g, " ");
-  const label =
-    SUBJECT_ACRONYM[rawKind] ?? spaced.charAt(0).toUpperCase() + spaced.slice(1);
+  const label = SUBJECT_ACRONYM[rawKind] ?? spaced.charAt(0).toUpperCase() + spaced.slice(1);
   return { label, id: UUID_RE.test(id) ? id.slice(0, 8) : id };
 }
 
@@ -378,8 +377,7 @@ const RESOLUTION_ROUTES: {
     label: "Decide disposition",
     // A receipt's disputed goods are decided on its delivery's Discrepancies
     // step (OPS-17: there is no receipts screen of its own any more).
-    build: (subjectId) =>
-      deliveryStepPath("grn", subjectDocumentId(subjectId), "discrepancies"),
+    build: (subjectId) => deliveryStepPath("grn", subjectDocumentId(subjectId), "discrepancies"),
   },
   {
     match: "ptmapper/files/from-grn",
@@ -493,8 +491,7 @@ const RESOLUTION_ROUTES: {
     // `petty_cash_spend:<id>`, and the spend's own page takes the photo.
     match: "sell/petty-cash/spends",
     label: "Add the bill photo",
-    build: (subjectId) =>
-      `/money/petty-cash/${encodeURIComponent(subjectDocumentId(subjectId))}`,
+    build: (subjectId) => `/money/petty-cash/${encodeURIComponent(subjectDocumentId(subjectId))}`,
   },
   {
     // A source key mapped to nothing yet, corrected on the crosswalks panel.
@@ -561,7 +558,8 @@ export function resolutionFor(
       if (to) return { label: route.label, to };
     }
   }
-  if (actions.length > 0) return { label: humanizeAction(actions[0]), to: null };
+  const firstAction = actions[0];
+  if (firstAction) return { label: humanizeAction(firstAction), to: null };
   return { label: "No resolving command is registered yet", to: null };
 }
 

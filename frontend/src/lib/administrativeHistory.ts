@@ -9,7 +9,9 @@ export function parseMasterHistory(
   value: string | null,
 ): { family: MasterHistoryFamily; id: string } | null {
   const match = /^(entity|registration):(\d+)$/.exec(value ?? "");
-  return match ? { family: match[1] as MasterHistoryFamily, id: match[2] } : null;
+  const family = match?.[1];
+  const id = match?.[2];
+  return (family === "entity" || family === "registration") && id ? { family, id } : null;
 }
 
 /** What E247 reads: 02C's sites and masters, 03D's people, logins and roles. */
@@ -128,10 +130,15 @@ const COMMAND_OUTCOME: Record<string, string> = {
 /** What happened, in plain words; never the internal event code. */
 export function historyActionLabel(eventKind: string, outcome: string): string {
   const [family, kind, change] = eventKind.split(".");
-  if (family === "master" && MASTER_KIND[kind] && MASTER_CHANGE[change]) {
+  if (family === "master" && kind && change && MASTER_KIND[kind] && MASTER_CHANGE[change]) {
     return `${MASTER_KIND[kind]} ${MASTER_CHANGE[change]}`;
   }
-  if (family === "site" && SITE_OPERATION[kind] && (change === "approved" || change === "revoked")) {
+  if (
+    family === "site" &&
+    kind &&
+    SITE_OPERATION[kind] &&
+    (change === "approved" || change === "revoked")
+  ) {
     return `${SITE_OPERATION[kind]} ${change}`;
   }
   const command = COMMAND[eventKind] ?? "Recorded change";

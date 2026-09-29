@@ -52,6 +52,19 @@ from sell.permissions import (
     CanWorkIrnQueue,
     CanWorkStoreFlags,
 )
+from sell.schema_serializers import (
+    DatasetReadSerializer,
+    HeldBillsCountReadSerializer,
+    IrnQueueReadSerializer,
+    RegisterHandoverReadSerializer,
+    RegisterReadSerializer,
+    SellPolicyReadSerializer,
+    StoreFlagsReadSerializer,
+    TillAllocationReleasedReadSerializer,
+    TillRegisteredReadSerializer,
+    TillResumedReadSerializer,
+    TillStateReadSerializer,
+)
 from sell.serializers import (
     ConsentAnswerWriteSerializer,
     ConsentRecordedSerializer,
@@ -119,9 +132,11 @@ class SellPolicyView(APIView):
 
     permission_classes = [IsAuthenticated, CanReadOrManagePolicy]
 
+    @extend_schema(responses=SellPolicyReadSerializer)
     def get(self, request: Request) -> Response:
         return Response(SellPolicy.current().as_till_policy())
 
+    @extend_schema(request=SellPolicyWriteSerializer, responses=SellPolicyReadSerializer)
     def put(self, request: Request) -> Response:
         form = SellPolicyWriteSerializer(data=request.data)
         if not form.is_valid():
@@ -378,6 +393,10 @@ class DatasetView(APIView):
 
     permission_classes = [IsAuthenticated, CanRunTill]
 
+    @extend_schema(
+        parameters=[OpenApiParameter(name="since", type=str, required=False)],
+        responses=DatasetReadSerializer,
+    )
     def get(self, request: Request) -> Response:
         store, refusal = till_store(request)
         if store is None:
@@ -594,6 +613,7 @@ class TillView(APIView):
 
     permission_classes = [IsAuthenticated, CanRunTill]
 
+    @extend_schema(responses=TillStateReadSerializer)
     def get(self, request: Request) -> Response:
         store, refusal = till_store(request)
         if store is None:
@@ -617,6 +637,7 @@ class TillRegisterView(APIView):
 
     permission_classes = [IsAuthenticated, CanHandOverTill]
 
+    @extend_schema(request=TillRegisterWriteSerializer, responses={201: TillRegisteredReadSerializer})
     def post(self, request: Request) -> Response:
         store, refusal = till_store(request)
         if store is None:
@@ -652,6 +673,7 @@ class TillRenewView(APIView):
 
     permission_classes = [IsAuthenticated, CanRunTill]
 
+    @extend_schema(request=None, responses=TillStateReadSerializer)
     def post(self, request: Request) -> Response:
         store, refusal = till_store(request)
         if store is None:
@@ -710,6 +732,10 @@ class TillAllocationReleaseView(APIView):
 
     permission_classes = [IsAuthenticated, CanRunTill]
 
+    @extend_schema(
+        request=TillAllocationReleaseSerializer,
+        responses=TillAllocationReleasedReadSerializer,
+    )
     def post(self, request: Request, version: int) -> Response:
         store, refusal = till_store(request)
         if store is None:
@@ -754,6 +780,7 @@ class TillResumeView(APIView):
 
     permission_classes = [IsAuthenticated, CanRunTill]
 
+    @extend_schema(request=TillResumeSerializer, responses=TillResumedReadSerializer)
     def post(self, request: Request) -> Response:
         store, refusal = till_store(request)
         if store is None:
@@ -795,6 +822,7 @@ class RegisterView(APIView):
 
     permission_classes = [IsAuthenticated, CanRunTill]
 
+    @extend_schema(responses=RegisterReadSerializer)
     def get(self, request: Request) -> Response:
         store, refusal = till_store(request)
         if store is None:
@@ -822,6 +850,10 @@ class RegisterHandoverView(APIView):
 
     permission_classes = [IsAuthenticated, CanHandOverTill]
 
+    @extend_schema(
+        request=RegisterHandoverWriteSerializer,
+        responses=RegisterHandoverReadSerializer,
+    )
     def post(self, request: Request) -> Response:
         # The same one-store rule, and the same refusal word, as the two till
         # endpoints: a handover is about one counter's numbering, so a login that
@@ -861,6 +893,7 @@ class HeldBillsView(APIView):
 
     permission_classes = [IsAuthenticated, CanRunTill]
 
+    @extend_schema(request=HeldBillsWriteSerializer, responses=HeldBillsCountReadSerializer)
     def put(self, request: Request) -> Response:
         store, refusal = till_store(request)
         if store is None:
@@ -948,6 +981,10 @@ class IrnQueueView(APIView):
 
     permission_classes = [IsAuthenticated, CanWorkIrnQueue]
 
+    @extend_schema(
+        parameters=[OpenApiParameter(name="status", type=str, required=False)],
+        responses=IrnQueueReadSerializer,
+    )
     def get(self, request: Request) -> Response:
         today = timezone.localdate()
         rows = _irn_rows(request.user)
@@ -998,6 +1035,7 @@ class IrnQueueItemView(APIView):
 
     permission_classes = [IsAuthenticated, CanWorkIrnQueue]
 
+    @extend_schema(request=IrnQueueWriteSerializer, responses=IrnQueueRowSerializer)
     def put(self, request: Request, pk: int) -> Response:
         form = IrnQueueWriteSerializer(data=request.data)
         if not form.is_valid():
@@ -1102,6 +1140,13 @@ class StoreFlagsView(APIView):
 
     permission_classes = [IsAuthenticated, CanWorkStoreFlags]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(name="status", type=str, required=False),
+            OpenApiParameter(name="date", type=str, required=False),
+        ],
+        responses=StoreFlagsReadSerializer,
+    )
     def get(self, request: Request) -> Response:
         rows = _flags(request.user)
         wanted = (request.query_params.get("status") or ContinuityFlag.Status.OPEN).strip()
@@ -1164,6 +1209,7 @@ class StoreFlagView(APIView):
 
     permission_classes = [IsAuthenticated, CanWorkStoreFlags]
 
+    @extend_schema(request=ContinuityFlagWriteSerializer, responses=ContinuityFlagRowSerializer)
     def put(self, request: Request, pk: int) -> Response:
         form = ContinuityFlagWriteSerializer(data=request.data)
         if not form.is_valid():

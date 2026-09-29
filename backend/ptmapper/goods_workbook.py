@@ -21,6 +21,7 @@ from decimal import Decimal
 from typing import Any
 
 from openpyxl import Workbook, load_workbook
+from openpyxl.cell.cell import Cell
 from openpyxl.worksheet._reader import WorkSheetParser
 from openpyxl.xml.constants import SHEET_MAIN_NS
 
@@ -36,7 +37,7 @@ class Amount:
     paise: int
 
 
-class _ExactNumbers(WorkSheetParser):  # type: ignore[misc]
+class _ExactNumbers(WorkSheetParser):
     """openpyxl's sheet parser, keeping a numeric cell's stored text as a ``Decimal``."""
 
     def parse_cell(self, element: Any) -> dict[str, Any]:
@@ -64,14 +65,16 @@ def read_rows(data: bytes, *, max_rows: int | None = None) -> Iterator[tuple[int
     workbook = load_workbook(io.BytesIO(data), read_only=True, data_only=True)
     try:
         sheet = workbook.worksheets[0]
-        with sheet._get_source() as source:
+        # types-openpyxl omits these private reader internals. This parser is
+        # intentionally coupled to the pinned openpyxl implementation.
+        with sheet._get_source() as source:  # type: ignore[attr-defined]
             parser = _ExactNumbers(
                 source,
-                sheet._shared_strings,
+                sheet._shared_strings,  # type: ignore[attr-defined]
                 data_only=True,
                 epoch=workbook.epoch,
-                date_formats=workbook._date_formats,
-                timedelta_formats=workbook._timedelta_formats,
+                date_formats=workbook._date_formats,  # type: ignore[attr-defined]
+                timedelta_formats=workbook._timedelta_formats,  # type: ignore[attr-defined]
             )
             for count, (number, cells) in enumerate(parser.parse(), start=1):
                 if max_rows is not None and count > max_rows:
@@ -88,6 +91,7 @@ def workbook_bytes(title: str, rows: Iterable[list[Any]]) -> bytes:
     """A one-sheet workbook; ``Amount`` cells hold exact numeric text, ``None`` stays empty."""
     workbook = Workbook()
     sheet = workbook.active
+    assert sheet is not None
     sheet.title = title
     for row_number, values in enumerate(rows, start=1):
         for column, value in enumerate(values, start=1):
@@ -95,8 +99,9 @@ def workbook_bytes(title: str, rows: Iterable[list[Any]]) -> bytes:
                 continue
             cell = sheet.cell(row=row_number, column=column)
             if isinstance(value, Amount):
+                assert isinstance(cell, Cell)
                 cell.value = 0  # a numeric cell ...
-                cell._value = amount_text(value.paise)  # ... whose stored text is exact
+                cell._value = amount_text(value.paise)  # type: ignore[attr-defined]  # exact stored text
                 cell.number_format = "0.00"
             else:
                 cell.value = value

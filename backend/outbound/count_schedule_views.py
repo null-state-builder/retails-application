@@ -211,7 +211,10 @@ def _missed_rows(tenant_id: uuid.UUID, stores: list[Store]) -> list[dict[str, An
 
 
 class CountScheduleListView(GoodsAPIView):
-    @extend_schema(responses=CountSchedulePageSerializer)
+    @extend_schema(
+        operation_id="goods_v1_outbound_count_schedules_list",
+        responses=CountSchedulePageSerializer,
+    )
     def get(self, request: Request) -> Response:
         access = self.access(request)
         if not may_read(request.user):
@@ -244,7 +247,11 @@ class CountScheduleListView(GoodsAPIView):
         }
         return Response(CountSchedulePageSerializer(body).data)
 
-    @extend_schema(request=ScheduleSetRequestSerializer, responses={201: ScheduleRowSerializer})
+    @extend_schema(
+        operation_id="goods_v1_outbound_count_schedules_set",
+        request=ScheduleSetRequestSerializer,
+        responses={201: ScheduleRowSerializer},
+    )
     def post(self, request: Request) -> Response:
         access = self.access(request)
         _require_editor(request.user)
@@ -322,7 +329,11 @@ class CountScheduleListView(GoodsAPIView):
 
 
 class CountScheduleChangeView(GoodsAPIView):
-    @extend_schema(request=ScheduleChangeRequestSerializer, responses=ScheduleRowSerializer)
+    @extend_schema(
+        operation_id="goods_v1_outbound_count_schedules_change",
+        request=ScheduleChangeRequestSerializer,
+        responses=ScheduleRowSerializer,
+    )
     def post(self, request: Request, pk: uuid.UUID) -> Response:
         access = self.access(request)
         _require_editor(request.user)

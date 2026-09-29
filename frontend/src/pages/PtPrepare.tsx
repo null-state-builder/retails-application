@@ -191,8 +191,7 @@ export function GrnStart({
   const doc = useResourceDoc<GrnCoverage>(`/goods-v1/inbound/grns/${grnId}`);
   const profiles = useGoodsFetch<Page<ResourceDTO<ConfigSummary>>, ResourceDTO<ConfigSummary>[]>(
     "/goods-v1/masters/configurations?kind=profile",
-    (r) =>
-      (r.items ?? []).filter((row) => row.state === "approved" && pinnableVersionId(row.data)),
+    (r) => (r.items ?? []).filter((row) => row.state === "approved" && pinnableVersionId(row.data)),
     [],
   );
   const [profileId, setProfileId] = useState("");
@@ -210,7 +209,7 @@ export function GrnStart({
     // goods, which the server then refuses as IDENTITY_PROFILE_MISMATCH with
     // no way for the preparer to see why. Where there is a choice, they make it.
     if (!profileId && profiles.value.length === 1) {
-      setProfileId(pinnableVersionId(profiles.value[0].data) ?? "");
+      setProfileId(profiles.value[0] ? (pinnableVersionId(profiles.value[0].data) ?? "") : "");
     }
   }, [profiles.value, profileId]);
 
@@ -253,12 +252,15 @@ export function GrnStart({
 
   function startFromCount() {
     return run(async () => {
-      const { data } = await api.post<{ id: string }>(`/goods-v1/ptmapper/files/from-grn/${grnId}`, {
-        receipt_kind: receiptKind,
-        profile_version_id: profileId,
-        direction,
-        ...goodsMeta(),
-      });
+      const { data } = await api.post<{ id: string }>(
+        `/goods-v1/ptmapper/files/from-grn/${grnId}`,
+        {
+          receipt_kind: receiptKind,
+          profile_version_id: profileId,
+          direction,
+          ...goodsMeta(),
+        },
+      );
       return data.id;
     });
   }
@@ -267,7 +269,7 @@ export function GrnStart({
     return run(async () => {
       const evidenceId = await uploadEvidence(file, {
         kind: source === "brand_upload" ? BRAND_FILE_KIND : "pt",
-        siteId: coverage.grn_header.site_id,
+        siteId: coverage.grn_header.site_id ?? null,
       });
       const { data } = await api.post<{ id: string }>("/goods-v1/ptmapper/files", {
         purpose: "receipt",
@@ -371,8 +373,8 @@ export function GrnStart({
           <div className="pt-start-path">
             <h4 className="gr-h4">Start from the count</h4>
             <p className="pt-hint">
-              One row per counted lot, exactly as the GRN counted it. Fill the values in on the
-              grid next.
+              One row per counted lot, exactly as the GRN counted it. Fill the values in on the grid
+              next.
             </p>
             <button
               className="btn btn-primary"
@@ -797,6 +799,15 @@ export function PtEditor({ ptId, onClose }: { ptId: string; onClose?: () => void
     const cell = (e.target as HTMLElement).closest<HTMLElement>("[data-cell]");
     if (!text || !cell?.dataset.cell) return;
     const [row, col] = cell.dataset.cell.split("-").map(Number);
+    if (
+      row === undefined ||
+      col === undefined ||
+      !Number.isInteger(row) ||
+      !Number.isInteger(col) ||
+      row < 0 ||
+      col < 0
+    )
+      return;
     const column = columns[col];
     // One value pasted into a describing or calculated cell is ordinary typing.
     if (!column || (!isBlock(text) && !isPasteColumn(column.name))) return;
@@ -1478,7 +1489,10 @@ export function PtEditor({ ptId, onClose }: { ptId: string; onClose?: () => void
                   </td>
                   <td className="ptg-fz ptg-fz-rev">
                     {line.reviewed && !rowDirty ? (
-                      <span className="chip chip-green" data-testid={`pt-reviewed-${line.line_key}`}>
+                      <span
+                        className="chip chip-green"
+                        data-testid={`pt-reviewed-${line.line_key}`}
+                      >
                         Reviewed
                       </span>
                     ) : pendingReviews[line.line_key] ? (
@@ -1511,9 +1525,7 @@ export function PtEditor({ ptId, onClose }: { ptId: string; onClose?: () => void
                       choices={choices}
                       readOnly={readOnly}
                       moneyText={moneyText[`${line.line_key}:${column.name}`]}
-                      canRule={
-                        !readOnly && canProposeRules && canProposeRule(column, line)
-                      }
+                      canRule={!readOnly && canProposeRules && canProposeRule(column, line)}
                       onFocus={(at) =>
                         setCursor((prev) =>
                           prev.row === at.row && prev.col === at.col ? prev : at,
@@ -1663,7 +1675,7 @@ function GridCell({
   const offered = !edited && origin === "suggestion" ? (waiting?.choices ?? []) : [];
   const tone = cellTone({
     column,
-    origin,
+    ...(origin ? { origin } : {}),
     edited,
     blank: text === "",
     problem: problems.length > 0,
@@ -1894,8 +1906,8 @@ function RulePanel({
         Cancel
       </button>
       <span className="ptg-hint">
-        A proposed rule applies nowhere until the product-master owner confirms it in Mapping
-        rules. This row is not changed by it.
+        A proposed rule applies nowhere until the product-master owner confirms it in Mapping rules.
+        This row is not changed by it.
       </span>
     </div>
   );
@@ -1951,8 +1963,8 @@ function ComparePanel({
       <AlertTriangle size={14} />
       <div>
         <p>
-          This PT changed on the server while you were editing. Choose which version to keep —
-          your edits stay local until you save again, and either choice needs a fresh review.
+          This PT changed on the server while you were editing. Choose which version to keep — your
+          edits stay local until you save again, and either choice needs a fresh review.
         </p>
         <table className="data">
           <thead>

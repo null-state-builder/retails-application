@@ -594,7 +594,23 @@ class CrosswalkDecision(GoodsAPIView):
 
     route = "resolve"
 
-    @extend_schema(responses=_responses(200, VOCAB_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(
+        request={"application/json": {
+            "type": "object",
+            "required": ["command_id", "contract_version", "expected_revision", "action", "reason_code", "reviewed_hash"],
+            "properties": {
+                "command_id": {"type": "string", "format": "uuid"},
+                "contract_version": {"type": "string", "enum": ["goods-v1"]},
+                "expected_revision": {"type": "integer", "minimum": 1},
+                "action": {"type": "string", "enum": ["propose", "confirm", "reject"]},
+                "chosen_value_id": {"type": "string"},
+                "reason_code": {"type": "string", "minLength": 1, "maxLength": 60},
+                "reviewed_hash": {"type": "string"},
+            },
+            "additionalProperties": False,
+        }},
+        responses=_responses(200, VOCAB_RESOURCE, _WRITE_REFUSALS),
+    )
     def post(self, request: Request, pk: uuid.UUID) -> Response:  # noqa: C901 - the contract's ordered refusal steps
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=True)

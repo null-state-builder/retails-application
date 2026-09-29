@@ -227,16 +227,17 @@ export function legFor(line: OriginalLine, qty: number, key = newLegKey()): Exch
 /** The marked quantities as return legs on the Sale being built now. */
 export function legsFrom(found: ReturnableBill | null, picked: PickedReturns): ExchangeLeg[] {
   if (!found) return [];
-  return found.lines
-    .filter((line) => (picked[line.line_no]?.qty ?? 0) > 0)
-    .map((line) => {
-      const choice = picked[line.line_no];
-      return {
+  return found.lines.flatMap((line) => {
+    const choice = picked[line.line_no];
+    if (!choice || choice.qty <= 0) return [];
+    return [
+      {
         ...legFor(line, choice.qty, `x${line.line_no}`),
         reason: choice.reason,
         condition: choice.condition,
-      };
-    });
+      },
+    ];
+  });
 }
 
 /** Mark one scanned original piece, capped at what the customer can still
@@ -270,10 +271,7 @@ export function markReturnedPiece(
 
 /** Mark every piece that remains returnable, preserving decisions already made
  * on a line. */
-export function takeEverythingBack(
-  found: ReturnableBill,
-  picked: PickedReturns,
-): PickedReturns {
+export function takeEverythingBack(found: ReturnableBill, picked: PickedReturns): PickedReturns {
   return Object.fromEntries(
     found.lines.flatMap((line) => {
       const qty = returnableQty(line);
@@ -386,10 +384,7 @@ export function eligibleReturnValue(exchange: Exchange | null): number {
  *  refused - there is no refund and no store credit to settle it with - and the
  *  refusal names the figure, because "pick something worth more" without saying
  *  how much more is a cashier guessing at a counter with a customer waiting. */
-export function whyReplacementIsShort(
-  exchange: Exchange | null,
-  replacementPaise: number,
-): string {
+export function whyReplacementIsShort(exchange: Exchange | null, replacementPaise: number): string {
   const owed = eligibleReturnValue(exchange);
   if (!exchange || !exchange.lines.length || replacementPaise >= owed) return "";
   return `Pick replacement worth at least ${rupees(owed)}`;

@@ -50,7 +50,7 @@ export function AlterationsPage() {
   const store =
     picked ||
     (activeStore?.store_type === "store" ? activeStore.code : "") ||
-    (stores.length === 1 ? stores[0].code : "");
+    (stores.length === 1 ? (stores[0]?.code ?? "") : "");
 
   const [listing, setListing] = useState<Listing | null>(null);
   const [draft, setDraft] = useState<JobDraft>(emptyDraft);
@@ -288,15 +288,15 @@ export function AlterationsPage() {
         <>
           {!listing.switched_on ? (
             <p className="warn-note" data-testid="alterations-switched-off">
-              Alterations are switched off at {listing.store}. No new job card can be made; the
-              ones below can still be moved on and handed over.
+              Alterations are switched off at {listing.store}. No new job card can be made; the ones
+              below can still be moved on and handed over.
             </p>
           ) : (
             <section className="card section-card" data-testid="alteration-form">
               <h2 className="h3">New job card</h2>
               <p className="muted-cell">
-                A paid alteration is charged at Billing with "Alteration charge" (its own line,
-                GST 5%, SAC 9988). A free alteration has no charge.
+                A paid alteration is charged at Billing with "Alteration charge" (its own line, GST
+                5%, SAC 9988). A free alteration has no charge.
               </p>
               <div className="toolbar">
                 <input
@@ -355,7 +355,10 @@ export function AlterationsPage() {
                         onChange={(e) =>
                           setDraft({
                             ...draft,
-                            qty: Math.min(Math.max(Number(e.target.value) || 1, 1), garment.free_qty),
+                            qty: Math.min(
+                              Math.max(Number(e.target.value) || 1, 1),
+                              garment.free_qty,
+                            ),
                           })
                         }
                       />
@@ -499,7 +502,9 @@ export function AlterationsPage() {
                   </fieldset>
                   <div className="form-grid">
                     <label className="field">
-                      <span>{draft.tailor === "outside" ? "Tailor's name" : "Tailor's name (optional)"}</span>
+                      <span>
+                        {draft.tailor === "outside" ? "Tailor's name" : "Tailor's name (optional)"}
+                      </span>
                       <input
                         className="input"
                         data-testid="alteration-tailor-name"
@@ -565,9 +570,14 @@ export function AlterationsPage() {
                 {listing.jobs.map((job) => {
                   const chip = statusChip(job.status);
                   return (
-                    <li key={job.id} className="reservation-card" data-testid={`alteration-${job.ref}`}>
+                    <li
+                      key={job.id}
+                      className="reservation-card"
+                      data-testid={`alteration-${job.ref}`}
+                    >
                       <div className="reservation-card-head">
-                        <strong>{job.ref}</strong> <StatusChip status={chip.label} tone={chip.tone} />
+                        <strong>{job.ref}</strong>{" "}
+                        <StatusChip status={chip.label} tone={chip.tone} />
                       </div>
                       <p>
                         {job.customer_name} ·{" "}

@@ -157,7 +157,9 @@ export function bankShares(
   );
   for (const line of byRemainder) {
     if (spare <= 0) break;
-    shares[line.line_no] += 1;
+    const previous = shares[line.line_no];
+    if (previous === undefined) throw new Error("Bank offer share is missing");
+    shares[line.line_no] = previous + 1;
     spare -= 1;
   }
   return shares;

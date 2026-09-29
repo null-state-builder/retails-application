@@ -119,7 +119,11 @@ function ToPrepare({
                   <td>{row.label}</td>
                   <td className="mono">{row.grnNumber ?? "—"}</td>
                   <td className="mono">
-                    {row.ptId ? (row.ptNumber ?? "Draft") : <span className="muted">Not started</span>}
+                    {row.ptId ? (
+                      (row.ptNumber ?? "Draft")
+                    ) : (
+                      <span className="muted">Not started</span>
+                    )}
                   </td>
                   <td>{siteName(mySites, row.siteId)}</td>
                   <td>{formatDateTime(row.since)}</td>
@@ -322,7 +326,10 @@ function NewItems() {
                   <td>{describingText(item) || <span className="muted">None given</span>}</td>
                   <td>
                     {item.pt ? (
-                      <Link to={ptWorkPath({ pt: item.pt.id })} data-testid={`new-item-pt-${item.id}`}>
+                      <Link
+                        to={ptWorkPath({ pt: item.pt.id })}
+                        data-testid={`new-item-pt-${item.id}`}
+                      >
                         {item.pt.number ?? "Draft PT"}
                         {item.pt.site_id ? `, ${siteName(mySites, item.pt.site_id)}` : ""}
                       </Link>
@@ -391,10 +398,7 @@ function MappingRules() {
   const { session } = useAuth();
   const canPropose = RULE_PROPOSE_ACTIONS.some((action) => hold(session, action));
   const canDecide = hold(session, RULE_DECIDE_ACTION);
-  const profiles = useGoodsFetch<
-    Page<ResourceDTO<ConfigSummary>>,
-    { id: string; label: string }[]
-  >(
+  const profiles = useGoodsFetch<Page<ResourceDTO<ConfigSummary>>, { id: string; label: string }[]>(
     "/goods-v1/masters/configurations?kind=profile&limit=100",
     (r) =>
       (r.items ?? [])
@@ -407,7 +411,7 @@ function MappingRules() {
   );
   const [profileId, setProfileId] = useState("");
   useEffect(() => {
-    if (!profileId && profiles.value.length > 0) setProfileId(profiles.value[0].id);
+    if (!profileId && profiles.value[0]) setProfileId(profiles.value[0].id);
   }, [profiles.value, profileId]);
 
   const query = profileId
@@ -426,7 +430,12 @@ function MappingRules() {
   const [busy, setBusy] = useState(false);
   const stepUp = useStepUp();
 
-  async function send(path: string, row: MappingChoice, body: Record<string, unknown>, done: string) {
+  async function send(
+    path: string,
+    row: MappingChoice,
+    body: Record<string, unknown>,
+    done: string,
+  ) {
     setError("");
     setOk("");
     setBusy(true);
@@ -630,9 +639,7 @@ export function PtWorkPage() {
 
   return (
     <div className="page-pad">
-      <PageHeader
-        lead="Preparing, approving and the rules that map brands' words to KDPS values."
-      />
+      <PageHeader lead="Preparing, approving and the rules that map brands' words to KDPS values." />
       {tab === null ? (
         <Denied what="PT work" />
       ) : (

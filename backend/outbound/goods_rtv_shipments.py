@@ -180,7 +180,7 @@ def _count(value: Any, field: str) -> int:
         return 0
     if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= movements.MAX_QTY:
         raise _invalid(f"{field} is a whole number from 0 to {movements.MAX_QTY}.", field)
-    return value
+    return int(value)
 
 
 def _evidence(

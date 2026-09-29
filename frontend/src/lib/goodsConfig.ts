@@ -212,6 +212,9 @@ export function useEffectiveIdentityProfiles() {
     Promise.all(
       entries.map(async (entry) => {
         const [draftId, version, versionId] = entry.split(":");
+        if (!draftId || !versionId || !version || !Number.isSafeInteger(Number(version))) {
+          throw new Error("Invalid effective identity profile reference");
+        }
         const { data } = await api.get<ResourceDTO<ConfigData>>(
           `/goods-v1/masters/configurations/${draftId}?version=${version}`,
         );
@@ -362,7 +365,8 @@ export function allowedValues(
   read: VocabularyRead,
 ): { ids: string[] } | { blocked: string } {
   if (read.loading) return { blocked: "The approved vocabulary is still loading." };
-  if (read.failure) return { blocked: `The approved vocabulary could not be read: ${read.failure}` };
+  if (read.failure)
+    return { blocked: `The approved vocabulary could not be read: ${read.failure}` };
   if (!choice.restricted) return { ids: [] };
   const retired = new Set(read.values.filter((v) => v.state !== "effective").map((v) => v.id));
   const ids = [...new Set(choice.ids)].filter((id) => !retired.has(id));

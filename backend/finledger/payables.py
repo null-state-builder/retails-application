@@ -414,7 +414,7 @@ def _int(value: Any, field_name: str) -> int:
             f"{field_name} is an id.",
             issues=[issue("INVALID", f"{field_name} is an integer id", field=field_name)],
         )
-    return value
+    return int(value)
 
 
 # ---------------------------------------------------------------------------

@@ -40,7 +40,7 @@ export function GiftVouchersPage() {
   const store =
     picked ||
     (activeStore?.store_type === "store" ? activeStore.code : "") ||
-    (stores.length === 1 ? stores[0].code : "");
+    (stores.length === 1 ? (stores[0]?.code ?? "") : "");
 
   const [show, setShow] = useState<Show>("all");
   const [query, setQuery] = useState("");

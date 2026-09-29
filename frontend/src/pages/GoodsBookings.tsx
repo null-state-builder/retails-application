@@ -127,8 +127,12 @@ export function GoodsBookingPickers({
 
   // One company to choose from is no choice: it is picked for you.
   const onlyEntity =
-    showEntity && !entities.loading && !entities.query && !entities.hasMore && entities.options.length === 1
-      ? entities.options[0].id
+    showEntity &&
+    !entities.loading &&
+    !entities.query &&
+    !entities.hasMore &&
+    entities.options.length === 1
+      ? (entities.options[0]?.id ?? "")
       : "";
   useEffect(() => {
     if (onlyEntity && !value.entity_id) onChange({ ...value, entity_id: onlyEntity });
@@ -285,8 +289,8 @@ function CorrectionForm({
     <div className="gr-panel" data-testid="gb-correction">
       <h4 className="gr-h4">Correct this booking</h4>
       <p className="gr-hint">
-        A confirmed booking is never edited. A correction is added with its own date and reason;
-        the line it replaces stays readable, and everything already arrived against it follows.
+        A confirmed booking is never edited. A correction is added with its own date and reason; the
+        line it replaces stays readable, and everything already arrived against it follows.
       </p>
       <Feedback error={error} ok={ok} />
       <div className="form-grid">
@@ -418,9 +422,7 @@ function ReceiptLinkForm({
         grn_id: grnId,
         reason_code: reason,
         effective_at: new Date().toISOString(),
-        links: [
-          { booking_line_key: bookingLine, grn_line_key: grnLine, qty: Number(qty) },
-        ],
+        links: [{ booking_line_key: bookingLine, grn_line_key: grnLine, qty: Number(qty) }],
         ...goodsMeta(booking.revision),
       });
       setOk("Linked. The line's arrived and still-to-come pieces have moved.");
@@ -438,8 +440,8 @@ function ReceiptLinkForm({
         <Link2 size={14} /> Link an arrival
       </h4>
       <p className="gr-hint">
-        When a GRN is issued, each counted line that matches exactly one booked line (same style
-        and size) is linked at once. Anything else waits here: somebody decides which counted line
+        When a GRN is issued, each counted line that matches exactly one booked line (same style and
+        size) is linked at once. Anything else waits here: somebody decides which counted line
         answers which booked line, and that decision is dated. Line keys come from the GRN.
       </p>
       <Feedback error={error} ok={ok} />

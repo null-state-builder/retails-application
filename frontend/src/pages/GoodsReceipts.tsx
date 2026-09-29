@@ -121,7 +121,8 @@ function useNames(url: string) {
 /** A line's identity in one phrase: the SKU if it resolved, otherwise the words
  *  the counter used. An unidentified piece is never given a stand-in SKU. */
 function lineName(line: GrnLine): string {
-  if (line.identity.sku_id) return line.identity.description || `SKU ${line.identity.sku_id.slice(0, 8)}`;
+  if (line.identity.sku_id)
+    return line.identity.description || `SKU ${line.identity.sku_id.slice(0, 8)}`;
   return line.identity.description || line.identity.raw_alias || "Described only by its condition";
 }
 
@@ -136,13 +137,7 @@ interface Issue {
   quantity?: number | null;
 }
 
-function CounterForm({
-  grn,
-  onDone,
-}: {
-  grn: ResourceDTO<GrnCoverage>;
-  onDone: () => void;
-}) {
+function CounterForm({ grn, onDone }: { grn: ResourceDTO<GrnCoverage>; onDone: () => void }) {
   const lines = grn.data.lines.items;
   const [lineKey, setLineKey] = useState(lines[0]?.line_key ?? "");
   const [qty, setQty] = useState(String(lines[0]?.counted_qty ?? 0));
@@ -200,8 +195,8 @@ function CounterForm({
     <div className="gr-panel" data-testid="gg-counter">
       <h4 className="gr-h4">Correct the count</h4>
       <p className="gr-hint">
-        A counter-GRN raises a line, lowers it, or says the pieces are in a different condition
-        than first recorded. It never edits the original count — that stays readable — and it takes
+        A counter-GRN raises a line, lowers it, or says the pieces are in a different condition than
+        first recorded. It never edits the original count — that stays readable — and it takes
         effect only once a second person approves it.
       </p>
       <Feedback error={error} ok={ok} />
@@ -379,8 +374,8 @@ function DispositionForm({
               resolved_sku_id: effectiveSku,
               approved_cost_evidence_id: costEvidence,
               approved_tax_evidence_id: taxEvidence,
-              approved_cost_paise: costPaise,
-              approved_mrp_paise: mrpPaise,
+              approved_cost_paise: costPaise ?? null,
+              approved_mrp_paise: mrpPaise ?? null,
             }
           : accepting
             ? {
@@ -671,7 +666,10 @@ function ValueDamageEvidence({
           {formatPaiseString(row.source_value_evidence.cost_paise)} cost ·{" "}
           {formatPaiseString(row.source_value_evidence.mrp_paise)} MRP ·{" "}
           {row.source_value_evidence.evidence_id ? (
-            <EvidenceRefs ids={[row.source_value_evidence.evidence_id]} testId="gg-value-file-shown" />
+            <EvidenceRefs
+              ids={[row.source_value_evidence.evidence_id]}
+              testId="gg-value-file-shown"
+            />
           ) : (
             NOT_GIVEN
           )}
@@ -709,13 +707,7 @@ function canReportDamage(session: Parameters<typeof hold>[0]): boolean {
  *  opens for a different person to decide. Nothing about the count changes, and
  *  the form offers only what the server says may still be reported: pieces that
  *  are here and on no PT. A missing piece is a shortage, not damage. */
-function ReportDamageForm({
-  grn,
-  onDone,
-}: {
-  grn: ResourceDTO<GrnCoverage>;
-  onDone: () => void;
-}) {
+function ReportDamageForm({ grn, onDone }: { grn: ResourceDTO<GrnCoverage>; onDone: () => void }) {
   const lines = grn.data.lines.items.filter((line) => line.damage_reportable_qty > 0);
   const [lineKey, setLineKey] = useState(lines[0]?.line_key ?? "");
   const [qty, setQty] = useState("1");
@@ -758,8 +750,8 @@ function ReportDamageForm({
       <Feedback error={error} ok={ok} />
       <p className="gr-hint">
         Damaged pieces go to quarantine as soon as you report them, and cannot go on a PT. A
-        different person then confirms the damage or rejects the report. The count stays as it
-        was: a missing piece is short, not damaged.
+        different person then confirms the damage or rejects the report. The count stays as it was:
+        a missing piece is short, not damaged.
       </p>
       {lines.length === 0 ? (
         <p className="muted" data-testid="gg-report-damage-none">
@@ -873,7 +865,9 @@ function DamageReportsView({ grn }: { grn: ResourceDTO<GrnCoverage> }) {
                 <td>{report.reported_by.name || report.reported_by.id}</td>
                 <td data-testid="gg-damage-report-state">
                   {DAMAGE_STATE_LABEL[report.state] ?? report.state}
-                  {report.reviewed_by ? ` by ${report.reviewed_by.name || report.reviewed_by.id}` : ""}
+                  {report.reviewed_by
+                    ? ` by ${report.reviewed_by.name || report.reviewed_by.id}`
+                    : ""}
                 </td>
               </tr>
             ))}
@@ -922,9 +916,7 @@ function ApprovalsPanel({ grn, onDone }: { grn: ResourceDTO<GrnCoverage>; onDone
         (row) =>
           row.state === "pending" &&
           ((row.subject_kind === "document" && counterRevisions.has(row.subject_id)) ||
-            (row.subject_kind === "disposition" &&
-              Boolean(number) &&
-              row.title.endsWith(number))),
+            (row.subject_kind === "disposition" && Boolean(number) && row.title.endsWith(number))),
       ),
     [],
   );
@@ -1157,8 +1149,7 @@ export function GrnPanel({
         </div>
       </dl>
       <p className="gr-hint">
-        This receipt records quantity only. It carries no cost, no value and no effect on the
-        books.
+        This receipt records quantity only. It carries no cost, no value and no effect on the books.
       </p>
 
       <h4 className="gr-h4">
@@ -1196,7 +1187,7 @@ export function GrnPanel({
       )}
 
       <ThreeWayPanel
-        arrivalId={threeWayOn(arrival.doc) ? coverage.grn_header.arrival_id : null}
+        arrivalId={threeWayOn(arrival.doc) ? (coverage.grn_header.arrival_id ?? null) : null}
         refresh={grn.content_hash}
       />
 
@@ -1253,8 +1244,8 @@ export function GrnPanel({
         "Not on a PT" is every piece no live PT covers yet. Most of those are ordinary good goods
         simply waiting for their PT — that is not a hold. "Held" is the separate, smaller number:
         pieces something has actually put a hold on, such as damage or goods counted above the
-        invoice that nobody has decided yet. A held piece is never offered to an ordinary PT and
-        is never filled into one; the next table says which is which.
+        invoice that nobody has decided yet. A held piece is never offered to an ordinary PT and is
+        never filled into one; the next table says which is which.
       </p>
 
       <HeldGoodsView grn={grn} />
@@ -1268,9 +1259,7 @@ export function GrnPanel({
             <b>{entry.kind === "grn" ? "Counted and issued" : "Counter-GRN"}</b>
             {entry.number ? ` ${entry.number}` : ""} — {formatDateTime(entry.recorded_at)}
             {entry.kind === "counter_grn" && (
-              <span
-                className={`chip chip-${entry.state === "approved" ? "green" : "amber"}`}
-              >
+              <span className={`chip chip-${entry.state === "approved" ? "green" : "amber"}`}>
                 {entry.state === "approved" ? "Approved" : "Waiting for a second person"}
               </span>
             )}
@@ -1396,90 +1385,88 @@ export function HeldGoodsView({ grn }: { grn: ResourceDTO<GrnCoverage> }) {
 
   return (
     <>
-  <h4 className="gr-h4">
-    <AlertTriangle size={15} /> Pieces not on a PT, why, and who owns them
-  </h4>
-  {heldLines.length === 0 ? (
-    <p className="muted" data-testid="gg-nothing-held">
-      Every counted piece on this receipt is either covered by a live PT or has been decided.
-    </p>
-  ) : (
-    <div className="table-wrap">
-      <table className="data" data-testid="gg-held">
-        <thead>
-          <tr>
-            <th>What</th>
-            <th className="num">Not on a PT</th>
-            <th className="num">Held</th>
-            <th>Why</th>
-            <th>Owner</th>
-            <th>Due</th>
-          </tr>
-        </thead>
-        <tbody>
-          {heldLines.map((line) => {
-            const reasons = heldReasons(line, excess[line.line_key] ?? 0);
-            return (
-              <tr key={line.line_key} data-testid={`gg-held-${line.line_key}`}>
-                <td>{lineName(line)}</td>
-                <td className="num">{line.uncovered_qty}</td>
-                <td className="num">{line.held_qty}</td>
-                <td>{reasons.join("; ")}</td>
-                <td>
-                  {mine.length > 0 ? (mine[0].owner_role ?? NOT_GIVEN) : NOT_GIVEN}
-                </td>
-                <td>
-                  {mine.length > 0 ? (
-                    <span className={mine[0].overdue ? "warn-note" : ""}>
-                      {mine[0].due_at ? formatDateTime(mine[0].due_at) : NO_DUE_DATE}
-                    </span>
-                  ) : (
-                    NOT_GIVEN
-                  )}
-                </td>
+      <h4 className="gr-h4">
+        <AlertTriangle size={15} /> Pieces not on a PT, why, and who owns them
+      </h4>
+      {heldLines.length === 0 ? (
+        <p className="muted" data-testid="gg-nothing-held">
+          Every counted piece on this receipt is either covered by a live PT or has been decided.
+        </p>
+      ) : (
+        <div className="table-wrap">
+          <table className="data" data-testid="gg-held">
+            <thead>
+              <tr>
+                <th>What</th>
+                <th className="num">Not on a PT</th>
+                <th className="num">Held</th>
+                <th>Why</th>
+                <th>Owner</th>
+                <th>Due</th>
               </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  )}
-  <CustodyTransfers coverage={coverage} />
-  {exceptions.denied && (
-    <p className="gr-hint" data-testid="gg-exceptions-denied">
-      You are not entitled to read the exception records, so the owner and due date above are
-      not shown.
-    </p>
-  )}
-  {mine.length > 0 && (
-    <ul className="gr-exceptions" data-testid="gg-exceptions">
-      {mine.map((row) => (
-        <li key={row.id}>
-          <b>{row.kind.replace(/_/g, " ")}</b> — {row.reason_code.replace(/\+/g, ", ")}. Owned
-          by {row.owner_role ?? NOT_GIVEN},{" "}
-          {row.due_at ? `due ${formatDateTime(row.due_at)}` : NO_DUE_DATE}
-          {row.overdue ? " (overdue)" : ""}.
-        </li>
-      ))}
-    </ul>
-  )}
+            </thead>
+            <tbody>
+              {heldLines.map((line) => {
+                const reasons = heldReasons(line, excess[line.line_key] ?? 0);
+                return (
+                  <tr key={line.line_key} data-testid={`gg-held-${line.line_key}`}>
+                    <td>{lineName(line)}</td>
+                    <td className="num">{line.uncovered_qty}</td>
+                    <td className="num">{line.held_qty}</td>
+                    <td>{reasons.join("; ")}</td>
+                    <td>{mine[0]?.owner_role ?? NOT_GIVEN}</td>
+                    <td>
+                      {mine[0] ? (
+                        <span className={mine[0].overdue ? "warn-note" : ""}>
+                          {mine[0].due_at ? formatDateTime(mine[0].due_at) : NO_DUE_DATE}
+                        </span>
+                      ) : (
+                        NOT_GIVEN
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+      <CustodyTransfers coverage={coverage} />
+      {exceptions.denied && (
+        <p className="gr-hint" data-testid="gg-exceptions-denied">
+          You are not entitled to read the exception records, so the owner and due date above are
+          not shown.
+        </p>
+      )}
+      {mine.length > 0 && (
+        <ul className="gr-exceptions" data-testid="gg-exceptions">
+          {mine.map((row) => (
+            <li key={row.id}>
+              <b>{row.kind.replace(/_/g, " ")}</b> — {row.reason_code.replace(/\+/g, ", ")}. Owned
+              by {row.owner_role ?? NOT_GIVEN},{" "}
+              {row.due_at ? `due ${formatDateTime(row.due_at)}` : NO_DUE_DATE}
+              {row.overdue ? " (overdue)" : ""}.
+            </li>
+          ))}
+        </ul>
+      )}
 
-  <DamageReportsView grn={grn} />
+      <DamageReportsView grn={grn} />
 
-  {coverage.dispositions.some((row) => row.kind === "value_damage") && (
-    <section data-testid="gg-value-damage-history">
-      <h4 className="gr-h4">Damage kept at value</h4>
-      {coverage.dispositions
-        .filter((row) => row.kind === "value_damage")
-        .map((row) => (
-          <ValueDamageEvidence key={row.id} row={row} />
-        ))}
-      <p className="gr-hint">
-        Approval freezes the evidenced ticket MRP. Quantity stays unchanged, the damage hold
-        and quarantine remain, ATS stays zero, and no books entry is created.
-      </p>
-    </section>
-  )}
+      {coverage.dispositions.some((row) => row.kind === "value_damage") && (
+        <section data-testid="gg-value-damage-history">
+          <h4 className="gr-h4">Damage kept at value</h4>
+          {coverage.dispositions
+            .filter((row) => row.kind === "value_damage")
+            .map((row) => (
+              <ValueDamageEvidence key={row.id} row={row} />
+            ))}
+          <p className="gr-hint">
+            Approval freezes the evidenced ticket MRP. Quantity stays unchanged, the damage hold and
+            quarantine remain, ATS stays zero, and no books entry is created.
+          </p>
+        </section>
+      )}
     </>
   );
 }
@@ -1517,9 +1504,9 @@ export function DispositionPanel({ grnId }: { grnId: string }) {
         <DispositionForm grn={doc.doc} onDone={doc.reload} kinds={kinds} />
       ) : (
         <p className="gr-hint" data-testid="gg-decide-denied">
-          Deciding disputed goods is the inventory controller's, and a damage report is decided
-          in the damage review by a different person. The pieces above stay held, unsellable and
-          off every ordinary PT until then.
+          Deciding disputed goods is the inventory controller's, and a damage report is decided in
+          the damage review by a different person. The pieces above stay held, unsellable and off
+          every ordinary PT until then.
         </p>
       )}
       <ApprovalsPanel grn={doc.doc} onDone={doc.reload} />

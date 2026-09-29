@@ -203,7 +203,13 @@ function blankRow(index: number): DraftRow {
   };
 }
 
-function NewManifestForm({ siteId, onCreated }: { siteId: string; onCreated: (id: string) => void }) {
+function NewManifestForm({
+  siteId,
+  onCreated,
+}: {
+  siteId: string;
+  onCreated: (id: string) => void;
+}) {
   const [batchKey, setBatchKey] = useState("");
   const [datasetKey, setDatasetKey] = useState("synthetic-batch");
   const [cutoffAt, setCutoffAt] = useState(() => new Date().toISOString().slice(0, 10));
@@ -221,7 +227,7 @@ function NewManifestForm({ siteId, onCreated }: { siteId: string; onCreated: (id
 
   useEffect(() => {
     if (!profileId && profiles.value.length === 1) {
-      setProfileId(pinnableVersionId(profiles.value[0].data) ?? "");
+      setProfileId(profiles.value[0] ? (pinnableVersionId(profiles.value[0].data) ?? "") : "");
     }
   }, [profiles.value, profileId]);
 
@@ -356,7 +362,8 @@ function NewManifestForm({ siteId, onCreated }: { siteId: string; onCreated: (id
             {profiles.value.length > 1 && <option value="">Choose a profile</option>}
             {profiles.value.map((p) => (
               <option key={p.id} value={pinnableVersionId(p.data) ?? ""}>
-                {p.data.payload?.family ?? "Unnamed family"} (since {p.data.effective_from.slice(0, 10)})
+                {p.data.payload?.family ?? "Unnamed family"} (since{" "}
+                {p.data.effective_from.slice(0, 10)})
               </option>
             ))}
           </select>
@@ -552,8 +559,7 @@ function OriginUnavailableRow({
       {stepUp.dialog}
       <h4 className="h4">Row {row.source_row_key}: older origin unknown</h4>
       <p className="muted">
-        Confirming closes the investigation only. The origin stays unknown - it is never
-        filled in.
+        Confirming closes the investigation only. The origin stays unknown - it is never filled in.
       </p>
       <Feedback error={error} ok="" />
       <div className="form-grid">
@@ -673,7 +679,10 @@ export function useManifestRows(manifestId: string) {
           if (rows.length !== total) {
             throw new Error(`Read ${rows.length} of this manifest's ${total} rows. Reload.`);
           }
-          return { ...first, data: { ...first.data, rows: { items: rows, next_cursor: null, total } } };
+          return {
+            ...first,
+            data: { ...first.data, rows: { items: rows, next_cursor: null, total } },
+          };
         }
       }
       throw new Error("This manifest has more rows than this screen can read.");
@@ -857,7 +866,13 @@ function VarianceRow({
   );
 }
 
-export function ManifestDetailView({ manifestId, onBack }: { manifestId: string; onBack: () => void }) {
+export function ManifestDetailView({
+  manifestId,
+  onBack,
+}: {
+  manifestId: string;
+  onBack: () => void;
+}) {
   const { session } = useAuth();
   const navigate = useNavigate();
   const { doc, loading, denied, failure, superseded, reload } = useManifestRows(manifestId);
@@ -964,9 +979,8 @@ export function ManifestDetailView({ manifestId, onBack }: { manifestId: string;
       <Feedback error={error} ok="" />
       {superseded && (
         <p className="warn-note" data-testid="opening-superseded">
-          This manifest was revised while it was on screen. These are its current rows; any
-          variance proposed against the rows it replaced no longer counts. What you had typed
-          has been kept.
+          This manifest was revised while it was on screen. These are its current rows; any variance
+          proposed against the rows it replaced no longer counts. What you had typed has been kept.
         </p>
       )}
       <p className="muted" data-testid="opening-row-total">
@@ -977,8 +991,8 @@ export function ManifestDetailView({ manifestId, onBack }: { manifestId: string;
           not be read" - the ticket's own failure mode on the error path. */}
       {(inboxDenied || inboxFailure) && (
         <p className="warn-note" data-testid="opening-inbox-unread">
-          The approvals waiting on this manifest could not be read, so no decision is offered
-          here. {inboxFailure}
+          The approvals waiting on this manifest could not be read, so no decision is offered here.{" "}
+          {inboxFailure}
         </p>
       )}
       {(exceptionsDenied || exceptionsFailure) && (
@@ -1034,7 +1048,13 @@ export function ManifestDetailView({ manifestId, onBack }: { manifestId: string;
               <td>
                 {row.verification.observed_qty} ({row.verification.observed_condition})
               </td>
-              <td>{row.matches_verification ? "matches" : row.variance ? "variance approved" : "needs variance"}</td>
+              <td>
+                {row.matches_verification
+                  ? "matches"
+                  : row.variance
+                    ? "variance approved"
+                    : "needs variance"}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -1073,7 +1093,10 @@ export function ManifestDetailView({ manifestId, onBack }: { manifestId: string;
             onDraft={(patch) =>
               setDrafts((prev) => ({
                 ...prev,
-                [row.source_row_key]: { ...(prev[row.source_row_key] ?? blankDraft(row)), ...patch },
+                [row.source_row_key]: {
+                  ...(prev[row.source_row_key] ?? blankDraft(row)),
+                  ...patch,
+                },
               }))
             }
             reload={reload}
@@ -1116,7 +1139,7 @@ export function GoodsOpeningPage() {
   const canPrepare = hold(session, "pt.prepare.opening");
 
   useEffect(() => {
-    if (!siteId && sites.length > 0) setSiteId(sites[0].id);
+    if (!siteId && sites[0]) setSiteId(sites[0].id);
   }, [sites, siteId]);
 
   // E106's list answers flat OpeningManifestSummaryDTO items, not ResourceDTO-wrapped.
@@ -1160,7 +1183,11 @@ export function GoodsOpeningPage() {
             </Field>
           </div>
           {canPrepare && !showForm && (
-            <button className="btn btn-cta" onClick={() => setShowForm(true)} data-testid="opening-new">
+            <button
+              className="btn btn-cta"
+              onClick={() => setShowForm(true)}
+              data-testid="opening-new"
+            >
               + New opening manifest
             </button>
           )}

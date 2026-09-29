@@ -15,7 +15,7 @@ import re
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-from core.goods_fields import MAX_UNIT_PAISE
+from core.money_limits import MAX_UNIT_PAISE
 
 _PAISE_TEXT = re.compile(r"[0-9]+")
 

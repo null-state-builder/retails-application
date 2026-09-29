@@ -1,0 +1,20 @@
+{
+  "name": "kdps-engineering-baseline",
+  "private": true,
+  "scripts": {
+    "setup": "bash scripts/setup-local.sh",
+    "dev": "python3 scripts/dev-local.py",
+    "proof:up": "python3 scripts/proof.py up",
+    "proof:prepare": "python3 scripts/proof.py prepare",
+    "proof:down": "python3 scripts/proof.py down",
+    "check:seed": "python3 scripts/baseline.py seed",
+    "check:launcher": "python3 scripts/baseline.py launcher",
+    "check:backend": "python3 scripts/baseline.py backend",
+    "check:frontend": "python3 scripts/baseline.py frontend",
+    "api:generate": "python3 scripts/baseline.py api-generate",
+    "api:check": "python3 scripts/baseline.py api-check",
+    "build": "yarn --cwd frontend build && yarn --cwd frontend check:assets",
+    "test:browser": "python3 scripts/baseline.py browser",
+    "verify": "python3 scripts/baseline.py verify"
+  }
+}

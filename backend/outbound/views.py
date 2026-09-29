@@ -19,12 +19,11 @@ import csv
 import io
 from typing import TYPE_CHECKING, Any, cast
 
-# No stubs are published for openpyxl and `types-openpyxl` is not a dependency
-# here, so the workbook API types as Any. Narrow, and only about the .xlsx
-# writer below.
 import openpyxl
 from django.db.models import QuerySet, Sum
 from django.http import HttpResponse
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import generics, status
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import BasePermission, IsAuthenticated
@@ -161,6 +160,208 @@ APPROVAL_JOINS = (
     "approvals__decided_by",
 )
 
+# These APIViews assemble their output directly, so document the actual wire
+# shapes rather than asking spectacular to infer a serializer that never runs.
+MERCH_DIM_SCHEMA = {name: {"type": "string"} for name in (
+    "design", "color", "size", "brand", "season", "item", "hsn"
+)}
+ERROR_SCHEMA = {
+    "type": "object", "required": ["error"],
+    "properties": {"error": {"type": "string"}},
+}
+SCAN_LOOKUP_SCHEMA = {
+    "type": "object",
+    "required": ["barcode", "available_qty", *MERCH_DIM_SCHEMA],
+    "properties": {
+        "barcode": {"type": "string"},
+        **MERCH_DIM_SCHEMA,
+        "available_qty": {"type": "integer"},
+    },
+}
+COUNT_LOOKUP_SCHEMA = {
+    "type": "object",
+    "required": ["barcode", *MERCH_DIM_SCHEMA],
+    "properties": {"barcode": {"type": "string"}, **MERCH_DIM_SCHEMA},
+}
+CROSS_LOCATION_SCHEMA = {
+    "type": "object",
+    "required": ["rows", "truncated"],
+    "properties": {
+        "rows": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["store_code", "store_name", "sku_code", "qty", "is_own", *MERCH_DIM_SCHEMA],
+                "properties": {
+                    "store_code": {"type": "string"},
+                    "store_name": {"type": "string"},
+                    "sku_code": {"type": "string"},
+                    **MERCH_DIM_SCHEMA,
+                    "qty": {"type": "integer"},
+                    "is_own": {"type": "boolean"},
+                    "unit_cost_paise": {"type": "integer"},
+                    "landed_value_paise": {"type": "integer"},
+                    "margin_paise": {"type": "integer", "nullable": True},
+                },
+            },
+        },
+        "truncated": {"type": "boolean"},
+    },
+}
+DISTRIBUTION_SPLIT_SCHEMA = {
+    "type": "object",
+    "required": ["weights"],
+    "properties": {
+        "weights": {
+            "type": "object",
+            "description": "Size or _default to destination store id and fractional weight.",
+            "additionalProperties": {
+                "type": "object", "additionalProperties": {"type": "number", "minimum": 0, "maximum": 1}
+            },
+        }
+    },
+}
+PARTNER_DUES_SCHEMA = {
+    "type": "object",
+    "required": ["stores", "total_owed_paise", "total_paid_paise", "net_outstanding_paise", "billing_mode"],
+    "properties": {
+        "stores": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "store_id": {"type": "integer"},
+                    "store_code": {"type": "string"},
+                    "store_name": {"type": "string"},
+                    "total_owed_paise": {"type": "integer"},
+                    "total_paid_paise": {"type": "integer"},
+                    "net_outstanding_paise": {"type": "integer"},
+                    "transfer_count": {"type": "integer"},
+                    "last_dispatch_date": {"type": "string", "format": "date-time", "nullable": True},
+                    "transfers": {
+                        "type": "array", "items": {
+                            "type": "object", "properties": {
+                                "id": {"type": "integer"},
+                                "doc_number": {"type": "string", "nullable": True},
+                                "source_store_code": {"type": "string"},
+                                "dispatch_date": {"type": "string", "format": "date-time"},
+                                "partner_billing_value_paise": {"type": "integer"},
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        "total_owed_paise": {"type": "integer"},
+        "total_paid_paise": {"type": "integer"},
+        "net_outstanding_paise": {"type": "integer"},
+        "billing_mode": {"type": "string", "enum": list(BillingPolicy.Mode.values)},
+    },
+}
+PARTNER_SETTLEMENT_LIST_SCHEMA = {
+    "type": "object", "required": ["rows"],
+    "properties": {"rows": {"type": "array", "items": {
+        "type": "object", "properties": {
+            "id": {"type": "integer"},
+            "created_at": {"type": "string", "format": "date-time"},
+            "doc_number": {"type": "string", "nullable": True},
+            "kind": {"type": "string"},
+            "store_id": {"type": "integer"},
+            "store_code": {"type": "string"},
+            "store_name": {"type": "string"},
+            "amount_paise": {"type": "integer"},
+            "amount_rupees": {"type": "string"},
+            "description": {"type": "string"},
+            "reference": {"type": "string"},
+            "mode": {"type": "string"},
+            "posted_by_name": {"type": "string"},
+        },
+    }}},
+}
+PARTNER_SETTLEMENT_REQUEST = {
+    "type": "object", "required": ["store_id", "amount"],
+    "properties": {
+        "store_id": {"type": "integer"},
+        "amount": {
+            "anyOf": [{"type": "string"}, {"type": "number"}],
+            "description": "Positive rupee amount; converted to paise by the server.",
+        },
+        "mode": {"type": "string"},
+        "description": {"type": "string"},
+        "reference": {"type": "string"},
+    },
+}
+PARTNER_SETTLEMENT_CREATED_SCHEMA = {
+    "type": "object", "required": ["id", "doc_number", "amount_paise", "amount_rupees"],
+    "properties": {
+        "id": {"type": "integer"}, "doc_number": {"type": "string"},
+        "amount_paise": {"type": "integer"}, "amount_rupees": {"type": "string"},
+    },
+}
+PARTNER_SETTLEMENT_REVERSED_SCHEMA = {
+    "type": "object", "required": ["id", "doc_number"],
+    "properties": {"id": {"type": "integer"}, "doc_number": {"type": "string"}},
+}
+RETURNABLE_POOL_SCHEMA = {
+    "type": "object", "required": ["brand", "excluded_reason", "cap", "rows"],
+    "properties": {
+        "brand": {"type": "object", "properties": {
+            "id": {"type": "integer"}, "name": {"type": "string"},
+            "commercial_label": {"type": "string"}, "takes_returns": {"type": "boolean"},
+            "return_window_days": {"type": "integer", "nullable": True},
+        }},
+        "excluded_reason": {"type": "string"},
+        "cap": {"type": "object", "properties": {
+            "applies": {"type": "boolean"}, "percent": {"type": "string"},
+            **{name: {"type": "integer"} for name in (
+                "delivered_paise", "allowance_paise", "used_paise", "remaining_paise",
+                "warn_at_paise", "this_return_paise", "exceeded_by_paise"
+            )},
+            "warn": {"type": "boolean"},
+        }},
+        "rows": {"type": "array", "items": {"type": "object", "properties": {
+            "source": {"type": "string"}, "store": {"type": "integer"},
+            "store_code": {"type": "string"}, "store_name": {"type": "string"},
+            "sku_code": {"type": "string"}, **MERCH_DIM_SCHEMA,
+            "qty": {"type": "integer"}, "unit_cost_paise": {"type": "integer"},
+            "value_paise": {"type": "integer"},
+            "arrived_on": {"type": "string", "format": "date", "nullable": True},
+            "window_date": {"type": "string", "format": "date", "nullable": True},
+            "days_left": {"type": "integer", "nullable": True}, "expired": {"type": "boolean"},
+        }}},
+    },
+}
+VARIANCE_LINE_SCHEMA = {
+    "type": "object", "properties": {
+        "sku_code": {"type": "string"}, **MERCH_DIM_SCHEMA,
+        **{name: {"type": "integer"} for name in (
+            "book_qty", "first_counted_qty", "counted_qty", "adj_qty",
+            "live_book_qty", "unit_cost_paise", "variance_paise"
+        )},
+        **{name: {"type": "boolean"} for name in (
+            "moved", "cost_known", "above_tolerance", "needs_recount", "may_recount"
+        )},
+        "recount": {"type": "object", "nullable": True, "properties": {
+            "counted_qty": {"type": "integer"}, "first_counted_qty": {"type": "integer"},
+            "reason": {"type": "string"}, "reason_label": {"type": "string"},
+            "recounted_by_name": {"type": "string"},
+            "recounted_at": {"type": "string", "format": "date-time"},
+            "unit_cost_paise": {"type": "integer"}, "stale": {"type": "boolean"},
+        }},
+    },
+}
+VARIANCE_SCHEMA = {
+    "type": "object", "required": ["stocktake", "store_code", "status", "lines"],
+    "properties": {
+        "stocktake": {"type": "integer"}, "store_code": {"type": "string"},
+        "status": {"type": "string"}, "recount_tolerance_paise": {"type": "integer"},
+        "lines": {"type": "array", "items": VARIANCE_LINE_SCHEMA},
+        "net_pieces": {"type": "integer"}, "net_variance_paise": {"type": "integer"},
+        "unpriced": {"type": "array", "items": {"type": "string"}},
+        "awaiting_recount": {"type": "array", "items": {"type": "string"}},
+    },
+}
+
 
 def _filter_docstatus[QS: QuerySet[Any]](qs: QS, request: Request) -> QS:
     """Apply the optional ``?docstatus=`` filter to a list queryset.
@@ -259,6 +460,7 @@ class TransferDispatchView(APIView):
 
     permission_classes = [CanWriteTransfer]
 
+    @extend_schema(request=TransferScanInputSerializer, responses={200: StoreTransferReadSerializer})
     def post(self, request: Request, pk: int) -> Response:
         try:
             transfer = (
@@ -304,6 +506,7 @@ class TransferReceiveView(APIView):
 
     permission_classes = [CanWriteTransfer]
 
+    @extend_schema(request=TransferReceiveInputSerializer, responses={200: StoreTransferReadSerializer})
     def post(self, request: Request, pk: int) -> Response:
         try:
             transfer = (
@@ -369,6 +572,7 @@ class TransferPTBaseView(APIView):
     #: File extension for the download views; the JSON view has none.
     extension = ""
 
+    @extend_schema(responses={200: TransferPTSerializer})
     def get(self, request: Request, pk: int) -> HttpResponse:
         # Reached through the scoped transfer, so another store's PT is a 404 —
         # the same answer as a transfer that does not exist, and as a dispatched
@@ -411,6 +615,7 @@ class TransferPTView(TransferPTBaseView):
         return Response(TransferPTSerializer(pt).data)
 
 
+@extend_schema_view(get=extend_schema(responses={(200, "text/csv"): OpenApiTypes.BINARY}))
 class TransferPTCsvView(TransferPTBaseView):
     """GET: the PT as CSV, in KDPS column order."""
 
@@ -424,6 +629,13 @@ class TransferPTCsvView(TransferPTBaseView):
         return self.as_attachment(resp, pt)
 
 
+@extend_schema_view(
+    get=extend_schema(
+        responses={
+            (200, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"): OpenApiTypes.BINARY
+        }
+    )
+)
 class TransferPTXlsxView(TransferPTBaseView):
     """GET: the PT as a real .xlsx — the file a brand or a store opens."""
 
@@ -432,6 +644,7 @@ class TransferPTXlsxView(TransferPTBaseView):
     def render(self, pt: TransferPT) -> HttpResponse:
         wb = openpyxl.Workbook()
         ws = wb.active
+        assert ws is not None
         ws.title = "KDPS PT"
         ws.append(KDPS_COLUMNS)
         for row in self.rows_in_column_order(pt):
@@ -513,6 +726,7 @@ class TransferGapClosureCreateView(APIView):
 
     permission_classes = [CanCloseTransferGap]
 
+    @extend_schema(request=GapClosureInputSerializer, responses={201: GapClosureReadSerializer})
     def post(self, request: Request, pk: int) -> Response:
         try:
             transfer = _transfer_for_read(pk)
@@ -624,6 +838,7 @@ class GapClosureSubmitView(APIView):
 
     permission_classes = [CanCloseTransferGap]
 
+    @extend_schema(request=None, responses={200: GapClosureReadSerializer})
     def post(self, request: Request, pk: int) -> Response:
         try:
             closure = _gap_closure_for_read(pk)
@@ -652,6 +867,10 @@ class ScanLookupView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[OpenApiParameter("store", int, required=True), OpenApiParameter("barcode", str, required=True)],
+        responses={200: SCAN_LOOKUP_SCHEMA, 400: ERROR_SCHEMA, 404: ERROR_SCHEMA},
+    )
     def get(self, request: Request) -> Response:
         from stockledger.models import StockOnHand, merch_dims
 
@@ -699,6 +918,10 @@ class CrossLocationStockSearchView(APIView):
     permission_classes = [IsAuthenticated]
     MAX_LINES = 500
 
+    @extend_schema(
+        parameters=[OpenApiParameter("q", str), OpenApiParameter("store", str)],
+        responses={200: CROSS_LOCATION_SCHEMA},
+    )
     def get(self, request: Request) -> Response:
         from masters.models import Sku
         from stockledger.models import StockOnHand, merch_dims
@@ -754,6 +977,14 @@ class DistributionSuggestedSplitView(APIView):
 
     permission_classes = [CanWriteTransfer]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("warehouse", int, required=True),
+            OpenApiParameter("brand", str),
+            OpenApiParameter("stores", str, description="Comma-separated destination store ids"),
+        ],
+        responses={200: DISTRIBUTION_SPLIT_SCHEMA},
+    )
     def get(self, request: Request) -> Response:
         from outbound.distribution import suggest_split
 
@@ -793,9 +1024,18 @@ class BillingPolicyView(APIView):
 
     permission_classes = [IsAuthenticated, CanManageBillingPolicy]
 
+    @extend_schema(responses={200: BillingPolicySerializer})
     def get(self, request: Request) -> Response:
         return Response(BillingPolicySerializer(BillingPolicy.current()).data)
 
+    @extend_schema(
+        request={"application/json": {
+            "type": "object", "required": ["mode"], "properties": {
+                "mode": {"type": "string", "enum": list(BillingPolicy.Mode.values)}
+            }
+        }},
+        responses={200: BillingPolicySerializer},
+    )
     def put(self, request: Request) -> Response:
         policy = BillingPolicy.current()
         mode = request.data.get("mode")
@@ -825,6 +1065,7 @@ class PartnerDuesView(APIView):
 
     permission_classes = [IsAuthenticated, CanViewPartnerDues]
 
+    @extend_schema(responses={200: PARTNER_DUES_SCHEMA})
     def get(self, request: Request) -> Response:
         transfers = (
             StoreTransfer.objects.filter(
@@ -897,6 +1138,10 @@ class PartnerSettlementsView(APIView):
 
     permission_classes = [IsAuthenticated, CanManagePartnerSettlements]
 
+    @extend_schema(
+        parameters=[OpenApiParameter("store", int)],
+        responses={200: PARTNER_SETTLEMENT_LIST_SCHEMA},
+    )
     def get(self, request: Request) -> Response:
         qs = PartnerLedgerEntry.objects.select_related("store", "posted_by").order_by(
             "-created_at", "-id"
@@ -929,6 +1174,10 @@ class PartnerSettlementsView(APIView):
             }
         )
 
+    @extend_schema(
+        request={"application/json": PARTNER_SETTLEMENT_REQUEST},
+        responses={201: PARTNER_SETTLEMENT_CREATED_SCHEMA, 400: {"type": "object", "properties": {"detail": {"type": "string"}}}},
+    )
     def post(self, request: Request) -> Response:
         store_id: Any = request.data.get("store_id")
         store = Store.objects.filter(pk=store_id, is_partner=True).first()
@@ -967,6 +1216,7 @@ class PartnerSettlementsView(APIView):
 class PartnerSettlementReverseView(APIView):
     permission_classes = [IsAuthenticated, CanManagePartnerSettlements]
 
+    @extend_schema(request=None, responses={201: PARTNER_SETTLEMENT_REVERSED_SCHEMA})
     def post(self, request: Request, pk: int) -> Response:
         entry = PartnerLedgerEntry.objects.filter(pk=pk).first()
         if not entry:
@@ -1054,6 +1304,7 @@ class StockRequestFulfilView(APIView):
 
     permission_classes = [CanWriteTransfer]
 
+    @extend_schema(request=StockRequestFulfilInputSerializer, responses={201: StoreTransferReadSerializer})
     def post(self, request: Request, pk: int) -> Response:
         try:
             stock_request = StockRequest.objects.select_related(
@@ -1083,6 +1334,7 @@ class StockRequestCloseView(APIView):
 
     permission_classes = [CanWriteTransfer]
 
+    @extend_schema(request=StockRequestCloseInputSerializer, responses={200: StockRequestReadSerializer})
     def post(self, request: Request, pk: int) -> Response:
         try:
             stock_request = StockRequest.objects.select_related("fulfilling_store").get(pk=pk)
@@ -1194,6 +1446,10 @@ class ReturnablePoolView(APIView):
 
     permission_classes = [CanReadReturnToBrand]
 
+    @extend_schema(
+        parameters=[OpenApiParameter("brand", int, required=True), OpenApiParameter("store", int)],
+        responses={200: RETURNABLE_POOL_SCHEMA, 400: ERROR_SCHEMA, 404: ERROR_SCHEMA},
+    )
     def get(self, request: Request) -> Response:
         brand_id = request.query_params.get("brand")
         if not brand_id:
@@ -1303,6 +1559,7 @@ class RTVSubmitView(APIView):
 
     permission_classes = [CanWriteReturnToBrand, CanCreateReturnToBrand]
 
+    @extend_schema(request=None, responses={200: ReturnToVendorReadSerializer})
     def post(self, request: Request, pk: int) -> Response:
         try:
             rtv = (
@@ -1344,6 +1601,7 @@ class RTVCreditNoteView(APIView):
 
     permission_classes = [CanWriteReturnToBrand, CanCreateReturnToBrand]
 
+    @extend_schema(request=CreditNoteSerializer, responses={200: ReturnToVendorReadSerializer})
     def post(self, request: Request, pk: int) -> Response:
         try:
             rtv = _rtvs(request.user).get(pk=pk)
@@ -1424,6 +1682,7 @@ class AdjustmentSubmitView(APIView):
 
     permission_classes = [CanWriteStockCount]
 
+    @extend_schema(request=None, responses={200: StockAdjustmentReadSerializer})
     def post(self, request: Request, pk: int) -> Response:
         try:
             adj = (
@@ -1507,6 +1766,7 @@ class WriteOffSubmitView(APIView):
 
     permission_classes = [CanWriteStockCount]
 
+    @extend_schema(request=None, responses={200: WriteOffReadSerializer})
     def post(self, request: Request, pk: int) -> Response:
         try:
             wo = WriteOff.objects.select_related("store").prefetch_related("lines").get(pk=pk)
@@ -1593,6 +1853,7 @@ class VFlipSubmitView(APIView):
 
     permission_classes = [CanExecuteVFlip]
 
+    @extend_schema(request=None, responses={200: VFlipReadSerializer})
     def post(self, request: Request, pk: int) -> Response:
         try:
             vflip = (
@@ -1625,7 +1886,7 @@ class VFlipSubmitView(APIView):
 # ---------------------------------------------------------------------------
 
 
-class RequestApprovalView(APIView):
+class RequestApprovalView(generics.GenericAPIView[Any]):
     """POST: send a rejected draft back for approval.
 
     One view for every wired family — the only things that differ are which
@@ -1644,6 +1905,11 @@ class RequestApprovalView(APIView):
     #: *source* for a transfer, the store for everything else.
     scope_field: str = "store_id"
 
+    def get_serializer_class(self) -> type[BaseSerializer[Any]]:
+        # Each URL supplies its document's concrete read serializer. Spectacular
+        # inspects the bound view instance, so its response matches that family.
+        return cast(type[BaseSerializer[Any]], self.read_serializer)
+
     def _load(self, pk: int) -> Any:
         return (
             self.model.objects.select_related(*self.related)
@@ -1651,6 +1917,7 @@ class RequestApprovalView(APIView):
             .get(pk=pk)
         )
 
+    @extend_schema(request=None)
     def post(self, request: Request, pk: int) -> Response:
         try:
             doc = self._load(pk)
@@ -1701,9 +1968,11 @@ class StocktakeListCreateView(APIView):
     def get_permissions(self) -> list[BasePermission]:
         return [CanWriteStockCount()] if self.request.method == "POST" else [IsAuthenticated()]
 
+    @extend_schema(responses={200: StocktakeReadSerializer(many=True)})
     def get(self, request: Request) -> Response:
         return Response(StocktakeReadSerializer(_stocktakes(request.user), many=True).data)
 
+    @extend_schema(request=StocktakeCreateSerializer, responses={201: StocktakeReadSerializer})
     def post(self, request: Request) -> Response:
         ser = StocktakeCreateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
@@ -1721,6 +1990,7 @@ class StocktakeListCreateView(APIView):
 class StocktakeDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses={200: StocktakeReadSerializer})
     def get(self, request: Request, pk: int) -> Response:
         try:
             return Response(StocktakeReadSerializer(_load_stocktake(pk, request.user)).data)
@@ -1733,6 +2003,7 @@ class CountSessionCreateView(APIView):
 
     permission_classes = [CanWriteStockCount]
 
+    @extend_schema(request=CountSessionCreateSerializer, responses={201: CountSessionReadSerializer})
     def post(self, request: Request, pk: int) -> Response:
         try:
             stocktake = Stocktake.objects.select_related("store").get(pk=pk)
@@ -1766,6 +2037,10 @@ class CountLookupView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[OpenApiParameter("store", int, required=True), OpenApiParameter("barcode", str, required=True)],
+        responses={200: COUNT_LOOKUP_SCHEMA, 400: ERROR_SCHEMA, 404: ERROR_SCHEMA},
+    )
     def get(self, request: Request) -> Response:
         from outbound.counting import identity_dims
 
@@ -1798,6 +2073,7 @@ class CountSessionScanView(APIView):
 
     permission_classes = [CanWriteStockCount]
 
+    @extend_schema(request=CountScanInputSerializer, responses={200: CountSessionReadSerializer})
     def post(self, request: Request, pk: int) -> Response:
         session = _load_session(pk)
         if session is None:
@@ -1818,6 +2094,7 @@ class CountSessionSubmitView(APIView):
 
     permission_classes = [CanWriteStockCount]
 
+    @extend_schema(request=None, responses={200: CountSessionReadSerializer})
     def post(self, request: Request, pk: int) -> Response:
         session = _load_session(pk)
         if session is None:
@@ -1871,6 +2148,7 @@ class StocktakeVarianceView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses={200: VARIANCE_SCHEMA, 404: ERROR_SCHEMA})
     def get(self, request: Request, pk: int) -> Response:
         try:
             stocktake = _load_stocktake(pk, request.user)
@@ -1889,6 +2167,7 @@ class StocktakeRecountView(APIView):
 
     permission_classes = [CanWriteStockCount]
 
+    @extend_schema(request=RecountInputSerializer, responses={200: VARIANCE_SCHEMA})
     def post(self, request: Request, pk: int) -> Response:
         try:
             stocktake = _load_stocktake(pk, request.user)
@@ -1925,6 +2204,7 @@ class StocktakeApplyView(APIView):
 
     permission_classes = [CanWriteStockCount]
 
+    @extend_schema(request=ApplyVarianceInputSerializer, responses={201: StockAdjustmentReadSerializer})
     def post(self, request: Request, pk: int) -> Response:
         try:
             stocktake = _load_stocktake(pk, request.user)

@@ -31,6 +31,7 @@ from typing import Any
 from urllib.parse import quote
 
 from django.db.models import Q, QuerySet
+from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -373,6 +374,47 @@ class GlobalSearchView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses={
+            200: {
+                "type": "object",
+                "required": ["query", "groups", "total", "notes"],
+                "properties": {
+                    "query": {"type": "string"},
+                    "groups": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "required": ["key", "label", "results", "truncated"],
+                            "properties": {
+                                "key": {"type": "string"},
+                                "label": {"type": "string"},
+                                "truncated": {"type": "boolean"},
+                                "results": {
+                                    "type": "array",
+                                    "items": {
+                                        "type": "object",
+                                        "required": ["kind", "title", "subtitle", "meta", "to", "exact"],
+                                        "properties": {
+                                            "kind": {"type": "string"},
+                                            "title": {"type": "string"},
+                                            "subtitle": {"type": "string"},
+                                            "meta": {"type": "string"},
+                                            "to": {"type": "string"},
+                                            "exact": {"type": "boolean"},
+                                            "mrp_paise": {"type": "integer", "nullable": True},
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    "total": {"type": "integer"},
+                    "notes": {"type": "array", "items": {"type": "string"}},
+                },
+            }
+        }
+    )
     def get(self, request: Request) -> Response:
         # The same `?q=` the in-page search boxes send (#102) — read through the
         # one helper so the two halves of search cannot drift into two contracts.

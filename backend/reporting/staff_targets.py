@@ -92,7 +92,7 @@ def _whole(value: Any, field: str, *, maximum: int | None = None) -> int:
         )
     if maximum is not None and value > maximum:
         raise Refusal("INVALID_REQUEST", f"{field} is too large.", status=400)
-    return value
+    return int(value)
 
 
 def people(user: Any, params: Any) -> dict[str, Any]:

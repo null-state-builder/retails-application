@@ -62,7 +62,7 @@ export interface SearchResponse {
 export function scanDestination(body: SearchResponse | null): SearchResult | null {
   const exact = (body?.groups ?? []).flatMap((g) => g.results).filter((r) => r.exact);
   if (exact.length === 0) return null;
-  return new Set(exact.map((r) => r.to)).size === 1 ? exact[0] : null;
+  return new Set(exact.map((r) => r.to)).size === 1 ? (exact[0] ?? null) : null;
 }
 
 export function GlobalSearch() {

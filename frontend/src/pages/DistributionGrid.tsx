@@ -29,7 +29,10 @@ import {
 import { api, apiErrorMessage } from "../lib/api";
 import { useList } from "../lib/hooks";
 import { PageHeader } from "../components/PageHeader";
-import { destinationOptions as filterDestinations, type LocationT } from "../lib/transfer-locations";
+import {
+  destinationOptions as filterDestinations,
+  type LocationT,
+} from "../lib/transfer-locations";
 
 interface StoreT {
   id: number;
@@ -90,9 +93,7 @@ type SplitWeights = Record<string, Record<string, number>>;
 const DEFAULT_WEIGHT_KEY = "_default";
 
 function lineTotal(line: SkuLine): number {
-  return (
-    Object.values(line.qtyByDest).reduce((s, v) => s + toQty(v), 0) + toQty(line.buffer)
-  );
+  return Object.values(line.qtyByDest).reduce((s, v) => s + toQty(v), 0) + toQty(line.buffer);
 }
 
 function styleTotals(group: StyleGroup, destIds: string[]) {
@@ -169,7 +170,9 @@ export function DistributionGridPage() {
   const [weightsCache, setWeightsCache] = useState<Record<string, SplitWeights>>({});
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [outcome, setOutcome] = useState<{ dest: string; ok: boolean; detail: string }[] | null>(null);
+  const [outcome, setOutcome] = useState<{ dest: string; ok: boolean; detail: string }[] | null>(
+    null,
+  );
 
   const source = stores.find((s) => String(s.id) === sourceId) || null;
   // Every other store in the network is a candidate destination — a partner
@@ -204,7 +207,10 @@ export function DistributionGridPage() {
   }
 
   async function search() {
-    if (!source || !term.trim()) { setResults([]); return; }
+    if (!source || !term.trim()) {
+      setResults([]);
+      return;
+    }
     setSearching(true);
     try {
       const { data } = await api.get<{ rows: StockRow[] }>(
@@ -256,7 +262,9 @@ export function DistributionGridPage() {
       const idx = gs.findIndex((g) => g.id === id);
       if (idx === -1) return [...gs, { id, design, brand: r.brand, lines: [line], expanded: true }];
       const next = [...gs];
-      next[idx] = { ...next[idx], lines: [...next[idx].lines, line], expanded: true };
+      const existing = next[idx];
+      if (!existing) return gs;
+      next[idx] = { ...existing, lines: [...existing.lines, line], expanded: true };
       return next;
     });
     setResults([]);
@@ -301,7 +309,13 @@ export function DistributionGridPage() {
     setStyles((gs) =>
       gs.map((g) =>
         g.id === id
-          ? { ...g, lines: g.lines.map((l) => ({ ...l, ...suggestLine(l.available, l.size, destIds, fresh) })) }
+          ? {
+              ...g,
+              lines: g.lines.map((l) => ({
+                ...l,
+                ...suggestLine(l.available, l.size, destIds, fresh),
+              })),
+            }
           : g,
       ),
     );
@@ -335,17 +349,30 @@ export function DistributionGridPage() {
   async function submit() {
     setError("");
     setOutcome(null);
-    if (!source) { setError("Select a source warehouse."); return; }
-    if (destIds.length === 0) { setError("Select at least one destination store."); return; }
+    if (!source) {
+      setError("Select a source warehouse.");
+      return;
+    }
+    if (destIds.length === 0) {
+      setError("Select at least one destination store.");
+      return;
+    }
     const allLines = styles.flatMap((g) => g.lines);
     for (const line of allLines) {
       if (lineTotal(line) > line.available) {
-        setError(`${line.sku_code}: allocated (${lineTotal(line)}) exceeds available (${line.available}).`);
+        setError(
+          `${line.sku_code}: allocated (${lineTotal(line)}) exceeds available (${line.available}).`,
+        );
         return;
       }
     }
-    const activeDests = destIds.filter((d) => allLines.some((l) => toQty(l.qtyByDest[d] || "") > 0));
-    if (activeDests.length === 0) { setError("Enter at least one quantity for a selected store."); return; }
+    const activeDests = destIds.filter((d) =>
+      allLines.some((l) => toQty(l.qtyByDest[d] || "") > 0),
+    );
+    if (activeDests.length === 0) {
+      setError("Enter at least one quantity for a selected store.");
+      return;
+    }
     for (const d of activeDests) {
       const dest = destinationOptions.find((s) => String(s.id) === d);
       if (dest && crossState(dest) && !(ewayBills[d] || "").trim()) {
@@ -361,14 +388,20 @@ export function DistributionGridPage() {
         const lines = allLines
           .map((l) => ({ sku_code: l.sku_code, qty_planned: toQty(l.qtyByDest[d] || "") }))
           .filter((l) => l.qty_planned > 0);
-        return api.post("/outbound/transfers", {
-          source_store: source.id,
-          destination_store: dest.id,
-          transfer_type: source.store_type === "warehouse" ? "store_split" : "inter_store",
-          reason: "warehouse_allocation",
-          eway_bill_number: ewayBills[d] || "",
-          lines,
-        }).then((r) => ({ dest: dest.code, ok: true, detail: r.data.doc_number || `Draft #${r.data.id}` }));
+        return api
+          .post("/outbound/transfers", {
+            source_store: source.id,
+            destination_store: dest.id,
+            transfer_type: source.store_type === "warehouse" ? "store_split" : "inter_store",
+            reason: "warehouse_allocation",
+            eway_bill_number: ewayBills[d] || "",
+            lines,
+          })
+          .then((r) => ({
+            dest: dest.code,
+            ok: true,
+            detail: r.data.doc_number || `Draft #${r.data.id}`,
+          }));
       }),
     );
     setOutcome(
@@ -376,7 +409,11 @@ export function DistributionGridPage() {
         const dest = destinationOptions.find((s) => String(s.id) === activeDests[i])!;
         return r.status === "fulfilled"
           ? r.value
-          : { dest: dest.code, ok: false, detail: apiErrorMessage((r as PromiseRejectedResult).reason) };
+          : {
+              dest: dest.code,
+              ok: false,
+              detail: apiErrorMessage((r as PromiseRejectedResult).reason),
+            };
       }),
     );
     setSaving(false);
@@ -384,7 +421,12 @@ export function DistributionGridPage() {
 
   return (
     <div className="page-pad">
-      <Link to="/transfer" className="btn" style={{ marginBottom: 16 }} data-testid="distribution-back-link">
+      <Link
+        to="/transfer"
+        className="btn"
+        style={{ marginBottom: 16 }}
+        data-testid="distribution-back-link"
+      >
         <ArrowLeft size={15} /> Transfers
       </Link>
       <PageHeader
@@ -393,16 +435,32 @@ export function DistributionGridPage() {
       />
 
       {outcome && (
-        <div className="card section-card" style={{ marginBottom: 18 }} data-testid="distribution-outcome">
+        <div
+          className="card section-card"
+          style={{ marginBottom: 18 }}
+          data-testid="distribution-outcome"
+        >
           <p className="eyebrow">Drafts created</p>
           {outcome.map((o) => (
-            <div key={o.dest} style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6 }} data-testid={`distribution-outcome-${o.dest}`}>
-              {o.ok ? <CheckCircle2 size={15} color="var(--green)" /> : <XCircle size={15} color="var(--red)" />}
+            <div
+              key={o.dest}
+              style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 6 }}
+              data-testid={`distribution-outcome-${o.dest}`}
+            >
+              {o.ok ? (
+                <CheckCircle2 size={15} color="var(--green)" />
+              ) : (
+                <XCircle size={15} color="var(--red)" />
+              )}
               <b className="mono">{o.dest}</b> — {o.detail}
             </div>
           ))}
           <div className="toolbar" style={{ marginTop: 14 }}>
-            <button className="btn btn-cta" onClick={() => navigate("/transfer")} data-testid="distribution-view-transfers">
+            <button
+              className="btn btn-cta"
+              onClick={() => navigate("/transfer")}
+              data-testid="distribution-view-transfers"
+            >
               View transfers
             </button>
           </div>
@@ -415,11 +473,21 @@ export function DistributionGridPage() {
           className="select"
           style={{ marginTop: 10, maxWidth: 320 }}
           value={sourceId}
-          onChange={(e) => { setSourceId(e.target.value); setDestIds([]); setStyles([]); setWeightsCache({}); setOutcome(null); }}
+          onChange={(e) => {
+            setSourceId(e.target.value);
+            setDestIds([]);
+            setStyles([]);
+            setWeightsCache({});
+            setOutcome(null);
+          }}
           data-testid="distribution-source-select"
         >
           <option value="">Select warehouse…</option>
-          {warehouses.map((w) => <option key={w.id} value={w.id}>{w.code} · {w.name}</option>)}
+          {warehouses.map((w) => (
+            <option key={w.id} value={w.id}>
+              {w.code} · {w.name}
+            </option>
+          ))}
         </select>
       </div>
 
@@ -429,12 +497,19 @@ export function DistributionGridPage() {
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 10 }}>
             {destinationOptions.map((s) => (
               <label key={s.id} className="check-row" data-testid={`distribution-dest-${s.code}`}>
-                <input type="checkbox" checked={destIds.includes(String(s.id))} onChange={() => toggleDest(String(s.id))} />
+                <input
+                  type="checkbox"
+                  checked={destIds.includes(String(s.id))}
+                  onChange={() => toggleDest(String(s.id))}
+                />
                 {s.code}
               </label>
             ))}
           </div>
-          {destIds.some((d) => { const s = destinationOptions.find((x) => String(x.id) === d); return s && crossState(s); }) && (
+          {destIds.some((d) => {
+            const s = destinationOptions.find((x) => String(x.id) === d);
+            return s && crossState(s);
+          }) && (
             <div style={{ marginTop: 14 }}>
               <p className="eyebrow">E-way bill (cross-state destinations)</p>
               <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 8 }}>
@@ -470,7 +545,12 @@ export function DistributionGridPage() {
               onKeyDown={(e) => e.key === "Enter" && void search()}
               data-testid="distribution-sku-search"
             />
-            <button className="btn" onClick={() => void search()} disabled={searching} data-testid="distribution-sku-search-btn">
+            <button
+              className="btn"
+              onClick={() => void search()}
+              disabled={searching}
+              data-testid="distribution-sku-search-btn"
+            >
               {searching ? "Searching…" : "Search"}
             </button>
           </div>
@@ -480,10 +560,20 @@ export function DistributionGridPage() {
                 <tbody>
                   {results.map((r) => (
                     <tr key={r.sku_code} data-testid={`distribution-result-${r.sku_code}`}>
-                      <td><b className="mono">{r.sku_code}</b></td>
+                      <td>
+                        <b className="mono">{r.sku_code}</b>
+                      </td>
                       <td>{[r.design, r.color, r.size].filter(Boolean).join(" · ") || r.brand}</td>
                       <td className="num">{r.qty} available</td>
-                      <td><button className="btn btn-sm" onClick={() => void addRow(r)} data-testid={`distribution-add-${r.sku_code}`}><Plus size={13} /> Add</button></td>
+                      <td>
+                        <button
+                          className="btn btn-sm"
+                          onClick={() => void addRow(r)}
+                          data-testid={`distribution-add-${r.sku_code}`}
+                        >
+                          <Plus size={13} /> Add
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -494,11 +584,12 @@ export function DistributionGridPage() {
           {styles.length > 0 && (
             <div className="table-wrap" style={{ marginTop: 18 }}>
               <p className="muted-cell" style={{ marginBottom: 8 }}>
-                Every style opens with the suggested split — last time this brand went to these stores,
-                weighted by each store's own size mix — pre-filled, with whatever is left over held in
-                the Buffer column. Edit any cell, or
+                Every style opens with the suggested split — last time this brand went to these
+                stores, weighted by each store's own size mix — pre-filled, with whatever is left
+                over held in the Buffer column. Edit any cell, or
                 <RefreshCw size={11} style={{ verticalAlign: "-1px", margin: "0 3px" }} />
-                re-split a style back to the suggestion. Click a style to open its size · colour breakup.
+                re-split a style back to the suggestion. Click a style to open its size · colour
+                breakup.
               </p>
               <table className="data" data-testid="distribution-grid-table">
                 <thead>
@@ -507,7 +598,11 @@ export function DistributionGridPage() {
                     <th className="num">Available</th>
                     {destIds.map((d) => {
                       const s = destinationOptions.find((x) => String(x.id) === d);
-                      return <th key={d} className="num">{s?.code}</th>;
+                      return (
+                        <th key={d} className="num">
+                          {s?.code}
+                        </th>
+                      );
                     })}
                     <th className="num">Buffer</th>
                     <th className="num">Allocated</th>
@@ -528,7 +623,11 @@ export function DistributionGridPage() {
                               aria-expanded={group.expanded}
                               data-testid={`distribution-style-toggle-${group.design}`}
                             >
-                              {group.expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                              {group.expanded ? (
+                                <ChevronDown size={13} />
+                              ) : (
+                                <ChevronRight size={13} />
+                              )}
                             </button>{" "}
                             <b>{group.design}</b>{" "}
                             <span className="muted-cell">
@@ -536,10 +635,16 @@ export function DistributionGridPage() {
                             </span>
                           </td>
                           <td className="num">{totals.available}</td>
-                          {destIds.map((d) => <td key={d} className="num">{totals.byDest[d] || 0}</td>)}
+                          {destIds.map((d) => (
+                            <td key={d} className="num">
+                              {totals.byDest[d] || 0}
+                            </td>
+                          ))}
                           <td className="num">{totals.buffer}</td>
                           <td className="num">
-                            <b style={totals.over ? { color: "var(--red)" } : undefined}>{totals.allocated}</b>
+                            <b style={totals.over ? { color: "var(--red)" } : undefined}>
+                              {totals.allocated}
+                            </b>
                           </td>
                           <td>
                             <button
@@ -561,53 +666,63 @@ export function DistributionGridPage() {
                             </button>
                           </td>
                         </tr>
-                        {group.expanded && group.lines.map((line) => {
-                          const total = lineTotal(line);
-                          const over = total > line.available;
-                          return (
-                            <tr key={line.sku_code} data-testid={`distribution-line-${line.sku_code}`}>
-                              <td style={{ paddingLeft: 28 }}>
-                                <b className="mono">{line.sku_code}</b>{" "}
-                                <span className="muted-cell">{[line.color, line.size].filter(Boolean).join(" · ")}</span>
-                              </td>
-                              <td className="num">{line.available}</td>
-                              {destIds.map((d) => (
-                                <td key={d} className="num">
+                        {group.expanded &&
+                          group.lines.map((line) => {
+                            const total = lineTotal(line);
+                            const over = total > line.available;
+                            return (
+                              <tr
+                                key={line.sku_code}
+                                data-testid={`distribution-line-${line.sku_code}`}
+                              >
+                                <td style={{ paddingLeft: 28 }}>
+                                  <b className="mono">{line.sku_code}</b>{" "}
+                                  <span className="muted-cell">
+                                    {[line.color, line.size].filter(Boolean).join(" · ")}
+                                  </span>
+                                </td>
+                                <td className="num">{line.available}</td>
+                                {destIds.map((d) => (
+                                  <td key={d} className="num">
+                                    <input
+                                      className="input"
+                                      style={{ width: 64, textAlign: "right" }}
+                                      inputMode="numeric"
+                                      value={line.qtyByDest[d] || ""}
+                                      onChange={(e) =>
+                                        setQty(group.id, line.sku_code, d, e.target.value)
+                                      }
+                                      data-testid={`distribution-qty-${line.sku_code}-${d}`}
+                                    />
+                                  </td>
+                                ))}
+                                <td className="num">
                                   <input
                                     className="input"
                                     style={{ width: 64, textAlign: "right" }}
                                     inputMode="numeric"
-                                    value={line.qtyByDest[d] || ""}
-                                    onChange={(e) => setQty(group.id, line.sku_code, d, e.target.value)}
-                                    data-testid={`distribution-qty-${line.sku_code}-${d}`}
+                                    value={line.buffer}
+                                    onChange={(e) =>
+                                      setBuffer(group.id, line.sku_code, e.target.value)
+                                    }
+                                    data-testid={`distribution-buffer-${line.sku_code}`}
                                   />
                                 </td>
-                              ))}
-                              <td className="num">
-                                <input
-                                  className="input"
-                                  style={{ width: 64, textAlign: "right" }}
-                                  inputMode="numeric"
-                                  value={line.buffer}
-                                  onChange={(e) => setBuffer(group.id, line.sku_code, e.target.value)}
-                                  data-testid={`distribution-buffer-${line.sku_code}`}
-                                />
-                              </td>
-                              <td className="num">
-                                <b style={over ? { color: "var(--red)" } : undefined}>{total}</b>
-                              </td>
-                              <td>
-                                <button
-                                  className="btn btn-sm"
-                                  onClick={() => removeLine(group.id, line.sku_code)}
-                                  data-testid={`distribution-remove-${line.sku_code}`}
-                                >
-                                  <Trash2 size={13} />
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        })}
+                                <td className="num">
+                                  <b style={over ? { color: "var(--red)" } : undefined}>{total}</b>
+                                </td>
+                                <td>
+                                  <button
+                                    className="btn btn-sm"
+                                    onClick={() => removeLine(group.id, line.sku_code)}
+                                    data-testid={`distribution-remove-${line.sku_code}`}
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
                       </Fragment>
                     );
                   })}
@@ -616,7 +731,11 @@ export function DistributionGridPage() {
             </div>
           )}
 
-          {error && <p className="warn-note" style={{ marginTop: 14 }} data-testid="distribution-error">{error}</p>}
+          {error && (
+            <p className="warn-note" style={{ marginTop: 14 }} data-testid="distribution-error">
+              {error}
+            </p>
+          )}
 
           <div className="toolbar" style={{ marginTop: 18 }}>
             <span className="spacer" />

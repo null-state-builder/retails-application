@@ -24,7 +24,7 @@ export function formatINR(paise: number, opts: { short?: boolean } = {}): string
 }
 
 export function Money({ paise, short }: { paise: number; short?: boolean }) {
-  return <span className="tabular">{formatINR(paise, { short })}</span>;
+  return <span className="tabular">{formatINR(paise, short === undefined ? {} : { short })}</span>;
 }
 
 /** Render a rupee decimal string the server already computed ("72450.00") as
@@ -174,7 +174,7 @@ export function Stat({ label, value }: { label: string; value: ReactNode }) {
 export function formatPaiseString(value: string | null | undefined): string {
   if (value === null || value === undefined || value === "") return "Unknown";
   const parsed = /^\s*(-?)(\d+)\s*$/.exec(value);
-  if (!parsed) return value;
+  if (!parsed?.[2]) return value;
   const [, sign, digits] = parsed;
   const padded = digits.padStart(3, "0");
   const whole = padded.slice(0, -2);
@@ -193,7 +193,7 @@ export function formatPaiseString(value: string | null | undefined): string {
 export function paiseStringToRupees(value: string | null | undefined): string {
   if (value === null || value === undefined || value === "") return "";
   const parsed = /^\s*(-?)(\d+)\s*$/.exec(value);
-  if (!parsed) return value;
+  if (!parsed?.[2]) return value;
   const [, sign, digits] = parsed;
   const padded = digits.padStart(3, "0");
   const whole = padded.slice(0, -2).replace(/^0+(?=\d)/, "");

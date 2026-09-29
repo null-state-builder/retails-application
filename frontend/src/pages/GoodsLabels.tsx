@@ -72,10 +72,7 @@ export function GoodsLabelsPage() {
         title="Print labels"
         lead="Print a scannable Code 128 label for an official PT line, record what the printer actually did, and reprint only what is still missing."
       />
-      <LabelsPanel
-        ptId={params.get("pt") ?? ""}
-        onPtId={(id) => setParams(id ? { pt: id } : {})}
-      />
+      <LabelsPanel ptId={params.get("pt") ?? ""} onPtId={(id) => setParams(id ? { pt: id } : {})} />
     </div>
   );
 }
@@ -108,11 +105,10 @@ export function LabelsPanel({
   const detail = useResourceDoc<PtData>(
     ptId && versionNo ? `${PT_FILES}/${ptId}?version=${versionNo}` : null,
   );
-  const templates = useGoodsFetch<Page<ResourceDTO<LabelConfigData>>, ResourceDTO<LabelConfigData>[]>(
-    "/goods-v1/masters/configurations?kind=label&limit=100",
-    (r) => r.items ?? [],
-    [],
-  );
+  const templates = useGoodsFetch<
+    Page<ResourceDTO<LabelConfigData>>,
+    ResourceDTO<LabelConfigData>[]
+  >("/goods-v1/masters/configurations?kind=label&limit=100", (r) => r.items ?? [], []);
 
   function loadPt(e: React.FormEvent) {
     e.preventDefault();
@@ -207,7 +203,7 @@ function PrintForm({
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!templateVersionId && templates.length > 0) setTemplateVersionId(templates[0].versionId);
+    if (!templateVersionId && templates[0]) setTemplateVersionId(templates[0].versionId);
   }, [templates, templateVersionId]);
 
   useEffect(() => {
@@ -257,7 +253,10 @@ function PrintForm({
   }
 
   return (
-    <div className="card section-card" data-testid={reprintOf ? "labels-reprint-form" : "labels-print-form"}>
+    <div
+      className="card section-card"
+      data-testid={reprintOf ? "labels-reprint-form" : "labels-print-form"}
+    >
       <h3 className="h3">{reprintOf ? "Reprint the missing copies" : "Choose what to print"}</h3>
       <Feedback error={error} ok="" />
       {listState(
@@ -288,7 +287,9 @@ function PrintForm({
                     />
                   </td>
                   <td className="mono">{line.alias_as_used}</td>
-                  <td className="mono">{formatPaiseString(line.calculated?.mrp_paise ?? line.supplied.mrp_paise)}</td>
+                  <td className="mono">
+                    {formatPaiseString(line.calculated?.mrp_paise ?? line.supplied.mrp_paise)}
+                  </td>
                   <td>
                     <input
                       type="number"
@@ -373,9 +374,7 @@ function PrintJobCard({
   const [busy, setBusy] = useState(false);
   const [reprinting, setReprinting] = useState(false);
   const [scanAlias, setScanAlias] = useState("");
-  const [scanLineId, setScanLineId] = useState(
-    job.data.labels[0]?.official_line_id ?? "",
-  );
+  const [scanLineId, setScanLineId] = useState(job.data.labels[0]?.official_line_id ?? "");
   const [scanError, setScanError] = useState("");
   const [scanOk, setScanOk] = useState("");
   const [scanBusy, setScanBusy] = useState(false);
@@ -496,10 +495,13 @@ function PrintJobCard({
   return (
     <div className="card section-card labels-job" data-testid={`labels-job-${job.id}`}>
       <h3 className="h3">
-        Print job {job.id.slice(0, 8)} — <span data-testid={`labels-job-status-${job.id}`}>{statusLabel(job.data.state)}</span>
+        Print job {job.id.slice(0, 8)} —{" "}
+        <span data-testid={`labels-job-status-${job.id}`}>{statusLabel(job.data.state)}</span>
       </h3>
       {job.data.reprint_of_id && (
-        <p className="muted">Reprint of {job.data.reprint_of_id.slice(0, 8)}: {job.data.reason_code}</p>
+        <p className="muted">
+          Reprint of {job.data.reprint_of_id.slice(0, 8)}: {job.data.reason_code}
+        </p>
       )}
 
       <div className="labels-sheet" data-testid={`labels-sheet-${job.id}`}>
@@ -616,9 +618,9 @@ function PrintJobCard({
 
       <h4 className="h4">Scan one label to verify</h4>
       <p className="muted">
-        Read one printed label back. The server checks it against the alias it froze for that
-        line. This proves the one sample you scanned, not the copies you asked for, so it never
-        fills in a usable count.
+        Read one printed label back. The server checks it against the alias it froze for that line.
+        This proves the one sample you scanned, not the copies you asked for, so it never fills in a
+        usable count.
       </p>
       <Feedback error={scanError} ok={scanOk} />
       <div className="form-grid">
@@ -691,13 +693,18 @@ function PrintJobCard({
             source_ref: null,
             coverage_requests: [],
             supplied: { mrp_paise: label.mrp_paise },
-            calculated: undefined,
             reviewed: false,
           }))}
           loadingLines={false}
           templates={
             job.data.template_version_id
-              ? [{ versionId: job.data.template_version_id, label: "Same profile", copiesLimit: 9999 }]
+              ? [
+                  {
+                    versionId: job.data.template_version_id,
+                    label: "Same profile",
+                    copiesLimit: 9999,
+                  },
+                ]
               : []
           }
           templatesLoading={false}

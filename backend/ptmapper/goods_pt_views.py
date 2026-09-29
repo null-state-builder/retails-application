@@ -530,6 +530,31 @@ def _responses(status: int, schema: dict[str, Any], codes: tuple[int, ...]) -> d
     return {status: schema, **{code: REFUSAL_RESPONSE for code in codes}}
 
 
+_UUID_FIELD: dict[str, Any] = {"type": "string", "format": "uuid"}
+_TEXT_FIELD: dict[str, Any] = {"type": "string"}
+
+
+def _mutation_request(
+    fields: dict[str, Any], *, required: tuple[str, ...] = (), revision_bound: bool = True
+) -> dict[str, Any]:
+    """The exact meta keys plus a route's admitted business fields."""
+    required_keys = ["command_id", "contract_version"]
+    if revision_bound:
+        required_keys.append("expected_revision")
+    required_keys.extend(required)
+    return {
+        "type": "object",
+        "required": required_keys,
+        "additionalProperties": False,
+        "properties": {
+            "command_id": _UUID_FIELD,
+            "contract_version": {"type": "string", "enum": ["goods-v1"]},
+            "expected_revision": {"type": "integer", "minimum": 1},
+            **fields,
+        },
+    }
+
+
 #: One row of E098's PT worklist: the document's identity and where it has got
 #: to, never its lines or its money.
 PT_LIST_ITEM: dict[str, Any] = {
@@ -704,7 +729,24 @@ class GoodsPtListView(GoodsAPIView):
         window, cursor = paginate(rows, params)
         return Response(page([_summary(goods_pt) for goods_pt in window], cursor))
 
-    @extend_schema(responses=_responses(201, PT_DETAIL_RESPONSE, _WRITE_REFUSALS))
+    @extend_schema(
+        request={"application/json": _mutation_request(
+            {
+                "purpose": {"type": "string", "enum": ["receipt", "opening"]},
+                "receipt_kind": {"type": "string", "enum": ["primary", "supplement"]},
+                "grn_id": _UUID_FIELD,
+                "manifest_version_id": _UUID_FIELD,
+                "profile_version_id": _UUID_FIELD,
+                "direction": _TEXT_FIELD,
+                "source": {"type": "string", "enum": ["typed", "canonical_upload", "brand_upload"]},
+                "evidence_id": _UUID_FIELD,
+                "lines": {"type": "array", "maxItems": MAX_LINES, "items": {"type": "object"}},
+            },
+            required=("purpose", "profile_version_id", "direction", "source"),
+            revision_bound=False,
+        )},
+        responses=_responses(201, PT_DETAIL_RESPONSE, _WRITE_REFUSALS),
+    )
     def post(self, request: Request) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=False)
@@ -913,7 +955,18 @@ def _create(
 class GoodsPtFromGrnView(GoodsAPIView):
     """E123: the same draft command, prefilled from the GRN's counted lots."""
 
-    @extend_schema(responses=_responses(201, PT_DETAIL_RESPONSE, _WRITE_REFUSALS))
+    @extend_schema(
+        request={"application/json": _mutation_request(
+            {
+                "receipt_kind": {"type": "string", "enum": ["primary", "supplement"]},
+                "profile_version_id": _UUID_FIELD,
+                "direction": _TEXT_FIELD,
+            },
+            required=("profile_version_id", "direction"),
+            revision_bound=False,
+        )},
+        responses=_responses(201, PT_DETAIL_RESPONSE, _WRITE_REFUSALS),
+    )
     def post(self, request: Request, grn_id: uuid.UUID) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=False)
@@ -931,7 +984,14 @@ class GoodsPtFromManifestView(GoodsAPIView):
     refused everywhere on the general create route (R20); this is its only
     route into existence."""
 
-    @extend_schema(responses=_responses(201, PT_DETAIL_RESPONSE, _WRITE_REFUSALS))
+    @extend_schema(
+        request={"application/json": _mutation_request(
+            {"profile_version_id": _UUID_FIELD, "evidence_id": _UUID_FIELD},
+            required=("profile_version_id",),
+            revision_bound=False,
+        )},
+        responses=_responses(201, PT_DETAIL_RESPONSE, _WRITE_REFUSALS),
+    )
     def post(self, request: Request, manifest_id: uuid.UUID) -> Response:
         from ptmapper.goods_models import OpeningManifest
 
@@ -1179,6 +1239,59 @@ PT_ROWS_REQUEST: dict[str, Any] = {
     "additionalProperties": False,
 }
 
+PT_PRICE_REQUEST = _mutation_request(
+    {
+        "profile_version_id": _UUID_FIELD,
+        "direction": _TEXT_FIELD,
+        "reason_code": {"type": "string", "maxLength": 60},
+    },
+    required=("profile_version_id", "direction"),
+)
+PT_SEND_REQUEST = _mutation_request({"reviewed_hash": _TEXT_FIELD}, required=("reviewed_hash",))
+PT_RECALL_REQUEST = _mutation_request(
+    {"reason_code": {"type": "string", "maxLength": 60}, "note": {"type": "string", "maxLength": 500}},
+    required=("reason_code",),
+)
+PT_REVERSE_REQUEST = _mutation_request(
+    {
+        "reason_code": {"type": "string", "maxLength": 60},
+        "evidence_ids": {"type": "array", "maxItems": 100, "items": _UUID_FIELD},
+    },
+    required=("reason_code",),
+)
+PT_REISSUE_REQUEST = _mutation_request(
+    {
+        "corrected": {"type": "object", "description": "Corrected PT header and rows."},
+        "reason_code": {"type": "string", "maxLength": 60},
+    },
+    required=("corrected", "reason_code"),
+)
+PT_SEND_RESPONSE: dict[str, Any] = {
+    "type": "object",
+    "required": ["document", "reconciliation", "approval_request_id"],
+    "properties": {
+        "document": PT_DETAIL_RESPONSE,
+        "reconciliation": {"type": "object", "nullable": True},
+        "approval_request_id": {"type": "string", "format": "uuid", "nullable": True},
+    },
+}
+PT_REVERSE_RESPONSE: dict[str, Any] = {
+    **PT_DETAIL_RESPONSE,
+    "properties": {
+        **PT_DETAIL_RESPONSE["properties"],
+        "data": {
+            "type": "object",
+            "required": ["approval_request_id", "document_id", "version", "state"],
+            "properties": {
+                "approval_request_id": _UUID_FIELD,
+                "document_id": _UUID_FIELD,
+                "version": {"type": "integer", "nullable": True},
+                "state": _TEXT_FIELD,
+            },
+        },
+    },
+}
+
 
 class GoodsPtRowsView(_ByPurpose, _PtCommandView):
     """E124: edit supplied cells - typed or pasted (ticket 06A) - and record row review marks.
@@ -1216,6 +1329,7 @@ class GoodsPtRowsView(_ByPurpose, _PtCommandView):
         )
 
 
+@extend_schema_view(post=extend_schema(request={"application/json": PT_PRICE_REQUEST}))
 class GoodsPtPriceView(_ByPurpose, _PtCommandView):
     """E125: recalculate every row under an approved profile and direction."""
 
@@ -1234,12 +1348,19 @@ class GoodsPtPriceView(_ByPurpose, _PtCommandView):
         )
 
 
+@extend_schema_view(post=extend_schema(request={"application/json": PT_PRICE_REQUEST}))
 class GoodsPtRerunView(GoodsPtPriceView):
     """E126: the same recalculation, recorded as a rerun."""
 
     action = "pt.rerun"
 
 
+@extend_schema_view(
+    post=extend_schema(
+        request={"application/json": PT_SEND_REQUEST},
+        responses=_responses(200, PT_SEND_RESPONSE, _WRITE_REFUSALS),
+    )
+)
 class GoodsPtSendView(_ByPurpose, _PtCommandView):
     """E127: submit the exact reviewed revision for a distinct checker.
 
@@ -1283,6 +1404,7 @@ class GoodsPtSendView(_ByPurpose, _PtCommandView):
         )
 
 
+@extend_schema_view(post=extend_schema(request={"application/json": PT_RECALL_REQUEST}))
 class GoodsPtRecallView(_ByPurpose, _PtCommandView):
     """E128: the preparer withdraws a submitted draft."""
 
@@ -1314,6 +1436,12 @@ def _evidence_ids(access: AccessContext, raw: Any) -> list[uuid.UUID]:
     return ids
 
 
+@extend_schema_view(
+    post=extend_schema(
+        request={"application/json": PT_REVERSE_REQUEST},
+        responses=_responses(201, PT_REVERSE_RESPONSE, _WRITE_REFUSALS),
+    )
+)
 class GoodsPtReverseView(_PtCommandView):
     """E130: request a reversal; a distinct checker posts P06 through E234."""
 
@@ -1375,6 +1503,12 @@ class GoodsPtReverseView(_PtCommandView):
         )
 
 
+@extend_schema_view(
+    post=extend_schema(
+        request={"application/json": PT_REISSUE_REQUEST},
+        responses=_responses(201, PT_DETAIL_RESPONSE, _WRITE_REFUSALS),
+    )
+)
 class GoodsPtReissueView(_ByPurpose, _PtCommandView):
     """E131: a corrected draft under the same number after safe reversal."""
 
@@ -1410,7 +1544,12 @@ def _domain_refusal(refusal: Refusal) -> Refusal | None:
 class GoodsPtPostView(GoodsAPIView):
     """E129: delegates to the one approval decision (E234); no second posting path."""
 
-    @extend_schema(responses=_responses(200, PT_DETAIL_RESPONSE, _WRITE_REFUSALS))
+    @extend_schema(
+        request={"application/json": _mutation_request(
+            {"reviewed_hash": _TEXT_FIELD}, required=("reviewed_hash",)
+        )},
+        responses=_responses(200, PT_DETAIL_RESPONSE, _WRITE_REFUSALS),
+    )
     def post(self, request: Request, pk: uuid.UUID) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=True)

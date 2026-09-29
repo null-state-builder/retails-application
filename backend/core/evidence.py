@@ -157,7 +157,7 @@ def _journal_order(model: type[models.Model]) -> int:
 
 
 def _column_value(value: Any) -> Any:
-    from django.db.backends.postgresql.psycopg_any import NumericRange
+    from psycopg.types.range import Range as NumericRange
 
     if isinstance(value, NumericRange):
         lower = "" if value.lower is None else value.lower

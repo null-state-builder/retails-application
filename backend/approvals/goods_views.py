@@ -209,7 +209,26 @@ class GoodsApprovalListView(GoodsAPIView):
 class GoodsApprovalDecideView(GoodsAPIView):
     """E234: approve or reject one exact reviewed revision, with its domain effects."""
 
-    @extend_schema(responses=_responses(200, APPROVAL_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(
+        request={
+            "application/json": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": [
+                "command_id", "contract_version", "expected_revision", "decision", "reviewed_hash",
+            ],
+            "properties": {
+                "command_id": {"type": "string", "format": "uuid"},
+                "contract_version": {"type": "string", "enum": ["goods-v1"]},
+                "expected_revision": {"type": "integer", "minimum": 1},
+                "decision": {"type": "string", "enum": ["approve", "reject"]},
+                "reviewed_hash": {"type": "string"},
+                "reason_code": {"type": "string"},
+            },
+            },
+        },
+        responses=_responses(200, APPROVAL_RESOURCE, _WRITE_REFUSALS),
+    )
     def post(self, request: Request, pk: uuid.UUID) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=True)

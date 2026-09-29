@@ -24,3 +24,71 @@ dependencies = [
 
 [tool.uv]
 package = false
+
+# Migrations are generated historical programs. Maintained application modules,
+# management commands, and tests are checked; migration state is verified by
+# Django's makemigrations --check instead of type checking old generated code.
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["mypy_django_plugin.main", "mypy_drf_plugin.main"]
+mypy_path = "typings"
+exclude = '(^|/)migrations/'
+
+[tool.django-stubs]
+django_settings_module = "config.settings"
+
+[tool.ruff]
+target-version = "py312"
+exclude = [".venv", "**/migrations/**"]
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "B"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+testpaths = ["tests"]
+addopts = "--strict-markers --strict-config"
+
+# These modules contain calculations that must remain usable without the HTTP
+# layer or persistence. Include indirect imports so a future helper cannot
+# smuggle an ORM dependency into a pure calculation.
+[tool.importlinter]
+root_packages = [
+    "accounts", "aiagents", "alerts", "approvals", "config", "core",
+    "files", "finledger", "inbound", "mail", "masters", "offers",
+    "outbound", "ptmapper", "reporting", "search", "sell",
+    "stockledger", "storefront", "vendors",
+]
+include_external_packages = true
+exclude_type_checking_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Exact calculations stay independent of HTTP and persistence"
+type = "forbidden"
+source_modules = [
+    "core.fiscal", "core.goods_money", "core.money_limits",
+    "ptmapper.goods_barcode", "ptmapper.goods_calc",
+    "sell.pricing", "sell.refund_math", "sell.return_tax",
+    "stockledger.ranges",
+]
+forbidden_modules = ["django", "rest_framework", "*.models", "*.views", "*.serializers"]
+
+[[tool.importlinter.contracts]]
+name = "Approval callbacks do not read a sibling module's database"
+type = "forbidden"
+source_modules = ["approvals.hooks"]
+forbidden_modules = ["django", "*.models", "*.views", "*.serializers"]
+
+[dependency-groups]
+dev = [
+    "django-stubs>=5.2.9,<5.3",
+    "djangorestframework-stubs>=3.16,<4",
+    "import-linter>=2.6,<3",
+    "mypy>=1.18,<1.20",
+    "pytest>=8,<9",
+    "pytest-django>=4.11,<5",
+    "ruff>=0.13,<1",
+    "types-openpyxl>=3.1,<4",
+    "types-xlrd>=2,<3",
+]

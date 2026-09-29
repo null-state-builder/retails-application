@@ -81,7 +81,9 @@ export function momentText(iso: string): string {
   return `${dayText(day)}, ${pad(at.getHours())}:${pad(at.getMinutes())}`;
 }
 
-export function promisedText(job: Pick<AlterationJob, "promised_on" | "days_left" | "status">): string {
+export function promisedText(
+  job: Pick<AlterationJob, "promised_on" | "days_left" | "status">,
+): string {
   const day = `Promised ${dayText(job.promised_on)}`;
   if (!isOpen(job.status)) return day;
   if (job.days_left < 0) return `${day} · late`;
@@ -137,7 +139,7 @@ export function fromBill(draft: JobDraft, bill: AlterationBill): JobDraft {
     line_no: free?.line_no ?? null,
     qty: 1,
     charge_bill: "",
-    charge_line_no: bill.charges.length === 1 ? bill.charges[0].line_no : null,
+    charge_line_no: bill.charges.length === 1 ? (bill.charges[0]?.line_no ?? null) : null,
     customer_name: draft.customer_name || bill.customer_name,
     customer_mobile: draft.customer_mobile || bill.customer_mobile,
   };

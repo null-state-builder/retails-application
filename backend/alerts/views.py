@@ -22,6 +22,7 @@ from datetime import timedelta
 from typing import Any, cast
 
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -35,7 +36,7 @@ from core.dates import bad_since, parse_day
 from masters.scoping import scope_by_store_or_brand
 
 from .models import Alert, AlertKind, AlertSeen, AlertStatus
-from .serializers import AlertReadSerializer
+from .serializers import AlertReadSerializer, AlertSeenSerializer
 
 #: How far History looks back when the caller names no window. It matches the
 #: popup's own default range, which the client computes for itself - the two are
@@ -91,6 +92,7 @@ class AlertHistoryView(APIView):
 
     permission_classes = [IsAuthenticated, require_section("home", CAP_VIEW)]
 
+    @extend_schema(responses=AlertReadSerializer(many=True))
     def get(self, request: Request) -> Response:
         asked = (request.query_params.get("since") or "").strip()
         refusal = bad_since(asked)
@@ -117,12 +119,14 @@ class AlertSeenView(APIView):
 
     permission_classes = [IsAuthenticated, require_section("home", CAP_VIEW)]
 
+    @extend_schema(responses=AlertSeenSerializer)
     def get(self, request: Request) -> Response:
         # IsAuthenticated above guarantees a real user, never AnonymousUser.
         user = cast(User, request.user)
         row = AlertSeen.objects.filter(user=user).first()
         return Response({"seen_at": row.seen_at if row else None})
 
+    @extend_schema(request=None, responses=AlertSeenSerializer)
     def post(self, request: Request) -> Response:
         # Idempotent by design - the tab is opened a dozen times a day, and each
         # opening simply moves the one row forward.

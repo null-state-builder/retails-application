@@ -20,8 +20,7 @@ import "./Shared.css";
 type Payload = ApiRead<ApiSchemas["StaffReport"]>;
 type Targets = ApiRead<ApiSchemas["StaffTargets"]>;
 
-const OFFLINE =
-  "Reports need a connection. Reconnect to see or export this report.";
+const OFFLINE = "Reports need a connection. Reconnect to see or export this report.";
 
 /** Reports > Staff Performance (store operations PRD ST-RPT-4, ticket 46).
  *
@@ -32,9 +31,7 @@ const OFFLINE =
  *  person's monthly target here. It reads live data only: offline it says it
  *  needs a connection, and comes back by itself when the line does. */
 export function StaffPerformanceReportPage() {
-  const [filters, setFilters] = useState<StaffFilters>(() =>
-    defaultStaffFilters(),
-  );
+  const [filters, setFilters] = useState<StaffFilters>(() => defaultStaffFilters());
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
@@ -50,9 +47,7 @@ export function StaffPerformanceReportPage() {
     }
     const mine = ++request.current;
     if (wanted.date_from && wanted.date_to && wanted.date_to < wanted.date_from) {
-      setError(
-        "The period ends before it starts. Choose a To date on or after the From date.",
-      );
+      setError("The period ends before it starts. Choose a To date on or after the From date.");
       return;
     }
     setBusy(true);
@@ -269,11 +264,7 @@ export function StaffPerformanceReportPage() {
               </thead>
               <tbody>
                 {rows.map((row, index) => (
-                  <StaffTableRow
-                    key={String(row.key ?? index)}
-                    row={row}
-                    columns={columns}
-                  />
+                  <StaffTableRow key={String(row.key ?? index)} row={row} columns={columns} />
                 ))}
               </tbody>
               <tfoot>
@@ -283,9 +274,7 @@ export function StaffPerformanceReportPage() {
           </div>
         )}
         <details className="muted-cell" data-testid="staff-basis">
-          <summary>
-            How these figures are worked out (formula {data.formula_version})
-          </summary>
+          <summary>How these figures are worked out (formula {data.formula_version})</summary>
           <ul>
             {data.basis.map((line) => (
               <li key={line}>{line}</li>
@@ -296,7 +285,7 @@ export function StaffPerformanceReportPage() {
       {data.can_set_targets && data.store_options.length > 0 && (
         <TargetEditor
           stores={data.store_options}
-          initialStore={data.store ?? data.store_options[0].code}
+          initialStore={data.store ?? data.store_options[0]?.code ?? ""}
           month={targetMonth(filters)}
           online={online}
           onSaved={() => void load(filters)}
@@ -316,10 +305,7 @@ function StaffTableRow({
   total?: boolean;
 }) {
   return (
-    <tr
-      data-testid={total ? "staff-total" : "staff-row"}
-      data-key={String(row.key ?? "")}
-    >
+    <tr data-testid={total ? "staff-total" : "staff-row"} data-key={String(row.key ?? "")}>
       {columns.map((c, index) => {
         const text = gstCell(row[c.key], c.kind);
         return (
@@ -453,8 +439,8 @@ function TargetEditor({
     <section className="card section-card" data-testid="staff-targets">
       <h2>Monthly targets</h2>
       <p className="muted-cell">
-        Each salesperson's net sales target for {month} at one store. Changes are
-        recorded in the audit log.
+        Each salesperson's net sales target for {month} at one store. Changes are recorded in the
+        audit log.
       </p>
       <div className="toolbar">
         <label className="field">
@@ -480,8 +466,7 @@ function TargetEditor({
       )}
       {targets && !targets.switched_on && (
         <p className="warn-note" data-testid="staff-targets-off">
-          The staff performance report is switched off at this store, so no target
-          can be set here.
+          The staff performance report is switched off at this store, so no target can be set here.
         </p>
       )}
       {targets && targets.people.length === 0 && (

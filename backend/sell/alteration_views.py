@@ -249,6 +249,7 @@ class AlterationListView(APIView):
     permission_classes = [IsAuthenticated, CanRunTill]
 
     @extend_schema(
+        operation_id="sell_alterations_list",
         parameters=[
             OpenApiParameter("store", str, required=True),
             OpenApiParameter("q", str, required=False),
@@ -357,6 +358,7 @@ class AlterationDetailView(APIView):
     permission_classes = [IsAuthenticated, CanRunTill]
 
     @extend_schema(
+        operation_id="sell_alterations_detail",
         parameters=[OpenApiParameter("store", str, required=True)],
         responses=AlterationSerializer,
     )

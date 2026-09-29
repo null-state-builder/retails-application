@@ -20,6 +20,7 @@ from datetime import date
 from typing import Any, cast
 
 from django.db import transaction
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -136,6 +137,26 @@ class BookingDraftView(APIView):
 
     permission_classes = [IsAuthenticated, CanPlaceBooking]
 
+    @extend_schema(
+        request={"multipart/form-data": {
+            "type": "object",
+            "required": ["file"],
+            "properties": {"file": {"type": "string", "format": "binary"}},
+        }},
+        responses={
+            200: {
+                "type": "object",
+                "required": ["source_file_id", "lines"],
+                "properties": {
+                    "source_file_id": {"type": "integer"},
+                    "lines": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+                },
+                "additionalProperties": True,
+            },
+            400: OpenApiResponse(description="No document uploaded"),
+            422: OpenApiResponse(description="Document could not be read"),
+        },
+    )
     def post(self, request: Request) -> Response:
         upload = request.FILES.get("file")
         if not upload:
@@ -317,6 +338,19 @@ class BookingCloseView(APIView):
 
     permission_classes = [IsAuthenticated, CanCloseBooking]
 
+    @extend_schema(
+        request={"application/json": {
+            "type": "object",
+            "required": ["reason"],
+            "properties": {
+                "reason": {"type": "string", "minLength": 3},
+                "action": {"type": "string", "enum": ["close", "cancel"]},
+            },
+        }},
+        responses={200: BookingSerializer, 400: OpenApiResponse(description="Invalid reason"),
+                   404: OpenApiResponse(description="Booking not found"),
+                   409: OpenApiResponse(description="Booking cannot be ended")},
+    )
     def post(self, request: Request, pk: int) -> Response:
         booking = (
             Booking.objects.select_related("vendor", "brand", "season", "destination_store")
@@ -350,6 +384,12 @@ class BookingSubmitView(APIView):
 
     permission_classes = [IsAuthenticated, CanPlaceBooking]
 
+    @extend_schema(
+        request=None,
+        responses={201: BookingSerializer, 400: OpenApiResponse(description="Booking cannot be submitted"),
+                   404: OpenApiResponse(description="Booking not found"),
+                   409: OpenApiResponse(description="Approval already pending")},
+    )
     def post(self, request: Request, pk: int) -> Response:
         booking = (
             Booking.objects.select_related("vendor", "brand", "season", "destination_store")

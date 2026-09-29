@@ -29,7 +29,7 @@ import {
 import { useSearchParams } from "react-router-dom";
 
 import type { paths } from "../lib/api-schema";
-import {api, apiErrorMessage, goodsMeta} from "../lib/api";
+import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import {
   Denied,
   Feedback,
@@ -151,7 +151,12 @@ interface PrivilegedChangeData {
   after: PrivilegedValue[] | null;
   event_at: string | null;
   recorded_at: string | null;
-  reviews: { reviewer_id: string; reviewer_name: string | null; note: string; reviewed_at: string | null }[];
+  reviews: {
+    reviewer_id: string;
+    reviewer_name: string | null;
+    note: string;
+    reviewed_at: string | null;
+  }[];
 }
 
 interface AdminMetaSite {
@@ -234,7 +239,11 @@ function useResourceListRaw<T>(url: string) {
 // `maxima` is null while a read is in flight, so nothing edits from a stale
 // ceiling; `version` counts completed reads so an editor can re-seed from each.
 function useRoleMaxima(refresh: number) {
-  const [state, setState] = useState<{ maxima: RoleMaximum[] | null; error: string; version: number }>({
+  const [state, setState] = useState<{
+    maxima: RoleMaximum[] | null;
+    error: string;
+    version: number;
+  }>({
     maxima: null,
     error: "",
     version: 0,
@@ -291,7 +300,13 @@ function fmtDate(value: string | null): string {
 // People list (E061)
 // --------------------------------------------------------------------------
 
-const blankPerson = { staff_code: "", display_name: "", mobile: "", site_id: "", effective_from: "" };
+const blankPerson = {
+  staff_code: "",
+  display_name: "",
+  mobile: "",
+  site_id: "",
+  effective_from: "",
+};
 
 function nowLocalInput(): string {
   const d = new Date();
@@ -384,10 +399,7 @@ function PeopleListPanel({ onOpen }: { onOpen: (staffId: string) => void }) {
             }
           : {}),
       };
-      const created = await api.post<ResourceDTO<StaffData>>(
-        "/goods-v1/auth/admin/staff",
-        body,
-      );
+      const created = await api.post<ResourceDTO<StaffData>>("/goods-v1/auth/admin/staff", body);
       setOpen(false);
       setOk(`${form.display_name} added.`);
       reload();
@@ -425,7 +437,11 @@ function PeopleListPanel({ onOpen }: { onOpen: (staffId: string) => void }) {
           <div className="toolbar" style={{ marginBottom: 12 }}>
             <h3 className="h3">Add a person</h3>
             <div className="spacer" />
-            <button className="btn btn-sm" onClick={() => setOpen(false)} data-testid="person-editor-close">
+            <button
+              className="btn btn-sm"
+              onClick={() => setOpen(false)}
+              data-testid="person-editor-close"
+            >
               <X size={14} /> Close
             </button>
           </div>
@@ -473,9 +489,7 @@ function PeopleListPanel({ onOpen }: { onOpen: (staffId: string) => void }) {
                     // A site needs a start date, so offer one to change rather
                     // than an empty box the server would refuse. Going back to
                     // head office clears it, so the pair is never half-set.
-                    effective_from: e.target.value
-                      ? form.effective_from || nowLocalInput()
-                      : "",
+                    effective_from: e.target.value ? form.effective_from || nowLocalInput() : "",
                   })
                 }
                 data-testid="person-site-select"
@@ -515,10 +529,10 @@ function PeopleListPanel({ onOpen }: { onOpen: (staffId: string) => void }) {
           <p className="lead" style={{ marginTop: 8 }} data-testid="person-site-help">
             {canCreateUnplaced ? (
               <>
-                Leave the site as "Head office" for someone who works for the company rather than
-                at one place: they are created with no assignment, shown as "No primary site
-                assigned", and can be assigned to a real site later. Either way, what this person
-                may do is decided by their role grants, never by the site shown here.
+                Leave the site as "Head office" for someone who works for the company rather than at
+                one place: they are created with no assignment, shown as "No primary site assigned",
+                and can be assigned to a real site later. Either way, what this person may do is
+                decided by their role grants, never by the site shown here.
               </>
             ) : (
               <>
@@ -541,11 +555,19 @@ function PeopleListPanel({ onOpen }: { onOpen: (staffId: string) => void }) {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={4}>Loading…</td></tr>
+              <tr>
+                <td colSpan={4}>Loading…</td>
+              </tr>
             ) : failure ? (
-              <tr><td colSpan={4} className="warn-note">{failure}</td></tr>
+              <tr>
+                <td colSpan={4} className="warn-note">
+                  {failure}
+                </td>
+              </tr>
             ) : filtered.length === 0 ? (
-              <tr data-testid="people-empty"><td colSpan={4}>No people found.</td></tr>
+              <tr data-testid="people-empty">
+                <td colSpan={4}>No people found.</td>
+              </tr>
             ) : (
               filtered.map((row) => (
                 <tr
@@ -554,10 +576,16 @@ function PeopleListPanel({ onOpen }: { onOpen: (staffId: string) => void }) {
                   onClick={() => onOpen(row.id)}
                   data-testid={`person-row-${row.data.staff_code}`}
                 >
-                  <td><b className="mono">{row.data.staff_code}</b></td>
+                  <td>
+                    <b className="mono">{row.data.staff_code}</b>
+                  </td>
                   <td>{row.data.display_name}</td>
                   <td>{siteName(meta, row.data.site_id)}</td>
-                  <td><span className={`chip chip-${row.state === "active" ? "green" : "red"}`}>{row.state}</span></td>
+                  <td>
+                    <span className={`chip chip-${row.state === "active" ? "green" : "red"}`}>
+                      {row.state}
+                    </span>
+                  </td>
                 </tr>
               ))
             )}
@@ -702,7 +730,10 @@ function PersonTab({ doc, reload }: { doc: ResourceDTO<StaffData>; reload: () =>
         <p className="lead" style={{ marginTop: 8 }}>
           Site: {siteName(meta, doc.data.site_id)}
           {doc.data.site_id === null && (
-            <span data-testid="pa-no-primary-site"> — grants alone still decide this person's authority.</span>
+            <span data-testid="pa-no-primary-site">
+              {" "}
+              — grants alone still decide this person's authority.
+            </span>
           )}
         </p>
       </div>
@@ -712,7 +743,11 @@ function PersonTab({ doc, reload }: { doc: ResourceDTO<StaffData>; reload: () =>
           <h3 className="h3">Retire this person</h3>
           <p className="lead">Needs your password again — retiring staff is a privileged change.</p>
           {!retiring ? (
-            <button className="btn btn-sm" onClick={() => setRetiring(true)} data-testid="pa-retire-start-button">
+            <button
+              className="btn btn-sm"
+              onClick={() => setRetiring(true)}
+              data-testid="pa-retire-start-button"
+            >
               <Ban size={14} /> Retire
             </button>
           ) : (
@@ -724,10 +759,18 @@ function PersonTab({ doc, reload }: { doc: ResourceDTO<StaffData>; reload: () =>
                 onChange={(e) => setReason(e.target.value)}
                 data-testid="pa-retire-reason-input"
               />
-              <button className="btn btn-cta" onClick={retire} data-testid="pa-retire-confirm-button">
+              <button
+                className="btn btn-cta"
+                onClick={retire}
+                data-testid="pa-retire-confirm-button"
+              >
                 Confirm retirement
               </button>
-              <button className="btn btn-sm" onClick={() => setRetiring(false)} data-testid="pa-retire-cancel-button">
+              <button
+                className="btn btn-sm"
+                onClick={() => setRetiring(false)}
+                data-testid="pa-retire-cancel-button"
+              >
                 Cancel
               </button>
             </div>
@@ -853,13 +896,27 @@ function AssignmentTab({ doc, reload }: { doc: ResourceDTO<StaffData>; reload: (
 function useLoginForPerson(humanId: string) {
   const list = useResourceList<UserData>("/goods-v1/auth/admin/users");
   const summary = list.items.find((u) => u.data.human_id === humanId) ?? null;
-  const detail = useResourceDoc<UserData>(summary ? `/goods-v1/auth/admin/users/${summary.id}` : null);
-  return { summary, detail, reloadList: list.reload, listLoading: list.loading, listDenied: list.denied };
+  const detail = useResourceDoc<UserData>(
+    summary ? `/goods-v1/auth/admin/users/${summary.id}` : null,
+  );
+  return {
+    summary,
+    detail,
+    reloadList: list.reload,
+    listLoading: list.loading,
+    listDenied: list.denied,
+  };
 }
 
 const blankLogin = { email: "", display_name: "", password: "", identityConfirmed: false };
 
-function LoginTab({ staff, login }: { staff: ResourceDTO<StaffData>; login: ReturnType<typeof useLoginForPerson> }) {
+function LoginTab({
+  staff,
+  login,
+}: {
+  staff: ResourceDTO<StaffData>;
+  login: ReturnType<typeof useLoginForPerson>;
+}) {
   const { session } = useAuth();
   const canManage = hold(session, "access.manage");
   const [form, setForm] = useState({ ...blankLogin, display_name: staff.data.display_name });
@@ -899,7 +956,9 @@ function LoginTab({ staff, login }: { staff: ResourceDTO<StaffData>; login: Retu
           ...goodsMeta(),
         }),
       );
-      setOk("Login created. Share the temporary password with them directly, never in writing here.");
+      setOk(
+        "Login created. Share the temporary password with them directly, never in writing here.",
+      );
       setEditing(false);
       login.reloadList();
       login.detail.reload();
@@ -948,7 +1007,9 @@ function LoginTab({ staff, login }: { staff: ResourceDTO<StaffData>; login: Retu
       {stepUp.dialog}
       {!login.summary ? (
         <div className="card section-card">
-          <p className="lead" data-testid="pa-no-login">This person has no login yet.</p>
+          <p className="lead" data-testid="pa-no-login">
+            This person has no login yet.
+          </p>
           {canManage && (
             <div className="form-grid wide-form">
               <div className="field">
@@ -992,7 +1053,11 @@ function LoginTab({ staff, login }: { staff: ResourceDTO<StaffData>; login: Retu
                 />{" "}
                 I confirmed this person's identity and ownership of this login email
               </label>
-              <button className="btn btn-cta" onClick={createLogin} data-testid="pa-login-create-button">
+              <button
+                className="btn btn-cta"
+                onClick={createLogin}
+                data-testid="pa-login-create-button"
+              >
                 <KeyRound size={15} /> Create login
               </button>
             </div>
@@ -1008,7 +1073,8 @@ function LoginTab({ staff, login }: { staff: ResourceDTO<StaffData>; login: Retu
             {/* GSA-T03/ticket 03A: true until this login's own change-password
                 (E239) succeeds - a restricted session server-side, not merely a
                 hint here (`accounts.authentication.enforce_password_change_restriction`). */}
-            {(login.detail.doc?.data.must_change_password ?? login.summary.data.must_change_password) && (
+            {(login.detail.doc?.data.must_change_password ??
+              login.summary.data.must_change_password) && (
               <span className="chip chip-amber" data-testid="pa-login-must-change-password">
                 must replace temporary password
               </span>
@@ -1090,7 +1156,11 @@ function LoginTab({ staff, login }: { staff: ResourceDTO<StaffData>; login: Retu
                   I confirmed this person's identity and ownership of this login email
                 </label>
               )}
-              <button className="btn btn-cta" onClick={saveLogin} data-testid="pa-login-save-button">
+              <button
+                className="btn btn-cta"
+                onClick={saveLogin}
+                data-testid="pa-login-save-button"
+              >
                 <Save size={15} /> Save login
               </button>
               <button
@@ -1118,7 +1188,10 @@ function LoginTab({ staff, login }: { staff: ResourceDTO<StaffData>; login: Retu
 // Roles and grants + Effective authority (E081, grants inside E072)
 // --------------------------------------------------------------------------
 
-function actionsForRole(meta: AdminMeta | null, roleCode: string): AdminMetaRoleTemplate | undefined {
+function actionsForRole(
+  meta: AdminMeta | null,
+  roleCode: string,
+): AdminMetaRoleTemplate | undefined {
   return meta?.role_templates.find((t) => t.code === roleCode);
 }
 
@@ -1155,7 +1228,9 @@ function GrantEditor({
   // What this role may carry now (ticket 03C): its template as narrowed by the
   // role's own E080 setting. The server refuses anything beyond it regardless.
   const maximum = role ? maxima?.find((m) => m.role_code === role.code) : undefined;
-  const scopeKinds = role ? SCOPE_KINDS.filter((k) => maximum?.scope_kinds.includes(k)) : SCOPE_KINDS;
+  const scopeKinds = role
+    ? SCOPE_KINDS.filter((k) => maximum?.scope_kinds.includes(k))
+    : SCOPE_KINDS;
 
   function toggle(list: string[], set: (v: string[]) => void, value: string) {
     set(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
@@ -1212,16 +1287,18 @@ function GrantEditor({
               const nextCode = meta?.roles.find((r) => r.id === e.target.value)?.code;
               const next = maxima?.find((m) => m.role_code === nextCode);
               const allowed = next ? SCOPE_KINDS.filter((k) => next.scope_kinds.includes(k)) : [];
-              if (allowed.length > 0 && !allowed.includes(scopeKind)) setScopeKind(allowed[0]);
+              if (allowed[0] && !allowed.includes(scopeKind)) setScopeKind(allowed[0]);
             }}
             data-testid="pa-grant-role-select"
           >
             <option value="">Choose a role…</option>
-            {(meta?.roles ?? []).filter((r) => r.active).map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.code} — {r.name}
-              </option>
-            ))}
+            {(meta?.roles ?? [])
+              .filter((r) => r.active)
+              .map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.code} — {r.name}
+                </option>
+              ))}
           </select>
         </div>
 
@@ -1320,17 +1397,19 @@ function GrantEditor({
               This role has no registered maximum, so it cannot carry goods actions.
             </p>
           )}
-          {(role ? (maximum?.actions ?? []) : (meta?.actions.map((a) => a.code) ?? [])).map((code) => (
-            <label key={code} className="pa-check">
-              <input
-                type="checkbox"
-                checked={actions.includes(code)}
-                onChange={() => toggle(actions, setActions, code)}
-                data-testid={`pa-grant-action-${code}`}
-              />
-              {meta?.actions.find((a) => a.code === code)?.label ?? code}
-            </label>
-          ))}
+          {(role ? (maximum?.actions ?? []) : (meta?.actions.map((a) => a.code) ?? [])).map(
+            (code) => (
+              <label key={code} className="pa-check">
+                <input
+                  type="checkbox"
+                  checked={actions.includes(code)}
+                  onChange={() => toggle(actions, setActions, code)}
+                  data-testid={`pa-grant-action-${code}`}
+                />
+                {meta?.actions.find((a) => a.code === code)?.label ?? code}
+              </label>
+            ),
+          )}
         </fieldset>
 
         <fieldset className="pa-check-group">
@@ -1384,7 +1463,7 @@ function GrantsTable({
 }: {
   meta: AdminMeta | null;
   grants: UserGrant[];
-  renderActions?: (grant: UserGrant) => ReactNode;
+  renderActions?: ((grant: UserGrant) => ReactNode) | undefined;
 }) {
   return (
     <div className="table-wrap">
@@ -1422,7 +1501,13 @@ function GrantsTable({
   );
 }
 
-function GrantsTab({ staff, login }: { staff: ResourceDTO<StaffData>; login: ReturnType<typeof useLoginForPerson> }) {
+function GrantsTab({
+  staff,
+  login,
+}: {
+  staff: ResourceDTO<StaffData>;
+  login: ReturnType<typeof useLoginForPerson>;
+}) {
   const { session } = useAuth();
   const canManage = hold(session, "access.manage");
   const meta = useAdminMeta();
@@ -1470,7 +1555,11 @@ function GrantsTab({ staff, login }: { staff: ResourceDTO<StaffData>; login: Ret
         <h3 className="h3">Roles and grants</h3>
         <div className="spacer" />
         {canManage && !adding && (
-          <button className="btn btn-cta" onClick={() => setAdding(true)} data-testid="pa-grant-add-button">
+          <button
+            className="btn btn-cta"
+            onClick={() => setAdding(true)}
+            data-testid="pa-grant-add-button"
+          >
             <Plus size={15} /> Add grant
           </button>
         )}
@@ -1526,12 +1615,20 @@ function GrantsTab({ staff, login }: { staff: ResourceDTO<StaffData>; login: Ret
   );
 }
 
-function EffectiveAuthorityTab({ staff, login }: { staff: ResourceDTO<StaffData>; login: ReturnType<typeof useLoginForPerson> }) {
+function EffectiveAuthorityTab({
+  staff,
+  login,
+}: {
+  staff: ResourceDTO<StaffData>;
+  login: ReturnType<typeof useLoginForPerson>;
+}) {
   const meta = useAdminMeta();
   if (!login.summary) {
     return (
       <div data-testid="pa-authority-tab">
-        <p className="lead">{staff.data.display_name} has no login, so nothing here can be exercised.</p>
+        <p className="lead">
+          {staff.data.display_name} has no login, so nothing here can be exercised.
+        </p>
       </div>
     );
   }
@@ -1556,16 +1653,27 @@ function EffectiveAuthorityTab({ staff, login }: { staff: ResourceDTO<StaffData>
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <tr data-testid="pa-authority-empty"><td colSpan={6}>No live authority.</td></tr>
+              <tr data-testid="pa-authority-empty">
+                <td colSpan={6}>No live authority.</td>
+              </tr>
             ) : (
               rows.map(({ grant, action }, i) => (
                 <tr key={`${grant.id}-${action}-${i}`}>
-                  <td>{grant.scope.scope_kind === "site" ? siteName(meta, grant.scope.site_id) : "—"}</td>
-                  <td>{grant.scope.scope_kind === "sbu" ? (meta?.sbus.find((s) => s.id === grant.scope.sbu_id)?.code ?? grant.scope.sbu_id) : "—"}</td>
+                  <td>
+                    {grant.scope.scope_kind === "site" ? siteName(meta, grant.scope.site_id) : "—"}
+                  </td>
+                  <td>
+                    {grant.scope.scope_kind === "sbu"
+                      ? (meta?.sbus.find((s) => s.id === grant.scope.sbu_id)?.code ??
+                        grant.scope.sbu_id)
+                      : "—"}
+                  </td>
                   <td>{grant.scope.scope_kind === "brand" ? grant.scope.brand_id : "—"}</td>
                   <td>{action}</td>
                   <td>{grant.fields.join(", ") || "—"}</td>
-                  <td className="mono" style={{ fontSize: 12.5 }}>{grant.role_code} · {grant.id.slice(0, 8)}</td>
+                  <td className="mono" style={{ fontSize: 12.5 }}>
+                    {grant.role_code} · {grant.id.slice(0, 8)}
+                  </td>
                 </tr>
               ))
             )}
@@ -1579,13 +1687,21 @@ function EffectiveAuthorityTab({ staff, login }: { staff: ResourceDTO<StaffData>
 // E247 (ticket 03D): the person's own history, then their login's - which
 // carries every grant change and each privileged change's acknowledgement.
 // Reading history never acknowledges or closes anything.
-function HistoryTab({ staff, login }: { staff: ResourceDTO<StaffData>; login: ReturnType<typeof useLoginForPerson> }) {
+function HistoryTab({
+  staff,
+  login,
+}: {
+  staff: ResourceDTO<StaffData>;
+  login: ReturnType<typeof useLoginForPerson>;
+}) {
   const { session } = useAuth();
   const canReview = hold(session, "access.review");
   if (!hold(session, "audit.view")) {
     return (
       <div className="card section-card" data-testid="pa-history-tab">
-        <p className="lead" data-testid="pa-history-no-access">You cannot read history.</p>
+        <p className="lead" data-testid="pa-history-no-access">
+          You cannot read history.
+        </p>
       </div>
     );
   }
@@ -1654,7 +1770,9 @@ function PersonDetailView({
         <button className="btn btn-sm" onClick={onBack} data-testid="person-back-button">
           ← People
         </button>
-        <h3 className="h3" style={{ marginLeft: 8 }}>{doc.data.display_name}</h3>
+        <h3 className="h3" style={{ marginLeft: 8 }}>
+          {doc.data.display_name}
+        </h3>
         <span className="chip chip-blue" data-testid="pa-has-login-badge" style={{ marginLeft: 8 }}>
           {login.summary ? "Has login" : "No login"}
         </span>
@@ -1733,7 +1851,9 @@ function RolesPanel() {
       description: form.description.trim() || null,
     };
     try {
-      await stepUp.guarded(() => api.post<ResourceDTO<RoleData>>("/goods-v1/auth/admin/roles", body));
+      await stepUp.guarded(() =>
+        api.post<ResourceDTO<RoleData>>("/goods-v1/auth/admin/roles", body),
+      );
       const known = meta?.role_templates.some((t) => t.code === code);
       setForm(blankRole);
       setAdding(false);
@@ -1757,7 +1877,11 @@ function RolesPanel() {
         <h3 className="h3">Roles</h3>
         <div className="spacer" />
         {!adding && canCreate && (
-          <button className="btn btn-cta" onClick={() => setAdding(true)} data-testid="pa-role-add-button">
+          <button
+            className="btn btn-cta"
+            onClick={() => setAdding(true)}
+            data-testid="pa-role-add-button"
+          >
             <Plus size={13} /> New role
           </button>
         )}
@@ -1834,11 +1958,19 @@ function RolesPanel() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={5}>Loading…</td></tr>
+              <tr>
+                <td colSpan={5}>Loading…</td>
+              </tr>
             ) : failure ? (
-              <tr><td colSpan={5} className="warn-note">{failure}</td></tr>
+              <tr>
+                <td colSpan={5} className="warn-note">
+                  {failure}
+                </td>
+              </tr>
             ) : items.length === 0 ? (
-              <tr><td colSpan={5}>No roles yet.</td></tr>
+              <tr>
+                <td colSpan={5}>No roles yet.</td>
+              </tr>
             ) : (
               items.map((row) => {
                 const maximum = maxima?.find((m) => m.role_code === row.data.code);
@@ -2033,8 +2165,8 @@ function RoleDetail({
         <div className="form-grid wide-form" data-testid="pa-role-maximum">
           <p className="lead">
             Anyone granted {role.data.code} gets at most what is ticked here. Only what the role's
-            registered maximum allows is offered. Saving ends the open sessions of everyone who holds
-            this role, so the new limit applies at once.
+            registered maximum allows is offered. Saving ends the open sessions of everyone who
+            holds this role, so the new limit applies at once.
           </p>
           <fieldset className="pa-check-group">
             <legend>Scope kinds</legend>
@@ -2087,7 +2219,11 @@ function RoleDetail({
           </fieldset>
           {canSetMaximum && (
             <div>
-              <button className="btn btn-cta" onClick={saveMaximum} data-testid="pa-role-maximum-submit">
+              <button
+                className="btn btn-cta"
+                onClick={saveMaximum}
+                data-testid="pa-role-maximum-submit"
+              >
                 <ShieldCheck size={15} /> Save maximum
               </button>
             </div>
@@ -2111,7 +2247,13 @@ function RoleDetail({
 // Privileged changes (E084, E237)
 // --------------------------------------------------------------------------
 
-function PrivilegedChangesPanel({ changeId, onShowAll }: { changeId: string | null; onShowAll: () => void }) {
+function PrivilegedChangesPanel({
+  changeId,
+  onShowAll,
+}: {
+  changeId: string | null;
+  onShowAll: () => void;
+}) {
   const { session } = useAuth();
   const canReview = hold(session, "access.review");
   // The owned follow-up and a history entry open one change by id (ticket 03D);
@@ -2145,7 +2287,10 @@ function PrivilegedChangesPanel({ changeId, onShowAll }: { changeId: string | nu
     }
     try {
       await stepUp.guarded(() =>
-        api.post(`/goods-v1/auth/admin/privileged-changes/${id}/review`, { note: note.trim(), ...goodsMeta() }),
+        api.post(`/goods-v1/auth/admin/privileged-changes/${id}/review`, {
+          note: note.trim(),
+          ...goodsMeta(),
+        }),
       );
       setOk("Acknowledged.");
       setNoteFor(null);
@@ -2182,12 +2327,20 @@ function PrivilegedChangesPanel({ changeId, onShowAll }: { changeId: string | nu
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={5}>Loading…</td></tr>
+              <tr>
+                <td colSpan={5}>Loading…</td>
+              </tr>
             ) : failure ? (
-              <tr><td colSpan={5} className="warn-note">{failure}</td></tr>
+              <tr>
+                <td colSpan={5} className="warn-note">
+                  {failure}
+                </td>
+              </tr>
             ) : items.length === 0 ? (
               <tr data-testid="privileged-changes-empty">
-                <td colSpan={5}>{changeId ? "That change was not found." : "No privileged changes yet."}</td>
+                <td colSpan={5}>
+                  {changeId ? "That change was not found." : "No privileged changes yet."}
+                </td>
               </tr>
             ) : (
               items.map((row) => (
@@ -2195,13 +2348,20 @@ function PrivilegedChangesPanel({ changeId, onShowAll }: { changeId: string | nu
                   <td>{fmtDate(row.data.event_at)}</td>
                   <td>{row.data.actor_name ?? row.data.service_code ?? "—"}</td>
                   <td>
-                    {row.data.action} <span className="mono" style={{ fontSize: 12 }}>{row.data.subject_key}</span>
+                    {row.data.action}{" "}
+                    <span className="mono" style={{ fontSize: 12 }}>
+                      {row.data.subject_key}
+                    </span>
                   </td>
                   <td>
-                    <span className={`chip chip-${row.state === "reviewed" ? "green" : "amber"}`}>{row.state}</span>
+                    <span className={`chip chip-${row.state === "reviewed" ? "green" : "amber"}`}>
+                      {row.state}
+                    </span>
                     {row.data.reviews.length > 0 && (
                       <div className="lead" style={{ fontSize: 12 }}>
-                        {row.data.reviews.map((r) => `${r.reviewer_name ?? r.reviewer_id}: ${r.note}`).join("; ")}
+                        {row.data.reviews
+                          .map((r) => `${r.reviewer_name ?? r.reviewer_id}: ${r.note}`)
+                          .join("; ")}
                       </div>
                     )}
                   </td>
@@ -2332,7 +2492,10 @@ export function PeopleAccessPage() {
           )}
           {panel === "roles" && <RolesPanel />}
           {panel === "privileged" && (
-            <PrivilegedChangesPanel changeId={params.get("change")} onShowAll={() => selectPanel("privileged")} />
+            <PrivilegedChangesPanel
+              changeId={params.get("change")}
+              onShowAll={() => selectPanel("privileged")}
+            />
           )}
         </div>
       </div>

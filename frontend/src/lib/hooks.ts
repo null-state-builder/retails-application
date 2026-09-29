@@ -12,7 +12,7 @@ import { withQuery, type QueryParams } from "./query";
  * loop. A blank value is dropped, so an empty search box asks the exact
  * question the screen asked before it had one.
  */
-export function useList<T = any>(url: string | null, params?: QueryParams) {
+export function useList<T>(url: string | null, params?: QueryParams) {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
   const full = url === null ? null : withQuery(url, params);
@@ -30,7 +30,7 @@ export function useList<T = any>(url: string | null, params?: QueryParams) {
   return { data, loading, reload };
 }
 
-export function useDoc<T = any>(url: string | null) {
+export function useDoc<T>(url: string | null) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);

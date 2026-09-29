@@ -1159,6 +1159,78 @@ def movement_resource(
 # E104 / E105: read movements
 # ---------------------------------------------------------------------------
 
+MOVEMENT_REQUEST_LINE: dict[str, Any] = {
+    "type": "object", "additionalProperties": False,
+    "description": (
+        "A lot or SKU and quantity. Existing-stock movements name source_location_id; "
+        "adjustment_up names the found SKU and may give cost_evidence_origin_id instead. "
+        "The selected kind determines which optional fields are valid."
+    ),
+    "required": ["line_key", "qty"],
+    "properties": {
+        "line_key": {"type": "string", "format": "uuid"},
+        **{name: {"type": "string", "format": "uuid"} for name in (
+            "sku_id", "lot_id", "origin_id", "source_location_id",
+            "destination_location_id", "cost_evidence_origin_id", "transfer_exception_id"
+        )},
+        "qty": {"type": "integer", "minimum": 1, "maximum": movements.MAX_QTY},
+        "hold_keys": {"type": "array", "maxItems": 20,
+                      "items": {"type": "string", "format": "uuid"}},
+        "condition": {"type": "string", "enum": sorted(movements.CONDITION_VALUES)},
+        "description": {"type": "string"},
+    },
+}
+MOVEMENT_CREATE_REQUEST: dict[str, Any] = {
+    "type": "object", "additionalProperties": False,
+    "required": ["command_id", "contract_version", "kind", "site_id", "reason_code", "lines"],
+    "properties": {
+        "command_id": {"type": "string", "format": "uuid"},
+        "contract_version": {"type": "string", "enum": ["goods-v1"]},
+        "expected_revision": {"type": "integer", "minimum": 1},
+        "kind": {"type": "string", "enum": [
+            *movements.ACTIVE_KINDS, *adjustments.KINDS,
+            movements.RTV_KIND, movements.WRITEOFF_KIND, movements.DISPOSAL_KIND,
+        ]},
+        "site_id": {"type": "integer"},
+        "source_document_id": {"type": "string", "format": "uuid"},
+        "reason_code": {"type": "string", "minLength": 1, "maxLength": 60},
+        "evidence_ids": {"type": "array", "maxItems": 20,
+                         "items": {"type": "string", "format": "uuid"}},
+        "evidence_note": {"type": "string", "maxLength": 1000},
+        "vendor_id": {"type": "integer"},
+        "agreement_reference": {"type": "string", "maxLength": rtv.MAX_REFERENCE},
+        "lines": {"type": "array", "minItems": 1, "maxItems": movements.MAX_LINES,
+                  "items": MOVEMENT_REQUEST_LINE},
+        "disposal": {"type": "object", "additionalProperties": False,
+                     "required": ["method", "disposed_at"], "properties": {
+                         "method": {"type": "string", "enum": list(disposal.METHODS)},
+                         "disposed_at": {"type": "string", "format": "date-time"},
+                         "handed_over_to": {"type": "string", "maxLength": disposal.MAX_RECIPIENT},
+                         "scrap_proceeds_paise": {"type": "integer", "minimum": 0},
+                         "evidence_reference": {"type": "string", "maxLength": disposal.MAX_REFERENCE},
+                     }},
+    },
+}
+MOVEMENT_SUBMIT_REQUEST: dict[str, Any] = {
+    "type": "object", "additionalProperties": False,
+    "required": ["command_id", "contract_version", "expected_revision", "reviewed_hash"],
+    "properties": {
+        "command_id": {"type": "string", "format": "uuid"},
+        "contract_version": {"type": "string", "enum": ["goods-v1"]},
+        "expected_revision": {"type": "integer", "minimum": 1},
+        "reviewed_hash": {"type": "string", "minLength": 64, "maxLength": 64},
+    },
+}
+MARK_DAMAGED_REQUEST: dict[str, Any] = {
+    **MOVEMENT_CREATE_REQUEST,
+    "required": ["command_id", "contract_version", "site_id", "reason_code", "lines"],
+    "description": "A hold movement at the site; kind may be omitted or must be hold.",
+    "properties": {
+        **MOVEMENT_CREATE_REQUEST["properties"],
+        "kind": {"type": "string", "enum": ["hold"]},
+    },
+}
+
 
 class MovementListCreateView(GoodsAPIView):
     """E104 list; E151 create. A bin move or hold posts here; a release is drafted."""
@@ -1195,6 +1267,7 @@ class MovementListCreateView(GoodsAPIView):
         return Response(page(window, cursor))
 
     @extend_schema(
+        request={"application/json": MOVEMENT_CREATE_REQUEST},
         description=(
             "E151 bin move / hold / release, and E152 (goods ticket 15A) evidenced "
             "adjustments: `kind` `adjustment_down` or `shrinkage` (lines name "
@@ -1536,6 +1609,7 @@ class MovementSubmitView(GoodsAPIView):
     http_method_names = ["post", "options"]
 
     @extend_schema(
+        request={"application/json": MOVEMENT_SUBMIT_REQUEST},
         description=(
             "Send a drafted release or adjustment (E196/E197) for a distinct "
             "`movement.approve` decision; body `{reviewed_hash}` plus MutationMeta "
@@ -2306,7 +2380,10 @@ class MarkDamagedView(GoodsAPIView):
 
     http_method_names = ["post", "options"]
 
-    @extend_schema(responses=_responses(201, MOVEMENT_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(
+        request={"application/json": MARK_DAMAGED_REQUEST},
+        responses=_responses(201, MOVEMENT_RESOURCE, _WRITE_REFUSALS),
+    )
     def post(self, request: Request) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=False)

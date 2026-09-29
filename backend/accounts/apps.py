@@ -9,6 +9,11 @@ class AccountsConfig(AppConfig):
     verbose_name = "Users, Roles & Access"
 
     def ready(self) -> None:
+        # drf-spectacular discovers custom auth schemes through an imported
+        # extension; without this, hundreds of protected routes lose their
+        # security declaration in the generated client contract.
+        import accounts.schema_extensions  # noqa: F401
+
         from accounts.access_changes import apply_access_change
         from accounts.models import AccessChange, User
         from approvals.hooks import register_on_approved

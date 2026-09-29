@@ -8,6 +8,7 @@ Money section's cash summary share.
 from __future__ import annotations
 
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -19,6 +20,105 @@ from core.dates import parse_day
 from core.refusals import refusal_body
 from storefront.cash_summary import build as build_cash_summary
 from storefront.dashboard import build, resolve_store
+
+
+_MONEY_MODES = {"type": "object", "additionalProperties": {"type": "integer"}}
+_DASHBOARD_RESPONSE = {
+    "type": "object",
+    "required": ["store", "sales_live", "today", "action_queue", "live", "last7"],
+    "properties": {
+        "store": {"type": "string"},
+        "sales_live": {"type": "boolean"},
+        "today": {
+            "type": "object",
+            "properties": {
+                "net_sales_paise": {"type": "integer"},
+                "bills": {"type": "integer"},
+                "avg_bill_paise": {"type": "integer"},
+                "pieces": {"type": "integer"},
+                "collections": _MONEY_MODES,
+                "vs_yesterday_pct": {"type": "integer", "nullable": True},
+            },
+        },
+        "action_queue": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {"key": {"type": "string"}, "count": {"type": "integer"}},
+            },
+        },
+        "live": {
+            "type": "object",
+            "properties": {
+                "offers": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "integer"},
+                            "brand": {"type": "string"},
+                            "one_liner": {"type": "string"},
+                        },
+                    },
+                },
+                "in_transit": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "id": {"type": "integer"},
+                            "doc_number": {"type": "string"},
+                            "pieces": {"type": "integer"},
+                            "expected": {"type": "string"},
+                        },
+                    },
+                },
+            },
+        },
+        "last7": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "date": {"type": "string", "format": "date"},
+                    "net_sales_paise": {"type": "integer"},
+                },
+            },
+        },
+        "manager": {
+            "type": "object",
+            "description": "Present only for a manager with both Sell and Money read access.",
+            "properties": {
+                "day_close": {
+                    "type": "object",
+                    "properties": {
+                        "date": {"type": "string", "format": "date"},
+                        "state": {"type": "string"},
+                    },
+                },
+                "mtd_net_paise": {"type": "integer"},
+                "target_paise": {"type": "integer"},
+            },
+        },
+    },
+}
+_CASH_SUMMARY_RESPONSE = {
+    "type": "object",
+    "required": [
+        "store", "date", "modes", "upi_split", "bills", "returns",
+        "credit_notes_issued_paise", "flags_open",
+    ],
+    "properties": {
+        "store": {"type": "string"},
+        "date": {"type": "string", "format": "date"},
+        "modes": _MONEY_MODES,
+        "upi_split": _MONEY_MODES,
+        "bills": {"type": "integer"},
+        "returns": {"type": "integer"},
+        "credit_notes_issued_paise": {"type": "integer"},
+        "flags_open": {"type": "integer"},
+    },
+}
 
 
 class DashboardView(APIView):
@@ -37,6 +137,7 @@ class DashboardView(APIView):
 
     permission_classes = [IsAuthenticated, require_section("home", CAP_VIEW)]
 
+    @extend_schema(responses={200: _DASHBOARD_RESPONSE})
     def get(self, request: Request) -> Response:
         pick = resolve_store(request.user, (request.query_params.get("store") or "").strip())
         if pick.store is None:
@@ -64,6 +165,7 @@ class CashSummaryView(APIView):
 
     permission_classes = [IsAuthenticated, require_section("money", CAP_VIEW)]
 
+    @extend_schema(responses={200: _CASH_SUMMARY_RESPONSE})
     def get(self, request: Request) -> Response:
         asked = (request.query_params.get("date") or "").strip()
         day = parse_day(asked) if asked else timezone.localdate()

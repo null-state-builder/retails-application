@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 from django.db.models import Count, Sum
 from django.utils import timezone
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import generics
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
@@ -20,6 +21,7 @@ from accounts.sections import CAP_MANAGE
 from core.money import paise_to_rupees_str
 from core.textsearch import search_term, text_filter
 from files.models import StoredFile, UploadTooLarge
+from finledger import api_schema as contract
 from finledger.models import (
     BankStatementImport,
     BankStatementLine,
@@ -90,6 +92,7 @@ class VendorEntriesView(generics.ListAPIView[VendorLedgerEntry]):
 class VendorBalancesView(APIView):
     permission_classes = [IsAuthenticated, IsBooksKeeper]
 
+    @extend_schema(responses={200: contract.VENDOR_BALANCES})
     def get(self, request: Request) -> Response:
         rows = (
             VendorLedgerEntry.objects.values("vendor_id", "vendor__code", "vendor__name")
@@ -158,6 +161,7 @@ def _open_vendor_lots(entries: list[VendorLedgerEntry]) -> list[dict[str, Any]]:
 class VendorAgeingView(APIView):
     permission_classes = [IsAuthenticated, IsBooksKeeper]
 
+    @extend_schema(responses={200: contract.VENDOR_AGEING})
     def get(self, request: Request) -> Response:
         grouped: dict[int, list[VendorLedgerEntry]] = defaultdict(list)
         entries = VendorLedgerEntry.objects.select_related("vendor").order_by(
@@ -224,6 +228,10 @@ class VendorAgeingView(APIView):
 class VendorBillView(APIView):
     permission_classes = [IsAuthenticated, IsBooksKeeper]
 
+    @extend_schema(
+        request={"application/json": contract.VENDOR_POST},
+        responses={201: VendorLedgerEntrySerializer, 400: contract.DETAIL, 403: contract.DETAIL},
+    )
     def post(self, request: Request) -> Response:
         if not _keeps_books(request.user):
             return Response({"detail": "Not permitted."}, status=403)
@@ -247,6 +255,10 @@ class VendorBillView(APIView):
 class VendorPaymentView(APIView):
     permission_classes = [IsAuthenticated, IsBooksKeeper]
 
+    @extend_schema(
+        request={"application/json": contract.VENDOR_PAYMENT},
+        responses={201: VendorLedgerEntrySerializer, 400: contract.DETAIL, 403: contract.DETAIL},
+    )
     def post(self, request: Request) -> Response:
         if not _keeps_books(request.user):
             return Response({"detail": "Not permitted."}, status=403)
@@ -276,6 +288,11 @@ class VendorPaymentView(APIView):
 class VendorReverseView(APIView):
     permission_classes = [IsAuthenticated, IsBooksKeeper]
 
+    @extend_schema(
+        request=None,
+        responses={201: VendorLedgerEntrySerializer, 403: contract.DETAIL, 404: contract.DETAIL,
+                   409: contract.DETAIL},
+    )
     def post(self, request: Request, pk: int) -> Response:
         if not _keeps_books(request.user):
             return Response({"detail": "Not permitted."}, status=403)
@@ -322,6 +339,10 @@ class CashDailyView(APIView):
 
     permission_classes = [IsAuthenticated, IsBooksKeeper]
 
+    @extend_schema(
+        parameters=[OpenApiParameter("date", str, description="Calendar date YYYY-MM-DD; today if omitted.")],
+        responses={200: contract.CASH_DAILY, 400: contract.DETAIL},
+    )
     def get(self, request: Request) -> Response:
         day_str = request.query_params.get("date")
         try:
@@ -370,6 +391,7 @@ class CashDailyView(APIView):
 class CashSummaryView(APIView):
     permission_classes = [IsAuthenticated, IsBooksKeeper]
 
+    @extend_schema(responses={200: contract.CASH_SUMMARY})
     def get(self, request: Request) -> Response:
         rows = (
             CashLedgerEntry.objects.values("account")
@@ -401,6 +423,10 @@ class CashSummaryView(APIView):
 class CashMovementView(APIView):
     permission_classes = [IsAuthenticated, IsBooksKeeper]
 
+    @extend_schema(
+        request={"application/json": contract.CASH_MOVEMENT},
+        responses={201: CashLedgerEntrySerializer, 400: contract.DETAIL, 403: contract.DETAIL},
+    )
     def post(self, request: Request) -> Response:
         if not _keeps_books(request.user):
             return Response({"detail": "Not permitted."}, status=403)
@@ -424,6 +450,11 @@ class CashMovementView(APIView):
 class CashReverseView(APIView):
     permission_classes = [IsAuthenticated, IsBooksKeeper]
 
+    @extend_schema(
+        request=None,
+        responses={201: CashLedgerEntrySerializer, 403: contract.DETAIL, 404: contract.DETAIL,
+                   409: contract.DETAIL},
+    )
     def post(self, request: Request, pk: int) -> Response:
         if not _keeps_books(request.user):
             return Response({"detail": "Not permitted."}, status=403)
@@ -464,6 +495,7 @@ class BankStatementImportsView(APIView):
 
     permission_classes = [IsAuthenticated, IsBooksKeeper]
 
+    @extend_schema(responses={200: contract.BANK_IMPORTS})
     def get(self, request: Request) -> Response:
         batches = BankStatementImport.objects.select_related("file", "uploaded_by").order_by(
             "-created_at"
@@ -489,6 +521,11 @@ class BankStatementImportsView(APIView):
             }
         )
 
+    @extend_schema(
+        request={"multipart/form-data": contract.BANK_UPLOAD},
+        responses={201: contract.BANK_UPLOAD_RESULT, 400: contract.DETAIL,
+                   403: contract.DETAIL, 413: contract.DETAIL},
+    )
     def post(self, request: Request) -> Response:
         if not _keeps_books(request.user):
             return Response({"detail": "Not permitted."}, status=403)
@@ -529,6 +566,10 @@ class BankStatementLinesView(APIView):
 
     permission_classes = [IsAuthenticated, IsBooksKeeper]
 
+    @extend_schema(
+        parameters=[OpenApiParameter("status", str, description="Optional match status filter.")],
+        responses={200: contract.BANK_LINES},
+    )
     def get(self, request: Request, import_id: int) -> Response:
         qs = BankStatementLine.objects.select_related("matched_entry", "matched_by").filter(
             import_batch_id=import_id
@@ -548,6 +589,11 @@ class BankStatementLineMatchView(APIView):
 
     permission_classes = [IsAuthenticated, IsBooksKeeper]
 
+    @extend_schema(
+        request={"application/json": contract.BANK_MATCH},
+        responses={200: contract.BANK_LINE, 400: contract.DETAIL, 403: contract.DETAIL,
+                   404: contract.DETAIL, 409: contract.DETAIL},
+    )
     def post(self, request: Request, pk: int) -> Response:
         if not _keeps_books(request.user):
             return Response({"detail": "Not permitted."}, status=403)

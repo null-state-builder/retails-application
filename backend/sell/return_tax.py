@@ -38,7 +38,7 @@ from decimal import Decimal
 
 from core.fiscal import financial_year, financial_year_months
 from sell.pricing import split_inclusive
-from sell.services.refunds import refund_share
+from sell.refund_math import refund_share
 
 #: Refusal codes, shared with the till and the golden cases.
 CROSS_GSTIN = "cross_gstin"

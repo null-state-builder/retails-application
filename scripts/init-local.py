@@ -46,7 +46,5 @@ if not (
     and url.username == database.get("POSTGRES_USER") == "kdps_local"
     and database.get("POSTGRES_DB") == "kdps_local"
     and url.password == database.get("POSTGRES_PASSWORD")
-    and backend.get("DJANGO_DEBUG") == "1"
-    and backend.get("SEED_DEMO") == "1"
 ):
     raise SystemExit("Configuration does not match the isolated local demo database; setup refused.")

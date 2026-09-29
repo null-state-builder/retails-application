@@ -207,7 +207,8 @@ function HistorySection<T>({
 
 /** "Receipt PT" → "receipt PT", but "PT reversal" stays: an acronym keeps its capitals. */
 function lowerFirst(words: string): string {
-  if (words.length > 1 && words[1] === words[1].toUpperCase() && /[A-Z]/.test(words[1])) {
+  const second = words.charAt(1);
+  if (second && second === second.toUpperCase() && /[A-Z]/.test(second)) {
     return words;
   }
   return words.charAt(0).toLowerCase() + words.slice(1);
@@ -395,7 +396,12 @@ function BellCard({
       </header>
       {children}
       {!!count && (
-        <Link to={seeAll} className="bell-card-all" onClick={onNavigate} data-testid={`${testId}-all`}>
+        <Link
+          to={seeAll}
+          className="bell-card-all"
+          onClick={onNavigate}
+          data-testid={`${testId}-all`}
+        >
           See all {title.toLowerCase()} <ChevronRight size={13} />
         </Link>
       )}
@@ -573,9 +579,7 @@ function ActionNeededFeed({
       : (loaded(approvals)?.length ?? 0) + (loaded(goods)?.length ?? 0);
   const fetchHistory = useCallback(
     (since: string) =>
-      api
-        .get("/approvals", { params: { decided: "1", since } })
-        .then((r) => r.data as ApprovalT[]),
+      api.get("/approvals", { params: { decided: "1", since } }).then((r) => r.data as ApprovalT[]),
     [],
   );
 
@@ -629,7 +633,8 @@ function ActionNeededFeed({
                 <li key={a.id} className="bell-row" data-testid={`bell-approval-past-${a.id}`}>
                   <p className="bell-row-title">{a.title}</p>
                   <p className="bell-row-meta">
-                    {a.status === "approved" ? "Approved" : "Rejected"} by {a.decided_by_name || "—"}
+                    {a.status === "approved" ? "Approved" : "Rejected"} by{" "}
+                    {a.decided_by_name || "—"}
                     {a.decided_at ? ` · ${fmtApprovalWhenShort(a.decided_at)}` : ""}
                     {a.reason ? ` · ${a.reason}` : ""}
                   </p>
@@ -823,7 +828,9 @@ export function AlertsButton() {
   const unread = unreadDeadlines + unreadNotes;
   const label = unread
     ? [
-        unreadDeadlines ? `${unreadDeadlines} unread deadline${unreadDeadlines === 1 ? "" : "s"}` : "",
+        unreadDeadlines
+          ? `${unreadDeadlines} unread deadline${unreadDeadlines === 1 ? "" : "s"}`
+          : "",
         unreadNotes ? `${unreadNotes} unread notification${unreadNotes === 1 ? "" : "s"}` : "",
       ]
         .filter(Boolean)
@@ -853,8 +860,7 @@ export function AlertsButton() {
 export function ActionNeededButton() {
   const { user, session } = useAuth();
   // The same two gates the Action Needed page asks (pages/ActionNeeded.tsx).
-  const canSeeApprovals =
-    !!user?.is_superuser || (user?.capabilities?.home ?? "none") !== "none";
+  const canSeeApprovals = !!user?.is_superuser || (user?.capabilities?.home ?? "none") !== "none";
   const canSeeExc = holdsExceptions(session);
   // Only for someone who can open Action Needed at all: a row here that led to
   // a page they may not see would be a dead end.

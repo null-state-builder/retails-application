@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from typing import Any, cast
 
+from drf_spectacular.utils import extend_schema
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -165,6 +166,34 @@ class SkuLookupView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses={
+            200: {
+                "type": "object",
+                "required": ["matches", "count"],
+                "properties": {
+                    "matches": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "barcode": {"type": "string"},
+                                "design": {"type": "string"},
+                                "color": {"type": "string"},
+                                "size": {"type": "string"},
+                                "brand": {"type": "string"},
+                                "item": {"type": "string"},
+                                "hsn": {"type": "string"},
+                                "mrp": {"type": "number", "nullable": True},
+                                "first_doc_number": {"type": "string", "nullable": True},
+                            },
+                        },
+                    },
+                    "count": {"type": "integer"},
+                },
+            }
+        }
+    )
     def get(self, request: Request) -> Response:
         params = {
             key: (request.query_params.get(key) or "").strip()
@@ -234,6 +263,7 @@ class StoreTargetView(APIView):
 
     permission_classes = [IsAuthenticated, CanReadOrSetStoreTarget]
 
+    @extend_schema(responses={200: StoreTargetSerializer(many=True)})
     def get(self, request: Request) -> Response:
         rows = scope_by_entitlement(
             StoreTarget.objects.select_related("store"), request.user, "store_id"
@@ -253,6 +283,7 @@ class StoreTargetView(APIView):
             rows = rows.filter(month__in=months)
         return Response(StoreTargetSerializer(rows, many=True).data)
 
+    @extend_schema(request=StoreTargetWriteSerializer, responses={200: StoreTargetSerializer})
     def put(self, request: Request) -> Response:
         form = StoreTargetWriteSerializer(data=request.data)
         if not form.is_valid():
@@ -291,6 +322,25 @@ class StoreTargetView(APIView):
 class SummaryView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses={
+            200: {
+                "type": "object",
+                "required": [
+                    "entities", "gstins", "stores", "warehouses", "brands", "seasons", "open_season",
+                ],
+                "properties": {
+                    "entities": {"type": "integer"},
+                    "gstins": {"type": "integer"},
+                    "stores": {"type": "integer"},
+                    "warehouses": {"type": "integer"},
+                    "brands": {"type": "integer"},
+                    "seasons": {"type": "integer"},
+                    "open_season": {"type": "string", "nullable": True},
+                },
+            }
+        }
+    )
     def get(self, request: Request) -> Response:
         stores = scoped_stores(request.user)
         open_season = Season.objects.filter(status=Season.Status.OPEN).first()

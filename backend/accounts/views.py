@@ -106,6 +106,13 @@ class CsrfView(APIView):
     authentication_classes: list[Any] = []
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        responses={200: {
+            "type": "object",
+            "required": ["csrf_token"],
+            "properties": {"csrf_token": {"type": "string"}},
+        }}
+    )
     def get(self, request: Request) -> Response:
         token = request.COOKIES.get(CSRF_COOKIE) or new_token()
         response = Response({"csrf_token": token})
@@ -203,6 +210,15 @@ class LoginView(APIView):
     permission_classes = [AllowAny]
 
     @extend_schema(
+        request={"application/json": {
+            "type": "object",
+            "required": ["email", "password"],
+            "properties": {
+                "email": {"type": "string", "maxLength": 254},
+                "password": {"type": "string", "maxLength": 1024},
+                "csrf_token": {"type": "string"},
+            },
+        }},
         responses={
             200: SESSION_RESPONSE,
             **{code: REFUSAL_RESPONSE for code in (400, 401, 403, 429)},
@@ -273,6 +289,25 @@ class TillPinView(APIView):
 
     permission_classes = [IsAuthenticated, require_section("sell", CAP_APPROVE)]
 
+    @extend_schema(
+        request={"application/json": {
+            "type": "object",
+            "required": ["pin", "current_password"],
+            "properties": {
+                "pin": {"type": "string"},
+                "current_password": {"type": "string"},
+            },
+        }},
+        responses={
+            200: {
+                "type": "object",
+                "required": ["status"],
+                "properties": {"status": {"type": "string", "enum": ["set"]}},
+            },
+            400: REFUSAL_RESPONSE,
+            403: REFUSAL_RESPONSE,
+        },
+    )
     def put(self, request: Request) -> Response:
         # `IsAuthenticated` above guarantees a real `User`, not the
         # `AnonymousUser` half of DRF's `request.user` union (same pattern as
@@ -317,6 +352,14 @@ class LogoutView(APIView):
     authentication_classes: list[Any] = []
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        request=None,
+        responses={200: {
+            "type": "object",
+            "required": ["logged_out"],
+            "properties": {"logged_out": {"type": "boolean", "enum": [True]}},
+        }},
+    )
     def post(self, request: Request) -> Response:
         session = resolve_session(request.COOKIES.get(SESSION_COOKIE))
         enforce_write_protection(request._request, session)
@@ -333,7 +376,10 @@ class CookieRefreshView(APIView):
     authentication_classes: list[Any] = []
     permission_classes = [AllowAny]
 
-    @extend_schema(responses={200: SESSION_RESPONSE, 401: REFUSAL_RESPONSE, 403: REFUSAL_RESPONSE})
+    @extend_schema(
+        request=None,
+        responses={200: SESSION_RESPONSE, 401: REFUSAL_RESPONSE, 403: REFUSAL_RESPONSE},
+    )
     def post(self, request: Request) -> Response:
         session = resolve_session(request.COOKIES.get(SESSION_COOKIE), raise_expired=True)
         if session is None:
@@ -352,6 +398,23 @@ class StepUpView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request={"application/json": {
+            "type": "object",
+            "required": ["password"],
+            "properties": {"password": {"type": "string", "maxLength": 1024}},
+        }},
+        responses={
+            200: {
+                "type": "object",
+                "required": ["valid_until"],
+                "properties": {"valid_until": {"type": "string", "format": "date-time"}},
+            },
+            400: REFUSAL_RESPONSE,
+            401: REFUSAL_RESPONSE,
+            429: REFUSAL_RESPONSE,
+        },
+    )
     def post(self, request: Request) -> Response:
         data = request.data if isinstance(request.data, dict) else {}
         password = data.get("password")
@@ -437,9 +500,79 @@ class ChangePasswordView(APIView):
         return response
 
 
+_SECTION_CHOICE = {
+    "type": "object",
+    "required": ["code", "label"],
+    "properties": {"code": {"type": "string"}, "label": {"type": "string"}},
+}
+_SECTION_ACCESS = {
+    "type": "object",
+    "description": "Section code to its stored or proposed access cell.",
+    "additionalProperties": {
+        "type": "object",
+        "required": ["capability"],
+        "properties": {
+            "capability": {"type": "string", "enum": list(CAPABILITY_ORDER)},
+            "label": {"type": "string", "maxLength": 120},
+        },
+    },
+}
+_ADMIN_META_RESPONSE = {
+    "type": "object",
+    "required": ["nav_groups", "sections", "capabilities", "scope_types", "stores", "brands"],
+    "properties": {
+        "nav_groups": {"type": "array", "items": {"type": "string"}},
+        "sections": {"type": "array", "items": _SECTION_CHOICE},
+        "capabilities": {"type": "array", "items": {"type": "string"}},
+        "scope_types": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {"value": {"type": "string"}, "label": {"type": "string"}},
+            },
+        },
+        "stores": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "integer"},
+                    "code": {"type": "string"},
+                    "name": {"type": "string"},
+                    "store_type": {"type": "string"},
+                },
+            },
+        },
+        "brands": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "id": {"type": "integer"},
+                    "code": {"type": "string"},
+                    "name": {"type": "string"},
+                },
+            },
+        },
+    },
+}
+_PENDING_ACCESS_RESPONSE = {
+    "type": "object",
+    "required": ["change_id", "approval_id", "status", "detail"],
+    "properties": {
+        "change_id": {"type": "integer"},
+        "approval_id": {"type": "integer"},
+        "status": {"type": "string", "enum": ["pending_approval"]},
+        "detail": {"type": "string"},
+        "cells": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+    },
+}
+
+
 class AdminMetaView(APIView):
     permission_classes = [IsAuthenticated, IsRbacAdmin]
 
+    @extend_schema(responses={200: _ADMIN_META_RESPONSE})
     def get(self, request: Request) -> Response:
         return Response(
             {
@@ -556,6 +689,53 @@ class AccessMatrixView(APIView):
     # the roles list keeps.
     permission_classes = [IsAuthenticated, IsRbacAdmin, IsAccessAdministrator]
 
+    @extend_schema(
+        responses={
+            200: {
+                "type": "object",
+                "required": ["sections", "capabilities", "rules", "roles"],
+                "properties": {
+                    "sections": {"type": "array", "items": _SECTION_CHOICE},
+                    "capabilities": {"type": "array", "items": _SECTION_CHOICE},
+                    "rules": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "rule": {"type": "integer"},
+                                "text": {"type": "string"},
+                            },
+                        },
+                    },
+                    "roles": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "code": {"type": "string"},
+                                "name": {"type": "string"},
+                                "is_system": {"type": "boolean"},
+                                "is_active": {"type": "boolean"},
+                                "user_count": {"type": "integer"},
+                                "section_access": _SECTION_ACCESS,
+                                "locked": {
+                                    "type": "object",
+                                    "additionalProperties": {
+                                        "type": "object",
+                                        "properties": {
+                                            "max_capability": {"type": "string"},
+                                            "rule": {"type": "string"},
+                                            "reason": {"type": "string"},
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        }
+    )
     def get(self, request: Request) -> Response:
         roles = Role.objects.annotate(head_count=Count("users")).order_by("name")
         return Response(
@@ -606,6 +786,32 @@ class RoleAccessView(APIView):
 
     permission_classes = [IsAuthenticated, IsRbacAdmin, IsAccessAdministrator]
 
+    @extend_schema(
+        request={
+            "application/json": {
+                "type": "object",
+                "required": ["section_access"],
+                "additionalProperties": False,
+                "properties": {"section_access": _SECTION_ACCESS},
+            }
+        },
+        responses={
+            200: {
+                "type": "object",
+                "description": "No changed cells; no approval request was created.",
+                "properties": {
+                    "status": {"type": "string", "enum": ["unchanged"]},
+                    "detail": {"type": "string"},
+                    "code": {"type": "string"},
+                    "section_access": _SECTION_ACCESS,
+                },
+            },
+            202: _PENDING_ACCESS_RESPONSE,
+            400: REFUSAL_RESPONSE,
+            404: REFUSAL_RESPONSE,
+            422: REFUSAL_RESPONSE,
+        },
+    )
     def put(self, request: Request, code: str) -> Response:
         try:
             role = Role.objects.get(code=code)

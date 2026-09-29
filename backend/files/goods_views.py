@@ -118,6 +118,23 @@ class EvidenceUploadView(GoodsAPIView):
     parser_classes = [MultiPartParser]
 
     @extend_schema(
+        request={
+            "multipart/form-data": {
+                "type": "object",
+                "required": ["command_id", "contract_version", "file"],
+                "properties": {
+                    "command_id": {"type": "string", "format": "uuid"},
+                    "contract_version": {"type": "string", "enum": ["goods-v1"]},
+                    "file": {"type": "string", "format": "binary"},
+                    "scope": {
+                        "type": "string",
+                        "description": "JSON-encoded evidence scope, narrowed to the caller's grants.",
+                    },
+                    "kind": {"type": "string"},
+                    "expected_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                },
+            }
+        },
         responses={
             201: EVIDENCE_RESOURCE,
             400: REFUSAL_RESPONSE,

@@ -107,7 +107,10 @@ function Kpi({
       draggable
       onDragStart={onDragStart}
       onDragOver={(e) => e.preventDefault()}
-      onDrop={(e) => { e.preventDefault(); onDrop(); }}
+      onDrop={(e) => {
+        e.preventDefault();
+        onDrop();
+      }}
       data-testid={`kpi-tile-${id}`}
       data-state={state}
     >
@@ -174,7 +177,10 @@ export function loadBooksHealth(
   onDenied: () => void,
 ): void {
   if (!canSeeMoney) return;
-  api.get("/finledger/health").then((r) => onLoaded(r.data)).catch(() => onDenied());
+  api
+    .get("/finledger/health")
+    .then((r) => onLoaded(r.data))
+    .catch(() => onDenied());
 }
 
 function TrialBalancePanel({ canSeeMoney }: { canSeeMoney: boolean }) {
@@ -197,8 +203,12 @@ function TrialBalancePanel({ canSeeMoney }: { canSeeMoney: boolean }) {
       <div
         data-testid="trial-balance-state"
         style={{
-          display: "flex", gap: 12, alignItems: "center", padding: "12px 14px",
-          borderRadius: 12, marginBottom: 12,
+          display: "flex",
+          gap: 12,
+          alignItems: "center",
+          padding: "12px 14px",
+          borderRadius: 12,
+          marginBottom: 12,
           background: balanced ? "rgba(var(--green-rgb), 0.08)" : "rgba(var(--rust-rgb), 0.10)",
           color: balanced ? "var(--green)" : "var(--rust)",
         }}
@@ -207,18 +217,25 @@ function TrialBalancePanel({ canSeeMoney }: { canSeeMoney: boolean }) {
         <div style={{ display: "flex", flexDirection: "column" }}>
           <b>{balanced ? "Books tie" : "Out of balance"}</b>
           <span style={{ fontSize: 13, opacity: 0.85 }}>
-            Trial balance <b className="mono"><Money paise={h?.trial_balance_paise ?? 0} /></b>
-            {" "}· {h?.voucher_count ?? 0} vouchers · {h?.leg_count ?? 0} legs
+            Trial balance{" "}
+            <b className="mono">
+              <Money paise={h?.trial_balance_paise ?? 0} />
+            </b>{" "}
+            · {h?.voucher_count ?? 0} vouchers · {h?.leg_count ?? 0} legs
           </span>
         </div>
       </div>
       <div className="net-grid">
         <div className="net-cell">
-          <span className="net-num mono"><Money paise={h?.assets_paise ?? 0} short /></span>
+          <span className="net-num mono">
+            <Money paise={h?.assets_paise ?? 0} short />
+          </span>
           <span className="net-label">Stock, cash & clearing</span>
         </div>
         <div className="net-cell">
-          <span className="net-num mono"><Money paise={h?.liabilities_paise ?? 0} short /></span>
+          <span className="net-num mono">
+            <Money paise={h?.liabilities_paise ?? 0} short />
+          </span>
           <span className="net-label">Payables, tax & contra</span>
         </div>
       </div>
@@ -234,7 +251,8 @@ function CollectionsBand() {
         <span className="chip chip-blue">Coming soon</span>
       </div>
       <p className="ai-line">
-        This section will show cash, UPI, card clearing, deposits, and bank-audit status once the collections slice is enabled.
+        This section will show cash, UPI, card clearing, deposits, and bank-audit status once the
+        collections slice is enabled.
       </p>
     </div>
   );
@@ -263,7 +281,10 @@ function MorningBrief() {
 function readOrder(defaultIds: string[]): string[] {
   try {
     const saved = JSON.parse(localStorage.getItem(DASH_ORDER_KEY) || "[]") as string[];
-    return [...saved.filter((id) => defaultIds.includes(id)), ...defaultIds.filter((id) => !saved.includes(id))];
+    return [
+      ...saved.filter((id) => defaultIds.includes(id)),
+      ...defaultIds.filter((id) => !saved.includes(id)),
+    ];
   } catch {
     return defaultIds;
   }
@@ -297,15 +318,32 @@ function DashboardConfigurator({
     <div className="modal-backdrop" data-testid="dashboard-config-modal" onClick={onClose}>
       <div className="modal dashboard-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <div><p className="eyebrow">Dashboard</p><h3 className="h3">Choose cards</h3></div>
-          <button className="btn btn-sm" onClick={onClose} data-testid="dashboard-config-close"><X size={14} /> Close</button>
+          <div>
+            <p className="eyebrow">Dashboard</p>
+            <h3 className="h3">Choose cards</h3>
+          </div>
+          <button className="btn btn-sm" onClick={onClose} data-testid="dashboard-config-close">
+            <X size={14} /> Close
+          </button>
         </div>
         <div className="dash-card-list">
           {cards.map((c) => (
             <label className="dash-card-choice" key={c.id}>
-              <input type="checkbox" checked={visible.includes(c.id)} onChange={() => onToggle(c.id)} data-testid={`dashboard-card-toggle-${c.id}`} />
+              <input
+                type="checkbox"
+                checked={visible.includes(c.id)}
+                onChange={() => onToggle(c.id)}
+                data-testid={`dashboard-card-toggle-${c.id}`}
+              />
               <span>
-                <b>{c.label}{c.state === "unbuilt" && <span className="sample-tag" style={{ marginLeft: 6 }}>Not built</span>}</b>
+                <b>
+                  {c.label}
+                  {c.state === "unbuilt" && (
+                    <span className="sample-tag" style={{ marginLeft: 6 }}>
+                      Not built
+                    </span>
+                  )}
+                </b>
                 <small>{c.purpose}</small>
               </span>
             </label>
@@ -316,7 +354,11 @@ function DashboardConfigurator({
   );
 }
 
-function QuickActions({ items }: { items: { label: string; to: string; icon: React.ReactNode; cta?: boolean }[] }) {
+function QuickActions({
+  items,
+}: {
+  items: { label: string; to: string; icon: React.ReactNode; cta?: boolean }[];
+}) {
   const navigate = useNavigate();
   return (
     <div className="quick-grid">
@@ -360,10 +402,22 @@ export function Home() {
   useEffect(() => {
     // Every number below comes from the endpoint that owns it. A failure leaves
     // the tile at "…" rather than substituting a figure.
-    api.get("/masters/summary").then((r) => setSummary(r.data)).catch(() => undefined);
-    api.get("/approvals/inbox").then((r) => setInbox(r.data?.length ?? 0)).catch(() => undefined);
-    api.get("/stockledger/on-hand").then((r) => setOnHand(r.data.summary)).catch(() => undefined);
-    api.get("/alerts").then((r) => setAlertCount(r.data?.length ?? 0)).catch(() => undefined);
+    api
+      .get("/masters/summary")
+      .then((r) => setSummary(r.data))
+      .catch(() => undefined);
+    api
+      .get("/approvals/inbox")
+      .then((r) => setInbox(r.data?.length ?? 0))
+      .catch(() => undefined);
+    api
+      .get("/stockledger/on-hand")
+      .then((r) => setOnHand(r.data.summary))
+      .catch(() => undefined);
+    api
+      .get("/alerts")
+      .then((r) => setAlertCount(r.data?.length ?? 0))
+      .catch(() => undefined);
     if (canSeeMoney) {
       api
         .get("/finledger/vendor/ageing")
@@ -380,8 +434,11 @@ export function Home() {
         icon: <Boxes size={18} />,
         label: "Stock on hand",
         value: onHand === null ? "…" : <Money paise={onHand.value_paise} short />,
-        sub: onHand ? `${onHand.units_on_hand} pcs · ${onHand.lines} SKU lines` : "From the stock ledger",
-        purpose: "Stock value at book cost, from the stock ledger — the units and lines behind it are on Stock on Hand.",
+        sub: onHand
+          ? `${onHand.units_on_hand} pcs · ${onHand.lines} SKU lines`
+          : "From the stock ledger",
+        purpose:
+          "Stock value at book cost, from the stock ledger — the units and lines behind it are on Stock on Hand.",
         state: "live",
         to: "/stock",
       }
@@ -391,7 +448,8 @@ export function Home() {
         label: "Stock on hand",
         value: num(onHand === null ? null : onHand.units_on_hand, " pcs"),
         sub: onHand ? `${onHand.lines} SKU lines` : "From the stock ledger",
-        purpose: "Pieces on hand from the stock ledger. Cost is not shown — the books are finance's.",
+        purpose:
+          "Pieces on hand from the stock ledger. Cost is not shown — the books are finance's.",
         state: "live",
         to: "/stock",
       };
@@ -413,7 +471,8 @@ export function Home() {
     label: "Net sales today",
     value: "—",
     sub: "KDPS's own POS is not built — there are no bills to total yet",
-    purpose: "The day's billing. It stays blank until POS & Billing is built; nothing here is estimated.",
+    purpose:
+      "The day's billing. It stays blank until POS & Billing is built; nothing here is estimated.",
     state: "unbuilt",
     to: "/sell",
   };
@@ -424,25 +483,17 @@ export function Home() {
     label: "Alerts",
     value: num(alertCount),
     sub: "Stock stuck in transit, and return windows closing",
-    purpose: "In-transit ageing and closing return windows, raised by the daily alerts job. Till and fraud alerts arrive once billing is live.",
+    purpose:
+      "In-transit ageing and closing return windows, raised by the daily alerts job. Till and fraud alerts arrive once billing is live.",
     state: "live",
     to: "/alerts",
   };
 
   const cardCatalog: DashboardCard[] =
     variant === "store"
-      ? [
-          approvalsCard,
-          stockCard,
-          netSalesCard,
-          exceptionsCard,
-        ]
+      ? [approvalsCard, stockCard, netSalesCard, exceptionsCard]
       : variant === "warehouse"
-        ? [
-            approvalsCard,
-            stockCard,
-            exceptionsCard,
-          ]
+        ? [approvalsCard, stockCard, exceptionsCard]
         : [
             ...(canSeeMoney
               ? [
@@ -452,7 +503,8 @@ export function Home() {
                     label: "Owed to brands",
                     value: payablePaise === null ? "…" : <Money paise={payablePaise} short />,
                     sub: "Open vendor bills, aged on the ledger screen",
-                    purpose: "What the vendor ledger still shows unpaid, FIFO-aged into 0–30 / 31–60 / 60+.",
+                    purpose:
+                      "What the vendor ledger still shows unpaid, FIFO-aged into 0–30 / 31–60 / 60+.",
                     state: "live" as CardState,
                     to: "/money/vendor",
                   },
@@ -480,7 +532,9 @@ export function Home() {
   const ctx = unitContextLabel(activeStore);
 
   function toggleDashboardCard(id: string) {
-    const next = visibleCards.includes(id) ? visibleCards.filter((x) => x !== id) : [...visibleCards, id];
+    const next = visibleCards.includes(id)
+      ? visibleCards.filter((x) => x !== id)
+      : [...visibleCards, id];
     setVisibleCards(next);
     localStorage.setItem(DASH_VISIBLE_KEY, JSON.stringify(next));
   }
@@ -493,6 +547,7 @@ export function Home() {
     if (from < 0 || to < 0) return;
     const next = [...current];
     const [picked] = next.splice(from, 1);
+    if (picked === undefined) return;
     next.splice(to, 0, picked);
     setCardOrder(next);
     localStorage.setItem(DASH_ORDER_KEY, JSON.stringify(next));
@@ -526,10 +581,15 @@ export function Home() {
           {greeting()}, {name}
         </h1>
         <p className="lead">
-          {today} · here's your {variant === "store" || variant === "warehouse" ? "shift" : "day"} at a glance
+          {today} · here's your {variant === "store" || variant === "warehouse" ? "shift" : "day"}{" "}
+          at a glance
           <span className="ctx-chip">{ctx}</span>
         </p>
-        <button className="btn btn-sm dash-config-btn" onClick={() => setConfigOpen(true)} data-testid="dashboard-config-button">
+        <button
+          className="btn btn-sm dash-config-btn"
+          onClick={() => setConfigOpen(true)}
+          data-testid="dashboard-config-button"
+        >
           <Settings2 size={14} /> Configure dashboard
         </button>
       </header>
@@ -546,7 +606,12 @@ export function Home() {
             items={[
               // Receive Goods' one way in (OPS-17): the inbox, whose Goods arrived
               // starts every vendor delivery.
-              { label: "Receive", to: "/goods/receive", icon: <PackageCheck size={20} />, cta: true },
+              {
+                label: "Receive",
+                to: "/goods/receive",
+                icon: <PackageCheck size={20} />,
+                cta: true,
+              },
               { label: "Count", to: "/stock-count", icon: <ClipboardList size={20} /> },
               { label: "Transfer", to: "/transfer", icon: <ArrowLeftRight size={20} /> },
             ]}
@@ -572,7 +637,14 @@ export function Home() {
           </div>
         </>
       )}
-      {configOpen && <DashboardConfigurator cards={orderedCards} visible={visibleCards} onToggle={toggleDashboardCard} onClose={() => setConfigOpen(false)} />}
+      {configOpen && (
+        <DashboardConfigurator
+          cards={orderedCards}
+          visible={visibleCards}
+          onToggle={toggleDashboardCard}
+          onClose={() => setConfigOpen(false)}
+        />
+      )}
     </div>
   );
 }

@@ -205,7 +205,13 @@ function StatTiles({
   );
 }
 
-function Counts({ counts, testId }: { counts: { overdue: number; dueToday: number; open: number }; testId: string }) {
+function Counts({
+  counts,
+  testId,
+}: {
+  counts: { overdue: number; dueToday: number; open: number };
+  testId: string;
+}) {
   return (
     <StatTiles
       testId={testId}
@@ -515,17 +521,19 @@ function ExceptionGroups({
 /** One kind of problem: what happened, what to do, and its rows. */
 function ExceptionGroupCard({ group, ...context }: RowContext & { group: ExceptionCard }) {
   const [expanded, setExpanded] = useState(false);
+  const first = group.rows[0];
+  if (!first) return null;
   const rows = expanded ? group.rows : group.rows.slice(0, ROWS_SHOWN);
   const urgency: Urgency = group.overdue ? "late" : group.dueToday ? "today" : "later";
   const badge = group.overdue
     ? `${group.overdue} overdue`
     : group.dueToday
       ? `${group.dueToday} due today`
-      : capitalised(ageWords(group.rows[0].due_at));
+      : capitalised(ageWords(first.due_at));
   // A cause every row shares is said once, on the card; rows only carry it
   // when it tells them apart (short, extra, damaged…).
   const causes = new Set(group.rows.map((row) => row.reason_code ?? ""));
-  const sharedCause = causes.size === 1 ? group.rows[0].reason_code : null;
+  const sharedCause = causes.size === 1 ? first.reason_code : null;
   const testKey = group.key.replace(/[^a-zA-Z0-9_-]/g, "-");
 
   return (
@@ -885,10 +893,13 @@ export function GoodsNotificationsFeed() {
   const [showHistory, setShowHistory] = useState(false);
   const [topic, setTopic] = useState<Topic | "">("");
   const url = showHistory ? "/goods-v1/alerts/history?limit=100" : "/goods-v1/alerts?limit=100";
-  const { value: rows, loading, denied, failure, reload } = useGoodsFetch<
-    Page<NotificationRow>,
-    NotificationRow[]
-  >(url, (r) => r.items ?? [], []);
+  const {
+    value: rows,
+    loading,
+    denied,
+    failure,
+    reload,
+  } = useGoodsFetch<Page<NotificationRow>, NotificationRow[]>(url, (r) => r.items ?? [], []);
   const live = useEventStream(reload, true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -989,7 +1000,8 @@ export function GoodsNotificationsFeed() {
               onClick={() => markSeen(shownUnseen)}
               data-testid="alerts-mark-all-seen"
             >
-              <CheckCheck size={14} aria-hidden /> {topic ? "Mark these as read" : "Mark all as read"}
+              <CheckCheck size={14} aria-hidden />{" "}
+              {topic ? "Mark these as read" : "Mark all as read"}
             </button>
           )}
           <LiveDot status={live} />
@@ -1064,7 +1076,10 @@ function NoteRow({
   const path = notificationPath(row);
   const site = row.site_id ? (siteNames.get(row.site_id) ?? null) : null;
   return (
-    <li className={`an-note${row.seen ? " an-note-seen" : ""}`} data-testid={`alerts-row-${row.id}`}>
+    <li
+      className={`an-note${row.seen ? " an-note-seen" : ""}`}
+      data-testid={`alerts-row-${row.id}`}
+    >
       <span
         className={`an-dot${row.seen ? "" : " an-dot-unread"}`}
         role="img"
@@ -1120,11 +1135,13 @@ function NoteBundle({
 }) {
   const [open, setOpen] = useState(false);
   const newest = rows[0];
+  if (!newest) return null;
   const unseenIds = rows.filter((r) => !r.seen).map((r) => r.id);
   const path = notificationPath(newest);
-  const places = new Set(rows.map((r) => (r.site_id ? (siteNames.get(r.site_id) ?? r.site_id) : "")));
-  const where =
-    places.size === 1 ? [...places][0] : places.size > 1 ? `${places.size} places` : "";
+  const places = new Set(
+    rows.map((r) => (r.site_id ? (siteNames.get(r.site_id) ?? r.site_id) : "")),
+  );
+  const where = places.size === 1 ? [...places][0] : places.size > 1 ? `${places.size} places` : "";
   const testKey = bundleKey.replace(/[^a-zA-Z0-9_-]/g, "-");
   return (
     <li

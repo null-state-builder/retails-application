@@ -116,7 +116,11 @@ export function scopeWords(scope: CountSummary["scope"]): string {
 }
 
 /** A readable name for a counted piece: its item, else what the counter wrote. */
-export function itemWords(row: { item: string; description: string; sku_id: string | null }): string {
+export function itemWords(row: {
+  item: string;
+  description: string;
+  sku_id: string | null;
+}): string {
   if (row.item) return row.item;
   if (row.description) return row.description;
   return row.sku_id ?? "Unknown item";
@@ -138,7 +142,10 @@ export function deltaWords(delta: number | null): string {
 
 /** The lines a reviewer has ticked for a recount, all from one pass - the server
  *  refuses a recount that spans passes, so the screen says so first. */
-export function recountSource(lines: CountVarianceLine[], ticked: Set<string>): {
+export function recountSource(
+  lines: CountVarianceLine[],
+  ticked: Set<string>,
+): {
   passId: string | null;
   mixed: boolean;
 } {
@@ -147,5 +154,5 @@ export function recountSource(lines: CountVarianceLine[], ticked: Set<string>): 
   );
   if (sources.size === 0) return { passId: null, mixed: false };
   if (sources.size > 1 || sources.has("")) return { passId: null, mixed: true };
-  return { passId: [...sources][0], mixed: false };
+  return { passId: [...sources][0] ?? null, mixed: false };
 }

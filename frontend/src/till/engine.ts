@@ -24,7 +24,14 @@
 
 import { financialYear } from "../lib/fiscal";
 
-import { FIRST_WORDING, NOT_ASKED, drainConsents, queueConsent, standing, unsentFor } from "./consent";
+import {
+  FIRST_WORDING,
+  NOT_ASKED,
+  drainConsents,
+  queueConsent,
+  standing,
+  unsentFor,
+} from "./consent";
 import type { ConsentState, QueuedConsent, TillConsentWording } from "./consent";
 import { META, readMeta, tillDb, writeMeta } from "./db";
 import type { TillNumbering } from "./invoiceNumbers";
@@ -262,12 +269,12 @@ export class TillEngine {
   /** Bumped by every start and every stop, so a boot sequence that was
    *  interrupted half way through stops touching the engine it no longer owns. */
   private generation = 0;
+  readonly storeCode: string;
+  private readonly transport: TillTransport;
 
-  constructor(
-    readonly storeCode: string,
-    private readonly transport: TillTransport = httpTransport,
-    lock?: CounterLock,
-  ) {
+  constructor(storeCode: string, transport: TillTransport = httpTransport, lock?: CounterLock) {
+    this.storeCode = storeCode;
+    this.transport = transport;
     this.db = tillDb(storeCode);
     this.lock = lock ?? new CounterLock(storeCode);
     this.snapshot = initialSnapshot(storeCode);
@@ -608,7 +615,8 @@ export class TillEngine {
    */
   async pauseForTransfer(reason: string): Promise<void> {
     if (!reason.trim()) throw new Error("Say why billing is being paused.");
-    if (this.snapshot.storageLost || !this.snapshot.lockHeld) throw new Error(this.snapshot.blocked);
+    if (this.snapshot.storageLost || !this.snapshot.lockHeld)
+      throw new Error(this.snapshot.blocked);
     this.publish({ busy: true, lastError: "" });
     try {
       const drained = await drainQueue(this.db, this.transport);
@@ -921,7 +929,9 @@ export class TillEngine {
     const allocationVersion = await readMeta<number | null>(this.db, META.allocation, null);
     const taxSettings = await readMeta<TillTaxSettings | null>(this.db, META.taxSettings, null);
     const numbering = await readMeta<TillNumbering | null>(this.db, META.numbering, null);
-    const onlineOnlyRefusals = refusalsOnFrom(await readMeta<unknown>(this.db, META.onlineOnly, null));
+    const onlineOnlyRefusals = refusalsOnFrom(
+      await readMeta<unknown>(this.db, META.onlineOnly, null),
+    );
     const managerPinRules = (await readMeta<unknown>(this.db, META.managerPinRules, null)) === true;
     const splitSale = (await readMeta<unknown>(this.db, META.splitSale, null)) === true;
     const customerDisplay = (await readMeta<unknown>(this.db, META.customerDisplay, null)) === true;

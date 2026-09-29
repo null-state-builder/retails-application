@@ -241,6 +241,29 @@ def _responses(status: int, schema: dict[str, Any], codes: tuple[int, ...]) -> d
     return {status: schema, **{code: REFUSAL_RESPONSE for code in codes}}
 
 
+def _command_request(
+    fields: dict[str, Any], *, required: tuple[str, ...], revision_bound: bool
+) -> dict[str, Any]:
+    return {
+        "application/json": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": [
+                "command_id",
+                "contract_version",
+                *(["expected_revision"] if revision_bound else []),
+                *required,
+            ],
+            "properties": {
+                "command_id": {"type": "string", "format": "uuid"},
+                "contract_version": {"type": "string", "enum": ["goods-v1"]},
+                "expected_revision": {"type": "integer", "minimum": 1},
+                **fields,
+            },
+        },
+    }
+
+
 class GoodsAlertInboxView(GoodsAPIView):
     """E179: my unseen notifications, scoped again at delivery time."""
 
@@ -286,7 +309,20 @@ class GoodsAlertHistoryView(GoodsAPIView):
 class GoodsAlertSeenView(GoodsAPIView):
     """E187: acknowledge that I saw notifications; the business cause stays open."""
 
-    @extend_schema(responses=_responses(200, SEEN_RESPONSE, _WRITE_REFUSALS))
+    @extend_schema(
+        request=_command_request(
+            {
+                "notification_ids": {
+                    "type": "array",
+                    "items": {"type": "string", "format": "uuid"},
+                    "maxItems": 1000,
+                },
+            },
+            required=("notification_ids",),
+            revision_bound=False,
+        ),
+        responses=_responses(200, SEEN_RESPONSE, _WRITE_REFUSALS),
+    )
     def post(self, request: Request) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=False)
@@ -403,7 +439,19 @@ class ExceptionEventView(GoodsAPIView):
         window, cursor = paginate(rows, params)
         return Response(page([exception_event_dto(r) for r in window], cursor))
 
-    @extend_schema(responses=_responses(200, EXCEPTION_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(
+        request=_command_request(
+            {
+                "event_kind": {"type": "string"},
+                "owner_human_id": {"type": "string", "format": "uuid"},
+                "note": {"type": "string"},
+                "reason_code": {"type": "string"},
+            },
+            required=("event_kind",),
+            revision_bound=True,
+        ),
+        responses=_responses(200, EXCEPTION_RESOURCE, _WRITE_REFUSALS),
+    )
     def post(self, request: Request, pk: uuid.UUID) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=True)
@@ -472,7 +520,23 @@ class ConfirmOriginUnavailableView(GoodsAPIView):
     cannot substitute for it (``ExceptionEventView`` refuses that combination
     with ``EXCEPTION_RESOLUTION_ROUTE``)."""
 
-    @extend_schema(responses=_responses(200, EXCEPTION_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(
+        request=_command_request(
+            {
+                "manifest_row_id": {"type": "string", "format": "uuid"},
+                "reason_code": {"type": "string"},
+                "evidence_ids": {
+                    "type": "array",
+                    "items": {"type": "string", "format": "uuid"},
+                    "maxItems": 20,
+                },
+                "reviewed_hash": {"type": "string"},
+            },
+            required=("manifest_row_id", "reason_code", "reviewed_hash"),
+            revision_bound=True,
+        ),
+        responses=_responses(200, EXCEPTION_RESOURCE, _WRITE_REFUSALS),
+    )
     def post(self, request: Request, pk: uuid.UUID) -> Response:
         from ptmapper import goods_manifest_services as manifest_services
 

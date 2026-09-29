@@ -341,6 +341,7 @@ def _answer(user: Any, tenant_id: Any, pk: int) -> dict[str, Any]:
 
 class GoodsDebitNoteListView(GoodsAPIView):
     @extend_schema(
+        operation_id="goods_v1_inbound_debit_notes_list",
         parameters=[
             OpenApiParameter("show", str, enum=list(SHOW), description="Which notes (open).")
         ],
@@ -383,7 +384,10 @@ class GoodsDebitNoteListView(GoodsAPIView):
 
 
 class GoodsDebitNoteDetailView(GoodsAPIView):
-    @extend_schema(responses=DebitNoteSerializer)
+    @extend_schema(
+        operation_id="goods_v1_inbound_debit_notes_detail",
+        responses=DebitNoteSerializer,
+    )
     def get(self, request: Request, pk: int) -> Response:
         access = self.access(request)
         check_query(request, allowed=())

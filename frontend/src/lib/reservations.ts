@@ -34,7 +34,9 @@ export function statusChip(status: string): { label: string; tone: string } {
 }
 
 /** What became of the advance, in words. */
-export function advanceText(r: Pick<Reservation, "advance_outcome" | "advance_balance_paise" | "voucher">): string {
+export function advanceText(
+  r: Pick<Reservation, "advance_outcome" | "advance_balance_paise" | "voucher">,
+): string {
   const paid = r.voucher ? formatINR(r.voucher.amount_paise) : "";
   switch (r.advance_outcome) {
     case "none":
@@ -65,9 +67,11 @@ export function daysLeftText(daysLeft: number): string {
 /** A date as the customer reads it on the voucher: 5 Oct 2026. */
 export function dayText(iso: string): string {
   const [y, m, d] = iso.split("-").map(Number);
-  const month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][
-    m - 1
-  ];
+  const month =
+    m === undefined
+      ? undefined
+      : ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m - 1];
+  if (!month || !Number.isInteger(y) || !Number.isInteger(d)) return iso;
   return `${d} ${month} ${y}`;
 }
 
@@ -100,7 +104,14 @@ export interface ReservationDraft {
 }
 
 export function emptyDraft(): ReservationDraft {
-  return { customer_name: "", customer_mobile: "", lines: [], advance: "", mode: "cash", reference: "" };
+  return {
+    customer_name: "",
+    customer_mobile: "",
+    lines: [],
+    advance: "",
+    mode: "cash",
+    reference: "",
+  };
 }
 
 /** What is wrong with the draft before it is sent, or "" when it can go. The
@@ -110,7 +121,8 @@ export function draftProblem(draft: ReservationDraft): string {
   if (draft.customer_mobile.replace(/\D/g, "").slice(-10).length !== 10)
     return "Type the customer's 10-digit mobile number.";
   if (!draft.lines.length) return "Scan at least one piece to reserve.";
-  if (draft.advance.trim() && !rupeesToPaise(draft.advance)) return "Type the advance in rupees, or leave it blank.";
+  if (draft.advance.trim() && !rupeesToPaise(draft.advance))
+    return "Type the advance in rupees, or leave it blank.";
   return "";
 }
 

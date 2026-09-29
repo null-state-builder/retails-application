@@ -25,6 +25,7 @@ from typing import Any
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -44,6 +45,75 @@ CanReadOrReprice = require_section("offers_price", CAP_VIEW, write_minimum=CAP_O
 #: nobody reads forty thousand barcodes, and the search box is how a person
 #: actually finds the one they are asking about.
 PAGE = 200
+
+REFUSAL_RESPONSE = {
+    "type": "object", "required": ["error", "code"],
+    "properties": {"error": {"type": "string"}, "code": {"type": "string"}},
+}
+PRICE_ROW: dict[str, Any] = {
+    "type": "object", "required": [
+        "barcode", "design", "color", "size", "brand", "item", "hsn",
+        "mrp_paise", "mrp_then_paise", "moved_since", "cost_paise",
+        "season", "margin_pct", "no_discount",
+    ],
+    "properties": {
+        **{name: {"type": "string"} for name in (
+            "barcode", "design", "color", "size", "brand", "item", "hsn", "season"
+        )},
+        **{name: {"type": "integer", "nullable": True} for name in (
+            "mrp_paise", "mrp_then_paise", "cost_paise"
+        )},
+        "moved_since": {"type": "boolean"},
+        "margin_pct": {"type": "string", "nullable": True},
+        "no_discount": {"type": "boolean"},
+    },
+}
+PRICE_LIST_RESPONSE = {
+    "type": "object", "required": ["as_of", "count", "truncated", "brands", "rows"],
+    "properties": {
+        "as_of": {"type": "string", "format": "date"},
+        "count": {"type": "integer"}, "truncated": {"type": "boolean"},
+        "brands": {"type": "array", "items": {"type": "string"}},
+        "rows": {"type": "array", "items": PRICE_ROW},
+    },
+}
+PRICE_DETAIL_RESPONSE = {
+    **PRICE_ROW,
+    "required": [*PRICE_ROW["required"], "cohorts", "history"],
+    "properties": {
+        **PRICE_ROW["properties"],
+        "cohorts": {"type": "array", "items": {"type": "object", "required": [
+            "season", "unit_cost_paise", "mrp_paise", "last_doc_number"
+        ], "properties": {
+            "season": {"type": "string"},
+            "unit_cost_paise": {"type": "integer", "nullable": True},
+            "mrp_paise": {"type": "integer", "nullable": True},
+            "last_doc_number": {"type": "string", "nullable": True},
+        }}},
+        "history": {"type": "array", "items": {"type": "object", "required": [
+            "id", "effective_from", "from_paise", "to_paise", "source", "source_label",
+            "doc_number", "reason", "changed_by_name", "at",
+        ], "properties": {
+            "id": {"type": "integer"},
+            "effective_from": {"type": "string", "format": "date"},
+            "from_paise": {"type": "integer", "nullable": True},
+            "to_paise": {"type": "integer"},
+            **{name: {"type": "string"} for name in (
+                "source", "source_label", "doc_number", "reason", "changed_by_name"
+            )},
+            "at": {"type": "string", "format": "date-time"},
+        }}},
+    },
+}
+REPRICE_REQUEST = {
+    "type": "object", "required": ["reason"],
+    "anyOf": [{"required": ["mrp_paise"]}, {"required": ["mrp"]}],
+    "properties": {
+        "reason": {"type": "string", "minLength": 3},
+        "mrp_paise": {"anyOf": [{"type": "integer"}, {"type": "string"}]},
+        "mrp": {"anyOf": [{"type": "number"}, {"type": "string"}]},
+    },
+}
 
 
 def _as_of(request: Request) -> date:
@@ -121,6 +191,15 @@ class PriceListView(APIView):
 
     permission_classes = [IsAuthenticated, CanReadOrReprice]
 
+    @extend_schema(
+        operation_id="offers_price_list_list",
+        parameters=[
+            OpenApiParameter("q", str), OpenApiParameter("brand", str),
+            OpenApiParameter("as_of", str, description="ISO calendar date"),
+            OpenApiParameter("no_discount", bool),
+        ],
+        responses={200: PRICE_LIST_RESPONSE},
+    )
     def get(self, request: Request) -> Response:
         day = _as_of(request)
         rows = Sku.objects.filter(is_active=True)
@@ -165,6 +244,10 @@ class PriceDetailView(APIView):
 
     permission_classes = [IsAuthenticated, CanReadOrReprice]
 
+    @extend_schema(
+        operation_id="offers_price_list_detail",
+        responses={200: PRICE_DETAIL_RESPONSE, 404: REFUSAL_RESPONSE},
+    )
     def get(self, request: Request, barcode: str) -> Response:
         sku = Sku.objects.filter(barcode=barcode).first()
         if sku is None:
@@ -205,6 +288,10 @@ class PriceRepriceView(APIView):
 
     permission_classes = [IsAuthenticated, CanReadOrReprice]
 
+    @extend_schema(
+        request={"application/json": REPRICE_REQUEST},
+        responses={200: PRICE_DETAIL_RESPONSE, 400: REFUSAL_RESPONSE, 404: REFUSAL_RESPONSE},
+    )
     @transaction.atomic
     def post(self, request: Request, barcode: str) -> Response:
         sku = Sku.objects.select_for_update().filter(barcode=barcode).first()

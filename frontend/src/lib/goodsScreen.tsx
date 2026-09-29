@@ -42,8 +42,16 @@ export interface Page<T> {
 export function Feedback({ error, ok }: { error: string; ok: string }) {
   return (
     <>
-      {error && <div className="warn-note" data-testid="org-error">{error}</div>}
-      {ok && <div className="ok-note" data-testid="org-ok">{ok}</div>}
+      {error && (
+        <div className="warn-note" data-testid="org-error">
+          {error}
+        </div>
+      )}
+      {ok && (
+        <div className="ok-note" data-testid="org-ok">
+          {ok}
+        </div>
+      )}
     </>
   );
 }
@@ -122,10 +130,19 @@ export function useStepUp() {
           onChange={(e) => setPassword(e.target.value)}
           data-testid="org-stepup-password"
         />
-        <button className="btn btn-cta" onClick={confirm} disabled={busy || !password} data-testid="org-stepup-confirm">
+        <button
+          className="btn btn-cta"
+          onClick={confirm}
+          disabled={busy || !password}
+          data-testid="org-stepup-confirm"
+        >
           Confirm
         </button>
-        <button className="btn btn-sm" onClick={() => setPending(null)} data-testid="org-stepup-cancel">
+        <button
+          className="btn btn-sm"
+          onClick={() => setPending(null)}
+          data-testid="org-stepup-cancel"
+        >
           <X size={14} /> Cancel
         </button>
       </div>
@@ -373,7 +390,7 @@ export function usePagedPicker<P extends PickerPath, T extends { id: string } = 
   filters: PickerFilters<P> | null,
   selectedId: string,
   labelOf: (row: T) => string,
-  options: { knownLabel?: string; detailPath?: (id: string) => string } = {},
+  options: { knownLabel?: string | undefined; detailPath?: (id: string) => string } = {},
 ) {
   const { knownLabel, detailPath } = options;
   const scope = filters === null ? null : `${path}?${JSON.stringify(filters)}`;
@@ -392,7 +409,8 @@ export function usePagedPicker<P extends PickerPath, T extends { id: string } = 
   async function load(term: string, cursor: string | null, append: boolean) {
     if (filters === null) return;
     const generation = ++requestGeneration.current;
-    append ? setLoadingMore(true) : setLoading(true);
+    if (append) setLoadingMore(true);
+    else setLoading(true);
     setFailure("");
     try {
       // `PickerPath` already holds this endpoint to a documented `q` and `cursor`.
@@ -612,7 +630,6 @@ export function useResourceDoc<T>(url: string | null) {
 export function hold(session: { actions: string[] } | null, action: string): boolean {
   return Boolean(session?.actions?.includes(action));
 }
-
 
 /** A labelled control. Every control on a goods screen carries a visible label
  *  tied to it by `id`/`htmlFor` — the UX brief's rule, and what makes the

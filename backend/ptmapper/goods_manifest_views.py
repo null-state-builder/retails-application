@@ -174,6 +174,124 @@ def _responses(status: int, schema: dict[str, Any], codes: tuple[int, ...]) -> d
     return {status: schema, **{code: REFUSAL_RESPONSE for code in codes}}
 
 
+_TEXT = {"type": "string"}
+_UUID = {"type": "string", "format": "uuid"}
+_LEGACY_ID = {"oneOf": [{"type": "integer", "minimum": 1}, {"type": "string", "pattern": "^[0-9]+$"}]}
+_ATTRIBUTE_ID = {"oneOf": [_UUID, *_LEGACY_ID["oneOf"]]}
+_FIELD_ID = {"oneOf": [*_ATTRIBUTE_ID["oneOf"], {"type": "string", "pattern": "^[a-z][a-z0-9_]{0,59}$"}]}
+_PAISE = {"type": "string", "pattern": "^[0-9]+$"}
+_CONDITION = {"type": "string", "enum": ["good", "damaged", "wrong", "unidentified"]}
+
+
+def _mutation_request(
+    fields: dict[str, Any], *, required: tuple[str, ...], revision_bound: bool
+) -> dict[str, Any]:
+    required_fields = ["command_id", "contract_version", *required]
+    if revision_bound:
+        required_fields.append("expected_revision")
+    return {
+        "type": "object",
+        "required": required_fields,
+        "properties": {
+            "command_id": _UUID,
+            "contract_version": {"type": "string", "enum": ["goods-v1"]},
+            "expected_revision": {"type": "integer", "minimum": 1},
+            **fields,
+        },
+        "additionalProperties": False,
+    }
+
+
+_IDENTITY_REQUEST = {
+    "type": "object",
+    "properties": {
+        "sku_id": _UUID,
+        "attributes": {
+            "type": "array",
+            "maxItems": 100,
+            "items": {
+                "type": "object",
+                "required": ["field_id"],
+                "properties": {
+                    "field_id": _FIELD_ID,
+                    "vocabulary_value_id": _ATTRIBUTE_ID,
+                    "supplied_text": {"type": "string", "maxLength": 240},
+                    "unknown": {"type": "boolean"},
+                },
+                "additionalProperties": False,
+            },
+        },
+        "raw_alias": _TEXT,
+        "description": _TEXT,
+    },
+    "additionalProperties": False,
+}
+_OPENING_ROW_REQUEST = {
+    "type": "object",
+    "required": ["source_row_key", "site_id", "condition", "identity", "qty", "basic_paise", "mrp_paise", "hsn", "season_id"],
+    "properties": {
+        "source_row_key": {"type": "string", "minLength": 1, "maxLength": 100},
+        "site_id": _LEGACY_ID,
+        "location_id": _UUID,
+        "condition": _CONDITION,
+        "identity": _IDENTITY_REQUEST,
+        "qty": {"type": "integer", "minimum": 1, "maximum": 999999},
+        "basic_paise": _PAISE,
+        "mrp_paise": _PAISE,
+        "hsn": _TEXT,
+        "tax_version_id": _UUID,
+        "season_id": _LEGACY_ID,
+        "season_unknown_historical": {"type": "boolean"},
+        "older_origin_at": {"type": "string", "format": "date-time"},
+        "older_origin_ref": _TEXT,
+        "commercial_label": _TEXT,
+    },
+    "additionalProperties": False,
+}
+_MANIFEST_ROW_REQUEST = {
+    "type": "object",
+    "required": ["row", "verification"],
+    "properties": {
+        "row": _OPENING_ROW_REQUEST,
+        "verification": {
+            "type": "object",
+            "required": ["observed_qty", "observed_condition"],
+            "properties": {
+                "observed_qty": {"type": "integer", "minimum": 0},
+                "observed_condition": _CONDITION,
+                "notes": _TEXT,
+            },
+            "additionalProperties": False,
+        },
+    },
+    "additionalProperties": False,
+}
+_MANIFEST_FIELDS = {
+    "cutoff_at": {"type": "string", "format": "date-time"},
+    "source_evidence_id": _UUID,
+    "profile_version_id": _UUID,
+    "rows": {"type": "array", "items": _MANIFEST_ROW_REQUEST},
+}
+MANIFEST_CREATE_REQUEST = _mutation_request(
+    {"site_id": _LEGACY_ID, "batch_key": _TEXT, "dataset_key": _TEXT, **_MANIFEST_FIELDS},
+    required=("site_id", "batch_key", "dataset_key", "cutoff_at", "source_evidence_id", "rows"),
+    revision_bound=False,
+)
+MANIFEST_REVISE_REQUEST = _mutation_request(
+    _MANIFEST_FIELDS, required=("cutoff_at", "source_evidence_id", "rows"), revision_bound=True
+)
+VARIANCE_REQUEST = _mutation_request(
+    {"manifest_row_id": _UUID, "accepted_qty": {"type": "integer", "minimum": 0},
+     "accepted_condition": _CONDITION, "reason_code": _TEXT,
+     "evidence_ids": {"type": "array", "items": _UUID, "maxItems": 20}},
+    required=("manifest_row_id", "accepted_qty", "reason_code"), revision_bound=True,
+)
+SEASON_CORRECTION_REQUEST = _mutation_request(
+    {"season_id": _LEGACY_ID, "reason": _TEXT},
+    required=("season_id", "reason"), revision_bound=False,
+)
+
+
 def _has_read_action(access: AccessContext) -> bool:
     return any(action in access.all_actions() for action in READ_ACTIONS)
 
@@ -371,7 +489,7 @@ class GoodsOpeningManifestListView(GoodsAPIView):
         window, cursor = paginate(rows, params)
         return Response(page([_manifest_summary(m) for m in window], cursor))
 
-    @extend_schema(responses=_responses(201, MANIFEST_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(request={"application/json": MANIFEST_CREATE_REQUEST}, responses=_responses(201, MANIFEST_RESOURCE, _WRITE_REFUSALS))
     def post(self, request: Request) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=False)
@@ -454,7 +572,7 @@ class GoodsOpeningManifestDetailView(GoodsAPIView):
             _manifest_resource(access, _load(access, pk), row_cursor=params.get("row_cursor"))
         )
 
-    @extend_schema(responses=_responses(200, MANIFEST_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(request={"application/json": MANIFEST_REVISE_REQUEST}, responses=_responses(200, MANIFEST_RESOURCE, _WRITE_REFUSALS))
     def patch(self, request: Request, pk: uuid.UUID) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=True)
@@ -488,7 +606,7 @@ class GoodsOpeningManifestDetailView(GoodsAPIView):
 class GoodsOpeningVarianceView(GoodsAPIView):
     """E138: propose a distinct-approval variance for one manifest row."""
 
-    @extend_schema(responses=_responses(201, VARIANCE_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(request={"application/json": VARIANCE_REQUEST}, responses=_responses(201, VARIANCE_RESOURCE, _WRITE_REFUSALS))
     def post(self, request: Request, pk: uuid.UUID) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=True)
@@ -545,7 +663,7 @@ class GoodsOpeningSeasonCorrectionView(GoodsAPIView):
     correction leaves the wrong season on the shelf.
     """
 
-    @extend_schema(responses=_responses(201, SEASON_CORRECTION_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(request={"application/json": SEASON_CORRECTION_REQUEST}, responses=_responses(201, SEASON_CORRECTION_RESOURCE, _WRITE_REFUSALS))
     def post(self, request: Request, pk: uuid.UUID, row_id: uuid.UUID) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=False)

@@ -36,9 +36,29 @@ export interface GiftVoucherUse extends GiftVoucherHeld {
   pays_paise: number;
 }
 
+function calendarDay(value: string): { year: number; month: number; day: number } {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match?.[1] || !match[2] || !match[3]) throw new Error("Invalid voucher calendar day");
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  if (
+    year < 1000 ||
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > 31 ||
+    isoDay(Date.UTC(year, month - 1, day)) !== value
+  ) {
+    throw new Error("Invalid voucher calendar day");
+  }
+  return { year, month, day };
+}
+
 /** The same day `months` calendar months on; the month's last day where it is shorter. */
 export function addMonths(day: string, months: number): string {
-  const [year, month, date] = day.split("-").map(Number);
+  if (!Number.isInteger(months)) throw new Error("Voucher months must be an integer");
+  const { year, month, day: date } = calendarDay(day);
   const index = month - 1 + months;
   const y = year + Math.floor(index / 12);
   const m = (((index % 12) + 12) % 12) + 1;
@@ -49,8 +69,8 @@ export function addMonths(day: string, months: number): string {
 /** The last day a voucher sold on `issuedOn` can be used: the day before the
  *  same date `months` months on (sold 28 Sep 2026, used up to 27 Sep 2027). */
 export function validUntil(issuedOn: string, months: number): string {
-  const [y, m, d] = addMonths(issuedOn, months).split("-").map(Number);
-  return isoDay(Date.UTC(y, m - 1, d - 1));
+  const { year, month, day } = calendarDay(addMonths(issuedOn, months));
+  return isoDay(Date.UTC(year, month - 1, day - 1));
 }
 
 /** Can a voucher whose last day is `validUntilDay` be used on `day`? */
@@ -75,7 +95,11 @@ export function usesOf(vouchers: readonly GiftVoucherHeld[], owed: number): Gift
     owed,
     vouchers.map((voucher) => voucher.balance_paise),
   );
-  return vouchers.map((voucher, index) => ({ ...voucher, pays_paise: pays[index] }));
+  return vouchers.map((voucher, index) => {
+    const paysPaise = pays[index];
+    if (paysPaise === undefined) throw new Error("Voucher allocation is missing");
+    return { ...voucher, pays_paise: paysPaise };
+  });
 }
 
 /** Why a voucher on this bill can no longer pay on `day` (its last day passed
@@ -94,9 +118,26 @@ export function normaliseVoucherNumber(typed: string): string {
 
 /** 27 Sep 2027, as the customer reads the slip. */
 function dayWords(iso: string): string {
-  const [y, m, d] = iso.split("-").map(Number);
-  const month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][m - 1];
-  return `${d} ${month} ${y}`;
+  try {
+    const { year, month, day } = calendarDay(iso);
+    const monthName = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ][month - 1];
+    return `${day} ${monthName ?? ""} ${year}`;
+  } catch {
+    return iso;
+  }
 }
 
 function isoDay(ms: number): string {

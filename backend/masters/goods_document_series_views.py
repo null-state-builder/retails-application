@@ -302,7 +302,7 @@ def _id(value: Any, name: str) -> int:
             f"{name} must be a number.",
             issues=[issue("INVALID", f"{name} must be an integer", field=name)],
         )
-    return value
+    return int(value)
 
 
 def _owner(body: dict[str, Any]) -> _Owner:

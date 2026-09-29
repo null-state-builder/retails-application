@@ -883,6 +883,125 @@ def _responses(status: int, schema: dict[str, Any], codes: tuple[int, ...]) -> d
     return {status: schema, **{code: REFUSAL_RESPONSE for code in codes}}
 
 
+_TEXT = {"type": "string"}
+_UUID = {"type": "string", "format": "uuid"}
+_LEGACY_ID = {"oneOf": [{"type": "integer", "minimum": 1}, {"type": "string", "pattern": "^[0-9]+$"}]}
+_DATE = {"type": "string", "format": "date"}
+_DATETIME = {"type": "string", "format": "date-time"}
+_PAISE = {"type": "string", "pattern": "^[0-9]+$", "nullable": True}
+
+
+def _mutation_request(
+    fields: dict[str, Any], *, required: tuple[str, ...] = (), revision_bound: bool = True
+) -> dict[str, Any]:
+    required_fields = ["command_id", "contract_version", *required]
+    if revision_bound:
+        required_fields.append("expected_revision")
+    return {
+        "type": "object",
+        "required": required_fields,
+        "properties": {
+            "command_id": _UUID,
+            "contract_version": {"type": "string", "enum": ["goods-v1"]},
+            "expected_revision": {"type": "integer", "minimum": 1},
+            **fields,
+        },
+        "additionalProperties": False,
+    }
+
+
+ARRIVAL_CREATE_REQUEST = _mutation_request(
+    {
+        "site_id": _LEGACY_ID, "vendor_id": _LEGACY_ID, "brand_id": _LEGACY_ID,
+        "subbrand_key": _TEXT, "actual_arrival_at": _DATETIME,
+        "transporter_ref": _TEXT, "booking_id": _UUID, "invoice_number": _TEXT,
+        "invoice_date": _DATE, "invoice_evidence_id": _UUID,
+        "duplicate_warning_hash": _TEXT, "duplicate_reason": _TEXT,
+        "brand_dispatch_date": _DATE,
+    },
+    required=("site_id", "vendor_id", "brand_id", "actual_arrival_at"),
+    revision_bound=False,
+)
+_CLAIM_LINE_REQUEST = {
+    "type": "object",
+    "required": ["line_key", "description", "claimed_qty"],
+    "properties": {
+        "line_key": _UUID, "style_code": _TEXT, "sku_id": _UUID,
+        "size_value_id": _UUID, "description": _TEXT,
+        "claimed_qty": {"type": "integer", "minimum": 0},
+        "invoice_basic_paise": _PAISE, "invoice_mrp_paise": _PAISE,
+        "evidence_line_ref": _TEXT, "remark": _TEXT,
+    },
+    "additionalProperties": False,
+}
+ARRIVAL_INVOICE_REQUEST = _mutation_request(
+    {
+        "invoice_number": _TEXT, "invoice_date": _DATE, "evidence_id": _UUID,
+        "lines": {"type": "array", "items": _CLAIM_LINE_REQUEST}, "reason_code": _TEXT,
+    },
+    required=("invoice_number", "invoice_date", "lines"),
+)
+COUNT_SESSION_REQUEST = _mutation_request(
+    {"counter_id": _UUID, "entry_user_id": _UUID},
+    required=("counter_id", "entry_user_id"), revision_bound=False,
+)
+NO_BOOKING_REQUEST = _mutation_request(
+    {"reason_code": _TEXT, "evidence_id": _UUID}, required=("reason_code",)
+)
+_OBSERVATION_REQUEST = {
+    "type": "object",
+    "required": ["scan_key", "description", "condition", "qty"],
+    "properties": {
+        "scan_key": _UUID, "sku_id": _UUID, "description": _TEXT,
+        "alias_value": _TEXT,
+        "alias_context": {
+            "type": "object",
+            "properties": {"issuer_key": _TEXT, "alias_type": _TEXT, "profile_version_id": _UUID},
+            "additionalProperties": False,
+        },
+        "attrs": {"type": "array", "items": {
+            "type": "object",
+            "required": ["field_id"],
+            "properties": {"field_id": _UUID, "vocabulary_value_id": _UUID,
+                           "supplied_text": _TEXT, "unknown": {"type": "boolean"}},
+            "additionalProperties": False,
+        }},
+        "condition": {"type": "string", "enum": list(CONDITIONS)},
+        "qty": {"type": "integer", "minimum": -999999, "maximum": 999999},
+        "correction_of_id": _UUID,
+    },
+    "additionalProperties": False,
+}
+OBSERVATIONS_REQUEST = _mutation_request(
+    {"observations": {"type": "array", "items": _OBSERVATION_REQUEST}},
+    required=("observations",),
+)
+COUNT_HANDOVER_REQUEST = _mutation_request(
+    {"to_human_id": _UUID, "reason_code": _TEXT, "reviewed_hash": _TEXT},
+    required=("to_human_id", "reason_code", "reviewed_hash"),
+)
+GRN_ISSUE_REQUEST = _mutation_request(
+    {"count_session_id": _UUID, "reviewed_hash": _TEXT,
+     "remarks": {"type": "array", "items": {
+         "type": "object", "required": ["claim_line_key", "remark"],
+         "properties": {"claim_line_key": _UUID, "remark": _TEXT},
+         "additionalProperties": False,
+     }}},
+    required=("count_session_id", "reviewed_hash"),
+)
+COUNTER_GRN_REQUEST = _mutation_request(
+    {"corrections": {"type": "array", "minItems": 1, "items": {
+        "type": "object",
+        "required": ["line_key", "new_qty", "new_condition", "reason_code"],
+        "properties": {"line_key": _UUID, "new_qty": {"type": "integer", "minimum": 0},
+                       "new_condition": {"type": "string", "enum": list(CONDITIONS)},
+                       "reason_code": _TEXT},
+        "additionalProperties": False,
+    }}, "evidence_ids": {"type": "array", "items": _UUID}},
+    required=("corrections",),
+)
+
+
 DETAIL_QUERY_KEYS = frozenset({"version", "line_cursor", "history_cursor"})
 DUPLICATE_QUERY_KEYS = frozenset({"site_id", "vendor_id", "invoice_number"})
 QUEUE_QUERY_KEYS = LIST_QUERY_KEYS | {"sku_id", "origin_id", "condition", "state", "basis", "as_of"}
@@ -1031,6 +1150,7 @@ class GoodsArrivalListCreateView(GoodsAPIView):
         return Response(page(items, cursor))
 
     @extend_schema(
+        request={"application/json": ARRIVAL_CREATE_REQUEST},
         responses=_responses(
             201, _dto_response(ARRIVAL_DATA, "ResourceDTO<ArrivalInput>."), _WRITE_REFUSALS
         )
@@ -1162,6 +1282,7 @@ class GoodsArrivalInvoiceView(GoodsAPIView):
     """E114: append an invoice claim version; claims never become GRN cost."""
 
     @extend_schema(
+        request={"application/json": ARRIVAL_INVOICE_REQUEST},
         responses=_responses(
             200, _dto_response(CLAIM_DATA, "ResourceDTO<ClaimLines>."), _WRITE_REFUSALS
         )
@@ -1338,6 +1459,7 @@ class GoodsArrivalSessionView(GoodsAPIView):
         return Response(page([_session_resource(row) for row in window], cursor))
 
     @extend_schema(
+        request={"application/json": COUNT_SESSION_REQUEST},
         responses=_responses(
             201, _dto_response(SESSION_DATA, "ResourceDTO<CountSession>."), _WRITE_REFUSALS
         )
@@ -1384,6 +1506,7 @@ class GoodsArrivalNoBookingView(GoodsAPIView):
     """E236: C-BUY confirms the arrival has no booking; closes only that work item."""
 
     @extend_schema(
+        request={"application/json": NO_BOOKING_REQUEST},
         responses=_responses(
             200, _dto_response(ARRIVAL_DATA, "ResourceDTO<ArrivalInput>."), _WRITE_REFUSALS
         )
@@ -1425,6 +1548,7 @@ class GoodsObservationView(GoodsAPIView):
     """E116: durable, duplicate-safe scans; unidentified goods keep their description."""
 
     @extend_schema(
+        request={"application/json": OBSERVATIONS_REQUEST},
         responses=_responses(
             200, _dto_response(SESSION_DATA, "ResourceDTO<CountSession>."), _WRITE_REFUSALS
         )
@@ -1465,6 +1589,7 @@ class GoodsCountHandoverView(GoodsAPIView):
     """E240: the person holding an unfinished count passes it to somebody else."""
 
     @extend_schema(
+        request={"application/json": COUNT_HANDOVER_REQUEST},
         responses=_responses(
             200, _dto_response(SESSION_DATA, "ResourceDTO<CountSession>."), _WRITE_REFUSALS
         )
@@ -1555,6 +1680,7 @@ class GoodsGrnListCreateView(GoodsAPIView):
         return Response(page(items, cursor))
 
     @extend_schema(
+        request={"application/json": GRN_ISSUE_REQUEST},
         responses=_responses(
             201, _dto_response(GRN_PAYLOAD_DATA, "ResourceDTO<GrnPayload>."), _WRITE_REFUSALS
         )
@@ -1692,6 +1818,7 @@ class GoodsCounterGrnView(GoodsAPIView):
     """E118: draft a counter-GRN and ask a distinct C-INV to approve it."""
 
     @extend_schema(
+        request={"application/json": COUNTER_GRN_REQUEST},
         responses=_responses(
             201, _dto_response(COUNTER_DATA, "ResourceDTO<CounterGrnDraft>."), _WRITE_REFUSALS
         )

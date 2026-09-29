@@ -36,16 +36,23 @@ export function marginParams(filters: MarginFilters): Record<string, string> {
  *  whose brand is not one brand in the brand list, which has no statement. */
 export function brandIdOf(key: string): string | null {
   const found = /^brand:(\d+)$/.exec(key);
-  return found ? found[1] : null;
+  return found?.[1] ?? null;
 }
 
 /** Sale value = KDPS's share + brand's share + not split, the statement's own rule. */
 export function splitAddsUp(row: MarginFigures): boolean {
-  return row.value_paise === (row.kdps_paise ?? 0) + (row.brand_paise ?? 0) + (row.unsplit_paise ?? 0);
+  return (
+    row.value_paise === (row.kdps_paise ?? 0) + (row.brand_paise ?? 0) + (row.unsplit_paise ?? 0)
+  );
 }
 
 /** The file name a statement downloads under. */
 export function exportName(filters: MarginFilters, brandName: string | null): string {
-  const who = brandName ? brandName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") : "all-brands";
+  const who = brandName
+    ? brandName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "")
+    : "all-brands";
   return `margin-share-${who || "brand"}-${filters.month}.xlsx`;
 }

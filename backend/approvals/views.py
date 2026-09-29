@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
@@ -123,6 +124,7 @@ class ApprovalDecideView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=ApprovalDecisionSerializer, responses=ApprovalReadSerializer)
     def post(self, request: Request, pk: int) -> Response:
         # Scope first: an out-of-scope approval must look like it doesn't exist.
         # By entitlement, not by the switcher — deciding is an act, and the unit

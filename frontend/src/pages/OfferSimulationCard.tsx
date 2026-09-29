@@ -30,7 +30,7 @@ interface Props {
   offerId: number;
   status: string;
   /** The offer's own save time: a change reloads the card (and makes it stale). */
-  updatedAt?: string;
+  updatedAt?: string | undefined;
 }
 
 export function OfferSimulationCard({ offerId, status, updatedAt }: Props) {
@@ -164,13 +164,14 @@ export function OfferSimulationCard({ offerId, status, updatedAt }: Props) {
           <p className="hint" data-testid="sim-run-line">
             Run {asOfText(data.run_at).replace(/^As of /, "")}
             {data.run_by ? ` by ${data.run_by}` : ""} ·{" "}
-            {data.as_of ? `Bills ${asOfText(data.as_of).replace(/^As/, "as")}` : "No copy of the bills yet"} ·{" "}
-            {data.stores.map((s) => s.code).join(", ") || "no stores"}
+            {data.as_of
+              ? `Bills ${asOfText(data.as_of).replace(/^As/, "as")}`
+              : "No copy of the bills yet"}{" "}
+            · {data.stores.map((s) => s.code).join(", ") || "no stores"}
           </p>
           {data.stale && (
             <p className="warn-note" data-testid="sim-stale">
-              The offer changed after this estimate. Run it again to see the offer as it now
-              stands.
+              The offer changed after this estimate. Run it again to see the offer as it now stands.
             </p>
           )}
           <div className="table-wrap">
@@ -234,7 +235,8 @@ export function OfferSimulationCard({ offerId, status, updatedAt }: Props) {
               onClick={() => void send(true)}
               data-testid="sim-run"
             >
-              <Calculator size={16} /> {ran ? "Run the estimate again" : "Estimate what it would cost"}
+              <Calculator size={16} />{" "}
+              {ran ? "Run the estimate again" : "Estimate what it would cost"}
             </button>
           )}
           {ran && (

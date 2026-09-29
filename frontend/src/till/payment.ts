@@ -100,8 +100,7 @@ export type MockAnswer = Extract<ChargeState, "failed" | "unknown">;
 export const MOCK_ANSWERS: readonly MockAnswer[] = ["failed", "unknown"];
 
 const REASONS: Record<MockAnswer, string> = {
-  failed:
-    "The bank turned this payment down. Show the QR again, or take the money another way.",
+  failed: "The bank turned this payment down. Show the QR again, or take the money another way.",
   unknown:
     "This counter cannot reach the bank, so it does not know whether the money went through. Check again in a moment - or ask the customer to show their phone, and record the payment by hand.",
 };
@@ -191,9 +190,11 @@ export function createMockPaymentAdapter(options: MockOptions = {}): PaymentAdap
       await pause(ANSWER_MS);
       if (mine.abandoned) return;
       const answer = answers[given % answers.length];
+      if (!answer) throw new Error("Mock payment adapter has no answer");
       given += 1;
-      standing = { state: answer, reason: REASONS[answer], qr: "" };
-      yield standing;
+      const settled: ChargeStanding = { state: answer, reason: REASONS[answer], qr: "" };
+      standing = settled;
+      yield settled;
     } finally {
       // The settled `standing` deliberately stays - Check status is allowed to
       // repeat the answer. What ends here is only this charge's claim on the
@@ -328,8 +329,7 @@ export function chargeCardOf(standing: ChargeStanding, amountPaise: number): Cha
     case "awaiting":
       return {
         tone: "waiting",
-        says:
-          "Waiting for the bank to say the money arrived. This card waits as long as it takes - only the bank decides that a payment did not happen.",
+        says: "Waiting for the bank to say the money arrived. This card waits as long as it takes - only the bank decides that a payment did not happen.",
         canCheck: true,
         canRetry: false,
         leaves: "cancel",
@@ -342,8 +342,7 @@ export function chargeCardOf(standing: ChargeStanding, amountPaise: number): Cha
         // cashier to the customer's phone before they save.
         return {
           tone: "doubt",
-          says:
-            "The bank says a payment went through, but not one this counter can account for - the amount it answered about is not the amount asked for, or it gave no reference. This bill will record the UPI on your word rather than the bank's. Check what the customer was actually charged.",
+          says: "The bank says a payment went through, but not one this counter can account for - the amount it answered about is not the amount asked for, or it gave no reference. This bill will record the UPI on your word rather than the bank's. Check what the customer was actually charged.",
           canCheck: true,
           canRetry: false,
           leaves: "close",

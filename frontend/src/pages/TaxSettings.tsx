@@ -330,8 +330,8 @@ function VersionCard({ version }: { version: Version }) {
           {filedRows(version.options.annual_return_filed)
             .map((row) => `${row.gstin} for ${row.fy} on ${row.day}`)
             .join("; ")}
-          . A credit note for a bill of that year reduces tax only up to that day (or 30
-          November, if earlier).
+          . A credit note for a bill of that year reduces tax only up to that day (or 30 November,
+          if earlier).
         </p>
       )}
     </section>
@@ -436,8 +436,8 @@ function VersionForm({
       <div className="table-wrap">
         <p className="muted-cell">
           Annual return filing dates. A credit note for a bill of that year and GSTIN reduces tax
-          only up to this day, or 30 November after the year if that is earlier. After it, a
-          return gets its value back with no tax reduction, and is flagged.
+          only up to this day, or 30 November after the year if that is earlier. After it, a return
+          gets its value back with no tax reduction, and is flagged.
         </p>
         <table className="data" data-testid="tax-filed-form">
           <thead>
@@ -686,6 +686,7 @@ function VersionForm({
  *  HSN prefix), with the highest rate they hold for an HSN no rule covers. */
 function startFrom(data: Payload): Draft {
   const newest = data.versions[0];
+  if (!newest) throw new Error("Cannot edit tax settings without an existing version");
   let rules: Rule[] = newest.rules;
   let unmatched = newest.unmatched_rate ?? "";
   if (newest.legacy) {

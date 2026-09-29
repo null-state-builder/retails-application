@@ -48,10 +48,10 @@ const MIN_ROOM = 120;
  *  fields out of it - a `"below"` caller that applied only `top` would leave a
  *  flipped popover wherever the last placement put it. */
 export interface PopoverPlacement {
-  top?: number;
-  bottom?: number;
+  top?: number | undefined;
+  bottom?: number | undefined;
   left: number;
-  maxHeight?: number;
+  maxHeight?: number | undefined;
 }
 
 /** Pure placement math for {@link usePositionedPopover}, pulled out so it can
@@ -119,7 +119,7 @@ export interface PositionedPopover<T extends HTMLElement = HTMLButtonElement> {
    *  wherever the last placement put it. `"right"` always sets `top`. */
   at: PopoverPlacement | null;
   /** Goes on the control the popover hangs off. */
-  triggerRef: RefObject<T>;
+  triggerRef: RefObject<T | null>;
   /** Goes on the portaled popover. It holds the node for the outside-click
    *  test, and re-places against the popover's real height the moment it is in
    *  the DOM - before that there is nothing to measure. */

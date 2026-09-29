@@ -25,7 +25,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { AlertTriangle, PackageCheck, RotateCcw, Undo2, WifiOff } from "lucide-react";
 
-import {api, apiErrorCode, apiErrorMessage, goodsMeta} from "../lib/api";
+import { api, apiErrorCode, apiErrorMessage, goodsMeta } from "../lib/api";
 import {
   Feedback,
   Field,
@@ -131,7 +131,7 @@ export function AcceptPanel({
       setSiteId(site);
       return;
     }
-    if (!siteId && sites.length > 0) setSiteId(sites[0].id);
+    if (!siteId && sites[0]) setSiteId(sites[0].id);
   }, [sites, siteId, site]);
 
   // E248: the work waiting for this person, found with `stock.accept` alone.
@@ -180,11 +180,7 @@ export function AcceptPanel({
             sites.find((s) => s.id === siteId)?.name ?? siteId
           }`}
         />
-        <button
-          className="btn btn-sm"
-          data-testid="accept-back"
-          onClick={() => setOpenDoc(null)}
-        >
+        <button className="btn btn-sm" data-testid="accept-back" onClick={() => setOpenDoc(null)}>
           <RotateCcw size={14} /> Choose a different PT
         </button>
         <SessionPanel doc={openDoc} onDoc={setOpenDoc} siteId={siteId} stepUp={stepUp} />
@@ -322,7 +318,9 @@ function SessionPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const locations = useResourceList<LocationData>(`/goods-v1/masters/stores/${siteId}/locations?limit=100`);
+  const locations = useResourceList<LocationData>(
+    `/goods-v1/masters/stores/${siteId}/locations?limit=100`,
+  );
   const putawayLocations = locations.items.filter(
     (l) => !l.data.system && PUTAWAY_KINDS.has(l.data.kind),
   );
@@ -347,10 +345,13 @@ function SessionPanel({
     setError("");
     try {
       const { data } = await stepUp.guarded(() =>
-        api.post<ResourceDTO<AcceptanceData>>(`/goods-v1/stockledger/acceptance-sessions/${doc.id}/scan`, {
-          observations: toSend.map((s) => s.input),
-          ...goodsMeta(revisionRef.current),
-        }),
+        api.post<ResourceDTO<AcceptanceData>>(
+          `/goods-v1/stockledger/acceptance-sessions/${doc.id}/scan`,
+          {
+            observations: toSend.map((s) => s.input),
+            ...goodsMeta(revisionRef.current),
+          },
+        ),
       );
       revisionRef.current = data.revision;
       supersededStreakRef.current = 0;
@@ -358,7 +359,9 @@ function SessionPanel({
       const acknowledged = new Set(data.data.acknowledged_scan_keys);
       commitQueue(
         queueRef.current.map((s) =>
-          acknowledged.has(s.key) ? { ...s, status: "recorded", error: undefined } : s,
+          acknowledged.has(s.key)
+            ? { key: s.key, input: s.input, lineLabel: s.lineLabel, status: "recorded" }
+            : s,
         ),
       );
     } catch (e) {
@@ -445,7 +448,10 @@ function SessionPanel({
   }
 
   function enqueue(input: ScanInput, lineLabel: string) {
-    commitQueue([...queueRef.current, { key: input.scan_key, input, lineLabel, status: "pending" }]);
+    commitQueue([
+      ...queueRef.current,
+      { key: input.scan_key, input, lineLabel, status: "pending" },
+    ]);
     void flush();
   }
 
@@ -508,7 +514,8 @@ function SessionPanel({
       <Feedback error={error} ok="" />
       {completed && (
         <div className="ok-note" data-testid="accept-completed">
-          Session completed. {remaining > 0 ? `${remaining} piece(s) stay open, not written off.` : ""}
+          Session completed.{" "}
+          {remaining > 0 ? `${remaining} piece(s) stay open, not written off.` : ""}
         </div>
       )}
 
@@ -555,7 +562,10 @@ function SessionPanel({
       )}
 
       <h3 className="h3">Scanned so far</h3>
-      {listState({ loading: false, failure: "", empty: groups.length === 0 }, "Nothing scanned yet.") ?? (
+      {listState(
+        { loading: false, failure: "", empty: groups.length === 0 },
+        "Nothing scanned yet.",
+      ) ?? (
         <table className="acc-tally" data-testid="accept-tally">
           <thead>
             <tr>
@@ -576,8 +586,12 @@ function SessionPanel({
                 <td>{CONDITION_LABEL[g.condition]}</td>
                 <td className="num">{g.qty}</td>
                 <td>
-                  {g.recordedQty > 0 && <span className="chip chip-green">{g.recordedQty} recorded</span>}
-                  {g.pendingQty > 0 && <span className="chip chip-amber">{g.pendingQty} pending</span>}
+                  {g.recordedQty > 0 && (
+                    <span className="chip chip-green">{g.recordedQty} recorded</span>
+                  )}
+                  {g.pendingQty > 0 && (
+                    <span className="chip chip-amber">{g.pendingQty} pending</span>
+                  )}
                   {g.errorQty > 0 && <span className="chip chip-red">{g.errorQty} failed</span>}
                 </td>
               </tr>
@@ -592,7 +606,11 @@ function SessionPanel({
             .map((s) => (
               <p key={s.key}>
                 <AlertTriangle size={14} /> {s.input.alias_value}: {s.error}{" "}
-                <button className="btn btn-sm" onClick={() => removeErrored(s.key)} data-testid={`accept-dismiss-${s.key}`}>
+                <button
+                  className="btn btn-sm"
+                  onClick={() => removeErrored(s.key)}
+                  data-testid={`accept-dismiss-${s.key}`}
+                >
                   Dismiss
                 </button>
               </p>
@@ -629,8 +647,8 @@ function SessionPanel({
             confirmingComplete ? (
               <div>
                 <p className="lead">
-                  {remaining} piece(s) are still not accepted. They stay visible and are not
-                  written off.
+                  {remaining} piece(s) are still not accepted. They stay visible and are not written
+                  off.
                 </p>
                 <ul>
                   {doc.data.lines.items
@@ -662,7 +680,11 @@ function SessionPanel({
               </button>
             )
           ) : (
-            <button className="btn btn-cta" onClick={() => complete(false)} data-testid="accept-complete">
+            <button
+              className="btn btn-cta"
+              onClick={() => complete(false)}
+              data-testid="accept-complete"
+            >
               <PackageCheck size={14} /> Complete
             </button>
           )}
@@ -801,7 +823,9 @@ function ExtraPiecesPanel({
             The extra is decided on the receipt&apos;s Discrepancies step (&quot;Accept the
             extra&quot;), and a second person approves that decision.
           </li>
-          <li>The warehouse prepares a supplement PT for those pieces only; it is approved separately.</li>
+          <li>
+            The warehouse prepares a supplement PT for those pieces only; it is approved separately.
+          </li>
           <li>The extra pieces then wait here, on the supplement, to be accepted.</li>
         </ol>
       )}
@@ -964,7 +988,10 @@ function ScanForm({
     <fieldset className="card section-card acc-scan-form" data-testid="accept-scan-form">
       <legend>Scan</legend>
       <div className="form-grid">
-        <Field id="acc-line" label="Official line (optional — leave blank to let the tag resolve it)">
+        <Field
+          id="acc-line"
+          label="Official line (optional — leave blank to let the tag resolve it)"
+        >
           <select
             id="acc-line"
             className="select"

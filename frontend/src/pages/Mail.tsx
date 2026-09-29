@@ -134,7 +134,7 @@ function Composer({
     setSending(true);
     setError("");
     mailApi
-      .send({ to, subject, body, reply_to: replyTo?.id })
+      .send({ to, subject, body, ...(replyTo ? { reply_to: replyTo.id } : {}) })
       .then(() => {
         announceMailChanged();
         onClose(true);

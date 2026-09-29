@@ -32,7 +32,7 @@ const PATROL_MS = 400;
 
 export interface ScanBox {
   /** Put this on the visible scan input. */
-  ref: RefObject<HTMLInputElement>;
+  ref: RefObject<HTMLInputElement | null>;
   /** Send the cursor back now, rather than waiting for the next patrol. */
   focus: () => void;
 }

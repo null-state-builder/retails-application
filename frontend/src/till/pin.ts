@@ -160,14 +160,15 @@ export async function whoAuthorised(
   for (const manager of managers) {
     if (await verifyPin(manager, pin)) matched.push(manager);
   }
-  if (matched.length !== 1) return { authorisation: null, matched: matched.length };
-  if (rules.cashierId != null && matched[0].user_id === rules.cashierId) {
+  const manager = matched[0];
+  if (matched.length !== 1 || !manager) return { authorisation: null, matched: matched.length };
+  if (rules.cashierId != null && manager.user_id === rules.cashierId) {
     return { authorisation: null, matched: 1, selfApproval: true };
   }
   return {
     authorisation: {
-      user_id: matched[0].user_id,
-      name: matched[0].name,
+      user_id: manager.user_id,
+      name: manager.name,
       // Copied, not referenced: what was on the screen at this moment is the
       // whole of what this authorisation means, and the cart goes on changing.
       asks: asks.map((ask) => ({ ...ask })),
@@ -194,7 +195,7 @@ function parseHash(encoded: string): ParsedHash | null {
   if (parts.length !== 4) return null;
   const [algorithm, iterations, salt, digest] = parts;
   const rounds = Number(iterations);
-  if (algorithm !== ALGORITHM || !salt) return null;
+  if (algorithm !== ALGORITHM || !salt || !digest) return null;
   if (!Number.isInteger(rounds) || rounds < 1 || rounds > MAX_ITERATIONS) return null;
   const bytes = fromBase64(digest);
   return bytes && bytes.length ? { iterations: rounds, salt, digest: bytes } : null;
@@ -209,9 +210,7 @@ async function derive(pin: string, salt: string, iterations: number): Promise<Ui
   if (!subtle) return null;
   try {
     const encoder = new TextEncoder();
-    const key = await subtle.importKey("raw", encoder.encode(pin), "PBKDF2", false, [
-      "deriveBits",
-    ]);
+    const key = await subtle.importKey("raw", encoder.encode(pin), "PBKDF2", false, ["deriveBits"]);
     const bits = await subtle.deriveBits(
       { name: "PBKDF2", salt: encoder.encode(salt), iterations, hash: "SHA-256" },
       key,
@@ -234,7 +233,12 @@ async function derive(pin: string, salt: string, iterations: number): Promise<Ui
 function sameSecret(a: Uint8Array, b: Uint8Array): boolean {
   if (a.length !== b.length) return false;
   let difference = 0;
-  for (let i = 0; i < a.length; i += 1) difference |= a[i] ^ b[i];
+  for (let i = 0; i < a.length; i += 1) {
+    const left = a[i];
+    const right = b[i];
+    if (left === undefined || right === undefined) return false;
+    difference |= left ^ right;
+  }
   return difference === 0;
 }
 

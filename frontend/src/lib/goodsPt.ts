@@ -311,7 +311,10 @@ export function isSuperseded(
  *  item). Matching the request's `maker` at least catches the common case —
  *  the preparer who pressed "Submit" — pre-emptively; the server's own
  *  `SELF_APPROVAL` refusal is the backstop for the rest. */
-export function isLikelySelfApproval(approval: ApprovalDTO, humanId: string | null | undefined): boolean {
+export function isLikelySelfApproval(
+  approval: ApprovalDTO,
+  humanId: string | null | undefined,
+): boolean {
   return Boolean(humanId) && approval.maker.id === humanId;
 }
 
@@ -350,6 +353,7 @@ export function rupeesToPaiseString(text: string): string | null | undefined {
   const typed = trimmed.replace(/[,\s]/g, "");
   if (!/^\d+(\.\d{1,2})?$/.test(typed)) return undefined;
   const [whole, fraction = ""] = typed.split(".");
+  if (whole === undefined) return undefined;
   const paise = BigInt(whole) * 100n + BigInt((fraction + "00").slice(0, 2));
   return paise.toString();
 }

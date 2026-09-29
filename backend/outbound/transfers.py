@@ -205,7 +205,7 @@ def _site_id(value: Any, field: str) -> int:
 def _qty(value: Any, field: str, *, minimum: int = 1) -> int:
     if isinstance(value, bool) or not isinstance(value, int) or not minimum <= value <= MAX_QTY:
         raise _invalid(f"{field} is {minimum} to {MAX_QTY} pieces.", field)
-    return value
+    return int(value)
 
 
 def _text(value: Any, field: str, *, limit: int, required: bool = True) -> str | None:

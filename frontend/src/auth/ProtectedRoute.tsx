@@ -47,9 +47,7 @@ export function ProtectedRoute() {
   }
   const room = allowed ? roomAt(location.pathname) : undefined;
   const shell = (
-    <AppShell room={room}>
-      {allowed ? <Outlet /> : <AccessDenied />}
-    </AppShell>
+    <AppShell {...(room ? { room } : {})}>{allowed ? <Outlet /> : <AccessDenied />}</AppShell>
   );
   // Billing's till must sit above the shell so the top bar can show its live
   // status. Other Sell screens keep their route-local provider.

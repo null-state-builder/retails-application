@@ -194,7 +194,7 @@ export function useMailbox(): Mailbox {
     (opts: { sync?: boolean } = {}) => {
       setLoading(true);
       mailApi
-        .list(folder, { q: query, sync: opts.sync })
+        .list(folder, { q: query, ...(opts.sync === undefined ? {} : { sync: opts.sync }) })
         .then((r) => setRows(r.messages))
         .catch(() => setRows(null))
         .finally(() => setLoading(false));

@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { ReactNode } from "react";
 
 import { authApi, authSession, unitContext } from "../lib/api";
@@ -175,7 +183,7 @@ function pickDefaultStore(u: User): Store | null {
     const found = units.find((s) => s.code === saved);
     if (found) return found;
   }
-  if (!u.all_business_units && units.length === 1) return units[0];
+  if (!u.all_business_units && units.length === 1) return units[0] ?? null;
   return null; // network view (or nothing to act in at all)
 }
 
@@ -185,7 +193,7 @@ function pickDefaultBrand(u: User): Brand | null {
   const saved = localStorage.getItem(BRAND_KEY);
   const found = saved ? brands.find((b) => b.code === saved) : undefined;
   if (found) return found;
-  return brands.length === 1 ? brands[0] : null;
+  return brands.length === 1 ? (brands[0] ?? null) : null;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -214,7 +222,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   function applyContext(store: Store | null, brand: Brand | null) {
     setActiveStoreState(store);
     setActiveBrandState(brand);
-    unitContext.set({ unit: store?.code, brand: brand?.name });
+    unitContext.set({
+      ...(store ? { unit: store.code } : {}),
+      ...(brand ? { brand: brand.name } : {}),
+    });
   }
 
   function setActiveStore(s: Store | null) {

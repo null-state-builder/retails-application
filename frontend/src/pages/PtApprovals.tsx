@@ -14,7 +14,7 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, Clock, History, ShieldAlert } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import {api, apiErrorCode, apiErrorMessage, goodsMeta} from "../lib/api";
+import { api, apiErrorCode, apiErrorMessage, goodsMeta } from "../lib/api";
 import {
   Denied,
   Feedback,
@@ -59,13 +59,7 @@ function ConfigBadge({ id, label }: { id: string | null; label: string }) {
   );
 }
 
-function ApprovalViewer({
-  approval,
-  onDone,
-}: {
-  approval: ApprovalDTO;
-  onDone: () => void;
-}) {
+function ApprovalViewer({ approval, onDone }: { approval: ApprovalDTO; onDone: () => void }) {
   const { session } = useAuth();
   const humanId = session?.user.human_id ?? null;
   const canApprove = hold(session, approval.requested_action);
@@ -84,7 +78,9 @@ function ApprovalViewer({
   const ptDoc = pt.doc;
   const superseded = isSuperseded(
     approval,
-    ptDoc ? { state: ptDoc.state, content_hash: ptDoc.content_hash, revision: ptDoc.revision } : null,
+    ptDoc
+      ? { state: ptDoc.state, content_hash: ptDoc.content_hash, revision: ptDoc.revision }
+      : null,
   );
   const selfApproval = isLikelySelfApproval(approval, humanId);
   const pinned = ptDoc ? pinnedVersions(ptDoc.data.lines.items) : null;
@@ -169,9 +165,7 @@ function ApprovalViewer({
   return (
     <div className="card section-card pt-approval-viewer" data-testid="pt-approval-viewer">
       <div className="toolbar">
-        <h3 className="h3">
-          {approval.parent_document?.number ?? ptDoc.number ?? approval.title}
-        </h3>
+        <h3 className="h3">{approval.parent_document?.number ?? ptDoc.number ?? approval.title}</h3>
         <span className="chip chip-navy" data-testid="pt-approval-revision">
           Revision {approval.subject_revision}
         </span>
@@ -215,7 +209,9 @@ function ApprovalViewer({
         </div>
         <div>
           <dt>Value band</dt>
-          <dd data-testid="pt-approval-value">{formatPaiseString(reconciliation?.totalValuePaise ?? null)}</dd>
+          <dd data-testid="pt-approval-value">
+            {formatPaiseString(reconciliation?.totalValuePaise ?? null)}
+          </dd>
         </div>
       </dl>
 
@@ -427,14 +423,12 @@ export function PtApprovePanel({ onlyPt }: { onlyPt?: string }) {
 
   // The workflow stands on one delivery, so it shows one delivery's approval.
   const mineFor = (rows: ApprovalDTO[]) =>
-    onlyPt
-      ? rows.filter((row) => (row.parent_document?.id ?? row.subject_id) === onlyPt)
-      : rows;
+    onlyPt ? rows.filter((row) => (row.parent_document?.id ?? row.subject_id) === onlyPt) : rows;
   const waiting = mineFor(queue.value);
   const decided = mineFor(mine.value);
 
   useEffect(() => {
-    if (!selected && waiting.length > 0) setSelected(waiting[0]);
+    if (!selected && waiting[0]) setSelected(waiting[0]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queue.value, selected]);
 
@@ -458,66 +452,66 @@ export function PtApprovePanel({ onlyPt }: { onlyPt?: string }) {
   );
 
   return (
-      <div className="pt-layout pt-approvals-layout">
-        <div className="pt-approvals-queue" data-testid="pt-approvals-queue">
-          <h3 className="h3">
-            <Clock size={15} /> Waiting for your decision
-          </h3>
-          {state ?? (
-            <ul className="pt-queue-list">
-              {waiting.map((row) => (
-                <li key={row.id}>
-                  <button
-                    className={`pt-queue-item${row.id === selected?.id ? " pt-queue-item-active" : ""}`}
-                    onClick={() => setSelected(row)}
-                    data-testid={`pt-queue-${row.id}`}
-                  >
-                    <span>{row.title}</span>
-                    <span className="muted">
-                      {row.requested_at ? formatDateTime(row.requested_at) : "Unknown"}
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+    <div className="pt-layout pt-approvals-layout">
+      <div className="pt-approvals-queue" data-testid="pt-approvals-queue">
+        <h3 className="h3">
+          <Clock size={15} /> Waiting for your decision
+        </h3>
+        {state ?? (
+          <ul className="pt-queue-list">
+            {waiting.map((row) => (
+              <li key={row.id}>
+                <button
+                  className={`pt-queue-item${row.id === selected?.id ? " pt-queue-item-active" : ""}`}
+                  onClick={() => setSelected(row)}
+                  data-testid={`pt-queue-${row.id}`}
+                >
+                  <span>{row.title}</span>
+                  <span className="muted">
+                    {row.requested_at ? formatDateTime(row.requested_at) : "Unknown"}
+                  </span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
 
-          <h3 className="h3" style={{ marginTop: 18 }}>
-            <CheckCircle2 size={15} /> Your PT approvals
-          </h3>
-          {decided.length === 0 ? (
-            <p className="muted">Nothing yet.</p>
-          ) : (
-            <ul className="pt-queue-list">
-              {decided.slice(0, 20).map((row) => (
-                <li key={row.id}>
-                  <button
-                    className={`pt-queue-item${row.id === selected?.id ? " pt-queue-item-active" : ""}`}
-                    onClick={() => setSelected(row)}
-                    data-testid={`pt-queue-decided-${row.id}`}
-                  >
-                    <span>{row.title}</span>
-                    <span className="muted">{row.state}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-        <div className="pt-approvals-detail">
-          {selected ? (
-            <ApprovalViewer
-              key={selected.id}
-              approval={selected}
-              onDone={() => {
-                queue.reload();
-                mine.reload();
-              }}
-            />
-          ) : (
-            <p className="muted">Pick a PT from the queue to review it.</p>
-          )}
-        </div>
+        <h3 className="h3" style={{ marginTop: 18 }}>
+          <CheckCircle2 size={15} /> Your PT approvals
+        </h3>
+        {decided.length === 0 ? (
+          <p className="muted">Nothing yet.</p>
+        ) : (
+          <ul className="pt-queue-list">
+            {decided.slice(0, 20).map((row) => (
+              <li key={row.id}>
+                <button
+                  className={`pt-queue-item${row.id === selected?.id ? " pt-queue-item-active" : ""}`}
+                  onClick={() => setSelected(row)}
+                  data-testid={`pt-queue-decided-${row.id}`}
+                >
+                  <span>{row.title}</span>
+                  <span className="muted">{row.state}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
+      <div className="pt-approvals-detail">
+        {selected ? (
+          <ApprovalViewer
+            key={selected.id}
+            approval={selected}
+            onDone={() => {
+              queue.reload();
+              mine.reload();
+            }}
+          />
+        ) : (
+          <p className="muted">Pick a PT from the queue to review it.</p>
+        )}
+      </div>
+    </div>
   );
 }

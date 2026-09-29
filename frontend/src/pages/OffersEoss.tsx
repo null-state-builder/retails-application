@@ -80,7 +80,11 @@ const TABS: { key: "" | RecoRow["status"]; label: string }[] = [
   { key: "rejected", label: "Rejected" },
 ];
 
-const STATUS_TONE: Record<string, string> = { pending: "amber", approved: "green", rejected: "grey" };
+const STATUS_TONE: Record<string, string> = {
+  pending: "amber",
+  approved: "green",
+  rejected: "grey",
+};
 
 function num(v: string | null | undefined): number {
   return v ? parseFloat(v) : 0;
@@ -99,13 +103,14 @@ export function OffersEossPage() {
 
   useEffect(() => {
     if (season || seasons.length === 0) return;
-    setSeason(seasons.find((s) => s.status === "eoss")?.code ?? seasons[0].code);
+    setSeason(seasons.find((s) => s.status === "eoss")?.code ?? seasons[0]?.code ?? "");
   }, [seasons, season]);
 
-  const { data: rows, loading, reload } = useList<RecoRow>(
-    season ? "/offers/eoss/recommendations" : null,
-    { season, status: tab },
-  );
+  const {
+    data: rows,
+    loading,
+    reload,
+  } = useList<RecoRow>(season ? "/offers/eoss/recommendations" : null, { season, status: tab });
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { "": rows.length, pending: 0, approved: 0, rejected: 0 };
@@ -258,8 +263,14 @@ export function OffersEossPage() {
                     <td>
                       <div className="eoss-prog">
                         <div className="eoss-prog-bar">
-                          <div className="eoss-prog-fill" style={{ width: `${Math.min(100, st)}%` }} />
-                          <div className="eoss-prog-target" style={{ left: `${Math.min(100, target)}%` }} />
+                          <div
+                            className="eoss-prog-fill"
+                            style={{ width: `${Math.min(100, st)}%` }}
+                          />
+                          <div
+                            className="eoss-prog-target"
+                            style={{ left: `${Math.min(100, target)}%` }}
+                          />
                         </div>
                         <div className="eoss-prog-meta">
                           <span>{st.toFixed(0)}% sold</span>
@@ -282,7 +293,9 @@ export function OffersEossPage() {
                           data-testid={`eoss-override-${row.id}`}
                         />
                       ) : (
-                        <b>{num(row.decided_discount_pct ?? row.recommended_discount_pct).toFixed(0)}</b>
+                        <b>
+                          {num(row.decided_discount_pct ?? row.recommended_discount_pct).toFixed(0)}
+                        </b>
                       )}
                       %
                       {row.margin_floor_pct && (
@@ -349,16 +362,12 @@ function EossConfigPanel({ brands }: { brands: BrandRow[] }) {
     setLoading(true);
     setOk("");
     api
-      .get("/offers/eoss/config", { params: brandCode ? { brand: brandCode } : {} })
+      .get<{ ladder: LadderStep[]; targets: TargetPoint[] }>("/offers/eoss/config", {
+        params: brandCode ? { brand: brandCode } : {},
+      })
       .then((r) => {
-        setLadder(
-          r.data.ladder.map((s: any) => ({
-            id: s.id, trigger_type: s.trigger_type, trigger_value: s.trigger_value, discount_pct: s.discount_pct,
-          })),
-        );
-        setTargets(
-          r.data.targets.map((t: any) => ({ id: t.id, week_number: t.week_number, target_pct: t.target_pct })),
-        );
+        setLadder(r.data.ladder.map((s) => ({ ...s })));
+        setTargets(r.data.targets.map((t) => ({ ...t })));
       })
       .catch((e) => setError(apiErrorMessage(e)))
       .finally(() => setLoading(false));
@@ -371,7 +380,12 @@ function EossConfigPanel({ brands }: { brands: BrandRow[] }) {
     try {
       await api.put("/offers/eoss/config", {
         brand: brandCode || undefined,
-        ladder: ladder.map((s, i) => ({ step_no: i + 1, trigger_type: s.trigger_type, trigger_value: s.trigger_value, discount_pct: s.discount_pct })),
+        ladder: ladder.map((s, i) => ({
+          step_no: i + 1,
+          trigger_type: s.trigger_type,
+          trigger_value: s.trigger_value,
+          discount_pct: s.discount_pct,
+        })),
         targets: targets.map((t) => ({ week_number: t.week_number, target_pct: t.target_pct })),
       });
       setOk("Saved.");
@@ -417,7 +431,13 @@ function EossConfigPanel({ brands }: { brands: BrandRow[] }) {
                   className="input"
                   value={s.trigger_type}
                   onChange={(e) =>
-                    setLadder((rows) => rows.map((r, j) => (j === i ? { ...r, trigger_type: e.target.value as LadderStep["trigger_type"] } : r)))
+                    setLadder((rows) =>
+                      rows.map((r, j) =>
+                        j === i
+                          ? { ...r, trigger_type: e.target.value as LadderStep["trigger_type"] }
+                          : r,
+                      ),
+                    )
                   }
                 >
                   <option value="gap">pts behind target</option>
@@ -427,17 +447,29 @@ function EossConfigPanel({ brands }: { brands: BrandRow[] }) {
                   className="input"
                   type="number"
                   value={s.trigger_value}
-                  onChange={(e) => setLadder((rows) => rows.map((r, j) => (j === i ? { ...r, trigger_value: e.target.value } : r)))}
+                  onChange={(e) =>
+                    setLadder((rows) =>
+                      rows.map((r, j) => (j === i ? { ...r, trigger_value: e.target.value } : r)),
+                    )
+                  }
                 />
                 <span>→</span>
                 <input
                   className="input"
                   type="number"
                   value={s.discount_pct}
-                  onChange={(e) => setLadder((rows) => rows.map((r, j) => (j === i ? { ...r, discount_pct: e.target.value } : r)))}
+                  onChange={(e) =>
+                    setLadder((rows) =>
+                      rows.map((r, j) => (j === i ? { ...r, discount_pct: e.target.value } : r)),
+                    )
+                  }
                 />
                 <span>%</span>
-                <button type="button" className="btn" onClick={() => setLadder((rows) => rows.filter((_, j) => j !== i))}>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => setLadder((rows) => rows.filter((_, j) => j !== i))}
+                >
                   <XCircle size={13} />
                 </button>
               </div>
@@ -445,7 +477,12 @@ function EossConfigPanel({ brands }: { brands: BrandRow[] }) {
             <button
               type="button"
               className="btn"
-              onClick={() => setLadder((rows) => [...rows, { trigger_type: "gap", trigger_value: "10", discount_pct: "15" }])}
+              onClick={() =>
+                setLadder((rows) => [
+                  ...rows,
+                  { trigger_type: "gap", trigger_value: "10", discount_pct: "15" },
+                ])
+              }
               data-testid="eoss-ladder-add"
             >
               + Step
@@ -461,17 +498,29 @@ function EossConfigPanel({ brands }: { brands: BrandRow[] }) {
                   className="input"
                   type="number"
                   value={t.week_number}
-                  onChange={(e) => setTargets((rows) => rows.map((r, j) => (j === i ? { ...r, week_number: e.target.value } : r)))}
+                  onChange={(e) =>
+                    setTargets((rows) =>
+                      rows.map((r, j) => (j === i ? { ...r, week_number: e.target.value } : r)),
+                    )
+                  }
                 />
                 <span>→</span>
                 <input
                   className="input"
                   type="number"
                   value={t.target_pct}
-                  onChange={(e) => setTargets((rows) => rows.map((r, j) => (j === i ? { ...r, target_pct: e.target.value } : r)))}
+                  onChange={(e) =>
+                    setTargets((rows) =>
+                      rows.map((r, j) => (j === i ? { ...r, target_pct: e.target.value } : r)),
+                    )
+                  }
                 />
                 <span>%</span>
-                <button type="button" className="btn" onClick={() => setTargets((rows) => rows.filter((_, j) => j !== i))}>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => setTargets((rows) => rows.filter((_, j) => j !== i))}
+                >
                   <XCircle size={13} />
                 </button>
               </div>
@@ -479,7 +528,9 @@ function EossConfigPanel({ brands }: { brands: BrandRow[] }) {
             <button
               type="button"
               className="btn"
-              onClick={() => setTargets((rows) => [...rows, { week_number: "4", target_pct: "20" }])}
+              onClick={() =>
+                setTargets((rows) => [...rows, { week_number: "4", target_pct: "20" }])
+              }
               data-testid="eoss-target-add"
             >
               + Week
@@ -489,7 +540,13 @@ function EossConfigPanel({ brands }: { brands: BrandRow[] }) {
       )}
 
       <div style={{ marginTop: 16, display: "flex", gap: 10, alignItems: "center" }}>
-        <button type="button" className="btn btn-cta" disabled={saving} onClick={save} data-testid="eoss-config-save">
+        <button
+          type="button"
+          className="btn btn-cta"
+          disabled={saving}
+          onClick={save}
+          data-testid="eoss-config-save"
+        >
           {saving ? "Saving…" : "Save"}
         </button>
         {ok && <span style={{ color: "var(--green)" }}>{ok}</span>}

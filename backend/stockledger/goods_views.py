@@ -64,6 +64,64 @@ def _responses(status: int, schema: dict[str, Any], codes: tuple[int, ...]) -> d
     return {status: schema, **{code: REFUSAL_RESPONSE for code in codes}}
 
 
+def _command_request(
+    properties: dict[str, Any], *, required: tuple[str, ...] = (), revision_bound: bool = False
+) -> dict[str, Any]:
+    """The closed goods-v1 JSON command envelope plus this route's fields."""
+    return {"application/json": {
+        "type": "object", "additionalProperties": False,
+        "required": ["command_id", "contract_version", *required,
+                     *(["expected_revision"] if revision_bound else [])],
+        "properties": {
+            "command_id": {"type": "string", "format": "uuid"},
+            "contract_version": {"type": "string", "enum": ["goods-v1"]},
+            "expected_revision": {"type": "integer", "minimum": 1},
+            **properties,
+        },
+    }}
+
+
+ACCEPTANCE_OPEN_REQUEST = _command_request({
+    "site_id": {"type": "integer"},
+    "source_version_id": {"type": "string", "format": "uuid"},
+}, required=("site_id", "source_version_id"))
+ACCEPTANCE_SCAN_REQUEST = _command_request({
+    "observations": {"type": "array", "minItems": 1, "maxItems": acceptance.MAX_OBSERVATIONS,
+        "items": {"type": "object", "additionalProperties": False,
+            "required": ["scan_key", "outcome", "condition", "qty", "alias_value", "actual_at"],
+            "properties": {
+                "scan_key": {"type": "string", "format": "uuid"},
+                "official_line_id": {"type": "string", "format": "uuid", "nullable": True},
+                "alias_value": {"type": "string", "maxLength": 128},
+                "observed_ticket_mrp_paise": {"type": "integer", "nullable": True},
+                "label_evidence_id": {"type": "string", "format": "uuid", "nullable": True},
+                "chosen_sku_id": {"type": "string", "format": "uuid", "nullable": True},
+                "candidate_hash": {"type": "string", "minLength": 64, "maxLength": 64},
+                "qty": {"type": "integer", "minimum": 1, "maximum": acceptance.MAX_QTY},
+                "condition": {"type": "string", "enum": list(acceptance.CONDITIONS)},
+                "location_id": {"type": "string", "format": "uuid", "nullable": True},
+                "outcome": {"type": "string", "enum": list(acceptance.OUTCOMES)},
+                "actual_at": {"type": "string", "format": "date-time"},
+            },
+        }},
+}, required=("observations",), revision_bound=True)
+ACCEPTANCE_COMPLETE_REQUEST = _command_request({
+    "confirm_complete": {"type": "boolean"},
+    "reason_code": {"type": "string", "minLength": 1, "maxLength": 60},
+}, required=("confirm_complete",), revision_bound=True)
+ACCEPTANCE_EXTRA_REQUEST = _command_request({
+    "alias_value": {"type": "string", "minLength": 1, "maxLength": 128},
+    "qty": {"type": "integer", "minimum": 1, "maximum": acceptance.MAX_QTY},
+    "official_line_id": {"type": "string", "format": "uuid", "nullable": True},
+    "note": {"type": "string", "maxLength": acceptance.MAX_NOTE},
+}, required=("alias_value", "qty"))
+RETURNED_PIECES_REQUEST = _command_request({
+    "site_id": {"type": "integer"},
+    "sale_line_ids": {"type": "array", "minItems": 1, "items": {"type": "integer"}},
+    "location_id": {"type": "string", "format": "uuid"},
+}, required=("site_id", "sale_line_ids", "location_id"))
+
+
 #: One line of an acceptance session's progress (``goods_acceptance.line_progress``).
 ACCEPTANCE_LINE: dict[str, Any] = {
     "type": "object",
@@ -443,7 +501,10 @@ class AcceptanceSessionCreateView(GoodsAPIView):
 
     http_method_names = ["post", "options"]
 
-    @extend_schema(responses=_responses(201, ACCEPTANCE_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(
+        request=ACCEPTANCE_OPEN_REQUEST,
+        responses=_responses(201, ACCEPTANCE_RESOURCE, _WRITE_REFUSALS),
+    )
     def post(self, request: Request) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=False)
@@ -550,6 +611,7 @@ class _SessionCommandView(GoodsAPIView):
         raise NotImplementedError
 
 
+@extend_schema_view(post=extend_schema(request=ACCEPTANCE_SCAN_REQUEST))
 class AcceptanceScanView(_SessionCommandView):
     """E141: compare tags with the frozen line, then post checked/accepted/damaged scans."""
 
@@ -566,6 +628,7 @@ class AcceptanceScanView(_SessionCommandView):
         return acceptance.scan(run, pk, parsed, expected_revision)
 
 
+@extend_schema_view(post=extend_schema(request=ACCEPTANCE_COMPLETE_REQUEST))
 class AcceptanceCompleteView(_SessionCommandView):
     """E142: close the session; remaining pieces stay open work, never a write-off."""
 
@@ -607,7 +670,10 @@ class AcceptanceExtraReportView(GoodsAPIView):
 
     http_method_names = ["post", "options"]
 
-    @extend_schema(responses=_responses(200, ACCEPTANCE_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(
+        request=ACCEPTANCE_EXTRA_REQUEST,
+        responses=_responses(200, ACCEPTANCE_RESOURCE, _WRITE_REFUSALS),
+    )
     def post(self, request: Request, pk: uuid.UUID) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=False)
@@ -789,7 +855,17 @@ RETURNED_PIECES_PAGE: dict[str, Any] = {
     "type": "object",
     "description": "Customer-return legs with pieces still standing in receiving.",
     "properties": {
-        "items": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+        "items": {"type": "array", "items": {"type": "object", "required": [
+            "sale_line_id", "site_id", "doc_number", "till_number", "barcode",
+            "description", "qty", "returned_at",
+        ], "properties": {
+            **{name: {"type": "string"} for name in (
+                "sale_line_id", "site_id", "doc_number", "till_number", "barcode",
+                "description"
+            )},
+            "qty": {"type": "integer"},
+            "returned_at": {"type": "string", "format": "date-time"},
+        }}},
         "next_cursor": {"type": "string", "nullable": True},
     },
 }
@@ -844,7 +920,10 @@ class ReturnedPiecesView(GoodsAPIView):
             )
         )
 
-    @extend_schema(responses=_responses(200, RETURNED_PIECES_PAGE, _WRITE_REFUSALS))
+    @extend_schema(
+        request=RETURNED_PIECES_REQUEST,
+        responses=_responses(200, RETURNED_PIECES_PAGE, _WRITE_REFUSALS),
+    )
     def post(self, request: Request) -> Response:
         from sell.models import SaleLine
         from sell.services.goods_sale import accept_returned_pieces

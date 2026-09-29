@@ -264,7 +264,7 @@ SITE_DATA = {
     },
 }
 
-LOCATION_DATA = {
+LOCATION_DATA: dict[str, Any] = {
     "type": "object",
     "properties": {
         "site_id": {"type": "string"},
@@ -538,6 +538,90 @@ POLICY_DATA: dict[str, Any] = {
 ENTITY_READ_DATA: dict[str, Any] = {"anyOf": [ENTITY_DATA, BOOKING_ENTITY_DATA]}
 
 
+def _mutation_request(
+    fields: dict[str, Any], *, required: tuple[str, ...] = (), revision_bound: bool = True
+) -> dict[str, Any]:
+    """The accepted goods-v1 command envelope plus this operation's body fields."""
+    required_fields = ["command_id", "contract_version"]
+    if revision_bound:
+        required_fields.append("expected_revision")
+    required_fields.extend(required)
+    return {
+        "type": "object",
+        "required": required_fields,
+        "properties": {
+            "command_id": {"type": "string", "format": "uuid"},
+            "contract_version": {"type": "string", "enum": ["goods-v1"]},
+            "expected_revision": {"type": "integer", "minimum": 1},
+            **fields,
+        },
+        "additionalProperties": False,
+    }
+
+
+def _write_fields(data_schema: dict[str, Any], allowed: frozenset[str]) -> dict[str, Any]:
+    """Use the existing payload field types, excluding read-only response fields."""
+    return {name: data_schema["properties"][name] for name in sorted(allowed)}
+
+
+ENTITY_CREATE_REQUEST = _mutation_request(
+    _write_fields(ENTITY_DATA, ENTITY_FIELDS), required=("code", "name"), revision_bound=False
+)
+ENTITY_UPDATE_REQUEST = _mutation_request(_write_fields(ENTITY_DATA, ENTITY_FIELDS))
+REGISTRATION_CREATE_REQUEST = _mutation_request(
+    _write_fields(REGISTRATION_DATA, REGISTRATION_FIELDS),
+    required=tuple(sorted(REGISTRATION_FIELDS)), revision_bound=False,
+)
+REGISTRATION_UPDATE_REQUEST = _mutation_request(
+    _write_fields(REGISTRATION_DATA, REGISTRATION_FIELDS)
+)
+SITE_CREATE_REQUEST = _mutation_request(
+    _write_fields(SITE_DATA, SITE_FIELDS),
+    required=("code", "name", "type", "entity_id", "registration_id"),
+    revision_bound=False,
+)
+SITE_UPDATE_REQUEST = _mutation_request(_write_fields(SITE_DATA, SITE_FIELDS))
+RETIRE_REQUEST = _mutation_request(
+    {
+        "reason_code": {"type": "string"},
+        "effective_at": {"type": "string", "format": "date-time"},
+    },
+    required=("reason_code",),
+)
+LOCATION_CREATE_REQUEST = _mutation_request(
+    {
+        "parent_id": LOCATION_DATA["properties"]["parent_id"],
+        "name": LOCATION_DATA["properties"]["name"],
+        "kind": LOCATION_DATA["properties"]["kind"],
+    },
+    required=("name", "kind"),
+)
+LOCATION_UPDATE_REQUEST = _mutation_request(
+    {
+        "parent_id": LOCATION_DATA["properties"]["parent_id"],
+        "name": LOCATION_DATA["properties"]["name"],
+        "kind": LOCATION_DATA["properties"]["kind"],
+        "reason_code": {"type": "string"},
+        "retire": {"type": "boolean"},
+    }
+)
+LOCATION_RETIRE_REQUEST = _mutation_request(
+    {"reason_code": {"type": "string"}}, required=("reason_code",)
+)
+BRAND_LIKE_WRITE_FIELDS = {
+    name: BRAND_LIKE_DATA["properties"][name] for name in ("code", "name", "parent_id")
+}
+BRAND_LIKE_CREATE_REQUEST = _mutation_request(
+    BRAND_LIKE_WRITE_FIELDS, required=("code", "name"), revision_bound=False
+)
+BRAND_LIKE_UPDATE_REQUEST = _mutation_request(BRAND_LIKE_WRITE_FIELDS)
+SUBBRAND_CREATE_REQUEST = _mutation_request(
+    _write_fields(SUBBRAND_DATA, SUBBRAND_FIELDS),
+    required=("code", "name"), revision_bound=False,
+)
+SUBBRAND_UPDATE_REQUEST = _mutation_request(_write_fields(SUBBRAND_DATA, SUBBRAND_FIELDS))
+
+
 class GoodsEntityListCreateView(GoodsAPIView):
     @extend_schema(
         parameters=[
@@ -631,6 +715,7 @@ class GoodsEntityListCreateView(GoodsAPIView):
         return Response(page(items, cursor))
 
     @extend_schema(
+        request={"application/json": ENTITY_CREATE_REQUEST},
         responses={
             201: _resource_response(ENTITY_DATA, "ResourceDTO<MasterPayload.entity>."),
             400: REFUSAL_RESPONSE,
@@ -729,6 +814,7 @@ class GoodsEntityDetailView(GoodsAPIView):
         )
 
     @extend_schema(
+        request={"application/json": ENTITY_UPDATE_REQUEST},
         responses={
             200: _resource_response(ENTITY_DATA, "ResourceDTO<MasterPayload.entity>."),
             400: REFUSAL_RESPONSE,
@@ -803,6 +889,7 @@ class GoodsEntityDetailView(GoodsAPIView):
 
 class GoodsEntityRetireView(GoodsAPIView):
     @extend_schema(
+        request={"application/json": RETIRE_REQUEST},
         responses={
             200: _resource_response(ENTITY_DATA, "ResourceDTO<MasterPayload.entity>."),
             400: REFUSAL_RESPONSE,
@@ -979,6 +1066,7 @@ class GoodsRegistrationListCreateView(GoodsAPIView):
         return Response(page(items, cursor))
 
     @extend_schema(
+        request={"application/json": REGISTRATION_CREATE_REQUEST},
         responses={
             201: _resource_response(REGISTRATION_DATA, "ResourceDTO<MasterPayload.registration>."),
             400: REFUSAL_RESPONSE,
@@ -1079,6 +1167,7 @@ class GoodsRegistrationDetailView(GoodsAPIView):
         )
 
     @extend_schema(
+        request={"application/json": REGISTRATION_UPDATE_REQUEST},
         responses={
             200: _resource_response(REGISTRATION_DATA, "ResourceDTO<MasterPayload.registration>."),
             400: REFUSAL_RESPONSE,
@@ -1155,6 +1244,7 @@ class GoodsRegistrationDetailView(GoodsAPIView):
 
 class GoodsRegistrationRetireView(GoodsAPIView):
     @extend_schema(
+        request={"application/json": RETIRE_REQUEST},
         responses={
             200: _resource_response(REGISTRATION_DATA, "ResourceDTO<MasterPayload.registration>."),
             400: REFUSAL_RESPONSE,
@@ -1327,6 +1417,7 @@ class GoodsSiteListCreateView(GoodsAPIView):
         return Response(page([_site_dto_body(access, s) for s in window], cursor))
 
     @extend_schema(
+        request={"application/json": SITE_CREATE_REQUEST},
         responses={
             201: _resource_response(SITE_DATA, "ResourceDTO<MasterPayload.site>."),
             400: REFUSAL_RESPONSE,
@@ -1411,6 +1502,7 @@ class GoodsSiteDetailView(GoodsAPIView):
         return Response(_site_dto_body(access, store))
 
     @extend_schema(
+        request={"application/json": SITE_UPDATE_REQUEST},
         responses={
             200: _resource_response(SITE_DATA, "ResourceDTO<MasterPayload.site>."),
             400: REFUSAL_RESPONSE,
@@ -1472,6 +1564,7 @@ class GoodsSiteDetailView(GoodsAPIView):
 
 class GoodsSiteRetireView(GoodsAPIView):
     @extend_schema(
+        request={"application/json": RETIRE_REQUEST},
         responses={
             200: _resource_response(SITE_DATA, "ResourceDTO<MasterPayload.site>."),
             400: REFUSAL_RESPONSE,
@@ -1667,6 +1760,7 @@ class GoodsSiteLocationListCreateView(GoodsAPIView):
         return Response(page([_location_dto(loc) for loc in window], cursor))
 
     @extend_schema(
+        request={"application/json": LOCATION_CREATE_REQUEST},
         responses={
             201: _resource_response(LOCATION_DATA, "ResourceDTO<MasterPayload.location>."),
             400: REFUSAL_RESPONSE,
@@ -1758,6 +1852,7 @@ class GoodsSiteLocationDetailView(GoodsAPIView):
         return Response(_location_dto(location))
 
     @extend_schema(
+        request={"application/json": LOCATION_UPDATE_REQUEST},
         responses={
             200: _resource_response(LOCATION_DATA, "ResourceDTO<MasterPayload.location>."),
             400: REFUSAL_RESPONSE,
@@ -1870,6 +1965,7 @@ class GoodsSiteLocationDetailView(GoodsAPIView):
 
 class GoodsSiteLocationRetireView(GoodsAPIView):
     @extend_schema(
+        request={"application/json": LOCATION_RETIRE_REQUEST},
         responses={
             200: _resource_response(LOCATION_DATA, "ResourceDTO<MasterPayload.location>."),
             400: REFUSAL_RESPONSE,
@@ -1951,6 +2047,31 @@ READINESS_ACTIONS = frozenset(
         "approve_closed",
     }
 )
+READINESS_REQUEST = _mutation_request(
+    {
+        "action": {"type": "string", "enum": sorted(READINESS_ACTIONS)},
+        "reason_code": {"type": "string"},
+        "evidence_id": {"type": "string", "format": "uuid"},
+        "checks": {"type": "array", "items": {"type": "object"}},
+        "closure_date": {"type": "string", "format": "date"},
+        "residual_decisions": {
+            "type": "array",
+            "maxItems": 1000,
+            "items": {
+                "type": "object",
+                "required": ["code", "message"],
+                "properties": {
+                    "code": {"type": "string", "maxLength": 80},
+                    "message": {"type": "string", "maxLength": 500},
+                    "field": {"type": "string", "maxLength": 100},
+                    "quantity": {"type": "integer"},
+                },
+                "additionalProperties": False,
+            },
+        },
+    },
+    required=("action",),
+)
 #: The two that decide the site's residuals rather than fixing its setup.
 _CLOSING_ACTIONS = frozenset({"start_closing", "approve_closed"})
 _STEP_UP_ACTIONS = frozenset(
@@ -2009,6 +2130,7 @@ class GoodsSiteReadinessView(GoodsAPIView):
         )
 
     @extend_schema(
+        request={"application/json": READINESS_REQUEST},
         responses={
             200: _resource_response(READINESS_DATA, "ResourceDTO<ReadinessDTO>."),
             400: REFUSAL_RESPONSE,
@@ -2499,6 +2621,7 @@ class _BrandLikeListCreateView(GoodsAPIView):
         return Response(page(items, cursor))
 
     @extend_schema(
+        request={"application/json": BRAND_LIKE_CREATE_REQUEST},
         responses={
             201: _resource_response(BRAND_LIKE_DATA, "ResourceDTO<MasterPayload.brand|season>."),
             400: REFUSAL_RESPONSE,
@@ -2607,6 +2730,7 @@ class _BrandLikeDetailView(GoodsAPIView):
         )
 
     @extend_schema(
+        request={"application/json": BRAND_LIKE_UPDATE_REQUEST},
         responses={
             200: _resource_response(BRAND_LIKE_DATA, "ResourceDTO<MasterPayload.brand|season>."),
             400: REFUSAL_RESPONSE,
@@ -2693,6 +2817,7 @@ class _BrandLikeRetireView(GoodsAPIView):
     brand_scoped: bool = False
 
     @extend_schema(
+        request={"application/json": RETIRE_REQUEST},
         responses={
             200: _resource_response(BRAND_LIKE_DATA, "ResourceDTO<MasterPayload.brand|season>."),
             400: REFUSAL_RESPONSE,
@@ -2811,6 +2936,7 @@ class GoodsSubbrandListCreateView(GoodsAPIView):
         return Response(page(items, cursor))
 
     @extend_schema(
+        request={"application/json": SUBBRAND_CREATE_REQUEST},
         responses={
             201: _resource_response(SUBBRAND_DATA, "ResourceDTO<MasterPayload.subbrand>."),
             400: REFUSAL_RESPONSE,
@@ -2908,6 +3034,7 @@ class GoodsSubbrandDetailView(GoodsAPIView):
         )
 
     @extend_schema(
+        request={"application/json": SUBBRAND_UPDATE_REQUEST},
         responses={
             200: _resource_response(SUBBRAND_DATA, "ResourceDTO<MasterPayload.subbrand>."),
             400: REFUSAL_RESPONSE,
@@ -2973,6 +3100,7 @@ class GoodsSubbrandDetailView(GoodsAPIView):
 
 class GoodsSubbrandRetireView(GoodsAPIView):
     @extend_schema(
+        request={"application/json": RETIRE_REQUEST},
         responses={
             200: _resource_response(SUBBRAND_DATA, "ResourceDTO<MasterPayload.subbrand>."),
             400: REFUSAL_RESPONSE,
@@ -3203,7 +3331,7 @@ CONFIG_VERSION_STATE = {
     },
 }
 
-CONFIG_DATA = {
+CONFIG_DATA: dict[str, Any] = {
     "type": "object",
     "description": (
         "ConfigPayload draft content plus its approved versions' real states. "
@@ -3246,6 +3374,42 @@ CONFIG_DATA = {
         },
     },
 }
+
+CONFIG_CREATE_REQUEST = _mutation_request(
+    {
+        **{key: CONFIG_DATA["properties"][key] for key in (
+            "kind", "scope", "effective_from", "effective_to", "payload"
+        )},
+        "reason_code": {"type": "string"},
+    },
+    required=("kind", "scope", "effective_from", "payload"),
+    revision_bound=False,
+)
+CONFIG_UPDATE_REQUEST = _mutation_request(
+    {
+        **{key: CONFIG_DATA["properties"][key] for key in (
+            "payload", "effective_from", "effective_to"
+        )},
+        "reason_code": {"type": "string"},
+    },
+    required=("payload",),
+)
+CONFIG_SUBMIT_REQUEST = _mutation_request(
+    {"reviewed_hash": {"type": "string", "minLength": 64, "maxLength": 64}},
+    required=("reviewed_hash",),
+)
+CONFIG_WITHDRAW_REQUEST = _mutation_request(
+    {"version": {"type": "integer", "minimum": 1}, "reason_code": {"type": "string", "maxLength": 60}},
+    required=("version", "reason_code"),
+    revision_bound=False,
+)
+TENANT_UPDATE_REQUEST = _mutation_request(
+    _write_fields(
+        TENANT_DATA,
+        frozenset({"code", "name", "timezone", "currency", "locale", "business_profile_version_id"}),
+    ),
+    required=("code", "name", "timezone", "currency", "locale"),
+)
 
 
 #: A PT preparer or approver must be able to see which profile is approved
@@ -3355,6 +3519,7 @@ class GoodsConfigurationListCreateView(GoodsAPIView):
         )
 
     @extend_schema(
+        request={"application/json": CONFIG_CREATE_REQUEST},
         responses={
             201: _resource_response(CONFIG_DATA, "ResourceDTO<ConfigPayload>."),
             400: REFUSAL_RESPONSE,
@@ -3461,6 +3626,7 @@ class GoodsConfigurationDetailView(GoodsAPIView):
         )
 
     @extend_schema(
+        request={"application/json": CONFIG_UPDATE_REQUEST},
         responses={
             200: _resource_response(CONFIG_DATA, "ResourceDTO<ConfigPayload>."),
             400: REFUSAL_RESPONSE,
@@ -3542,6 +3708,7 @@ class GoodsConfigurationDetailView(GoodsAPIView):
 
 class GoodsConfigurationSubmitView(GoodsAPIView):
     @extend_schema(
+        request={"application/json": CONFIG_SUBMIT_REQUEST},
         responses={
             200: _resource_response(CONFIG_DATA, "ResourceDTO<ConfigPayload>."),
             400: REFUSAL_RESPONSE,
@@ -3764,6 +3931,7 @@ class GoodsTenantView(GoodsAPIView):
         )
 
     @extend_schema(
+        request={"application/json": TENANT_UPDATE_REQUEST},
         responses={
             200: _resource_response(TENANT_DATA, "ResourceDTO<TenantInput>."),
             400: REFUSAL_RESPONSE,
@@ -3861,6 +4029,7 @@ class GoodsConfigurationWithdrawView(GoodsAPIView):
     """
 
     @extend_schema(
+        request={"application/json": CONFIG_WITHDRAW_REQUEST},
         responses={
             200: _resource_response(CONFIG_DATA, "ResourceDTO<ConfigPayload>."),
             400: REFUSAL_RESPONSE,
@@ -3962,6 +4131,7 @@ POLICY_FIELDS = frozenset(
         "unknown_value",
     }
 )
+POLICY_UPDATE_REQUEST = _mutation_request(_write_fields(POLICY_DATA, POLICY_FIELDS))
 
 
 def _require_policy_admin(access: AccessContext, *, drafting: bool = False) -> None:
@@ -4070,6 +4240,7 @@ class GoodsActorPolicyDetailView(GoodsAPIView):
         return Response(_policy_dto(draft, version, action))
 
     @extend_schema(
+        request={"application/json": POLICY_UPDATE_REQUEST},
         responses={
             200: _resource_response(POLICY_DATA, "ResourceDTO<PolicyPayload>."),
             400: REFUSAL_RESPONSE,
@@ -4136,6 +4307,7 @@ class GoodsApprovalPolicyDetailView(GoodsAPIView):
         return Response(_policy_dto(draft, version, kind))
 
     @extend_schema(
+        request={"application/json": POLICY_UPDATE_REQUEST},
         responses={
             200: _resource_response(POLICY_DATA, "ResourceDTO<PolicyPayload>."),
             400: REFUSAL_RESPONSE,

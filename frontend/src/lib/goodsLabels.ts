@@ -37,7 +37,13 @@ export interface PrintJobData {
   events: PrintEventRow[];
 }
 
-export type PrintJobStatus = "prepared" | "attempted" | "confirmed" | "partial" | "failed" | "unknown";
+export type PrintJobStatus =
+  | "prepared"
+  | "attempted"
+  | "confirmed"
+  | "partial"
+  | "failed"
+  | "unknown";
 export type PrintOutcomeKind =
   | "attempted"
   | "confirmed"
@@ -102,7 +108,7 @@ export function latestEvent(job: PrintJobData): PrintEventRow | null {
 export function latestCountedEvent(job: PrintJobData): PrintEventRow | null {
   for (let i = job.events.length - 1; i >= 0; i -= 1) {
     const event = job.events[i];
-    if (event.usable_counts.length > 0) return event;
+    if (event && event.usable_counts.length > 0) return event;
   }
   return null;
 }

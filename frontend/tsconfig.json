@@ -16,5 +16,5 @@
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true
   },
-  "include": ["src", "vite.config.ts"]
+  "include": ["src", "browser", "vite.config.ts", "vitest.config.ts", "playwright.config.ts"]
 }

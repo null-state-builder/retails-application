@@ -113,7 +113,9 @@ export function RtvPanel({
         </div>
         <div>
           <dt>Vendor</dt>
-          <dd data-testid="rtv-vendor">{rtv.vendor ? `${rtv.vendor.name} (${rtv.vendor.code})` : "—"}</dd>
+          <dd data-testid="rtv-vendor">
+            {rtv.vendor ? `${rtv.vendor.name} (${rtv.vendor.code})` : "—"}
+          </dd>
         </div>
         <div>
           <dt>Vendor&apos;s agreement</dt>
@@ -159,8 +161,8 @@ export function RtvPanel({
 
       {(rtv.awaiting_withdrawal_qty ?? 0) > 0 && (
         <p className="warn-note" data-testid="rtv-awaiting-withdrawal">
-          {rtv.awaiting_withdrawal_qty} piece(s) will not be collected under this return, but
-          they stay reserved to it until somebody withdraws them.
+          {rtv.awaiting_withdrawal_qty} piece(s) will not be collected under this return, but they
+          stay reserved to it until somebody withdraws them.
         </p>
       )}
 
@@ -203,7 +205,9 @@ export function RtvPanel({
               <li key={index} data-testid="rtv-left-behind-row">
                 {row.qty} × {LEFT_BEHIND_LABEL[row.reason]}
                 {row.remark ? ` — ${row.remark}` : ""}
-                {row.further_pickup_expected ? " · another pickup expected" : " · no further pickup"}
+                {row.further_pickup_expected
+                  ? " · another pickup expected"
+                  : " · no further pickup"}
               </li>
             ))}
           </ul>
@@ -298,7 +302,8 @@ function ShipForm({
   const [shippedAt, setShippedAt] = useState("");
   const [busy, setBusy] = useState(false);
   const total = Object.values(sent).reduce((sum, qty) => sum + qty, 0);
-  const ready = total > 0 && carrier.trim() !== "" && (reference.trim() !== "" || note.trim() !== "");
+  const ready =
+    total > 0 && carrier.trim() !== "" && (reference.trim() !== "" || note.trim() !== "");
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -462,9 +467,7 @@ function ShipmentCard({
         </div>
         <div>
           <dt>Confirmed by the vendor</dt>
-          <dd data-testid="rtv-shipment-acknowledged">
-            {shipment.acknowledged_qty ?? "not yet"}
-          </dd>
+          <dd data-testid="rtv-shipment-acknowledged">{shipment.acknowledged_qty ?? "not yet"}</dd>
         </div>
         <div>
           <dt>Came back</dt>
@@ -755,10 +758,7 @@ function SourceReturnForm({ path, shipment, lineName, onDone, onError }: Shipmen
               data-testid="rtv-back-good"
             />
           </Field>
-          <Field
-            id={`rtv-back-damaged-${shipment.id}-${line.line_key}`}
-            label="Found damaged"
-          >
+          <Field id={`rtv-back-damaged-${shipment.id}-${line.line_key}`} label="Found damaged">
             <input
               id={`rtv-back-damaged-${shipment.id}-${line.line_key}`}
               className="input"
@@ -1155,7 +1155,11 @@ function PickupForm({
   const evidenced = reference.trim() !== "" || note.trim() !== "";
   const remarksOk = reasons.every((row) => row.reason !== "other" || row.remark.trim() !== "");
   const ready =
-    total > 0 && collectedBy.trim() !== "" && evidenced && Object.keys(gap).length === 0 && remarksOk;
+    total > 0 &&
+    collectedBy.trim() !== "" &&
+    evidenced &&
+    Object.keys(gap).length === 0 &&
+    remarksOk;
 
   function setReason(id: string, patch: Partial<ReasonRow>) {
     setReasons((rows) => rows.map((row) => (row.id === id ? { ...row, ...patch } : row)));
@@ -1342,19 +1346,22 @@ function PickupForm({
           <button
             type="button"
             className="btn btn-sm"
-            onClick={() =>
+            onClick={() => {
+              const first = waiting[0];
+              if (!first?.line_key) return;
+              const lineKey = first.line_key;
               setReasons((rows) => [
                 ...rows,
                 {
                   id: crypto.randomUUID(),
-                  line_key: waiting[0].line_key ?? "",
+                  line_key: lineKey,
                   reason: "vendor_rejected",
                   qty: 1,
                   remark: "",
                   further: false,
                 },
-              ])
-            }
+              ]);
+            }}
             data-testid="rtv-add-reason"
           >
             Add a reason
@@ -1482,7 +1489,10 @@ function WithdrawForm({
           ))}
         </select>
       </Field>
-      <Field id="rtv-withdraw-remark" label={reason === "other" ? "Remark (needed)" : "Remark (optional)"}>
+      <Field
+        id="rtv-withdraw-remark"
+        label={reason === "other" ? "Remark (needed)" : "Remark (optional)"}
+      >
         <input
           id="rtv-withdraw-remark"
           className="input"

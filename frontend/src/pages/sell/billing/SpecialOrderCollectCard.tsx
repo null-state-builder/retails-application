@@ -57,7 +57,7 @@ export function SpecialOrderCollectCard({
         onCollect(ready);
         setOpen(false);
         setTyped("");
-      } else if (found.length) {
+      } else if (found[0]) {
         setNote(
           `${found[0].ref} is ${statusChip(found[0].status).label.toLowerCase()}, so it cannot be collected yet. Tell the customer first on the Special orders screen.`,
         );

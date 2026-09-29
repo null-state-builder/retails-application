@@ -99,8 +99,14 @@ const PRESETS: { key: string; label: string; from: () => string; to: () => strin
   },
 ];
 
+const INITIAL_PRESET = (() => {
+  const first = PRESETS[0];
+  if (!first) throw new Error("Discount report has no date preset");
+  return first;
+})();
+
 export function DiscountsPage() {
-  const [preset, setPreset] = useState(PRESETS[0]);
+  const [preset, setPreset] = useState(INITIAL_PRESET);
   const { data, loading } = useDoc<Report>(
     `/sell/discounts?from=${preset.from()}&to=${preset.to()}`,
   );
@@ -148,8 +154,8 @@ export function DiscountsPage() {
               </p>
               <p className="kpi-value">{money(data.totals.net_paise)}</p>
               <p className="kpi-note">
-                {data.totals.bills} bill{data.totals.bills === 1 ? "" : "s"} ·{" "}
-                {data.totals.lines} line{data.totals.lines === 1 ? "" : "s"}
+                {data.totals.bills} bill{data.totals.bills === 1 ? "" : "s"} · {data.totals.lines}{" "}
+                line{data.totals.lines === 1 ? "" : "s"}
               </p>
             </div>
             <div className="card kpi" data-testid="kpi-keyed">

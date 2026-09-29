@@ -40,11 +40,7 @@ const LOST =
 
 /** Each store's size curves for one brand and season. A new brand or season
  *  reads every store again; a store added to the lines is read on its own. */
-export function useSizeCurves(
-  storeIds: string[],
-  brandId: string,
-  seasonId: string,
-) {
+export function useSizeCurves(storeIds: string[], brandId: string, seasonId: string) {
   const [states, setStates] = useState<Record<string, CurveState>>({});
   const generation = useRef(0);
   /** The brand and season read for, and the stores read for them. */
@@ -62,8 +58,7 @@ export function useSizeCurves(
       await Promise.all(
         stores.map(async (store) => {
           const put = (state: CurveState) => {
-            if (mine === generation.current)
-              setStates((s) => ({ ...s, [store]: state }));
+            if (mine === generation.current) setStates((s) => ({ ...s, [store]: state }));
           };
           if (!navigator.onLine) {
             put({ kind: "lost" });
@@ -80,14 +75,10 @@ export function useSizeCurves(
             });
             // Switched off at this store: nothing is offered, and nothing said.
             if (data.reason === "switched_off") put({ kind: "hidden" });
-            else
-              put(
-                data.reason ? { kind: "none", data } : { kind: "ready", data },
-              );
+            else put(data.reason ? { kind: "none", data } : { kind: "ready", data });
           } catch (reason) {
             if (isConnectionLost(reason)) put({ kind: "lost" });
-            else if (NOT_OFFERED.has(apiErrorCode(reason) ?? ""))
-              put({ kind: "hidden" });
+            else if (NOT_OFFERED.has(apiErrorCode(reason) ?? "")) put({ kind: "hidden" });
             else put({ kind: "error", message: apiErrorMessage(reason) });
           }
         }),
@@ -110,11 +101,7 @@ export function useSizeCurves(
     gone.forEach((store) => had.delete(store));
     added.forEach((store) => had.add(store));
     if (gone.length) {
-      setStates((s) =>
-        Object.fromEntries(
-          Object.entries(s).filter(([store]) => want.has(store)),
-        ),
-      );
+      setStates((s) => Object.fromEntries(Object.entries(s).filter(([store]) => want.has(store))));
     }
     if (added.length) void load(added);
   }, [wanted, scope, brandId, seasonId, load]);
@@ -145,15 +132,13 @@ export function SizeCurveNote({
   storeLabel: string;
   onRetry: () => void;
 }) {
-  if (!state || state.kind === "loading" || state.kind === "hidden")
-    return null;
+  if (!state || state.kind === "loading" || state.kind === "hidden") return null;
   if (state.kind === "ready") {
     return (
       <p className="hint" data-testid="gb-curve-ready">
-        Size curve for {storeLabel}: from its {state.data.reference_season}{" "}
-        sales ({state.data.curves.map((c) => c.category).join(", ")}). For a
-        style total, leave the size blank, type the total and press{" "}
-        <strong>Sizes</strong>.
+        Size curve for {storeLabel}: from its {state.data.reference_season} sales (
+        {state.data.curves.map((c) => c.category).join(", ")}). For a style total, leave the size
+        blank, type the total and press <strong>Sizes</strong>.
       </p>
     );
   }
@@ -167,12 +152,7 @@ export function SizeCurveNote({
   return (
     <p className="warn-note" role="status" data-testid="gb-curve-offline">
       {storeLabel}: {state.kind === "lost" ? LOST : state.message}{" "}
-      <button
-        type="button"
-        className="btn btn-sm"
-        onClick={onRetry}
-        data-testid="gb-curve-retry"
-      >
+      <button type="button" className="btn btn-sm" onClick={onRetry} data-testid="gb-curve-retry">
         Try again
       </button>
     </p>
@@ -201,7 +181,7 @@ export function SizeCurveLineFill({
   onClose: () => void;
 }) {
   const [category, setCategory] = useState(
-    curves.curves.length === 1 ? curves.curves[0].category : "",
+    curves.curves.length === 1 ? (curves.curves[0]?.category ?? "") : "",
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -219,9 +199,7 @@ export function SizeCurveLineFill({
     if (!curve) return;
     setError("");
     if (!navigator.onLine) {
-      setError(
-        "No connection, so the sizes cannot be filled. The line is as you typed it.",
-      );
+      setError("No connection, so the sizes cannot be filled. The line is as you typed it.");
       return;
     }
     const body = {
@@ -264,13 +242,9 @@ export function SizeCurveLineFill({
   return (
     <tr className="size-curve-row" data-testid={`gb-curve-panel-${index}`}>
       <td colSpan={colSpan}>
-        <div
-          className="toolbar"
-          style={{ gap: 8, flexWrap: "wrap", alignItems: "center" }}
-        >
+        <div className="toolbar" style={{ gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <label htmlFor={`gb-curve-category-${index}`}>
-            Sizes for {total} of {styleCode} from {curves.reference_season},
-            category
+            Sizes for {total} of {styleCode} from {curves.reference_season}, category
           </label>
           <select
             id={`gb-curve-category-${index}`}
@@ -305,20 +279,12 @@ export function SizeCurveLineFill({
           </button>
         </div>
         {curve && (
-          <p
-            className="hint"
-            style={{ marginTop: 6 }}
-            data-testid={`gb-curve-shares-${index}`}
-          >
+          <p className="hint" style={{ marginTop: 6 }} data-testid={`gb-curve-shares-${index}`}>
             {curve.category} sold {curve.pieces} pieces: {curveWords(curve)}
           </p>
         )}
         {error && (
-          <p
-            className="warn-note"
-            role="alert"
-            data-testid={`gb-curve-error-${index}`}
-          >
+          <p className="warn-note" role="alert" data-testid={`gb-curve-error-${index}`}>
             {error}
           </p>
         )}

@@ -544,10 +544,11 @@ def _read_xls(content: bytes) -> list[tuple[str, list[list[Any]]]]:
             row: list[Any] = []
             for j in range(sh.ncols):
                 cell = sh.cell(i, j)
-                v = cell.value
-                if cell.ctype == xlrd.XL_CELL_DATE:
+                raw = cell.value
+                v: str | float | datetime = raw
+                if cell.ctype == xlrd.XL_CELL_DATE and isinstance(raw, (int, float)):
                     try:
-                        v = xlrd.xldate_as_datetime(cell.value, book.datemode)
+                        v = xlrd.xldate_as_datetime(float(raw), book.datemode)
                     except Exception:  # noqa: BLE001 - a bad date cell stays its raw number
                         pass
                 row.append(v)

@@ -64,6 +64,44 @@ def _responses(status: int, schema: dict[str, Any], codes: tuple[int, ...]) -> d
     return {status: schema, **{code: REFUSAL_RESPONSE for code in codes}}
 
 
+def _command_request(
+    properties: dict[str, Any], *, required: tuple[str, ...] = ()
+) -> dict[str, Any]:
+    """Closed goods-v1 command metadata with the route's accepted body."""
+    return {"application/json": {
+        "type": "object", "additionalProperties": False,
+        "required": ["command_id", "contract_version", *required],
+        "properties": {
+            "command_id": {"type": "string", "format": "uuid"},
+            "contract_version": {"type": "string", "enum": ["goods-v1"]},
+            "expected_revision": {"type": "integer", "minimum": 1},
+            **properties,
+        },
+    }}
+
+
+TRANSFER_REQUEST_CREATE = _command_request({
+    "source_site_id": {"type": "integer"},
+    "destination_site_id": {"type": "integer"},
+    "note": {"type": "string", "maxLength": 500},
+    "lines": {"type": "array", "minItems": 1, "maxItems": transfers.MAX_LINES,
+        "items": {"type": "object", "additionalProperties": False,
+            "required": ["line_key", "sku_id", "qty"],
+            "properties": {
+                "line_key": {"type": "string", "format": "uuid"},
+                "sku_id": {"type": "string", "format": "uuid"},
+                "qty": {"type": "integer", "minimum": 1},
+                "note": {"type": "string", "maxLength": 240},
+            }},
+    },
+}, required=("source_site_id", "destination_site_id", "lines"))
+TRANSFER_SUBMIT_REQUEST = _command_request({})
+TRANSFER_APPROVE_REQUEST = _command_request({"reason": {"type": "string"}})
+TRANSFER_CANCEL_REQUEST = _command_request({
+    "reason": {"type": "string", "minLength": 1, "maxLength": 500},
+}, required=("reason",))
+
+
 PERSON: dict[str, Any] = {
     "type": "object",
     "properties": {"id": {"type": "string"}, "name": {"type": "string"}},
@@ -1401,6 +1439,7 @@ class TransferRequestListCreateView(GoodsAPIView):
 
     @extend_schema(
         operation_id="goods_v1_outbound_transfer_requests_create",
+        request=TRANSFER_REQUEST_CREATE,
         responses=_responses(201, TRANSFER_REQUEST, _WRITE_REFUSALS),
     )
     def post(self, request: Request) -> Response:
@@ -1495,6 +1534,7 @@ class TransferSubmitView(_TransferCommandView):
 
     @extend_schema(
         operation_id="goods_v1_outbound_transfers_submit",
+        request=TRANSFER_SUBMIT_REQUEST,
         description=(
             "Freeze the exact source pieces into the transfer PT and send it for "
             "approval. Reserves nothing. Opens an `approval_pending` exception "
@@ -1541,6 +1581,7 @@ class TransferApproveView(_TransferCommandView):
 
     @extend_schema(
         operation_id="goods_v1_outbound_transfers_approve",
+        request=TRANSFER_APPROVE_REQUEST,
         description=(
             "A different authorised person approves exactly the pieces the PT "
             "froze, which officialises and numbers the PT and reserves them (P07) "
@@ -1587,6 +1628,7 @@ class TransferCancelOutstandingView(_TransferCommandView):
 
     @extend_schema(
         operation_id="goods_v1_outbound_transfers_cancel_outstanding",
+        request=TRANSFER_CANCEL_REQUEST,
         description=(
             "Release what is still reserved, with actor, time, quantity and "
             "reason (a `cancelled` event). A transfer nothing has left from is "

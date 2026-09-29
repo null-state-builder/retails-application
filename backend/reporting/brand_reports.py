@@ -492,6 +492,7 @@ def render_xlsx(
     kinds = [_kind(column, kind) for column in columns]
     workbook = Workbook()
     sheet = workbook.active
+    assert sheet is not None
     sheet.title = layout["sheet_name"] or KIND_WORDS[kind]
     number = _title_block(sheet, layout, values)
     number = _header_row(sheet, layout, number + 1)

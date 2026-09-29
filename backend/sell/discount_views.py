@@ -31,6 +31,7 @@ from typing import Any
 from django.db.models import Count, DecimalField, F, Sum
 from django.db.models.functions import Cast
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -73,6 +74,97 @@ def _window(request: Request) -> tuple[date, date]:
 class DiscountReportView(APIView):
     permission_classes = [IsAuthenticated, CanReadDiscounts]
 
+    @extend_schema(
+        responses={
+            200: {
+                "type": "object",
+                "required": [
+                    "from", "to", "totals", "by_brand", "by_offer", "keyed_in", "not_applied",
+                ],
+                "properties": {
+                    "from": {"type": "string", "format": "date"},
+                    "to": {"type": "string", "format": "date"},
+                    "totals": {
+                        "type": "object",
+                        "properties": {
+                            "gross_paise": {"type": "integer"},
+                            "disc_paise": {"type": "integer"},
+                            "net_paise": {"type": "integer"},
+                            "lines": {"type": "integer"},
+                            "bills": {"type": "integer"},
+                            "discount_pct": {"type": "string", "nullable": True},
+                        },
+                    },
+                    "by_brand": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "brand": {"type": "string"},
+                                "disc_paise": {"type": "integer"},
+                                "net_paise": {"type": "integer"},
+                                "lines": {"type": "integer"},
+                            },
+                        },
+                    },
+                    "by_offer": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "offer_id": {"type": "integer"},
+                                "name": {"type": "string"},
+                                "funder": {"type": "string"},
+                                "layer": {"type": "string"},
+                                "disc_paise": {"type": "integer"},
+                                "lines": {"type": "integer"},
+                            },
+                        },
+                    },
+                    "keyed_in": {
+                        "type": "object",
+                        "properties": {
+                            "disc_paise": {"type": "integer"},
+                            "lines": {"type": "integer"},
+                            "by_person": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "store_code": {"type": "string"},
+                                        "name": {"type": "string"},
+                                        "disc_paise": {"type": "integer"},
+                                        "lines": {"type": "integer"},
+                                    },
+                                },
+                            },
+                        },
+                    },
+                    "not_applied": {
+                        "type": "object",
+                        "properties": {
+                            "missed_paise": {"type": "integer"},
+                            "open_flags": {"type": "integer"},
+                            "rows": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "flag_id": {"type": "integer"},
+                                        "bill_number": {"type": "string"},
+                                        "billed_on": {"type": "string", "format": "date"},
+                                        "store_code": {"type": "string"},
+                                        "missed_paise": {"type": "integer"},
+                                        "status": {"type": "string"},
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        }
+    )
     def get(self, request: Request) -> Response:
         start, end = _window(request)
         lines = SaleLine.objects.filter(

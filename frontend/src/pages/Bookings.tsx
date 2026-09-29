@@ -278,13 +278,21 @@ export function BookingNewPage() {
     if (canLegacy) {
       for (const s of legacyStores) {
         if (engineOfStore(s.stock_contract) !== "legacy") continue;
-        out.set(String(s.id), { id: String(s.id), label: `${s.name} (${s.code})`, engine: "legacy" });
+        out.set(String(s.id), {
+          id: String(s.id),
+          label: `${s.name} (${s.code})`,
+          engine: "legacy",
+        });
       }
     }
     if (canGoods) {
       for (const s of session?.sites ?? []) {
         if (engineOfStore(s.stock_contract) !== "goods") continue;
-        out.set(String(s.id), { id: String(s.id), label: `${s.name} (${s.code})`, engine: "goods" });
+        out.set(String(s.id), {
+          id: String(s.id),
+          label: `${s.name} (${s.code})`,
+          engine: "goods",
+        });
       }
     }
     return [...out.values()].sort((a, b) => a.label.localeCompare(b.label));
@@ -341,7 +349,10 @@ export function BookingNewPage() {
 
   /** Put a fill's sizes in place of the line it was asked for, if that line is
    *  still the style total that was sent; otherwise the answer is dropped. */
-  function filled(asked: { id: string; style: string; total: number; store: string }, fill: SizeCurveFill) {
+  function filled(
+    asked: { id: string; style: string; total: number; store: string },
+    fill: SizeCurveFill,
+  ) {
     setCurveLine(null);
     const at = linesNow.current.findIndex((l) => l.id === asked.id);
     const line = linesNow.current[at];
@@ -369,7 +380,11 @@ export function BookingNewPage() {
   const totals = lineTotals(
     lines
       .filter((l) => Number(l.qty) > 0)
-      .map((l) => ({ qty: Number(l.qty), costPaise: typedPaise(l.cost), mrpPaise: typedPaise(l.mrp) })),
+      .map((l) => ({
+        qty: Number(l.qty),
+        costPaise: typedPaise(l.cost),
+        mrpPaise: typedPaise(l.mrp),
+      })),
   );
 
   async function handleFile(file: File) {
@@ -402,7 +417,9 @@ export function BookingNewPage() {
       }
       if (data.season) {
         const s = seasons.find(
-          (x) => text(data.season).includes(x.code.toLowerCase()) || x.name.toLowerCase().includes(text(data.season)),
+          (x) =>
+            text(data.season).includes(x.code.toLowerCase()) ||
+            x.name.toLowerCase().includes(text(data.season)),
         );
         if (s) setPicked((p) => ({ ...p, season_id: String(s.id) }));
       }
@@ -414,7 +431,9 @@ export function BookingNewPage() {
       const response = (e as { response?: { data?: { source_file_id?: number; detail?: string } } })
         .response;
       setSourceFileId(response?.data?.source_file_id ?? null);
-      setWarn(response?.data?.detail || "Could not read the file — please fill the lines in by hand.");
+      setWarn(
+        response?.data?.detail || "Could not read the file — please fill the lines in by hand.",
+      );
     } finally {
       setReading(false);
     }
@@ -528,7 +547,10 @@ export function BookingNewPage() {
               type="file"
               hidden
               accept="image/*,.pdf,.xlsx,.xls,.csv"
-              onChange={(e) => e.target.files && handleFile(e.target.files[0])}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFile(file);
+              }}
             />
             {reading ? (
               <span>
@@ -702,7 +724,12 @@ export function BookingNewPage() {
           </p>
         )}
         {[...new Set(lineStoreIds)].map((id) => (
-          <SizeCurveNote key={id} state={curves.states[id]} storeLabel={storeLabel(id)} onRetry={curves.retry} />
+          <SizeCurveNote
+            key={id}
+            state={curves.states[id]}
+            storeLabel={storeLabel(id)}
+            onRetry={curves.retry}
+          />
         ))}
         {curveNote && (
           <p className="ok-note" role="status" data-testid="gb-curve-filled">
@@ -848,7 +875,12 @@ export function BookingNewPage() {
                       onClose={() => setCurveLine(null)}
                       onFilled={(fill) =>
                         filled(
-                          { id: l.id, style: l.style_code.trim(), total: Number(l.qty), store: lineStore },
+                          {
+                            id: l.id,
+                            style: l.style_code.trim(),
+                            total: Number(l.qty),
+                            store: lineStore,
+                          },
                           fill,
                         )
                       }
@@ -868,7 +900,11 @@ export function BookingNewPage() {
       </div>
 
       {error && (
-        <div className="warn-note" style={{ maxWidth: 560, marginBottom: 12 }} data-testid="gb-error">
+        <div
+          className="warn-note"
+          style={{ maxWidth: 560, marginBottom: 12 }}
+          data-testid="gb-error"
+        >
           {error}
         </div>
       )}
@@ -948,7 +984,11 @@ function EndBooking({ booking, onDone }: { booking: BookingT; onDone: () => void
           </h3>
         </div>
         <div className="spacer" />
-        <button className="btn btn-sm" onClick={() => setOpen(false)} data-testid="end-booking-cancel">
+        <button
+          className="btn btn-sm"
+          onClick={() => setOpen(false)}
+          data-testid="end-booking-cancel"
+        >
           Keep it open
         </button>
       </div>
@@ -964,7 +1004,9 @@ function EndBooking({ booking, onDone }: { booking: BookingT; onDone: () => void
           className={`seg-btn ${action === "cancel" ? "active" : ""}`}
           onClick={() => setAction("cancel")}
           disabled={!nothingReceived}
-          title={nothingReceived ? undefined : "Goods have already arrived — close it early instead"}
+          title={
+            nothingReceived ? undefined : "Goods have already arrived — close it early instead"
+          }
           data-testid="end-action-cancel"
         >
           Cancel
@@ -989,7 +1031,11 @@ function EndBooking({ booking, onDone }: { booking: BookingT; onDone: () => void
         onClick={submit}
         data-testid="end-booking-confirm"
       >
-        {saving ? "Recording…" : action === "cancel" ? "Cancel this booking" : "Close this booking early"}
+        {saving
+          ? "Recording…"
+          : action === "cancel"
+            ? "Cancel this booking"
+            : "Close this booking early"}
       </button>
     </div>
   );
@@ -1016,7 +1062,12 @@ function SendBookingForApproval({ booking, onDone }: { booking: BookingT; onDone
 
   return (
     <>
-      <button className="btn btn-cta" disabled={saving} onClick={submit} data-testid="booking-send-approval">
+      <button
+        className="btn btn-cta"
+        disabled={saving}
+        onClick={submit}
+        data-testid="booking-send-approval"
+      >
         <Send size={15} /> {saving ? "Sending…" : "Send to Owner for approval"}
       </button>
       {error && (
@@ -1044,7 +1095,12 @@ function LegacyBookingDetail({ id }: { id: string }) {
       </div>
     );
   }
-  if (loading || !b) return <div className="page-pad"><p className="lead">Loading…</p></div>;
+  if (loading || !b)
+    return (
+      <div className="page-pad">
+        <p className="lead">Loading…</p>
+      </div>
+    );
 
   const ended = b.status === "closed" || b.status === "cancelled";
   const status = legacyStatus(b.status);
@@ -1078,7 +1134,9 @@ function LegacyBookingDetail({ id }: { id: string }) {
 
       {!ended && (
         <div className="bk-actions">
-          {b.status === "draft" && canSend && <SendBookingForApproval booking={b} onDone={reload} />}
+          {b.status === "draft" && canSend && (
+            <SendBookingForApproval booking={b} onDone={reload} />
+          )}
           {/* No Receive shortcut here any more (OPS-17): the older booking engine's
               receiving screens are being retired (OPS-18), and every site now
               receives through Receive Goods' Goods arrived. A goods-v1 booking
@@ -1104,7 +1162,9 @@ function LegacyBookingDetail({ id }: { id: string }) {
           <p className="lead">
             {b.closed_by_name ? `${b.closed_by_name} · ` : ""}
             {b.closed_at ? new Date(b.closed_at).toLocaleString("en-IN") : ""}
-            {b.open_qty > 0 && b.status === "closed" ? ` · ${b.open_qty} piece(s) did not come` : ""}
+            {b.open_qty > 0 && b.status === "closed"
+              ? ` · ${b.open_qty} piece(s) did not come`
+              : ""}
           </p>
         </div>
       )}

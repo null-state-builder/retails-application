@@ -9,7 +9,9 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 /** "2026-01-10" as "10 Jan 2026", read as the calendar day it is (no clock). */
 export function dayText(iso: string): string {
   const [year, month, day] = iso.split("-").map(Number);
-  return `${day} ${MONTHS[month - 1]} ${year}`;
+  const monthName = month === undefined ? undefined : MONTHS[month - 1];
+  if (!monthName || !Number.isInteger(year) || !Number.isInteger(day)) return iso;
+  return `${day} ${monthName} ${year}`;
 }
 
 function days(n: number): string {
@@ -38,7 +40,9 @@ export function ageText(row: {
 }): string {
   if (row.age_days === null) return "Not aged";
   if (row.group === "season_ended") {
-    return row.age_days === 0 ? "Its season ended today" : `${days(row.age_days)} since its season ended`;
+    return row.age_days === 0
+      ? "Its season ended today"
+      : `${days(row.age_days)} since its season ended`;
   }
   return row.last_sale_on
     ? `${days(row.age_days)} since its last sale here`
@@ -55,7 +59,9 @@ export function firstArrivalText(row: {
   if (row.first_arrived_on && row.days_in_company !== null) {
     return `${days(row.days_in_company)} (since ${dayText(row.first_arrived_on)})`;
   }
-  return row.in_company_before ? `Unknown (here before ${dayText(row.in_company_before)})` : "Unknown";
+  return row.in_company_before
+    ? `Unknown (here before ${dayText(row.in_company_before)})`
+    : "Unknown";
 }
 
 /** Where an ageing alert opens: its store's page. */

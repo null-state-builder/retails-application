@@ -14,7 +14,7 @@ import { useState } from "react";
 import { Check, ExternalLink, Plus, Send, Sparkles, Trash2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
-import {api, apiErrorMessage, goodsMeta} from "../lib/api";
+import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import { Feedback, Field, hold, useStepUp } from "../lib/goodsScreen";
 import type { ResourceDTO } from "../lib/goodsScreen";
 import {
@@ -301,9 +301,7 @@ export function IdentityProfileEditor({
             id="ip-colour"
             className="input"
             value={str(value.colour_dimension)}
-            onChange={(e) =>
-              onChange({ ...value, colour_dimension: e.target.value || null })
-            }
+            onChange={(e) => onChange({ ...value, colour_dimension: e.target.value || null })}
             data-testid="ip-colour"
           />
         </Field>
@@ -508,7 +506,14 @@ export function PtProfileEditor({
         onClick={() =>
           setColumns([
             ...columns,
-            column(`COLUMN ${columns.length + 1}`, "New column", columns.length, "text", "supplied", false),
+            column(
+              `COLUMN ${columns.length + 1}`,
+              "New column",
+              columns.length,
+              "text",
+              "supplied",
+              false,
+            ),
           ])
         }
         data-testid="pp-column-add"
@@ -524,7 +529,6 @@ export function PtProfileEditor({
 // --------------------------------------------------------------------------
 
 type ItemState = "missing" | "draft" | "submitted" | "in_force";
-
 
 function stateOf(line: ResourceDTO<ConfigData> | undefined): ItemState {
   if (!line) return "missing";
@@ -589,7 +593,7 @@ function WizardItem({
   starting: () => Payload;
   canDraft: boolean;
   busy: boolean;
-  blocked?: string;
+  blocked?: string | undefined;
   onCreate: (kind: string, payload: Payload) => void;
   onOpen: (kind: string, id: string) => void;
   onSubmit: (line: ResourceDTO<ConfigData>) => void;
@@ -675,11 +679,7 @@ export function ProfileWizard() {
   // step that says "Not started" while its read is still in flight invites a
   // second line for something that already exists.
   const loading =
-    vocabularies.loading ||
-    identity.loading ||
-    rates.loading ||
-    taxes.loading ||
-    profiles.loading;
+    vocabularies.loading || identity.loading || rates.loading || taxes.loading || profiles.loading;
   const ratesVersion = allVersions(rates.items).find((v) => v.version.state === "effective");
   const taxVersion = allVersions(taxes.items).find((v) => v.version.state === "effective");
 
@@ -726,8 +726,7 @@ export function ProfileWizard() {
     }
   }
 
-  const vocabularyReady =
-    stateOf(sizeLine) === "in_force" && stateOf(colourLine) === "in_force";
+  const vocabularyReady = stateOf(sizeLine) === "in_force" && stateOf(colourLine) === "in_force";
   // The starting draft carries empty allowed-value lists, which the server
   // reads as "this profile restricts nothing". That is a real choice, so it may
   // not be made by a person who was never shown the values: until both reads
@@ -754,8 +753,8 @@ export function ProfileWizard() {
       <section className="card section-card" data-testid="wiz-step-vocabulary">
         <h4 className="h4">1 · Vocabulary</h4>
         <p className="lead">
-          The closed lists a SKU is described by. A size list carries an explicit Free Size value, so
-          "free size" is a size and not a missing one.
+          The closed lists a SKU is described by. A size list carries an explicit Free Size value,
+          so "free size" is a size and not a missing one.
         </p>
         <WizardItem
           testid="size"
@@ -798,9 +797,9 @@ export function ProfileWizard() {
       <section className="card section-card" data-testid="wiz-step-identity">
         <h4 className="h4">2 · What identifies a SKU</h4>
         <p className="lead">
-          The starting draft allows every approved size and colour. Open it to narrow either list
-          to the values this family actually uses — that choice is part of the draft, and the
-          approver sees it.
+          The starting draft allows every approved size and colour. Open it to narrow either list to
+          the values this family actually uses — that choice is part of the draft, and the approver
+          sees it.
         </p>
         <WizardItem
           testid="identity"
@@ -960,9 +959,15 @@ function WizardPreview({
 }) {
   const columns = list<ColumnDraft>(profileLine?.data.payload.columns);
   const directions = list<string>(profileLine?.data.payload.directions);
-  const rulesRaw = list<{ hsn: string; slabs: { lower_paise: string; upper_paise: string | null; input_pct: string; output_pct: string }[] }>(
-    taxLine?.data.payload.hsn_rules,
-  );
+  const rulesRaw = list<{
+    hsn: string;
+    slabs: {
+      lower_paise: string;
+      upper_paise: string | null;
+      input_pct: string;
+      output_pct: string;
+    }[];
+  }>(taxLine?.data.payload.hsn_rules);
   const transport = str(ratesLine?.data.payload.transport_pct);
   const margin = str(ratesLine?.data.payload.pricing_margin_pct);
 

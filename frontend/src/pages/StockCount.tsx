@@ -15,8 +15,18 @@
  */
 
 import { useState } from "react";
+import { isAxiosError } from "axios";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ClipboardCheck, Play, Plus, ScanLine, Send, Trash2, Wrench } from "lucide-react";
+import {
+  ArrowLeft,
+  ClipboardCheck,
+  Play,
+  Plus,
+  ScanLine,
+  Send,
+  Trash2,
+  Wrench,
+} from "lucide-react";
 
 import { api, apiErrorMessage } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
@@ -108,6 +118,23 @@ interface VarianceLineT {
   recount: RecountT | null;
 }
 
+type MovedLine = Pick<
+  VarianceLineT,
+  "sku_code" | "book_qty" | "live_book_qty" | "counted_qty" | "adj_qty"
+>;
+
+function isMovedLine(value: unknown): value is MovedLine {
+  if (!value || typeof value !== "object") return false;
+  const line = value as Record<string, unknown>;
+  return (
+    typeof line.sku_code === "string" &&
+    typeof line.book_qty === "number" &&
+    typeof line.live_book_qty === "number" &&
+    typeof line.counted_qty === "number" &&
+    typeof line.adj_qty === "number"
+  );
+}
+
 interface VarianceT {
   lines: VarianceLineT[];
   net_pieces: number;
@@ -117,7 +144,11 @@ interface VarianceT {
   recount_tolerance_paise: number;
 }
 
-interface StoreT { id: number; code: string; name: string; }
+interface StoreT {
+  id: number;
+  code: string;
+  name: string;
+}
 
 const SCOPES = [
   { value: "store", label: "Whole store" },
@@ -133,7 +164,11 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(iso).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 function skuLabel(l: { design: string; color: string; size: string; brand: string }): string {
@@ -150,8 +185,11 @@ function StatusPill({ status }: { status: string }) {
 
 function Signed({ n }: { n: number }) {
   return (
-    <span style={{ color: n < 0 ? "var(--red)" : n > 0 ? "var(--green)" : undefined, fontWeight: 700 }}>
-      {n > 0 ? "+" : ""}{n}
+    <span
+      style={{ color: n < 0 ? "var(--red)" : n > 0 ? "var(--green)" : undefined, fontWeight: 700 }}
+    >
+      {n > 0 ? "+" : ""}
+      {n}
     </span>
   );
 }
@@ -176,7 +214,10 @@ export function StockCountListPage() {
 
   async function openCount() {
     setError("");
-    if (!storeId) { setError("Select a location to count."); return; }
+    if (!storeId) {
+      setError("Select a location to count.");
+      return;
+    }
     setOpening(true);
     try {
       const { data: take } = await api.post("/outbound/stocktakes", {
@@ -232,7 +273,9 @@ export function StockCountListPage() {
                 >
                   <option value="">Select location…</option>
                   {stores.map((s) => (
-                    <option key={s.id} value={s.id}>{s.code} · {s.name}</option>
+                    <option key={s.id} value={s.id}>
+                      {s.code} · {s.name}
+                    </option>
                   ))}
                 </select>
               )}
@@ -248,8 +291,17 @@ export function StockCountListPage() {
               />
             </div>
           </div>
-          {error && <div className="login-error" style={{ maxWidth: 480 }} data-testid="count-open-error">{error}</div>}
-          <button className="btn btn-cta" disabled={opening} onClick={openCount} data-testid="open-count-btn">
+          {error && (
+            <div className="login-error" style={{ maxWidth: 480 }} data-testid="count-open-error">
+              {error}
+            </div>
+          )}
+          <button
+            className="btn btn-cta"
+            disabled={opening}
+            onClick={openCount}
+            data-testid="open-count-btn"
+          >
             <Plus size={16} /> {opening ? "Opening…" : "Open a count"}
           </button>
         </div>
@@ -279,20 +331,30 @@ export function StockCountListPage() {
               {data.map((t) => (
                 <tr key={t.id} data-testid={`count-row-${t.id}`}>
                   <td>
-                    <Link to={`/stock-count/${t.id}`} className="link-cell mono" data-testid={`count-link-${t.id}`}>
+                    <Link
+                      to={`/stock-count/${t.id}`}
+                      className="link-cell mono"
+                      data-testid={`count-link-${t.id}`}
+                    >
                       <b>Count #{t.id}</b>
                     </Link>
                   </td>
-                  <td><b className="mono">{t.store_code}</b></td>
+                  <td>
+                    <b className="mono">{t.store_code}</b>
+                  </td>
                   <td className="num">{t.sessions.length}</td>
                   <td className="num">{t.sessions.reduce((s, x) => s + x.counted_pieces, 0)}</td>
-                  <td><StatusPill status={t.status} /></td>
+                  <td>
+                    <StatusPill status={t.status} />
+                  </td>
                   <td>
                     {t.adjustment ? (
                       <Link to={`/stock-count/adjustments/${t.adjustment}`} className="mono">
                         {t.adjustment_doc_number || `Draft #${t.adjustment}`}
                       </Link>
-                    ) : "—"}
+                    ) : (
+                      "—"
+                    )}
                   </td>
                   <td>{fmtDate(t.created_at)}</td>
                 </tr>
@@ -312,7 +374,11 @@ export function StockCountListPage() {
 export function StockCountDetailPage() {
   const { id } = useParams();
   const { user } = useAuth();
-  const { data: take, loading, error: loadError } = useDoc<StocktakeT>(`/outbound/stocktakes/${id}`);
+  const {
+    data: take,
+    loading,
+    error: loadError,
+  } = useDoc<StocktakeT>(`/outbound/stocktakes/${id}`);
   const writable = canWriteStockCount(user);
 
   const [scope, setScope] = useState("store");
@@ -321,12 +387,17 @@ export function StockCountDetailPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [variance, setVariance] = useState<VarianceT | null>(null);
-  const [movedAsk, setMovedAsk] = useState<VarianceLineT[] | null>(null);
+  const [movedAsk, setMovedAsk] = useState<MovedLine[] | null>(null);
   const [recountAsk, setRecountAsk] = useState<VarianceLineT | null>(null);
   const [recountQty, setRecountQty] = useState("");
   const [recountReason, setRecountReason] = useState("");
 
-  if (loading) return <div className="page-pad"><p className="lead">Loading…</p></div>;
+  if (loading)
+    return (
+      <div className="page-pad">
+        <p className="lead">Loading…</p>
+      </div>
+    );
 
   // A count at somebody else's store answers 404 by design — knowing the id is
   // not a way in, and the answer must not confirm the count is real (ADR-0003).
@@ -409,19 +480,26 @@ export function StockCountDetailPage() {
   }
 
   const apply = (confirm: string[] = []) =>
-    post(`/outbound/stocktakes/${take.id}/apply`, { confirm }, (e: any) => {
+    post(`/outbound/stocktakes/${take.id}/apply`, { confirm }, (e: unknown) => {
       // Two 409s, both "not yet, and here is who does what". Pieces that moved
       // between the count and now are confirmed line by line; pieces worth more
       // than the tolerance wait for a second person to count them again.
-      if (e?.response?.status !== 409) return false;
-      const body = e.response.data;
-      if (body.needs_recount) {
+      if (!isAxiosError(e) || e.response?.status !== 409) return false;
+      const payload: unknown = e.response.data;
+      if (!payload || typeof payload !== "object") return false;
+      const body = payload as Record<string, unknown>;
+      if (body.needs_recount === true) {
         // Show the report rather than the refusal on its own: the pieces it is
         // about are already named there, with the button that clears them.
-        setError(body.error);
+        setError(
+          typeof body.error === "string"
+            ? body.error
+            : "A recount is required before applying this count.",
+        );
         void loadVariance();
       } else {
-        setMovedAsk(body.moved as VarianceLineT[]);
+        if (!Array.isArray(body.moved) || !body.moved.every(isMovedLine)) return false;
+        setMovedAsk(body.moved);
       }
       return true;
     });
@@ -468,7 +546,12 @@ export function StockCountDetailPage() {
 
   return (
     <div className="page-pad">
-      <Link to="/stock-count" className="btn" style={{ marginBottom: 16 }} data-testid="count-detail-back">
+      <Link
+        to="/stock-count"
+        className="btn"
+        style={{ marginBottom: 16 }}
+        data-testid="count-detail-back"
+      >
         <ArrowLeft size={15} /> Stock counts
       </Link>
       <div className="toolbar">
@@ -485,12 +568,14 @@ export function StockCountDetailPage() {
       </div>
 
       {/* Shown here only while the variance is not on screen. Once it is, the
-        * page is long enough to scroll and the buttons that fail are all down
-        * beside the report, so the same message is rendered there instead — a
-        * refusal a screen-height away from the button that caused it reads as
-        * nothing happening at all. */}
+       * page is long enough to scroll and the buttons that fail are all down
+       * beside the report, so the same message is rendered there instead — a
+       * refusal a screen-height away from the button that caused it reads as
+       * nothing happening at all. */}
       {error && !variance && (
-        <div className="login-error" style={{ maxWidth: 560 }} data-testid="count-detail-error">{error}</div>
+        <div className="login-error" style={{ maxWidth: 560 }} data-testid="count-detail-error">
+          {error}
+        </div>
       )}
 
       {writable && take.status === "open" && (
@@ -500,8 +585,17 @@ export function StockCountDetailPage() {
           <div className="form-row" style={{ marginTop: 10 }}>
             <div className="field">
               <label>Scope</label>
-              <select className="select" value={scope} onChange={(e) => setScope(e.target.value)} data-testid="session-scope-select">
-                {SCOPES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+              <select
+                className="select"
+                value={scope}
+                onChange={(e) => setScope(e.target.value)}
+                data-testid="session-scope-select"
+              >
+                {SCOPES.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
+                  </option>
+                ))}
               </select>
             </div>
             {scope !== "store" && (
@@ -517,7 +611,12 @@ export function StockCountDetailPage() {
               </div>
             )}
           </div>
-          <button className="btn btn-cta" disabled={busy} onClick={startSession} data-testid="start-session-btn">
+          <button
+            className="btn btn-cta"
+            disabled={busy}
+            onClick={startSession}
+            data-testid="start-session-btn"
+          >
             <Play size={15} /> Start counting
           </button>
         </div>
@@ -525,7 +624,9 @@ export function StockCountDetailPage() {
 
       <div className="card section-card">
         <p className="eyebrow">Sessions</p>
-        <h3 className="h3">{take.sessions.length} counter{take.sessions.length === 1 ? "" : "s"}</h3>
+        <h3 className="h3">
+          {take.sessions.length} counter{take.sessions.length === 1 ? "" : "s"}
+        </h3>
         {take.sessions.length === 0 ? (
           <p className="lead">Nobody is counting yet.</p>
         ) : (
@@ -546,14 +647,19 @@ export function StockCountDetailPage() {
                     <td>{s.scope_label}</td>
                     <td>{s.counted_by_name || "—"}</td>
                     <td className="num">{s.counted_pieces}</td>
-                    <td><StatusPill status={s.status} /></td>
+                    <td>
+                      <StatusPill status={s.status} />
+                    </td>
                     <td>
                       {s.status === "open" && writable && (
                         <>
                           <button
                             type="button"
                             className="btn"
-                            onClick={() => { setError(""); setScanning(s); }}
+                            onClick={() => {
+                              setError("");
+                              setScanning(s);
+                            }}
                             data-testid={`scan-session-${s.id}`}
                           >
                             <ScanLine size={15} /> Scan
@@ -585,7 +691,12 @@ export function StockCountDetailPage() {
               <p className="eyebrow">Book vs counted · every submitted session merged</p>
               <h3 className="h3">Variance report</h3>
             </div>
-            <button type="button" className="btn" onClick={() => void loadVariance()} data-testid="load-variance-btn">
+            <button
+              type="button"
+              className="btn"
+              onClick={() => void loadVariance()}
+              data-testid="load-variance-btn"
+            >
               <ClipboardCheck size={15} /> {variance ? "Refresh" : "Show variance"}
             </button>
           </div>
@@ -595,11 +706,16 @@ export function StockCountDetailPage() {
               <div className="form-row" style={{ margin: "14px 0" }}>
                 <div className="card section-card">
                   <p className="eyebrow">Net pieces</p>
-                  <h3 className="h3"><Signed n={variance.net_pieces} /></h3>
+                  <h3 className="h3">
+                    <Signed n={variance.net_pieces} />
+                  </h3>
                 </div>
                 <div className="card section-card">
                   <p className="eyebrow">Net value</p>
-                  <h3 className="h3" style={{ color: variance.net_variance_paise < 0 ? "var(--red)" : undefined }}>
+                  <h3
+                    className="h3"
+                    style={{ color: variance.net_variance_paise < 0 ? "var(--red)" : undefined }}
+                  >
                     <Money paise={variance.net_variance_paise} />
                   </h3>
                 </div>
@@ -612,7 +728,8 @@ export function StockCountDetailPage() {
               {variance.unpriced.length > 0 && (
                 <div className="chip chip-amber" data-testid="variance-unpriced">
                   The books cannot price {variance.unpriced.length} piece
-                  {variance.unpriced.length === 1 ? "" : "s"} — bring them in on a PT before correcting.
+                  {variance.unpriced.length === 1 ? "" : "s"} — bring them in on a PT before
+                  correcting.
                 </div>
               )}
 
@@ -642,28 +759,47 @@ export function StockCountDetailPage() {
                   <tbody>
                     {variance.lines.map((l) => (
                       <tr key={l.sku_code} data-testid={`variance-row-${l.sku_code}`}>
-                        <td><b className="mono">{l.sku_code}</b></td>
+                        <td>
+                          <b className="mono">{l.sku_code}</b>
+                        </td>
                         <td>
                           {skuLabel(l)}
                           {l.moved && (
-                            <span className="chip chip-amber" style={{ marginLeft: 8 }} data-testid={`moved-${l.sku_code}`}>
+                            <span
+                              className="chip chip-amber"
+                              style={{ marginLeft: 8 }}
+                              data-testid={`moved-${l.sku_code}`}
+                            >
                               moved since the count
                             </span>
                           )}
                           {l.needs_recount && (
-                            <span className="chip chip-amber" style={{ marginLeft: 8 }} data-testid={`needs-recount-${l.sku_code}`}>
+                            <span
+                              className="chip chip-amber"
+                              style={{ marginLeft: 8 }}
+                              data-testid={`needs-recount-${l.sku_code}`}
+                            >
                               needs a recount
                             </span>
                           )}
                           {l.recount && !l.recount.stale && (
-                            <span className="chip chip-green" style={{ marginLeft: 8 }} data-testid={`recounted-${l.sku_code}`}>
-                              recounted by {l.recount.recounted_by_name || "—"} · {l.recount.reason_label}
+                            <span
+                              className="chip chip-green"
+                              style={{ marginLeft: 8 }}
+                              data-testid={`recounted-${l.sku_code}`}
+                            >
+                              recounted by {l.recount.recounted_by_name || "—"} ·{" "}
+                              {l.recount.reason_label}
                             </span>
                           )}
                           {l.recount?.stale && (
-                            <span className="chip chip-grey" style={{ marginLeft: 8 }} data-testid={`recount-stale-${l.sku_code}`}>
-                              {l.recount.recounted_by_name || "—"}&rsquo;s recount is out of date — somebody
-                              counted more of this piece afterwards
+                            <span
+                              className="chip chip-grey"
+                              style={{ marginLeft: 8 }}
+                              data-testid={`recount-stale-${l.sku_code}`}
+                            >
+                              {l.recount.recounted_by_name || "—"}&rsquo;s recount is out of date —
+                              somebody counted more of this piece afterwards
                             </span>
                           )}
                         </td>
@@ -678,12 +814,19 @@ export function StockCountDetailPage() {
                             </div>
                           )}
                         </td>
-                        <td className="num"><Signed n={l.adj_qty} /></td>
-                        <td className="num">{l.cost_known ? <Money paise={l.unit_cost_paise} /> : "unknown"}</td>
-                        <td className="num">{l.cost_known ? <Money paise={l.variance_paise} /> : "—"}</td>
+                        <td className="num">
+                          <Signed n={l.adj_qty} />
+                        </td>
+                        <td className="num">
+                          {l.cost_known ? <Money paise={l.unit_cost_paise} /> : "unknown"}
+                        </td>
+                        <td className="num">
+                          {l.cost_known ? <Money paise={l.variance_paise} /> : "—"}
+                        </td>
                         <td>
-                          {l.needs_recount && writable && (
-                            l.may_recount ? (
+                          {l.needs_recount &&
+                            writable &&
+                            (l.may_recount ? (
                               <button
                                 type="button"
                                 className="btn"
@@ -694,11 +837,13 @@ export function StockCountDetailPage() {
                                 <ScanLine size={15} /> Recount
                               </button>
                             ) : (
-                              <span className="muted-cell" data-testid={`recount-blocked-${l.sku_code}`}>
+                              <span
+                                className="muted-cell"
+                                data-testid={`recount-blocked-${l.sku_code}`}
+                              >
                                 you counted this
                               </span>
-                            )
-                          )}
+                            ))}
                         </td>
                       </tr>
                     ))}
@@ -763,7 +908,9 @@ export function StockCountDetailPage() {
               >
                 <option value="">Select a reason…</option>
                 {ADJUSTMENT_REASONS.map((r) => (
-                  <option key={r.value} value={r.value}>{r.label}</option>
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
                 ))}
               </select>
             </div>
@@ -777,7 +924,11 @@ export function StockCountDetailPage() {
             >
               {busy ? "Saving…" : "Save this recount"}
             </button>
-            <button className="btn" onClick={() => setRecountAsk(null)} data-testid="cancel-recount-btn">
+            <button
+              className="btn"
+              onClick={() => setRecountAsk(null)}
+              data-testid="cancel-recount-btn"
+            >
               Not now
             </button>
           </div>
@@ -823,11 +974,15 @@ export function StockCountDetailPage() {
               <tbody>
                 {movedAsk.map((l) => (
                   <tr key={l.sku_code}>
-                    <td><b className="mono">{l.sku_code}</b></td>
+                    <td>
+                      <b className="mono">{l.sku_code}</b>
+                    </td>
                     <td className="num">{l.book_qty}</td>
                     <td className="num">{l.live_book_qty}</td>
                     <td className="num">{l.counted_qty}</td>
-                    <td className="num"><Signed n={l.adj_qty} /></td>
+                    <td className="num">
+                      <Signed n={l.adj_qty} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -842,7 +997,11 @@ export function StockCountDetailPage() {
             >
               Apply these too
             </button>
-            <button className="btn" onClick={() => setMovedAsk(null)} data-testid="cancel-moved-btn">
+            <button
+              className="btn"
+              onClick={() => setMovedAsk(null)}
+              data-testid="cancel-moved-btn"
+            >
               Not now
             </button>
           </div>

@@ -217,7 +217,7 @@ export function allocateAll(payment: Payment, duePaise: number, mode: TenderMode
     cash_paise: mode === "cash" ? due : null,
     card_paise: mode === "card" ? due : 0,
     upi_paise: mode === "upi" ? due : 0,
-    upi_charge: mode === "upi" ? payment.upi_charge : null,
+    upi_charge: mode === "upi" ? (payment.upi_charge ?? null) : null,
     cash_received_paise: mode === "cash" ? payment.cash_received_paise : null,
     mode,
     due_paise: due,
@@ -481,12 +481,10 @@ export function toTenders(split: TenderSplit): BillTender[] {
  * bill, and a halted queue stays halted until a human clears it.
  */
 export function stampManualUpi(tenders: BillTender[]): BillTender[] {
-  return tenders.map((tender) =>
-    tender.mode === "upi" && !tender.upi_state
-      ? // The reference goes with the stamp, always: `upi_reference` without
-        // `confirmed` is its own refusal at the server, and this function exists
-        // precisely to keep bills it does not control off that cliff.
-        { ...tender, upi_state: "manual", upi_reference: undefined }
-      : tender,
-  );
+  return tenders.map((tender) => {
+    if (tender.mode !== "upi" || tender.upi_state) return tender;
+    // The reference goes with the stamp: a manual tender has no bank reference.
+    const { upi_reference: _oldReference, ...rest } = tender;
+    return { ...rest, upi_state: "manual" };
+  });
 }

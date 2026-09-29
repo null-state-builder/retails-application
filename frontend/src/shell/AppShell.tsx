@@ -88,7 +88,11 @@ function UnitSwitcher() {
 
   return (
     <div className="switcher">
-      <button className="switcher-btn" onClick={() => setOpen((o) => !o)} data-testid="store-switcher">
+      <button
+        className="switcher-btn"
+        onClick={() => setOpen((o) => !o)}
+        data-testid="store-switcher"
+      >
         {model.mode === "brands" ? <Tag size={15} /> : <MapPin size={15} />}
         <span className="switcher-label">{model.label}</span>
         <ChevronDown size={15} />
@@ -148,10 +152,11 @@ function ProfileSection({ rail }: { rail: boolean }) {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const closePanel = useCallback(() => setOpen(false), []);
-  const { at: panelAt, triggerRef, popoverRef: panelMounted } = usePositionedPopover(
-    open ? "profile" : null,
-    closePanel,
-  );
+  const {
+    at: panelAt,
+    triggerRef,
+    popoverRef: panelMounted,
+  } = usePositionedPopover(open ? "profile" : null, closePanel);
 
   if (!user) return null;
 
@@ -170,7 +175,9 @@ function ProfileSection({ rail }: { rail: boolean }) {
         {!rail && (
           <span className="user-meta">
             <span className="user-name">{user.full_name || user.username}</span>
-            <span className="user-role">{user.role?.name ?? (user.is_superuser ? "Administrator" : "")}</span>
+            <span className="user-role">
+              {user.role?.name ?? (user.is_superuser ? "Administrator" : "")}
+            </span>
           </span>
         )}
         {/* The chevron says the row opens something. In the collapsed rail the
@@ -186,7 +193,9 @@ function ProfileSection({ rail }: { rail: boolean }) {
             style={{ top: panelAt.top, left: panelAt.left }}
             data-testid="user-menu-dropdown"
           >
-            <div className="dropdown-head">{user.username} · {user.scope_label}</div>
+            <div className="dropdown-head">
+              {user.username} · {user.scope_label}
+            </div>
             <div className="dropdown-theme" onClick={(e) => e.stopPropagation()}>
               <span>Theme</span>
               <ThemeToggle />
@@ -339,6 +348,7 @@ function Sidebar({
     if (from < 0 || to < 0) return;
     const next = [...current];
     const [picked] = next.splice(from, 1);
+    if (picked === undefined) return;
     next.splice(to, 0, picked);
     const updated = { ...navOrder, [code]: next };
     setNavOrder(updated);
@@ -466,21 +476,22 @@ function Sidebar({
     const open = !collapsed[s.def.code];
     const holdsActive = items.some((i) => isActiveItem(i, pathname));
     const row: NavRow = { kind: "section", key: s.def.code, section: s };
-    if (isOneLineRow(row)) {
+    const first = items[0];
+    if (isOneLineRow(row) && first) {
       return oneLineRow({
         key: s.def.code,
         icon: Icon,
         layer: s.def.layer,
-        to: items[0].to,
+        to: first.to,
         label: s.label,
-        active: isActiveItem(items[0], pathname),
+        active: isActiveItem(first, pathname),
         testId: `nav-${s.def.code}`,
       });
     }
     if (rail) return railFlyoutSection(s, items, holdsActive);
     return (
       <div className="nav-group" key={s.def.code}>
-        {(
+        {
           <button
             type="button"
             className="nav-group-head nav-group-toggle"
@@ -496,7 +507,7 @@ function Sidebar({
             </span>
             <ChevronDown size={14} className={`nav-chev ${open ? "open" : ""}`} />
           </button>
-        )}
+        }
         {open && (
           <div className="nav-items">
             {items.map((it) => {
@@ -548,12 +559,14 @@ function Sidebar({
    *  are the tab row `SectionTabsProvider` puts on those screens - so, like a
    *  fold, the dividing happens inside the page and never here (D10 §1). */
   function renderStrip(row: Extract<NavRow, { kind: "strip" }>) {
+    const first = row.tabs[0];
+    if (!first) return null;
     return oneLineRow({
       key: row.key,
       icon: row.def.icon,
       layer: row.def.layer,
       // The first tab this person can see - never a screen access already hid.
-      to: row.tabs[0].to,
+      to: first.to,
       label: row.label,
       // Lit wherever this persona's sidebar draws the screen under this row -
       // including a screen of the section the strip lists no tab for.
@@ -758,9 +771,17 @@ export function AppShell({ children, room }: { children: ReactNode; room?: Room 
         {/* Straddling the divider between the rail and page, and a sibling of
             the rail rather than a child of it: inside the rail's own scroller it
             would slide out from under the pointer as the menu scrolls. */}
-        <div className="sidebar-resizer" onPointerDown={startResize} data-testid="sidebar-resizer" />
+        <div
+          className="sidebar-resizer"
+          onPointerDown={startResize}
+          data-testid="sidebar-resizer"
+        />
         {mobileNavOpen && (
-          <div className="sidebar-backdrop" onClick={() => setMobileNavOpen(false)} data-testid="sidebar-backdrop" />
+          <div
+            className="sidebar-backdrop"
+            onClick={() => setMobileNavOpen(false)}
+            data-testid="sidebar-backdrop"
+          />
         )}
         {/* Keyed on the working context: switching unit remounts the page, so
             every screen refetches under the new unit instead of leaving the

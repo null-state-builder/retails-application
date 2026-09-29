@@ -153,11 +153,16 @@ interface Step {
 }
 
 const TODAY = new Date().toISOString().slice(0, 10);
+const INITIAL_PATTERN = (() => {
+  const first = PATTERNS[0];
+  if (!first) throw new Error("Offer author has no supported pattern");
+  return first;
+})();
 
 function patternOf(offer: Offer): Pattern {
   return (
     PATTERNS.find((p) => p.trigger === offer.trigger_type && p.reward === offer.reward_type) ??
-    PATTERNS[0]
+    INITIAL_PATTERN
   );
 }
 
@@ -169,7 +174,7 @@ export function OfferAuthorPage() {
   const { data: brands } = useList<BrandOpt>("/masters/brands");
 
   const [offer, setOffer] = useState<Offer | null>(null);
-  const [pattern, setPattern] = useState<Pattern>(PATTERNS[0]);
+  const [pattern, setPattern] = useState<Pattern>(INITIAL_PATTERN);
   const [name, setName] = useState("");
   const [layer, setLayer] = useState("brand");
   const [funder, setFunder] = useState("brand");
@@ -233,9 +238,7 @@ export function OfferAuthorPage() {
           setSteps(
             slabs.map((slab) => ({
               min: String(
-                slab.min_paise !== undefined
-                  ? Number(slab.min_paise) / 100
-                  : (slab.min_qty ?? ""),
+                slab.min_paise !== undefined ? Number(slab.min_paise) / 100 : (slab.min_qty ?? ""),
               ),
               value: String(
                 slab.percent !== undefined
@@ -262,7 +265,8 @@ export function OfferAuthorPage() {
     const where = brands.find((b) => b.code === brand)?.name || (brand ? brand : "storewide");
     const top = steps[steps.length - 1];
     let what = "";
-    if (pattern.reward === "pct_off") what = `${top && pattern.asks.includes("qtySlabs") || pattern.asks.includes("spendSlabs") ? top?.value || percent : percent}% off`;
+    if (pattern.reward === "pct_off")
+      what = `${(top && pattern.asks.includes("qtySlabs")) || pattern.asks.includes("spendSlabs") ? top?.value || percent : percent}% off`;
     else if (pattern.reward === "amt_off")
       what = `₹${pattern.asks.includes("spendSlabs") ? top?.value || amount : amount} off`;
     else if (pattern.reward === "fixed_price") what = `flat ₹${price}`;
@@ -277,7 +281,8 @@ export function OfferAuthorPage() {
   function body(): Record<string, unknown> {
     const rewardConfig: Record<string, unknown> = {};
     if (pattern.asks.includes("percent")) rewardConfig.percent = Number(percent).toFixed(2);
-    if (pattern.asks.includes("amount")) rewardConfig.amount_paise = Math.round(Number(amount) * 100);
+    if (pattern.asks.includes("amount"))
+      rewardConfig.amount_paise = Math.round(Number(amount) * 100);
     if (pattern.asks.includes("price")) rewardConfig.price_paise = Math.round(Number(price) * 100);
     if (pattern.asks.includes("gift")) {
       rewardConfig.gift_barcode = giftBarcode.trim();
@@ -332,9 +337,7 @@ export function OfferAuthorPage() {
     setError("");
     setNote("");
     try {
-      const r = isNew
-        ? await api.post("/offers/", body())
-        : await api.put(`/offers/${id}`, body());
+      const r = isNew ? await api.post("/offers/", body()) : await api.put(`/offers/${id}`, body());
       setOffer(r.data);
       setNote("Saved as a draft. Send it for approval when it reads right.");
       if (isNew) nav(`/offers/${r.data.id}`, { replace: true });
@@ -390,7 +393,10 @@ export function OfferAuthorPage() {
         </Link>
         <span className="spacer" />
         {offer && (
-          <span className={`chip chip-${offer.status === "live" ? "green" : offer.status === "ended" ? "grey" : "amber"}`} data-testid="offer-status">
+          <span
+            className={`chip chip-${offer.status === "live" ? "green" : offer.status === "ended" ? "grey" : "amber"}`}
+            data-testid="offer-status"
+          >
             {offer.awaiting_approval ? "waiting for approval" : offer.status}
           </span>
         )}
@@ -480,9 +486,7 @@ export function OfferAuthorPage() {
               onChange={(e) => setBrand(e.target.value)}
               data-testid="offer-brand"
             >
-              <option value="">
-                {layer === "brand" ? "Pick the brand" : "Not a brand rule"}
-              </option>
+              <option value="">{layer === "brand" ? "Pick the brand" : "Not a brand rule"}</option>
               {brands.map((b) => (
                 <option key={b.id} value={b.code}>
                   {b.name}
@@ -595,7 +599,8 @@ export function OfferAuthorPage() {
         {(pattern.asks.includes("qtySlabs") || pattern.asks.includes("spendSlabs")) && (
           <div style={{ marginTop: 16 }}>
             <p className="eyebrow">
-              The ladder — {pattern.asks.includes("spendSlabs") ? "spend" : "pieces"}, and what it earns
+              The ladder — {pattern.asks.includes("spendSlabs") ? "spend" : "pieces"}, and what it
+              earns
             </p>
             {steps.map((step, index) => (
               <div className="eoss-ladder-row" key={index}>
@@ -856,8 +861,8 @@ export function OfferAuthorPage() {
         </div>
         {offer?.awaiting_approval && (
           <p className="hint" data-testid="offer-waiting">
-            <CalendarClock size={13} /> Waiting for a second person. You cannot clear your own
-            offer — that is the point of the gate.
+            <CalendarClock size={13} /> Waiting for a second person. You cannot clear your own offer
+            — that is the point of the gate.
           </p>
         )}
       </div>
@@ -865,7 +870,11 @@ export function OfferAuthorPage() {
       {offer && (
         // Ticket 30: what the offer would have cost on real past bills, before
         // it is approved. Hidden where the switch is off.
-        <OfferSimulationCard offerId={offer.id} status={offer.status} updatedAt={offer.updated_at} />
+        <OfferSimulationCard
+          offerId={offer.id}
+          status={offer.status}
+          updatedAt={offer.updated_at}
+        />
       )}
       {offer && (offer.status === "live" || offer.status === "ended") && (
         // Ticket 31: what the offer earned and cost once it ran, against a

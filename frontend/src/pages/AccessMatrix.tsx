@@ -87,10 +87,7 @@ export function AccessMatrixPage() {
 
   useEffect(load, [load]);
 
-  const role = useMemo(
-    () => matrix.roles.find((r) => r.code === editing),
-    [matrix.roles, editing],
-  );
+  const role = useMemo(() => matrix.roles.find((r) => r.code === editing), [matrix.roles, editing]);
 
   function startEditing(next: RoleRow) {
     setError("");
@@ -275,12 +272,12 @@ export function AccessMatrixPage() {
                     // - a role capped at "do the work" still chooses freely
                     // between no access, view only and that.
                     const capped = Boolean(lock);
-                    const ceiling = capped ? rungIndex(matrix, lock.max_capability) : -1;
+                    const ceiling = lock ? rungIndex(matrix, lock.max_capability) : -1;
                     // The ratified sheet wording ("Expenses only (create)") is the
                     // "why this role sees what it sees"; the floor's reason wins
                     // the tooltip where there is one, because it answers the
                     // question a greyed square provokes.
-                    const why = capped
+                    const why = lock
                       ? `${lock.rule} ${lock.reason}`
                       : r.section_access[s.code]?.label || undefined;
                     if (r.code !== editing) {

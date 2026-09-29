@@ -46,3 +46,7 @@ class AlertReadSerializer(serializers.ModelSerializer[Alert]):
             "resolved_at",
         ]
         read_only_fields = fields
+
+
+class AlertSeenSerializer(serializers.Serializer[dict[str, object]]):
+    seen_at = serializers.DateTimeField(allow_null=True)

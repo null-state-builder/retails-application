@@ -22,7 +22,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, ClipboardCheck, Plus, Trash2, X } from "lucide-react";
 import { Link } from "react-router-dom";
 
-import {api, apiErrorCode, apiErrorMessage, goodsMeta} from "../lib/api";
+import { api, apiErrorCode, apiErrorMessage, goodsMeta } from "../lib/api";
 import {
   Denied,
   Feedback,
@@ -788,7 +788,7 @@ function CountPanel({
   // With one family in force there is nothing to ask; with several, reading a
   // code under the wrong one answers "no product matches" and means nothing of
   // the sort, so the receiver picks the family the goods belong to.
-  const profileId = profiles.value.length === 1 ? profiles.value[0].id : familyId;
+  const profileId = profiles.value.length === 1 ? (profiles.value[0]?.id ?? "") : familyId;
   const canLookUp = Boolean(profileId && issuerKey);
 
   function context(): AliasContext {
@@ -809,10 +809,9 @@ function CountPanel({
     if (!value || !canLookUp) return;
     setIdentity((was) => ({ ...was, [row.scan_key]: { ...NO_IDENTITY, looking: true } }));
     try {
-      const { data } = await api.get<IdentityResolution>(
-        "/goods-v1/masters/skus/lookup",
-        { params: { value, ...context() } },
-      );
+      const { data } = await api.get<IdentityResolution>("/goods-v1/masters/skus/lookup", {
+        params: { value, ...context() },
+      });
       setIdentity((was) => ({
         ...was,
         [row.scan_key]: { ...NO_IDENTITY, resolution: data },
@@ -982,7 +981,10 @@ function CountPanel({
         ?.data?.details?.issues;
       for (const problem of issues ?? []) {
         if (problem.code === "REMARK_REQUIRED" && problem.line_key) {
-          setRemarks((was) => ({ ...was, [problem.line_key as string]: was[problem.line_key as string] ?? "" }));
+          setRemarks((was) => ({
+            ...was,
+            [problem.line_key as string]: was[problem.line_key as string] ?? "",
+          }));
         }
       }
     } finally {
@@ -1038,8 +1040,8 @@ function CountPanel({
           // A failed read is not "there is no count". Offering "Start the count"
           // here would invite a second count beside one that may well exist.
           <p className="warn-note" data-testid="ga-count-unknown">
-            This delivery's count could not be read, so it is not known whether one is already
-            under way. {open.failure}
+            This delivery's count could not be read, so it is not known whether one is already under
+            way. {open.failure}
           </p>
         ) : (
           <p className="gr-hint">
@@ -1314,7 +1316,11 @@ function CountPanel({
         <div className="gr-warning" data-testid="ga-remarks">
           <h4 className="gr-h4">Every difference from the invoice needs a remark</h4>
           {Object.keys(remarks).map((key) => (
-            <Field key={key} id={`ga-remark-${key}`} label={`Why the count differs on line ${key.slice(0, 8)}`}>
+            <Field
+              key={key}
+              id={`ga-remark-${key}`}
+              label={`Why the count differs on line ${key.slice(0, 8)}`}
+            >
               <input
                 id={`ga-remark-${key}`}
                 className="input"
@@ -1452,7 +1458,9 @@ function InvoicePanel({
               value={line.description}
               onChange={(e) =>
                 setLines((rows) =>
-                  rows.map((row, i) => (i === index ? { ...row, description: e.target.value } : row)),
+                  rows.map((row, i) =>
+                    i === index ? { ...row, description: e.target.value } : row,
+                  ),
                 )
               }
               data-testid={`ga-inv-desc-${index}`}
@@ -1505,9 +1513,7 @@ function InvoicePanel({
       <div className="toolbar">
         <button
           className="btn btn-sm"
-          onClick={() =>
-            setLines((rows) => [...rows, newInvoiceLine()])
-          }
+          onClick={() => setLines((rows) => [...rows, newInvoiceLine()])}
           data-testid="ga-inv-add"
         >
           <Plus size={14} /> Another invoice line
@@ -1578,46 +1584,45 @@ export function ArrivalPanel({
       </div>
 
       {section !== "count" && (
-      <dl className="gr-facts" data-testid="ga-facts">
-        <div>
-          <dt>Vendor</dt>
-          <dd>{vendors.name(arrival.data.vendor_id)}</dd>
-        </div>
-        <div>
-          <dt>Brand</dt>
-          <dd>{brands.name(arrival.data.brand_id)}</dd>
-        </div>
-        <div>
-          <dt>Arrived</dt>
-          <dd>{formatDateTime(arrival.data.actual_arrival_at)}</dd>
-        </div>
-        <div>
-          <dt>Transporter reference</dt>
-          <dd>{orNotGiven(arrival.data.transporter_ref)}</dd>
-        </div>
-        <div>
-          <dt>Booking</dt>
-          <dd>{arrival.data.booking_id ?? "Unbooked"}</dd>
-        </div>
-        <div>
-          <dt>Invoice</dt>
-          <dd>{orNotGiven(arrival.data.invoice_number)}</dd>
-        </div>
-        {arrival.data.duplicate_acknowledgement && (
+        <dl className="gr-facts" data-testid="ga-facts">
           <div>
-            <dt>Recorded despite the duplicate warning</dt>
-            <dd data-testid="ga-duplicate-answer">
-              {arrival.data.duplicate_acknowledgement.reason}
-            </dd>
+            <dt>Vendor</dt>
+            <dd>{vendors.name(arrival.data.vendor_id)}</dd>
           </div>
-        )}
-      </dl>
+          <div>
+            <dt>Brand</dt>
+            <dd>{brands.name(arrival.data.brand_id)}</dd>
+          </div>
+          <div>
+            <dt>Arrived</dt>
+            <dd>{formatDateTime(arrival.data.actual_arrival_at)}</dd>
+          </div>
+          <div>
+            <dt>Transporter reference</dt>
+            <dd>{orNotGiven(arrival.data.transporter_ref)}</dd>
+          </div>
+          <div>
+            <dt>Booking</dt>
+            <dd>{arrival.data.booking_id ?? "Unbooked"}</dd>
+          </div>
+          <div>
+            <dt>Invoice</dt>
+            <dd>{orNotGiven(arrival.data.invoice_number)}</dd>
+          </div>
+          {arrival.data.duplicate_acknowledgement && (
+            <div>
+              <dt>Recorded despite the duplicate warning</dt>
+              <dd data-testid="ga-duplicate-answer">
+                {arrival.data.duplicate_acknowledgement.reason}
+              </dd>
+            </div>
+          )}
+        </dl>
       )}
 
       {issued ? (
         <div className="ok-note" data-testid="ga-issued">
-          GRN issued.{" "}
-          <Link to={deliveryStepPath("grn", issued, "grn")}>Open the GRN</Link>
+          GRN issued. <Link to={deliveryStepPath("grn", issued, "grn")}>Open the GRN</Link>
         </div>
       ) : (
         <>

@@ -1,69 +1,45 @@
 # KDPS local development
 
-The local setup runs Django, its background worker, React/Vite and an isolated
-PostgreSQL **17.11** container. It uses synthetic development accounts and masters.
+The supported development setup is macOS with Python 3.12, Node 22, Yarn 1.22.22, uv, and a running Docker engine with Compose. CI uses Linux and the same root verification commands. Local and proof PostgreSQL containers use version 17.11. The seeded users and store data are synthetic.
 
-## First setup
-
-Requirements: Python 3, uv (provides Python 3.12), Node 22, Yarn 1.22.22, and a
-running Docker engine with Compose.
+## First setup and startup
 
 From the repository root:
 
 ```sh
-bash scripts/setup-local.sh
-python3 scripts/dev-local.py
+npm run setup
+npm run dev
 ```
 
-Open **http://127.0.0.1:5173**. On the sign-in screen, click **Owner**, or use
-`owner@kdps.demo` / `Owner@123`. These are public development credentials for the
-localhost-only synthetic database. All seeded logins are in
-`.local/test_credentials.md`. For the synthetic operations store, use
-`ops.store@synthetic.demo` / `Synthetic@123`.
+Setup checks prerequisites, installs backend and frontend dependencies from the committed lockfiles, installs pinned Chromium into `.local/playwright-browsers`, starts the local database, applies migrations and seeds the foundation. Re-running setup preserves `backend/.env`, `.local/postgres.env`, existing accounts, passwords and access settings. The local database uses 127.0.0.1:55432; the API uses 127.0.0.1:8000 and the frontend uses 127.0.0.1:5173.
 
-## Subsequent starts and stopping
+Open [the local app](http://127.0.0.1:5173). The synthetic Owner login is `owner@kdps.demo` / `Owner@123`; the operations-store login is `ops.store@synthetic.demo` / `Synthetic@123`. Setup writes the other synthetic credentials to `.local/test_credentials.md`. The local launcher reports ready only after the API and frontend respond.
+
+## Stop, restart and troubleshoot
+
+Ctrl-C in the launcher stops its API, worker and frontend children. It retains database files in `.local/postgres`. For a later start:
 
 ```sh
 docker compose -f compose.local.yaml up -d --wait database
-python3 scripts/dev-local.py
+npm run dev
 ```
 
-Ctrl-C in the launcher stops the API, worker and frontend. To stop the database:
+To stop only the local database, run `docker compose -f compose.local.yaml stop database`. Do not remove `.local/postgres` to solve a startup problem. `npm run dev` identifies missing setup, an unavailable or wrong database, an occupied port, or a child that exits; application logs are `.local/backend.log`, `.local/worker.log` and `.local/frontend.log`. If a dependency is missing or changed, run `npm run setup` again. Private settings stay in `backend/.env` and `.local/postgres.env`.
 
-```sh
-docker compose -f compose.local.yaml stop database
-```
+## Engineering verification
 
-Database files stay in `.local/postgres`; stopping does not erase data. Do not
-delete that directory to troubleshoot startup. The local database uses port
-55432; the API uses 8000 and the frontend uses 5173, all bound to 127.0.0.1.
+From the root, `npm run verify` starts and validates an independent disposable PostgreSQL proof stack on port 55433, checks foundation reseeding and launcher failure/restart behaviour, then runs every required backend, API, frontend, build, asset and Chromium check. It refuses a development database URL as a proof target. The proof stack is separate from the working synthetic demo data.
 
-Logs are `.local/backend.log`, `.local/worker.log` and `.local/frontend.log`.
-Private settings are `backend/.env` and `.local/postgres.env`. Setup creates them
-once, checks the local database target and never overwrites existing settings.
+| Command | Checks |
+| --- | --- |
+| `npm run check:backend` | Django system and migration drift, Ruff, strict mypy, two import contracts and pytest on the proof database. |
+| `npm run check:frontend` | Strict TypeScript, ESLint, Prettier and nonempty Vitest suite. |
+| `npm run api:generate` | Generate `frontend/src/lib/api-schema.ts` from Django/DRF OpenAPI. Do not edit that file by hand. |
+| `npm run api:check` | Fail on schema errors or warnings and on generated-client drift without changing files. |
+| `npm run build` | Production frontend and PWA asset validation. |
+| `npm run test:browser` | Built-app Chromium journeys against the isolated backend. |
+| `npm run verify` | All required checks above, plus seed and launcher proofs. |
 
-## Checks and current limits
+For targeted proof work, use `npm run proof:up`, `npm run proof:prepare` and `npm run proof:down`. `proof:down` removes only the disposable proof volume. Browser reports and failure traces stay under `frontend/playwright-report` and `frontend/test-results`; CI uploads them on failure. The detailed results and remaining limits are in the [SO-02 evidence record](docs/planning/so-02-engineering-baseline-evidence.md).
 
-```sh
-cd backend
-.venv/bin/python manage.py check
-cd ../frontend
-yarn build
-yarn typecheck
-```
-
-The dependency manifests and lockfiles were reconstructed from the supplied
-source; the original manifests were absent. Startup verification passed Django
-system checks, the fresh-database migrations, foundation seeding, frontend build,
-and browser Owner login/dashboard requests.
-
-The required strict TypeScript settings currently report 192 errors in the
-existing source with this dependency baseline. They are not disabled; `typecheck`
-remains a separate failing check. Successful local startup is not production or
-store-workflow acceptance. The original PNG app icons are also absent, so PWA
-installation/assets still need verification. IBM Plex Mono is restored through
-its font package.
-
-The seed supplies accounts and masters, not a reconciled real-store opening.
-Feature approval gates remain in place. Payment, mail and AI providers are not
-configured; no provider keys are needed to log in and explore the local app.
+Passing SO-02 verifies the engineering baseline. Real opening stock, provider activation, permissions and store workflows have separate owners and gates in the [store requirement register](docs/planning/store-operations-requirement-register.md).

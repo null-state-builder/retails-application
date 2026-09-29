@@ -1,0 +1,43 @@
+name: SO-02 engineering baseline
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+      - uses: astral-sh/setup-uv@v9
+        with:
+          version: "0.12.13"
+      - name: Install Yarn 1.22.22
+        run: npm install --global yarn@1.22.22
+      - name: Set up from committed locks
+        run: npm run setup
+      - name: Install Chromium and system libraries
+        run: PLAYWRIGHT_BROWSERS_PATH="$GITHUB_WORKSPACE/.local/playwright-browsers" yarn --cwd frontend playwright install --with-deps chromium
+      - name: Verify the complete baseline
+        run: npm run verify
+      - name: Check committed files stayed unchanged
+        run: git diff --exit-code
+      - name: Retain browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: so-02-browser-evidence
+          path: |
+            frontend/test-results/
+            frontend/playwright-report/
+          if-no-files-found: ignore

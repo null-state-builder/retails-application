@@ -42,7 +42,9 @@ export interface LayoutField {
 
 /** Last month, YYYY-MM, India time: the month a brand's reports are usually for. */
 export function lastMonth(now: Date = new Date()): string {
-  const [year, month] = indiaDate(now).split("-").map(Number);
+  const date = indiaDate(now);
+  const year = Number(date.slice(0, 4));
+  const month = Number(date.slice(5, 7));
   return month === 1 ? `${year - 1}-12` : `${year}-${String(month - 1).padStart(2, "0")}`;
 }
 
@@ -84,9 +86,13 @@ export function withField(column: LayoutColumn, field: LayoutField): LayoutColum
 /** `list` with the item at `index` moved `by` places (-1 up, +1 down); unchanged at an end. */
 export function moved<T>(list: T[], index: number, by: -1 | 1): T[] {
   const to = index + by;
-  if (to < 0 || to >= list.length) return list;
+  if (index < 0 || index >= list.length || to < 0 || to >= list.length) return list;
   const out = [...list];
-  [out[index], out[to]] = [out[to], out[index]];
+  const source = out[index];
+  const target = out[to];
+  if (source === undefined || target === undefined) return out;
+  out[index] = target;
+  out[to] = source;
   return out;
 }
 

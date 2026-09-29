@@ -135,7 +135,7 @@ export function withdrawal(
     under_18: null,
     wording_version: context.wording.version,
     till_number: context.tillNumber,
-    at: context.at,
+    ...(context.at ? { at: context.at } : {}),
   });
 }
 
@@ -177,7 +177,12 @@ export async function askTheCustomer(
     given.push(answer);
     await record(answer);
   };
-  const base = { mobile, how: "display" as const, wording_version: wording.version, till_number: tillNumber };
+  const base = {
+    mobile,
+    how: "display" as const,
+    wording_version: wording.version,
+    till_number: tillNumber,
+  };
 
   const bill = await ask({ id: `consent-bill-${round}`, text: wording.bill, choices: YES_NO });
   if (bill === null || stopped()) return given;
@@ -190,7 +195,11 @@ export async function askTheCustomer(
     return given;
   }
 
-  const offers = await ask({ id: `consent-offers-${round}`, text: wording.offers, choices: YES_NO });
+  const offers = await ask({
+    id: `consent-offers-${round}`,
+    text: wording.offers,
+    choices: YES_NO,
+  });
   if (offers === null || stopped()) return given;
   await keep(
     newAnswer({ ...base, question: "offers", given: offers === "yes", under_18: false, at: now() }),
@@ -322,7 +331,10 @@ async function drainOnce(db: TillDb, transport: TillTransport): Promise<ConsentD
           result.refused += 1;
           continue;
         }
-        await db.consents.update(row.id, { attempts: row.attempts + 1, last_error: refusal.message });
+        await db.consents.update(row.id, {
+          attempts: row.attempts + 1,
+          last_error: refusal.message,
+        });
         result.stalled = true;
         break;
       }

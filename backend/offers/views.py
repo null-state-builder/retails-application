@@ -16,9 +16,11 @@ from typing import Any
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework import serializers
 from rest_framework.views import APIView
 
 from accounts.permissions import require_section
@@ -45,6 +47,30 @@ CanReadOrAuthor = require_section("offers_price", CAP_VIEW, write_minimum=CAP_OP
 #: are therefore not editable at all. `ended` is in here with `live` because the
 #: accept pipeline consults ended rules for bills printed inside their dates.
 FROZEN_STATUSES = frozenset({Offer.Status.LIVE, Offer.Status.ENDED})
+
+
+class OfferApprovalInfoSerializer(serializers.Serializer[Any]):
+    id = serializers.IntegerField(read_only=True)
+    title = serializers.CharField(read_only=True)
+    approver_roles = serializers.ListField(child=serializers.CharField(), read_only=True)
+
+
+class OfferResultSerializer(OfferReadSerializer):
+    """The rule plus workflow fields added by these views."""
+
+    awaiting_approval = serializers.BooleanField(read_only=True, required=False)
+    replaced_offer_id = serializers.IntegerField(read_only=True, required=False)
+    approval = OfferApprovalInfoSerializer(read_only=True, required=False)
+
+    class Meta(OfferReadSerializer.Meta):
+        fields = [*OfferReadSerializer.Meta.fields,
+                  "awaiting_approval", "replaced_offer_id", "approval"]
+
+
+REFUSAL_RESPONSE = {
+    "type": "object", "required": ["error", "code"],
+    "properties": {"error": {"type": "string"}, "code": {"type": "string"}},
+}
 
 
 def visible_offers(user: Any, *, include_ended: bool = False) -> OfferQuerySet:
@@ -98,6 +124,13 @@ class OfferListCreateView(APIView):
 
     permission_classes = [IsAuthenticated, CanReadOrAuthor]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("live", bool), OpenApiParameter("brand", str),
+            OpenApiParameter("store", str),
+        ],
+        responses={200: OfferResultSerializer(many=True)},
+    )
     def get(self, request: Request) -> Response:
         rows = visible_offers(request.user)
         if request.query_params.get("live") == "true":
@@ -120,6 +153,7 @@ class OfferListCreateView(APIView):
             item["awaiting_approval"] = item["id"] in waiting
         return Response(body)
 
+    @extend_schema(request=OfferWriteSerializer, responses={201: OfferResultSerializer, 400: REFUSAL_RESPONSE})
     @transaction.atomic  # the offer and its tax-settings audit record, together
     def post(self, request: Request) -> Response:
         serializer = OfferWriteSerializer(data=request.data)
@@ -139,6 +173,7 @@ class OfferDetailView(APIView):
 
     permission_classes = [IsAuthenticated, CanReadOrAuthor]
 
+    @extend_schema(responses={200: OfferResultSerializer, 404: REFUSAL_RESPONSE})
     def get(self, request: Request, pk: int) -> Response:
         offer = visible_offers(request.user, include_ended=True).filter(pk=pk).first()
         if offer is None:
@@ -147,6 +182,11 @@ class OfferDetailView(APIView):
         body["awaiting_approval"] = bool(pending_offer_ids([offer.id]))
         return Response(body)
 
+    @extend_schema(
+        request=OfferWriteSerializer,
+        responses={200: OfferResultSerializer, 201: OfferResultSerializer,
+                   400: REFUSAL_RESPONSE, 404: REFUSAL_RESPONSE},
+    )
     @transaction.atomic
     def put(self, request: Request, pk: int) -> Response:
         # Scoped exactly as the GET is. A mutating path that read `Offer.objects`
@@ -289,6 +329,11 @@ class OfferApprovalRequestView(APIView):
 
     permission_classes = [IsAuthenticated, CanReadOrAuthor]
 
+    @extend_schema(
+        request=None,
+        responses={201: OfferResultSerializer, 400: REFUSAL_RESPONSE,
+                   404: REFUSAL_RESPONSE, 409: REFUSAL_RESPONSE},
+    )
     def post(self, request: Request, pk: int) -> Response:
         offer = visible_offers(request.user).filter(pk=pk).first()
         if offer is None:

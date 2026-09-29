@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from django.db.models import Count, Q, Sum
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import generics
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
@@ -39,6 +40,129 @@ class StockLedgerPagination(PageNumberPagination):
 #: person scans. `sku_code` *is* the barcode/SKU identity on this ledger.
 MOVEMENT_SEARCH_FIELDS = ("doc_number", "sku_code", "design")
 
+MERCH_FIELDS = {name: {"type": "string"} for name in (
+    "design", "color", "size", "brand", "season", "item", "hsn"
+)}
+MONEY_PROPERTIES: dict[str, Any] = {
+    "value_paise": {"type": "integer"}, "value_rupees": {"type": "string"},
+}
+LEDGER_SUMMARY = {
+    "type": "object", "required": [
+        "entries", "net_qty", "net_value_paise", "net_value_rupees",
+        "distinct_skus", "distinct_documents",
+    ],
+    "properties": {name: {"type": "integer"} for name in (
+        "entries", "net_qty", "net_value_paise", "distinct_skus", "distinct_documents"
+    )} | {"net_value_rupees": {"type": "string"}},
+}
+TRANSIT_ROW = {
+    "type": "object", "required": [
+        "transfer_doc_number", "source_store_code", "destination_store_code",
+        "sku_code", *MERCH_FIELDS, "qty", "value_paise", "value_rupees", "updated_at",
+    ],
+    "properties": {
+        **{name: {"type": "string"} for name in (
+            "transfer_doc_number", "source_store_code", "destination_store_code", "sku_code"
+        )},
+        **MERCH_FIELDS, "qty": {"type": "integer"},
+        "value_paise": {"type": "integer"}, "value_rupees": {"type": "string"},
+        "updated_at": {"type": "string", "format": "date-time"},
+    },
+}
+TRANSIT_RESPONSE = {
+    "type": "object", "required": ["summary", "rows"],
+    "properties": {
+        "summary": {"type": "object", "required": [
+            "units_in_transit", "value_paise", "value_rupees", "transfers"
+        ], "properties": MONEY_PROPERTIES | {
+            "units_in_transit": {"type": "integer"}, "transfers": {"type": "integer"}
+        }},
+        "rows": {"type": "array", "items": TRANSIT_ROW},
+    },
+}
+QUARANTINE_ROW = {
+    "type": "object", "required": [
+        "store_code", "store_name", "sku_code", *MERCH_FIELDS, "qty",
+        "value_paise", "value_rupees", "marked_by", "marked_at",
+    ],
+    "properties": {
+        "store_code": {"type": "string"}, "store_name": {"type": "string"},
+        "sku_code": {"type": "string"}, **MERCH_FIELDS,
+        "qty": {"type": "integer"}, "value_paise": {"type": "integer"},
+        "value_rupees": {"type": "string"},
+        "marked_by": {"type": "string", "nullable": True},
+        "marked_at": {"type": "string", "format": "date-time"},
+    },
+}
+QUARANTINE_RESPONSE = {
+    "type": "object", "required": ["summary", "rows"],
+    "properties": {
+        "summary": {"type": "object", "required": [
+            "units_quarantined", "value_paise", "value_rupees", "lines"
+        ], "properties": MONEY_PROPERTIES | {
+            "units_quarantined": {"type": "integer"}, "lines": {"type": "integer"}
+        }},
+        "rows": {"type": "array", "items": QUARANTINE_ROW},
+    },
+}
+ON_HAND_ROW = {
+    "type": "object", "required": [
+        "store_code", "store_name", "brand", "design", "color", "size", "item",
+        "season", "sku_code", "net_qty", "skus", "net_value_paise", "net_value_rupees",
+    ],
+    "properties": {
+        "store_id": {"type": "integer", "description": "Present only when group_by=sku."},
+        **{name: {"type": "string"} for name in (
+            "store_code", "store_name", "brand", "design", "color", "size", "item",
+            "season", "sku_code"
+        )},
+        "net_qty": {"type": "integer"}, "skus": {"type": "integer"},
+        "net_value_paise": {"type": "integer"}, "net_value_rupees": {"type": "string"},
+    },
+}
+ON_HAND_RESPONSE = {
+    "type": "object", "required": ["group_by", "summary", "rows"],
+    "properties": {
+        "group_by": {"type": "string", "enum": ["sku", "brand", "store"]},
+        "summary": {"type": "object", "required": [
+            "units_on_hand", "value_paise", "value_rupees", "lines", "displayed", "truncated"
+        ], "properties": MONEY_PROPERTIES | {
+            "units_on_hand": {"type": "integer"}, "lines": {"type": "integer"},
+            "displayed": {"type": "integer"}, "truncated": {"type": "boolean"},
+        }},
+        "rows": {"type": "array", "items": ON_HAND_ROW},
+    },
+}
+AVAILABILITY_RESPONSE = {
+    "type": "object", "required": ["results", "truncated"],
+    "properties": {
+        "truncated": {"type": "boolean"},
+        "results": {"type": "array", "items": {"type": "object", "required": [
+            "design", "brand", "item", "sizes"
+        ], "properties": {
+            "design": {"type": "string"}, "brand": {"type": "string"},
+            "item": {"type": "string"},
+            "sizes": {"type": "array", "items": {"type": "object", "required": ["size", "stores"],
+                "properties": {
+                    "size": {"type": "string"},
+                    "stores": {"type": "array", "items": {"type": "object", "required": [
+                        "store", "store_name", "color", "sku_code", "hsn", "season", "qty"
+                    ], "properties": {
+                        **{name: {"type": "string"} for name in (
+                            "store", "store_name", "color", "sku_code", "hsn", "season"
+                        )},
+                        "qty": {"type": "integer"},
+                    }}},
+                }},
+            },
+        }}},
+    },
+}
+AVAILABILITY_REFUSAL = {
+    "type": "object", "required": ["error", "code"],
+    "properties": {"error": {"type": "string"}, "code": {"type": "string"}},
+}
+
 
 class StockLedgerListView(generics.ListAPIView[StockLedgerEntry]):
     permission_classes = [IsAuthenticated]
@@ -62,6 +186,7 @@ class StockLedgerListView(generics.ListAPIView[StockLedgerEntry]):
 class StockLedgerSummaryView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses={200: LEDGER_SUMMARY})
     def get(self, request: Request) -> Response:
         qs = scope_by_store_and_brand(StockLedgerEntry.objects.all(), request.user, "store_id")
         agg = qs.aggregate(
@@ -92,6 +217,10 @@ class InTransitView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[OpenApiParameter("transfer", str)],
+        responses={200: TRANSIT_RESPONSE},
+    )
     def get(self, request: Request) -> Response:
         qs = scope_by_store_and_brand(
             InTransitStock.objects.filter(qty__gt=0).select_related(
@@ -139,6 +268,10 @@ class QuarantineView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[OpenApiParameter("store", str), OpenApiParameter("brand", str)],
+        responses={200: QUARANTINE_RESPONSE},
+    )
     def get(self, request: Request) -> Response:
         qs = scope_by_store_and_brand(
             QuarantineStock.objects.filter(qty__gt=0).select_related("store", "marked_by"),
@@ -218,6 +351,14 @@ class StockOnHandView(APIView):
     permission_classes = [IsAuthenticated]
     MAX_LINES = 2000
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("group_by", str, enum=["sku", "brand", "store"]),
+            OpenApiParameter("store", str), OpenApiParameter("brand", str),
+            OpenApiParameter("sku", str), OpenApiParameter("q", str),
+        ],
+        responses={200: ON_HAND_RESPONSE},
+    )
     def get(self, request: Request) -> Response:
         group_by = request.query_params.get("group_by", "sku")
         if group_by not in ("sku", "brand", "store"):
@@ -360,6 +501,13 @@ class StockAvailabilityView(APIView):
     #: everything is the same as no search, only slower.
     MIN_TERM = 3
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("q", str, required=True),
+            OpenApiParameter("brand", str), OpenApiParameter("size", str),
+        ],
+        responses={200: AVAILABILITY_RESPONSE, 400: AVAILABILITY_REFUSAL},
+    )
     def get(self, request: Request) -> Response:
         term = search_term(request)
         if len(term) < self.MIN_TERM:

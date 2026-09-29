@@ -14,9 +14,10 @@ from typing import Any
 
 from django.contrib.postgres.fields import BigIntegerRangeField
 from django.db import models
-from django.db.backends.postgresql.psycopg_any import NumericRange
+from psycopg.types.range import Range as NumericRange
 
-MAX_UNIT_PAISE = 99_999_999_999  # ₹999,999,999.99
+from core.money_limits import MAX_UNIT_PAISE as MAX_UNIT_PAISE
+
 MAX_LINE_QTY = 999_999
 
 
@@ -60,7 +61,7 @@ class PortionField(BigIntegerRangeField):
     description = "Half-open bookkeeping portion of a custody lot"
 
 
-def portion(lower: int, upper: int) -> NumericRange:
+def portion(lower: int, upper: int) -> NumericRange[int]:
     if lower < 0 or upper <= lower:
         raise ValueError(f"invalid portion [{lower},{upper})")
     return NumericRange(lower, upper, "[)")

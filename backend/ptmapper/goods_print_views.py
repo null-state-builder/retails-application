@@ -106,6 +106,50 @@ PRINT_JOB_RESOURCE: dict[str, Any] = {
     },
 }
 
+_UUID = {"type": "string", "format": "uuid"}
+_META = {
+    "command_id": _UUID,
+    "contract_version": {"type": "string", "enum": ["goods-v1"]},
+    "expected_revision": {"type": "integer", "minimum": 1},
+}
+_PRINT_LINE_REQUEST = {
+    "type": "object",
+    "required": ["official_line_id", "copies"],
+    "properties": {"official_line_id": _UUID, "copies": {"type": "integer", "minimum": 1}},
+    "additionalProperties": False,
+}
+PRINT_CREATE_REQUEST = {
+    "type": "object",
+    "required": ["command_id", "contract_version", "pt_version_id", "lines", "template_version_id"],
+    "properties": {
+        **_META,
+        "pt_version_id": _UUID,
+        "lines": {"type": "array", "items": _PRINT_LINE_REQUEST, "minItems": 1, "maxItems": 200},
+        "template_version_id": _UUID,
+        "reprint_of_id": _UUID,
+        "reason_code": {"type": "string"},
+    },
+    "additionalProperties": False,
+}
+PRINT_OUTCOME_REQUEST = {
+    "type": "object",
+    "required": ["command_id", "contract_version", "expected_revision", "outcome"],
+    "properties": {
+        **_META,
+        "outcome": {"type": "string", "enum": sorted(prints.OUTCOMES)},
+        "usable_counts": {"type": "array", "items": {
+            "type": "object",
+            "required": ["official_line_id", "qty"],
+            "properties": {"official_line_id": _UUID, "qty": {"type": "integer", "minimum": 0, "nullable": True}},
+            "additionalProperties": False,
+        }},
+        "reason_code": {"type": "string"},
+        "scanned_alias": {"type": "string", "maxLength": 128},
+        "matched_line_id": _UUID,
+    },
+    "additionalProperties": False,
+}
+
 
 def _dto(job: PrintJob) -> dict[str, Any]:
     return resource_dto(
@@ -134,7 +178,7 @@ class GoodsPrintJobCreateView(GoodsAPIView):
 
     http_method_names = ["post", "options"]
 
-    @extend_schema(responses=_responses(201, PRINT_JOB_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(request={"application/json": PRINT_CREATE_REQUEST}, responses=_responses(201, PRINT_JOB_RESOURCE, _WRITE_REFUSALS))
     def post(self, request: Request) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=False)
@@ -197,7 +241,7 @@ class GoodsPrintJobOutcomeView(GoodsAPIView):
 
     http_method_names = ["post", "options"]
 
-    @extend_schema(responses=_responses(200, PRINT_JOB_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(request={"application/json": PRINT_OUTCOME_REQUEST}, responses=_responses(200, PRINT_JOB_RESOURCE, _WRITE_REFUSALS))
     def post(self, request: Request, pk: uuid.UUID) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=True)

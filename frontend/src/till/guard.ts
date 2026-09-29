@@ -134,13 +134,16 @@ export class CounterLock {
   /** The lock manager itself failed. Counted with "there is no lock manager":
    *  an API that told us nothing is not evidence of a second till. */
   private broken = false;
+  private readonly storeCode: string;
+  private readonly locks: LockManagerLike | undefined;
 
   constructor(
-    private readonly storeCode: string,
-    private readonly locks: LockManagerLike | undefined = navigator.locks as
-      | LockManagerLike
-      | undefined,
-  ) {}
+    storeCode: string,
+    locks: LockManagerLike | undefined = navigator.locks as LockManagerLike | undefined,
+  ) {
+    this.storeCode = storeCode;
+    this.locks = locks;
+  }
 
   /** Does this tab own the counter?
    *

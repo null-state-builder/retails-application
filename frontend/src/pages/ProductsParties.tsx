@@ -19,7 +19,7 @@ import type { ReactNode } from "react";
 import { Boxes, Pencil, Plus, Save, ScanLine, Shapes, Tags, Truck, X } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
-import {api, apiErrorCode, apiErrorMessage, goodsMeta} from "../lib/api";
+import { api, apiErrorCode, apiErrorMessage, goodsMeta } from "../lib/api";
 import {
   Denied,
   Feedback,
@@ -248,8 +248,7 @@ function profileDimensions(profile: EffectiveProfile): ProfileDimension[] {
       allowed,
       // Size may be omitted and stays unknown; any other distinguishing
       // dimension defines the SKU and the server refuses it unknown.
-      required:
-        payload.distinguishing_dimensions.includes(name) && name !== payload.size_dimension,
+      required: payload.distinguishing_dimensions.includes(name) && name !== payload.size_dimension,
     });
   }
   return out;
@@ -339,7 +338,10 @@ function SimpleMasterPanel<T extends { code: string; name: string }>({
             code: row.data.code,
             name: row.data.name,
             ...Object.fromEntries(
-              extras.map((f) => [f.key, String((row.data as Record<string, unknown>)[f.key] ?? "")]),
+              extras.map((f) => [
+                f.key,
+                String((row.data as Record<string, unknown>)[f.key] ?? ""),
+              ]),
             ),
           }
         : blank,
@@ -352,9 +354,16 @@ function SimpleMasterPanel<T extends { code: string; name: string }>({
   async function save() {
     setError("");
     setOk("");
-    const payload: Record<string, string> = { code: form.code, name: form.name };
+    const code = form.code?.trim();
+    const name = form.name?.trim();
+    if (!code || !name) {
+      setError("Enter a code and name before saving.");
+      return;
+    }
+    const payload: Record<string, string> = { code, name };
     for (const extra of extras) {
-      if (form[extra.key]) payload[extra.key] = form[extra.key];
+      const value = form[extra.key];
+      if (value) payload[extra.key] = value;
     }
     try {
       await stepUp.guarded(() =>
@@ -389,7 +398,10 @@ function SimpleMasterPanel<T extends { code: string; name: string }>({
   }
 
   if (denied) return <Denied what={noun.toLowerCase()} />;
-  const state = listState({ loading, failure, empty: shown.length === 0 }, `No ${title.toLowerCase()} yet.`);
+  const state = listState(
+    { loading, failure, empty: shown.length === 0 },
+    `No ${title.toLowerCase()} yet.`,
+  );
 
   return (
     <div data-testid={`${testid}-panel`}>
@@ -411,7 +423,11 @@ function SimpleMasterPanel<T extends { code: string; name: string }>({
               {editing ? `Edit ${noun.toLowerCase()}` : `Create ${noun.toLowerCase()}`}
             </h3>
             <div className="spacer" />
-            <button className="btn btn-sm" onClick={() => setOpen(false)} data-testid={`${testid}-close`}>
+            <button
+              className="btn btn-sm"
+              onClick={() => setOpen(false)}
+              data-testid={`${testid}-close`}
+            >
               <X size={14} /> Close
             </button>
           </div>
@@ -804,9 +820,8 @@ function StyleDetail({
         </p>
       ) : (
         <p className="muted" data-testid="style-pinned-profile">
-          New SKUs pin{" "}
-          <b>{pinnedLabel(configs.items, profile.versionId) ?? profile.versionId}</b> of the SKU
-          identity profile. A later version never replaces it on its own.
+          New SKUs pin <b>{pinnedLabel(configs.items, profile.versionId) ?? profile.versionId}</b>{" "}
+          of the SKU identity profile. A later version never replaces it on its own.
         </p>
       )}
       {canManage && profile && (
@@ -818,7 +833,11 @@ function StyleDetail({
             <Boxes size={15} /> Combinations
           </button>
           {mode !== "list" && (
-            <button className="btn btn-sm" onClick={() => setMode("list")} data-testid="sku-form-close">
+            <button
+              className="btn btn-sm"
+              onClick={() => setMode("list")}
+              data-testid="sku-form-close"
+            >
               <X size={14} /> Close
             </button>
           )}
@@ -1041,9 +1060,15 @@ function CombinationsGrid({
 
   async function createOne(id: string): Promise<Outcome> {
     const [sizeId, colourId] = id.split("|");
-    const attrs: AttrValue[] = [
-      { field_id: payload.size_dimension, vocabulary_value_id: sizeId },
-    ];
+    if (!sizeId || !colourId) {
+      return {
+        key: id,
+        label: id,
+        kind: "failed",
+        message: "Invalid size and colour combination.",
+      };
+    }
+    const attrs: AttrValue[] = [{ field_id: payload.size_dimension, vocabulary_value_id: sizeId }];
     if (payload.colour_dimension) {
       attrs.push({ field_id: payload.colour_dimension, vocabulary_value_id: colourId });
     }
@@ -1176,7 +1201,12 @@ function CombinationsGrid({
         <>
           <ul data-testid="combo-review-list">
             {chosen.map((id) => (
-              <li key={id}>{label(id.split("|")[0], id.split("|")[1])}</li>
+              <li key={id}>
+                {(() => {
+                  const [sizeId, colourId] = id.split("|");
+                  return sizeId && colourId ? label(sizeId, colourId) : "Invalid combination";
+                })()}
+              </li>
             ))}
           </ul>
           <button className="btn btn-sm" onClick={() => setStage("pick")} data-testid="combo-back">
@@ -1416,7 +1446,11 @@ function AliasesPanel({ search }: { search: string }) {
                 ))}
               </select>
             </Field>
-            <Field id="alias-issuer" label="Issuer" hint="Who issued this code — a vendor, or your own range.">
+            <Field
+              id="alias-issuer"
+              label="Issuer"
+              hint="Who issued this code — a vendor, or your own range."
+            >
               <input
                 id="alias-issuer"
                 className="input"
@@ -1533,7 +1567,8 @@ function CrosswalksPanel({ search }: { search: string }) {
   const stepUp = useStepUp();
   const configVersionId = profiles[0]?.versionId ?? "";
 
-  const targets = form.kind === "brand" ? brands.items : form.kind === "vendor" ? vendors.items : [];
+  const targets =
+    form.kind === "brand" ? brands.items : form.kind === "vendor" ? vendors.items : [];
 
   async function create() {
     setError("");
@@ -1757,7 +1792,9 @@ function LookupPanel() {
       profile_version_id: profileId,
     });
     try {
-      const { data } = await api.get<Resolution>(`/goods-v1/masters/skus/lookup?${query.toString()}`);
+      const { data } = await api.get<Resolution>(
+        `/goods-v1/masters/skus/lookup?${query.toString()}`,
+      );
       setResult(data);
     } catch (e) {
       setError(apiErrorMessage(e));
@@ -2078,7 +2115,9 @@ export function ProductsPartiesPage() {
               noun="Brand"
               testid="brand"
               listUrl={"/goods-v1/masters/brands"}
-              writeUrl={(id) => (id ? `/goods-v1/masters/brands/${id}` : "/goods-v1/masters/brands")}
+              writeUrl={(id) =>
+                id ? `/goods-v1/masters/brands/${id}` : "/goods-v1/masters/brands"
+              }
               extras={[]}
               search={search}
             />
@@ -2089,7 +2128,9 @@ export function ProductsPartiesPage() {
               noun="Season"
               testid="season"
               listUrl={"/goods-v1/masters/seasons"}
-              writeUrl={(id) => (id ? `/goods-v1/masters/seasons/${id}` : "/goods-v1/masters/seasons")}
+              writeUrl={(id) =>
+                id ? `/goods-v1/masters/seasons/${id}` : "/goods-v1/masters/seasons"
+              }
               extras={[]}
               search={search}
             />
@@ -2100,7 +2141,9 @@ export function ProductsPartiesPage() {
               noun="Sub-brand"
               testid="subbrand"
               listUrl="/goods-v1/masters/subbrands"
-              writeUrl={(id) => (id ? `/goods-v1/masters/subbrands/${id}` : "/goods-v1/masters/subbrands")}
+              writeUrl={(id) =>
+                id ? `/goods-v1/masters/subbrands/${id}` : "/goods-v1/masters/subbrands"
+              }
               extras={[{ key: "parent_id", label: "Parent brand" }]}
               search={search}
             />

@@ -1068,7 +1068,7 @@ const LEGACY_PREFIXES: [from: string, to: string][] = [
   // The standalone /sell/returns route was merged into the counter in return
   // mode: /sell?mode=return. Any saved link or bookmark still arrives correctly.
   ["/sell/returns", "/sell?mode=return"],
-].sort((a, b) => b[0].length - a[0].length) as [string, string][];
+].sort((a, b) => (b[0]?.length ?? 0) - (a[0]?.length ?? 0)) as [string, string][];
 
 /** Every address the manifest has moved away from. The route table reads it to
  *  spot the one that a dynamic route would otherwise claim (see routes.tsx),
@@ -1109,7 +1109,7 @@ export const NAV_ITEMS: (NavItem & { section: string })[] = SECTIONS.flatMap((s)
 
 /** The path part of an item's `to` (drops the `?view=quarantine` deep link). */
 export function itemPath(item: NavItem): string {
-  return item.to.split("?")[0];
+  return item.to.split("?")[0] ?? item.to;
 }
 
 /** The deepest eligible item whose path `pathname` sits at or under. Longest
@@ -1662,10 +1662,18 @@ export function visibleSections(
       const derivedItems = derived.items.filter(
         (i) =>
           !i.action &&
-          itemVisible(i, granted.capability, roleCode, user.is_superuser, goodsActions, featuresOn) &&
+          itemVisible(
+            i,
+            granted.capability,
+            roleCode,
+            user.is_superuser,
+            goodsActions,
+            featuresOn,
+          ) &&
           dataGateOpen(i, held, user.is_superuser),
       );
-      if (derivedItems.length) out.push({ def: derived, label: derived.label, items: derivedItems });
+      if (derivedItems.length)
+        out.push({ def: derived, label: derived.label, items: derivedItems });
     }
   }
   // Goods-v1 lines in a section the server did not send (GSA-T02). A
@@ -1725,7 +1733,7 @@ export function foldTabs(fold: NavFoldDef, sections: VisibleSection[]): FoldTab[
   const passed = new Set(sections.flatMap((s) => s.items.map((i) => i.to)));
   const panels = fold.tabs.filter((t) => {
     if (!passed.has(t.entry)) return false;
-    const host = itemOwning(t.entry.split("?")[0]);
+    const host = itemOwning(t.entry.split("?")[0] ?? t.entry);
     return !host || passed.has(host.to);
   });
   // The goods-v1 lines of the folded sections that access left standing

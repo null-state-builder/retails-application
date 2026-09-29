@@ -46,7 +46,7 @@ export function ReservationsPage() {
   const store =
     picked ||
     (activeStore?.store_type === "store" ? activeStore.code : "") ||
-    (stores.length === 1 ? stores[0].code : "");
+    (stores.length === 1 ? (stores[0]?.code ?? "") : "");
 
   const [listing, setListing] = useState<Listing | null>(null);
   const [terms, setTerms] = useState<Terms | null>(null);
@@ -183,7 +183,9 @@ export function ReservationsPage() {
       () => attempts.current.delete(key),
     );
     if (!after) return;
-    setDone(`${after.ref}: ${advanceText(after)} by ${after.voucher?.mode.toUpperCase() ?? "cash"}.`);
+    setDone(
+      `${after.ref}: ${advanceText(after)} by ${after.voucher?.mode.toUpperCase() ?? "cash"}.`,
+    );
     await load(query);
   }
 
@@ -423,7 +425,11 @@ export function ReservationsPage() {
                 {listing.reservations.map((r) => {
                   const chip = statusChip(r.status);
                   return (
-                    <li key={r.id} className="reservation-card" data-testid={`reservation-${r.ref}`}>
+                    <li
+                      key={r.id}
+                      className="reservation-card"
+                      data-testid={`reservation-${r.ref}`}
+                    >
                       <div className="reservation-card-head">
                         <strong>{r.ref}</strong> <StatusChip status={chip.label} tone={chip.tone} />
                       </div>

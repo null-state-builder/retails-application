@@ -310,7 +310,10 @@ def _body(request: Request) -> dict[str, Any]:
 class ChecklistTemplatesView(APIView):
     permission_classes = [IsAuthenticated, require_section("setup", CAP_VIEW)]
 
-    @extend_schema(responses=ChecklistTemplatesPageSerializer)
+    @extend_schema(
+        operation_id="store_checklist_templates_list",
+        responses=ChecklistTemplatesPageSerializer,
+    )
     def get(self, request: Request) -> Response:
         on = _stores_on(request.user)
         body = {
@@ -322,6 +325,7 @@ class ChecklistTemplatesView(APIView):
         return Response(ChecklistTemplatesPageSerializer(body).data)
 
     @extend_schema(
+        operation_id="store_checklist_templates_create",
         request=ChecklistTemplateWriteSerializer, responses={201: ChecklistTemplateSerializer}
     )
     def post(self, request: Request) -> Response:
@@ -339,7 +343,11 @@ class ChecklistTemplatesView(APIView):
 class ChecklistTemplateChangeView(APIView):
     permission_classes = [IsAuthenticated, require_section("setup", CAP_VIEW)]
 
-    @extend_schema(request=ChecklistTemplateChangeSerializer, responses=ChecklistTemplateSerializer)
+    @extend_schema(
+        operation_id="store_checklist_templates_change",
+        request=ChecklistTemplateChangeSerializer,
+        responses=ChecklistTemplateSerializer,
+    )
     def post(self, request: Request, pk: uuid.UUID) -> Response:
         _require_editor(request.user)
         _require_on_somewhere(request.user)

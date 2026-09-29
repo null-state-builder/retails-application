@@ -35,12 +35,14 @@ from urllib.parse import quote
 
 from django.http import HttpResponse
 from django.shortcuts import redirect
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from . import google, service, state, sync
+from . import api_schema, google, service, state, sync
 from .serializers import MailAccountSerializer, MailDetailSerializer, MailListSerializer
 from .service import MailRefused
 
@@ -54,6 +56,7 @@ class MailStatusView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses={200: api_schema.STATUS})
     def get(self, request: Request) -> Response:
         if not service.server_ready():
             return Response({"configured": False, "connected": False})
@@ -75,6 +78,9 @@ class MailConnectView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses={200: api_schema.CONNECT, 502: api_schema.ERROR, 503: api_schema.ERROR}
+    )
     def get(self, request: Request) -> Response:
         try:
             return Response({"url": service.begin_connect(request.user)})
@@ -97,6 +103,15 @@ class MailCallbackView(APIView):
     permission_classes: list[Any] = []
     authentication_classes: list[Any] = []
 
+    @extend_schema(
+        operation_id="mail_oauth_callback",
+        parameters=[
+            OpenApiParameter("state", OpenApiTypes.STR, description="OAuth flow state"),
+            OpenApiParameter("code", OpenApiTypes.STR, description="Google authorization code"),
+            OpenApiParameter("error", OpenApiTypes.STR, description="Google refusal code"),
+        ],
+        responses={302: OpenApiResponse(description="Redirect to the PWA with a one-time handoff or refusal")},
+    )
     def get(self, request: Request) -> HttpResponse:
         frontend = os.environ.get("MAIL_FRONTEND_URL", "").strip() or "/"
 
@@ -131,6 +146,10 @@ class MailCompleteView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request={"application/json": api_schema.COMPLETE_REQUEST},
+        responses={200: api_schema.COMPLETE, 400: api_schema.ERROR, 502: api_schema.ERROR},
+    )
     def post(self, request: Request) -> Response:
         handoff = str(request.data.get("handoff") or "").strip()
         try:
@@ -145,6 +164,7 @@ class MailDisconnectView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=None, responses={200: api_schema.DISCONNECT})
     def post(self, request: Request) -> Response:
         service.disconnect(request.user)
         return Response({"connected": False})
@@ -160,6 +180,16 @@ class MailMessagesView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        operation_id="mail_messages_list",
+        parameters=[
+            OpenApiParameter("box", OpenApiTypes.STR, enum=service.FOLDERS),
+            OpenApiParameter("q", OpenApiTypes.STR, description="Search cached messages"),
+            OpenApiParameter("limit", OpenApiTypes.INT, description="Maximum number of rows"),
+            OpenApiParameter("sync", OpenApiTypes.STR, enum=["0"], description="Skip Gmail sync"),
+        ],
+        responses={200: api_schema.MESSAGES},
+    )
     def get(self, request: Request) -> Response:
         account = service.connected_account(request.user)
         if account is None:
@@ -195,6 +225,10 @@ class MailMessageView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        operation_id="mail_message_detail",
+        responses={200: MailDetailSerializer, 404: api_schema.ERROR},
+    )
     def get(self, request: Request, pk: int) -> Response:
         try:
             message = service.message_or_refuse(request.user, pk)
@@ -208,6 +242,7 @@ class MailReadView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(request=None, responses={200: api_schema.READ, 404: api_schema.ERROR})
     def post(self, request: Request, pk: int) -> Response:
         try:
             message = service.message_or_refuse(request.user, pk)
@@ -223,6 +258,7 @@ class MailUnreadView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(responses={200: api_schema.UNREAD})
     def get(self, request: Request) -> Response:
         account = service.connected_account(request.user)
         if account is None:
@@ -244,6 +280,13 @@ class MailAttachmentView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses={
+            200: OpenApiResponse(OpenApiTypes.BINARY, description="Attachment download"),
+            404: OpenApiResponse(description="Attachment does not belong to this mailbox"),
+            502: OpenApiResponse(description="Google attachment fetch failed"),
+        }
+    )
     def get(self, request: Request, pk: int) -> HttpResponse:
         attachment = service.attachment_of(request.user, pk)
         if attachment is None:
@@ -270,6 +313,10 @@ class MailSendView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        request={"application/json": api_schema.SEND_REQUEST},
+        responses={201: api_schema.SENT, 400: api_schema.ERROR, 404: api_schema.ERROR, 502: api_schema.ERROR},
+    )
     def post(self, request: Request) -> Response:
         try:
             service.send(

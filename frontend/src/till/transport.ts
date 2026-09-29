@@ -31,12 +31,12 @@ import type {
 
 /** A refusal the till has to reason about, stripped of the HTTP library. */
 export class TillHttpError extends Error {
-  constructor(
-    readonly status: number,
-    readonly code: string,
-    message: string,
-  ) {
+  readonly status: number;
+  readonly code: string;
+  constructor(status: number, code: string, message: string) {
     super(message);
+    this.status = status;
+    this.code = code;
     this.name = "TillHttpError";
   }
 

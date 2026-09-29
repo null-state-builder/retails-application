@@ -26,13 +26,7 @@ import {
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
-import {
-  api,
-  apiErrorCode,
-  apiErrorMessage,
-  goodsMeta,
-  type ApiRead,
-} from "../lib/api";
+import { api, apiErrorCode, apiErrorMessage, goodsMeta, type ApiRead } from "../lib/api";
 import type { paths } from "../lib/api-schema";
 import { openHistoryAfterRetire, parseMasterHistory } from "../lib/administrativeHistory";
 import { AdministrativeHistory } from "../components/AdministrativeHistory";
@@ -172,7 +166,11 @@ const LOCATION_KIND_LABEL: Record<string, string> = {
 
 const blankEntity = { code: "", name: "", pan: "", books_code: "" };
 
-function EntitiesPanel({ historySubject, historyRefresh, onHistory }: {
+function EntitiesPanel({
+  historySubject,
+  historyRefresh,
+  onHistory,
+}: {
   historySubject: string | null;
   historyRefresh: string | null;
   onHistory: (id: string) => void;
@@ -215,11 +213,19 @@ function EntitiesPanel({ historySubject, historyRefresh, onHistory }: {
   async function save() {
     setError("");
     setOk("");
-    const payload = { code: form.code, name: form.name, pan: form.pan, books_code: form.books_code };
+    const payload = {
+      code: form.code,
+      name: form.name,
+      pan: form.pan,
+      books_code: form.books_code,
+    };
     try {
       await stepUp.guarded(() =>
         editing
-          ? api.patch(`/goods-v1/masters/entities/${editing.id}`, { ...payload, ...goodsMeta(editing.revision) })
+          ? api.patch(`/goods-v1/masters/entities/${editing.id}`, {
+              ...payload,
+              ...goodsMeta(editing.revision),
+            })
           : api.post("/goods-v1/masters/entities", { ...payload, ...goodsMeta() }),
       );
       setOpen(false);
@@ -286,7 +292,11 @@ function EntitiesPanel({ historySubject, historyRefresh, onHistory }: {
           <div className="toolbar" style={{ marginBottom: 12 }}>
             <h3 className="h3">{editing ? "Edit legal entity" : "Create legal entity"}</h3>
             <div className="spacer" />
-            <button className="btn btn-sm" onClick={() => setOpen(false)} data-testid="entity-editor-close">
+            <button
+              className="btn btn-sm"
+              onClick={() => setOpen(false)}
+              data-testid="entity-editor-close"
+            >
               <X size={14} /> Close
             </button>
           </div>
@@ -343,32 +353,62 @@ function EntitiesPanel({ historySubject, historyRefresh, onHistory }: {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={5}>Loading…</td></tr>
+              <tr>
+                <td colSpan={5}>Loading…</td>
+              </tr>
             ) : failure ? (
-              <tr><td colSpan={5} className="warn-note">{failure}</td></tr>
+              <tr>
+                <td colSpan={5} className="warn-note">
+                  {failure}
+                </td>
+              </tr>
             ) : items.length === 0 ? (
-              <tr data-testid="entities-empty"><td colSpan={5}>No legal entities yet.</td></tr>
+              <tr data-testid="entities-empty">
+                <td colSpan={5}>No legal entities yet.</td>
+              </tr>
             ) : (
               items.map((row) => (
                 <tr key={row.id} data-testid={`entity-row-${row.data.code}`}>
-                  <td><b className="mono">{row.data.code}</b></td>
+                  <td>
+                    <b className="mono">{row.data.code}</b>
+                  </td>
                   <td>{row.data.name}</td>
-                  <td className="mono" style={{ fontSize: 12.5 }}>{row.data.pan || "—"}</td>
-                  <td><span className={`chip chip-${row.state === "active" ? "green" : "red"}`}>{row.state}</span></td>
+                  <td className="mono" style={{ fontSize: 12.5 }}>
+                    {row.data.pan || "—"}
+                  </td>
+                  <td>
+                    <span className={`chip chip-${row.state === "active" ? "green" : "red"}`}>
+                      {row.state}
+                    </span>
+                  </td>
                   {(canEdit || canReadHistory) && (
                     <td>
-                      {canEdit && <>
-                        <button className="btn btn-sm" onClick={() => edit(row)} data-testid={`edit-entity-${row.data.code}`}>
-                          <Pencil size={13} /> Edit
-                        </button>
-                        {row.state === "active" && (
-                          <button className="btn btn-sm" onClick={() => retire(row)} data-testid={`retire-entity-${row.data.code}`}>
-                            Retire
+                      {canEdit && (
+                        <>
+                          <button
+                            className="btn btn-sm"
+                            onClick={() => edit(row)}
+                            data-testid={`edit-entity-${row.data.code}`}
+                          >
+                            <Pencil size={13} /> Edit
                           </button>
-                        )}
-                      </>}
+                          {row.state === "active" && (
+                            <button
+                              className="btn btn-sm"
+                              onClick={() => retire(row)}
+                              data-testid={`retire-entity-${row.data.code}`}
+                            >
+                              Retire
+                            </button>
+                          )}
+                        </>
+                      )}
                       {canReadHistory && (
-                        <button className="btn btn-sm" onClick={() => onHistory(row.id)} data-testid={`history-entity-${row.data.code}`}>
+                        <button
+                          className="btn btn-sm"
+                          onClick={() => onHistory(row.id)}
+                          data-testid={`history-entity-${row.data.code}`}
+                        >
                           <History size={13} /> History
                         </button>
                       )}
@@ -390,7 +430,11 @@ function EntitiesPanel({ historySubject, historyRefresh, onHistory }: {
 
 const blankRegistration = { entity_id: "", gstin: "", state_code: "", state_name: "" };
 
-function RegistrationsPanel({ historySubject, historyRefresh, onHistory }: {
+function RegistrationsPanel({
+  historySubject,
+  historyRefresh,
+  onHistory,
+}: {
   historySubject: string | null;
   historyRefresh: string | null;
   onHistory: (id: string) => void;
@@ -417,7 +461,9 @@ function RegistrationsPanel({ historySubject, historyRefresh, onHistory }: {
     form.entity_id,
     (row) => row.data.name,
     {
-      knownLabel: entities.items.find((e) => e.id === form.entity_id)?.data.name,
+      ...(entities.items.find((e) => e.id === form.entity_id)?.data.name
+        ? { knownLabel: entities.items.find((e) => e.id === form.entity_id)?.data.name }
+        : {}),
       detailPath: (id) => `/goods-v1/masters/entities/${id}`,
     },
   );
@@ -465,7 +511,10 @@ function RegistrationsPanel({ historySubject, historyRefresh, onHistory }: {
     try {
       await stepUp.guarded(() =>
         editing
-          ? api.patch(`/goods-v1/masters/gstins/${editing.id}`, { ...payload, ...goodsMeta(editing.revision) })
+          ? api.patch(`/goods-v1/masters/gstins/${editing.id}`, {
+              ...payload,
+              ...goodsMeta(editing.revision),
+            })
           : api.post("/goods-v1/masters/gstins", { ...payload, ...goodsMeta() }),
       );
       setOpen(false);
@@ -511,7 +560,12 @@ function RegistrationsPanel({ historySubject, historyRefresh, onHistory }: {
           </button>
         )}
         {canEdit && (
-          <button className="btn btn-cta" onClick={add} disabled={!entities.items.length} data-testid="registration-new-button">
+          <button
+            className="btn btn-cta"
+            onClick={add}
+            disabled={!entities.items.length}
+            data-testid="registration-new-button"
+          >
             <Plus size={15} /> New registration
           </button>
         )}
@@ -532,7 +586,11 @@ function RegistrationsPanel({ historySubject, historyRefresh, onHistory }: {
           <div className="toolbar" style={{ marginBottom: 12 }}>
             <h3 className="h3">{editing ? "Edit registration" : "Create registration"}</h3>
             <div className="spacer" />
-            <button className="btn btn-sm" onClick={() => setOpen(false)} data-testid="registration-editor-close">
+            <button
+              className="btn btn-sm"
+              onClick={() => setOpen(false)}
+              data-testid="registration-editor-close"
+            >
               <X size={14} /> Close
             </button>
           </div>
@@ -582,37 +640,69 @@ function RegistrationsPanel({ historySubject, historyRefresh, onHistory }: {
         <table className="data" data-testid="registrations-table">
           <thead>
             <tr>
-              <th>GSTIN</th><th>State</th><th>Legal entity</th><th>Status</th>{(canEdit || canReadHistory) && <th />}
+              <th>GSTIN</th>
+              <th>State</th>
+              <th>Legal entity</th>
+              <th>Status</th>
+              {(canEdit || canReadHistory) && <th />}
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={5}>Loading…</td></tr>
+              <tr>
+                <td colSpan={5}>Loading…</td>
+              </tr>
             ) : failure ? (
-              <tr><td colSpan={5} className="warn-note">{failure}</td></tr>
+              <tr>
+                <td colSpan={5} className="warn-note">
+                  {failure}
+                </td>
+              </tr>
             ) : items.length === 0 ? (
-              <tr data-testid="registrations-empty"><td colSpan={5}>No registrations yet.</td></tr>
+              <tr data-testid="registrations-empty">
+                <td colSpan={5}>No registrations yet.</td>
+              </tr>
             ) : (
               items.map((row) => (
                 <tr key={row.id} data-testid={`registration-row-${row.data.gstin}`}>
-                  <td className="mono"><b>{row.data.gstin}</b></td>
+                  <td className="mono">
+                    <b>{row.data.gstin}</b>
+                  </td>
                   <td>{row.data.state_name}</td>
                   <td>{nameOf(row.data.entity_id)}</td>
-                  <td><span className={`chip chip-${row.state === "active" ? "green" : "red"}`}>{row.state}</span></td>
+                  <td>
+                    <span className={`chip chip-${row.state === "active" ? "green" : "red"}`}>
+                      {row.state}
+                    </span>
+                  </td>
                   {(canEdit || canReadHistory) && (
                     <td>
-                      {canEdit && <>
-                        <button className="btn btn-sm" onClick={() => edit(row)} data-testid={`edit-registration-${row.data.gstin}`}>
-                          <Pencil size={13} /> Edit
-                        </button>
-                        {row.state === "active" && (
-                          <button className="btn btn-sm" onClick={() => retire(row)} data-testid={`retire-registration-${row.data.gstin}`}>
-                            Retire
+                      {canEdit && (
+                        <>
+                          <button
+                            className="btn btn-sm"
+                            onClick={() => edit(row)}
+                            data-testid={`edit-registration-${row.data.gstin}`}
+                          >
+                            <Pencil size={13} /> Edit
                           </button>
-                        )}
-                      </>}
+                          {row.state === "active" && (
+                            <button
+                              className="btn btn-sm"
+                              onClick={() => retire(row)}
+                              data-testid={`retire-registration-${row.data.gstin}`}
+                            >
+                              Retire
+                            </button>
+                          )}
+                        </>
+                      )}
                       {canReadHistory && (
-                        <button className="btn btn-sm" onClick={() => onHistory(row.id)} data-testid={`history-registration-${row.data.gstin}`}>
+                        <button
+                          className="btn btn-sm"
+                          onClick={() => onHistory(row.id)}
+                          data-testid={`history-registration-${row.data.gstin}`}
+                        >
                           <History size={13} /> History
                         </button>
                       )}
@@ -648,7 +738,9 @@ const blankSite = {
 function operationsFor(type: string): readonly string[] {
   // Warehouses (and DCs) never see a selling capability at all — never mind
   // the cashier/till/printer fields the site payload does not even have.
-  return type === "store" || type === "concession" ? OPERATIONS : OPERATIONS.filter((o) => o !== "sell");
+  return type === "store" || type === "concession"
+    ? OPERATIONS
+    : OPERATIONS.filter((o) => o !== "sell");
 }
 
 function SiteListView({ onOpen }: { onOpen: (id: string) => void }) {
@@ -677,10 +769,7 @@ function SiteListView({ onOpen }: { onOpen: (id: string) => void }) {
     (row) => row.data.name,
     { detailPath: (id) => `/goods-v1/masters/entities/${id}` },
   );
-  const registrations = usePagedPicker<
-    "/goods-v1/masters/gstins",
-    ResourceDTO<RegistrationData>
-  >(
+  const registrations = usePagedPicker<"/goods-v1/masters/gstins", ResourceDTO<RegistrationData>>(
     "/goods-v1/masters/gstins",
     form.entity_id ? { entity_id: Number(form.entity_id) } : null,
     form.registration_id,
@@ -722,7 +811,9 @@ function SiteListView({ onOpen }: { onOpen: (id: string) => void }) {
       brand_ids: [],
     };
     try {
-      const resp = await stepUp.guarded(() => api.post("/goods-v1/masters/stores", { ...payload, ...goodsMeta() }));
+      const resp = await stepUp.guarded(() =>
+        api.post("/goods-v1/masters/stores", { ...payload, ...goodsMeta() }),
+      );
       setOpen(false);
       setOk("Site created — planned, not yet goods-ready. See its Readiness tab.");
       reload();
@@ -761,22 +852,54 @@ function SiteListView({ onOpen }: { onOpen: (id: string) => void }) {
           <div className="toolbar" style={{ marginBottom: 12 }}>
             <h3 className="h3">Create site</h3>
             <div className="spacer" />
-            <button className="btn btn-sm" onClick={() => setOpen(false)} data-testid="site-editor-close">
+            <button
+              className="btn btn-sm"
+              onClick={() => setOpen(false)}
+              data-testid="site-editor-close"
+            >
               <X size={14} /> Close
             </button>
           </div>
           <div className="form-grid wide-form">
-            <input className="input" placeholder="Code" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} data-testid="site-code-input" />
-            <input className="input" placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} data-testid="site-name-input" />
+            <input
+              className="input"
+              placeholder="Code"
+              value={form.code}
+              onChange={(e) => setForm({ ...form, code: e.target.value })}
+              data-testid="site-code-input"
+            />
+            <input
+              className="input"
+              placeholder="Name"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              data-testid="site-name-input"
+            />
             <select
               className="select"
               value={form.type}
-              onChange={(e) => setForm({ ...form, type: e.target.value as SiteData["type"], permitted_operations: [] })}
+              onChange={(e) =>
+                setForm({
+                  ...form,
+                  type: e.target.value as SiteData["type"],
+                  permitted_operations: [],
+                })
+              }
               data-testid="site-type-select"
             >
-              {SITE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              {SITE_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
             </select>
-            <input className="input" placeholder="City" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} data-testid="site-city-input" />
+            <input
+              className="input"
+              placeholder="City"
+              value={form.city}
+              onChange={(e) => setForm({ ...form, city: e.target.value })}
+              data-testid="site-city-input"
+            />
             <PickerField
               id="site-entity-select"
               label="Legal entity"
@@ -840,27 +963,54 @@ function SiteListView({ onOpen }: { onOpen: (id: string) => void }) {
       <div className="table-wrap">
         <table className="data" data-testid="sites-table">
           <thead>
-            <tr><th>Code</th><th>Name</th><th>Type</th><th>City</th><th>Status</th></tr>
+            <tr>
+              <th>Code</th>
+              <th>Name</th>
+              <th>Type</th>
+              <th>City</th>
+              <th>Status</th>
+            </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={5}>Loading…</td></tr>
+              <tr>
+                <td colSpan={5}>Loading…</td>
+              </tr>
             ) : failure ? (
-              <tr><td colSpan={5} className="warn-note">{failure}</td></tr>
+              <tr>
+                <td colSpan={5} className="warn-note">
+                  {failure}
+                </td>
+              </tr>
             ) : items.length === 0 ? (
-              <tr data-testid="sites-empty"><td colSpan={5}>{showRetired ? "No retired sites." : "No sites yet."}</td></tr>
+              <tr data-testid="sites-empty">
+                <td colSpan={5}>{showRetired ? "No retired sites." : "No sites yet."}</td>
+              </tr>
             ) : (
               items.map((row) => (
-                <tr key={row.id} data-testid={`site-row-${row.data.code}`} style={{ cursor: "pointer" }} onClick={() => onOpen(row.id)}>
-                  <td><b className="mono">{row.data.code}</b></td>
+                <tr
+                  key={row.id}
+                  data-testid={`site-row-${row.data.code}`}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => onOpen(row.id)}
+                >
+                  <td>
+                    <b className="mono">{row.data.code}</b>
+                  </td>
                   <td>{row.data.name}</td>
                   <td>
-                    <span className={`chip chip-${row.data.type === "warehouse" ? "navy" : "green"}`}>
+                    <span
+                      className={`chip chip-${row.data.type === "warehouse" ? "navy" : "green"}`}
+                    >
                       {row.data.type}
                     </span>
                   </td>
                   <td>{row.data.city || "—"}</td>
-                  <td><span className={`chip chip-${row.state === "active" ? "green" : "amber"}`}>{row.state}</span></td>
+                  <td>
+                    <span className={`chip chip-${row.state === "active" ? "green" : "amber"}`}>
+                      {row.state}
+                    </span>
+                  </td>
                 </tr>
               ))
             )}
@@ -883,7 +1033,12 @@ const TAB_LABEL: Record<SiteTab, string> = {
   history: "History",
 };
 
-function SiteDetailView({ siteId, tab, onTab, onBack }: {
+function SiteDetailView({
+  siteId,
+  tab,
+  onTab,
+  onBack,
+}: {
   siteId: string;
   tab: SiteTab;
   onTab: (t: SiteTab) => void;
@@ -895,7 +1050,8 @@ function SiteDetailView({ siteId, tab, onTab, onBack }: {
 
   if (loading) return <p className="lead">Loading…</p>;
   if (denied) return <Denied what="site" />;
-  if (failure || !doc) return <div className="warn-note">{failure || "This site could not be loaded."}</div>;
+  if (failure || !doc)
+    return <div className="warn-note">{failure || "This site could not be loaded."}</div>;
 
   return (
     <div data-testid="org-site-detail">
@@ -905,7 +1061,9 @@ function SiteDetailView({ siteId, tab, onTab, onBack }: {
         </button>
         <div className="spacer" />
       </div>
-      <h3 className="h3" data-testid="site-detail-title">{doc.data.name} <span className="mono muted-cell">({doc.data.code})</span></h3>
+      <h3 className="h3" data-testid="site-detail-title">
+        {doc.data.name} <span className="mono muted-cell">({doc.data.code})</span>
+      </h3>
       <div className="org-tabs" role="tablist" aria-label="Site sections">
         {SITE_TABS.map((t) => (
           <button
@@ -930,7 +1088,11 @@ function SiteDetailView({ siteId, tab, onTab, onBack }: {
   );
 }
 
-function SiteOverviewTab({ siteId, doc, reload }: {
+function SiteOverviewTab({
+  siteId,
+  doc,
+  reload,
+}: {
   siteId: string;
   doc: ResourceDTO<SiteData>;
   reload: () => void;
@@ -956,10 +1118,7 @@ function SiteOverviewTab({ siteId, doc, reload }: {
     (row) => row.data.name,
     { detailPath: (id) => `/goods-v1/masters/entities/${id}` },
   );
-  const registrations = usePagedPicker<
-    "/goods-v1/masters/gstins",
-    ResourceDTO<RegistrationData>
-  >(
+  const registrations = usePagedPicker<"/goods-v1/masters/gstins", ResourceDTO<RegistrationData>>(
     "/goods-v1/masters/gstins",
     form.entity_id ? { entity_id: Number(form.entity_id) } : null,
     form.registration_id,
@@ -1029,18 +1188,38 @@ function SiteOverviewTab({ siteId, doc, reload }: {
       {!editing ? (
         <div className="card section-card">
           <dl className="form-grid wide-form" style={{ rowGap: 6 }}>
-            <div><b>Type</b><div>{doc.data.type}</div></div>
-            <div><b>City</b><div>{doc.data.city || "—"}</div></div>
-            <div><b>Permitted operations</b><div>{(doc.data.permitted_operations || []).join(", ") || "None yet"}</div></div>
-            <div><b>Status</b><div>{doc.state}</div></div>
+            <div>
+              <b>Type</b>
+              <div>{doc.data.type}</div>
+            </div>
+            <div>
+              <b>City</b>
+              <div>{doc.data.city || "—"}</div>
+            </div>
+            <div>
+              <b>Permitted operations</b>
+              <div>{(doc.data.permitted_operations || []).join(", ") || "None yet"}</div>
+            </div>
+            <div>
+              <b>Status</b>
+              <div>{doc.state}</div>
+            </div>
           </dl>
           {canEdit && (
             <div className="toolbar">
-              <button className="btn btn-sm" onClick={() => setEditing(true)} data-testid="site-overview-edit">
+              <button
+                className="btn btn-sm"
+                onClick={() => setEditing(true)}
+                data-testid="site-overview-edit"
+              >
                 <Pencil size={13} /> Edit
               </button>
               {doc.state === "active" && (
-                <button className="btn btn-sm" onClick={retireSite} data-testid="site-overview-retire">
+                <button
+                  className="btn btn-sm"
+                  onClick={retireSite}
+                  data-testid="site-overview-retire"
+                >
                   Retire site
                 </button>
               )}
@@ -1050,9 +1229,27 @@ function SiteOverviewTab({ siteId, doc, reload }: {
       ) : (
         <div className="card section-card" data-testid="site-overview-editor">
           <div className="form-grid wide-form">
-            <input className="input" placeholder="Code" value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} data-testid="site-overview-code-input" />
-            <input className="input" placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} data-testid="site-overview-name-input" />
-            <input className="input" placeholder="City" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} data-testid="site-overview-city-input" />
+            <input
+              className="input"
+              placeholder="Code"
+              value={form.code}
+              onChange={(e) => setForm({ ...form, code: e.target.value })}
+              data-testid="site-overview-code-input"
+            />
+            <input
+              className="input"
+              placeholder="Name"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              data-testid="site-overview-name-input"
+            />
+            <input
+              className="input"
+              placeholder="City"
+              value={form.city}
+              onChange={(e) => setForm({ ...form, city: e.target.value })}
+              data-testid="site-overview-city-input"
+            />
             <PickerField
               id="site-overview-entity-select"
               label="Legal entity"
@@ -1073,11 +1270,20 @@ function SiteOverviewTab({ siteId, doc, reload }: {
               disabled={!form.entity_id}
             />
             {(form.type === "store" || form.type === "concession") && (
-              <input className="input" type="number" min={0} value={form.counter_count} onChange={(e) => setForm({ ...form, counter_count: Number(e.target.value) })} data-testid="site-overview-counter-input" />
+              <input
+                className="input"
+                type="number"
+                min={0}
+                value={form.counter_count}
+                onChange={(e) => setForm({ ...form, counter_count: Number(e.target.value) })}
+                data-testid="site-overview-counter-input"
+              />
             )}
           </div>
           <div style={{ marginTop: 12 }}>
-            <p className="eyebrow" style={{ marginBottom: 6 }}>Permitted operations</p>
+            <p className="eyebrow" style={{ marginBottom: 6 }}>
+              Permitted operations
+            </p>
             <div className="chip-picker">
               {operationsFor(form.type).map((op) => (
                 <button
@@ -1093,8 +1299,16 @@ function SiteOverviewTab({ siteId, doc, reload }: {
             </div>
           </div>
           <div className="toolbar" style={{ marginTop: 12 }}>
-            <button className="btn btn-cta" onClick={save} data-testid="site-overview-save"><Save size={15} /> Save</button>
-            <button className="btn btn-sm" onClick={() => setEditing(false)} data-testid="site-overview-cancel"><X size={14} /> Cancel</button>
+            <button className="btn btn-cta" onClick={save} data-testid="site-overview-save">
+              <Save size={15} /> Save
+            </button>
+            <button
+              className="btn btn-sm"
+              onClick={() => setEditing(false)}
+              data-testid="site-overview-cancel"
+            >
+              <X size={14} /> Cancel
+            </button>
           </div>
         </div>
       )}
@@ -1103,9 +1317,13 @@ function SiteOverviewTab({ siteId, doc, reload }: {
 }
 
 function SiteSbusTab({ siteId }: { siteId: string }) {
-  const { items: sbus, loading, denied, failure, reload } = useResourceList<SbuData>(
-    `/goods-v1/masters/stores/${siteId}/sbus`,
-  );
+  const {
+    items: sbus,
+    loading,
+    denied,
+    failure,
+    reload,
+  } = useResourceList<SbuData>(`/goods-v1/masters/stores/${siteId}/sbus`);
   const [retiring, setRetiring] = useState<string | null>(null);
 
   if (denied) return <Denied what="site" />;
@@ -1115,28 +1333,57 @@ function SiteSbusTab({ siteId }: { siteId: string }) {
         Each brand at this site has its own business unit; a site with no brands configured has one
         fallback unit. A unit is retired, never deleted, and only once nothing still refers to it:
         no stock (including quarantined, unvalued, reserved or in-transit goods), no open document
-        and no unresolved exception. There is no override — each of those is handled through its
-        own step first.
+        and no unresolved exception. There is no override — each of those is handled through its own
+        step first.
       </p>
       <div className="table-wrap">
         <table className="data" data-testid="sbus-table">
-          <thead><tr><th>Code</th><th>Brand</th><th>Status</th><th></th></tr></thead>
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Brand</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={4}>Loading…</td></tr>
+              <tr>
+                <td colSpan={4}>Loading…</td>
+              </tr>
             ) : failure ? (
-              <tr><td colSpan={4} className="warn-note">{failure}</td></tr>
+              <tr>
+                <td colSpan={4} className="warn-note">
+                  {failure}
+                </td>
+              </tr>
             ) : sbus.length === 0 ? (
-              <tr data-testid="sbus-empty"><td colSpan={4}>No business units yet.</td></tr>
+              <tr data-testid="sbus-empty">
+                <td colSpan={4}>No business units yet.</td>
+              </tr>
             ) : (
               sbus.map((s) => (
                 <tr key={s.id} data-testid={`sbu-row-${s.data.code}`}>
                   <td className="mono">{s.data.code}</td>
-                  <td>{s.data.brand_id ? s.data.brand_id : <span className="muted-cell">Fallback (no brand)</span>}</td>
-                  <td><span className={`chip chip-${s.state === "retired" ? "red" : "green"}`}>{s.state === "retired" ? "Retired" : "Active"}</span></td>
+                  <td>
+                    {s.data.brand_id ? (
+                      s.data.brand_id
+                    ) : (
+                      <span className="muted-cell">Fallback (no brand)</span>
+                    )}
+                  </td>
+                  <td>
+                    <span className={`chip chip-${s.state === "retired" ? "red" : "green"}`}>
+                      {s.state === "retired" ? "Retired" : "Active"}
+                    </span>
+                  </td>
                   <td>
                     {s.allowed_actions.includes("retire") && retiring !== s.id && (
-                      <button className="btn btn-sm" onClick={() => setRetiring(s.id)} data-testid={`sbu-retire-${s.data.code}`}>
+                      <button
+                        className="btn btn-sm"
+                        onClick={() => setRetiring(s.id)}
+                        data-testid={`sbu-retire-${s.data.code}`}
+                      >
                         Retire…
                       </button>
                     )}
@@ -1224,7 +1471,11 @@ function SbuRetirePanel({
           data-testid="sbu-retire-reason"
         />
       </Field>
-      {error && <div className="warn-note" role="alert" data-testid="sbu-retire-error">{error}</div>}
+      {error && (
+        <div className="warn-note" role="alert" data-testid="sbu-retire-error">
+          {error}
+        </div>
+      )}
       {blockers.length > 0 && (
         <ul className="org-blockers" data-testid="sbu-retire-blockers">
           {blockers.map((b, i) => (
@@ -1235,10 +1486,20 @@ function SbuRetirePanel({
         </ul>
       )}
       <div className="toolbar">
-        <button className="btn btn-cta" onClick={retire} disabled={busy || !reason.trim()} data-testid="sbu-retire-confirm">
+        <button
+          className="btn btn-cta"
+          onClick={retire}
+          disabled={busy || !reason.trim()}
+          data-testid="sbu-retire-confirm"
+        >
           Retire unit
         </button>
-        <button className="btn btn-sm" onClick={onClose} disabled={busy} data-testid="sbu-retire-cancel">
+        <button
+          className="btn btn-sm"
+          onClick={onClose}
+          disabled={busy}
+          data-testid="sbu-retire-cancel"
+        >
           <X size={14} /> Cancel
         </button>
       </div>
@@ -1262,7 +1523,13 @@ function buildTree(rows: ResourceDTO<LocationData>[]): LocNode[] {
   return roots;
 }
 
-function LocationRow({ node, siteId, canEdit, onChanged, depth }: {
+function LocationRow({
+  node,
+  siteId,
+  canEdit,
+  onChanged,
+  depth,
+}: {
   node: LocNode;
   siteId: string;
   canEdit: boolean;
@@ -1314,30 +1581,67 @@ function LocationRow({ node, siteId, canEdit, onChanged, depth }: {
 
   return (
     <li>
-      <div className="org-loc-row" style={{ paddingLeft: depth * 6 }} data-testid={`location-row-${node.id}`}>
+      <div
+        className="org-loc-row"
+        style={{ paddingLeft: depth * 6 }}
+        data-testid={`location-row-${node.id}`}
+      >
         {node.data.system && (
-          <span className="org-loc-lock" title="System location — cannot be moved, retired or deleted">
+          <span
+            className="org-loc-lock"
+            title="System location — cannot be moved, retired or deleted"
+          >
             <Lock size={13} />
           </span>
         )}
         {renaming ? (
           <>
-            <input className="input" style={{ maxWidth: 180 }} value={name} onChange={(e) => setName(e.target.value)} data-testid={`location-rename-input-${node.id}`} />
-            <button className="btn btn-sm" onClick={rename} disabled={busy || !name} data-testid={`location-rename-save-${node.id}`}>Save</button>
-            <button className="btn btn-sm" onClick={() => setRenaming(false)} data-testid={`location-rename-cancel-${node.id}`}>Cancel</button>
+            <input
+              className="input"
+              style={{ maxWidth: 180 }}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              data-testid={`location-rename-input-${node.id}`}
+            />
+            <button
+              className="btn btn-sm"
+              onClick={rename}
+              disabled={busy || !name}
+              data-testid={`location-rename-save-${node.id}`}
+            >
+              Save
+            </button>
+            <button
+              className="btn btn-sm"
+              onClick={() => setRenaming(false)}
+              data-testid={`location-rename-cancel-${node.id}`}
+            >
+              Cancel
+            </button>
           </>
         ) : (
           <>
             <span>{node.data.name}</span>
-            <span className="muted-cell">{LOCATION_KIND_LABEL[node.data.kind] ?? node.data.kind}</span>
+            <span className="muted-cell">
+              {LOCATION_KIND_LABEL[node.data.kind] ?? node.data.kind}
+            </span>
             {node.state === "retired" && <span className="chip chip-red">Retired</span>}
             {canEdit && node.state !== "retired" && (
               <>
-                <button className="btn btn-sm" onClick={() => setRenaming(true)} data-testid={`location-rename-${node.id}`}>
+                <button
+                  className="btn btn-sm"
+                  onClick={() => setRenaming(true)}
+                  data-testid={`location-rename-${node.id}`}
+                >
                   <Pencil size={12} /> Rename
                 </button>
                 {!node.data.system && (
-                  <button className="btn btn-sm" onClick={retire} disabled={busy} data-testid={`location-retire-${node.id}`}>
+                  <button
+                    className="btn btn-sm"
+                    onClick={retire}
+                    disabled={busy}
+                    data-testid={`location-retire-${node.id}`}
+                  >
                     Retire
                   </button>
                 )}
@@ -1351,7 +1655,14 @@ function LocationRow({ node, siteId, canEdit, onChanged, depth }: {
       {node.children.length > 0 && (
         <ul className="org-loc-tree">
           {node.children.map((child) => (
-            <LocationRow key={child.id} node={child} siteId={siteId} canEdit={canEdit} onChanged={onChanged} depth={depth + 1} />
+            <LocationRow
+              key={child.id}
+              node={child}
+              siteId={siteId}
+              canEdit={canEdit}
+              onChanged={onChanged}
+              depth={depth + 1}
+            />
           ))}
         </ul>
       )}
@@ -1410,7 +1721,11 @@ function SiteLocationsTab({ siteId, siteType }: { siteId: string; siteType: stri
         </p>
         <div className="spacer" />
         {canEdit && (
-          <button className="btn btn-cta" onClick={() => setOpen((o) => !o)} data-testid="location-new-button">
+          <button
+            className="btn btn-cta"
+            onClick={() => setOpen((o) => !o)}
+            data-testid="location-new-button"
+          >
             <Plus size={15} /> Add location
           </button>
         )}
@@ -1420,15 +1735,44 @@ function SiteLocationsTab({ siteId, siteType }: { siteId: string; siteType: stri
       {canEdit && open && (
         <div className="card section-card" data-testid="location-editor">
           <div className="form-grid wide-form">
-            <input className="input" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} data-testid="location-name-input" />
-            <select className="select" value={kind} onChange={(e) => setKind(e.target.value)} data-testid="location-kind-select">
-              {CREATABLE_LOCATION_KINDS.map((k) => <option key={k} value={k}>{LOCATION_KIND_LABEL[k]}</option>)}
+            <input
+              className="input"
+              placeholder="Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              data-testid="location-name-input"
+            />
+            <select
+              className="select"
+              value={kind}
+              onChange={(e) => setKind(e.target.value)}
+              data-testid="location-kind-select"
+            >
+              {CREATABLE_LOCATION_KINDS.map((k) => (
+                <option key={k} value={k}>
+                  {LOCATION_KIND_LABEL[k]}
+                </option>
+              ))}
             </select>
-            <select className="select" value={parentId} onChange={(e) => setParentId(e.target.value)} data-testid="location-parent-select">
+            <select
+              className="select"
+              value={parentId}
+              onChange={(e) => setParentId(e.target.value)}
+              data-testid="location-parent-select"
+            >
               <option value="">No parent (top level)</option>
-              {items.map((row) => <option key={row.id} value={row.id}>{row.data.name}</option>)}
+              {items.map((row) => (
+                <option key={row.id} value={row.id}>
+                  {row.data.name}
+                </option>
+              ))}
             </select>
-            <button className="btn btn-cta" onClick={create} disabled={!name} data-testid="location-create-button">
+            <button
+              className="btn btn-cta"
+              onClick={create}
+              disabled={!name}
+              data-testid="location-create-button"
+            >
               <Save size={15} /> Add
             </button>
           </div>
@@ -1444,11 +1788,20 @@ function SiteLocationsTab({ siteId, siteType }: { siteId: string; siteType: stri
       ) : failure ? (
         <div className="warn-note">{failure}</div>
       ) : tree.length === 0 ? (
-        <p className="lead" data-testid="locations-empty">No locations yet.</p>
+        <p className="lead" data-testid="locations-empty">
+          No locations yet.
+        </p>
       ) : (
         <ul className="org-loc-tree top">
           {tree.map((node) => (
-            <LocationRow key={node.id} node={node} siteId={siteId} canEdit={canEdit} onChanged={reload} depth={0} />
+            <LocationRow
+              key={node.id}
+              node={node}
+              siteId={siteId}
+              canEdit={canEdit}
+              onChanged={reload}
+              depth={0}
+            />
           ))}
         </ul>
       )}
@@ -1484,7 +1837,10 @@ function SiteReadinessTab({ siteId }: { siteId: string }) {
     setBusy(true);
     try {
       await stepUp.guarded(() =>
-        api.post(`/goods-v1/masters/stores/${siteId}/readiness`, { action, ...goodsMeta(doc.revision) }),
+        api.post(`/goods-v1/masters/stores/${siteId}/readiness`, {
+          action,
+          ...goodsMeta(doc.revision),
+        }),
       );
       setOk(action === "check" ? "Readiness re-checked." : "Saved.");
       reload();
@@ -1497,7 +1853,8 @@ function SiteReadinessTab({ siteId }: { siteId: string }) {
 
   if (loading) return <p className="lead">Loading…</p>;
   if (denied) return <Denied what="site" />;
-  if (failure || !doc) return <div className="warn-note">{failure || "Readiness could not be loaded."}</div>;
+  if (failure || !doc)
+    return <div className="warn-note">{failure || "Readiness could not be loaded."}</div>;
 
   const checks = doc.data.checks;
   const failing = checks.filter((c) => !c.passed);
@@ -1507,20 +1864,37 @@ function SiteReadinessTab({ siteId }: { siteId: string }) {
       <Feedback error={error} ok={ok} />
       {stepUp.dialog}
       <div className="toolbar" style={{ marginBottom: 12 }}>
-        <span className="chip chip-navy" data-testid="site-lifecycle">{doc.data.lifecycle}</span>
+        <span className="chip chip-navy" data-testid="site-lifecycle">
+          {doc.data.lifecycle}
+        </span>
         {canRun && (
-          <button className="btn btn-sm" onClick={() => act("check")} disabled={busy} data-testid="readiness-check-button">
+          <button
+            className="btn btn-sm"
+            onClick={() => act("check")}
+            disabled={busy}
+            data-testid="readiness-check-button"
+          >
             Re-check
           </button>
         )}
         <div className="spacer" />
         {canApprove && !doc.data.goods_ready && failing.length === 0 && (
-          <button className="btn btn-cta" onClick={() => act("approve_goods")} disabled={busy} data-testid="readiness-approve-goods-button">
+          <button
+            className="btn btn-cta"
+            onClick={() => act("approve_goods")}
+            disabled={busy}
+            data-testid="readiness-approve-goods-button"
+          >
             <ShieldCheck size={15} /> Approve goods
           </button>
         )}
         {canApprove && doc.data.goods_ready && (
-          <button className="btn btn-sm" onClick={() => act("revoke_goods")} disabled={busy} data-testid="readiness-revoke-goods-button">
+          <button
+            className="btn btn-sm"
+            onClick={() => act("revoke_goods")}
+            disabled={busy}
+            data-testid="readiness-revoke-goods-button"
+          >
             Revoke goods
           </button>
         )}
@@ -1532,7 +1906,9 @@ function SiteReadinessTab({ siteId }: { siteId: string }) {
           </p>
           {checks.map((c) => (
             <div className="org-check-row" key={c.key} data-testid={`readiness-check-${c.key}`}>
-              <span className={`chip chip-${c.passed ? "green" : "red"}`}>{c.passed ? "OK" : "Missing"}</span>
+              <span className={`chip chip-${c.passed ? "green" : "red"}`}>
+                {c.passed ? "OK" : "Missing"}
+              </span>
               <span>
                 <b>{c.key.replace(/_/g, " ")}</b>
                 {!c.passed && c.reason && <div className="muted-cell">{c.reason}</div>}
@@ -1542,7 +1918,9 @@ function SiteReadinessTab({ siteId }: { siteId: string }) {
         </ReadinessCard>
         <ReadinessCard title="Selling readiness">
           <p className="lead" data-testid="selling-ready-summary">
-            {doc.data.sell_ready ? "Sell-ready." : "Not ready—selling activation is not available in this stage."}
+            {doc.data.sell_ready
+              ? "Sell-ready."
+              : "Not ready—selling activation is not available in this stage."}
           </p>
           <p className="muted-cell">
             This checklist is read-only in stage 1: there is no approve-sell action yet, whatever
@@ -1572,7 +1950,8 @@ function SiteClosureTab({ siteId }: { siteId: string }) {
 
   if (loading) return <p className="lead">Loading…</p>;
   if (denied) return <Denied what="site" />;
-  if (failure || !doc) return <div className="warn-note">{failure || "Closure detail could not be loaded."}</div>;
+  if (failure || !doc)
+    return <div className="warn-note">{failure || "Closure detail could not be loaded."}</div>;
 
   const residuals = doc.data.residuals;
   const items: { code: string; label: string; qty: number | null; field?: string }[] = [
@@ -1580,7 +1959,12 @@ function SiteClosureTab({ siteId }: { siteId: string }) {
     { code: "transit_qty", label: "In transit", qty: residuals.transit_qty },
     { code: "unvalued_qty", label: "Unvalued stock", qty: residuals.unvalued_qty },
     { code: "reserved_qty", label: "Reserved", qty: residuals.reserved_qty },
-    ...residuals.open_exception_ids.map((id) => ({ code: "open_exception", label: `Open exception ${id}`, qty: null, field: id })),
+    ...residuals.open_exception_ids.map((id) => ({
+      code: "open_exception",
+      label: `Open exception ${id}`,
+      qty: null,
+      field: id,
+    })),
   ];
 
   async function startClosing() {
@@ -1622,7 +2006,13 @@ function SiteClosureTab({ siteId }: { siteId: string }) {
       </p>
       <div className="table-wrap">
         <table className="data" data-testid="closure-table">
-          <thead><tr><th>Residual</th><th>Quantity</th><th>Reason for the decision</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Residual</th>
+              <th>Quantity</th>
+              <th>Reason for the decision</th>
+            </tr>
+          </thead>
           <tbody>
             {items.map((i) => (
               <tr key={i.field ?? i.code} data-testid={`closure-row-${i.field ?? i.code}`}>
@@ -1634,7 +2024,9 @@ function SiteClosureTab({ siteId }: { siteId: string }) {
                       className="input"
                       placeholder="Why this is safe to close"
                       value={reasons[i.field ?? i.code] ?? ""}
-                      onChange={(e) => setReasons({ ...reasons, [i.field ?? i.code]: e.target.value })}
+                      onChange={(e) =>
+                        setReasons({ ...reasons, [i.field ?? i.code]: e.target.value })
+                      }
                       data-testid={`closure-reason-${i.field ?? i.code}`}
                     />
                   ) : (
@@ -1647,8 +2039,12 @@ function SiteClosureTab({ siteId }: { siteId: string }) {
         </table>
       </div>
       <p className="muted-cell" data-testid="closure-completeness">
-        Measurement: <span className={`chip chip-${residuals.completeness === "complete" ? "green" : "amber"}`}>{residuals.completeness}</span>
-        {residuals.completeness !== "complete" && " — closing is blocked until this site's stock can be fully measured."}
+        Measurement:{" "}
+        <span className={`chip chip-${residuals.completeness === "complete" ? "green" : "amber"}`}>
+          {residuals.completeness}
+        </span>
+        {residuals.completeness !== "complete" &&
+          " — closing is blocked until this site's stock can be fully measured."}
       </p>
       {canApprove && doc.data.lifecycle === "active" && (
         <button
@@ -1661,10 +2057,14 @@ function SiteClosureTab({ siteId }: { siteId: string }) {
         </button>
       )}
       {doc.data.lifecycle === "closing" && (
-        <p className="lead" data-testid="closure-in-progress">This site is closing. New inward work is blocked.</p>
+        <p className="lead" data-testid="closure-in-progress">
+          This site is closing. New inward work is blocked.
+        </p>
       )}
       {doc.data.lifecycle === "closed" && (
-        <p className="lead" data-testid="closure-done">This site is closed.</p>
+        <p className="lead" data-testid="closure-done">
+          This site is closed.
+        </p>
       )}
     </div>
   );
@@ -1696,7 +2096,13 @@ function TenantPanel() {
   const stepUp = useStepUp();
 
   useEffect(() => {
-    if (doc) setForm({ name: doc.data.name, timezone: doc.data.timezone, currency: doc.data.currency, locale: doc.data.locale });
+    if (doc)
+      setForm({
+        name: doc.data.name,
+        timezone: doc.data.timezone,
+        currency: doc.data.currency,
+        locale: doc.data.locale,
+      });
   }, [doc]);
 
   async function save() {
@@ -1705,7 +2111,11 @@ function TenantPanel() {
     setOk("");
     try {
       await stepUp.guarded(() =>
-        api.patch("/goods-v1/masters/tenant", { code: doc.data.code, ...form, ...goodsMeta(doc.revision) }),
+        api.patch("/goods-v1/masters/tenant", {
+          code: doc.data.code,
+          ...form,
+          ...goodsMeta(doc.revision),
+        }),
       );
       setEditing(false);
       setOk("Tenant profile saved.");
@@ -1717,7 +2127,8 @@ function TenantPanel() {
 
   if (loading) return <p className="lead">Loading…</p>;
   if (denied) return <Denied what="tenant profile" />;
-  if (failure || !doc) return <div className="warn-note">{failure || "The tenant profile could not be loaded."}</div>;
+  if (failure || !doc)
+    return <div className="warn-note">{failure || "The tenant profile could not be loaded."}</div>;
 
   return (
     <div data-testid="org-tenant-panel">
@@ -1727,11 +2138,26 @@ function TenantPanel() {
       {!editing ? (
         <div className="card section-card">
           <dl className="form-grid wide-form" style={{ rowGap: 6 }}>
-            <div><b>Code</b><div className="mono">{doc.data.code}</div></div>
-            <div><b>Name</b><div>{doc.data.name}</div></div>
-            <div><b>Timezone</b><div>{doc.data.timezone}</div></div>
-            <div><b>Currency</b><div>{doc.data.currency}</div></div>
-            <div><b>Locale</b><div>{doc.data.locale}</div></div>
+            <div>
+              <b>Code</b>
+              <div className="mono">{doc.data.code}</div>
+            </div>
+            <div>
+              <b>Name</b>
+              <div>{doc.data.name}</div>
+            </div>
+            <div>
+              <b>Timezone</b>
+              <div>{doc.data.timezone}</div>
+            </div>
+            <div>
+              <b>Currency</b>
+              <div>{doc.data.currency}</div>
+            </div>
+            <div>
+              <b>Locale</b>
+              <div>{doc.data.locale}</div>
+            </div>
             <div>
               <b>Business profile</b>
               <div data-testid="tenant-business-profile">
@@ -1746,25 +2172,65 @@ function TenantPanel() {
             </div>
           </dl>
           {canEdit && (
-            <button className="btn btn-sm" onClick={() => setEditing(true)} data-testid="tenant-edit-button">
+            <button
+              className="btn btn-sm"
+              onClick={() => setEditing(true)}
+              data-testid="tenant-edit-button"
+            >
               <Pencil size={13} /> Edit
             </button>
           )}
           {hold(session, "audit.view") && (
-            <AdministrativeHistory subjectKind="master" subjectId={`tenant:${doc.id}`} testId="tenant-history" />
+            <AdministrativeHistory
+              subjectKind="master"
+              subjectId={`tenant:${doc.id}`}
+              testId="tenant-history"
+            />
           )}
         </div>
       ) : (
         <div className="card section-card" data-testid="tenant-editor">
           <div className="form-grid wide-form">
-            <input className="input" placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} data-testid="tenant-name-input" />
-            <input className="input" placeholder="Timezone" value={form.timezone} onChange={(e) => setForm({ ...form, timezone: e.target.value })} data-testid="tenant-timezone-input" />
-            <input className="input" placeholder="Currency" value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} data-testid="tenant-currency-input" />
-            <input className="input" placeholder="Locale" value={form.locale} onChange={(e) => setForm({ ...form, locale: e.target.value })} data-testid="tenant-locale-input" />
+            <input
+              className="input"
+              placeholder="Name"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              data-testid="tenant-name-input"
+            />
+            <input
+              className="input"
+              placeholder="Timezone"
+              value={form.timezone}
+              onChange={(e) => setForm({ ...form, timezone: e.target.value })}
+              data-testid="tenant-timezone-input"
+            />
+            <input
+              className="input"
+              placeholder="Currency"
+              value={form.currency}
+              onChange={(e) => setForm({ ...form, currency: e.target.value })}
+              data-testid="tenant-currency-input"
+            />
+            <input
+              className="input"
+              placeholder="Locale"
+              value={form.locale}
+              onChange={(e) => setForm({ ...form, locale: e.target.value })}
+              data-testid="tenant-locale-input"
+            />
           </div>
           <div className="toolbar" style={{ marginTop: 12 }}>
-            <button className="btn btn-cta" onClick={save} data-testid="tenant-save-button"><Save size={15} /> Save</button>
-            <button className="btn btn-sm" onClick={() => setEditing(false)} data-testid="tenant-cancel-button"><X size={14} /> Cancel</button>
+            <button className="btn btn-cta" onClick={save} data-testid="tenant-save-button">
+              <Save size={15} /> Save
+            </button>
+            <button
+              className="btn btn-sm"
+              onClick={() => setEditing(false)}
+              data-testid="tenant-cancel-button"
+            >
+              <X size={14} /> Cancel
+            </button>
           </div>
         </div>
       )}
@@ -1881,7 +2347,11 @@ export function OrganisationPage() {
                     onClick={() => openSite(s.id)}
                     data-testid={`org-nav-site-${s.data.code}`}
                   >
-                    {s.data.type === "warehouse" ? <Warehouse size={15} /> : <StoreIcon size={15} />}
+                    {s.data.type === "warehouse" ? (
+                      <Warehouse size={15} />
+                    ) : (
+                      <StoreIcon size={15} />
+                    )}
                     {s.data.name}
                     <span className="org-nav-sub">{s.data.code}</span>
                   </button>

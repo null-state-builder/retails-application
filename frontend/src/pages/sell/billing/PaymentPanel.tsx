@@ -87,18 +87,11 @@ export function PaymentPanel({
   }
 
   return (
-    <section
-      className="bill-payment-panel"
-      data-return-ready={returnReady ? undefined : "false"}
-    >
+    <section className="bill-payment-panel" data-return-ready={returnReady ? undefined : "false"}>
       <div className="bill-payment-heading">
         <p className="eyebrow">To pay</p>
         <p className="bill-due" data-testid="bill-due">
-          {returnReady ? (
-            <Money paise={bill.payable_paise} />
-          ) : (
-            <>Nothing yet &middot; ₹0</>
-          )}
+          {returnReady ? <Money paise={bill.payable_paise} /> : <>Nothing yet &middot; ₹0</>}
         </p>
       </div>
 
@@ -244,11 +237,7 @@ export function PaymentPanel({
 function BalanceLine({ split }: { split: TenderSplit }) {
   const { tone, says, paise } = balanceStandingOf(split);
   return (
-    <p
-      className={`bill-balance-line is-${tone}`}
-      data-testid="bill-balance-line"
-      data-tone={tone}
-    >
+    <p className={`bill-balance-line is-${tone}`} data-testid="bill-balance-line" data-tone={tone}>
       <span>{says}</span>
       <span data-testid="bill-balance">
         <Money paise={paise} />
@@ -402,7 +391,7 @@ function TenderRow({
         locked={locked}
         placeholder={blankIsExact ? "exact" : "0"}
         prefillPaise={prefillPaise}
-        onInvalid={onInvalid}
+        {...(onInvalid ? { onInvalid } : {})}
         onChange={onChange}
       />
       {invalid && (

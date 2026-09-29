@@ -54,7 +54,9 @@ export function MarginSharePage() {
     setBusy(true);
     setError("");
     try {
-      const response = await api.get<Payload>("/reports/margin-share", { params: marginParams(wanted) });
+      const response = await api.get<Payload>("/reports/margin-share", {
+        params: marginParams(wanted),
+      });
       if (mine !== request.current) return;
       setLost(false);
       setData(response.data);
@@ -241,7 +243,8 @@ export function MarginSharePage() {
         </h2>
         <p className="muted-cell" data-testid="margin-as-of">
           {asOfText(data.as_of)}
-          {data.as_of && ` · the copy is brought up to date every ${data.refreshed_every_minutes} minutes`}
+          {data.as_of &&
+            ` · the copy is brought up to date every ${data.refreshed_every_minutes} minutes`}
           {` · ${data.stores.map((s) => s.code).join(", ")} · ${data.date_from} to ${data.date_to}`}
         </p>
         {error && (
@@ -267,8 +270,8 @@ export function MarginSharePage() {
             <ul>
               {data.unknown_brands.map((u) => (
                 <li key={u.key} data-testid="margin-unknown-brand" data-key={u.key}>
-                  {u.label}: {u.lines} {u.lines === 1 ? "line" : "lines"}, {gstCell(u.value_paise, "money")} (
-                  {u.reasons.join("; ")})
+                  {u.label}: {u.lines} {u.lines === 1 ? "line" : "lines"},{" "}
+                  {gstCell(u.value_paise, "money")} ({u.reasons.join("; ")})
                 </li>
               ))}
             </ul>
@@ -276,7 +279,9 @@ export function MarginSharePage() {
         )}
         {data.rows.length === 0 ? (
           <p className="muted-cell" data-testid="margin-empty">
-            {busy ? "Loading…" : "No SOR or concession sales with a split in this month at these stores."}
+            {busy
+              ? "Loading…"
+              : "No SOR or concession sales with a split in this month at these stores."}
           </p>
         ) : (
           <div className="table-wrap">
@@ -334,7 +339,7 @@ function MarginRow({
   row: Row;
   columns: Column[];
   total?: boolean;
-  open?: (brandId: string) => void;
+  open?: ((brandId: string) => void) | undefined;
   disabled?: boolean;
 }) {
   const cells = row as unknown as Record<string, unknown>;

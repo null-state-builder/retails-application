@@ -93,7 +93,7 @@ class CustomerListSerializer(serializers.Serializer[Any]):
     can_act = serializers.BooleanField()
 
 
-class ConsentStandingSerializer(serializers.Serializer[Any]):
+class GoodsConsentStandingSerializer(serializers.Serializer[Any]):
     given = serializers.BooleanField()
     how = serializers.CharField()
     under_18 = serializers.BooleanField(allow_null=True)
@@ -102,8 +102,8 @@ class ConsentStandingSerializer(serializers.Serializer[Any]):
 
 
 class CustomerConsentSerializer(serializers.Serializer[Any]):
-    bill = ConsentStandingSerializer(allow_null=True)
-    offers = ConsentStandingSerializer(allow_null=True)
+    bill = GoodsConsentStandingSerializer(allow_null=True)
+    offers = GoodsConsentStandingSerializer(allow_null=True)
 
 
 class CustomerBillSerializer(serializers.Serializer[Any]):
@@ -229,6 +229,7 @@ class CustomerMoveRequestSerializer(_Meta):
 
 class GoodsCustomerListView(GoodsAPIView):
     @extend_schema(
+        operation_id="goods_v1_sell_customers_list",
         parameters=[OpenApiParameter("q", str, description="Number or name contains")],
         responses=CustomerListSerializer,
     )
@@ -259,7 +260,10 @@ class GoodsCustomerListView(GoodsAPIView):
 
 
 class GoodsCustomerDetailView(GoodsAPIView):
-    @extend_schema(responses=CustomerPageSerializer)
+    @extend_schema(
+        operation_id="goods_v1_sell_customers_detail",
+        responses=CustomerPageSerializer,
+    )
     def get(self, request: Request, pk: int) -> Response:
         self.access(request)
         check_query(request, allowed=())

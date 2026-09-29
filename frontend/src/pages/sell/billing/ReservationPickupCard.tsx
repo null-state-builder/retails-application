@@ -57,7 +57,7 @@ export function ReservationPickupCard({
         onCollect(active);
         setOpen(false);
         setTyped("");
-      } else if (found.length) {
+      } else if (found[0]) {
         setNote(`${found[0].ref} is ${found[0].status}, so it cannot be collected.`);
       } else {
         setNote("No reservation at this store matches that.");

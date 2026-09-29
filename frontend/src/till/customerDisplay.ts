@@ -92,8 +92,7 @@ export type TillToDisplay =
 /** What the display says to the till. */
 export type DisplayToTill =
   /** Just opened (or reopened): send me where the bill is now. */
-  | { type: "hello" }
-  | { type: "answer"; id: string; value: string };
+  { type: "hello" } | { type: "answer"; id: string; value: string };
 
 /** One channel per store, so a display only ever hears its own store's till. */
 export function displayChannelName(storeCode: string): string {
@@ -359,8 +358,10 @@ export class TillDisplayLink {
   private view: DisplayView = WELCOME;
   private readonly asks = new Map<string, OpenAsk>();
   private closed = false;
+  private readonly channel: ChannelLike;
 
-  constructor(private readonly channel: ChannelLike) {
+  constructor(channel: ChannelLike) {
+    this.channel = channel;
     channel.onmessage = (event) => this.hear(event.data);
   }
 
@@ -447,11 +448,12 @@ export function displayStateAfter(state: DisplayState, message: TillToDisplay): 
  */
 export class DisplayScreenLink {
   private state: DisplayState = DISPLAY_START;
+  private readonly channel: ChannelLike;
+  private readonly onState: (state: DisplayState) => void;
 
-  constructor(
-    private readonly channel: ChannelLike,
-    private readonly onState: (state: DisplayState) => void,
-  ) {
+  constructor(channel: ChannelLike, onState: (state: DisplayState) => void) {
+    this.channel = channel;
+    this.onState = onState;
     channel.onmessage = (event) => this.hear(event.data);
     post(channel, { type: "hello" } satisfies DisplayToTill);
   }

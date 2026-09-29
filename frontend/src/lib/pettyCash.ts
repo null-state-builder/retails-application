@@ -113,5 +113,5 @@ export function chosenStore(
 ): number | null {
   if (fromAddress) return fromAddress;
   if (fromSwitcher) return fromSwitcher;
-  return units.length === 1 ? units[0].id : null;
+  return units.length === 1 ? (units[0]?.id ?? null) : null;
 }

@@ -31,14 +31,20 @@ import { PageHeader } from "../components/PageHeader";
 // ---------------------------------------------------------------------------
 
 export function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(iso).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 const DS_TONE: Record<number, string> = { 0: "grey", 1: "green", 2: "red" };
 const DS_LABEL: Record<number, string> = { 0: "Draft", 1: "Submitted", 2: "Cancelled" };
 
 function DocPill({ ds }: { ds: number }) {
-  return <span className={`chip chip-${DS_TONE[ds] ?? "grey"} status-pill`}>{DS_LABEL[ds] ?? ds}</span>;
+  return (
+    <span className={`chip chip-${DS_TONE[ds] ?? "grey"} status-pill`}>{DS_LABEL[ds] ?? ds}</span>
+  );
 }
 
 const TRANSFER_TYPE_LABEL: Record<string, string> = {
@@ -232,11 +238,17 @@ export function ReceiptExceptions({ rows }: { rows: ReceiptExceptionT[] }) {
           {rows.map((e) => (
             <tr key={e.id} data-testid={`exception-${e.kind}-${e.sku_code}`}>
               <td>
-                <span className={`chip chip-${EXCEPTION_TONE[e.kind] ?? "grey"}`}>{e.kind_label}</span>
+                <span className={`chip chip-${EXCEPTION_TONE[e.kind] ?? "grey"}`}>
+                  {e.kind_label}
+                </span>
               </td>
-              <td><b className="mono">{e.sku_code}</b></td>
+              <td>
+                <b className="mono">{e.sku_code}</b>
+              </td>
               <td>{[e.design, e.color, e.size].filter(Boolean).join(" · ") || e.brand || "—"}</td>
-              <td className="num"><b>{e.qty}</b></td>
+              <td className="num">
+                <b>{e.qty}</b>
+              </td>
               <td>{e.note}</td>
             </tr>
           ))}
@@ -260,7 +272,10 @@ export function TransferListPage() {
   const { data, loading } = useList<TransferT>("/outbound/transfers", { type: tab, q });
 
   function setTab(next: string) {
-    setParams((p) => { p.set("type", next); return p; });
+    setParams((p) => {
+      p.set("type", next);
+      return p;
+    });
   }
 
   return (
@@ -275,7 +290,11 @@ export function TransferListPage() {
         }
       />
 
-      <div className="mode-toggle" data-testid="transfer-type-toggle" style={{ maxWidth: 520, marginBottom: 18 }}>
+      <div
+        className="mode-toggle"
+        data-testid="transfer-type-toggle"
+        style={{ maxWidth: 520, marginBottom: 18 }}
+      >
         <button
           type="button"
           className={`mode-btn ${tab === "inter_store" ? "active" : ""}`}
@@ -310,8 +329,8 @@ export function TransferListPage() {
       ) : data.length === 0 ? (
         <div className="card section-card" data-testid="transfer-empty">
           {q
-            ? `No ${tab === "store_split" ? "store split" : "inter-store"} transfer matches “${q}”. `
-              + "Try the document number, or the store it came from or went to."
+            ? `No ${tab === "store_split" ? "store split" : "inter-store"} transfer matches “${q}”. ` +
+              "Try the document number, or the store it came from or went to."
             : `No ${tab === "store_split" ? "store split" : "inter-store"} transfers yet.`}
         </div>
       ) : (
@@ -334,13 +353,23 @@ export function TransferListPage() {
               {data.map((t) => (
                 <tr key={t.id} data-testid={`transfer-row-${t.id}`}>
                   <td>
-                    <Link to={`/transfer/${t.id}`} className="link-cell mono" data-testid={`transfer-link-${t.id}`}>
+                    <Link
+                      to={`/transfer/${t.id}`}
+                      className="link-cell mono"
+                      data-testid={`transfer-link-${t.id}`}
+                    >
                       <b>{t.doc_number || `Draft #${t.id}`}</b>
                     </Link>
                   </td>
-                  <td><b className="mono">{t.source_store_code}</b></td>
-                  <td><b className="mono">{t.destination_store_code}</b></td>
-                  <td>{REASON_OPTIONS.find((r) => r.value === t.reason)?.label || t.reason || "—"}</td>
+                  <td>
+                    <b className="mono">{t.source_store_code}</b>
+                  </td>
+                  <td>
+                    <b className="mono">{t.destination_store_code}</b>
+                  </td>
+                  <td>
+                    {REASON_OPTIONS.find((r) => r.value === t.reason)?.label || t.reason || "—"}
+                  </td>
                   <td className="num">{t.lines.length}</td>
                   <td>
                     {t.is_cross_state ? (
@@ -357,7 +386,9 @@ export function TransferListPage() {
                   </td>
                   <td>
                     {t.receipt ? (
-                      <span className={`chip chip-${RECEIPT_TONE[t.receipt.receipt_status] ?? "grey"}`}>
+                      <span
+                        className={`chip chip-${RECEIPT_TONE[t.receipt.receipt_status] ?? "grey"}`}
+                      >
                         {t.receipt.receipt_status}
                       </span>
                     ) : t.docstatus === 1 ? (
@@ -428,10 +459,22 @@ export function TransferNewPage() {
 
   async function save() {
     setError("");
-    if (!sourceId) { setError("Select a source store."); return; }
-    if (!destId) { setError("Select a destination store."); return; }
-    if (sourceId === destId) { setError("Source and destination must differ."); return; }
-    if (crossState && !ewayBill.trim()) { setError("E-way bill number is required for cross-state transfers."); return; }
+    if (!sourceId) {
+      setError("Select a source store.");
+      return;
+    }
+    if (!destId) {
+      setError("Select a destination store.");
+      return;
+    }
+    if (sourceId === destId) {
+      setError("Source and destination must differ.");
+      return;
+    }
+    if (crossState && !ewayBill.trim()) {
+      setError("E-way bill number is required for cross-state transfers.");
+      return;
+    }
     const payloadLines = lines
       .filter((l) => l.sku_code && Number(l.qty_planned) > 0)
       .map((l) => ({ sku_code: l.sku_code.trim(), qty_planned: Number(l.qty_planned) }));
@@ -463,10 +506,17 @@ export function TransferNewPage() {
 
   return (
     <div className="page-pad">
-      <Link to="/transfer" className="btn" style={{ marginBottom: 16 }} data-testid="transfer-back-link">
+      <Link
+        to="/transfer"
+        className="btn"
+        style={{ marginBottom: 16 }}
+        data-testid="transfer-back-link"
+      >
         <ArrowLeft size={15} /> Transfers
       </Link>
-      <h1 className="h1 h2-rust" style={{ marginBottom: 18 }}>New transfer</h1>
+      <h1 className="h1 h2-rust" style={{ marginBottom: 18 }}>
+        New transfer
+      </h1>
 
       <div className="card section-card">
         <p className="eyebrow">Step 1 · Locations</p>
@@ -478,36 +528,62 @@ export function TransferNewPage() {
                 {lockedStore.code} · {lockedStore.name}
               </div>
             ) : (
-              <select className="select" value={sourceId} onChange={(e) => setSourceId(e.target.value)} data-testid="transfer-source-select">
+              <select
+                className="select"
+                value={sourceId}
+                onChange={(e) => setSourceId(e.target.value)}
+                data-testid="transfer-source-select"
+              >
                 <option value="">Select source…</option>
                 {stores.map((s) => (
-                  <option key={s.id} value={s.id}>{s.code} · {s.name} {s.store_type === "warehouse" ? "(WH)" : ""}</option>
+                  <option key={s.id} value={s.id}>
+                    {s.code} · {s.name} {s.store_type === "warehouse" ? "(WH)" : ""}
+                  </option>
                 ))}
               </select>
             )}
           </div>
           <div className="field">
             <label>Destination store / warehouse</label>
-            <select className="select" value={destId} onChange={(e) => setDestId(e.target.value)} data-testid="transfer-dest-select">
+            <select
+              className="select"
+              value={destId}
+              onChange={(e) => setDestId(e.target.value)}
+              data-testid="transfer-dest-select"
+            >
               <option value="">Select destination…</option>
               {destinations.map((l) => (
-                <option key={l.id} value={l.id}>{l.code} · {l.name} {l.store_type === "warehouse" ? "(WH)" : ""}</option>
+                <option key={l.id} value={l.id}>
+                  {l.code} · {l.name} {l.store_type === "warehouse" ? "(WH)" : ""}
+                </option>
               ))}
             </select>
           </div>
           <div className="field">
             <label>Transfer type</label>
-            <select className="select" value={transferType} onChange={(e) => setTransferType(e.target.value)} data-testid="transfer-type-select">
+            <select
+              className="select"
+              value={transferType}
+              onChange={(e) => setTransferType(e.target.value)}
+              data-testid="transfer-type-select"
+            >
               <option value="inter_store">Inter-store</option>
               <option value="store_split">Store split (WH → store)</option>
             </select>
           </div>
           <div className="field">
             <label>Reason</label>
-            <select className="select" value={reason} onChange={(e) => setReason(e.target.value)} data-testid="transfer-reason-select">
+            <select
+              className="select"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              data-testid="transfer-reason-select"
+            >
               <option value="">Select reason…</option>
               {REASON_OPTIONS.map((r) => (
-                <option key={r.value} value={r.value}>{r.label}</option>
+                <option key={r.value} value={r.value}>
+                  {r.label}
+                </option>
               ))}
             </select>
           </div>
@@ -525,48 +601,91 @@ export function TransferNewPage() {
         <div className="form-row" style={{ marginTop: 10 }}>
           <div className="field">
             <label>Transport mode</label>
-            <select className="select" value={transportMode} onChange={(e) => setTransportMode(e.target.value)} data-testid="transfer-transport-mode">
+            <select
+              className="select"
+              value={transportMode}
+              onChange={(e) => setTransportMode(e.target.value)}
+              data-testid="transfer-transport-mode"
+            >
               <option value="">Select mode…</option>
               {TRANSPORT_OPTIONS.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
               ))}
             </select>
           </div>
           <div className="field">
             <label>Bus / courier AWB / vehicle plate</label>
-            <input className="input" value={transportRef} onChange={(e) => setTransportRef(e.target.value)} placeholder="Transport ID" data-testid="transfer-transport-ref" />
+            <input
+              className="input"
+              value={transportRef}
+              onChange={(e) => setTransportRef(e.target.value)}
+              placeholder="Transport ID"
+              data-testid="transfer-transport-ref"
+            />
           </div>
           <div className="field">
             <label>Dispatcher name</label>
-            <input className="input" value={dispatcherName} onChange={(e) => setDispatcherName(e.target.value)} placeholder="Who is dispatching?" data-testid="transfer-dispatcher" />
+            <input
+              className="input"
+              value={dispatcherName}
+              onChange={(e) => setDispatcherName(e.target.value)}
+              placeholder="Who is dispatching?"
+              data-testid="transfer-dispatcher"
+            />
           </div>
           <div className="field">
             <label>Expected arrival</label>
-            <input className="input" value={expectedArrival} onChange={(e) => setExpectedArrival(e.target.value)} placeholder="e.g. Tomorrow by 2 PM" data-testid="transfer-expected-arrival" />
+            <input
+              className="input"
+              value={expectedArrival}
+              onChange={(e) => setExpectedArrival(e.target.value)}
+              placeholder="e.g. Tomorrow by 2 PM"
+              data-testid="transfer-expected-arrival"
+            />
           </div>
           {crossState && (
             <div className="field">
               <label>E-way bill number *</label>
-              <input className="input" value={ewayBill} onChange={(e) => setEwayBill(e.target.value)} placeholder="Required for cross-state" data-testid="transfer-eway-bill" />
+              <input
+                className="input"
+                value={ewayBill}
+                onChange={(e) => setEwayBill(e.target.value)}
+                placeholder="Required for cross-state"
+                data-testid="transfer-eway-bill"
+              />
             </div>
           )}
         </div>
       </div>
 
       <div className="card section-card">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 10,
+          }}
+        >
           <div>
             <p className="eyebrow">Step 3 · Plan (optional)</p>
             <h3 className="h3">Planned lines</h3>
           </div>
-          <button type="button" className="btn" onClick={() => setLines((l) => [...l, emptyLine()])} data-testid="add-transfer-line">
+          <button
+            type="button"
+            className="btn"
+            onClick={() => setLines((l) => [...l, emptyLine()])}
+            data-testid="add-transfer-line"
+          >
             <Plus size={15} /> Add plan line
           </button>
         </div>
         <p className="lead" style={{ marginBottom: 10 }}>
           The plan is what dispatch scans <b>against</b> — the scanned pieces are the only
-          quantities that move stock. Leave it empty to build the transfer by scanning the
-          carton at dispatch (store → store).
+          quantities that move stock. Leave it empty to build the transfer by scanning the carton at
+          dispatch (store → store).
         </p>
         {lines.length > 0 && (
           <table className="lines-table" data-testid="transfer-lines">
@@ -580,9 +699,31 @@ export function TransferNewPage() {
             <tbody>
               {lines.map((l, i) => (
                 <tr key={i}>
-                  <td><input value={l.sku_code} onChange={(e) => setLine(i, "sku_code", e.target.value)} data-testid={`tl-sku-${i}`} /></td>
-                  <td><input className="num" value={l.qty_planned} onChange={(e) => setLine(i, "qty_planned", e.target.value)} data-testid={`tl-qty-${i}`} /></td>
-                  <td><button type="button" className="line-del" onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))} data-testid={`delete-tl-${i}`}><Trash2 size={15} /></button></td>
+                  <td>
+                    <input
+                      value={l.sku_code}
+                      onChange={(e) => setLine(i, "sku_code", e.target.value)}
+                      data-testid={`tl-sku-${i}`}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="num"
+                      value={l.qty_planned}
+                      onChange={(e) => setLine(i, "qty_planned", e.target.value)}
+                      data-testid={`tl-qty-${i}`}
+                    />
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      className="line-del"
+                      onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))}
+                      data-testid={`delete-tl-${i}`}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -590,8 +731,17 @@ export function TransferNewPage() {
         )}
       </div>
 
-      {error && <div className="login-error" style={{ maxWidth: 540 }} data-testid="transfer-create-error">{error}</div>}
-      <button className="btn btn-primary btn-lg" disabled={saving} onClick={save} data-testid="save-transfer-btn">
+      {error && (
+        <div className="login-error" style={{ maxWidth: 540 }} data-testid="transfer-create-error">
+          {error}
+        </div>
+      )}
+      <button
+        className="btn btn-primary btn-lg"
+        disabled={saving}
+        onClick={save}
+        data-testid="save-transfer-btn"
+      >
         <Truck size={16} /> {saving ? "Saving…" : "Create transfer (draft)"}
       </button>
     </div>
@@ -623,7 +773,9 @@ export interface TransferPtT {
  *  The filename comes off the response: the server already names the PT after
  *  its voucher, and restating that rule here would be one rule in two languages. */
 async function downloadPt(transferId: number | string, kind: "csv" | "xlsx") {
-  const res = await api.get(`/outbound/transfers/${transferId}/pt.${kind}`, { responseType: "blob" });
+  const res = await api.get(`/outbound/transfers/${transferId}/pt.${kind}`, {
+    responseType: "blob",
+  });
   const named = /filename="([^"]+)"/.exec(res.headers["content-disposition"] ?? "");
   const href = URL.createObjectURL(res.data);
   const a = document.createElement("a");
@@ -643,8 +795,8 @@ function TransferPtCard({ t }: { t: TransferT }) {
       <p className="eyebrow">PT file</p>
       <h3 className="h3">Generated {fmtDate(t.pt_generated_at)}</h3>
       <p className="lead" style={{ marginTop: 6 }}>
-        Built from the scanned lines, so the document and the carton say the same thing.
-        It is never typed and cannot be edited - send it with the goods.
+        Built from the scanned lines, so the document and the carton say the same thing. It is never
+        typed and cannot be edited - send it with the goods.
       </p>
       <div className="toolbar" style={{ marginTop: 14, marginBottom: 0 }}>
         <Link className="btn btn-cta" to={`/transfer/${t.id}/pt`} data-testid="transfer-pt-open">
@@ -676,7 +828,12 @@ export function TransferPtPage() {
   const { id } = useParams();
   const { data: pt, loading } = useDoc<TransferPtT>(`/outbound/transfers/${id}/pt`);
 
-  if (loading) return <div className="page-pad"><p className="lead">Loading…</p></div>;
+  if (loading)
+    return (
+      <div className="page-pad">
+        <p className="lead">Loading…</p>
+      </div>
+    );
   if (!pt) {
     return (
       <div className="page-pad" data-testid="transfer-pt-missing">
@@ -694,7 +851,12 @@ export function TransferPtPage() {
   return (
     <div className="page-pad pt-print">
       <div className="pt-print-hide">
-        <Link to={`/transfer/${pt.transfer}`} className="btn" style={{ marginBottom: 16 }} data-testid="transfer-pt-back">
+        <Link
+          to={`/transfer/${pt.transfer}`}
+          className="btn"
+          style={{ marginBottom: 16 }}
+          data-testid="transfer-pt-back"
+        >
           <ArrowLeft size={15} /> Transfer
         </Link>
       </div>
@@ -702,10 +864,12 @@ export function TransferPtPage() {
       <div className="toolbar">
         <div>
           <p className="eyebrow">PT file · {pt.doc_number || `Draft #${pt.transfer}`}</p>
-          <h1 className="h1">{pt.source_store_code} → {pt.destination_store_code}</h1>
+          <h1 className="h1">
+            {pt.source_store_code} → {pt.destination_store_code}
+          </h1>
           <p className="lead">
-            {pt.source_store_name} → {pt.destination_store_name} ·{" "}
-            {pt.rows.length} line(s) · generated {fmtDate(pt.generated_at)}
+            {pt.source_store_name} → {pt.destination_store_name} · {pt.rows.length} line(s) ·
+            generated {fmtDate(pt.generated_at)}
             {pt.generated_by_name ? ` by ${pt.generated_by_name}` : ""}
           </p>
         </div>
@@ -741,7 +905,11 @@ export function TransferPtPage() {
       <div className="table-wrap">
         <table className="data" data-testid="transfer-pt-table">
           <thead>
-            <tr>{pt.columns.map((c) => <th key={c}>{c}</th>)}</tr>
+            <tr>
+              {pt.columns.map((c) => (
+                <th key={c}>{c}</th>
+              ))}
+            </tr>
           </thead>
           <tbody>
             {pt.rows.map((row, i) => (
@@ -789,7 +957,12 @@ export function TransferDetailPage() {
   const [posting, setPosting] = useState(false);
   const [scanError, setScanError] = useState("");
 
-  if (loading || !t) return <div className="page-pad"><p className="lead">Loading…</p></div>;
+  if (loading || !t)
+    return (
+      <div className="page-pad">
+        <p className="lead">Loading…</p>
+      </div>
+    );
 
   // No stock leaves until the Operations Head has approved (#137). The server
   // refuses either way — the button only reflects that honestly, so nobody is
@@ -850,16 +1023,25 @@ export function TransferDetailPage() {
 
   return (
     <div className="page-pad">
-      <Link to="/transfer" className="btn" style={{ marginBottom: 16 }} data-testid="transfer-detail-back">
+      <Link
+        to="/transfer"
+        className="btn"
+        style={{ marginBottom: 16 }}
+        data-testid="transfer-detail-back"
+      >
         <ArrowLeft size={15} /> Transfers
       </Link>
       <div className="toolbar">
         <div>
           <p className="eyebrow">{t.doc_number || `Draft #${t.id}`}</p>
-          <h1 className="h1">{t.source_store_code} → {t.destination_store_code}</h1>
+          <h1 className="h1">
+            {t.source_store_code} → {t.destination_store_code}
+          </h1>
           <p className="lead">
             {t.source_store_name} → {t.destination_store_name}
-            {t.reason ? ` · ${REASON_OPTIONS.find((r) => r.value === t.reason)?.label || t.reason}` : ""}
+            {t.reason
+              ? ` · ${REASON_OPTIONS.find((r) => r.value === t.reason)?.label || t.reason}`
+              : ""}
           </p>
         </div>
         <div className="spacer" />
@@ -867,15 +1049,22 @@ export function TransferDetailPage() {
         {t.docstatus === 0 && <ApprovalPill status={t.approval?.status ?? "pending"} />}
         <GapStatePill state={t.gap_state} />
         {t.is_cross_state && <span className="chip chip-amber">Cross-state</span>}
-        <span className="chip chip-navy">{TRANSFER_TYPE_LABEL[t.transfer_type] ?? t.transfer_type}</span>
+        <span className="chip chip-navy">
+          {TRANSFER_TYPE_LABEL[t.transfer_type] ?? t.transfer_type}
+        </span>
         {t.docstatus === 1 && t.dispatch_mismatch && (
-          <span className="chip chip-amber" data-testid="dispatch-mismatch-chip">Plan mismatch</span>
+          <span className="chip chip-amber" data-testid="dispatch-mismatch-chip">
+            Plan mismatch
+          </span>
         )}
         {canDispatch && (
           <button
             type="button"
             className="btn btn-cta"
-            onClick={() => { setScanError(""); setScanMode("dispatch"); }}
+            onClick={() => {
+              setScanError("");
+              setScanMode("dispatch");
+            }}
             data-testid="dispatch-transfer-btn"
           >
             <Send size={15} /> Scan &amp; dispatch
@@ -885,7 +1074,10 @@ export function TransferDetailPage() {
           <button
             type="button"
             className="btn btn-cta"
-            onClick={() => { setScanError(""); setScanMode("receive"); }}
+            onClick={() => {
+              setScanError("");
+              setScanMode("receive");
+            }}
             data-testid="receive-transfer-toggle"
           >
             <PackageCheck size={15} /> Scan &amp; receive
@@ -899,7 +1091,7 @@ export function TransferDetailPage() {
           docLabel={t.doc_number || `Draft #${t.id}`}
           routeLabel={`${t.source_store_code} → ${t.destination_store_code}`}
           targets={dispatchTargets}
-          lookup={hasPlan ? undefined : lookupAtSource}
+          {...(hasPlan ? {} : { lookup: lookupAtSource })}
           confirmLabel="Confirm dispatch"
           busy={posting}
           error={scanError}
@@ -927,17 +1119,31 @@ export function TransferDetailPage() {
       <div className="form-row" style={{ marginBottom: 18 }}>
         <div className="card section-card">
           <p className="eyebrow">Transport</p>
-          <h3 className="h3">{TRANSPORT_OPTIONS.find((o) => o.value === t.transport_mode)?.label || t.transport_mode || "—"}</h3>
-          {t.transport_ref && <p className="lead" style={{ marginTop: 4 }}>{t.transport_ref}</p>}
+          <h3 className="h3">
+            {TRANSPORT_OPTIONS.find((o) => o.value === t.transport_mode)?.label ||
+              t.transport_mode ||
+              "—"}
+          </h3>
+          {t.transport_ref && (
+            <p className="lead" style={{ marginTop: 4 }}>
+              {t.transport_ref}
+            </p>
+          )}
         </div>
         <div className="card section-card">
           <p className="eyebrow">Dispatcher</p>
           <h3 className="h3">{t.dispatcher_name || "—"}</h3>
-          {t.expected_arrival_note && <p className="lead" style={{ marginTop: 4 }}>{t.expected_arrival_note}</p>}
+          {t.expected_arrival_note && (
+            <p className="lead" style={{ marginTop: 4 }}>
+              {t.expected_arrival_note}
+            </p>
+          )}
         </div>
         <div className="card section-card">
           <p className="eyebrow">Dispatched / Received</p>
-          <h3 className="h3">{totalDispatched} / {totalReceived} pcs</h3>
+          <h3 className="h3">
+            {totalDispatched} / {totalReceived} pcs
+          </h3>
           {t.qty_in_transit > 0 && (
             <p className="lead" style={{ marginTop: 4 }} data-testid="in-transit-count">
               <b>{t.qty_in_transit} pcs in transit</b>
@@ -968,9 +1174,15 @@ export function TransferDetailPage() {
       {/* Only ever set when the destination is a partner store (Rule 12) —
           every ordinary transfer leaves this null, exactly as before. */}
       {t.partner_billing_value_paise != null && (
-        <div className="card section-card" style={{ marginBottom: 18 }} data-testid="partner-billing-card">
+        <div
+          className="card section-card"
+          style={{ marginBottom: 18 }}
+          data-testid="partner-billing-card"
+        >
           <p className="eyebrow">Partner billing</p>
-          <h3 className="h3"><Money paise={t.partner_billing_value_paise} /> at Purchase Price</h3>
+          <h3 className="h3">
+            <Money paise={t.partner_billing_value_paise} /> at Purchase Price
+          </h3>
           <p className="lead" style={{ marginTop: 4 }}>
             {t.destination_store_code} is a partner store — this is what it owes for this transfer.
           </p>
@@ -993,7 +1205,11 @@ export function TransferDetailPage() {
 
       {/* Receipt — and everything that went wrong at it (#71) */}
       {t.receipt && (
-        <div className="card section-card" style={{ marginBottom: 18 }} data-testid="transfer-receipt-info">
+        <div
+          className="card section-card"
+          style={{ marginBottom: 18 }}
+          data-testid="transfer-receipt-info"
+        >
           <p className="eyebrow">Receipt</p>
           <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
             <span className={`chip chip-${RECEIPT_TONE[t.receipt.receipt_status] ?? "grey"}`}>
@@ -1001,7 +1217,9 @@ export function TransferDetailPage() {
             </span>
             <span className="lead">{fmtDate(t.receipt.receipt_date)}</span>
             {t.receipt.received_by_name && (
-              <span className="lead">by <b>{t.receipt.received_by_name}</b></span>
+              <span className="lead">
+                by <b>{t.receipt.received_by_name}</b>
+              </span>
             )}
           </div>
           {t.receipt.shortfall_notes && (
@@ -1019,30 +1237,42 @@ export function TransferDetailPage() {
 
       {/* The gap and how it was closed */}
       {t.gap_state === "gap" && (
-        <div className="card section-card" style={{ marginBottom: 18 }} data-testid="transfer-open-gap">
+        <div
+          className="card section-card"
+          style={{ marginBottom: 18 }}
+          data-testid="transfer-open-gap"
+        >
           <p className="eyebrow">Open gap</p>
           <p className="lead">
             <b>{t.qty_in_transit} piece(s)</b> were sent but never scanned in. They stay in the
-            in-transit bucket on this transfer — {t.source_store_code} is answerable for them — until
-            the Operations Head closes the gap with a reason. The receiving store cannot close
+            in-transit bucket on this transfer — {t.source_store_code} is answerable for them —
+            until the Operations Head closes the gap with a reason. The receiving store cannot close
             it.{" "}
             {t.gap_closure ? (
               <>A closure is already waiting for approval.</>
             ) : (
               // Only offered to the people who can act on it — for anyone else
               // the gaps list is scoped away and the link would go nowhere.
-              canCloseTransferGap(user) && (
-                <Link to="/transfer/in-transit">Open the gaps list</Link>
-              )
+              canCloseTransferGap(user) && <Link to="/transfer/in-transit">Open the gaps list</Link>
             )}
           </p>
         </div>
       )}
       {t.gap_closure && (
-        <div className="card section-card" style={{ marginBottom: 18 }} data-testid="transfer-gap-closure">
-          <p className="eyebrow">Gap closure {t.gap_closure.doc_number ? `· ${t.gap_closure.doc_number}` : "(draft)"}</p>
+        <div
+          className="card section-card"
+          style={{ marginBottom: 18 }}
+          data-testid="transfer-gap-closure"
+        >
+          <p className="eyebrow">
+            Gap closure {t.gap_closure.doc_number ? `· ${t.gap_closure.doc_number}` : "(draft)"}
+          </p>
           <h3 className="h3">{t.gap_closure.reason_label}</h3>
-          {t.gap_closure.note && <p className="lead" style={{ marginTop: 6 }}>{t.gap_closure.note}</p>}
+          {t.gap_closure.note && (
+            <p className="lead" style={{ marginTop: 6 }}>
+              {t.gap_closure.note}
+            </p>
+          )}
           <div style={{ marginTop: 12 }}>
             <ApprovalTrail
               createdByName={t.gap_closure.created_by_name}
@@ -1075,7 +1305,9 @@ export function TransferDetailPage() {
           <tbody>
             {t.lines.map((l) => (
               <tr key={l.id}>
-                <td><b className="mono">{l.sku_code}</b></td>
+                <td>
+                  <b className="mono">{l.sku_code}</b>
+                </td>
                 <td>{l.design || "—"}</td>
                 <td>{l.size || "—"}</td>
                 <td>{l.color || "—"}</td>
@@ -1083,9 +1315,13 @@ export function TransferDetailPage() {
                 <td className="num">{l.qty_planned ?? "—"}</td>
                 <td className="num">
                   {l.qty_dispatched}
-                  {t.docstatus === 1 && l.qty_planned != null && l.qty_planned !== l.qty_dispatched && (
-                    <span className="chip chip-amber" style={{ marginLeft: 6 }}>≠ plan</span>
-                  )}
+                  {t.docstatus === 1 &&
+                    l.qty_planned != null &&
+                    l.qty_planned !== l.qty_dispatched && (
+                      <span className="chip chip-amber" style={{ marginLeft: 6 }}>
+                        ≠ plan
+                      </span>
+                    )}
                 </td>
                 <td className="num">{l.qty_received}</td>
                 <td className="num">{l.qty_resolved || "—"}</td>
@@ -1096,7 +1332,9 @@ export function TransferDetailPage() {
                     "—"
                   )}
                 </td>
-                <td className="num">{l.unit_cost_paise ? <Money paise={l.unit_cost_paise} /> : "—"}</td>
+                <td className="num">
+                  {l.unit_cost_paise ? <Money paise={l.unit_cost_paise} /> : "—"}
+                </td>
               </tr>
             ))}
             {t.lines.length === 0 && (

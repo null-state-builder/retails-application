@@ -133,7 +133,11 @@ function list<T>(value: unknown): T[] {
 }
 
 function text(value: unknown): string {
-  return typeof value === "string" ? value : value === undefined || value === null ? "" : String(value);
+  return typeof value === "string"
+    ? value
+    : value === undefined || value === null
+      ? ""
+      : String(value);
 }
 
 // --------------------------------------------------------------------------
@@ -196,10 +200,10 @@ export function TaxRatesEditor({ value, onChange }: EditorProps) {
   }
 
   function setSlab(ruleIndex: number, slabIndex: number, patch: Partial<Slab>) {
+    const rule = rules[ruleIndex];
+    if (!rule) return;
     setRule(ruleIndex, {
-      slabs: rules[ruleIndex].slabs.map((slab, i) =>
-        i === slabIndex ? { ...slab, ...patch } : slab,
-      ),
+      slabs: rule.slabs.map((slab, i) => (i === slabIndex ? { ...slab, ...patch } : slab)),
     });
   }
 
@@ -697,9 +701,7 @@ export function LabelEditor({ value, onChange }: EditorProps) {
             className="input"
             type="number"
             value={Number(value.max_payload_characters ?? 32)}
-            onChange={(e) =>
-              onChange({ ...value, max_payload_characters: Number(e.target.value) })
-            }
+            onChange={(e) => onChange({ ...value, max_payload_characters: Number(e.target.value) })}
             data-testid="label-payload"
           />
         </Field>
@@ -781,8 +783,8 @@ export function ReadOnlyPayload({ value, kind }: { value: Payload; kind: string 
   return (
     <div data-testid="payload-readonly">
       <p className="warn-note">
-        This screen has no form for {kind} configuration yet, so it is shown as it stands and
-        cannot be changed here.
+        This screen has no form for {kind} configuration yet, so it is shown as it stands and cannot
+        be changed here.
       </p>
       <pre className="mono" style={{ overflowX: "auto", fontSize: 12 }}>
         {JSON.stringify(value, null, 2)}

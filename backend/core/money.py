@@ -95,7 +95,7 @@ class MoneyField(_MoneyBase[_ST, _GT]):
                 f"{type(value).__name__} {value!r}. Convert at the edge with "
                 "rupees_to_paise() — a float/Decimal must never reach a money column."
             )
-        return value
+        return int(value)
 
     def get_prep_value(self, value: Any) -> int | None:
         # The DB-write boundary: this is where BigIntegerField would coerce.

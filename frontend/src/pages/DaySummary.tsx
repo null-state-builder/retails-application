@@ -95,7 +95,8 @@ export function flagLine(flag: Pick<FlagT, "kind" | "details">): string {
     }
     case "gst_mismatch": {
       const lines = (d.lines as { line_no: number }[]) ?? [];
-      if (!lines.length) return `Printed ${d.printed_split ?? "?"}, books say ${d.derived_split ?? "?"}.`;
+      if (!lines.length)
+        return `Printed ${d.printed_split ?? "?"}, books say ${d.derived_split ?? "?"}.`;
       return `Tax on line ${lines.map((l) => l.line_no).join(", ")} is not what the tax settings say.`;
     }
     case "tax_version_mismatch":
@@ -161,7 +162,14 @@ export function flagLine(flag: Pick<FlagT, "kind" | "details">): string {
     }
     // Ticket 48: over a month's cap on returns without a bill. The bill stands.
     case "no_bill_return_cap": {
-      const over = (d.over as { by: string; count: number; cap: number; phone_end?: string; name?: string }[]) ?? [];
+      const over =
+        (d.over as {
+          by: string;
+          count: number;
+          cap: number;
+          phone_end?: string;
+          name?: string;
+        }[]) ?? [];
       const parts = over.map((o) =>
         o.by === "phone"
           ? `phone ending ${o.phone_end ?? "?"} has ${o.count} this month (cap ${o.cap})`
@@ -176,6 +184,15 @@ export function flagLine(flag: Pick<FlagT, "kind" | "details">): string {
 
 function fmtDate(iso: string): string {
   const [y, m, d] = iso.split("-").map(Number);
+  if (
+    y === undefined ||
+    m === undefined ||
+    d === undefined ||
+    !Number.isInteger(y) ||
+    !Number.isInteger(m) ||
+    !Number.isInteger(d)
+  )
+    return iso;
   return new Date(y, m - 1, d).toLocaleDateString("en-IN", {
     weekday: "short",
     day: "numeric",
@@ -376,7 +393,10 @@ export default function DaySummary() {
                 the shop already owed - so the one figure a person counts cash
                 against is said out loud rather than left to be worked out. */}
             <p className="lead day-drawer" data-testid="day-drawer">
-              Cash in the drawer for this day: <b className="mono"><Money paise={summary.modes.cash} /></b>
+              Cash in the drawer for this day:{" "}
+              <b className="mono">
+                <Money paise={summary.modes.cash} />
+              </b>
             </p>
           </div>
 
@@ -422,7 +442,9 @@ export default function DaySummary() {
                         </Link>
                       )}
                       {flag.status !== "open" && (
-                        <span className={`chip chip-${flag.status === "resolved" ? "green" : "grey"}`}>
+                        <span
+                          className={`chip chip-${flag.status === "resolved" ? "green" : "grey"}`}
+                        >
                           {flag.status === "resolved" ? "Dealt with" : "Needs nothing"}
                           {flag.resolved_by_name ? ` · ${flag.resolved_by_name}` : ""}
                         </span>

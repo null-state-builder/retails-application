@@ -94,7 +94,7 @@ export function whereText(entry: {
 /** `stock.transfer.create` → "Stock transfer create"; the code stays in a tooltip. */
 export function actionText(action: string): string {
   const words = action.replace(/[._]/g, " ").trim();
-  return words ? words[0].toUpperCase() + words.slice(1) : action;
+  return words ? words.charAt(0).toUpperCase() + words.slice(1) : action;
 }
 
 /** A failed request with no answer at all is a lost connection, not a refusal. */

@@ -33,7 +33,7 @@ export function PlannedPage() {
   return (
     <div className="page-pad">
       <PageHeader
-        title={screen?.label}
+        {...(screen ? { title: screen.label } : {})}
         actions={
           <span className={`chip chip-${STAGE_TONE[planned.module.stage]}`}>
             {STAGE_LABEL[planned.module.stage]}
@@ -68,8 +68,8 @@ export function PlannedPage() {
       </div>
 
       <p className="planned-stamp">
-        Not built yet — part of <b>{planned.module.name}</b> in the module-wise build-status
-        report sent to KDPS management on 21 July 2026.
+        Not built yet — part of <b>{planned.module.name}</b> in the module-wise build-status report
+        sent to KDPS management on 21 July 2026.
       </p>
     </div>
   );
@@ -87,8 +87,8 @@ export function NotFound() {
           <Compass size={24} />
         </div>
         <p className="lead" style={{ maxWidth: 560 }}>
-          This is not a screen. Use the sidebar, or the search box at the top, to get where you
-          were going.
+          This is not a screen. Use the sidebar, or the search box at the top, to get where you were
+          going.
         </p>
       </div>
     </div>

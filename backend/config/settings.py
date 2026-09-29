@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from urllib.parse import urlsplit
 
 import dj_database_url
 from corsheaders.defaults import default_headers
@@ -17,22 +18,28 @@ from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load .env (DATABASE_URL, secrets, seed admin creds) — the served process and
-# local manage.py commands both read it. Protected vars never go in code.
-#
-# override=True: this file is the authority on which local stack we are part of.
-# .env is gitignored and only ever written by app/scripts/dev.sh, which stamps it
-# with THIS worktree's DATABASE_URL — each Conductor workspace runs its own
-# Postgres on its own port (app/scripts/workspace-env.sh). Default dotenv behaviour
-# is the opposite, letting an inherited environment variable win, and that is a
-# silent wrong-database bug: a shell that exported another workspace's URL, or a
-# Conductor [environment_variables] entry, would migrate and seed a database
-# belonging to somebody else's branch with nothing on screen to say so.
-#
-# Inert everywhere it must be. A hosted deploy and GitHub CI supply
-# DATABASE_URL as real environment variables and never have a .env file to read,
-# so there is nothing for override to override.
-load_dotenv(BASE_DIR / ".env", override=True)
+# Normal local commands take their database target from the private .env, rather
+# than from a stale exported shell variable. SO-02 proof commands deliberately
+# reverse that precedence: their launcher supplies a separate disposable target
+# and this branch must never read the working development .env.
+PROOF_MODE = os.environ.get("KDPS_PROOF_MODE") == "1"
+if PROOF_MODE:
+    target = urlsplit(os.environ.get("DATABASE_URL", ""))
+    if not (
+        target.scheme in {"postgres", "postgresql"}
+        and target.hostname == "127.0.0.1"
+        and target.port == 55433
+        and target.path == "/kdps_proof"
+        and target.username == "kdps_proof"
+        and bool(target.password)
+        and os.environ.get("KDPS_TEST_DB_NAME") == "kdps_proof_test"
+    ):
+        raise RuntimeError(
+            "KDPS_PROOF_MODE requires the isolated kdps_proof target on "
+            "127.0.0.1:55433 and KDPS_TEST_DB_NAME=kdps_proof_test."
+        )
+else:
+    load_dotenv(BASE_DIR / ".env", override=True)
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "ci-secret-not-for-production")
 DEBUG = os.getenv("DJANGO_DEBUG", "1") == "1"
@@ -319,10 +326,30 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "Deterministic retail ERP for KDPS Lifestyle Pvt Ltd.",
     "VERSION": "0.1.0",
     "SERVE_INCLUDE_SCHEMA": False,
-    # Two "every" choices share a field name: pin both names so neither drifts.
+    # Distinct choice sets share generic field names across apps. Pin semantic
+    # names so client generation never receives hash-suffixed enum names.
     "ENUM_NAME_OVERRIDES": {
         "EveryEnum": "outbound.count_schedule_models.CountEvery",
         "ChecklistEveryEnum": "storefront.checklist_models.ChecklistEvery",
+        "ContinuityFlagKindEnum": "sell.models.ContinuityFlag.Kind",
+        "BrandLayoutKindEnum": "config.openapi_enums.BRAND_LAYOUT_KIND",
+        "BrandTermsKindEnum": "config.openapi_enums.BRAND_TERMS_KIND",
+        "ContinuityFlagStatusEnum": "sell.models.ContinuityFlag.Status",
+        "CountWorkflowStatusEnum": "outbound.models.CountStatus",
+        "OfferStatusEnum": "offers.models.Offer.Status",
+        "BrandClaimStatusEnum": "config.openapi_enums.BRAND_CLAIM_STATUS",
+        "BrandTermsDecisionStatusEnum": "config.openapi_enums.BRAND_TERMS_DECISION_STATUS",
+        "BrokenSizeActionEnum": "config.openapi_enums.BROKEN_SIZE_ACTION",
+        "ApprovalDecisionActionEnum": "config.openapi_enums.APPROVAL_DECISION_ACTION",
+        "PayablePaymentModeEnum": "config.openapi_enums.PAYABLE_PAYMENT_MODE",
+        "ConnectedSwitchModeEnum": "config.openapi_enums.CONNECTED_SWITCH_MODE",
+        "CustomerAdvanceTenderModeEnum": "config.openapi_enums.CUSTOMER_ADVANCE_TENDER_MODE",
+        "StockAdjustmentReasonEnum": "outbound.models.AdjustmentReason",
+        "GapClosureReasonEnum": "outbound.models.GapReason",
+        "StoreTransferReasonEnum": "outbound.models.TransferReason",
+        "GiftVoucherStateEnum": "config.openapi_enums.GIFT_VOUCHER_STATE",
+        "StockRequestSourceEnum": "outbound.models.StockRequestSource",
+        "OfferTriggerTypeEnum": "offers.models.Offer.Trigger",
     },
 }
 

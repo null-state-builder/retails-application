@@ -114,7 +114,7 @@ def _count(value: Any, field: str) -> int:
         return 0
     if isinstance(value, bool) or not isinstance(value, int) or not 0 <= value <= transfers.MAX_QTY:
         raise transfers._invalid(f"{field} is a whole number from 0 to {transfers.MAX_QTY}.", field)
-    return value
+    return int(value)
 
 
 def parse_return(body: dict[str, Any], now: datetime) -> ReturnReceipt:

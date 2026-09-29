@@ -14,9 +14,11 @@ from typing import Any, cast
 
 from django.db import transaction
 from django.utils import timezone
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework import serializers
 from rest_framework.serializers import Serializer
 from rest_framework.views import APIView
 
@@ -37,6 +39,37 @@ CanReadOrApprove = require_section("offers_price", CAP_VIEW, write_minimum=CAP_A
 CanManageConfig = require_section("offers_price", CAP_VIEW, write_minimum=CAP_APPROVE)
 
 
+class EossPlanRequestSerializer(serializers.Serializer[Any]):
+    season = serializers.CharField()
+
+
+class EossPlanResponseSerializer(serializers.Serializer[Any]):
+    generated = serializers.IntegerField(read_only=True)
+    recommendations = EossRecommendationSerializer(many=True, read_only=True)
+
+
+class EossDecisionRequestSerializer(serializers.Serializer[Any]):
+    action = serializers.ChoiceField(choices=("approve", "reject"))
+    discount_pct = serializers.FloatField(required=False, min_value=0, max_value=90)
+
+
+class EossConfigRequestSerializer(serializers.Serializer[Any]):
+    brand = serializers.CharField(required=False)
+    ladder = EossLadderStepSerializer(many=True)
+    targets = SellThroughTargetSerializer(many=True)
+
+
+class EossConfigResponseSerializer(serializers.Serializer[Any]):
+    ladder = EossLadderStepSerializer(many=True, read_only=True)
+    targets = SellThroughTargetSerializer(many=True, read_only=True)
+
+
+REFUSAL_RESPONSE = {
+    "type": "object", "required": ["error", "code"],
+    "properties": {"error": {"type": "string"}, "code": {"type": "string"}},
+}
+
+
 def _bad_request(message: str) -> Response:
     return Response(refusal_body("VALIDATION", message), status=400)
 
@@ -46,6 +79,13 @@ class EossRecommendationListView(APIView):
 
     permission_classes = [IsAuthenticated, CanReadOrApprove]
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("season", str), OpenApiParameter("brand", str),
+            OpenApiParameter("status", str),
+        ],
+        responses={200: EossRecommendationSerializer(many=True)},
+    )
     def get(self, request: Request) -> Response:
         rows = EossRecommendation.objects.select_related("season", "brand")
         season = (request.query_params.get("season") or "").strip()
@@ -59,6 +99,11 @@ class EossRecommendationListView(APIView):
             rows = rows.filter(status=status)
         return Response(EossRecommendationSerializer(rows, many=True).data)
 
+    @extend_schema(
+        request=EossPlanRequestSerializer,
+        responses={200: EossPlanResponseSerializer, 400: REFUSAL_RESPONSE,
+                   404: REFUSAL_RESPONSE},
+    )
     def post(self, request: Request) -> Response:
         season_code = str(request.data.get("season") or "").strip()
         if not season_code:
@@ -82,6 +127,11 @@ class EossRecommendationDecisionView(APIView):
 
     permission_classes = [IsAuthenticated, CanReadOrApprove]
 
+    @extend_schema(
+        request=EossDecisionRequestSerializer,
+        responses={200: EossRecommendationSerializer, 400: REFUSAL_RESPONSE,
+                   404: REFUSAL_RESPONSE},
+    )
     @transaction.atomic
     def post(self, request: Request, pk: int) -> Response:
         rec = (
@@ -162,6 +212,10 @@ class EossConfigView(APIView):
 
     permission_classes = [IsAuthenticated, CanManageConfig]
 
+    @extend_schema(
+        parameters=[OpenApiParameter("brand", str)],
+        responses={200: EossConfigResponseSerializer},
+    )
     def get(self, request: Request) -> Response:
         brand_code = (request.query_params.get("brand") or "").strip()
         ladder = EossLadderStep.objects.select_related("brand")
@@ -179,6 +233,11 @@ class EossConfigView(APIView):
             }
         )
 
+    @extend_schema(
+        request=EossConfigRequestSerializer,
+        responses={200: EossConfigResponseSerializer, 400: REFUSAL_RESPONSE,
+                   404: REFUSAL_RESPONSE},
+    )
     @transaction.atomic
     def put(self, request: Request) -> Response:
         brand_code = (request.data.get("brand") or "").strip() or None

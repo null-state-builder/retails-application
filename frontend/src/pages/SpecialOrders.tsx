@@ -53,7 +53,7 @@ export function SpecialOrdersPage() {
   const store =
     picked ||
     (activeStore?.store_type === "store" ? activeStore.code : "") ||
-    (stores.length === 1 ? stores[0].code : "");
+    (stores.length === 1 ? (stores[0]?.code ?? "") : "");
 
   const [listing, setListing] = useState<Listing | null>(null);
   const [draft, setDraft] = useState<SpecialOrderDraft>(emptyDraft);
@@ -81,7 +81,9 @@ export function SpecialOrdersPage() {
       }
       const mine = ++request.current;
       try {
-        const l = await api.get<Listing>(SPECIAL_ORDERS_API, { params: q ? { store, q } : { store } });
+        const l = await api.get<Listing>(SPECIAL_ORDERS_API, {
+          params: q ? { store, q } : { store },
+        });
         if (mine !== request.current) return;
         setLost(false);
         setListing(l.data);
@@ -114,7 +116,11 @@ export function SpecialOrdersPage() {
 
   /** One write. A dropped connection keeps everything as typed and the command's
    *  identity; any answer from the server - saved or refused - ends that command. */
-  async function post<T>(path: string, body: Record<string, unknown>, answered: () => void): Promise<T | null> {
+  async function post<T>(
+    path: string,
+    body: Record<string, unknown>,
+    answered: () => void,
+  ): Promise<T | null> {
     if (!navigator.onLine) {
       setOnline(false);
       return null;
@@ -439,7 +445,9 @@ function OrderCard({
   send: Send;
 }) {
   const chip = statusChip(o.status);
-  const [route, setRoute] = useState<"transfer" | "booking">(sources.length ? "transfer" : "booking");
+  const [route, setRoute] = useState<"transfer" | "booking">(
+    sources.length ? "transfer" : "booking",
+  );
   const [source, setSource] = useState(sources[0]?.code ?? "");
   const [barcode, setBarcode] = useState("");
   const [booking, setBooking] = useState("");
@@ -573,7 +581,12 @@ function OrderCard({
             data-testid={`special-order-arrive-${o.ref}`}
             disabled={!writable}
             onClick={() =>
-              void send(o, "arrive", { barcode: piece.trim() }, (after) => `${after.ref} has arrived. Tell the customer.`)
+              void send(
+                o,
+                "arrive",
+                { barcode: piece.trim() },
+                (after) => `${after.ref} has arrived. Tell the customer.`,
+              )
             }
           >
             Arrived
@@ -592,10 +605,17 @@ function OrderCard({
               data-testid={`special-order-told-${how}-${o.ref}`}
               disabled={!writable}
               onClick={() =>
-                void send(o, "tell", { told_how: how }, (after) => `${after.ref}: customer told ${toldText(how)}.`)
+                void send(
+                  o,
+                  "tell",
+                  { told_how: how },
+                  (after) => `${after.ref}: customer told ${toldText(how)}.`,
+                )
               }
             >
-              {toldText(how).replace(/^by /, "").replace(/^./, (c) => c.toUpperCase())}
+              {toldText(how)
+                .replace(/^by /, "")
+                .replace(/^./, (c) => c.toUpperCase())}
             </button>
           ))}
         </div>
@@ -654,7 +674,8 @@ function OrderCard({
                 o,
                 "refund",
                 {},
-                (after) => `${after.ref}: ${advanceText(after)} by ${after.voucher?.mode.toUpperCase() ?? "cash"}.`,
+                (after) =>
+                  `${after.ref}: ${advanceText(after)} by ${after.voucher?.mode.toUpperCase() ?? "cash"}.`,
               )
             }
           >

@@ -122,7 +122,7 @@ export function BookingTiles({
   booked: number;
   arrived: number;
   toCome: number;
-  costPaise?: number | null;
+  costPaise?: number | null | undefined;
   mrpPaise: number | null;
   toComeTestId?: string;
 }) {
@@ -130,7 +130,11 @@ export function BookingTiles({
     <div className="bk-tiles" data-testid="booking-tiles">
       <Tile label="Booked" value={`${booked} pcs`} />
       <Tile label="Arrived" value={`${arrived} pcs`} />
-      <Tile label="Still to come" value={`${toCome} pcs`} testId={toComeTestId} />
+      <Tile
+        label="Still to come"
+        value={`${toCome} pcs`}
+        {...(toComeTestId ? { testId: toComeTestId } : {})}
+      />
       {costPaise !== undefined && (
         <Tile label="Total cost" value={moneyOrDash(costPaise)} testId="booking-total-cost" />
       )}

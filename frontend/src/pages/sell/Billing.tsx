@@ -2,13 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MutableRefObject, RefObject } from "react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import {
-  AlertTriangle,
-  Gift,
-  MonitorSmartphone,
-  Undo2,
-  X,
-} from "lucide-react";
+import { AlertTriangle, Gift, MonitorSmartphone, Undo2, X } from "lucide-react";
 
 import { useAuth } from "../../auth/AuthContext";
 import { PlusRail } from "./billing/plus/PlusRail";
@@ -112,11 +106,7 @@ import { PaymentPanel } from "./billing/PaymentPanel";
 import { RailFoot } from "./billing/RailFoot";
 import { TaxFigure } from "./billing/TaxFigure";
 import { UpiCharge } from "./billing/UpiCharge";
-import {
-  AgainstBill,
-  RecentBills,
-  ReturnCustomerSearch,
-} from "./billing/ReturnCounter";
+import { AgainstBill, RecentBills, ReturnCustomerSearch } from "./billing/ReturnCounter";
 import type { ReturnBillMatch, ReturnSearchKey } from "./billing/ReturnCounter";
 import { ManagerPin, useWrongPins } from "./ManagerPin";
 import "./Billing.css";
@@ -189,13 +179,9 @@ export default function BillingPage() {
   const { engine, till } = useTill();
 
   if (!engine || !till) return <NoCounter />;
+  const storeName = user?.stores?.find((s) => s.code === engine.storeCode)?.name;
 
-  return (
-    <Counter
-      key={engine.storeCode}
-      storeName={user?.stores?.find((s) => s.code === engine.storeCode)?.name}
-    />
-  );
+  return <Counter key={engine.storeCode} {...(storeName ? { storeName } : {})} />;
 }
 
 function Counter({
@@ -284,15 +270,31 @@ function Counter({
           try {
             const res = await fetch("/api/sell/sales?recent=3");
             if (res.ok) {
-              const data = await res.json();
-              serverSummaries = data.map((row: any) => ({
-                doc_number: row.doc_number,
-                billed_at: row.billed_at,
-                customer_name: row.customer_name || "",
-                customer_mobile: row.customer_mobile || "",
-                net_paise: row.net_paise,
-                local: null,
-              }));
+              const data: unknown = await res.json();
+              serverSummaries = Array.isArray(data)
+                ? data.flatMap((candidate: unknown) => {
+                    if (!candidate || typeof candidate !== "object") return [];
+                    const row = candidate as Record<string, unknown>;
+                    if (
+                      typeof row.doc_number !== "string" ||
+                      typeof row.billed_at !== "string" ||
+                      typeof row.net_paise !== "number"
+                    )
+                      return [];
+                    return [
+                      {
+                        doc_number: row.doc_number,
+                        billed_at: row.billed_at,
+                        customer_name:
+                          typeof row.customer_name === "string" ? row.customer_name : "",
+                        customer_mobile:
+                          typeof row.customer_mobile === "string" ? row.customer_mobile : "",
+                        net_paise: row.net_paise,
+                        local: null,
+                      },
+                    ];
+                  })
+                : [];
             }
           } catch {
             // Ignore fetch errors
@@ -855,8 +857,8 @@ function Counter({
       setReturnFound(checked);
       setExchangeFromPicked(checked, {});
       setReturnSearchOpen(false);
-    } catch (err: any) {
-      setReturnError(err.message || "Could not load bill details.");
+    } catch (err) {
+      setReturnError(apiErrorMessage(err));
     } finally {
       setReturnLooking(false);
     }
@@ -996,12 +998,11 @@ function Counter({
         params: { doc: reference },
       });
       if (!isCurrent()) return;
-      const matches = rows.flatMap((row) => row.doc_number ? [row.doc_number] : []);
+      const matches = rows.flatMap((row) => (row.doc_number ? [row.doc_number] : []));
       if (!matches.length) {
         // Ticket 13: a bill another store issued is not in this store's list;
         // head office says where it can go back (never what is on it).
-        const elsewhere =
-          world.tax?.return_tax === true ? await whereReturnable(reference) : "";
+        const elsewhere = world.tax?.return_tax === true ? await whereReturnable(reference) : "";
         if (!isCurrent()) return;
         setReturnError(elsewhere || `No bill ${reference} at this store.`);
         return;
@@ -1010,10 +1011,15 @@ function Counter({
         setReturnError("More than one bill matches. Type or scan the full bill number.");
         return;
       }
+      const matchedDoc = matches[0];
+      if (!matchedDoc) {
+        setReturnError("No bill number was returned for that reference.");
+        return;
+      }
       const found = await withStableQueue(engine.db, async () => {
         if (!isCurrent()) return null;
         const { data } = await typedApi.get(
-          `/sell/sales/${encodeURIComponent(matches[0])}` as "/sell/sales/{doc_number}",
+          `/sell/sales/${encodeURIComponent(matchedDoc)}` as "/sell/sales/{doc_number}",
         );
         if (!isCurrent()) return null;
         return withQueuedReturns(engine.db, fromServer(data));
@@ -1087,10 +1093,7 @@ function Counter({
     scan.focus();
   }
 
-  async function searchReturnCustomer(
-    term = returnSearchTerm,
-    key = returnSearchKey,
-  ) {
+  async function searchReturnCustomer(term = returnSearchTerm, key = returnSearchKey) {
     const isCurrent = returnRequests.current.start();
     if (!engine || !term.trim()) {
       setReturnLooking(false);
@@ -1335,7 +1338,8 @@ function Counter({
     }));
     editCustomer({ ...customer, name: o.customer_name, mobile: o.customer_mobile });
     // The piece that arrived, scanned on unless the cashier already did.
-    if (!cart.lines.some((line) => line.barcode === o.arrived_barcode)) applyScan(o.arrived_barcode);
+    if (!cart.lines.some((line) => line.barcode === o.arrived_barcode))
+      applyScan(o.arrived_barcode);
     scan.focus();
   }
 
@@ -1694,16 +1698,10 @@ function Counter({
       const billToSave =
         authorisation === cart.authorisation
           ? bill
-          : priceCart(
-              { ...cartWithSoldBy, authorisation },
-              world,
-              today,
-              {
-                capPercent: world.policy.manual_discount_cap_percent,
-                allowManualDiscountOnOfferLines:
-                  world.policy.manual_discount_on_offer_lines,
-              },
-            );
+          : priceCart({ ...cartWithSoldBy, authorisation }, world, today, {
+              capPercent: world.policy.manual_discount_cap_percent,
+              allowManualDiscountOnOfferLines: world.policy.manual_discount_on_offer_lines,
+            });
       const billedAt = paper === null ? new Date().toISOString() : new Date(paperAt).toISOString();
       const draft = toDraft(billToSave, { billedAt, customer, storeStateCode: storeState });
       const queued =
@@ -1714,7 +1712,7 @@ function Counter({
           : await engine.reenterFromPaper(draft, paper);
       setCommits((n) => n + 1);
       const receipt = receiptHtml(queued, world.store ?? FALLBACK_STORE, {
-        storeName,
+        ...(storeName ? { storeName } : {}),
         cashReceivedPaise: billToSave.split.cash_received_paise,
         describe: describeFrom(billToSave.lines),
       });
@@ -1812,9 +1810,7 @@ function Counter({
   }
 
   useCounterKeys({
-    disabled: Boolean(
-      charging || showHolds || counterBlocked || saving || holding || returnAsking,
-    ),
+    disabled: Boolean(charging || showHolds || counterBlocked || saving || holding || returnAsking),
     finishOpen,
     onHold: () => void holdBill(),
     onLookup: openLookup,
@@ -1903,12 +1899,10 @@ function Counter({
             }
             returnStage={!returnFound ? "bill" : returnOutgoing ? "exchange" : "return"}
             hasError={
-              mode === "return" && !returnOutgoing
-                ? Boolean(returnError)
-                : Boolean(unknown)
+              mode === "return" && !returnOutgoing ? Boolean(returnError) : Boolean(unknown)
             }
             errorBarcode={mode === "return" && !returnOutgoing ? typed.trim() : unknown}
-            errorMessage={mode === "return" && !returnOutgoing ? returnError : undefined}
+            {...(mode === "return" && !returnOutgoing ? { errorMessage: returnError } : {})}
             demoCodes={mode === "sale" || returnOutgoing ? demoCodes : []}
             onChange={setTyped}
             onSubmit={applyCounterScan}
@@ -1924,9 +1918,9 @@ function Counter({
           {paper !== null && (
             <div className="bill-paper" data-testid="bill-paper">
               <div>
-                <strong>Entering printed bill {paper}</strong> - this one was rung up on the
-                machine this counter replaced and never reached head office. Enter it exactly as
-                the printed copy reads. It keeps its own number, and nothing prints.
+                <strong>Entering printed bill {paper}</strong> - this one was rung up on the machine
+                this counter replaced and never reached head office. Enter it exactly as the printed
+                copy reads. It keeps its own number, and nothing prints.
               </div>
               <div className="field">
                 <label htmlFor="bill-paper-at">Date and time on the printed copy</label>
@@ -2062,18 +2056,12 @@ function Counter({
                 found={returnFound}
                 picked={returnPicked}
                 outgoing={returnOutgoing}
-                late={isPastReturnWindow(
-                  returnFound.billed_at,
-                  world.policy.return_window_days,
-                )}
+                late={isPastReturnWindow(returnFound.billed_at, world.policy.return_window_days)}
                 windowDays={world.policy.return_window_days}
                 locked={locked}
                 onPick={pickReturnLine}
                 onTakeEverything={() =>
-                  setExchangeFromPicked(
-                    returnFound,
-                    takeEverythingBack(returnFound, returnPicked),
-                  )
+                  setExchangeFromPicked(returnFound, takeEverythingBack(returnFound, returnPicked))
                 }
                 onOutgoing={(outgoing) => {
                   setReturnOutgoing(outgoing);
@@ -2124,16 +2112,20 @@ function Counter({
             }}
           />
           {params.get("preview") === "plus" && (
-            <PlusRail payablePaise={bill.payable_paise} online={till?.online ?? true} locked={locked} />
+            <PlusRail
+              payablePaise={bill.payable_paise}
+              online={till?.online ?? true}
+              locked={locked}
+            />
           )}
           {params.get("preview") !== "plus" && (
-          <CustomerStrip
-            value={customer}
-            storeStateCode={storeState}
-            db={engine?.db ?? null}
-            locked={locked}
-            onChange={editCustomer}
-          />
+            <CustomerStrip
+              value={customer}
+              storeStateCode={storeState}
+              db={engine?.db ?? null}
+              locked={locked}
+              onChange={editCustomer}
+            />
           )}
           {/* Ticket 20: collecting a customer reservation. Only where the store
               has it on (or this bill already carries one), and only in the tab
@@ -2142,15 +2134,15 @@ function Counter({
             till?.lockHeld &&
             !cart.special_order &&
             (till.customerReservation || cart.reservation) && (
-            <ReservationPickupCard
-              storeCode={engine.storeCode}
-              online={till.online}
-              locked={locked}
-              current={cart.reservation ?? null}
-              onCollect={collectReservation}
-              onClear={clearReservation}
-            />
-          )}
+              <ReservationPickupCard
+                storeCode={engine.storeCode}
+                online={till.online}
+                locked={locked}
+                current={cart.reservation ?? null}
+                onCollect={collectReservation}
+                onClear={clearReservation}
+              />
+            )}
           {/* Ticket 21: collecting a special order, the same way. */}
           {engine &&
             till?.lockHeld &&
@@ -2168,19 +2160,17 @@ function Counter({
           {/* Ticket 19: selling and taking gift vouchers. Only where the store
               has them on (or this bill already carries one), and only in the
               tab that holds the counter. Online only. */}
-          {engine &&
-            till?.lockHeld &&
-            (till.giftVouchers || bill.gift_vouchers.length > 0) && (
-              <GiftVoucherCard
-                storeCode={engine.storeCode}
-                online={till.online}
-                locked={locked}
-                held={bill.gift_vouchers}
-                onTake={takeGiftVoucher}
-                onRemove={removeGiftVoucher}
-                onPrint={(html) => void print(html)}
-              />
-            )}
+          {engine && till?.lockHeld && (till.giftVouchers || bill.gift_vouchers.length > 0) && (
+            <GiftVoucherCard
+              storeCode={engine.storeCode}
+              online={till.online}
+              locked={locked}
+              held={bill.gift_vouchers}
+              onTake={takeGiftVoucher}
+              onRemove={removeGiftVoucher}
+              onPrint={(html) => void print(html)}
+            />
+          )}
           {/* Ticket 22: a paid alteration's charge. Only where the store has
               alterations on; it bills offline like any line. */}
           {till?.alterationCharge && till.lockHeld && (
@@ -2699,23 +2689,13 @@ function ExchangeBack({
   );
 }
 
-function Totals({
-  bill,
-  taxKind,
-}: {
-  bill: ReturnType<typeof priceCart>;
-  taxKind: B2bTaxKind;
-}) {
+function Totals({ bill, taxKind }: { bill: ReturnType<typeof priceCart>; taxKind: B2bTaxKind }) {
   return (
     <div className="bill-totals" data-testid="bill-totals">
       <Figure label="Pieces" value={String(bill.pieces)} />
       <Figure label="Gross" value={<Money paise={bill.gross_paise} />} />
       {bill.saved_paise > 0 && (
-        <Figure
-          label="You saved"
-          value={<Money paise={bill.saved_paise} />}
-          testId="bill-saved"
-        />
+        <Figure label="You saved" value={<Money paise={bill.saved_paise} />} testId="bill-saved" />
       )}
       {bill.refund_paise > 0 && (
         <Figure
@@ -2787,8 +2767,8 @@ function Totals({
       )}
       {bill.credit_note?.late && (
         <p className="warn-note" data-testid="bill-credit-note-late">
-          This piece is back after its credit-note deadline, so the customer gets its value but
-          the credit note reduces no tax. Head office is told.
+          This piece is back after its credit-note deadline, so the customer gets its value but the
+          credit note reduces no tax. Head office is told.
         </p>
       )}
       {bill.refund_bank_paise > 0 && (
@@ -2845,9 +2825,9 @@ function NoCounter() {
     <div className="page-pad">
       <PageHeader lead="The counter." />
       <p className="warn-note" data-testid="bill-no-counter">
-        This login is not a counter. A till signs in as one store: the local price list and
-        manager authorisations belong to a single shop, so a login that can see several has no
-        counter to bill from.
+        This login is not a counter. A till signs in as one store: the local price list and manager
+        authorisations belong to a single shop, so a login that can see several has no counter to
+        bill from.
       </p>
     </div>
   );

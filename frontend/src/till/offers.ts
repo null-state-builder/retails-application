@@ -245,7 +245,7 @@ function reachedSlab(rule: TillOffer, spendPaise: number, units: number): Dials 
   const qualifying = slabsOf(rule)
     .filter((slab) => reached >= Number(slab[key] ?? 0))
     .sort((a, b) => Number(a[key] ?? 0) - Number(b[key] ?? 0));
-  return qualifying.length ? qualifying[qualifying.length - 1] : null;
+  return qualifying.at(-1) ?? null;
 }
 
 /** The step this set of lines reaches. Always measured on printed MRP (D5 Q13). */
@@ -407,7 +407,9 @@ function propose(
   day: string,
   afterDiscount = false,
 ): Proposal | null {
-  const covered = lines.filter((line) => covers(rule, line, day) && (base.get(line.line_no) ?? 0) > 0);
+  const covered = lines.filter(
+    (line) => covers(rule, line, day) && (base.get(line.line_no) ?? 0) > 0,
+  );
   if (!covered.length) return null;
   const slab = slabFor(rule, covered);
   if (slab === null) return null;
@@ -511,8 +513,8 @@ function runLayer(
       .sort(
         (a, b) => b.total - a.total || a.rule.priority - b.rule.priority || a.rule.id - b.rule.id,
       );
-    if (!proposals.length) break;
     const best = proposals[0];
+    if (!best) break;
 
     if (firstRound && exclusive) {
       for (const other of proposals.slice(1)) {

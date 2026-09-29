@@ -140,7 +140,9 @@ export function BrandReportsPage() {
     }
     setError("");
     try {
-      const response = await api.get<Blob>(`${MONTH_API}/files/${file.id}`, { responseType: "blob" });
+      const response = await api.get<Blob>(`${MONTH_API}/files/${file.id}`, {
+        responseType: "blob",
+      });
       saveBlob(response.data, file.file_name);
     } catch (reason) {
       if (isConnectionLost(reason)) setLost(true);
@@ -288,7 +290,8 @@ export function BrandReportsPage() {
                         const ref = b.layouts[kind];
                         return (
                           <div key={kind}>
-                            {KIND_WORDS[kind]}: {ref.own ? "own layout" : "standard"} (.{ref.file_type})
+                            {KIND_WORDS[kind]}: {ref.own ? "own layout" : "standard"} (.
+                            {ref.file_type})
                           </div>
                         );
                       })}
@@ -374,7 +377,10 @@ export function BrandReportsPage() {
               <li key={line}>{line}</li>
             ))}
           </ul>
-          <p>Each Excel file also has an "About this report" sheet stating its basis, as-of time and missing data.</p>
+          <p>
+            Each Excel file also has an "About this report" sheet stating its basis, as-of time and
+            missing data.
+          </p>
         </details>
       </section>
 
@@ -389,7 +395,9 @@ export function BrandReportsPage() {
         ) : (
           <>
             <p className="muted-cell">
-              {data.runs.map((r) => `${r.store.code}: ${r.files} file(s), ${asOfText(r.made_at)}`).join(" · ")}
+              {data.runs
+                .map((r) => `${r.store.code}: ${r.files} file(s), ${asOfText(r.made_at)}`)
+                .join(" · ")}
             </p>
             <div className="table-wrap">
               <table className="data" data-testid="brand-reports-kept-table">
@@ -410,7 +418,10 @@ export function BrandReportsPage() {
                       <td>
                         {KIND_WORDS[f.kind as ReportKind]}
                         {f.missing.length > 0 && (
-                          <span className="muted-cell" title={f.missing.map((m) => m.text).join(" ")}>
+                          <span
+                            className="muted-cell"
+                            title={f.missing.map((m) => m.text).join(" ")}
+                          >
                             {" "}
                             (with notes)
                           </span>
@@ -437,7 +448,11 @@ export function BrandReportsPage() {
         )}
       </section>
 
-      <LayoutEditor online={online} onLost={() => setLost(true)} onSaved={() => void load(store, month)} />
+      <LayoutEditor
+        online={online}
+        onLost={() => setLost(true)}
+        onSaved={() => void load(store, month)}
+      />
     </div>
   );
 }
@@ -553,7 +568,9 @@ function LayoutEditor({
       layout: draft,
     };
     // The very same save again, after a lost answer, replays the same command.
-    pending.current = pendingCommand(pending.current, JSON.stringify(body), () => crypto.randomUUID());
+    pending.current = pendingCommand(pending.current, JSON.stringify(body), () =>
+      crypto.randomUUID(),
+    );
     setSaving(true);
     setError("");
     try {
@@ -561,7 +578,10 @@ function LayoutEditor({
       pending.current = null;
       const response = await api.get<Layouts>(LAYOUTS_API);
       setLayouts(response.data);
-      setNote({ text: `Saved. ${brandName} ${KIND_WORDS[target.kind]} reports use it from now on.`, ok: true });
+      setNote({
+        text: `Saved. ${brandName} ${KIND_WORDS[target.kind]} reports use it from now on.`,
+        ok: true,
+      });
       onSaved();
     } catch (reason) {
       if (isConnectionLost(reason) || apiErrorCode(reason) === "OUTCOME_UNKNOWN") {
@@ -595,7 +615,10 @@ function LayoutEditor({
             data-testid="brand-layouts-brand"
             value={target.brandId === null ? "" : String(target.brandId)}
             onChange={(event) =>
-              setTarget((t) => ({ ...t, brandId: event.target.value ? Number(event.target.value) : null }))
+              setTarget((t) => ({
+                ...t,
+                brandId: event.target.value ? Number(event.target.value) : null,
+              }))
             }
           >
             <option value="">Company standard</option>
@@ -612,7 +635,9 @@ function LayoutEditor({
             className="input"
             data-testid="brand-layouts-kind"
             value={target.kind}
-            onChange={(event) => setTarget((t) => ({ ...t, kind: event.target.value as ReportKind }))}
+            onChange={(event) =>
+              setTarget((t) => ({ ...t, kind: event.target.value as ReportKind }))
+            }
           >
             {KINDS.map((kind) => (
               <option key={kind} value={kind}>
@@ -638,7 +663,9 @@ function LayoutEditor({
             data-testid="brand-layouts-file-type"
             value={draft.file_type}
             disabled={locked}
-            onChange={(event) => patch({ file_type: event.target.value as LayoutBody["file_type"] })}
+            onChange={(event) =>
+              patch({ file_type: event.target.value as LayoutBody["file_type"] })
+            }
           >
             {layouts.file_types.map((f) => (
               <option key={f.key} value={f.key}>
@@ -674,7 +701,9 @@ function LayoutEditor({
             data-testid="brand-layouts-header-border"
             value={draft.header_border ?? "grid"}
             disabled={locked}
-            onChange={(event) => patch({ header_border: event.target.value as LayoutBody["header_border"] })}
+            onChange={(event) =>
+              patch({ header_border: event.target.value as LayoutBody["header_border"] })
+            }
           >
             {layouts.header_borders.map((b) => (
               <option key={b.key} value={b.key}>
@@ -700,8 +729,8 @@ function LayoutEditor({
 
       <h3>Title lines</h3>
       <p className="muted-cell">
-        Can name {layouts.placeholders.map((p) => `{${p.key}}`).join(", ")}; in capitals ({"{BRAND}"}) the
-        value is written in capitals.
+        Can name {layouts.placeholders.map((p) => `{${p.key}}`).join(", ")}; in capitals (
+        {"{BRAND}"}) the value is written in capitals.
       </p>
       {draft.title_lines.map((line, index) => (
         <div className="toolbar" key={index} data-testid="brand-layouts-title">
@@ -713,7 +742,9 @@ function LayoutEditor({
             disabled={locked}
             onChange={(event) =>
               patch({
-                title_lines: draft.title_lines.map((l, i) => (i === index ? { ...l, text: event.target.value } : l)),
+                title_lines: draft.title_lines.map((l, i) =>
+                  i === index ? { ...l, text: event.target.value } : l,
+                ),
               })
             }
           />
@@ -799,7 +830,9 @@ function LayoutEditor({
                         data-testid="brand-layouts-column-value"
                         value={column.value ?? ""}
                         disabled={locked}
-                        onChange={(event) => setColumn(index, { ...column, value: event.target.value })}
+                        onChange={(event) =>
+                          setColumn(index, { ...column, value: event.target.value })
+                        }
                       />
                     )}
                   </td>
@@ -810,7 +843,9 @@ function LayoutEditor({
                       data-testid="brand-layouts-column-header"
                       value={column.header}
                       disabled={locked}
-                      onChange={(event) => setColumn(index, { ...column, header: event.target.value })}
+                      onChange={(event) =>
+                        setColumn(index, { ...column, header: event.target.value })
+                      }
                     />
                   </td>
                   <td>
@@ -819,7 +854,9 @@ function LayoutEditor({
                       aria-label={`Column ${index + 1} format`}
                       value={column.format}
                       disabled={locked}
-                      onChange={(event) => setColumn(index, { ...column, format: event.target.value })}
+                      onChange={(event) =>
+                        setColumn(index, { ...column, format: event.target.value })
+                      }
                     >
                       {(field?.formats ?? [column.format]).map((f) => (
                         <option key={f} value={f}>
@@ -834,7 +871,9 @@ function LayoutEditor({
                       aria-label={`Column ${index + 1} totalled`}
                       checked={column.total}
                       disabled={locked || !field?.can_total}
-                      onChange={(event) => setColumn(index, { ...column, total: event.target.checked })}
+                      onChange={(event) =>
+                        setColumn(index, { ...column, total: event.target.checked })
+                      }
                     />
                   </td>
                   <td>
@@ -880,7 +919,10 @@ function LayoutEditor({
             className="btn"
             data-testid="brand-layouts-add-column"
             disabled={locked || draft.columns.length >= 40}
-            onClick={() => patch({ columns: [...draft.columns, newColumn(fields[0])] })}
+            onClick={() => {
+              const firstField = fields[0];
+              if (firstField) patch({ columns: [...draft.columns, newColumn(firstField)] });
+            }}
           >
             Add a column
           </button>
@@ -914,7 +956,11 @@ function LayoutEditor({
         </p>
       )}
       {note && (
-        <p className={note.ok ? "ok-note" : "warn-note"} data-testid="brand-layouts-note" role="status">
+        <p
+          className={note.ok ? "ok-note" : "warn-note"}
+          data-testid="brand-layouts-note"
+          role="status"
+        >
           {note.text}
         </p>
       )}

@@ -271,7 +271,11 @@ export function GoodsCountDetailPage() {
       />
 
       <section
-        className={count.progress === "differences_pending" ? "card section-card warn-note" : "card section-card"}
+        className={
+          count.progress === "differences_pending"
+            ? "card section-card warn-note"
+            : "card section-card"
+        }
         data-testid="cnt-progress"
         data-progress={count.progress}
       >
@@ -356,7 +360,9 @@ function PassesTable({ count }: { count: CountDetail }) {
                 </td>
                 <td>
                   {PASS_STATE_LABEL[row.state] ?? row.state}
-                  {row.stale && <span className="warn-note"> · left idle - resume to continue</span>}
+                  {row.stale && (
+                    <span className="warn-note"> · left idle - resume to continue</span>
+                  )}
                 </td>
                 <td>{row.last_activity_at ? formatDateTime(row.last_activity_at) : "-"}</td>
                 <td className="num">{row.observed_qty ?? "-"}</td>
@@ -551,7 +557,11 @@ function PassPanel({
 
   const describing = found?.result === "unknown" || (!found && !tag.trim());
   const canRecord =
-    !busy && !pass.stale && Boolean(locationId) && qty > 0 && (Boolean(skuId) || Boolean(description.trim()));
+    !busy &&
+    !pass.stale &&
+    Boolean(locationId) &&
+    qty > 0 &&
+    (Boolean(skuId) || Boolean(description.trim()));
 
   return (
     <section className="card section-card" data-testid="cnt-my-pass" data-pass={pass.id}>
@@ -624,7 +634,7 @@ function PassPanel({
 
       {found && found.result === "resolved" && (
         <p className="ok-note" data-testid="cnt-item">
-          {candidateWords(found.candidates[0])}
+          {found.candidates[0] ? candidateWords(found.candidates[0]) : "No candidate found"}
         </p>
       )}
       {found && found.result === "ambiguous" && (
@@ -697,7 +707,12 @@ function PassPanel({
             data-testid="cnt-qty"
           />
         </Field>
-        <button className="btn btn-cta" disabled={!canRecord} onClick={record} data-testid="cnt-record">
+        <button
+          className="btn btn-cta"
+          disabled={!canRecord}
+          onClick={record}
+          data-testid="cnt-record"
+        >
           <ClipboardCheck size={14} /> Record
         </button>
       </div>
@@ -900,8 +915,8 @@ function ReviewPanel({
 
       <h4 className="h4">Ask for a recount</h4>
       <p className="muted">
-        Someone counts the ticked items again at those places, without being told the earlier
-        count. The earlier count is kept; the recount is used in its place, never added to it.
+        Someone counts the ticked items again at those places, without being told the earlier count.
+        The earlier count is kept; the recount is used in its place, never added to it.
       </p>
       {source.mixed && (
         <p className="warn-note" data-testid="cnt-recount-mixed">
@@ -978,7 +993,9 @@ function CancelPanel({
         expected_revision: count.revision,
       };
       await api.post(`${STOCKTAKES}/${count.id}/cancel`, body);
-      onDone("Count cancelled. Everything counted is kept; no stock changed; the freeze is lifted.");
+      onDone(
+        "Count cancelled. Everything counted is kept; no stock changed; the freeze is lifted.",
+      );
     } catch (e) {
       onError(e);
     } finally {

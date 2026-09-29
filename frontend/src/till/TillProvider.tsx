@@ -43,7 +43,7 @@ export function useTill(): TillContextValue {
  */
 export function tillStoreCode(user: { stores?: { code: string }[] } | null): string {
   const stores = user?.stores ?? [];
-  return stores.length === 1 ? stores[0].code : "";
+  return stores.length === 1 ? (stores[0]?.code ?? "") : "";
 }
 
 export function TillProvider({

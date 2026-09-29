@@ -286,6 +286,7 @@ class SpecialOrderListView(APIView):
     permission_classes = [IsAuthenticated, CanRunTill]
 
     @extend_schema(
+        operation_id="sell_special_orders_list",
         parameters=[
             OpenApiParameter("store", str, required=True),
             OpenApiParameter("q", str, required=False),
@@ -350,6 +351,7 @@ class SpecialOrderDetailView(APIView):
     permission_classes = [IsAuthenticated, CanRunTill]
 
     @extend_schema(
+        operation_id="sell_special_orders_detail",
         parameters=[OpenApiParameter("store", str, required=True)],
         responses=SpecialOrderSerializer,
     )

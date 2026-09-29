@@ -891,7 +891,7 @@ def _closed(body: Mapping[str, Any], fields: frozenset[str]) -> None:
 def _qty(value: Any, field: str) -> int:
     if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= movements.MAX_QTY:
         raise _invalid(f"{field} is 1 to {movements.MAX_QTY} pieces.", field)
-    return value
+    return int(value)
 
 
 def _text(value: Any, field: str, limit: int) -> str | None:

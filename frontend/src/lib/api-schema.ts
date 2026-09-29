@@ -44,7 +44,7 @@ export interface paths {
          *     An ``APIView`` rather than a ``ListAPIView`` because a bad ``?since=`` is a
          *     refusal with a code, and a generic list has nowhere to say so.
          */
-        get: operations["alerts_history_retrieve"];
+        get: operations["alerts_history_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2164,7 +2164,7 @@ export interface paths {
             cookie?: never;
         };
         /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
-        get: operations["goods_v1_inbound_debit_notes_retrieve"];
+        get: operations["goods_v1_inbound_debit_notes_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2181,7 +2181,7 @@ export interface paths {
             cookie?: never;
         };
         /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
-        get: operations["goods_v1_inbound_debit_notes_retrieve_2"];
+        get: operations["goods_v1_inbound_debit_notes_detail"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3621,10 +3621,10 @@ export interface paths {
             cookie?: never;
         };
         /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
-        get: operations["goods_v1_outbound_count_schedules_retrieve"];
+        get: operations["goods_v1_outbound_count_schedules_list"];
         put?: never;
         /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
-        post: operations["goods_v1_outbound_count_schedules_create"];
+        post: operations["goods_v1_outbound_count_schedules_set"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3641,7 +3641,7 @@ export interface paths {
         get?: never;
         put?: never;
         /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
-        post: operations["goods_v1_outbound_count_schedules_create_2"];
+        post: operations["goods_v1_outbound_count_schedules_change"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5218,7 +5218,7 @@ export interface paths {
             cookie?: never;
         };
         /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
-        get: operations["goods_v1_sell_customers_retrieve"];
+        get: operations["goods_v1_sell_customers_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -5235,7 +5235,7 @@ export interface paths {
             cookie?: never;
         };
         /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
-        get: operations["goods_v1_sell_customers_retrieve_2"];
+        get: operations["goods_v1_sell_customers_detail"];
         put?: never;
         post?: never;
         delete?: never;
@@ -5961,7 +5961,7 @@ export interface paths {
          *     in :mod:`state`, and it is the difference between this and a callback that
          *     can be made to attach a mailbox to somebody else's login.
          */
-        get: operations["mail_callback_retrieve"];
+        get: operations["mail_oauth_callback"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6047,7 +6047,7 @@ export interface paths {
          *     cached, ``?limit=`` trims for the popup, ``?sync=0`` skips the pull for a
          *     read that must not wait on Google.
          */
-        get: operations["mail_messages_retrieve"];
+        get: operations["mail_messages_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6064,7 +6064,7 @@ export interface paths {
             cookie?: never;
         };
         /** @description One message, body and all. */
-        get: operations["mail_messages_retrieve_2"];
+        get: operations["mail_message_detail"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6343,7 +6343,7 @@ export interface paths {
          *     which is the acceptance criterion - the switcher simply gets no vote. Callers
          *     who want one store ask for it by name with `?store=`.
          */
-        get: operations["masters_store_targets_retrieve"];
+        get: operations["masters_store_targets_list"];
         /**
          * @description `GET | PUT /api/masters/store-targets` - the store x month target grid.
          *
@@ -6434,7 +6434,7 @@ export interface paths {
             cookie?: never;
         };
         /** @description `GET` - what is running (and what is coming). `POST` - author a draft. */
-        get: operations["offers_retrieve"];
+        get: operations["offers_list"];
         put?: never;
         /** @description `GET` - what is running (and what is coming). `POST` - author a draft. */
         post: operations["offers_create"];
@@ -6452,7 +6452,7 @@ export interface paths {
             cookie?: never;
         };
         /** @description `GET` one rule; `PUT` to change it - or, if it is live, to replace it. */
-        get: operations["offers_retrieve_2"];
+        get: operations["offers_retrieve"];
         /** @description `GET` one rule; `PUT` to change it - or, if it is live, to replace it. */
         put: operations["offers_update"];
         post?: never;
@@ -6527,7 +6527,7 @@ export interface paths {
             cookie?: never;
         };
         /** @description `GET` the current plan. `POST` recomputes it for a season. */
-        get: operations["offers_eoss_recommendations_retrieve"];
+        get: operations["offers_eoss_recommendations_list"];
         put?: never;
         /** @description `GET` the current plan. `POST` recomputes it for a season. */
         post: operations["offers_eoss_recommendations_create"];
@@ -6562,7 +6562,7 @@ export interface paths {
             cookie?: never;
         };
         /** @description The price list: search, and read what a ticket is — or was. */
-        get: operations["offers_price_list_retrieve"];
+        get: operations["offers_price_list_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -6579,7 +6579,7 @@ export interface paths {
             cookie?: never;
         };
         /** @description One barcode, with the whole trail behind its ticket. */
-        get: operations["offers_price_list_retrieve_2"];
+        get: operations["offers_price_list_detail"];
         put?: never;
         post?: never;
         delete?: never;
@@ -7287,7 +7287,7 @@ export interface paths {
             cookie?: never;
         };
         /** @description GET: counts at the stores this user can see. POST: open a new one. */
-        get: operations["outbound_stocktakes_retrieve"];
+        get: operations["outbound_stocktakes_list"];
         put?: never;
         /** @description GET: counts at the stores this user can see. POST: open a new one. */
         post: operations["outbound_stocktakes_create"];
@@ -7304,7 +7304,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["outbound_stocktakes_retrieve_2"];
+        get: operations["outbound_stocktakes_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -8268,7 +8268,7 @@ export interface paths {
          *     last 30 days. `q` finds a job card, bill number or mobile. `POST` - make one
          *     (the switch must be on).
          */
-        get: operations["sell_alterations_retrieve"];
+        get: operations["sell_alterations_list"];
         put?: never;
         /**
          * @description `GET` - this store's job cards: open ones first, then those ended in the
@@ -8290,7 +8290,7 @@ export interface paths {
             cookie?: never;
         };
         /** @description `GET` - one job card. */
-        get: operations["sell_alterations_retrieve_2"];
+        get: operations["sell_alterations_detail"];
         put?: never;
         post?: never;
         delete?: never;
@@ -9002,7 +9002,7 @@ export interface paths {
          *     last 30 days or still owing a refund. `q` finds a reference, voucher number or
          *     mobile. `POST` - make one (the switch must be on).
          */
-        get: operations["sell_reservations_retrieve"];
+        get: operations["sell_reservations_list"];
         put?: never;
         /**
          * @description `GET` - this store's reservations: open ones first, then those ended in the
@@ -9024,7 +9024,7 @@ export interface paths {
             cookie?: never;
         };
         /** @description `GET` - one reservation, with its pieces as the counter bills them. */
-        get: operations["sell_reservations_retrieve_2"];
+        get: operations["sell_reservations_detail"];
         put?: never;
         post?: never;
         delete?: never;
@@ -9223,7 +9223,7 @@ export interface paths {
          *     offers. `q` finds a reference, voucher number or mobile. `POST` - take one
          *     (the switch must be on).
          */
-        get: operations["sell_special_orders_retrieve"];
+        get: operations["sell_special_orders_list"];
         put?: never;
         /**
          * @description `GET` - this store's special orders: open ones first, then those ended in the
@@ -9246,7 +9246,7 @@ export interface paths {
             cookie?: never;
         };
         /** @description `GET` - one special order. */
-        get: operations["sell_special_orders_retrieve_2"];
+        get: operations["sell_special_orders_detail"];
         put?: never;
         post?: never;
         delete?: never;
@@ -9683,7 +9683,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get: operations["store_checklist_templates_retrieve"];
+        get: operations["store_checklist_templates_list"];
         put?: never;
         post: operations["store_checklist_templates_create"];
         delete?: never;
@@ -9701,7 +9701,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["store_checklist_templates_create_2"];
+        post: operations["store_checklist_templates_change"];
         delete?: never;
         options?: never;
         head?: never;
@@ -9880,13 +9880,6 @@ export interface components {
          * @enum {string}
          */
         AccountEnum: "CASH" | "BANK" | "CARD" | "UPI";
-        /**
-         * @description * `transfer` - transfer
-         *     * `markdown` - markdown
-         *     * `other` - other
-         * @enum {string}
-         */
-        ActionEnum: "transfer" | "markdown" | "other";
         ActorPolicy: {
             readonly id: number;
             readonly action: string;
@@ -10066,6 +10059,10 @@ export interface components {
          * @enum {string}
          */
         AlertReadStatusEnum: "open" | "resolved";
+        AlertSeen: {
+            /** Format: date-time */
+            seen_at: string | null;
+        };
         Alteration: {
             /** Format: uuid */
             id: string;
@@ -10191,6 +10188,28 @@ export interface components {
             /** Format: date */
             promised_on: string;
         };
+        /**
+         * @description Which moved lines the person has looked at and still wants applied.
+         *
+         *     Confirmation is per barcode rather than a blanket "yes": the whole rule is
+         *     that a piece which moved mid-count is never overwritten without someone
+         *     seeing that particular piece.
+         */
+        ApplyVarianceInput: {
+            confirm?: string[];
+        };
+        /** @description The decide payload — approve, or reject *with* a reason. */
+        ApprovalDecision: {
+            action: components["schemas"]["ApprovalDecisionActionEnum"];
+            /** @default  */
+            reason: string;
+        };
+        /**
+         * @description * `approve` - approve
+         *     * `reject` - reject
+         * @enum {string}
+         */
+        ApprovalDecisionActionEnum: "approve" | "reject";
         ApprovalPolicyAdmin: {
             readonly id: number;
             /** @description Document family this governs, e.g. 'adjustment'. */
@@ -10322,6 +10341,23 @@ export interface components {
          * @enum {string}
          */
         BandEnum: "not_due" | "days_0_30" | "days_31_60" | "days_61_90" | "over_90" | "due_unknown";
+        /**
+         * @description The one partner-billing dial, read and written whole — mirrors
+         *     `sell.SellPolicyView`'s shape (#271's pattern, applied here).
+         */
+        BillingPolicy: {
+            mode?: components["schemas"]["BillingPolicyModeEnum"];
+            readonly mode_label: string;
+            readonly set_by_name: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        /**
+         * @description * `informational` - Informational only — no ledger entry
+         *     * `gl_posting` - Post a receivable at Purchase Price
+         * @enum {string}
+         */
+        BillingPolicyModeEnum: "informational" | "gl_posting";
         /** @enum {unknown} */
         BlankEnum: "";
         Block: {
@@ -10417,7 +10453,7 @@ export interface components {
             /** @description For the brand to quote; not a tax number. */
             reference: string;
             kind: string;
-            status: components["schemas"]["StatusB2bEnum"];
+            status: components["schemas"]["BrandClaimStatusEnum"];
             /** @description YYYY-MM */
             month: string;
             /** @description 1 for the month's claim; 2, 3 ... for bills that arrived after it. */
@@ -10467,7 +10503,7 @@ export interface components {
             /** @description For the brand to quote; not a tax number. */
             reference: string;
             kind: string;
-            status: components["schemas"]["StatusB2bEnum"];
+            status: components["schemas"]["BrandClaimStatusEnum"];
             /** @description YYYY-MM */
             month: string;
             /** @description 1 for the month's claim; 2, 3 ... for bills that arrived after it. */
@@ -10558,6 +10594,14 @@ export interface components {
             settled_paise: string;
             difference_reason?: string;
         };
+        /**
+         * @description * `raised` - raised
+         *     * `accepted` - accepted
+         *     * `settled` - settled
+         *     * `settled_short` - settled_short
+         * @enum {string}
+         */
+        BrandClaimStatusEnum: "raised" | "accepted" | "settled" | "settled_short";
         BrandClaimToRaise: {
             store: components["schemas"]["BrandClaimParty"];
             /** @description Null: the bill's brand is not one brand in the list. */
@@ -10578,13 +10622,19 @@ export interface components {
             /** @description Null: the built-in KDPS sheet, never saved by this company. */
             id: number | null;
             brand_id: number | null;
-            kind: components["schemas"]["KindEd6Enum"];
+            kind: components["schemas"]["BrandLayoutKindEnum"];
             name: string;
             revision: number;
             layout: components["schemas"]["LayoutBody"];
             /** Format: date-time */
             updated_at: string | null;
         };
+        /**
+         * @description * `sale` - sale
+         *     * `soh` - soh
+         * @enum {string}
+         */
+        BrandLayoutKindEnum: "sale" | "soh";
         BrandLayoutPair: {
             sale: components["schemas"]["BrandLayoutRef"];
             soh: components["schemas"]["BrandLayoutRef"];
@@ -10740,7 +10790,7 @@ export interface components {
             id: number;
             store: components["schemas"]["ReportStore"];
             brand: components["schemas"]["BrandRef"];
-            kind: components["schemas"]["KindEd6Enum"];
+            kind: components["schemas"]["BrandLayoutKindEnum"];
             month: string;
             file_name: string;
             rows: number;
@@ -10773,7 +10823,7 @@ export interface components {
             /** Format: uuid */
             command_id: string;
             contract_version: components["schemas"]["ContractVersionEnum"];
-            kind: components["schemas"]["KindC2dEnum"];
+            kind: components["schemas"]["BrandTermsKindEnum"];
             /** Format: uuid */
             id: string;
             outcome: components["schemas"]["BrandTermsDecideRequestOutcomeEnum"];
@@ -10792,6 +10842,14 @@ export interface components {
             id: string;
             status: string;
         };
+        /**
+         * @description * `waiting` - waiting
+         *     * `approved` - approved
+         *     * `rejected` - rejected
+         *     * `withdrawn` - withdrawn
+         * @enum {string}
+         */
+        BrandTermsDecisionStatusEnum: "waiting" | "approved" | "rejected" | "withdrawn";
         BrandTermsDetail: {
             brand: components["schemas"]["BrandTermsBrandSummary"];
             /** Format: date */
@@ -10806,12 +10864,18 @@ export interface components {
             terms_revisions: components["schemas"]["BrandTermsNextRevision"][];
             promotion_revision: number;
         };
+        /**
+         * @description * `terms` - terms
+         *     * `promotion` - promotion
+         * @enum {string}
+         */
+        BrandTermsKindEnum: "terms" | "promotion";
         BrandTermsNextRevision: {
             season_id: number;
             expected_revision: number;
         };
         BrandTermsPromotionRow: {
-            status: components["schemas"]["Status9f9Enum"];
+            status: components["schemas"]["BrandTermsDecisionStatusEnum"];
             proposed_by: string;
             /** Format: date-time */
             proposed_at: string;
@@ -10831,7 +10895,7 @@ export interface components {
             note: string;
         };
         BrandTermsProposal: {
-            kind: components["schemas"]["KindC2dEnum"];
+            kind: components["schemas"]["BrandTermsKindEnum"];
             /** Format: uuid */
             id: string;
             brand_id: number;
@@ -10879,7 +10943,7 @@ export interface components {
             waiting: components["schemas"]["BrandTermsProposal"][];
         };
         BrandTermsTermsRow: {
-            status: components["schemas"]["Status9f9Enum"];
+            status: components["schemas"]["BrandTermsDecisionStatusEnum"];
             proposed_by: string;
             /** Format: date-time */
             proposed_at: string;
@@ -10917,10 +10981,17 @@ export interface components {
             contract_version: components["schemas"]["ContractVersionEnum"];
             /** Format: uuid */
             alert_id: string;
-            action: components["schemas"]["ActionEnum"];
+            action: components["schemas"]["BrokenSizeActionEnum"];
             /** @description Required for 'other'. */
             note?: string;
         };
+        /**
+         * @description * `transfer` - transfer
+         *     * `markdown` - markdown
+         *     * `other` - other
+         * @enum {string}
+         */
+        BrokenSizeActionEnum: "transfer" | "markdown" | "other";
         BrokenSizeAlert: {
             id: string;
             brand: string;
@@ -10940,7 +11011,7 @@ export interface components {
             /** Format: date-time */
             acted_at: string | null;
             acted_by: string;
-            action: components["schemas"]["ActionEnum"] | components["schemas"]["BlankEnum"];
+            action: components["schemas"]["BrokenSizeActionEnum"] | components["schemas"]["BlankEnum"];
             action_note: string;
             /** Format: date-time */
             closed_at: string | null;
@@ -11329,6 +11400,12 @@ export interface components {
          * @enum {string}
          */
         ClosedReasonEnum: "fixed" | "rule_changed" | "sold_out" | "no_rule" | "switched_off" | "not_checked";
+        /**
+         * @description * `manual` - manual
+         *     * `connected` - connected
+         * @enum {string}
+         */
+        ConnectedSwitchModeEnum: "manual" | "connected";
         /** @description One consent answer from the till (ticket 15, ST-CMP-6). */
         ConsentAnswerWrite: {
             /**
@@ -11374,6 +11451,7 @@ export interface components {
             how: string;
             under_18: boolean | null;
             wording_version: number;
+            /** Format: date-time */
             answered_at: string;
         };
         /**
@@ -11421,6 +11499,95 @@ export interface components {
             note: string;
         };
         /**
+         * @description * `number_hole` - Bills missing before this one
+         *     * `cn_unverified` - Credit note taken without verification
+         *     * `return_orig_missing` - Returned against a bill we do not hold
+         *     * `offer_mismatch` - Offer applied differs from the rulebook
+         *     * `gst_mismatch` - Tax charged differs from the dated slab
+         *     * `aged_uncosted` - Sold before inward, still unpriced
+         *     * `gstin_invalid` - The buyer's GSTIN is not well formed
+         *     * `billed_while_paused` - Billed while the counter was paused
+         *     * `return_late` - Taken back after the return window closed
+         *     * `return_uncosted` - Given back before the books could price it
+         *     * `employee_returns` - One seller took back an unusual number
+         *     * `tax_version_mismatch` - Taxed under another tax version
+         *     * `tax_rule_missing` - No tax rule for an item's HSN
+         *     * `invoice_number_missing` - No number in the new invoice series
+         *     * `invoice_number_problem` - Invoice number needs checking
+         *     * `override_self_approved` - Override approved by the cashier
+         *     * `split_while_off` - Split sale from a store with it off
+         *     * `after_discount_mismatch` - Discount tax rules differ from switch
+         *     * `till_server_mismatch` - Till and server differ on the bill
+         *     * `late_credit_note` - Taken back after the credit-note deadline
+         *     * `return_tax_mismatch` - Return tax rules differ from the switch
+         *     * `cn_deadline_mismatch` - Till and server differ on the deadline
+         *     * `bank_share_returned` - Bank offer part reversed on a return
+         *     * `bank_share_mismatch` - Till and server differ on the bank part
+         *     * `credit_note_number` - Credit note number needs checking
+         *     * `returned_on_job_card` - Garment on an open job card came back
+         *     * `no_bill_return_cap` - Over the no-bill return cap
+         * @enum {string}
+         */
+        ContinuityFlagKindEnum: "number_hole" | "cn_unverified" | "return_orig_missing" | "offer_mismatch" | "gst_mismatch" | "aged_uncosted" | "gstin_invalid" | "billed_while_paused" | "return_late" | "return_uncosted" | "employee_returns" | "tax_version_mismatch" | "tax_rule_missing" | "invoice_number_missing" | "invoice_number_problem" | "override_self_approved" | "split_while_off" | "after_discount_mismatch" | "till_server_mismatch" | "late_credit_note" | "return_tax_mismatch" | "cn_deadline_mismatch" | "bank_share_returned" | "bank_share_mismatch" | "credit_note_number" | "returned_on_job_card" | "no_bill_return_cap";
+        /**
+         * @description One exception on a store's list (#188).
+         *
+         *     Wider than `FlagReadSerializer`, which rides inside a bill and can leave out
+         *     everything the bill already says. This one is read on its own screen, so it
+         *     carries the bill it is about - or says there is none, which is a fact rather
+         *     than a gap: a hole is a bill that never arrived, and a seller's return count
+         *     is a pattern across bills.
+         */
+        ContinuityFlagRow: {
+            readonly id: number;
+            kind: components["schemas"]["ContinuityFlagKindEnum"];
+            readonly kind_label: string;
+            status?: components["schemas"]["ContinuityFlagStatusEnum"];
+            readonly store_code: string;
+            readonly doc_number: string;
+            /** Format: date-time */
+            readonly billed_at: string;
+            details?: unknown;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** @description What the person who cleared this said about it. Its own column rather than a key in `details`, because `details` is the finding - written by a machine, rewritten on every nightly run - and a person's sentence about it must not be something a later pass can overwrite. */
+            cleared_note?: string;
+            readonly resolved_by_name: string;
+            /** Format: date-time */
+            resolved_at?: string | null;
+        };
+        /**
+         * @description * `open` - Open
+         *     * `resolved` - Resolved
+         *     * `ignored` - Ignored
+         * @enum {string}
+         */
+        ContinuityFlagStatusEnum: "open" | "resolved" | "ignored";
+        /**
+         * @description Clearing one exception, which is a statement about a person's attention.
+         *
+         *     Two answers and no way back to `open`. **Resolved** means the thing was dealt
+         *     with; **ignored** means somebody looked and decided it needs nothing - which
+         *     is a different sentence, worth keeping apart, and the one the nightly check
+         *     reads to know not to raise it again.
+         *
+         *     A `note` is required on `ignored` and optional on `resolved`, and the
+         *     asymmetry is the point: "I dealt with it" is usually evidenced by the thing
+         *     itself having changed, while "this one is fine" is evidenced by nothing at
+         *     all unless the person says why.
+         */
+        ContinuityFlagWrite: {
+            status: components["schemas"]["ContinuityFlagWriteStatusEnum"];
+            /** @default  */
+            note: string;
+        };
+        /**
+         * @description * `resolved` - resolved
+         *     * `ignored` - ignored
+         * @enum {string}
+         */
+        ContinuityFlagWriteStatusEnum: "resolved" | "ignored";
+        /**
          * @description * `goods-v1` - goods-v1
          * @enum {string}
          */
@@ -11437,6 +11604,10 @@ export interface components {
          * @enum {string}
          */
         CostingStatusEnum: "posted" | "deferred";
+        /** @description Scanned pieces, additive. Nothing comes back but what was scanned. */
+        CountScanInput: {
+            scans: components["schemas"]["ScanLine"][];
+        };
         CountSchedulePage: {
             /** Format: date */
             today: string;
@@ -11446,6 +11617,72 @@ export interface components {
             due_today: components["schemas"]["DueCount"][];
             missed: components["schemas"]["DueCount"][];
             schedules: components["schemas"]["ScheduleRow"][];
+        };
+        /** @description One counter's pass: how much of the location they are taking on. */
+        CountSessionCreate: {
+            scope: components["schemas"]["ScopeEnum"];
+            /** @default  */
+            scope_value: string;
+        };
+        /**
+         * @description One barcode on one session. ``book_qty`` is null while the session is
+         *     open — that null *is* the blindness, and it is the model's state rather than
+         *     a field this serializer hides.
+         */
+        CountSessionLine: {
+            readonly id: number;
+            readonly sku_code: string;
+            readonly design: string;
+            readonly color: string;
+            readonly size: string;
+            readonly brand: string;
+            readonly season: string;
+            readonly item: string;
+            readonly hsn: string;
+            readonly counted_qty: number;
+            /** @description The book at submit. Null while the session is open — blind (#76). */
+            readonly book_qty: number | null;
+        };
+        CountSessionRead: {
+            readonly id: number;
+            stocktake: number;
+            scope: components["schemas"]["ScopeEnum"];
+            scope_value?: string;
+            readonly scope_label: string;
+            status?: components["schemas"]["CountWorkflowStatusEnum"];
+            counted_by?: number | null;
+            readonly counted_by_name: string;
+            readonly counted_pieces: number;
+            /** Format: date-time */
+            submitted_at?: string | null;
+            /** Format: date-time */
+            readonly created_at: string;
+            readonly lines: components["schemas"]["CountSessionLine"][];
+        };
+        /**
+         * @description * `open` - Open — counting
+         *     * `submitted` - Submitted
+         *     * `closed` - Closed — variance applied
+         * @enum {string}
+         */
+        CountWorkflowStatusEnum: "open" | "submitted" | "closed";
+        /**
+         * @description Recording the brand's acknowledgement against a posted return.
+         *
+         *     Status, not money: the payable already moved when the return posted. Written
+         *     to the companion record rather than the document, because a posted document
+         *     is immutable and a credit note arrives after the fact.
+         */
+        CreditNote: {
+            readonly id: number;
+            /**
+             * Format: date
+             * @description The date on the brand's credit note.
+             */
+            received_on: string;
+            /** @description The brand's own credit-note number, where the paper carries one. */
+            reference?: string;
+            readonly recorded_by_name: string;
         };
         Custody: {
             location: components["schemas"]["LocationEnum"];
@@ -11457,6 +11694,13 @@ export interface components {
             closed_at: string | null;
             outcome: string;
         };
+        /**
+         * @description * `cash` - cash
+         *     * `card` - card
+         *     * `upi` - upi
+         * @enum {string}
+         */
+        CustomerAdvanceTenderModeEnum: "cash" | "card" | "upi";
         CustomerBill: {
             id: number;
             doc_number: string;
@@ -11470,8 +11714,8 @@ export interface components {
             cancelled: boolean;
         };
         CustomerConsent: {
-            bill: components["schemas"]["ConsentStanding"] | null;
-            offers: components["schemas"]["ConsentStanding"] | null;
+            bill: components["schemas"]["GoodsConsentStanding"] | null;
+            offers: components["schemas"]["GoodsConsentStanding"] | null;
         };
         CustomerCorrectRequest: {
             /** Format: uuid */
@@ -11611,6 +11855,213 @@ export interface components {
             /** @description The store the customer is at. */
             site_id: number;
             question: components["schemas"]["QuestionEnum"];
+        };
+        DatasetAlterationChargeRead: {
+            sac: string;
+            gst_rate: string;
+            description: string;
+        };
+        DatasetBillLineRead: {
+            line_no: number;
+            direction: string;
+            kind: string;
+            barcode: string;
+            season: string;
+            design: string;
+            color: string;
+            size: string;
+            brand: string;
+            item: string;
+            hsn: string;
+            qty: number;
+            mrp_paise: number;
+            net_paise: number;
+            gst_rate: string;
+            gst_paise: number;
+            manual_desc: string;
+            returned_qty: number;
+            returned_paise: number;
+            returned_bank_paise: number;
+        };
+        DatasetBillRead: {
+            fy: string;
+            till_seq: number;
+            doc_number: string;
+            till_number: string;
+            /** Format: date-time */
+            billed_at: string;
+            customer_name: string;
+            customer_mobile: string;
+            buyer_gstin: string;
+            net_paise: number;
+            lines: components["schemas"]["DatasetBillLineRead"][];
+            tenders: components["schemas"]["DatasetBillTenderRead"][];
+        };
+        DatasetBillTenderRead: {
+            mode: string;
+            amount_paise: number;
+        };
+        DatasetConsentWordingRead: {
+            version: number;
+            bill: string;
+            age: string;
+            offers: string;
+        };
+        DatasetCustomerRead: {
+            mobile: string;
+            name: string;
+            gstin: string;
+        };
+        DatasetDeletedRead: {
+            items: string[];
+            offers: number[];
+        };
+        DatasetGstSlabRead: {
+            hsn_prefix: string;
+            threshold_paise: number;
+            rate_below: string;
+            rate_above: string;
+            /** Format: date */
+            effective_from: string;
+        };
+        DatasetItemRead: {
+            barcode: string;
+            season: string;
+            design: string;
+            brand: string;
+            item: string;
+            size: string;
+            color: string;
+            hsn: string;
+            mrp_paise: number | null;
+            no_discount: boolean;
+            season_unknown_historical?: boolean;
+        };
+        DatasetManagerRead: {
+            user_id: number;
+            name: string;
+            till_pin_hash: string;
+        };
+        DatasetOfferRead: {
+            id: number;
+            name: string;
+            layer: string;
+            brand: string | null;
+            trigger_type: string;
+            trigger_config: {
+                [key: string]: unknown;
+            };
+            reward_type: string;
+            reward_config: {
+                [key: string]: unknown;
+            };
+            item_scope: {
+                [key: string]: unknown;
+            };
+            /** Format: date */
+            starts_on: string;
+            /** Format: date */
+            ends_on: string | null;
+            combinable: boolean;
+            priority: number;
+        };
+        DatasetPolicyRead: {
+            manual_discount_cap_percent: string;
+            manual_discount_on_offer_lines: boolean;
+            return_window_days: number;
+            cached_bill_days: number;
+        };
+        /** @description Current full/delta till dataset, including typed nested money-free rows. */
+        DatasetRead: {
+            /** Format: date-time */
+            cursor: string;
+            full: boolean;
+            working_set_version: number | null;
+            store: components["schemas"]["DatasetStoreRead"];
+            till: components["schemas"]["TillStateRead"];
+            items: components["schemas"]["DatasetItemRead"][];
+            stock: components["schemas"]["DatasetStockRead"][];
+            bills: components["schemas"]["DatasetBillRead"][];
+            gst_slabs: components["schemas"]["DatasetGstSlabRead"][];
+            tax_settings: components["schemas"]["DatasetTaxSettingsRead"];
+            online_only_refusals: boolean;
+            manager_pin_rules: boolean;
+            split_sale: boolean;
+            customer_display: boolean;
+            customer_consent: boolean;
+            customer_reservation: boolean;
+            saved_sizes: boolean;
+            special_orders: boolean;
+            gift_vouchers: boolean;
+            alteration_charge: components["schemas"]["DatasetAlterationChargeRead"] | null;
+            consent_wording: components["schemas"]["DatasetConsentWordingRead"];
+            offers: components["schemas"]["DatasetOfferRead"][];
+            salespeople: components["schemas"]["DatasetSalespersonRead"][];
+            /** @description Always empty on current servers; retained for older counters. */
+            salesmen: number[];
+            managers: components["schemas"]["DatasetManagerRead"][];
+            seasons: components["schemas"]["DatasetSeasonRead"][];
+            policy: components["schemas"]["DatasetPolicyRead"];
+            customers: components["schemas"]["DatasetCustomerRead"][];
+            customers_whole: boolean;
+            deleted: components["schemas"]["DatasetDeletedRead"];
+        };
+        DatasetSalespersonRead: {
+            id: string;
+            name: string;
+        };
+        DatasetSeasonRead: {
+            code: string;
+            name: string;
+            status: string;
+            sort_order: number;
+            historical_unknown: boolean;
+        };
+        DatasetStockRead: {
+            barcode: string;
+            season?: string;
+            qty: number;
+        };
+        DatasetStoreRead: {
+            code: string;
+            gstin: string;
+            state_code: string;
+        };
+        DatasetTaxOptionsRead: {
+            round_total_paise: number;
+            cross_gstin_returns: boolean;
+            annual_return_filed: {
+                [key: string]: {
+                    [key: string]: string;
+                };
+            };
+            gift_with_purchase_is_gift: boolean;
+        };
+        DatasetTaxRuleRead: {
+            kind: string;
+            hsn_prefix: string;
+            name: string;
+            threshold_paise: number;
+            rate_below: string;
+            rate_above: string;
+            rate?: string;
+        };
+        DatasetTaxSettingsRead: {
+            rules_on: boolean;
+            versions: components["schemas"]["DatasetTaxVersionRead"][];
+            after_discount: boolean;
+            hsn_digits: number[];
+            return_tax: boolean;
+        };
+        DatasetTaxVersionRead: {
+            version: number;
+            /** Format: date */
+            applies_from: string;
+            /** Format: date-time */
+            saved_at: string;
+            rules: components["schemas"]["DatasetTaxRuleRead"][];
+            unmatched_rate: string;
+            options: components["schemas"]["DatasetTaxOptionsRead"];
         };
         DebitNote: {
             id: number;
@@ -11828,6 +12279,92 @@ export interface components {
             /** Format: date */
             due_on: string;
         };
+        EossConfigRequest: {
+            brand?: string;
+            ladder: components["schemas"]["EossLadderStep"][];
+            targets: components["schemas"]["SellThroughTarget"][];
+        };
+        EossConfigResponse: {
+            readonly ladder: components["schemas"]["EossLadderStep"][];
+            readonly targets: components["schemas"]["SellThroughTarget"][];
+        };
+        EossDecisionRequest: {
+            action: components["schemas"]["ApprovalDecisionActionEnum"];
+            /** Format: double */
+            discount_pct?: number;
+        };
+        EossLadderStep: {
+            readonly id: number;
+            brand?: string | null;
+            step_no: number;
+            trigger_type?: components["schemas"]["EossLadderStepTriggerTypeEnum"];
+            /**
+             * Format: decimal
+             * @description Points behind target (gap) or weeks in stock (age), whichever trigger_type says.
+             */
+            trigger_value: string;
+            /** Format: decimal */
+            discount_pct: string;
+        };
+        /**
+         * @description * `gap` - Points behind the sell-through target
+         *     * `age` - Weeks in stock
+         * @enum {string}
+         */
+        EossLadderStepTriggerTypeEnum: "gap" | "age";
+        EossPlanRequest: {
+            season: string;
+        };
+        EossPlanResponse: {
+            readonly generated: number;
+            readonly recommendations: components["schemas"]["EossRecommendation"][];
+        };
+        EossRecommendation: {
+            readonly id: number;
+            readonly season_code: string;
+            /** @default  */
+            readonly brand_name: string;
+            /** @default  */
+            readonly brand_code: string;
+            readonly design: string;
+            readonly color: string;
+            readonly item: string;
+            readonly weeks_in_stock: number;
+            readonly on_hand_qty: number;
+            readonly sold_qty: number;
+            /** Format: decimal */
+            readonly sell_through_pct: string;
+            /** Format: decimal */
+            readonly target_pct: string;
+            /** Format: decimal */
+            readonly gap_pct: string;
+            readonly broken_size_run: boolean;
+            /**
+             * Format: decimal
+             * @description The deepest discount possible before the price falls below unit cost.
+             */
+            readonly margin_floor_pct: string | null;
+            /** Format: decimal */
+            readonly recommended_discount_pct: string;
+            readonly reason: string;
+            readonly status: components["schemas"]["EossRecommendationStatusEnum"];
+            /** Format: decimal */
+            readonly decided_discount_pct: string | null;
+            /** @default  */
+            readonly decided_by_name: string;
+            /** Format: date-time */
+            readonly decided_at: string | null;
+            readonly offer: number | null;
+            /** Format: date-time */
+            readonly updated_at: string;
+        };
+        /**
+         * @description * `pending` - Pending
+         *     * `approved` - Approved
+         *     * `rejected` - Rejected
+         * @enum {string}
+         */
+        EossRecommendationStatusEnum: "pending" | "approved" | "rejected";
         /**
          * @description * `week` - Every week
          *     * `month` - Every month
@@ -11925,6 +12462,12 @@ export interface components {
          * @enum {string}
          */
         ExchangeCreditNoteReadStatusEnum: "issued" | "cancelled";
+        /**
+         * @description * `today` - today
+         *     * `kept` - kept
+         * @enum {string}
+         */
+        ExpiresPolicyEnum: "today" | "kept";
         Feature: {
             key: string;
             name: string;
@@ -11954,50 +12497,12 @@ export interface components {
          */
         FixEnum: "reissue_pt" | "no_audited_path";
         FlagRead: {
-            kind: components["schemas"]["FlagReadKindEnum"];
-            status?: components["schemas"]["FlagReadStatusEnum"];
+            kind: components["schemas"]["ContinuityFlagKindEnum"];
+            status?: components["schemas"]["ContinuityFlagStatusEnum"];
             details?: unknown;
             /** Format: date-time */
             readonly created_at: string;
         };
-        /**
-         * @description * `number_hole` - Bills missing before this one
-         *     * `cn_unverified` - Credit note taken without verification
-         *     * `return_orig_missing` - Returned against a bill we do not hold
-         *     * `offer_mismatch` - Offer applied differs from the rulebook
-         *     * `gst_mismatch` - Tax charged differs from the dated slab
-         *     * `aged_uncosted` - Sold before inward, still unpriced
-         *     * `gstin_invalid` - The buyer's GSTIN is not well formed
-         *     * `billed_while_paused` - Billed while the counter was paused
-         *     * `return_late` - Taken back after the return window closed
-         *     * `return_uncosted` - Given back before the books could price it
-         *     * `employee_returns` - One seller took back an unusual number
-         *     * `tax_version_mismatch` - Taxed under another tax version
-         *     * `tax_rule_missing` - No tax rule for an item's HSN
-         *     * `invoice_number_missing` - No number in the new invoice series
-         *     * `invoice_number_problem` - Invoice number needs checking
-         *     * `override_self_approved` - Override approved by the cashier
-         *     * `split_while_off` - Split sale from a store with it off
-         *     * `after_discount_mismatch` - Discount tax rules differ from switch
-         *     * `till_server_mismatch` - Till and server differ on the bill
-         *     * `late_credit_note` - Taken back after the credit-note deadline
-         *     * `return_tax_mismatch` - Return tax rules differ from the switch
-         *     * `cn_deadline_mismatch` - Till and server differ on the deadline
-         *     * `bank_share_returned` - Bank offer part reversed on a return
-         *     * `bank_share_mismatch` - Till and server differ on the bank part
-         *     * `credit_note_number` - Credit note number needs checking
-         *     * `returned_on_job_card` - Garment on an open job card came back
-         *     * `no_bill_return_cap` - Over the no-bill return cap
-         * @enum {string}
-         */
-        FlagReadKindEnum: "number_hole" | "cn_unverified" | "return_orig_missing" | "offer_mismatch" | "gst_mismatch" | "aged_uncosted" | "gstin_invalid" | "billed_while_paused" | "return_late" | "return_uncosted" | "employee_returns" | "tax_version_mismatch" | "tax_rule_missing" | "invoice_number_missing" | "invoice_number_problem" | "override_self_approved" | "split_while_off" | "after_discount_mismatch" | "till_server_mismatch" | "late_credit_note" | "return_tax_mismatch" | "cn_deadline_mismatch" | "bank_share_returned" | "bank_share_mismatch" | "credit_note_number" | "returned_on_job_card" | "no_bill_return_cap";
-        /**
-         * @description * `open` - Open
-         *     * `resolved` - Resolved
-         *     * `ignored` - Ignored
-         * @enum {string}
-         */
-        FlagReadStatusEnum: "open" | "resolved" | "ignored";
         /**
          * @description What a request's page shows about each transfer answering it — enough to
          *     link through, not the whole transfer.
@@ -12012,6 +12517,22 @@ export interface components {
             dispatch_date?: string | null;
             /** Format: date-time */
             readonly created_at: string;
+        };
+        /**
+         * @description * `brand` - Funded by the brand
+         *     * `kdps` - Funded by KDPS
+         * @enum {string}
+         */
+        FunderEnum: "brand" | "kdps";
+        /**
+         * @description Raising a closure: a reason and (optionally) a sentence. Nothing else —
+         *     the lines are read off the transfer's in-transit remainder, so the person
+         *     closing the gap cannot quietly change how much went missing.
+         */
+        GapClosureInput: {
+            reason: components["schemas"]["GapClosureReasonEnum"];
+            /** @default  */
+            note: string;
         };
         GapClosureLine: {
             readonly id: number;
@@ -12040,7 +12561,7 @@ export interface components {
             readonly store_code: string;
             readonly source_store_code: string;
             readonly destination_store_code: string;
-            reason: components["schemas"]["GapClosureReadReasonEnum"];
+            reason: components["schemas"]["GapClosureReasonEnum"];
             readonly reason_label: string;
             note?: string;
             /** @description Stamped by the approvals inbox on approve — never typed (#70). */
@@ -12070,7 +12591,7 @@ export interface components {
          *     * `wrongly_scanned` - Wrongly scanned — never left the sender
          * @enum {string}
          */
-        GapClosureReadReasonEnum: "found_later" | "lost_in_transit" | "wrongly_scanned";
+        GapClosureReasonEnum: "found_later" | "lost_in_transit" | "wrongly_scanned";
         GiftReport: {
             report: string;
             title: string;
@@ -12119,7 +12640,7 @@ export interface components {
             balance_paise: number;
             /** @description Written off when it expired unused, with no GST. */
             expired_paise: number;
-            state: components["schemas"]["State1fdEnum"];
+            state: components["schemas"]["GiftVoucherStateEnum"];
             movements: components["schemas"]["GiftVoucherMovement"][];
         };
         GiftVoucherList: {
@@ -12171,10 +12692,17 @@ export interface components {
             balance_paise: number;
             /** @description Written off when it expired unused, with no GST. */
             expired_paise: number;
-            state: components["schemas"]["State1fdEnum"];
+            state: components["schemas"]["GiftVoucherStateEnum"];
             movements: components["schemas"]["GiftVoucherMovement"][];
             code: string;
         };
+        /**
+         * @description * `active` - active
+         *     * `used_up` - used_up
+         *     * `expired` - expired
+         * @enum {string}
+         */
+        GiftVoucherStateEnum: "active" | "used_up" | "expired";
         GiftVoucherWrite: {
             /**
              * Format: uuid
@@ -12183,9 +12711,16 @@ export interface components {
             id: string;
             store: string;
             value_paise: number;
-            mode: components["schemas"]["ModeB6dEnum"];
+            mode: components["schemas"]["CustomerAdvanceTenderModeEnum"];
             /** @default  */
             reference: string;
+        };
+        GoodsConsentStanding: {
+            given: boolean;
+            how: string;
+            under_18: boolean | null;
+            wording_version: number;
+            answered_at: string;
         };
         /**
          * @description * `in_season` - in_season
@@ -12282,6 +12817,19 @@ export interface components {
             /** Format: date-time */
             last_at: string | null;
         };
+        HeldBillsCountRead: {
+            count: number;
+        };
+        /**
+         * @description The counter's whole list, which is the only thing it ever sends.
+         *
+         *     `held` is required rather than defaulted to empty: "I have nothing parked" is
+         *     a real and destructive statement - it clears the store's Dashboard row - and a
+         *     body that forgot to say it should not be able to make it by accident.
+         */
+        HeldBillsWrite: {
+            held: components["schemas"]["_HeldBillWrite"][];
+        };
         HeldProfile: {
             name: string;
             mobile: string;
@@ -12347,6 +12895,80 @@ export interface components {
             /** Format: double */
             gmroi?: number | null;
         };
+        IrnQueueRead: {
+            /** Format: date */
+            today: string;
+            rows: components["schemas"]["IrnQueueRow"][];
+            truncated: boolean;
+            pending_count: number;
+            overdue_count: number;
+        };
+        /**
+         * @description One B2B bill on head office's clock (#187, grill Q8).
+         *
+         *     Everything a clerk needs to raise the invoice on the government portal
+         *     without opening the bill: whose registration it is, what it was worth, which
+         *     split it carries, and how long is left. `days_left` is annotated by the view
+         *     from one `today` rather than computed per row - thirty rows must not disagree
+         *     about what day it is because the clock ticked over mid-response.
+         */
+        IrnQueueRow: {
+            readonly id: number;
+            readonly doc_number: string;
+            readonly store_code: string;
+            readonly store_name: string;
+            /** Format: date-time */
+            readonly billed_at: string;
+            readonly buyer_gstin: string;
+            readonly customer_name: string;
+            readonly b2b_tax_kind: string;
+            readonly net_paise: number;
+            readonly gst_paise: number;
+            /**
+             * Format: date
+             * @description billed_at + 30 days.
+             */
+            due_on: string;
+            /**
+             * @description Days to the deadline; negative once it has gone by.
+             *
+             *     `today` comes in on the serializer's context because it is the view's
+             *     single reading of the clock (Rule 11 - the deadline is data, and so is the
+             *     day it is measured against).
+             */
+            readonly days_left: number;
+            status?: components["schemas"]["IrnQueueRowStatusEnum"];
+            irn?: string;
+            readonly handled_by_name: string;
+            /** Format: date-time */
+            handled_at?: string | null;
+        };
+        /**
+         * @description * `pending` - Pending
+         *     * `generated` - Generated
+         *     * `failed` - Failed
+         * @enum {string}
+         */
+        IrnQueueRowStatusEnum: "pending" | "generated" | "failed";
+        /**
+         * @description What head office writes back after a run on the portal.
+         *
+         *     Only the two terminal answers: a row goes to `generated` with the reference
+         *     the portal gave, or to `failed` so the clerk can see what still has to be
+         *     chased. It never goes back to `pending` - "we tried and it did not work" is a
+         *     fact worth keeping, and a row that could be reset would lose it.
+         */
+        IrnQueueWrite: {
+            status: components["schemas"]["IrnQueueWriteStatusEnum"];
+            /** @default  */
+            irn: string;
+        };
+        /**
+         * @description * `generated` - generated
+         *     * `failed` - failed
+         * @enum {string}
+         */
+        IrnQueueWriteStatusEnum: "generated" | "failed";
         /**
          * @description * `offer` - offer
          *     * `baseline` - baseline
@@ -12354,17 +12976,12 @@ export interface components {
          */
         KeyEnum: "offer" | "baseline";
         /**
-         * @description * `terms` - terms
-         *     * `promotion` - promotion
+         * @description * `brand` - Brand offer
+         *     * `storewide` - Storewide add-on
+         *     * `bank` - Bank / tender add-on
          * @enum {string}
          */
-        KindC2dEnum: "terms" | "promotion";
-        /**
-         * @description * `sale` - sale
-         *     * `soh` - soh
-         * @enum {string}
-         */
-        KindEd6Enum: "sale" | "soh";
+        LayerEnum: "brand" | "storewide" | "bank";
         LayoutBody: {
             file_type: components["schemas"]["FileTypeEnum"];
             sheet_name: string;
@@ -12443,6 +13060,32 @@ export interface components {
          * @enum {string}
          */
         LogisticsRouteEnum: "store_pickup" | "store_dispatch" | "warehouse";
+        MailAttachment: {
+            readonly id: number;
+            readonly filename: string;
+            readonly mime_type: string;
+            readonly size_bytes: number;
+        };
+        /** @description One opened message, with its body and its attachment list. */
+        MailDetail: {
+            readonly id: number;
+            readonly thread_id: string;
+            readonly subject: string;
+            readonly from_name: string;
+            readonly from_email: string;
+            /** @description Comma-joined, as Gmail returns them. */
+            readonly to_emails: string;
+            readonly cc_emails: string;
+            readonly snippet: string;
+            readonly body_html: string;
+            readonly body_text: string;
+            /** Format: date-time */
+            readonly sent_at: string;
+            readonly is_unread: boolean;
+            readonly is_starred: boolean;
+            readonly label_ids: unknown;
+            readonly attachments: components["schemas"]["MailAttachment"][];
+        };
         MarginShareBrand: {
             id: number;
             name: string;
@@ -12628,27 +13271,6 @@ export interface components {
             name: string;
         };
         /**
-         * @description * `manual` - manual
-         *     * `connected` - connected
-         * @enum {string}
-         */
-        Mode8ccEnum: "manual" | "connected";
-        /**
-         * @description * `bank` - bank
-         *     * `cheque` - cheque
-         *     * `upi` - upi
-         *     * `cash` - cash
-         * @enum {string}
-         */
-        Mode9fbEnum: "bank" | "cheque" | "upi" | "cash";
-        /**
-         * @description * `cash` - cash
-         *     * `card` - card
-         *     * `upi` - upi
-         * @enum {string}
-         */
-        ModeB6dEnum: "cash" | "card" | "upi";
-        /**
          * @description * `sor` - sor
          *     * `outright` - outright
          *     * `consignment` - consignment
@@ -12664,6 +13286,52 @@ export interface components {
             till_block_size: number;
             revision: number;
             started: boolean;
+        };
+        OfferApprovalInfo: {
+            readonly id: number;
+            readonly title: string;
+            readonly approver_roles: string[];
+        };
+        /** @description The rule plus workflow fields added by these views. */
+        OfferResult: {
+            readonly id: number;
+            name: string;
+            readonly brand: string;
+            /** @default  */
+            readonly brand_code: string;
+            funder?: components["schemas"]["FunderEnum"];
+            layer?: components["schemas"]["LayerEnum"];
+            trigger_type?: components["schemas"]["OfferTriggerTypeEnum"];
+            trigger_config?: unknown;
+            reward_type: components["schemas"]["RewardTypeEnum"];
+            reward_config?: unknown;
+            item_scope?: unknown;
+            /** @description {'kind': 'all'|'specific', 'stores': ['DEO', ...]} - always a list, resolved when the offer was written, so a new store is never auto-enrolled. */
+            store_scope?: unknown;
+            readonly stores: string[];
+            /** Format: date */
+            starts_on: string;
+            /**
+             * Format: date
+             * @description Empty means it rolls until somebody stops it (D5 Q5).
+             */
+            ends_on?: string | null;
+            /** @description Stacking is opt-in, per offer. Every new offer defaults to non-combining. */
+            combinable?: boolean;
+            /** @description Lower wins a tie on rupees. Then the id does. */
+            priority?: number;
+            /** @description The named default that fills a gap in a brand's timeline (D5 Q5). */
+            is_fallback?: boolean;
+            status?: components["schemas"]["OfferStatusEnum"];
+            /** @default  */
+            readonly approved_by_name: string;
+            replaces?: number | null;
+            readonly one_liner: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+            readonly awaiting_approval: boolean;
+            readonly replaced_offer_id: number;
+            readonly approval: components["schemas"]["OfferApprovalInfo"];
         };
         OfferReturn: {
             report: string;
@@ -12775,6 +13443,50 @@ export interface components {
         };
         OfferSimulationRun: {
             offer: number;
+        };
+        /**
+         * @description * `draft` - Draft
+         *     * `approved` - Approved
+         *     * `live` - Live
+         *     * `ended` - Ended
+         * @enum {string}
+         */
+        OfferStatusEnum: "draft" | "approved" | "live" | "ended";
+        /**
+         * @description * `none` - No condition
+         *     * `spend` - Spend threshold
+         *     * `qty` - Quantity threshold
+         *     * `group` - Buy X get Y
+         * @enum {string}
+         */
+        OfferTriggerTypeEnum: "none" | "spend" | "qty" | "group";
+        /** @description Authoring. Every dial the engine reads is checked before it is stored. */
+        OfferWrite: {
+            name: string;
+            brand?: string | null;
+            funder?: components["schemas"]["FunderEnum"];
+            layer?: components["schemas"]["LayerEnum"];
+            trigger_type?: components["schemas"]["OfferTriggerTypeEnum"];
+            trigger_config?: unknown;
+            reward_type: components["schemas"]["RewardTypeEnum"];
+            reward_config?: unknown;
+            item_scope?: unknown;
+            /** @description {'kind': 'all'|'specific', 'stores': ['DEO', ...]} - always a list, resolved when the offer was written, so a new store is never auto-enrolled. */
+            store_scope?: unknown;
+            /** Format: date */
+            starts_on: string;
+            /**
+             * Format: date
+             * @description Empty means it rolls until somebody stops it (D5 Q5).
+             */
+            ends_on?: string | null;
+            /** @description Stacking is opt-in, per offer. Every new offer defaults to non-combining. */
+            combinable?: boolean;
+            /** @description Lower wins a tie on rupees. Then the id does. */
+            priority?: number;
+            /** @description The named default that fills a gap in a brand's timeline (D5 Q5). */
+            is_fallback?: boolean;
+            status?: components["schemas"]["OfferStatusEnum"];
         };
         OtbAsk: {
             id: number;
@@ -13025,7 +13737,7 @@ export interface components {
             readonly store_code?: string;
             readonly source_store_code?: string;
             readonly destination_store_code?: string;
-            reason?: components["schemas"]["GapClosureReadReasonEnum"];
+            reason?: components["schemas"]["GapClosureReasonEnum"];
             readonly reason_label?: string;
             note?: string;
             /** @description Stamped by the approvals inbox on approve — never typed (#70). */
@@ -13199,7 +13911,7 @@ export interface components {
             /** Format: date */
             paid_on: string;
             amount_paise: string;
-            mode: components["schemas"]["Mode9fbEnum"];
+            mode: components["schemas"]["PayablePaymentModeEnum"];
             reference: string;
             note: string;
             status: components["schemas"]["PayablePaymentStatusEnum"];
@@ -13210,6 +13922,14 @@ export interface components {
             allocations: components["schemas"]["PayableAllocation"][];
             allowed_actions: string[];
         };
+        /**
+         * @description * `bank` - bank
+         *     * `cheque` - cheque
+         *     * `upi` - upi
+         *     * `cash` - cash
+         * @enum {string}
+         */
+        PayablePaymentModeEnum: "bank" | "cheque" | "upi" | "cash";
         PayablePaymentRequest: {
             /** Format: uuid */
             command_id: string;
@@ -13219,7 +13939,7 @@ export interface components {
             /** Format: date */
             paid_on: string;
             amount_paise: string;
-            mode: components["schemas"]["Mode9fbEnum"];
+            mode: components["schemas"]["PayablePaymentModeEnum"];
             reference: string;
             note?: string;
             allocations: components["schemas"]["PayableAllocationRequest"][];
@@ -13472,26 +14192,6 @@ export interface components {
          * @enum {string}
          */
         QuestionEnum: "bill" | "offers";
-        /**
-         * @description * `shrinkage` - Shrinkage
-         *     * `miscount` - Miscount
-         *     * `damage` - Damage
-         *     * `surplus_found` - Surplus found
-         *     * `other` - Other
-         * @enum {string}
-         */
-        Reason4c0Enum: "shrinkage" | "miscount" | "damage" | "surplus_found" | "other";
-        /**
-         * @description * `sister_store_request` - Sister store request
-         *     * `slow_mover` - Slow mover
-         *     * `seasonal_swap` - Seasonal swap
-         *     * `free_floor_space` - Free floor space
-         *     * `customer_waiting` - Customer waiting
-         *     * `warehouse_allocation` - Warehouse allocation
-         *     * `other` - Other
-         * @enum {string}
-         */
-        Reason6d3Enum: "sister_store_request" | "slow_mover" | "seasonal_swap" | "free_floor_space" | "customer_waiting" | "warehouse_allocation" | "other";
         /** @description One short / extra / damaged outcome, as recorded at receive (#71). */
         ReceiptException: {
             readonly id: number;
@@ -13532,6 +14232,43 @@ export interface components {
             reference: string;
             store_name: string;
             store_gstin: string;
+        };
+        /**
+         * @description A second person's count of one piece, and why it is out (#78).
+         *
+         *     Three fields and no fourth. There is deliberately no cost and no variance
+         *     here: both are read from the books, and the value that picks the approval
+         *     band is the value that posts (#103). A recount that could price itself could
+         *     route itself away from the Operations Head.
+         */
+        RecountInput: {
+            sku_code: string;
+            counted_qty: number;
+            reason: components["schemas"]["StockAdjustmentReasonEnum"];
+        };
+        RegisterHandoverRead: {
+            resume_from_seq: number;
+            unsynced_hint: number[];
+            hole_count: number;
+        };
+        /**
+         * @description The one thing a handover asks for: why (#189).
+         *
+         *     Required, non-blank, and that is the whole of the validation. The reason is
+         *     the only part of the row a person writes, and it is what makes a handful of
+         *     unexplained holes in a store's bill series into "the counter machine died on
+         *     Tuesday" - so a handover with an empty one would leave exactly the audit
+         *     trail the row exists to prevent.
+         */
+        RegisterHandoverWrite: {
+            reason: string;
+        };
+        RegisterRead: {
+            fy: string;
+            last_accepted_seq: number;
+            holes: number[];
+            hole_count: number;
+            series_open: boolean;
         };
         ReportGrouping: {
             key: string;
@@ -13574,7 +14311,7 @@ export interface components {
         };
         ReservationAdvanceWrite: {
             amount_paise: number;
-            mode: components["schemas"]["ModeB6dEnum"];
+            mode: components["schemas"]["CustomerAdvanceTenderModeEnum"];
             /** @default  */
             reference: string;
         };
@@ -13831,6 +14568,15 @@ export interface components {
             /** @description Where it can be returned. */
             message: string;
         };
+        /**
+         * @description * `pct_off` - Percent off
+         *     * `amt_off` - Amount off
+         *     * `item_free` - Item free
+         *     * `fixed_price` - Fixed price
+         *     * `gift` - Gift
+         * @enum {string}
+         */
+        RewardTypeEnum: "pct_off" | "amt_off" | "item_free" | "fixed_price" | "gift";
         Role: {
             readonly id: number;
             code: string;
@@ -14158,7 +14904,7 @@ export interface components {
             command_id: string;
             /** @description Null: the company's standard layout. */
             brand_id: number | null;
-            kind: components["schemas"]["KindEd6Enum"];
+            kind: components["schemas"]["BrandLayoutKindEnum"];
             /** @description The revision you opened; null for a brand with none yet. */
             expected_revision: number | null;
             layout: components["schemas"]["LayoutBody"];
@@ -14272,6 +15018,13 @@ export interface components {
             expected_revision: number;
         };
         /**
+         * @description * `store` - Whole store
+         *     * `brand` - One brand
+         *     * `section` - One section
+         * @enum {string}
+         */
+        ScopeEnum: "store" | "brand" | "section";
+        /**
          * @description * `all` - All (network-wide)
          *     * `entity` - Legal entity
          *     * `region` - Region / state
@@ -14309,6 +15062,23 @@ export interface components {
          * @enum {string}
          */
         SeasonStatusEnum: "open" | "eoss" | "closed";
+        SellPolicyRead: {
+            manual_discount_cap_percent: string;
+            manual_discount_on_offer_lines: boolean;
+        };
+        /** @description The two policy dials are sent together, as one HO decision. */
+        SellPolicyWrite: {
+            manual_discount_cap_percent: string;
+            manual_discount_on_offer_lines: boolean;
+        };
+        SellThroughTarget: {
+            readonly id: number;
+            brand?: string | null;
+            /** @description Weeks since the style first arrived. */
+            week_number: number;
+            /** Format: decimal */
+            target_pct: string;
+        };
         Series: {
             code: string;
             name: string;
@@ -14656,12 +15426,6 @@ export interface components {
             qty: number;
             items: number;
         };
-        /**
-         * @description * `manual` - Raised by hand
-         *     * `cross_store_search` - From cross-store search
-         * @enum {string}
-         */
-        SourceCc8Enum: "manual" | "cross_store_search";
         SpecialOrder: {
             /** Format: uuid */
             id: string;
@@ -14939,29 +15703,6 @@ export interface components {
          */
         StageEnum: "draft" | "waiting" | "approved" | "rejected" | "issued" | "cancelled";
         /**
-         * @description * `active` - active
-         *     * `used_up` - used_up
-         *     * `expired` - expired
-         * @enum {string}
-         */
-        State1fdEnum: "active" | "used_up" | "expired";
-        /**
-         * @description * `waiting` - waiting
-         *     * `approved` - approved
-         *     * `rejected` - rejected
-         *     * `withdrawn` - withdrawn
-         * @enum {string}
-         */
-        Status9f9Enum: "waiting" | "approved" | "rejected" | "withdrawn";
-        /**
-         * @description * `raised` - raised
-         *     * `accepted` - accepted
-         *     * `settled` - settled
-         *     * `settled_short` - settled_short
-         * @enum {string}
-         */
-        StatusB2bEnum: "raised" | "accepted" | "settled" | "settled_short";
-        /**
          * @description ``unit_cost_paise`` is read-only: a money posting reads its cost from the
          *     books, never from the payload (#103) — same rule as a transfer line.
          *
@@ -14998,7 +15739,7 @@ export interface components {
              *     * `surplus_found` - Surplus found
              *     * `other` - Other
              */
-            readonly reason: components["schemas"]["Reason4c0Enum"];
+            readonly reason: components["schemas"]["StockAdjustmentReasonEnum"];
         };
         /**
          * @description Base read shape for a document that needs a second person.
@@ -15018,7 +15759,7 @@ export interface components {
             store: number;
             readonly store_code: string;
             readonly store_name: string;
-            reason: components["schemas"]["Reason4c0Enum"];
+            reason: components["schemas"]["StockAdjustmentReasonEnum"];
             /** @description Stamped by the approvals inbox on approve — never typed (#70). */
             approved_by?: number | null;
             readonly approved_by_name: string;
@@ -15042,12 +15783,21 @@ export interface components {
             readonly lines: components["schemas"]["StockAdjustmentLine"][];
         };
         /**
+         * @description * `shrinkage` - Shrinkage
+         *     * `miscount` - Miscount
+         *     * `damage` - Damage
+         *     * `surplus_found` - Surplus found
+         *     * `other` - Other
+         * @enum {string}
+         */
+        StockAdjustmentReasonEnum: "shrinkage" | "miscount" | "damage" | "surplus_found" | "other";
+        /**
          * @description ``approved_by`` is not accepted: the approver is stamped by whoever
          *     clears the approvals inbox, and can never be the maker (#70).
          */
         StockAdjustmentWrite: {
             store: number;
-            reason: components["schemas"]["Reason4c0Enum"];
+            reason: components["schemas"]["StockAdjustmentReasonEnum"];
             notes?: string;
             lines: components["schemas"]["StockAdjustmentLine"][];
         };
@@ -15112,6 +15862,23 @@ export interface components {
          * @enum {string}
          */
         StockLedgerEntryKindEnum: "pt_inward" | "pt_reversal" | "transfer_out" | "transfer_in" | "transit_in" | "transit_out" | "damage_out" | "quarantine_in" | "quarantine_out" | "sale_out" | "sale_return_in" | "rtv_out" | "seasonal_ret" | "adjustment" | "write_off" | "vflip_out" | "vflip_in";
+        /** @description The fulfilling store saying no more is coming. */
+        StockRequestCloseInput: {
+            /** @default  */
+            note: string;
+        };
+        /**
+         * @description Which lines, and how much of each, the fulfilling store is sending now —
+         *     may cover less than the full ask (a partial fulfilment).
+         */
+        StockRequestFulfilInput: {
+            lines: components["schemas"]["StockRequestFulfilLineInput"][];
+        };
+        /** @description How much of one request line this pass is committing to send. */
+        StockRequestFulfilLineInput: {
+            line_id: number;
+            qty: number;
+        };
         StockRequestLineRead: {
             readonly id: number;
             sku_code: string;
@@ -15172,7 +15939,7 @@ export interface components {
              *     * `manual` - Raised by hand
              *     * `cross_store_search` - From cross-store search
              */
-            source?: components["schemas"]["SourceCc8Enum"];
+            source?: components["schemas"]["StockRequestSourceEnum"];
             /**
              * Format: date-time
              * @description The time the counter quoted the waiting customer. A quote, never a promise: no hold is placed on the piece (#175).
@@ -15208,6 +15975,12 @@ export interface components {
             readonly fulfilling_transfers: components["schemas"]["FulfillingTransferSummary"][];
         };
         /**
+         * @description * `manual` - Raised by hand
+         *     * `cross_store_search` - From cross-store search
+         * @enum {string}
+         */
+        StockRequestSourceEnum: "manual" | "cross_store_search";
+        /**
          * @description Raises the ask and puts it straight in the asking store's inbox — born
          *     waiting, same as a transfer (#137) and every other maker-checker family: a
          *     maker cannot forget to ask.
@@ -15229,13 +16002,38 @@ export interface components {
              *     * `manual` - Raised by hand
              *     * `cross_store_search` - From cross-store search
              */
-            source?: components["schemas"]["SourceCc8Enum"];
+            source?: components["schemas"]["StockRequestSourceEnum"];
             /**
              * Format: date-time
              * @description The time the counter quoted the waiting customer. A quote, never a promise: no hold is placed on the piece (#175).
              */
             expected_arrival_at?: string | null;
             lines: components["schemas"]["StockRequestLineWrite"][];
+        };
+        /** @description Opening a count: which location, and an optional word about why. */
+        StocktakeCreate: {
+            store: number;
+            /** @default  */
+            note: string;
+        };
+        StocktakeRead: {
+            readonly id: number;
+            store: number;
+            readonly store_code: string;
+            readonly store_name: string;
+            status?: components["schemas"]["CountWorkflowStatusEnum"];
+            note?: string;
+            opened_by?: number | null;
+            readonly opened_by_name: string;
+            /** @description The correction this count produced, once its variance was applied. */
+            adjustment?: number | null;
+            readonly adjustment_doc_number: string;
+            readonly adjustment_docstatus: number | null;
+            /** Format: date-time */
+            readonly created_at: string;
+            /** Format: date-time */
+            readonly updated_at: string;
+            readonly sessions: components["schemas"]["CountSessionRead"][];
         };
         Store: {
             readonly id: number;
@@ -15256,6 +16054,11 @@ export interface components {
             store_id: number;
             staff: components["schemas"]["Candidate"][];
         };
+        StoreFlagsRead: {
+            rows: components["schemas"]["ContinuityFlagRow"][];
+            truncated: boolean;
+            open_count: number;
+        };
         StoreMini: {
             id: number;
             code: string;
@@ -15264,6 +16067,46 @@ export interface components {
             state_name: string;
             state_code: string;
             gstin_number: string;
+        };
+        /**
+         * @description One cell of the target grid: which store, which month, how many paise.
+         *
+         *     `store` is the store *code* both ways round - the code is what HO says out
+         *     loud ("Deoghar's August") and what the Dashboard already holds, so making the
+         *     screen carry a row id it would only ever translate back adds a lookup and a
+         *     way to be wrong.
+         */
+        StoreTarget: {
+            readonly store: string;
+            /**
+             * Format: date
+             * @description The month, as its first day (2026-08-01 = August 2026).
+             */
+            month: string;
+            /**
+             * Format: int64
+             * @description Net sales asked of this store for the month, in integer paise. Nought is a real answer - a store shut for the month is not an unset target.
+             */
+            target_paise: number;
+        };
+        /**
+         * @description What a PUT is allowed to say. Deliberately not a `ModelSerializer`:
+         *
+         *     * `store` is validated as a *name* here and resolved against the caller's
+         *       scope in the view, because "no such store" (404) and "not your store" (403)
+         *       are different answers and a `SlugRelatedField` gives one for both;
+         *     * `month` is a month, so a mid-month date is refused rather than truncated -
+         *       the same rule the table's CHECK holds, stated here so the caller gets a
+         *       sentence instead of a database error;
+         *     * `target_paise` is integer paise (ADR-0004). A rupee decimal reaching this
+         *       field means the conversion was skipped upstream, and rounding it here would
+         *       hide that.
+         */
+        StoreTargetWrite: {
+            store: string;
+            /** Format: date */
+            month: string;
+            target_paise: number;
         };
         /**
          * @description Read shape. Quantities are scan-derived: ``qty_planned`` is the plan,
@@ -15322,7 +16165,7 @@ export interface components {
             destination_store: number;
             readonly destination_store_code: string;
             readonly destination_store_name: string;
-            reason?: components["schemas"]["Reason6d3Enum"] | components["schemas"]["BlankEnum"];
+            reason?: components["schemas"]["StoreTransferReasonEnum"] | components["schemas"]["BlankEnum"];
             transport_mode?: components["schemas"]["TransportModeEnum"] | components["schemas"]["BlankEnum"];
             /** @description Bus number / courier AWB / vehicle plate */
             transport_ref?: string;
@@ -15389,6 +16232,17 @@ export interface components {
             partner_billing_value_paise?: number | null;
         };
         /**
+         * @description * `sister_store_request` - Sister store request
+         *     * `slow_mover` - Slow mover
+         *     * `seasonal_swap` - Seasonal swap
+         *     * `free_floor_space` - Free floor space
+         *     * `customer_waiting` - Customer waiting
+         *     * `warehouse_allocation` - Warehouse allocation
+         *     * `other` - Other
+         * @enum {string}
+         */
+        StoreTransferReasonEnum: "sister_store_request" | "slow_mover" | "seasonal_swap" | "free_floor_space" | "customer_waiting" | "warehouse_allocation" | "other";
+        /**
          * @description Creates a draft transfer. ``lines`` (the plan) is optional — a
          *     store→store transfer builds its lines by scanning at dispatch.
          */
@@ -15396,7 +16250,7 @@ export interface components {
             source_store: number;
             destination_store: number;
             transfer_type?: components["schemas"]["TransferTypeEnum"];
-            reason?: components["schemas"]["Reason6d3Enum"] | components["schemas"]["BlankEnum"];
+            reason?: components["schemas"]["StoreTransferReasonEnum"] | components["schemas"]["BlankEnum"];
             transport_mode?: components["schemas"]["TransportModeEnum"] | components["schemas"]["BlankEnum"];
             /** @description Bus number / courier AWB / vehicle plate */
             transport_ref?: string;
@@ -15430,7 +16284,7 @@ export interface components {
             store_id: number;
             feature_key: string;
             enabled: boolean;
-            mode?: components["schemas"]["Mode8ccEnum"];
+            mode?: components["schemas"]["ConnectedSwitchModeEnum"];
         };
         SwitchState: {
             store_id: number;
@@ -15439,7 +16293,7 @@ export interface components {
             enabled: boolean;
             /** @description What Admin chose, or the default. */
             chosen: boolean;
-            mode: components["schemas"]["Mode8ccEnum"];
+            mode: components["schemas"]["ConnectedSwitchModeEnum"];
             /** @description 0 while the default is in force. */
             revision: number;
             locked_reason: string | null;
@@ -15545,6 +16399,21 @@ export interface components {
             note: string;
             options?: components["schemas"]["TaxOptions"];
         };
+        /** @description Letting a till's protected quantities go (PRD §10.2). Always with a reason. */
+        TillAllocationRelease: {
+            reason: string;
+            fy: string;
+            next_seq: number;
+        };
+        TillAllocationReleasedRead: {
+            version: number;
+            /** Format: date-time */
+            released_at: string | null;
+            reason: string;
+            paused: boolean;
+            pause_fy: string;
+            pause_next_seq: number;
+        };
         TillNumberBlock: {
             id: number;
             prefix: string;
@@ -15575,12 +16444,103 @@ export interface components {
             problem: string;
         };
         /**
+         * @description Registering the device this store bills from (OPS-09, PRD §10.1).
+         *
+         *     `replace` is deliberately an explicit flag with a reason behind it rather than
+         *     something the server infers from "there is already one". A store whose counter
+         *     machine has died is replacing a device; a second machine quietly registering
+         *     beside the first is the failure `TILL_TAKEN` exists to catch, and the two look
+         *     identical from here unless somebody says which it is.
+         */
+        TillRegisterWrite: {
+            /** @default false */
+            replace: boolean;
+            /** @default  */
+            reason: string;
+        };
+        TillRegisteredRead: {
+            registered: boolean;
+            counter_id: string;
+            series_prefix: string;
+            /** Format: date-time */
+            authority_until: string | null;
+            authority_hours: number;
+            working_set_version: number | null;
+            /** Format: date-time */
+            server_time: string;
+            allocation_version: number | null;
+            paused: boolean;
+            pause_fy: string | null;
+            pause_next_seq: number | null;
+            pause_reason: string;
+            /** Format: date-time */
+            paused_at: string | null;
+            device_token: string;
+        };
+        /** @description Ending the counter's transfer pause (change PRD §10.2). */
+        TillResume: {
+            fy?: string;
+            next_seq?: number;
+        };
+        TillResumedRead: {
+            paused: boolean;
+            /** Format: date-time */
+            resumed_at: string | null;
+        };
+        TillStateRead: {
+            registered: boolean;
+            counter_id: string;
+            series_prefix: string;
+            /** Format: date-time */
+            authority_until: string | null;
+            authority_hours: number;
+            working_set_version: number | null;
+            /** Format: date-time */
+            server_time: string;
+            allocation_version: number | null;
+            paused: boolean;
+            pause_fy: string | null;
+            pause_next_seq: number | null;
+            pause_reason: string;
+            /** Format: date-time */
+            paused_at: string | null;
+        };
+        /**
          * @description * `call` - Phone call
          *     * `message` - Message
          *     * `in_person` - In person
          * @enum {string}
          */
         ToldHowEnum: "call" | "message" | "in_person";
+        /**
+         * @description The transfer's PT as the print screen needs it (#72).
+         *
+         *     Read-only throughout: the rows are a frozen copy of what the scanned lines
+         *     generated, and the columns come from the KDPS format itself rather than from
+         *     the rows, so a PT with no lines still prints with its proper header.
+         */
+        TransferPT: {
+            readonly id: number;
+            readonly transfer: number;
+            readonly doc_number: string;
+            readonly source_store_code: string;
+            readonly source_store_name: string;
+            readonly destination_store_code: string;
+            readonly destination_store_name: string;
+            /** Format: date-time */
+            readonly dispatch_date: string;
+            /**
+             * @description When the PT was cut. The row is created once and never touched, so
+             *     that is simply when it was created — a second timestamp column would be
+             *     a copy guaranteed to agree.
+             */
+            readonly generated_at: unknown;
+            readonly generated_by: number | null;
+            readonly generated_by_name: string;
+            readonly columns: string[];
+            /** @description KDPS PT rows, keyed by the KDPS column names. Never hand-edited. */
+            readonly rows: unknown;
+        };
         TransferReceipt: {
             readonly id: number;
             received_by?: number | null;
@@ -15591,6 +16551,30 @@ export interface components {
             /** @description What the receiver typed about the shortfall. The screen has always asked for it; until #71 the payload dropped it before the server saw it, so the one sentence explaining a gap was thrown away. */
             shortfall_notes?: string;
             readonly exceptions: components["schemas"]["ReceiptException"][];
+        };
+        /**
+         * @description Receiving, with the three exceptions the carton actually produces (#71).
+         *
+         *     ``scans`` are the pieces that arrived intact, ``damaged`` the ones that
+         *     arrived broken (a damage document is raised for them — quarantine if the
+         *     receiver may confirm it, otherwise a flag, #138), ``extras`` the ones that
+         *     arrived without being sent. ``notes`` is the receiver's sentence about the
+         *     shortfall — the field the old payload dropped.
+         *
+         *     Any one bucket may be empty but not all three: a receipt records something
+         *     turning up. Which barcodes belong in which bucket is the server's call, in
+         *     ``posting._validate_receive``.
+         */
+        TransferReceiveInput: {
+            scans?: components["schemas"]["ScanLine"][];
+            damaged?: components["schemas"]["ScanLine"][];
+            extras?: components["schemas"]["ScanLine"][];
+            /** @default  */
+            notes: string;
+        };
+        /** @description For dispatch: the scanned lines are the only quantities. */
+        TransferScanInput: {
+            scans: components["schemas"]["ScanLine"][];
         };
         /**
          * @description * `store_split` - Store split (warehouse → store)
@@ -15797,6 +16781,27 @@ export interface components {
             original: components["schemas"]["_OriginalRef"];
             lines: components["schemas"]["_LineWrite"][];
         };
+        /**
+         * @description One parked cart, as the till mirrors it up (contract, step 3).
+         *
+         *     `payload` is checked for being an object and for nothing else. It is the
+         *     counter's cart, the counter reprices it on retrieval, and a server that
+         *     validated its shape would be promising to understand a structure it has no
+         *     business reading (see `HeldBill`).
+         */
+        _HeldBillWrite: {
+            /** Format: uuid */
+            held_uuid: string;
+            /** @default  */
+            label: string;
+            /** Format: date-time */
+            held_at: string;
+            /** @default today */
+            expires_policy: components["schemas"]["ExpiresPolicyEnum"];
+            payload?: {
+                [key: string]: unknown;
+            };
+        };
         /** @description One line, whether it is being sold or given back inside an exchange. */
         _LineWrite: {
             line_no: number;
@@ -15946,7 +16951,7 @@ export interface operations {
             };
         };
     };
-    alerts_history_retrieve: {
+    alerts_history_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -15955,12 +16960,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AlertRead"][];
+                };
             };
         };
     };
@@ -15973,12 +16979,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AlertSeen"];
+                };
             };
         };
     };
@@ -15991,12 +16998,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["AlertSeen"];
+                };
             };
         };
     };
@@ -16028,14 +17036,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApprovalDecision"];
+                "application/x-www-form-urlencoded": components["schemas"]["ApprovalDecision"];
+                "multipart/form-data": components["schemas"]["ApprovalDecision"];
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ApprovalRead"];
+                };
             };
         };
     };
@@ -16067,12 +17082,48 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        sections: {
+                            code: string;
+                            label: string;
+                        }[];
+                        capabilities: {
+                            code: string;
+                            label: string;
+                        }[];
+                        rules: {
+                            rule?: number;
+                            text?: string;
+                        }[];
+                        roles: {
+                            code?: string;
+                            name?: string;
+                            is_system?: boolean;
+                            is_active?: boolean;
+                            user_count?: number;
+                            /** @description Section code to its stored or proposed access cell. */
+                            section_access?: {
+                                [key: string]: {
+                                    /** @enum {string} */
+                                    capability: "none" | "view" | "operate" | "approve" | "manage";
+                                    label?: string;
+                                };
+                            };
+                            locked?: {
+                                [key: string]: {
+                                    max_capability?: string;
+                                    rule?: string;
+                                    reason?: string;
+                                };
+                            };
+                        }[];
+                    };
+                };
             };
         };
     };
@@ -16298,12 +17349,35 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        nav_groups: string[];
+                        sections: {
+                            code: string;
+                            label: string;
+                        }[];
+                        capabilities: string[];
+                        scope_types: {
+                            value?: string;
+                            label?: string;
+                        }[];
+                        stores: {
+                            id?: number;
+                            code?: string;
+                            name?: string;
+                            store_type?: string;
+                        }[];
+                        brands: {
+                            id?: number;
+                            code?: string;
+                            name?: string;
+                        }[];
+                    };
+                };
             };
         };
     };
@@ -16360,14 +17434,103 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @description Section code to its stored or proposed access cell. */
+                    section_access: {
+                        [key: string]: {
+                            /** @enum {string} */
+                            capability: "none" | "view" | "operate" | "approve" | "manage";
+                            label?: string;
+                        };
+                    };
+                };
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        status?: "unchanged";
+                        detail?: string;
+                        code?: string;
+                        /** @description Section code to its stored or proposed access cell. */
+                        section_access?: {
+                            [key: string]: {
+                                /** @enum {string} */
+                                capability: "none" | "view" | "operate" | "approve" | "manage";
+                                label?: string;
+                            };
+                        };
+                    };
+                };
+            };
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        change_id: number;
+                        approval_id: number;
+                        /** @enum {string} */
+                        status: "pending_approval";
+                        detail: string;
+                        cells?: {
+                            [key: string]: unknown;
+                        }[];
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
             };
         };
     };
@@ -16665,12 +17828,15 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        csrf_token: string;
+                    };
+                };
             };
         };
     };
@@ -16681,7 +17847,15 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    email: string;
+                    password: string;
+                    csrf_token?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -16800,12 +17974,16 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        /** @enum {boolean} */
+                        logged_out: true;
+                    };
+                };
             };
         };
     };
@@ -16888,14 +18066,55 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    pin: string;
+                    current_password: string;
+                };
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        status: "set";
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
             };
         };
     };
@@ -16993,14 +18212,69 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    password: string;
+                };
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        valid_until: string;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
             };
         };
     };
@@ -17078,10 +18352,40 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    reason: string;
+                    /** @enum {string} */
+                    action?: "close" | "cancel";
+                };
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Booking"];
+                };
+            };
+            /** @description Invalid reason */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Booking not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Booking cannot be ended */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -17100,8 +18404,30 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
-            200: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Booking"];
+                };
+            };
+            /** @description Booking cannot be submitted */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Booking not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Approval already pending */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -17116,10 +18442,39 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        source_file_id: number;
+                        lines: {
+                            [key: string]: unknown;
+                        }[];
+                    } & {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description No document uploaded */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Document could not be read */
+            422: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -17138,12 +18493,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "*/*": string;
+                };
             };
         };
     };
@@ -17156,12 +18512,24 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        rows: {
+                            id: number;
+                            /** Format: date-time */
+                            created_at: string;
+                            filename: string;
+                            bank_label: string;
+                            row_count: number;
+                            matched_count: number;
+                            uploaded_by_name: string;
+                        }[];
+                    };
+                };
             };
         };
     };
@@ -17172,20 +18540,67 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                    bank_label?: string;
+                };
+            };
+        };
         responses: {
-            /** @description No response body */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        id: number;
+                        filename: string;
+                        row_count: number;
+                        matched_count: number;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                    };
+                };
+            };
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                    };
+                };
             };
         };
     };
     finledger_bank_imports_lines_retrieve: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Optional match status filter. */
+                status?: string;
+            };
             header?: never;
             path: {
                 import_id: number;
@@ -17194,12 +18609,30 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        rows: {
+                            id: number;
+                            import_id: number;
+                            /** Format: date */
+                            txn_date: string;
+                            narration?: string;
+                            debit_paise?: number;
+                            credit_paise?: number;
+                            balance_paise?: number | null;
+                            status: string;
+                            match_confidence?: number;
+                            candidates: Record<string, never>[];
+                            matched_entry_id?: number | null;
+                            matched_entry_doc_number?: string | null;
+                            matched_by_name?: string;
+                        }[];
+                    };
+                };
             };
         };
     };
@@ -17212,32 +18645,123 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    action?: "link" | "unlink" | "ignore";
+                    entry_id?: number;
+                };
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        id: number;
+                        import_id: number;
+                        /** Format: date */
+                        txn_date: string;
+                        narration?: string;
+                        debit_paise?: number;
+                        credit_paise?: number;
+                        balance_paise?: number | null;
+                        status: string;
+                        match_confidence?: number;
+                        candidates: Record<string, never>[];
+                        matched_entry_id?: number | null;
+                        matched_entry_doc_number?: string | null;
+                        matched_by_name?: string;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                    };
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                    };
+                };
             };
         };
     };
     finledger_cash_daily_retrieve: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Calendar date YYYY-MM-DD; today if omitted. */
+                date?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        /** Format: date */
+                        date: string;
+                        money_in_paise: number;
+                        money_out_paise: number;
+                        net_paise: number;
+                        accounts: {
+                            account: string;
+                            in_paise: number;
+                            out_paise: number;
+                            net_paise: number;
+                        }[];
+                        entries: components["schemas"]["CashLedgerEntry"][];
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                    };
+                };
             };
         };
     };
@@ -17276,12 +18800,43 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CashLedgerEntry"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                    };
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                    };
+                };
             };
         };
     };
@@ -17292,14 +18847,46 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    direction: "in" | "out";
+                    amount: number | string;
+                    description?: string;
+                    account?: string;
+                    mode?: string;
+                };
+            };
+        };
         responses: {
-            /** @description No response body */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CashLedgerEntry"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                    };
+                };
             };
         };
     };
@@ -17312,12 +18899,22 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        total_paise: number;
+                        total_rupees: string;
+                        accounts: {
+                            account: string;
+                            balance_paise: number;
+                            balance_rupees: string;
+                            entries: number;
+                        }[];
+                    };
+                };
             };
         };
     };
@@ -17330,12 +18927,72 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        balanced: boolean;
+                        trial_balance_paise: number;
+                        trial_balance_rupees: string;
+                        reconciliation: {
+                            reconciled?: boolean;
+                            vendor?: {
+                                reconciled?: boolean;
+                                subledger_paise?: number;
+                                subledger_rupees?: string;
+                                gl_control_paise?: number;
+                                gl_control_rupees?: string;
+                                drift_paise?: number;
+                            };
+                            cash?: {
+                                reconciled?: boolean;
+                                subledger_paise?: number;
+                                subledger_rupees?: string;
+                                gl_control_paise?: number;
+                                gl_control_rupees?: string;
+                                drift_paise?: number;
+                                by_account?: {
+                                    code?: string;
+                                    label?: string;
+                                    reconciled?: boolean;
+                                    subledger_paise?: number;
+                                    subledger_rupees?: string;
+                                    gl_control_paise?: number;
+                                    gl_control_rupees?: string;
+                                    drift_paise?: number;
+                                }[];
+                            };
+                        };
+                        stranded_stock_value: {
+                            clean?: boolean;
+                            row_count?: number;
+                            value_paise?: number;
+                            value_rupees?: string;
+                            rows?: {
+                                store_code?: string;
+                                sku_code?: string;
+                                value_paise?: number;
+                                value_rupees?: string;
+                            }[];
+                        };
+                        assets_paise: number;
+                        assets_rupees: string;
+                        liabilities_paise: number;
+                        liabilities_rupees: string;
+                        leg_count: number;
+                        voucher_count: number;
+                        accounts: {
+                            code?: string;
+                            label?: string;
+                            /** @enum {string} */
+                            side?: "asset" | "liability" | "income" | "expense";
+                            balance_paise?: number;
+                            balance_rupees?: string;
+                        }[];
+                    };
+                };
             };
         };
     };
@@ -17348,12 +19005,40 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        /** Format: date */
+                        as_of: string;
+                        total_due_paise: number;
+                        total_due_rupees?: string;
+                        bucket_0_30_paise?: number;
+                        bucket_0_30_rupees?: string;
+                        bucket_31_60_paise?: number;
+                        bucket_31_60_rupees?: string;
+                        bucket_60_plus_paise?: number;
+                        bucket_60_plus_rupees?: string;
+                        rows: {
+                            vendor_id: number;
+                            vendor_code: string;
+                            vendor_name: string;
+                            payment_terms?: string;
+                            oldest_days: number;
+                            bucket_0_30_paise?: number;
+                            bucket_0_30_rupees?: string;
+                            bucket_31_60_paise?: number;
+                            bucket_31_60_rupees?: string;
+                            bucket_60_plus_paise?: number;
+                            bucket_60_plus_rupees?: string;
+                            total_due_paise: number;
+                            total_due_rupees?: string;
+                            open_bill_count?: number;
+                        }[];
+                    };
+                };
             };
         };
     };
@@ -17366,12 +19051,25 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        total_payable_paise: number;
+                        total_payable_rupees: string;
+                        vendors_with_dues: number;
+                        rows: {
+                            vendor_id: number;
+                            vendor_code: string;
+                            vendor_name: string;
+                            outstanding_paise: number;
+                            outstanding_rupees: string;
+                            entries: number;
+                        }[];
+                    };
+                };
             };
         };
     };
@@ -17382,14 +19080,44 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    vendor_id: number;
+                    amount: number | string;
+                    description?: string;
+                    reference?: string;
+                };
+            };
+        };
         responses: {
-            /** @description No response body */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["VendorLedgerEntry"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                    };
+                };
             };
         };
     };
@@ -17428,12 +19156,43 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["VendorLedgerEntry"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                    };
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                    };
+                };
             };
         };
     };
@@ -17444,14 +19203,45 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    vendor_id: number;
+                    amount: number | string;
+                    description?: string;
+                    mode?: string;
+                    also_cash?: boolean;
+                };
+            };
+        };
         responses: {
-            /** @description No response body */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["VendorLedgerEntry"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail: string;
+                    };
+                };
             };
         };
     };
@@ -17654,7 +19444,18 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    notification_ids: string[];
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -17900,7 +19701,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    /** @enum {string} */
+                    decision: "approve" | "reject";
+                    reviewed_hash: string;
+                    reason_code?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -18497,7 +20312,27 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    action?: string;
+                    brand_ids?: number[];
+                    purpose?: string | null;
+                    qty_max?: number | null;
+                    require_distinct?: boolean;
+                    roles?: string[];
+                    site_ids?: number[];
+                    step_up?: boolean;
+                    unknown_value?: string | null;
+                    value_max?: string | null;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -18831,7 +20666,27 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    action?: string;
+                    brand_ids?: number[];
+                    purpose?: string | null;
+                    qty_max?: number | null;
+                    require_distinct?: boolean;
+                    roles?: string[];
+                    site_ids?: number[];
+                    step_up?: boolean;
+                    unknown_value?: string | null;
+                    value_max?: string | null;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -19168,7 +21023,18 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    note: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -20396,7 +22262,26 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    /** Format: uuid */
+                    human_id?: string;
+                    staff_code?: string;
+                    display_name?: string;
+                    mobile?: string | null;
+                    salesperson?: boolean;
+                    site_id?: string | null;
+                    /** Format: date-time */
+                    effective_from?: string | null;
+                    expected_revision: number;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -20547,7 +22432,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    site_id: number;
+                    /** Format: date-time */
+                    effective_from: string;
+                    reason_code: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -20697,7 +22596,20 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    reason_code: string;
+                    /** Format: date-time */
+                    effective_at: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -21464,7 +23376,46 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    reason_code: string;
+                    grants: ({
+                        /** Format: uuid */
+                        revokes: string;
+                        /** Format: date-time */
+                        effective_from?: string;
+                        /** Format: uuid */
+                        human_id?: string;
+                    } | {
+                        /** Format: uuid */
+                        human_id?: string;
+                        role_id?: number;
+                        scope: {
+                            scope_kind: string;
+                            entity_id?: number;
+                            site_id?: number;
+                            sbu_id?: number;
+                            brand_id?: number;
+                        };
+                        actions: {
+                            actions: string[];
+                            scope_kind?: string;
+                        };
+                        fields: string[];
+                        /** Format: date-time */
+                        effective_from: string;
+                        /** Format: date-time */
+                        effective_to?: string;
+                    })[];
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -22119,7 +24070,46 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    vendor_id: number | string;
+                    brand_id: number | string;
+                    season_id: number | string;
+                    entity_id: number | string;
+                    destination_site_id?: number | string;
+                    commercial_label?: string;
+                    vendor_ref?: string;
+                    /** Format: uuid */
+                    agreement_evidence_id?: string;
+                    /** Format: date */
+                    expected_date?: string;
+                    /** Format: uuid */
+                    source_evidence_id?: string;
+                    lines: {
+                        /** Format: uuid */
+                        line_key: string;
+                        style_code: string;
+                        description?: string;
+                        size?: string;
+                        /** Format: uuid */
+                        size_value_id?: string;
+                        /** Format: uuid */
+                        colour_value_id?: string;
+                        qty: number;
+                        destination_site_id?: number | string;
+                        mrp_paise?: string | null;
+                        cost_paise?: string | null;
+                    }[];
+                    notes?: string;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -22397,7 +24387,46 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    vendor_id: number | string;
+                    brand_id: number | string;
+                    season_id: number | string;
+                    entity_id: number | string;
+                    destination_site_id?: number | string;
+                    commercial_label?: string;
+                    vendor_ref?: string;
+                    /** Format: uuid */
+                    agreement_evidence_id?: string;
+                    /** Format: date */
+                    expected_date?: string;
+                    /** Format: uuid */
+                    source_evidence_id?: string;
+                    lines: {
+                        /** Format: uuid */
+                        line_key: string;
+                        style_code: string;
+                        description?: string;
+                        size?: string;
+                        /** Format: uuid */
+                        size_value_id?: string;
+                        /** Format: uuid */
+                        colour_value_id?: string;
+                        qty: number;
+                        destination_site_id?: number | string;
+                        mrp_paise?: string | null;
+                        cost_paise?: string | null;
+                    }[];
+                    notes?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -22543,7 +24572,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    /** @enum {string} */
+                    action: "short_close" | "cancel";
+                    reason_code: string;
+                    note?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -22689,7 +24732,41 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    reason_code: string;
+                    /** Format: date-time */
+                    effective_at: string;
+                    evidence_ids?: string[];
+                    header_changes?: {
+                        /** Format: date */
+                        expected_date?: string;
+                        destination_site_id?: number | string;
+                        notes?: string;
+                    };
+                    line_changes?: {
+                        /** Format: uuid */
+                        original_line_key: string;
+                        /** Format: uuid */
+                        replacement_line_key: string;
+                        qty?: number;
+                        destination_site_id?: number | string;
+                        /** Format: uuid */
+                        size_value_id?: string;
+                        /** Format: uuid */
+                        colour_value_id?: string;
+                        description?: string;
+                        cost_paise?: string | null;
+                    }[];
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -22914,7 +24991,31 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    /** Format: uuid */
+                    grn_id: string;
+                    links: {
+                        /** Format: uuid */
+                        booking_line_key: string;
+                        /** Format: uuid */
+                        grn_line_key: string;
+                        qty: number;
+                        /** Format: uuid */
+                        counter_of_id?: string;
+                    }[];
+                    reason_code: string;
+                    /** Format: date-time */
+                    effective_at: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -23060,7 +25161,18 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    reviewed_hash: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -23535,7 +25647,22 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    /** Format: uuid */
+                    manifest_row_id: string;
+                    reason_code: string;
+                    evidence_ids?: string[];
+                    reviewed_hash: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -23799,7 +25926,22 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    event_kind: string;
+                    /** Format: uuid */
+                    owner_human_id?: string;
+                    note?: string;
+                    reason_code?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -23964,7 +26106,33 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    /** @enum {string} */
+                    kind: "evidence_bundle" | "labels" | "pt_xlsx" | "stock_csv";
+                    scope: {
+                        /** @enum {string} */
+                        scope_kind: "brands" | "entity" | "sbus" | "sites" | "tenant";
+                        entity_id?: number;
+                        site_ids?: number[];
+                        sbu_ids?: string[];
+                        brand_ids?: number[];
+                    };
+                    field_set?: ("cost" | "layer_value" | "margin" | "personal")[];
+                    subject_key?: string;
+                    /** Format: date-time */
+                    as_of?: string;
+                    /** Format: uuid */
+                    profile_version_id?: string;
+                };
+            };
+        };
         responses: {
             202: {
                 headers: {
@@ -24270,7 +26438,22 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    /** Format: binary */
+                    file: string;
+                    /** @description JSON-encoded evidence scope, narrowed to the caller's grants. */
+                    scope?: string;
+                    kind?: string;
+                    expected_sha256?: string;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -24753,7 +26936,35 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    site_id: number | string;
+                    vendor_id: number | string;
+                    brand_id: number | string;
+                    subbrand_key?: string;
+                    /** Format: date-time */
+                    actual_arrival_at: string;
+                    transporter_ref?: string;
+                    /** Format: uuid */
+                    booking_id?: string;
+                    invoice_number?: string;
+                    /** Format: date */
+                    invoice_date?: string;
+                    /** Format: uuid */
+                    invoice_evidence_id?: string;
+                    duplicate_warning_hash?: string;
+                    duplicate_reason?: string;
+                    /** Format: date */
+                    brand_dispatch_date?: string;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -25038,7 +27249,38 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    invoice_number: string;
+                    /** Format: date */
+                    invoice_date: string;
+                    /** Format: uuid */
+                    evidence_id?: string;
+                    lines: {
+                        /** Format: uuid */
+                        line_key: string;
+                        style_code?: string;
+                        /** Format: uuid */
+                        sku_id?: string;
+                        /** Format: uuid */
+                        size_value_id?: string;
+                        description: string;
+                        claimed_qty: number;
+                        invoice_basic_paise?: string | null;
+                        invoice_mrp_paise?: string | null;
+                        evidence_line_ref?: string;
+                        remark?: string;
+                    }[];
+                    reason_code?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -25198,7 +27440,20 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    reason_code: string;
+                    /** Format: uuid */
+                    evidence_id?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -25509,7 +27764,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    /** Format: uuid */
+                    counter_id: string;
+                    /** Format: uuid */
+                    entry_user_id: string;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -25915,7 +28184,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    /** Format: uuid */
+                    to_human_id: string;
+                    reason_code: string;
+                    reviewed_hash: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -26103,7 +28386,44 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    observations: {
+                        /** Format: uuid */
+                        scan_key: string;
+                        /** Format: uuid */
+                        sku_id?: string;
+                        description: string;
+                        alias_value?: string;
+                        alias_context?: {
+                            issuer_key?: string;
+                            alias_type?: string;
+                            /** Format: uuid */
+                            profile_version_id?: string;
+                        };
+                        attrs?: {
+                            /** Format: uuid */
+                            field_id: string;
+                            /** Format: uuid */
+                            vocabulary_value_id?: string;
+                            supplied_text?: string;
+                            unknown?: boolean;
+                        }[];
+                        /** @enum {string} */
+                        condition: "good" | "damaged" | "wrong" | "unidentified";
+                        qty: number;
+                        /** Format: uuid */
+                        correction_of_id?: string;
+                    }[];
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -26282,7 +28602,7 @@ export interface operations {
             };
         };
     };
-    goods_v1_inbound_debit_notes_retrieve: {
+    goods_v1_inbound_debit_notes_list: {
         parameters: {
             query?: {
                 /** @description Which notes (open). */
@@ -26304,7 +28624,7 @@ export interface operations {
             };
         };
     };
-    goods_v1_inbound_debit_notes_retrieve_2: {
+    goods_v1_inbound_debit_notes_detail: {
         parameters: {
             query?: never;
             header?: never;
@@ -26540,7 +28860,25 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    /** Format: uuid */
+                    count_session_id: string;
+                    reviewed_hash: string;
+                    remarks?: {
+                        /** Format: uuid */
+                        claim_line_key: string;
+                        remark: string;
+                    }[];
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -26930,7 +29268,26 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    corrections: {
+                        /** Format: uuid */
+                        line_key: string;
+                        new_qty: number;
+                        /** @enum {string} */
+                        new_condition: "good" | "damaged" | "wrong" | "unidentified";
+                        reason_code: string;
+                    }[];
+                    evidence_ids?: string[];
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -27907,7 +30264,32 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    /** Format: uuid */
+                    sku_id: string;
+                    issuer_key?: string;
+                    /** @enum {string} */
+                    alias_type: "barcode" | "generated" | "vendor_code";
+                    value?: string;
+                    /** Format: uuid */
+                    range_version_id?: string;
+                    site_id?: number;
+                    /** Format: date-time */
+                    effective_from: string;
+                    /** Format: date-time */
+                    effective_to?: string;
+                    /** Format: uuid */
+                    originating_revision_id?: string;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -28173,7 +30555,30 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    /** Format: uuid */
+                    sku_id?: string;
+                    issuer_key?: string;
+                    /** @enum {string} */
+                    alias_type?: "barcode" | "generated" | "vendor_code";
+                    value?: string;
+                    /** Format: uuid */
+                    range_version_id?: string;
+                    site_id?: number;
+                    /** Format: date-time */
+                    effective_from?: string;
+                    /** Format: date-time */
+                    effective_to?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -28325,7 +30730,20 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    reason_code: string;
+                    /** Format: date-time */
+                    effective_at: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -28859,7 +31277,20 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    code: string;
+                    name: string;
+                    parent_id?: number | null;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -29085,7 +31516,20 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    code?: string;
+                    name?: string;
+                    parent_id?: number | null;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -29212,7 +31656,20 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    reason_code: string;
+                    /** Format: date-time */
+                    effective_at?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -29467,7 +31924,27 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    kind: string;
+                    scope: {
+                        [key: string]: unknown;
+                    };
+                    effective_from: string;
+                    effective_to?: string | null;
+                    payload: {
+                        [key: string]: unknown;
+                    };
+                    reason_code?: string;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -29767,7 +32244,23 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    payload: {
+                        [key: string]: unknown;
+                    };
+                    effective_from?: string;
+                    effective_to?: string | null;
+                    reason_code?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -29938,7 +32431,18 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    reviewed_hash: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -30109,7 +32613,19 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    version: number;
+                    reason_code: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -30413,7 +32929,24 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    /** @enum {string} */
+                    kind: "brand" | "subbrand" | "vendor";
+                    issuer_key: string;
+                    source_key: string;
+                    target_key?: string;
+                    /** Format: uuid */
+                    config_version_id: string;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -30666,7 +33199,24 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    /** @enum {string} */
+                    kind?: "brand" | "subbrand" | "vendor";
+                    issuer_key?: string;
+                    source_key?: string;
+                    target_key?: string;
+                    /** Format: uuid */
+                    config_version_id?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -30815,7 +33365,20 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    reason_code: string;
+                    /** Format: date-time */
+                    effective_at: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -31134,7 +33697,24 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    address?: {
+                        [key: string]: unknown;
+                    } | null;
+                    books_code?: string | null;
+                    code: string;
+                    name: string;
+                    pan?: string | null;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -31352,7 +33932,24 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    address?: {
+                        [key: string]: unknown;
+                    } | null;
+                    books_code?: string | null;
+                    code?: string;
+                    name?: string;
+                    pan?: string | null;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -31482,7 +34079,20 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    reason_code: string;
+                    /** Format: date-time */
+                    effective_at?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -31709,7 +34319,23 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    /** Format: date-time */
+                    effective_from: string | null;
+                    entity_id: string;
+                    gstin: string;
+                    state_code: string;
+                    state_name: string;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -31939,7 +34565,23 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    /** Format: date-time */
+                    effective_from?: string | null;
+                    entity_id?: string;
+                    gstin?: string;
+                    state_code?: string;
+                    state_name?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -32068,7 +34710,20 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    reason_code: string;
+                    /** Format: date-time */
+                    effective_at?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -32181,7 +34836,37 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    context: {
+                        site_id: number;
+                        issuer_key: string;
+                        /** @enum {string} */
+                        alias_type: "barcode" | "generated" | "vendor_code";
+                        /** Format: date-time */
+                        as_of: string;
+                        /** Format: uuid */
+                        profile_version_id: string;
+                        /** Format: uuid */
+                        subject_revision_id?: string;
+                    };
+                    value: string;
+                    candidate_hash: string;
+                    /** Format: uuid */
+                    chosen_sku_id: string;
+                    /** Format: uuid */
+                    subject_revision_id?: string;
+                    /** Format: uuid */
+                    scan_event_id?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -32628,7 +35313,20 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    code: string;
+                    name: string;
+                    parent_id?: number | null;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -32854,7 +35552,20 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    code?: string;
+                    name?: string;
+                    parent_id?: number | null;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -32981,7 +35692,20 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    reason_code: string;
+                    /** Format: date-time */
+                    effective_at?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -33215,7 +35939,30 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    /** Format: uuid */
+                    style_id: string;
+                    /** Format: uuid */
+                    profile_version_id: string;
+                    /** @description AttributeValues: exactly one of vocabulary_value_id, supplied_text or unknown per field. An omitted size stays unknown; an explicit Free Size is a mapped vocabulary value, never a blank. */
+                    attrs?: {
+                        field_id?: string;
+                        vocabulary_value_id?: string | null;
+                        supplied_text?: string | null;
+                        unknown?: boolean;
+                    }[];
+                    /** Format: uuid */
+                    originating_revision_id?: string;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -33483,7 +36230,28 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    /** Format: uuid */
+                    style_id?: string;
+                    /** Format: uuid */
+                    profile_version_id?: string;
+                    /** @description AttributeValues: exactly one of vocabulary_value_id, supplied_text or unknown per field. An omitted size stays unknown; an explicit Free Size is a mapped vocabulary value, never a blank. */
+                    attrs?: {
+                        field_id?: string;
+                        vocabulary_value_id?: string | null;
+                        supplied_text?: string | null;
+                        unknown?: boolean;
+                    }[];
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -33636,7 +36404,20 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    reason_code: string;
+                    /** Format: date-time */
+                    effective_at: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -34058,7 +36839,34 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    aliases?: string[];
+                    brand_ids?: number[];
+                    city?: string | null;
+                    code: string;
+                    counter_count?: number;
+                    country?: string;
+                    entity_id: string | null;
+                    linked_warehouse_id?: string | null;
+                    name: string;
+                    /** Format: date */
+                    opening_date?: string | null;
+                    partner_ref?: string | null;
+                    permitted_operations?: ("hold" | "receive" | "sell" | "transfer")[];
+                    registration_id: string | null;
+                    state?: string | null;
+                    /** @enum {string} */
+                    type: "DC" | "concession" | "store" | "virtual" | "warehouse";
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -34310,7 +37118,34 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    aliases?: string[];
+                    brand_ids?: number[];
+                    city?: string | null;
+                    code?: string;
+                    counter_count?: number;
+                    country?: string;
+                    entity_id?: string | null;
+                    linked_warehouse_id?: string | null;
+                    name?: string;
+                    /** Format: date */
+                    opening_date?: string | null;
+                    partner_ref?: string | null;
+                    permitted_operations?: ("hold" | "receive" | "sell" | "transfer")[];
+                    registration_id?: string | null;
+                    state?: string | null;
+                    /** @enum {string} */
+                    type?: "DC" | "concession" | "store" | "virtual" | "warehouse";
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -34561,7 +37396,31 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    /** @enum {string} */
+                    action: "approve_closed" | "approve_goods" | "approve_opening_setup" | "check" | "confirm_non_trading" | "revoke_goods" | "revoke_opening_setup" | "start_closing";
+                    reason_code?: string;
+                    /** Format: uuid */
+                    evidence_id?: string;
+                    checks?: Record<string, never>[];
+                    /** Format: date */
+                    closure_date?: string;
+                    residual_decisions?: {
+                        code: string;
+                        message: string;
+                        field?: string;
+                        quantity?: number;
+                    }[];
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -34700,7 +37559,20 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    reason_code: string;
+                    /** Format: date-time */
+                    effective_at?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -34915,7 +37787,20 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    parent_id?: string | null;
+                    name: string;
+                    kind: string;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -35131,7 +38016,22 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    parent_id?: string | null;
+                    name?: string;
+                    kind?: string;
+                    reason_code?: string;
+                    retire?: boolean;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -35260,7 +38160,18 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    reason_code: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -35698,7 +38609,29 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    brand_id: number;
+                    style_code: string;
+                    profile_family: string;
+                    /** @description AttributeValues: exactly one of vocabulary_value_id, supplied_text or unknown per field. An omitted size stays unknown; an explicit Free Size is a mapped vocabulary value, never a blank. */
+                    attrs?: {
+                        field_id?: string;
+                        vocabulary_value_id?: string | null;
+                        supplied_text?: string | null;
+                        unknown?: boolean;
+                    }[];
+                    /** Format: uuid */
+                    originating_revision_id?: string;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -35968,7 +38901,27 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    brand_id?: number;
+                    style_code?: string;
+                    profile_family?: string;
+                    /** @description AttributeValues: exactly one of vocabulary_value_id, supplied_text or unknown per field. An omitted size stays unknown; an explicit Free Size is a mapped vocabulary value, never a blank. */
+                    attrs?: {
+                        field_id?: string;
+                        vocabulary_value_id?: string | null;
+                        supplied_text?: string | null;
+                        unknown?: boolean;
+                    }[];
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -36122,7 +39075,20 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    reason_code: string;
+                    /** Format: date-time */
+                    effective_at: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -36373,7 +39339,20 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    code: string;
+                    name: string;
+                    parent_id?: number | null;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -36597,7 +39576,20 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    code?: string;
+                    name?: string;
+                    parent_id?: number | null;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -36723,7 +39715,20 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    reason_code: string;
+                    /** Format: date-time */
+                    effective_at?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -37059,7 +40064,23 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    business_profile_version_id?: string | null;
+                    code: string;
+                    currency: string;
+                    locale: string;
+                    name: string;
+                    timezone: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -37477,7 +40498,7 @@ export interface operations {
             };
         };
     };
-    goods_v1_outbound_count_schedules_retrieve: {
+    goods_v1_outbound_count_schedules_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -37496,7 +40517,7 @@ export interface operations {
             };
         };
     };
-    goods_v1_outbound_count_schedules_create: {
+    goods_v1_outbound_count_schedules_set: {
         parameters: {
             query?: never;
             header?: never;
@@ -37521,7 +40542,7 @@ export interface operations {
             };
         };
     };
-    goods_v1_outbound_count_schedules_create_2: {
+    goods_v1_outbound_count_schedules_change: {
         parameters: {
             query?: never;
             header?: never;
@@ -39134,7 +42155,59 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    /** @enum {string} */
+                    kind?: "hold";
+                    site_id: number;
+                    /** Format: uuid */
+                    source_document_id?: string;
+                    reason_code: string;
+                    evidence_ids?: string[];
+                    evidence_note?: string;
+                    vendor_id?: number;
+                    agreement_reference?: string;
+                    lines: {
+                        /** Format: uuid */
+                        line_key: string;
+                        /** Format: uuid */
+                        sku_id?: string;
+                        /** Format: uuid */
+                        lot_id?: string;
+                        /** Format: uuid */
+                        origin_id?: string;
+                        /** Format: uuid */
+                        source_location_id?: string;
+                        /** Format: uuid */
+                        destination_location_id?: string;
+                        /** Format: uuid */
+                        cost_evidence_origin_id?: string;
+                        /** Format: uuid */
+                        transfer_exception_id?: string;
+                        qty: number;
+                        hold_keys?: string[];
+                        /** @enum {string} */
+                        condition?: "damaged" | "good" | "unidentified" | "wrong";
+                        description?: string;
+                    }[];
+                    disposal?: {
+                        /** @enum {string} */
+                        method: "destruction" | "scrap_handover";
+                        /** Format: date-time */
+                        disposed_at: string;
+                        handed_over_to?: string;
+                        scrap_proceeds_paise?: number;
+                        evidence_reference?: string;
+                    };
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -39812,7 +42885,59 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    /** @enum {string} */
+                    kind: "bin_move" | "hold" | "release" | "adjustment_down" | "shrinkage" | "adjustment_up" | "rtv" | "writeoff" | "disposal";
+                    site_id: number;
+                    /** Format: uuid */
+                    source_document_id?: string;
+                    reason_code: string;
+                    evidence_ids?: string[];
+                    evidence_note?: string;
+                    vendor_id?: number;
+                    agreement_reference?: string;
+                    lines: {
+                        /** Format: uuid */
+                        line_key: string;
+                        /** Format: uuid */
+                        sku_id?: string;
+                        /** Format: uuid */
+                        lot_id?: string;
+                        /** Format: uuid */
+                        origin_id?: string;
+                        /** Format: uuid */
+                        source_location_id?: string;
+                        /** Format: uuid */
+                        destination_location_id?: string;
+                        /** Format: uuid */
+                        cost_evidence_origin_id?: string;
+                        /** Format: uuid */
+                        transfer_exception_id?: string;
+                        qty: number;
+                        hold_keys?: string[];
+                        /** @enum {string} */
+                        condition?: "damaged" | "good" | "unidentified" | "wrong";
+                        description?: string;
+                    }[];
+                    disposal?: {
+                        /** @enum {string} */
+                        method: "destruction" | "scrap_handover";
+                        /** Format: date-time */
+                        disposed_at: string;
+                        handed_over_to?: string;
+                        scrap_proceeds_paise?: number;
+                        evidence_reference?: string;
+                    };
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -45570,7 +48695,18 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    reviewed_hash: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -48358,7 +51494,28 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    source_site_id: number;
+                    destination_site_id: number;
+                    note?: string;
+                    lines: {
+                        /** Format: uuid */
+                        line_key: string;
+                        /** Format: uuid */
+                        sku_id: string;
+                        qty: number;
+                        note?: string;
+                    }[];
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -49766,7 +52923,18 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    reason?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -50327,7 +53495,18 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    reason: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -57721,7 +60900,17 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -58811,7 +62000,33 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    /** @enum {string} */
+                    purpose: "receipt" | "opening";
+                    /** @enum {string} */
+                    receipt_kind?: "primary" | "supplement";
+                    /** Format: uuid */
+                    grn_id?: string;
+                    /** Format: uuid */
+                    manifest_version_id?: string;
+                    /** Format: uuid */
+                    profile_version_id: string;
+                    direction: string;
+                    /** @enum {string} */
+                    source: "typed" | "canonical_upload" | "brand_upload";
+                    /** Format: uuid */
+                    evidence_id?: string;
+                    lines?: Record<string, never>[];
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -59397,7 +62612,18 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    reviewed_hash: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -59617,7 +62843,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    /** Format: uuid */
+                    profile_version_id: string;
+                    direction: string;
+                    reason_code?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -59837,7 +63077,19 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    reason_code: string;
+                    note?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -60057,9 +63309,22 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    /** @description Corrected PT header and rows. */
+                    corrected: Record<string, never>;
+                    reason_code: string;
+                };
+            };
+        };
         responses: {
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -60277,7 +63542,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    /** Format: uuid */
+                    profile_version_id: string;
+                    direction: string;
+                    reason_code?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -60497,9 +63776,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    reason_code: string;
+                    evidence_ids?: string[];
+                };
+            };
+        };
         responses: {
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -60529,81 +63820,12 @@ export interface operations {
                         /** Format: date-time */
                         as_of?: string;
                         data?: {
-                            header?: {
-                                [key: string]: unknown;
-                            };
-                            lines?: {
-                                items?: ({
-                                    /**
-                                     * Format: uuid
-                                     * @description The official line row's own id, returned only for an explicit `?version=` read (design §5.8). Never part of the frozen canonical payload; a print job names the line it prints by this id.
-                                     */
-                                    official_line_id?: string;
-                                    /** @description Where each KDPS column's value came from, keyed by the column's PRD name (SEASON, BRAND, COLOR, ... P RATE): `file` (the brand file's own value), `rule` (a confirmed rule or the product's clean-up), `suggestion` (close matches wait in `suggestions`; no value is applied), `person` (a person's edit) or `none`. */
-                                    origins?: {
-                                        [key: string]: "file" | "rule" | "suggestion" | "person" | "none";
-                                    };
-                                    /** @description Per KDPS column whose origin is `suggestion`: the file's own text and the close matches offered for it. Never applied until a person picks one through the row edit. */
-                                    suggestions?: {
-                                        [key: string]: {
-                                            source?: string;
-                                            choices?: {
-                                                value_id?: string;
-                                                value?: string;
-                                                label?: string;
-                                                reason?: string;
-                                            }[];
-                                        };
-                                    };
-                                    /** @description The row's brand and design, as stated (a drafted new item has no SKU). */
-                                    describing?: {
-                                        brand_id?: number | null;
-                                        design?: string | null;
-                                    };
-                                    /** @description How the row's item was found - by `barcode`, by `describing_values`, by a `person`, `ambiguous` (candidates listed, none chosen) or `new_item` (no SKU; propose it) - and the server's notes, which also appear in `issues`. */
-                                    match?: {
-                                        /** @enum {string|null} */
-                                        by?: "barcode" | "describing_values" | "new_item" | "ambiguous" | "person" | null;
-                                        candidates?: string[];
-                                        notes?: {
-                                            code?: string;
-                                            message?: string;
-                                            field?: string;
-                                        }[];
-                                    };
-                                    /** @description The line's KDPS values as the canonical export resolves them (OPS-16), keyed as the export's columns are (season, brand, colour, ... suggested_type). Money is integer paise text; a blank is null. Cost keys appear only to a caller who sees cost. */
-                                    cells?: {
-                                        [key: string]: unknown;
-                                    };
-                                    /** @description The line's item is a proposal still waiting for the product-master owner's confirmation (OPS-16). */
-                                    item_pending?: boolean;
-                                    /** @description The line's item was a proposal the product-master owner rejected, with their reason (OPS-17A). */
-                                    item_rejected?: {
-                                        reason_code?: string;
-                                    } | null;
-                                } & {
-                                    [key: string]: unknown;
-                                })[];
-                                next_cursor?: string | null;
-                                total?: number;
-                            };
-                            /** @description At most 50 events, newest first (design §5.8). */
-                            history?: {
-                                items?: {
-                                    /** Format: uuid */
-                                    id?: string;
-                                    kind?: string;
-                                    actor_id?: string | null;
-                                    /** Format: date-time */
-                                    recorded_at?: string;
-                                    revision?: number | null;
-                                    outcome?: string | null;
-                                    reason_code?: string | null;
-                                    evidence_ids?: string[];
-                                    related_document_id?: string | null;
-                                }[];
-                                next_history_cursor?: string | null;
-                            };
+                            /** Format: uuid */
+                            approval_request_id: string;
+                            /** Format: uuid */
+                            document_id: string;
+                            version: number | null;
+                            state: string;
                         };
                     };
                 };
@@ -60976,7 +64198,18 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    reviewed_hash: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -60984,106 +64217,112 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        /** Format: uuid */
-                        id?: string;
-                        /** @enum {string} */
-                        record_contract?: "goods-v1";
-                        revision?: number;
-                        content_hash?: string;
-                        state?: string;
-                        number?: string | null;
-                        version?: number | null;
-                        allowed_actions?: string[];
-                        context?: {
-                            /**
-                             * Format: uuid
-                             * @description The current draft revision: what an item proposal made while preparing this PT cites as `originating_revision_id` (OPS-15).
-                             */
-                            draft_revision_id?: string | null;
-                        } & {
-                            [key: string]: unknown;
-                        };
-                        /** @description Cursor for the next history page; null on the last page. */
-                        history_cursor?: string | null;
-                        /** Format: date-time */
-                        as_of?: string;
-                        data?: {
-                            header?: {
+                        /** @description ResourceDTO<PtDetailDTO> with independently paged lines and history. */
+                        document: {
+                            /** Format: uuid */
+                            id?: string;
+                            /** @enum {string} */
+                            record_contract?: "goods-v1";
+                            revision?: number;
+                            content_hash?: string;
+                            state?: string;
+                            number?: string | null;
+                            version?: number | null;
+                            allowed_actions?: string[];
+                            context?: {
+                                /**
+                                 * Format: uuid
+                                 * @description The current draft revision: what an item proposal made while preparing this PT cites as `originating_revision_id` (OPS-15).
+                                 */
+                                draft_revision_id?: string | null;
+                            } & {
                                 [key: string]: unknown;
                             };
-                            lines?: {
-                                items?: ({
-                                    /**
-                                     * Format: uuid
-                                     * @description The official line row's own id, returned only for an explicit `?version=` read (design §5.8). Never part of the frozen canonical payload; a print job names the line it prints by this id.
-                                     */
-                                    official_line_id?: string;
-                                    /** @description Where each KDPS column's value came from, keyed by the column's PRD name (SEASON, BRAND, COLOR, ... P RATE): `file` (the brand file's own value), `rule` (a confirmed rule or the product's clean-up), `suggestion` (close matches wait in `suggestions`; no value is applied), `person` (a person's edit) or `none`. */
-                                    origins?: {
-                                        [key: string]: "file" | "rule" | "suggestion" | "person" | "none";
-                                    };
-                                    /** @description Per KDPS column whose origin is `suggestion`: the file's own text and the close matches offered for it. Never applied until a person picks one through the row edit. */
-                                    suggestions?: {
-                                        [key: string]: {
-                                            source?: string;
-                                            choices?: {
-                                                value_id?: string;
-                                                value?: string;
-                                                label?: string;
-                                                reason?: string;
+                            /** @description Cursor for the next history page; null on the last page. */
+                            history_cursor?: string | null;
+                            /** Format: date-time */
+                            as_of?: string;
+                            data?: {
+                                header?: {
+                                    [key: string]: unknown;
+                                };
+                                lines?: {
+                                    items?: ({
+                                        /**
+                                         * Format: uuid
+                                         * @description The official line row's own id, returned only for an explicit `?version=` read (design §5.8). Never part of the frozen canonical payload; a print job names the line it prints by this id.
+                                         */
+                                        official_line_id?: string;
+                                        /** @description Where each KDPS column's value came from, keyed by the column's PRD name (SEASON, BRAND, COLOR, ... P RATE): `file` (the brand file's own value), `rule` (a confirmed rule or the product's clean-up), `suggestion` (close matches wait in `suggestions`; no value is applied), `person` (a person's edit) or `none`. */
+                                        origins?: {
+                                            [key: string]: "file" | "rule" | "suggestion" | "person" | "none";
+                                        };
+                                        /** @description Per KDPS column whose origin is `suggestion`: the file's own text and the close matches offered for it. Never applied until a person picks one through the row edit. */
+                                        suggestions?: {
+                                            [key: string]: {
+                                                source?: string;
+                                                choices?: {
+                                                    value_id?: string;
+                                                    value?: string;
+                                                    label?: string;
+                                                    reason?: string;
+                                                }[];
+                                            };
+                                        };
+                                        /** @description The row's brand and design, as stated (a drafted new item has no SKU). */
+                                        describing?: {
+                                            brand_id?: number | null;
+                                            design?: string | null;
+                                        };
+                                        /** @description How the row's item was found - by `barcode`, by `describing_values`, by a `person`, `ambiguous` (candidates listed, none chosen) or `new_item` (no SKU; propose it) - and the server's notes, which also appear in `issues`. */
+                                        match?: {
+                                            /** @enum {string|null} */
+                                            by?: "barcode" | "describing_values" | "new_item" | "ambiguous" | "person" | null;
+                                            candidates?: string[];
+                                            notes?: {
+                                                code?: string;
+                                                message?: string;
+                                                field?: string;
                                             }[];
                                         };
-                                    };
-                                    /** @description The row's brand and design, as stated (a drafted new item has no SKU). */
-                                    describing?: {
-                                        brand_id?: number | null;
-                                        design?: string | null;
-                                    };
-                                    /** @description How the row's item was found - by `barcode`, by `describing_values`, by a `person`, `ambiguous` (candidates listed, none chosen) or `new_item` (no SKU; propose it) - and the server's notes, which also appear in `issues`. */
-                                    match?: {
-                                        /** @enum {string|null} */
-                                        by?: "barcode" | "describing_values" | "new_item" | "ambiguous" | "person" | null;
-                                        candidates?: string[];
-                                        notes?: {
-                                            code?: string;
-                                            message?: string;
-                                            field?: string;
-                                        }[];
-                                    };
-                                    /** @description The line's KDPS values as the canonical export resolves them (OPS-16), keyed as the export's columns are (season, brand, colour, ... suggested_type). Money is integer paise text; a blank is null. Cost keys appear only to a caller who sees cost. */
-                                    cells?: {
+                                        /** @description The line's KDPS values as the canonical export resolves them (OPS-16), keyed as the export's columns are (season, brand, colour, ... suggested_type). Money is integer paise text; a blank is null. Cost keys appear only to a caller who sees cost. */
+                                        cells?: {
+                                            [key: string]: unknown;
+                                        };
+                                        /** @description The line's item is a proposal still waiting for the product-master owner's confirmation (OPS-16). */
+                                        item_pending?: boolean;
+                                        /** @description The line's item was a proposal the product-master owner rejected, with their reason (OPS-17A). */
+                                        item_rejected?: {
+                                            reason_code?: string;
+                                        } | null;
+                                    } & {
                                         [key: string]: unknown;
-                                    };
-                                    /** @description The line's item is a proposal still waiting for the product-master owner's confirmation (OPS-16). */
-                                    item_pending?: boolean;
-                                    /** @description The line's item was a proposal the product-master owner rejected, with their reason (OPS-17A). */
-                                    item_rejected?: {
-                                        reason_code?: string;
-                                    } | null;
-                                } & {
-                                    [key: string]: unknown;
-                                })[];
-                                next_cursor?: string | null;
-                                total?: number;
-                            };
-                            /** @description At most 50 events, newest first (design §5.8). */
-                            history?: {
-                                items?: {
-                                    /** Format: uuid */
-                                    id?: string;
-                                    kind?: string;
-                                    actor_id?: string | null;
-                                    /** Format: date-time */
-                                    recorded_at?: string;
-                                    revision?: number | null;
-                                    outcome?: string | null;
-                                    reason_code?: string | null;
-                                    evidence_ids?: string[];
-                                    related_document_id?: string | null;
-                                }[];
-                                next_history_cursor?: string | null;
+                                    })[];
+                                    next_cursor?: string | null;
+                                    total?: number;
+                                };
+                                /** @description At most 50 events, newest first (design §5.8). */
+                                history?: {
+                                    items?: {
+                                        /** Format: uuid */
+                                        id?: string;
+                                        kind?: string;
+                                        actor_id?: string | null;
+                                        /** Format: date-time */
+                                        recorded_at?: string;
+                                        revision?: number | null;
+                                        outcome?: string | null;
+                                        reason_code?: string | null;
+                                        evidence_ids?: string[];
+                                        related_document_id?: string | null;
+                                    }[];
+                                    next_history_cursor?: string | null;
+                                };
                             };
                         };
+                        reconciliation: Record<string, never> | null;
+                        /** Format: uuid */
+                        approval_request_id: string | null;
                     };
                 };
             };
@@ -61196,7 +64435,22 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    /** @enum {string} */
+                    receipt_kind?: "primary" | "supplement";
+                    /** Format: uuid */
+                    profile_version_id: string;
+                    direction: string;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -61416,7 +64670,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    /** Format: uuid */
+                    profile_version_id: string;
+                    /** Format: uuid */
+                    evidence_id?: string;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -61732,7 +65000,66 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    site_id: number | string;
+                    batch_key: string;
+                    dataset_key: string;
+                    /** Format: date-time */
+                    cutoff_at: string;
+                    /** Format: uuid */
+                    source_evidence_id: string;
+                    /** Format: uuid */
+                    profile_version_id?: string;
+                    rows: {
+                        row: {
+                            source_row_key: string;
+                            site_id: number | string;
+                            /** Format: uuid */
+                            location_id?: string;
+                            /** @enum {string} */
+                            condition: "good" | "damaged" | "wrong" | "unidentified";
+                            identity: {
+                                /** Format: uuid */
+                                sku_id?: string;
+                                attributes?: {
+                                    field_id: string | number;
+                                    vocabulary_value_id?: string | number;
+                                    supplied_text?: string;
+                                    unknown?: boolean;
+                                }[];
+                                raw_alias?: string;
+                                description?: string;
+                            };
+                            qty: number;
+                            basic_paise: string;
+                            mrp_paise: string;
+                            hsn: string;
+                            /** Format: uuid */
+                            tax_version_id?: string;
+                            season_id: number | string;
+                            season_unknown_historical?: boolean;
+                            /** Format: date-time */
+                            older_origin_at?: string;
+                            older_origin_ref?: string;
+                            commercial_label?: string;
+                        };
+                        verification: {
+                            observed_qty: number;
+                            /** @enum {string} */
+                            observed_condition: "good" | "damaged" | "wrong" | "unidentified";
+                            notes?: string;
+                        };
+                    }[];
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -62038,7 +65365,63 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    /** Format: date-time */
+                    cutoff_at: string;
+                    /** Format: uuid */
+                    source_evidence_id: string;
+                    /** Format: uuid */
+                    profile_version_id?: string;
+                    rows: {
+                        row: {
+                            source_row_key: string;
+                            site_id: number | string;
+                            /** Format: uuid */
+                            location_id?: string;
+                            /** @enum {string} */
+                            condition: "good" | "damaged" | "wrong" | "unidentified";
+                            identity: {
+                                /** Format: uuid */
+                                sku_id?: string;
+                                attributes?: {
+                                    field_id: string | number;
+                                    vocabulary_value_id?: string | number;
+                                    supplied_text?: string;
+                                    unknown?: boolean;
+                                }[];
+                                raw_alias?: string;
+                                description?: string;
+                            };
+                            qty: number;
+                            basic_paise: string;
+                            mrp_paise: string;
+                            hsn: string;
+                            /** Format: uuid */
+                            tax_version_id?: string;
+                            season_id: number | string;
+                            season_unknown_historical?: boolean;
+                            /** Format: date-time */
+                            older_origin_at?: string;
+                            older_origin_ref?: string;
+                            commercial_label?: string;
+                        };
+                        verification: {
+                            observed_qty: number;
+                            /** @enum {string} */
+                            observed_condition: "good" | "damaged" | "wrong" | "unidentified";
+                            notes?: string;
+                        };
+                    }[];
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -62213,7 +65596,19 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    season_id: number | string;
+                    reason: string;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -62349,7 +65744,24 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    /** Format: uuid */
+                    manifest_row_id: string;
+                    accepted_qty: number;
+                    /** @enum {string} */
+                    accepted_condition?: "good" | "damaged" | "wrong" | "unidentified";
+                    reason_code: string;
+                    evidence_ids?: string[];
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -62476,7 +65888,29 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    /** Format: uuid */
+                    pt_version_id: string;
+                    lines: {
+                        /** Format: uuid */
+                        official_line_id: string;
+                        copies: number;
+                    }[];
+                    /** Format: uuid */
+                    template_version_id: string;
+                    /** Format: uuid */
+                    reprint_of_id?: string;
+                    reason_code?: string;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -62785,7 +66219,28 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    /** @enum {string} */
+                    outcome: "attempted" | "confirmed" | "failed" | "partial" | "scan_verified" | "unknown";
+                    usable_counts?: {
+                        /** Format: uuid */
+                        official_line_id: string;
+                        qty: number | null;
+                    }[];
+                    reason_code?: string;
+                    scanned_alias?: string;
+                    /** Format: uuid */
+                    matched_line_id?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -63062,7 +66517,22 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    /** @enum {string} */
+                    action: "propose" | "confirm" | "reject";
+                    chosen_value_id?: string;
+                    reason_code: string;
+                    reviewed_hash: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -63319,7 +66789,22 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    /** @enum {string} */
+                    action: "propose" | "confirm" | "reject";
+                    chosen_value_id?: string;
+                    reason_code: string;
+                    reviewed_hash: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -63689,7 +67174,7 @@ export interface operations {
             };
         };
     };
-    goods_v1_sell_customers_retrieve: {
+    goods_v1_sell_customers_list: {
         parameters: {
             query?: {
                 /** @description Number or name contains */
@@ -63711,7 +67196,7 @@ export interface operations {
             };
         };
     };
-    goods_v1_sell_customers_retrieve_2: {
+    goods_v1_sell_customers_detail: {
         parameters: {
             query?: never;
             header?: never;
@@ -64288,7 +67773,20 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    site_id: number;
+                    /** Format: uuid */
+                    source_version_id: string;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -64599,7 +68097,19 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    confirm_complete: boolean;
+                    reason_code?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -64777,7 +68287,22 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    alias_value: string;
+                    qty: number;
+                    /** Format: uuid */
+                    official_line_id?: string | null;
+                    note?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -64955,7 +68480,39 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    observations: {
+                        /** Format: uuid */
+                        scan_key: string;
+                        /** Format: uuid */
+                        official_line_id?: string | null;
+                        alias_value: string;
+                        observed_ticket_mrp_paise?: number | null;
+                        /** Format: uuid */
+                        label_evidence_id?: string | null;
+                        /** Format: uuid */
+                        chosen_sku_id?: string | null;
+                        candidate_hash?: string;
+                        qty: number;
+                        /** @enum {string} */
+                        condition: "good" | "damaged" | "wrong";
+                        /** Format: uuid */
+                        location_id?: string | null;
+                        /** @enum {string} */
+                        outcome: "checked_good" | "accepted_good" | "damaged" | "wrong";
+                        /** Format: date-time */
+                        actual_at: string;
+                    }[];
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -65786,7 +69343,15 @@ export interface operations {
                 content: {
                     "application/json": {
                         items?: {
-                            [key: string]: unknown;
+                            sale_line_id: string;
+                            site_id: string;
+                            doc_number: string;
+                            till_number: string;
+                            barcode: string;
+                            description: string;
+                            qty: number;
+                            /** Format: date-time */
+                            returned_at: string;
                         }[];
                         next_cursor?: string | null;
                     };
@@ -65861,7 +69426,21 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    site_id: number;
+                    sale_line_ids: number[];
+                    /** Format: uuid */
+                    location_id: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -65870,7 +69449,15 @@ export interface operations {
                 content: {
                     "application/json": {
                         items?: {
-                            [key: string]: unknown;
+                            sale_line_id: string;
+                            site_id: string;
+                            doc_number: string;
+                            till_number: string;
+                            barcode: string;
+                            description: string;
+                            qty: number;
+                            /** Format: date-time */
+                            returned_at: string;
                         }[];
                         next_cursor?: string | null;
                     };
@@ -65999,7 +69586,15 @@ export interface operations {
                 content: {
                     "application/json": {
                         items?: {
-                            [key: string]: unknown;
+                            sale_line_id: string;
+                            site_id: string;
+                            doc_number: string;
+                            till_number: string;
+                            barcode: string;
+                            description: string;
+                            qty: number;
+                            /** Format: date-time */
+                            returned_at: string;
                         }[];
                         next_cursor?: string | null;
                     };
@@ -66074,7 +69669,21 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    site_id: number;
+                    sale_line_ids: number[];
+                    /** Format: uuid */
+                    location_id: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -66083,7 +69692,15 @@ export interface operations {
                 content: {
                     "application/json": {
                         items?: {
-                            [key: string]: unknown;
+                            sale_line_id: string;
+                            site_id: string;
+                            doc_number: string;
+                            till_number: string;
+                            barcode: string;
+                            description: string;
+                            qty: number;
+                            /** Format: date-time */
+                            returned_at: string;
                         }[];
                         next_cursor?: string | null;
                     };
@@ -66424,7 +70041,21 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    code: string;
+                    name: string;
+                    gstin?: string;
+                    agent_ref?: string;
+                };
+            };
+        };
         responses: {
             201: {
                 headers: {
@@ -66677,7 +70308,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    code?: string;
+                    name?: string;
+                    gstin?: string;
+                    agent_ref?: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -66826,7 +70471,20 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    reason_code: string;
+                    /** Format: date-time */
+                    effective_at: string;
+                };
+            };
+        };
         responses: {
             200: {
                 headers: {
@@ -66977,8 +70635,24 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
+            /** @description Attachment download */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+            /** @description Attachment does not belong to this mailbox */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Google attachment fetch failed */
+            502: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -66986,17 +70660,24 @@ export interface operations {
             };
         };
     };
-    mail_callback_retrieve: {
+    mail_oauth_callback: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Google authorization code */
+                code?: string;
+                /** @description Google refusal code */
+                error?: string;
+                /** @description OAuth flow state */
+                state?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
-            200: {
+            /** @description Redirect to the PWA with a one-time handoff or refusal */
+            302: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -67011,14 +70692,52 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    handoff: string;
+                };
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        connected: boolean;
+                        /** Format: email */
+                        email_address: string;
+                        /** @enum {string} */
+                        status: "connected" | "needs_reconnect" | "disconnected";
+                        /** Format: date-time */
+                        last_synced_at: string | null;
+                        last_sync_error: string;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        code: string;
+                    };
+                };
+            };
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        code: string;
+                    };
+                };
             };
         };
     };
@@ -67031,12 +70750,38 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        /** Format: uri */
+                        url: string;
+                    };
+                };
+            };
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        code: string;
+                    };
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        code: string;
+                    };
+                };
             };
         };
     };
@@ -67049,34 +70794,66 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        connected: boolean;
+                    };
+                };
             };
         };
     };
-    mail_messages_retrieve: {
+    mail_messages_list: {
         parameters: {
-            query?: never;
+            query?: {
+                box?: "inbox" | "sent" | "unread";
+                /** @description Maximum number of rows */
+                limit?: number;
+                /** @description Search cached messages */
+                q?: string;
+                /** @description Skip Gmail sync */
+                sync?: "0";
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        connected: boolean;
+                        status?: string;
+                        /** Format: email */
+                        email_address?: string;
+                        last_sync_error?: string;
+                        messages: {
+                            id: number;
+                            thread_id: string;
+                            subject: string;
+                            from_name: string;
+                            from_email: string;
+                            to_emails: string;
+                            snippet: string;
+                            /** Format: date-time */
+                            sent_at: string;
+                            is_unread: boolean;
+                            is_starred: boolean;
+                            is_sent: boolean;
+                        }[];
+                    };
+                };
             };
         };
     };
-    mail_messages_retrieve_2: {
+    mail_message_detail: {
         parameters: {
             query?: never;
             header?: never;
@@ -67087,12 +70864,24 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["MailDetail"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        code: string;
+                    };
+                };
             };
         };
     };
@@ -67107,12 +70896,26 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        is_unread: boolean;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        code: string;
+                    };
+                };
             };
         };
     };
@@ -67123,14 +70926,60 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    to: string;
+                    subject?: string;
+                    body?: string;
+                    cc?: string;
+                    reply_to?: number | string;
+                };
+            };
+        };
         responses: {
-            /** @description No response body */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        sent: boolean;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        code: string;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        code: string;
+                    };
+                };
+            };
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        code: string;
+                    };
+                };
             };
         };
     };
@@ -67143,12 +70992,23 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        configured: boolean;
+                        connected: boolean;
+                        /** Format: email */
+                        email_address?: string;
+                        /** @enum {string} */
+                        status?: "connected" | "needs_reconnect" | "disconnected";
+                        /** Format: date-time */
+                        last_synced_at?: string | null;
+                        last_sync_error?: string;
+                    };
+                };
             };
         };
     };
@@ -67161,12 +71021,18 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        connected: boolean;
+                        status?: string;
+                        unread: number;
+                        last_sync_error?: string;
+                    };
+                };
             };
         };
     };
@@ -67574,16 +71440,30 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        matches: {
+                            barcode?: string;
+                            design?: string;
+                            color?: string;
+                            size?: string;
+                            brand?: string;
+                            item?: string;
+                            hsn?: string;
+                            mrp?: number | null;
+                            first_doc_number?: string | null;
+                        }[];
+                        count: number;
+                    };
+                };
             };
         };
     };
-    masters_store_targets_retrieve: {
+    masters_store_targets_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -67592,12 +71472,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["StoreTarget"][];
+                };
             };
         };
     };
@@ -67608,14 +71489,21 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StoreTargetWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["StoreTargetWrite"];
+                "multipart/form-data": components["schemas"]["StoreTargetWrite"];
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["StoreTarget"];
+                };
             };
         };
     };
@@ -67747,30 +71635,44 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        entities: number;
+                        gstins: number;
+                        stores: number;
+                        warehouses: number;
+                        brands: number;
+                        seasons: number;
+                        open_season: string | null;
+                    };
+                };
             };
         };
     };
-    offers_retrieve: {
+    offers_list: {
         parameters: {
-            query?: never;
+            query?: {
+                brand?: string;
+                live?: boolean;
+                store?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OfferResult"][];
+                };
             };
         };
     };
@@ -67781,18 +71683,36 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["OfferWrite"];
+                "multipart/form-data": components["schemas"]["OfferWrite"];
+            };
+        };
         responses: {
-            /** @description No response body */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OfferResult"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        code: string;
+                    };
+                };
             };
         };
     };
-    offers_retrieve_2: {
+    offers_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -67803,12 +71723,24 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OfferResult"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        code: string;
+                    };
+                };
             };
         };
     };
@@ -67821,14 +71753,51 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OfferWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["OfferWrite"];
+                "multipart/form-data": components["schemas"]["OfferWrite"];
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OfferResult"];
+                };
+            };
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferResult"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        code: string;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        code: string;
+                    };
+                };
             };
         };
     };
@@ -67843,30 +71812,67 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OfferResult"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        code: string;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        code: string;
+                    };
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        code: string;
+                    };
+                };
             };
         };
     };
     offers_eoss_config_retrieve: {
         parameters: {
-            query?: never;
+            query?: {
+                brand?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["EossConfigResponse"];
+                };
             };
         };
     };
@@ -67877,32 +71883,66 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EossConfigRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["EossConfigRequest"];
+                "multipart/form-data": components["schemas"]["EossConfigRequest"];
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["EossConfigResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        code: string;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        code: string;
+                    };
+                };
             };
         };
     };
-    offers_eoss_recommendations_retrieve: {
+    offers_eoss_recommendations_list: {
         parameters: {
-            query?: never;
+            query?: {
+                brand?: string;
+                season?: string;
+                status?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["EossRecommendation"][];
+                };
             };
         };
     };
@@ -67913,14 +71953,43 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EossPlanRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["EossPlanRequest"];
+                "multipart/form-data": components["schemas"]["EossPlanRequest"];
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["EossPlanResponse"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        code: string;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        code: string;
+                    };
+                };
             };
         };
     };
@@ -67933,36 +72002,94 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EossDecisionRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["EossDecisionRequest"];
+                "multipart/form-data": components["schemas"]["EossDecisionRequest"];
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["EossRecommendation"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        code: string;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        code: string;
+                    };
+                };
             };
         };
     };
-    offers_price_list_retrieve: {
+    offers_price_list_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description ISO calendar date */
+                as_of?: string;
+                brand?: string;
+                no_discount?: boolean;
+                q?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        /** Format: date */
+                        as_of: string;
+                        count: number;
+                        truncated: boolean;
+                        brands: string[];
+                        rows: {
+                            barcode: string;
+                            design: string;
+                            color: string;
+                            size: string;
+                            brand: string;
+                            item: string;
+                            hsn: string;
+                            season: string;
+                            mrp_paise: number | null;
+                            mrp_then_paise: number | null;
+                            cost_paise: number | null;
+                            moved_since: boolean;
+                            margin_pct: string | null;
+                            no_discount: boolean;
+                        }[];
+                    };
+                };
             };
         };
     };
-    offers_price_list_retrieve_2: {
+    offers_price_list_detail: {
         parameters: {
             query?: never;
             header?: never;
@@ -67973,12 +72100,59 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        barcode: string;
+                        design: string;
+                        color: string;
+                        size: string;
+                        brand: string;
+                        item: string;
+                        hsn: string;
+                        season: string;
+                        mrp_paise: number | null;
+                        mrp_then_paise: number | null;
+                        cost_paise: number | null;
+                        moved_since: boolean;
+                        margin_pct: string | null;
+                        no_discount: boolean;
+                        cohorts: {
+                            season: string;
+                            unit_cost_paise: number | null;
+                            mrp_paise: number | null;
+                            last_doc_number: string | null;
+                        }[];
+                        history: {
+                            id: number;
+                            /** Format: date */
+                            effective_from: string;
+                            from_paise: number | null;
+                            to_paise: number;
+                            source: string;
+                            source_label: string;
+                            doc_number: string;
+                            reason: string;
+                            changed_by_name: string;
+                            /** Format: date-time */
+                            at: string;
+                        }[];
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        code: string;
+                    };
+                };
             };
         };
     };
@@ -67991,14 +72165,80 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    reason: string;
+                    mrp_paise?: number | string;
+                    mrp?: number | string;
+                } | unknown | unknown;
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        barcode: string;
+                        design: string;
+                        color: string;
+                        size: string;
+                        brand: string;
+                        item: string;
+                        hsn: string;
+                        season: string;
+                        mrp_paise: number | null;
+                        mrp_then_paise: number | null;
+                        cost_paise: number | null;
+                        moved_since: boolean;
+                        margin_pct: string | null;
+                        no_discount: boolean;
+                        cohorts: {
+                            season: string;
+                            unit_cost_paise: number | null;
+                            mrp_paise: number | null;
+                            last_doc_number: string | null;
+                        }[];
+                        history: {
+                            id: number;
+                            /** Format: date */
+                            effective_from: string;
+                            from_paise: number | null;
+                            to_paise: number;
+                            source: string;
+                            source_label: string;
+                            doc_number: string;
+                            reason: string;
+                            changed_by_name: string;
+                            /** Format: date-time */
+                            at: string;
+                        }[];
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        code: string;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        code: string;
+                    };
+                };
             };
         };
     };
@@ -68164,12 +72404,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["StockAdjustmentRead"];
+                };
             };
         };
     };
@@ -68184,30 +72425,64 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["StockAdjustmentRead"];
+                };
             };
         };
     };
     outbound_count_lookup_retrieve: {
         parameters: {
-            query?: never;
+            query: {
+                barcode: string;
+                store: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        barcode: string;
+                        design: string;
+                        color: string;
+                        size: string;
+                        brand: string;
+                        season: string;
+                        item: string;
+                        hsn: string;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
             };
         };
     };
@@ -68220,14 +72495,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CountScanInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["CountScanInput"];
+                "multipart/form-data": components["schemas"]["CountScanInput"];
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CountSessionRead"];
+                };
             };
         };
     };
@@ -68242,30 +72524,44 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CountSessionRead"];
+                };
             };
         };
     };
     outbound_distribution_suggested_split_retrieve: {
         parameters: {
-            query?: never;
+            query: {
+                brand?: string;
+                /** @description Comma-separated destination store ids */
+                stores?: string;
+                warehouse: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        /** @description Size or _default to destination store id and fractional weight. */
+                        weights: {
+                            [key: string]: {
+                                [key: string]: number;
+                            };
+                        };
+                    };
+                };
             };
         };
     };
@@ -68328,12 +72624,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["GapClosureRead"];
+                };
             };
         };
     };
@@ -68348,12 +72645,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["GapClosureRead"];
+                };
             };
         };
     };
@@ -68410,12 +72708,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["BillingPolicy"];
+                };
             };
         };
     };
@@ -68426,14 +72725,22 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    mode: "informational" | "gl_posting";
+                };
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["BillingPolicy"];
+                };
             };
         };
     };
@@ -68446,30 +72753,76 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        stores: {
+                            store_id?: number;
+                            store_code?: string;
+                            store_name?: string;
+                            total_owed_paise?: number;
+                            total_paid_paise?: number;
+                            net_outstanding_paise?: number;
+                            transfer_count?: number;
+                            /** Format: date-time */
+                            last_dispatch_date?: string | null;
+                            transfers?: {
+                                id?: number;
+                                doc_number?: string | null;
+                                source_store_code?: string;
+                                /** Format: date-time */
+                                dispatch_date?: string;
+                                partner_billing_value_paise?: number;
+                            }[];
+                        }[];
+                        total_owed_paise: number;
+                        total_paid_paise: number;
+                        net_outstanding_paise: number;
+                        /** @enum {string} */
+                        billing_mode: "informational" | "gl_posting";
+                    };
+                };
             };
         };
     };
     outbound_partner_settlements_retrieve: {
         parameters: {
-            query?: never;
+            query?: {
+                store?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        rows: {
+                            id?: number;
+                            /** Format: date-time */
+                            created_at?: string;
+                            doc_number?: string | null;
+                            kind?: string;
+                            store_id?: number;
+                            store_code?: string;
+                            store_name?: string;
+                            amount_paise?: number;
+                            amount_rupees?: string;
+                            description?: string;
+                            reference?: string;
+                            mode?: string;
+                            posted_by_name?: string;
+                        }[];
+                    };
+                };
             };
         };
     };
@@ -68480,14 +72833,41 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": {
+                    store_id: number;
+                    /** @description Positive rupee amount; converted to paise by the server. */
+                    amount: string | number;
+                    mode?: string;
+                    description?: string;
+                    reference?: string;
+                };
+            };
+        };
         responses: {
-            /** @description No response body */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        id: number;
+                        doc_number: string;
+                        amount_paise: number;
+                        amount_rupees: string;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        detail?: string;
+                    };
+                };
             };
         };
     };
@@ -68502,30 +72882,102 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        id: number;
+                        doc_number: string;
+                    };
+                };
             };
         };
     };
     outbound_returnable_pool_retrieve: {
         parameters: {
-            query?: never;
+            query: {
+                brand: number;
+                store?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        brand: {
+                            id?: number;
+                            name?: string;
+                            commercial_label?: string;
+                            takes_returns?: boolean;
+                            return_window_days?: number | null;
+                        };
+                        excluded_reason: string;
+                        cap: {
+                            applies?: boolean;
+                            percent?: string;
+                            delivered_paise?: number;
+                            allowance_paise?: number;
+                            used_paise?: number;
+                            remaining_paise?: number;
+                            warn_at_paise?: number;
+                            this_return_paise?: number;
+                            exceeded_by_paise?: number;
+                            warn?: boolean;
+                        };
+                        rows: {
+                            source?: string;
+                            store?: number;
+                            store_code?: string;
+                            store_name?: string;
+                            sku_code?: string;
+                            design?: string;
+                            color?: string;
+                            size?: string;
+                            brand?: string;
+                            season?: string;
+                            item?: string;
+                            hsn?: string;
+                            qty?: number;
+                            unit_cost_paise?: number;
+                            value_paise?: number;
+                            /** Format: date */
+                            arrived_on?: string | null;
+                            /** Format: date */
+                            window_date?: string | null;
+                            days_left?: number | null;
+                            expired?: boolean;
+                        }[];
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
             };
         };
     };
@@ -68603,14 +73055,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreditNote"];
+                "application/x-www-form-urlencoded": components["schemas"]["CreditNote"];
+                "multipart/form-data": components["schemas"]["CreditNote"];
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ReturnToVendorRead"];
+                };
             };
         };
     };
@@ -68625,12 +73084,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ReturnToVendorRead"];
+                };
             };
         };
     };
@@ -68645,30 +73105,65 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ReturnToVendorRead"];
+                };
             };
         };
     };
     outbound_scan_lookup_retrieve: {
         parameters: {
-            query?: never;
+            query: {
+                barcode: string;
+                store: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        barcode: string;
+                        design: string;
+                        color: string;
+                        size: string;
+                        brand: string;
+                        season: string;
+                        item: string;
+                        hsn: string;
+                        available_qty: number;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
             };
         };
     };
@@ -68746,14 +73241,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["StockRequestCloseInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["StockRequestCloseInput"];
+                "multipart/form-data": components["schemas"]["StockRequestCloseInput"];
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["StockRequestRead"];
+                };
             };
         };
     };
@@ -68766,14 +73268,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StockRequestFulfilInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["StockRequestFulfilInput"];
+                "multipart/form-data": components["schemas"]["StockRequestFulfilInput"];
+            };
+        };
         responses: {
-            /** @description No response body */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["StoreTransferRead"];
+                };
             };
         };
     };
@@ -68788,34 +73297,58 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["StockRequestRead"];
+                };
             };
         };
     };
     outbound_stock_search_retrieve: {
         parameters: {
-            query?: never;
+            query?: {
+                q?: string;
+                store?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        rows: {
+                            store_code: string;
+                            store_name: string;
+                            sku_code: string;
+                            design: string;
+                            color: string;
+                            size: string;
+                            brand: string;
+                            season: string;
+                            item: string;
+                            hsn: string;
+                            qty: number;
+                            is_own: boolean;
+                            unit_cost_paise?: number;
+                            landed_value_paise?: number;
+                            margin_paise?: number | null;
+                        }[];
+                        truncated: boolean;
+                    };
+                };
             };
         };
     };
-    outbound_stocktakes_retrieve: {
+    outbound_stocktakes_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -68824,12 +73357,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["StocktakeRead"][];
+                };
             };
         };
     };
@@ -68840,18 +73374,25 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StocktakeCreate"];
+                "application/x-www-form-urlencoded": components["schemas"]["StocktakeCreate"];
+                "multipart/form-data": components["schemas"]["StocktakeCreate"];
+            };
+        };
         responses: {
-            /** @description No response body */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["StocktakeRead"];
+                };
             };
         };
     };
-    outbound_stocktakes_retrieve_2: {
+    outbound_stocktakes_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -68862,12 +73403,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["StocktakeRead"];
+                };
             };
         };
     };
@@ -68880,14 +73422,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ApplyVarianceInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["ApplyVarianceInput"];
+                "multipart/form-data": components["schemas"]["ApplyVarianceInput"];
+            };
+        };
         responses: {
-            /** @description No response body */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["StockAdjustmentRead"];
+                };
             };
         };
     };
@@ -68900,14 +73449,63 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecountInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["RecountInput"];
+                "multipart/form-data": components["schemas"]["RecountInput"];
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        stocktake: number;
+                        store_code: string;
+                        status: string;
+                        recount_tolerance_paise?: number;
+                        lines: {
+                            sku_code?: string;
+                            design?: string;
+                            color?: string;
+                            size?: string;
+                            brand?: string;
+                            season?: string;
+                            item?: string;
+                            hsn?: string;
+                            book_qty?: number;
+                            first_counted_qty?: number;
+                            counted_qty?: number;
+                            adj_qty?: number;
+                            live_book_qty?: number;
+                            unit_cost_paise?: number;
+                            variance_paise?: number;
+                            moved?: boolean;
+                            cost_known?: boolean;
+                            above_tolerance?: boolean;
+                            needs_recount?: boolean;
+                            may_recount?: boolean;
+                            recount?: {
+                                counted_qty?: number;
+                                first_counted_qty?: number;
+                                reason?: string;
+                                reason_label?: string;
+                                recounted_by_name?: string;
+                                /** Format: date-time */
+                                recounted_at?: string;
+                                unit_cost_paise?: number;
+                                stale?: boolean;
+                            } | null;
+                        }[];
+                        net_pieces?: number;
+                        net_variance_paise?: number;
+                        unpriced?: string[];
+                        awaiting_recount?: string[];
+                    };
+                };
             };
         };
     };
@@ -68920,14 +73518,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CountSessionCreate"];
+                "application/x-www-form-urlencoded": components["schemas"]["CountSessionCreate"];
+                "multipart/form-data": components["schemas"]["CountSessionCreate"];
+            };
+        };
         responses: {
-            /** @description No response body */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["CountSessionRead"];
+                };
             };
         };
     };
@@ -68942,12 +73547,65 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        stocktake: number;
+                        store_code: string;
+                        status: string;
+                        recount_tolerance_paise?: number;
+                        lines: {
+                            sku_code?: string;
+                            design?: string;
+                            color?: string;
+                            size?: string;
+                            brand?: string;
+                            season?: string;
+                            item?: string;
+                            hsn?: string;
+                            book_qty?: number;
+                            first_counted_qty?: number;
+                            counted_qty?: number;
+                            adj_qty?: number;
+                            live_book_qty?: number;
+                            unit_cost_paise?: number;
+                            variance_paise?: number;
+                            moved?: boolean;
+                            cost_known?: boolean;
+                            above_tolerance?: boolean;
+                            needs_recount?: boolean;
+                            may_recount?: boolean;
+                            recount?: {
+                                counted_qty?: number;
+                                first_counted_qty?: number;
+                                reason?: string;
+                                reason_label?: string;
+                                recounted_by_name?: string;
+                                /** Format: date-time */
+                                recounted_at?: string;
+                                unit_cost_paise?: number;
+                                stale?: boolean;
+                            } | null;
+                        }[];
+                        net_pieces?: number;
+                        net_variance_paise?: number;
+                        unpriced?: string[];
+                        awaiting_recount?: string[];
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
             };
         };
     };
@@ -69025,14 +73683,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferScanInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["TransferScanInput"];
+                "multipart/form-data": components["schemas"]["TransferScanInput"];
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["StoreTransferRead"];
+                };
             };
         };
     };
@@ -69045,14 +73710,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GapClosureInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["GapClosureInput"];
+                "multipart/form-data": components["schemas"]["GapClosureInput"];
+            };
+        };
         responses: {
-            /** @description No response body */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["GapClosureRead"];
+                };
             };
         };
     };
@@ -69067,12 +73739,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TransferPT"];
+                };
             };
         };
     };
@@ -69087,12 +73760,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "text/csv": string;
+                };
             };
         };
     };
@@ -69107,12 +73781,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                };
             };
         };
     };
@@ -69125,14 +73800,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["TransferReceiveInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["TransferReceiveInput"];
+                "multipart/form-data": components["schemas"]["TransferReceiveInput"];
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["StoreTransferRead"];
+                };
             };
         };
     };
@@ -69147,12 +73829,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["StoreTransferRead"];
+                };
             };
         };
     };
@@ -69251,12 +73934,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["VFlipRead"];
+                };
             };
         };
     };
@@ -69271,12 +73955,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["VFlipRead"];
+                };
             };
         };
     };
@@ -69356,12 +74041,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["WriteOffRead"];
+                };
             };
         };
     };
@@ -69376,12 +74062,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["WriteOffRead"];
+                };
             };
         };
     };
@@ -70238,16 +74925,35 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        query: string;
+                        groups: {
+                            key: string;
+                            label: string;
+                            truncated: boolean;
+                            results: {
+                                kind: string;
+                                title: string;
+                                subtitle: string;
+                                meta: string;
+                                to: string;
+                                exact: boolean;
+                                mrp_paise?: number | null;
+                            }[];
+                        }[];
+                        total: number;
+                        notes: string[];
+                    };
+                };
             };
         };
     };
-    sell_alterations_retrieve: {
+    sell_alterations_list: {
         parameters: {
             query: {
                 q?: string;
@@ -70302,7 +75008,7 @@ export interface operations {
             };
         };
     };
-    sell_alterations_retrieve_2: {
+    sell_alterations_detail: {
         parameters: {
             query: {
                 store: string;
@@ -70644,19 +75350,22 @@ export interface operations {
     };
     sell_dataset_retrieve: {
         parameters: {
-            query?: never;
+            query?: {
+                since?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["DatasetRead"];
+                };
             };
         };
     };
@@ -70669,30 +75378,85 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        /** Format: date */
+                        from: string;
+                        /** Format: date */
+                        to: string;
+                        totals: {
+                            gross_paise?: number;
+                            disc_paise?: number;
+                            net_paise?: number;
+                            lines?: number;
+                            bills?: number;
+                            discount_pct?: string | null;
+                        };
+                        by_brand: {
+                            brand?: string;
+                            disc_paise?: number;
+                            net_paise?: number;
+                            lines?: number;
+                        }[];
+                        by_offer: {
+                            offer_id?: number;
+                            name?: string;
+                            funder?: string;
+                            layer?: string;
+                            disc_paise?: number;
+                            lines?: number;
+                        }[];
+                        keyed_in: {
+                            disc_paise?: number;
+                            lines?: number;
+                            by_person?: {
+                                store_code?: string;
+                                name?: string;
+                                disc_paise?: number;
+                                lines?: number;
+                            }[];
+                        };
+                        not_applied: {
+                            missed_paise?: number;
+                            open_flags?: number;
+                            rows?: {
+                                flag_id?: number;
+                                bill_number?: string;
+                                /** Format: date */
+                                billed_on?: string;
+                                store_code?: string;
+                                missed_paise?: number;
+                                status?: string;
+                            }[];
+                        };
+                    };
+                };
             };
         };
     };
     sell_flags_retrieve: {
         parameters: {
-            query?: never;
+            query?: {
+                date?: string;
+                status?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["StoreFlagsRead"];
+                };
             };
         };
     };
@@ -70705,14 +75469,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContinuityFlagWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["ContinuityFlagWrite"];
+                "multipart/form-data": components["schemas"]["ContinuityFlagWrite"];
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["ContinuityFlagRow"];
+                };
             };
         };
     };
@@ -70802,32 +75573,42 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HeldBillsWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["HeldBillsWrite"];
+                "multipart/form-data": components["schemas"]["HeldBillsWrite"];
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["HeldBillsCountRead"];
+                };
             };
         };
     };
     sell_irn_queue_retrieve: {
         parameters: {
-            query?: never;
+            query?: {
+                status?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["IrnQueueRead"];
+                };
             };
         };
     };
@@ -70840,14 +75621,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IrnQueueWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["IrnQueueWrite"];
+                "multipart/form-data": components["schemas"]["IrnQueueWrite"];
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["IrnQueueRow"];
+                };
             };
         };
     };
@@ -71046,12 +75834,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["SellPolicyRead"];
+                };
             };
         };
     };
@@ -71062,14 +75851,21 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SellPolicyWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["SellPolicyWrite"];
+                "multipart/form-data": components["schemas"]["SellPolicyWrite"];
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["SellPolicyRead"];
+                };
             };
         };
     };
@@ -71082,12 +75878,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["RegisterRead"];
+                };
             };
         };
     };
@@ -71098,18 +75895,25 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegisterHandoverWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["RegisterHandoverWrite"];
+                "multipart/form-data": components["schemas"]["RegisterHandoverWrite"];
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["RegisterHandoverRead"];
+                };
             };
         };
     };
-    sell_reservations_retrieve: {
+    sell_reservations_list: {
         parameters: {
             query: {
                 q?: string;
@@ -71164,7 +75968,7 @@ export interface operations {
             };
         };
     };
-    sell_reservations_retrieve_2: {
+    sell_reservations_detail: {
         parameters: {
             query: {
                 store: string;
@@ -71427,7 +76231,7 @@ export interface operations {
             };
         };
     };
-    sell_special_orders_retrieve: {
+    sell_special_orders_list: {
         parameters: {
             query: {
                 q?: string;
@@ -71482,7 +76286,7 @@ export interface operations {
             };
         };
     };
-    sell_special_orders_retrieve_2: {
+    sell_special_orders_detail: {
         parameters: {
             query: {
                 store: string;
@@ -71649,12 +76453,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TillStateRead"];
+                };
             };
         };
     };
@@ -71667,14 +76472,21 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TillAllocationRelease"];
+                "application/x-www-form-urlencoded": components["schemas"]["TillAllocationRelease"];
+                "multipart/form-data": components["schemas"]["TillAllocationRelease"];
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TillAllocationReleasedRead"];
+                };
             };
         };
     };
@@ -71710,14 +76522,21 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["TillRegisterWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["TillRegisterWrite"];
+                "multipart/form-data": components["schemas"]["TillRegisterWrite"];
+            };
+        };
         responses: {
-            /** @description No response body */
-            200: {
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TillRegisteredRead"];
+                };
             };
         };
     };
@@ -71730,12 +76549,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TillStateRead"];
+                };
             };
         };
     };
@@ -71746,32 +76566,74 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["TillResume"];
+                "application/x-www-form-urlencoded": components["schemas"]["TillResume"];
+                "multipart/form-data": components["schemas"]["TillResume"];
+            };
+        };
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TillResumedRead"];
+                };
             };
         };
     };
     stock_availability_retrieve: {
         parameters: {
-            query?: never;
+            query: {
+                brand?: string;
+                q: string;
+                size?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        truncated: boolean;
+                        results: {
+                            design: string;
+                            brand: string;
+                            item: string;
+                            sizes: {
+                                size: string;
+                                stores: {
+                                    store: string;
+                                    store_name: string;
+                                    color: string;
+                                    sku_code: string;
+                                    hsn: string;
+                                    season: string;
+                                    qty: number;
+                                }[];
+                            }[];
+                        }[];
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                        code: string;
+                    };
+                };
             };
         };
     };
@@ -71801,55 +76663,147 @@ export interface operations {
     };
     stockledger_in_transit_retrieve: {
         parameters: {
-            query?: never;
+            query?: {
+                transfer?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        summary: {
+                            value_paise: number;
+                            value_rupees: string;
+                            units_in_transit: number;
+                            transfers: number;
+                        };
+                        rows: {
+                            transfer_doc_number: string;
+                            source_store_code: string;
+                            destination_store_code: string;
+                            sku_code: string;
+                            design: string;
+                            color: string;
+                            size: string;
+                            brand: string;
+                            season: string;
+                            item: string;
+                            hsn: string;
+                            qty: number;
+                            value_paise: number;
+                            value_rupees: string;
+                            /** Format: date-time */
+                            updated_at: string;
+                        }[];
+                    };
+                };
             };
         };
     };
     stockledger_on_hand_retrieve: {
         parameters: {
-            query?: never;
+            query?: {
+                brand?: string;
+                group_by?: "brand" | "sku" | "store";
+                q?: string;
+                sku?: string;
+                store?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        group_by: "sku" | "brand" | "store";
+                        summary: {
+                            value_paise: number;
+                            value_rupees: string;
+                            units_on_hand: number;
+                            lines: number;
+                            displayed: number;
+                            truncated: boolean;
+                        };
+                        rows: {
+                            /** @description Present only when group_by=sku. */
+                            store_id?: number;
+                            store_code: string;
+                            store_name: string;
+                            brand: string;
+                            design: string;
+                            color: string;
+                            size: string;
+                            item: string;
+                            season: string;
+                            sku_code: string;
+                            net_qty: number;
+                            skus: number;
+                            net_value_paise: number;
+                            net_value_rupees: string;
+                        }[];
+                    };
+                };
             };
         };
     };
     stockledger_quarantine_retrieve: {
         parameters: {
-            query?: never;
+            query?: {
+                brand?: string;
+                store?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        summary: {
+                            value_paise: number;
+                            value_rupees: string;
+                            units_quarantined: number;
+                            lines: number;
+                        };
+                        rows: {
+                            store_code: string;
+                            store_name: string;
+                            sku_code: string;
+                            design: string;
+                            color: string;
+                            size: string;
+                            brand: string;
+                            season: string;
+                            item: string;
+                            hsn: string;
+                            qty: number;
+                            value_paise: number;
+                            value_rupees: string;
+                            marked_by: string | null;
+                            /** Format: date-time */
+                            marked_at: string;
+                        }[];
+                    };
+                };
             };
         };
     };
@@ -71862,12 +76816,20 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        entries: number;
+                        net_qty: number;
+                        net_value_paise: number;
+                        distinct_skus: number;
+                        distinct_documents: number;
+                        net_value_rupees: string;
+                    };
+                };
             };
         };
     };
@@ -71880,16 +76842,31 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        store: string;
+                        /** Format: date */
+                        date: string;
+                        modes: {
+                            [key: string]: number;
+                        };
+                        upi_split: {
+                            [key: string]: number;
+                        };
+                        bills: number;
+                        returns: number;
+                        credit_notes_issued_paise: number;
+                        flags_open: number;
+                    };
+                };
             };
         };
     };
-    store_checklist_templates_retrieve: {
+    store_checklist_templates_list: {
         parameters: {
             query?: never;
             header?: never;
@@ -71933,7 +76910,7 @@ export interface operations {
             };
         };
     };
-    store_checklist_templates_create_2: {
+    store_checklist_templates_change: {
         parameters: {
             query?: never;
             header?: never;
@@ -72070,12 +77047,58 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": {
+                        store: string;
+                        sales_live: boolean;
+                        today: {
+                            net_sales_paise?: number;
+                            bills?: number;
+                            avg_bill_paise?: number;
+                            pieces?: number;
+                            collections?: {
+                                [key: string]: number;
+                            };
+                            vs_yesterday_pct?: number | null;
+                        };
+                        action_queue: {
+                            key?: string;
+                            count?: number;
+                        }[];
+                        live: {
+                            offers?: {
+                                id?: number;
+                                brand?: string;
+                                one_liner?: string;
+                            }[];
+                            in_transit?: {
+                                id?: number;
+                                doc_number?: string;
+                                pieces?: number;
+                                expected?: string;
+                            }[];
+                        };
+                        last7: {
+                            /** Format: date */
+                            date?: string;
+                            net_sales_paise?: number;
+                        }[];
+                        /** @description Present only for a manager with both Sell and Money read access. */
+                        manager?: {
+                            day_close?: {
+                                /** Format: date */
+                                date?: string;
+                                state?: string;
+                            };
+                            mtd_net_paise?: number;
+                            target_paise?: number;
+                        };
+                    };
+                };
             };
         };
     };

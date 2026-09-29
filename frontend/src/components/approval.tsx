@@ -157,9 +157,7 @@ export function ApprovalSteps({
     >
       {steps.map((step, i) => (
         <span key={step.order} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          {i > 0 && (
-            <ChevronRight size={12} style={{ color: "var(--muted)" }} aria-hidden />
-          )}
+          {i > 0 && <ChevronRight size={12} style={{ color: "var(--muted)" }} aria-hidden />}
           <span
             className={`chip chip-${STEP_TONE[step.state]}`}
             style={{ fontSize: 11.5 }}
@@ -222,16 +220,17 @@ export function ApprovalTrail({
   approval: ApprovalT | null;
   history?: ApprovalT[];
   /** API path that re-raises the request. Omit where the user may not ask. */
-  askAgainPath?: string;
+  askAgainPath?: string | undefined;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
   async function askAgain() {
+    if (!askAgainPath) return;
     setError("");
     setBusy(true);
     try {
-      await api.post(askAgainPath!);
+      await api.post(askAgainPath);
       window.location.reload();
     } catch (e) {
       setError(apiErrorMessage(e));
@@ -275,12 +274,22 @@ export function ApprovalTrail({
 
       {approval?.status === "rejected" && askAgainPath && (
         <p className="lead" style={{ marginTop: 12 }}>
-          <button type="button" className="btn" disabled={busy} onClick={askAgain} data-testid="ask-again">
+          <button
+            type="button"
+            className="btn"
+            disabled={busy}
+            onClick={askAgain}
+            data-testid="ask-again"
+          >
             <RotateCcw size={15} /> {busy ? "Sending…" : "Ask again"}
           </button>
         </p>
       )}
-      {error && <div className="login-error" data-testid="ask-again-error">{error}</div>}
+      {error && (
+        <div className="login-error" data-testid="ask-again-error">
+          {error}
+        </div>
+      )}
 
       {history.length > 0 && (
         <div style={{ marginTop: 12 }} data-testid="approval-history">

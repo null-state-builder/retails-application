@@ -241,7 +241,10 @@ export interface FieldEdit {
 /** One row's edits as an E124 `{line_key, fields}` update. Attribute columns go
  *  together as the row's `attributes`: the line's own list with each edited
  *  dimension replaced (or dropped, when cleared). */
-export function rowUpdate(line: GridLine, row: RowEdits): { line_key: string; fields: FieldEdit[] } {
+export function rowUpdate(
+  line: GridLine,
+  row: RowEdits,
+): { line_key: string; fields: FieldEdit[] } {
   const fields: FieldEdit[] = [];
   let attributes: AttributeEntry[] | null = null;
   for (const [name, value] of Object.entries(row) as [ColumnName | "SKU", string | null][]) {
@@ -254,7 +257,11 @@ export function rowUpdate(line: GridLine, row: RowEdits): { line_key: string; fi
       attributes ??= [...((line.attributes ?? []) as AttributeEntry[])];
       attributes = attributes.filter((entry) => entry.field_id !== column.dimension);
       if (value) {
-        attributes.push({ field_id: column.dimension!, vocabulary_value_id: value, unknown: false });
+        attributes.push({
+          field_id: column.dimension!,
+          vocabulary_value_id: value,
+          unknown: false,
+        });
       }
       continue;
     }
@@ -280,7 +287,7 @@ function editValue(column: GridColumn, value: string | null): unknown {
 export function buildUpdates(lines: GridLine[], edits: Edits) {
   return lines
     .filter((line) => Object.keys(edits[line.line_key] ?? {}).length > 0)
-    .map((line) => rowUpdate(line, edits[line.line_key]));
+    .map((line) => rowUpdate(line, edits[line.line_key] ?? {}));
 }
 
 // ---------------------------------------------------------------------------
@@ -352,7 +359,7 @@ export function issueColumn(field: string | null | undefined): ColumnName | null
   // A refused pasted cell names its column by its KDPS name (ticket 06A).
   if ((KDPS_COLUMNS as readonly string[]).includes(field)) return field as ColumnName;
   const bare = field.startsWith("attrs.") ? field.slice(6) : field;
-  if (bare in FIELD_COLUMN) return FIELD_COLUMN[bare];
+  if (bare in FIELD_COLUMN) return FIELD_COLUMN[bare] ?? null;
   const byDimension = GRID_COLUMNS.find((c) => c.kind === "attribute" && c.dimension === bare);
   return byDimension ? byDimension.name : null;
 }
@@ -399,12 +406,7 @@ export function fillTargets(rows: FillRow[], target: string, scope: FillScope): 
     .map((row) => row.key);
 }
 
-export function applyFill(
-  edits: Edits,
-  keys: string[],
-  column: ColumnName,
-  value: string,
-): Edits {
+export function applyFill(edits: Edits, keys: string[], column: ColumnName, value: string): Edits {
   let next = edits;
   for (const key of keys) next = setEdit(next, key, column, value);
   return next;
@@ -456,7 +458,7 @@ export function acceptedValue(
   const found = seasons.filter(
     (s) => names.has(s.value.trim().toUpperCase()) || names.has(s.label.trim().toUpperCase()),
   );
-  return found.length === 1 ? found[0].id : null;
+  return found.length === 1 ? (found[0]?.id ?? null) : null;
 }
 
 /** Columns a mapping rule can be proposed from: the ones read straight from the
@@ -719,6 +721,7 @@ export function planPaste(text: string, target: PasteTarget): PasteResult {
   const skipped = new Set<ColumnName>();
   body.forEach((row, i) => {
     const key = target.lineKeys[target.startRow + i];
+    if (!key) return;
     row.forEach((raw, j) => {
       const name = names[j];
       if (!name) return;

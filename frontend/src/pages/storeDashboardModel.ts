@@ -176,5 +176,14 @@ export function targetProgressPct(mtdPaise: number, targetPaise: number): number
  *  `new Date(iso)`, which parses a bare date as UTC and can shift it a day. */
 export function shortDay(iso: string): string {
   const [y, m, d] = iso.split("-").map(Number);
+  if (
+    y === undefined ||
+    m === undefined ||
+    d === undefined ||
+    !Number.isInteger(y) ||
+    !Number.isInteger(m) ||
+    !Number.isInteger(d)
+  )
+    return iso;
   return new Date(y, m - 1, d).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }

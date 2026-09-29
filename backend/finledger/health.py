@@ -18,6 +18,7 @@ from __future__ import annotations
 from typing import Any
 
 from django.db.models import Count, Sum
+from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -65,12 +66,102 @@ ACCOUNTS = [
 #: Display label per account code, off the one chart above.
 ACCOUNT_LABELS = {code: label for code, label, _ in ACCOUNTS}
 
+_CONTROL_BALANCE: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "reconciled": {"type": "boolean"},
+        "subledger_paise": {"type": "integer"},
+        "subledger_rupees": {"type": "string"},
+        "gl_control_paise": {"type": "integer"},
+        "gl_control_rupees": {"type": "string"},
+        "drift_paise": {"type": "integer"},
+    },
+}
+_BOOKS_HEALTH_RESPONSE = {
+    "type": "object",
+    "required": [
+        "balanced", "trial_balance_paise", "trial_balance_rupees", "reconciliation",
+        "stranded_stock_value", "assets_paise", "assets_rupees", "liabilities_paise",
+        "liabilities_rupees", "leg_count", "voucher_count", "accounts",
+    ],
+    "properties": {
+        "balanced": {"type": "boolean"},
+        "trial_balance_paise": {"type": "integer"},
+        "trial_balance_rupees": {"type": "string"},
+        "reconciliation": {
+            "type": "object",
+            "properties": {
+                "reconciled": {"type": "boolean"},
+                "vendor": _CONTROL_BALANCE,
+                "cash": {
+                    **_CONTROL_BALANCE,
+                    "properties": {
+                        **_CONTROL_BALANCE["properties"],
+                        "by_account": {
+                            "type": "array",
+                            "items": {
+                                "type": "object",
+                                "properties": {
+                                    "code": {"type": "string"},
+                                    "label": {"type": "string"},
+                                    **_CONTROL_BALANCE["properties"],
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        "stranded_stock_value": {
+            "type": "object",
+            "properties": {
+                "clean": {"type": "boolean"},
+                "row_count": {"type": "integer"},
+                "value_paise": {"type": "integer"},
+                "value_rupees": {"type": "string"},
+                "rows": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "store_code": {"type": "string"},
+                            "sku_code": {"type": "string"},
+                            "value_paise": {"type": "integer"},
+                            "value_rupees": {"type": "string"},
+                        },
+                    },
+                },
+            },
+        },
+        "assets_paise": {"type": "integer"},
+        "assets_rupees": {"type": "string"},
+        "liabilities_paise": {"type": "integer"},
+        "liabilities_rupees": {"type": "string"},
+        "leg_count": {"type": "integer"},
+        "voucher_count": {"type": "integer"},
+        "accounts": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "code": {"type": "string"},
+                    "label": {"type": "string"},
+                    "side": {"type": "string", "enum": ["asset", "liability", "income", "expense"]},
+                    "balance_paise": {"type": "integer"},
+                    "balance_rupees": {"type": "string"},
+                },
+            },
+        },
+    },
+}
+
 
 class BooksHealthView(APIView):
     """`GET /api/finledger/health` — trial balance + equation-of-state snapshot."""
 
     permission_classes = [IsAuthenticated, IsBooksKeeper]
 
+    @extend_schema(responses={200: _BOOKS_HEALTH_RESPONSE})
     def get(self, request: Request) -> Response:
         balances = {code: account_balance(code) for code, _, _ in ACCOUNTS}
         tb = trial_balance()

@@ -646,6 +646,77 @@ def _responses(status: int, schema: dict[str, Any], codes: tuple[int, ...]) -> d
     return {status: schema, **{code: REFUSAL_RESPONSE for code in codes}}
 
 
+def _mutation_request(
+    fields: dict[str, Any], *, required: tuple[str, ...] = (), revision_bound: bool = False
+) -> dict[str, Any]:
+    """Document the closed goods-v1 command envelope alongside each business input."""
+    return {
+        "application/json": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": [
+                "command_id",
+                "contract_version",
+                *(["expected_revision"] if revision_bound else []),
+                *required,
+            ],
+            "properties": {
+                "command_id": {"type": "string", "format": "uuid"},
+                "contract_version": {"type": "string", "enum": ["goods-v1"]},
+                "expected_revision": {"type": "integer", "minimum": 1},
+                **fields,
+            },
+        },
+    }
+
+
+_ID_FIELD = {"type": "string", "format": "uuid"}
+_TEXT_FIELD = {"type": "string"}
+_TIMESTAMP_FIELD = {"type": "string", "format": "date-time"}
+_RETIRE_REQUEST = _mutation_request(
+    {"reason_code": _TEXT_FIELD, "effective_at": _TIMESTAMP_FIELD},
+    required=("reason_code", "effective_at"),
+    revision_bound=True,
+)
+_STYLE_FIELDS = {
+    "brand_id": {"type": "integer", "minimum": 1},
+    "style_code": _TEXT_FIELD,
+    "profile_family": _TEXT_FIELD,
+    "attrs": ATTRS_SCHEMA,
+}
+_SKU_FIELDS = {"style_id": _ID_FIELD, "profile_version_id": _ID_FIELD, "attrs": ATTRS_SCHEMA}
+_ALIAS_FIELDS = {
+    "sku_id": _ID_FIELD,
+    "issuer_key": _TEXT_FIELD,
+    "alias_type": {"type": "string", "enum": sorted(ALIAS_TYPES)},
+    "value": _TEXT_FIELD,
+    "range_version_id": _ID_FIELD,
+    "site_id": {"type": "integer", "minimum": 1},
+    "effective_from": _TIMESTAMP_FIELD,
+    "effective_to": _TIMESTAMP_FIELD,
+}
+_CROSSWALK_FIELDS = {
+    "kind": {"type": "string", "enum": sorted(CROSSWALK_KINDS)},
+    "issuer_key": _TEXT_FIELD,
+    "source_key": _TEXT_FIELD,
+    "target_key": _TEXT_FIELD,
+    "config_version_id": _ID_FIELD,
+}
+_ALIAS_CONTEXT = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["site_id", "issuer_key", "alias_type", "as_of", "profile_version_id"],
+    "properties": {
+        "site_id": {"type": "integer", "minimum": 1},
+        "issuer_key": _TEXT_FIELD,
+        "alias_type": {"type": "string", "enum": sorted(ALIAS_TYPES)},
+        "as_of": _TIMESTAMP_FIELD,
+        "profile_version_id": _ID_FIELD,
+        "subject_revision_id": _ID_FIELD,
+    },
+}
+
+
 # -- styles (E041-E045) ----------------------------------------------------------
 
 
@@ -701,6 +772,10 @@ class StyleListCreateView(GoodsAPIView):
         return Response(page([style_resource(access, row) for row in rows], cursor))
 
     @extend_schema(
+        request=_mutation_request(
+            {**_STYLE_FIELDS, "originating_revision_id": _ID_FIELD},
+            required=("brand_id", "style_code", "profile_family"),
+        ),
         responses=_responses(
             201, _create_response(STYLE_RESOURCE, "Created style."), _WRITE_REFUSALS
         )
@@ -803,7 +878,10 @@ class StyleDetailView(GoodsAPIView):
         check_query(request, set())
         return Response(style_resource(access, visible_style(access, pk)))
 
-    @extend_schema(responses=_responses(200, STYLE_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(
+        request=_mutation_request(_STYLE_FIELDS, revision_bound=True),
+        responses=_responses(200, STYLE_RESOURCE, _WRITE_REFUSALS),
+    )
     def patch(self, request: Request, pk: uuid.UUID) -> Response:  # noqa: C901 - the contract's ordered refusal steps
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=True)
@@ -896,7 +974,7 @@ class StyleDetailView(GoodsAPIView):
 class StyleRetireView(GoodsAPIView):
     """E045 retirement (company owner, step-up)."""
 
-    @extend_schema(responses=_responses(200, STYLE_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(request=_RETIRE_REQUEST, responses=_responses(200, STYLE_RESOURCE, _WRITE_REFUSALS))
     def post(self, request: Request, pk: uuid.UUID) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=True)
@@ -999,6 +1077,10 @@ class SkuListCreateView(GoodsAPIView):
         return Response(page([sku_resource(access, row) for row in rows], cursor))
 
     @extend_schema(
+        request=_mutation_request(
+            {**_SKU_FIELDS, "originating_revision_id": _ID_FIELD},
+            required=("style_id", "profile_version_id"),
+        ),
         responses=_responses(201, _create_response(SKU_RESOURCE, "Created SKU."), _WRITE_REFUSALS)
     )
     def post(self, request: Request) -> Response:
@@ -1103,7 +1185,10 @@ class SkuDetailView(GoodsAPIView):
         check_query(request, set())
         return Response(sku_resource(access, visible_sku(access, pk)))
 
-    @extend_schema(responses=_responses(200, SKU_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(
+        request=_mutation_request(_SKU_FIELDS, revision_bound=True),
+        responses=_responses(200, SKU_RESOURCE, _WRITE_REFUSALS),
+    )
     def patch(self, request: Request, pk: uuid.UUID) -> Response:  # noqa: C901 - the contract's ordered refusal steps
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=True)
@@ -1192,7 +1277,7 @@ class SkuDetailView(GoodsAPIView):
 class SkuRetireView(GoodsAPIView):
     """E050 retirement: refused while the SKU still has stock."""
 
-    @extend_schema(responses=_responses(200, SKU_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(request=_RETIRE_REQUEST, responses=_responses(200, SKU_RESOURCE, _WRITE_REFUSALS))
     def post(self, request: Request, pk: uuid.UUID) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=True)
@@ -1343,6 +1428,10 @@ class AliasListCreateView(GoodsAPIView):
         return Response(page([alias_resource(access, row) for row in rows], cursor))
 
     @extend_schema(
+        request=_mutation_request(
+            {**_ALIAS_FIELDS, "originating_revision_id": _ID_FIELD},
+            required=("sku_id", "alias_type", "effective_from"),
+        ),
         responses=_responses(
             201, _create_response(ALIAS_RESOURCE, "Created alias."), _WRITE_REFUSALS
         )
@@ -1589,7 +1678,10 @@ class AliasDetailView(GoodsAPIView):
         check_query(request, set())
         return Response(alias_resource(access, visible_alias(access, pk)))
 
-    @extend_schema(responses=_responses(200, ALIAS_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(
+        request=_mutation_request(_ALIAS_FIELDS, revision_bound=True),
+        responses=_responses(200, ALIAS_RESOURCE, _WRITE_REFUSALS),
+    )
     def patch(self, request: Request, pk: uuid.UUID) -> Response:  # noqa: C901 - the contract's ordered refusal steps
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=True)
@@ -1748,7 +1840,7 @@ class AliasDetailView(GoodsAPIView):
 class AliasRetireView(GoodsAPIView):
     """E055 retirement: closes the alias's effective period from ``effective_at``."""
 
-    @extend_schema(responses=_responses(200, ALIAS_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(request=_RETIRE_REQUEST, responses=_responses(200, ALIAS_RESOURCE, _WRITE_REFUSALS))
     def post(self, request: Request, pk: uuid.UUID) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=True)
@@ -1974,7 +2066,13 @@ class CrosswalkListCreateView(GoodsAPIView):
         )
         return Response(page([crosswalk_resource(access, row) for row in rows], cursor))
 
-    @extend_schema(responses=_responses(201, CROSSWALK_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(
+        request=_mutation_request(
+            _CROSSWALK_FIELDS,
+            required=("kind", "issuer_key", "source_key", "config_version_id"),
+        ),
+        responses=_responses(201, CROSSWALK_RESOURCE, _WRITE_REFUSALS),
+    )
     def post(self, request: Request) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=False)
@@ -2055,7 +2153,10 @@ class CrosswalkDetailView(GoodsAPIView):
         check_query(request, set())
         return Response(crosswalk_resource(access, visible_crosswalk(access, pk)))
 
-    @extend_schema(responses=_responses(200, CROSSWALK_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(
+        request=_mutation_request(_CROSSWALK_FIELDS, revision_bound=True),
+        responses=_responses(200, CROSSWALK_RESOURCE, _WRITE_REFUSALS),
+    )
     def patch(self, request: Request, pk: uuid.UUID) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=True)
@@ -2156,7 +2257,10 @@ class CrosswalkDetailView(GoodsAPIView):
 class CrosswalkRetireView(GoodsAPIView):
     """E060 retirement."""
 
-    @extend_schema(responses=_responses(200, CROSSWALK_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(
+        request=_RETIRE_REQUEST,
+        responses=_responses(200, CROSSWALK_RESOURCE, _WRITE_REFUSALS),
+    )
     def post(self, request: Request, pk: uuid.UUID) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=True)
@@ -2293,7 +2397,20 @@ class GoodsSkuLookupView(GoodsAPIView):
 class IdentityPickView(GoodsAPIView):
     """E091: record the chosen SKU against a draft revision or a scan."""
 
-    @extend_schema(responses=_responses(200, IDENTITY_RESOLUTION, _WRITE_REFUSALS))
+    @extend_schema(
+        request=_mutation_request(
+            {
+                "context": _ALIAS_CONTEXT,
+                "value": _TEXT_FIELD,
+                "candidate_hash": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+                "chosen_sku_id": _ID_FIELD,
+                "subject_revision_id": _ID_FIELD,
+                "scan_event_id": _ID_FIELD,
+            },
+            required=("context", "value", "candidate_hash", "chosen_sku_id"),
+        ),
+        responses=_responses(200, IDENTITY_RESOLUTION, _WRITE_REFUSALS),
+    )
     def post(self, request: Request) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=False)

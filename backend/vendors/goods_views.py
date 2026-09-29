@@ -269,6 +269,129 @@ def _responses(status: int, schema: dict[str, Any], codes: tuple[int, ...]) -> d
 DETAIL_QUERY_KEYS = frozenset({"version", "line_cursor", "history_cursor"})
 
 
+# MutationMeta is required by parse_meta for every goods-v1 write. These
+# request bodies mirror the closed key sets in goods_services and business_body.
+_TEXT = {"type": "string"}
+_UUID = {"type": "string", "format": "uuid"}
+_ID = {"oneOf": [{"type": "integer", "minimum": 1}, {"type": "string", "pattern": "^[0-9]+$"}]}
+_PAISE = {"type": "string", "pattern": "^[0-9]+$", "nullable": True}
+
+
+def _mutation_request(
+    fields: dict[str, Any], *, required: tuple[str, ...] = (), revision_bound: bool = True
+) -> dict[str, Any]:
+    meta = {
+        "command_id": _UUID,
+        "contract_version": {"type": "string", "enum": ["goods-v1"]},
+        "expected_revision": {"type": "integer", "minimum": 1},
+    }
+    required_fields = ["command_id", "contract_version", *required]
+    if revision_bound:
+        required_fields.append("expected_revision")
+    return {
+        "type": "object",
+        "properties": {**meta, **fields},
+        "required": required_fields,
+        "additionalProperties": False,
+    }
+
+
+_VENDOR_FIELDS = {"code": _TEXT, "name": _TEXT, "gstin": _TEXT, "agent_ref": _TEXT}
+VENDOR_CREATE_REQUEST = _mutation_request(
+    _VENDOR_FIELDS, required=("code", "name"), revision_bound=False
+)
+VENDOR_UPDATE_REQUEST = _mutation_request(_VENDOR_FIELDS)
+VENDOR_RETIRE_REQUEST = _mutation_request(
+    {"reason_code": _TEXT, "effective_at": {"type": "string", "format": "date-time"}},
+    required=("reason_code", "effective_at"),
+)
+_BOOKING_LINE = {
+    "type": "object",
+    "required": ["line_key", "style_code", "qty"],
+    "properties": {
+        "line_key": _UUID,
+        "style_code": _TEXT,
+        "description": _TEXT,
+        "size": _TEXT,
+        "size_value_id": _UUID,
+        "colour_value_id": _UUID,
+        "qty": {"type": "integer", "minimum": 1},
+        "destination_site_id": _ID,
+        "mrp_paise": _PAISE,
+        "cost_paise": _PAISE,
+    },
+    "additionalProperties": False,
+}
+_BOOKING_FIELDS = {
+    "vendor_id": _ID,
+    "brand_id": _ID,
+    "season_id": _ID,
+    "entity_id": _ID,
+    "destination_site_id": _ID,
+    "commercial_label": _TEXT,
+    "vendor_ref": _TEXT,
+    "agreement_evidence_id": _UUID,
+    "expected_date": {"type": "string", "format": "date"},
+    "source_evidence_id": _UUID,
+    "lines": {"type": "array", "items": _BOOKING_LINE},
+    "notes": _TEXT,
+}
+_BOOKING_REQUIRED = ("vendor_id", "brand_id", "season_id", "entity_id", "lines")
+BOOKING_CREATE_REQUEST = _mutation_request(
+    _BOOKING_FIELDS, required=_BOOKING_REQUIRED, revision_bound=False
+)
+BOOKING_UPDATE_REQUEST = _mutation_request(_BOOKING_FIELDS, required=_BOOKING_REQUIRED)
+BOOKING_CONFIRM_REQUEST = _mutation_request({"reviewed_hash": _TEXT}, required=("reviewed_hash",))
+BOOKING_CLOSE_REQUEST = _mutation_request(
+    {"action": {"type": "string", "enum": ["short_close", "cancel"]},
+     "reason_code": _TEXT, "note": _TEXT},
+    required=("action", "reason_code"),
+)
+_RECEIPT_LINK = {
+    "type": "object",
+    "required": ["booking_line_key", "grn_line_key", "qty"],
+    "properties": {
+        "booking_line_key": _UUID,
+        "grn_line_key": _UUID,
+        "qty": {"type": "integer", "minimum": 1},
+        "counter_of_id": _UUID,
+    },
+    "additionalProperties": False,
+}
+BOOKING_RECEIPT_REQUEST = _mutation_request(
+    {"grn_id": _UUID, "links": {"type": "array", "items": _RECEIPT_LINK, "minItems": 1},
+     "reason_code": _TEXT, "effective_at": {"type": "string", "format": "date-time"}},
+    required=("grn_id", "links", "reason_code", "effective_at"),
+)
+_HEADER_CHANGES = {
+    "type": "object",
+    "properties": {"expected_date": {"type": "string", "format": "date"},
+                   "destination_site_id": _ID, "notes": _TEXT},
+    "additionalProperties": False,
+}
+_LINE_CHANGE = {
+    "type": "object",
+    "required": ["original_line_key", "replacement_line_key"],
+    "properties": {
+        "original_line_key": _UUID,
+        "replacement_line_key": _UUID,
+        "qty": {"type": "integer", "minimum": 1},
+        "destination_site_id": _ID,
+        "size_value_id": _UUID,
+        "colour_value_id": _UUID,
+        "description": _TEXT,
+        "cost_paise": _PAISE,
+    },
+    "additionalProperties": False,
+}
+BOOKING_CORRECTION_REQUEST = _mutation_request(
+    {"reason_code": _TEXT, "effective_at": {"type": "string", "format": "date-time"},
+     "evidence_ids": {"type": "array", "items": _UUID}, "header_changes": _HEADER_CHANGES,
+     "line_changes": {"type": "array", "items": _LINE_CHANGE}},
+    required=("reason_code", "effective_at"),
+)
+
+
 # ---------------------------------------------------------------------------
 # Vendors
 # ---------------------------------------------------------------------------
@@ -335,7 +458,7 @@ class GoodsVendorListCreateView(GoodsAPIView):
         window, cursor = paginate(list(queryset.distinct()), params)
         return Response(page([_vendor_resource(v) for v in window], cursor))
 
-    @extend_schema(responses=_responses(201, VENDOR_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(request={"application/json": VENDOR_CREATE_REQUEST}, responses=_responses(201, VENDOR_RESOURCE, _WRITE_REFUSALS))
     def post(self, request: Request) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=False)
@@ -375,7 +498,7 @@ class GoodsVendorDetailView(GoodsAPIView):
         _require_vendor_read(access)
         return Response(_vendor_resource(_vendor_or_404(pk)))
 
-    @extend_schema(responses=_responses(200, VENDOR_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(request={"application/json": VENDOR_UPDATE_REQUEST}, responses=_responses(200, VENDOR_RESOURCE, _WRITE_REFUSALS))
     def patch(self, request: Request, pk: int) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=True)
@@ -404,7 +527,7 @@ class GoodsVendorDetailView(GoodsAPIView):
 class GoodsVendorRetireView(GoodsAPIView):
     """E025: retire with a reason, from an effective time; history keeps the vendor."""
 
-    @extend_schema(responses=_responses(200, VENDOR_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(request={"application/json": VENDOR_RETIRE_REQUEST}, responses=_responses(200, VENDOR_RESOURCE, _WRITE_REFUSALS))
     def post(self, request: Request, pk: int) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=True)
@@ -722,7 +845,7 @@ class GoodsBookingListCreateView(GoodsAPIView):
             )
         return Response(page(items, cursor))
 
-    @extend_schema(responses=_responses(201, BOOKING_DOCUMENT_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(request={"application/json": BOOKING_CREATE_REQUEST}, responses=_responses(201, BOOKING_DOCUMENT_RESOURCE, _WRITE_REFUSALS))
     def post(self, request: Request) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=False)
@@ -780,7 +903,7 @@ class GoodsBookingDetailView(GoodsAPIView):
         inp.text(params.get("line_cursor"), "line_cursor", 200)
         return Response(_booking_resource(access, booking, progress=True, params=params))
 
-    @extend_schema(responses=_responses(200, BOOKING_DOCUMENT_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(request={"application/json": BOOKING_UPDATE_REQUEST}, responses=_responses(200, BOOKING_DOCUMENT_RESOURCE, _WRITE_REFUSALS))
     def patch(self, request: Request, pk: uuid.UUID) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=True)
@@ -825,7 +948,7 @@ class GoodsBookingDetailView(GoodsAPIView):
 class GoodsBookingConfirmView(GoodsAPIView):
     """E110: the C-BUY confirmation - numbered BKG, frozen lines, no stock or GL effect."""
 
-    @extend_schema(responses=_responses(200, BOOKING_DOCUMENT_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(request={"application/json": BOOKING_CONFIRM_REQUEST}, responses=_responses(200, BOOKING_DOCUMENT_RESOURCE, _WRITE_REFUSALS))
     def post(self, request: Request, pk: uuid.UUID) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=True)
@@ -863,7 +986,7 @@ class GoodsBookingConfirmView(GoodsAPIView):
 class GoodsBookingCloseView(GoodsAPIView):
     """E111: short-close or cancel with a reason; original quantities retained."""
 
-    @extend_schema(responses=_responses(200, BOOKING_DOCUMENT_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(request={"application/json": BOOKING_CLOSE_REQUEST}, responses=_responses(200, BOOKING_DOCUMENT_RESOURCE, _WRITE_REFUSALS))
     def post(self, request: Request, pk: uuid.UUID) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=True)
@@ -909,7 +1032,7 @@ LINK_KEYS = frozenset({"booking_line_key", "grn_line_key", "qty", "counter_of_id
 class GoodsBookingReceiptLinksView(GoodsAPIView):
     """E112: dated positive receipt links and exact counter links."""
 
-    @extend_schema(responses=_responses(200, BOOKING_DOCUMENT_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(request={"application/json": BOOKING_RECEIPT_REQUEST}, responses=_responses(200, BOOKING_DOCUMENT_RESOURCE, _WRITE_REFUSALS))
     def post(self, request: Request, pk: uuid.UUID) -> Response:
         from inbound.goods_services import goods_grn
 
@@ -982,7 +1105,7 @@ class GoodsBookingReceiptLinksView(GoodsAPIView):
 class GoodsBookingCorrectionsView(GoodsAPIView):
     """E238: append-only corrections to a confirmed booking."""
 
-    @extend_schema(responses=_responses(201, BOOKING_PROGRESS_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(request={"application/json": BOOKING_CORRECTION_REQUEST}, responses=_responses(201, BOOKING_PROGRESS_RESOURCE, _WRITE_REFUSALS))
     def post(self, request: Request, pk: uuid.UUID) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=True)

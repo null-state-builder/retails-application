@@ -144,6 +144,55 @@ STAFF_CREATE_REQUEST: dict[str, Any] = {
     },
 }
 
+STAFF_UPDATE_REQUEST: dict[str, Any] = {
+    "type": "object",
+    "description": "Correct at least one staff field with the current resource revision (E064).",
+    "required": ["command_id", "contract_version", "expected_revision"],
+    "additionalProperties": False,
+    "properties": {
+        **STAFF_CREATE_REQUEST["properties"],
+        "expected_revision": {"type": "integer", "minimum": 1},
+    },
+}
+STAFF_RETIRE_REQUEST: dict[str, Any] = {
+    "type": "object",
+    "required": [
+        "command_id",
+        "contract_version",
+        "expected_revision",
+        "reason_code",
+        "effective_at",
+    ],
+    "additionalProperties": False,
+    "properties": {
+        "command_id": {"type": "string", "format": "uuid"},
+        "contract_version": {"type": "string", "enum": ["goods-v1"]},
+        "expected_revision": {"type": "integer", "minimum": 1},
+        "reason_code": {"type": "string", "maxLength": 60},
+        "effective_at": {"type": "string", "format": "date-time"},
+    },
+}
+STAFF_ASSIGN_REQUEST: dict[str, Any] = {
+    "type": "object",
+    "required": [
+        "command_id",
+        "contract_version",
+        "expected_revision",
+        "site_id",
+        "effective_from",
+        "reason_code",
+    ],
+    "additionalProperties": False,
+    "properties": {
+        "command_id": {"type": "string", "format": "uuid"},
+        "contract_version": {"type": "string", "enum": ["goods-v1"]},
+        "expected_revision": {"type": "integer", "minimum": 1},
+        "site_id": {"type": "integer", "minimum": 1},
+        "effective_from": {"type": "string", "format": "date-time"},
+        "reason_code": {"type": "string", "maxLength": 60},
+    },
+}
+
 #: ``assignment_dto``: one effective-dated placement, not the staff record.
 ASSIGNMENT_DATA: dict[str, Any] = {
     "type": "object",
@@ -533,7 +582,10 @@ class GoodsStaffDetailView(GoodsAPIView):
         staff, placement = svc.get_staff(access, pk)
         return Response(svc.staff_dto(access, staff, placement))
 
-    @extend_schema(responses=_responses(200, STAFF_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(
+        request={"application/json": STAFF_UPDATE_REQUEST},
+        responses=_responses(200, STAFF_RESOURCE, _WRITE_REFUSALS),
+    )
     def patch(self, request: Request, pk: uuid.UUID) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=True)
@@ -574,7 +626,10 @@ class GoodsStaffDetailView(GoodsAPIView):
 class GoodsStaffRetireView(GoodsAPIView):
     """E065: retire a staff member once their open responsibilities are handed over."""
 
-    @extend_schema(responses=_responses(200, STAFF_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(
+        request={"application/json": STAFF_RETIRE_REQUEST},
+        responses=_responses(200, STAFF_RESOURCE, _WRITE_REFUSALS),
+    )
     def post(self, request: Request, pk: uuid.UUID) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=True)
@@ -618,7 +673,10 @@ class GoodsStaffRetireView(GoodsAPIView):
 class GoodsStaffAssignView(GoodsAPIView):
     """E070: move a staff member to a new primary site from a later start."""
 
-    @extend_schema(responses=_responses(200, ASSIGNMENT_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(
+        request={"application/json": STAFF_ASSIGN_REQUEST},
+        responses=_responses(200, ASSIGNMENT_RESOURCE, _WRITE_REFUSALS),
+    )
     def post(self, request: Request, pk: uuid.UUID) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=True)
@@ -912,7 +970,84 @@ class GoodsUserTillPinSetView(GoodsAPIView):
 class GoodsUserGrantsView(GoodsAPIView):
     """E081: add or revoke one person's role grants, one row per scope (step-up)."""
 
-    @extend_schema(responses=_responses(200, USER_RESOURCE, _WRITE_REFUSALS))
+    @extend_schema(
+        request={
+            "application/json": {
+            "type": "object",
+            "required": [
+                "command_id",
+                "contract_version",
+                "expected_revision",
+                "grants",
+                "reason_code",
+            ],
+            "additionalProperties": False,
+            "properties": {
+                "command_id": {"type": "string", "format": "uuid"},
+                "contract_version": {"type": "string", "enum": ["goods-v1"]},
+                "expected_revision": {"type": "integer", "minimum": 1},
+                "reason_code": {"type": "string", "maxLength": 60},
+                "grants": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 100,
+                    "items": {
+                        "oneOf": [
+                            {
+                                "type": "object",
+                                "required": ["revokes"],
+                                "additionalProperties": False,
+                                "properties": {
+                                    "revokes": {"type": "string", "format": "uuid"},
+                                    "effective_from": {"type": "string", "format": "date-time"},
+                                    "human_id": {"type": "string", "format": "uuid"},
+                                },
+                            },
+                            {
+                                "type": "object",
+                                "required": ["scope", "actions", "fields", "effective_from"],
+                                "additionalProperties": False,
+                                "properties": {
+                                    "human_id": {"type": "string", "format": "uuid"},
+                                    "role_id": {"type": "integer", "minimum": 1},
+                                    "scope": {
+                                        "type": "object",
+                                        "required": ["scope_kind"],
+                                        "properties": {
+                                            "scope_kind": {"type": "string"},
+                                            "entity_id": {"type": "integer"},
+                                            "site_id": {"type": "integer"},
+                                            "sbu_id": {"type": "integer"},
+                                            "brand_id": {"type": "integer"},
+                                        },
+                                    },
+                                    "actions": {
+                                        "type": "object",
+                                        "required": ["actions"],
+                                        "properties": {
+                                            "actions": {
+                                                "type": "array",
+                                                "items": {"type": "string"},
+                                            },
+                                            "scope_kind": {"type": "string"},
+                                        },
+                                    },
+                                    "fields": {"type": "array", "items": {"type": "string"}},
+                                    "effective_from": {
+                                        "type": "string",
+                                        "format": "date-time",
+                                    },
+                                    "effective_to": {"type": "string", "format": "date-time"},
+                                },
+                            },
+                        ]
+                    },
+                },
+            },
+            },
+        },
+        responses=_responses(200, USER_RESOURCE, _WRITE_REFUSALS),
+    )
     def post(self, request: Request, pk: int) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=True)
@@ -1157,7 +1292,22 @@ class GoodsPrivilegedChangeListView(GoodsAPIView):
 class GoodsPrivilegedChangeReviewView(GoodsAPIView):
     """E237: acknowledge someone else's privileged change; never an approval or a reversal."""
 
-    @extend_schema(responses=_responses(200, PRIVILEGED_ITEM, _WRITE_REFUSALS))
+    @extend_schema(
+        request={
+            "application/json": {
+            "type": "object",
+            "required": ["command_id", "contract_version", "note"],
+            "additionalProperties": False,
+            "properties": {
+                "command_id": {"type": "string", "format": "uuid"},
+                "contract_version": {"type": "string", "enum": ["goods-v1"]},
+                "expected_revision": {"type": "integer", "minimum": 1},
+                "note": {"type": "string", "maxLength": 1000},
+            },
+            },
+        },
+        responses=_responses(200, PRIVILEGED_ITEM, _WRITE_REFUSALS),
+    )
     def post(self, request: Request, pk: uuid.UUID) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=False)

@@ -78,7 +78,7 @@ def plain_text(value: Any, field: str, max_len: int) -> str:
 def whole(value: Any, field: str, low: int, high: int) -> int:
     if isinstance(value, bool) or not isinstance(value, int) or not low <= value <= high:
         raise bad(f"{field} must be a whole number from {low} to {high}.", field)
-    return value
+    return int(value)
 
 
 def quantity(value: Any, field: str) -> int:

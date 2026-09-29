@@ -64,11 +64,12 @@ export function normaliseGstin(gstin: string): string {
 export function checkDigit(firstFourteen: string): string {
   let total = 0;
   for (let index = 0; index < firstFourteen.length; index += 1) {
-    const value = ALPHABET.indexOf(firstFourteen[index]);
+    const value = ALPHABET.indexOf(firstFourteen.charAt(index));
+    if (value < 0) throw new Error("GSTIN checksum input contains an invalid character");
     const product = value * (index % 2 ? 2 : 1);
     total += Math.floor(product / 36) + (product % 36);
   }
-  return ALPHABET[(36 - (total % 36)) % 36];
+  return ALPHABET.charAt((36 - (total % 36)) % 36);
 }
 
 /**

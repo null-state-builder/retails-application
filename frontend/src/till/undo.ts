@@ -58,6 +58,6 @@ export function pushUndo(stack: UndoStack, snapshot: Cart, run?: string): UndoSt
 /** Step back one action: the cart before it, and the stack with that step
  *  taken off. `null` once there is nothing left to undo. */
 export function popUndo(stack: UndoStack): { cart: Cart; stack: UndoStack } | null {
-  if (!stack.length) return null;
-  return { cart: stack[stack.length - 1].cart, stack: stack.slice(0, -1) };
+  const last = stack.at(-1);
+  return last ? { cart: last.cart, stack: stack.slice(0, -1) } : null;
 }

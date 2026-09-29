@@ -76,7 +76,40 @@ class GoodsExportCreateView(GoodsAPIView):
 
     http_method_names = ["post", "options"]
 
-    @extend_schema(responses=_responses(202, EXPORT_JOB_RESPONSE, _WRITE_REFUSALS))
+    @extend_schema(
+        request={
+            "application/json": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["command_id", "contract_version", "kind", "scope"],
+            "properties": {
+                "command_id": {"type": "string", "format": "uuid"},
+                "contract_version": {"type": "string", "enum": ["goods-v1"]},
+                "expected_revision": {"type": "integer", "minimum": 1},
+                "kind": {"type": "string", "enum": sorted(exports.SPEC_KINDS)},
+                "scope": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["scope_kind"],
+                    "properties": {
+                        "scope_kind": {"type": "string", "enum": sorted(exports.SCOPE_KINDS)},
+                        "entity_id": {"type": "integer"},
+                        "site_ids": {"type": "array", "items": {"type": "integer"}},
+                        "sbu_ids": {"type": "array", "items": {"type": "string", "format": "uuid"}},
+                        "brand_ids": {"type": "array", "items": {"type": "integer"}},
+                    },
+                },
+                "field_set": {
+                    "type": "array", "items": {"type": "string", "enum": sorted(exports.FIELD_SET)},
+                },
+                "subject_key": {"type": "string", "maxLength": 100},
+                "as_of": {"type": "string", "format": "date-time"},
+                "profile_version_id": {"type": "string", "format": "uuid"},
+            },
+            },
+        },
+        responses=_responses(202, EXPORT_JOB_RESPONSE, _WRITE_REFUSALS),
+    )
     def post(self, request: Request) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=False)

@@ -14,7 +14,8 @@ import {
   type HistorySubjectKind,
 } from "../lib/administrativeHistory";
 
-type AdministrativeHistoryOperation = paths["/api/goods-v1/history/{subject_kind}/{subject_id}"]["get"];
+type AdministrativeHistoryOperation =
+  paths["/api/goods-v1/history/{subject_kind}/{subject_id}"]["get"];
 type AdministrativeHistoryPage = ApiRead<
   AdministrativeHistoryOperation["responses"][200]["content"]["application/json"]
 >;
@@ -23,11 +24,18 @@ type AdministrativeAuditValue = ApiRead<NonNullable<AdministrativeHistoryEvent["
 
 function auditValue(value: unknown): string {
   if (value === null || value === undefined) return "—";
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean")
+    return String(value);
   return JSON.stringify(value);
 }
 
-function AuditValues({ label, values }: { label: string; values: AdministrativeAuditValue[] | null }) {
+function AuditValues({
+  label,
+  values,
+}: {
+  label: string;
+  values: AdministrativeAuditValue[] | null;
+}) {
   if (!values?.length) return null;
   return (
     <div>
@@ -35,7 +43,8 @@ function AuditValues({ label, values }: { label: string; values: AdministrativeA
       <ul className="muted-cell" style={{ margin: "4px 0 0", paddingLeft: 18 }}>
         {values.map((value) => (
           <li key={value.field}>
-            <span className="mono">{value.field}</span>: {value.redacted ? "Hidden" : auditValue(value.value)}
+            <span className="mono">{value.field}</span>:{" "}
+            {value.redacted ? "Hidden" : auditValue(value.value)}
           </li>
         ))}
       </ul>
@@ -43,7 +52,14 @@ function AuditValues({ label, values }: { label: string; values: AdministrativeA
   );
 }
 
-export function AdministrativeHistory({ subjectKind, subjectId, refreshKey, testId, title = "History", eventLink }: {
+export function AdministrativeHistory({
+  subjectKind,
+  subjectId,
+  refreshKey,
+  testId,
+  title = "History",
+  eventLink,
+}: {
   subjectKind: HistorySubjectKind;
   subjectId: string;
   refreshKey?: string | null;
@@ -61,7 +77,8 @@ export function AdministrativeHistory({ subjectKind, subjectId, refreshKey, test
 
   async function load(cursor: string | null, append: boolean) {
     const generation = ++requestGeneration.current;
-    append ? setLoadingMore(true) : setLoading(true);
+    if (append) setLoadingMore(true);
+    else setLoading(true);
     setError("");
     try {
       const response = await api.get<AdministrativeHistoryPage>(
@@ -69,15 +86,16 @@ export function AdministrativeHistory({ subjectKind, subjectId, refreshKey, test
         { params: cursor ? { cursor } : undefined },
       );
       if (generation !== requestGeneration.current) return;
-      setItems((current) => append ? [...current, ...response.data.items] : response.data.items);
+      setItems((current) => (append ? [...current, ...response.data.items] : response.data.items));
       setNext(response.data.next_cursor);
     } catch (e) {
       if (generation !== requestGeneration.current) return;
       setError(apiErrorMessage(e));
     } finally {
-      if (generation !== requestGeneration.current) return;
-      setLoading(false);
-      setLoadingMore(false);
+      if (generation === requestGeneration.current) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
     }
   }
 
@@ -93,9 +111,13 @@ export function AdministrativeHistory({ subjectKind, subjectId, refreshKey, test
   return (
     <div className="card section-card" data-testid={testId}>
       <div className="toolbar" style={{ marginBottom: 8 }}>
-        <h4 className="h3"><History size={16} /> {title}</h4>
+        <h4 className="h3">
+          <History size={16} /> {title}
+        </h4>
       </div>
-      {loading ? <p className="lead">Loading history…</p> : error ? (
+      {loading ? (
+        <p className="lead">Loading history…</p>
+      ) : error ? (
         <p className="warn-note">{error}</p>
       ) : items.length === 0 ? (
         <p className="lead">No recorded changes yet.</p>
@@ -108,7 +130,8 @@ export function AdministrativeHistory({ subjectKind, subjectId, refreshKey, test
                 {event.revision !== null && ` · revision ${event.revision}`}
               </div>
               <div className="muted-cell">
-                {new Date(event.recorded_at).toLocaleString("en-IN")} · {historyActorLabel(event.actor_name)}
+                {new Date(event.recorded_at).toLocaleString("en-IN")} ·{" "}
+                {historyActorLabel(event.actor_name)}
                 {event.reason_code && ` · ${event.reason_code}`}
               </div>
               <AuditValues label="Before" values={event.before} />
@@ -116,7 +139,9 @@ export function AdministrativeHistory({ subjectKind, subjectId, refreshKey, test
               {(() => {
                 const link = eventLink?.(event);
                 return link ? (
-                  <Link to={link.to} data-testid={`${testId}-link-${event.id}`}>{link.label}</Link>
+                  <Link to={link.to} data-testid={`${testId}-link-${event.id}`}>
+                    {link.label}
+                  </Link>
                 ) : null;
               })()}
             </li>

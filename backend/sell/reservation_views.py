@@ -234,6 +234,7 @@ class ReservationListView(APIView):
     permission_classes = [IsAuthenticated, CanRunTill]
 
     @extend_schema(
+        operation_id="sell_reservations_list",
         parameters=[
             OpenApiParameter("store", str, required=True),
             OpenApiParameter("q", str, required=False),
@@ -322,6 +323,7 @@ class ReservationDetailView(APIView):
     permission_classes = [IsAuthenticated, CanRunTill]
 
     @extend_schema(
+        operation_id="sell_reservations_detail",
         parameters=[OpenApiParameter("store", str, required=True)],
         responses=ReservationSerializer,
     )
