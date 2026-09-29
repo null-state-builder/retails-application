@@ -14,8 +14,7 @@ export function ProtectedRoute() {
   const { user, session, loading, refreshSession, featuresOn } = useAuth();
   const location = useLocation();
   // Moving between screens re-reads the session (throttled), so the menu and
-  // this guard follow the person's current grants rather than the ones they
-  // signed in with (GSA-T02).
+  // this guard follow current scoped assignments and policy.
   useEffect(() => {
     refreshSession();
   }, [location.pathname, refreshSession]);
@@ -34,11 +33,10 @@ export function ProtectedRoute() {
   // session lifecycle and the change-password screen server-side
   // (`PASSWORD_CHANGE_REQUIRED`); send it there before drawing any other room.
   if (session?.user.must_change_password) return <Navigate to="/change-password" replace />;
-  const actions = session?.actions ?? [];
+  const actions = session?.display_actions ?? [];
   const allowed = canAccess(location.pathname, user, actions, featuresOn);
-  // Somebody with no Home of their own - a goods-v1-only login, whose legacy
-  // payload is empty - lands on the first screen their grants do allow, rather
-  // than on "No access" in front of a menu full of places they may go.
+  // A person without Home in server navigation lands on their first authorised
+  // screen rather than a blank Home and an otherwise usable menu.
   if (!allowed && normalizePath(location.pathname) === "/") {
     const destination = firstDestination(sidebarRows(user, actions, featuresOn));
     if (destination && normalizePath(destination) !== "/") {

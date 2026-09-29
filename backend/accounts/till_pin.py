@@ -16,14 +16,12 @@ credential. `till/pin.ts` reads the iteration count out of the string, so raisin
 it here needs nothing on the device.
 
 **Not everybody may hold one.** The hash leaves the building on a shop-floor
-device, so the only people whose hashes are ever written are the people a counter
-could actually be asked to trust: somebody whose boundary is stores at all, who
-holds `sell >= approve` on the stored matrix, and who is not the break-glass
-superuser. That is the same sentence the dataset's manager list is built from,
-and it is written here once so the two cannot drift.
+device, so it belongs only to a Store Person with a selected-site assignment
+covering every brand at that site and ``sell >= approve`` in that role policy.
+The dataset and server-side approval checks use this same rule at the exact site.
 
 **Who sets one.** A manager sets or changes their own from Till & Sync, with
-their own password. Admin may also *set* a manager's PIN, and it works at once
+their own password. A tenant Admin assignment may also *set* a manager's PIN, and it works at once
 (store operations baseline B76, which departs from overall PRD §10.2 by Anand's
 ruling), or *clear* one (`GoodsUserTillPinSetView`, `GoodsUserTillPinResetView`).
 Either way every till picks the change up on its next sync. Nobody else may do
@@ -38,16 +36,8 @@ from typing import Any
 
 from django.contrib.auth.hashers import PBKDF2PasswordHasher
 
-from accounts.models import ScopeType
-from accounts.permissions import user_can
 from accounts.sections import CAP_APPROVE
-from core.commands import CommandResult, CommandRun, CommandSpec, Principal, execute_command
-
-#: Scopes whose boundary genuinely *is* a set of stores. A network- or
-#: entity-wide administrator whose matrix cell happens to say `sell: manage` is
-#: not one of a counter's people, and shipping their hash to fifty tills would be
-#: a worse answer than shipping nobody's.
-STORE_BOUND_SCOPES = (ScopeType.STORE, ScopeType.STORE_GROUP, ScopeType.REGION)
+from core.commands import CommandResult, CommandRun, CommandSpec, execute_command
 
 #: Four to six digits, the length a person can type on a counter keypad with a
 #: customer waiting. Short by design and therefore weak by design: the protection
@@ -87,24 +77,42 @@ def pin_problem(pin: str) -> str:
 
 
 def may_reset_till_pin(user: Any) -> bool:
-    """May this login set or clear somebody else's PIN? Admin only (ticket 06,
-    B76): the it_admin role code, or break-glass. The views also ask for
-    ``access.manage``, the login in scope and a fresh password."""
-    from accounts.role_lists import TILL_PIN_RESETTERS
+    """Admin's current assignment must itself confer access management."""
+    from accounts.principal import access_for_user
 
-    if getattr(user, "is_superuser", False):
-        return True
-    return getattr(getattr(user, "role", None), "code", "") in TILL_PIN_RESETTERS
+    return _active_person(user) and access_for_user(user).can("till.pin.admin")
 
 
-def may_hold_till_pin(user: Any) -> bool:
-    """Is this somebody a counter could be asked to trust? See the module docstring."""
+def _active_person(user: Any) -> bool:
+    from core.tenancy import require_tenant_id
+
     return bool(
         getattr(user, "is_authenticated", False)
-        and user.is_active
-        and not user.is_superuser
-        and user.scope_type in STORE_BOUND_SCOPES
-        and user_can(user, "sell", CAP_APPROVE)
+        and getattr(user, "is_active", False)
+        and getattr(user, "human_id", None)
+        and getattr(user, "tenant_id", None) == require_tenant_id()
+    )
+
+
+def may_hold_till_pin(user: Any, *, site_id: int | None = None) -> bool:
+    """A store manager may approve only at a site in one qualifying assignment.
+
+    A PIN is placed on a till holding *all* brands at that store. A brand-limited
+    assignment or a network-wide assignment cannot supply that credential.
+    With no ``site_id`` this answers whether the person may set a PIN at any
+    selected site; the dataset and approval checks pass their exact store.
+    """
+    if not _active_person(user):
+        return False
+    from accounts.principal import access_for_user
+
+    access = access_for_user(user)
+    return any(
+        row.role_code == "store_person"
+        and not row.all_sites
+        and row.all_brands
+        and (site_id is None or site_id in row.site_ids)
+        for row in access.section_grants("sell", CAP_APPROVE)
     )
 
 
@@ -142,27 +150,32 @@ def set_own_pin(user: Any, pin: str, session: Any = None) -> None:
     existed (`tests/_sell.build_manager`); it writes the hash with nothing to sign
     an audit record with.
     """
+    from accounts.principal import AccessContext, effective_grants
+    from core.refusals import Refusal
+
     new_hash = hash_till_pin(pin)
     human_id = getattr(user, "human_id", None)
     tenant_id = getattr(user, "tenant_id", None)
-    if human_id is None or tenant_id is None:
-        user.till_pin_hash = new_hash
-        user.save(update_fields=["till_pin_hash"])
-        return
-    principal = Principal(
-        tenant_id=tenant_id,
-        human_id=human_id,
-        user_id=user.pk,
-        session_id=getattr(session, "pk", None),
-        step_up_at=getattr(session, "step_up_at", None),
-    )
+    if human_id is None or tenant_id is None or session is None:
+        raise Refusal("AUTH_REQUIRED", "A live session is required to change a PIN.")
+    access = AccessContext(user=user, human_id=human_id, tenant_id=tenant_id,
+                           session=session, grants=effective_grants(human_id))
+    eligible_sites = {site_id for row in access.section_grants("sell", CAP_APPROVE)
+                      if row.role_code == "store_person" and not row.all_sites and row.all_brands
+                      for site_id in row.site_ids}
+    if not eligible_sites:
+        raise Refusal("ACTION_DENIED", "A counter PIN requires current store approval authority.")
+    for site_id in eligible_sites:
+        if not access.can_section("sell", CAP_APPROVE, site_id=site_id):
+            raise Refusal("ACTION_DENIED", "Your store approval authority changed.")
+    access.require_step_up()
 
     def handler(run: CommandRun) -> CommandResult:
         write_pin(run, user.pk, new_hash, by="self")
         return CommandResult(resource_type="user", resource_id=str(user.pk))
 
     execute_command(
-        principal,
+        access.principal(),
         CommandSpec(action=SET_ACTION, command_id=uuid.uuid4(), business_input={"user": user.pk}),
         handler,
     )

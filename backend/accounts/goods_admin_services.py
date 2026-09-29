@@ -50,10 +50,11 @@ from accounts.goods_api import (
     parse_uuid,
     resource_dto,
 )
-from accounts.goods_models import HumanIdentity, RoleGrant, SecurityGuard, Staff, StaffAssignment
+from accounts.goods_models import HumanIdentity, RoleAssignment, RoleGrant, SecurityGuard, Staff, StaffAssignment
 from accounts.goods_setup import GrantRequest, add_grant, is_tenant_staff
 from accounts.models import Role, User
 from accounts.principal import AccessContext, configured_role_access, effective_grants
+from accounts.role_assignments import effective_assignments
 from accounts.sessions import bump_security_epoch
 from accounts.till_pin import may_hold_till_pin, may_reset_till_pin
 from core.commands import CommandRun, LockRank
@@ -729,6 +730,7 @@ def assign_staff(
 def retire_staff(
     run: CommandRun,
     *,
+    access: AccessContext,
     staff_id: uuid.UUID,
     expected_revision: int | None,
     effective_at: datetime,
@@ -788,13 +790,29 @@ def retire_staff(
             closed.append(str(period.target_id))
             period.effective_to = effective_at
             period.save(update_fields=["effective_to"])
-    revoked = [
-        grant.pk
-        for grant in unrevoked_grants(run.tenant_id, human_id=human.pk)
-        if grant.effective_to is None or grant.effective_to > effective_at
-    ]
-    for grant in RoleGrant.objects.filter(pk__in=revoked):
-        revoke_grant(run, grant, effective_at)
+    # Retirement ends application authority, including scheduled rows. Check the
+    # actor against each complete scope before touching it; staff placement alone
+    # must not let a local manager retire somebody's wider assignment.
+    authority_rows = list(
+        RoleAssignment.objects.select_for_update()
+        .filter(tenant_id=run.tenant_id, human_id=human.pk)
+        .filter(Q(effective_to__isnull=True) | Q(effective_to__gt=effective_at))
+        .filter(Q(revoked_at__isnull=True) | Q(revoked_at__gt=effective_at))
+        .order_by("effective_from", "id")
+    )
+    for assignment in authority_rows:
+        for site_id in ([None] if assignment.all_sites else assignment.site_ids):
+            for brand_id in ([None] if assignment.all_brands else assignment.brand_ids):
+                access.require("access.manage", site_id=site_id, brand_id=brand_id)
+    revoked: list[str] = []
+    for assignment in authority_rows:
+        if assignment.effective_from >= effective_at:
+            assignment.revoked_at = effective_at
+            assignment.save(update_fields=["revoked_at"])
+        else:
+            assignment.effective_to = effective_at
+            assignment.save(update_fields=["effective_to"])
+        revoked.append(str(assignment.pk))
     staff.retired_at = effective_at
     staff.revision += 1
     staff.save(update_fields=["retired_at", "revision"])
@@ -818,7 +836,7 @@ def retire_staff(
         {
             "retired_at": iso(effective_at),
             "reason_code": reason_code,
-            "grants_revoked": len(revoked),
+            "role_assignments_revoked": revoked,
             "assignments_closed": closed,
             "assignments_cancelled": cancelled,
         }
@@ -912,7 +930,10 @@ def goods_user(tenant_id: uuid.UUID, pk: int) -> User:
 
 
 def list_users(access: AccessContext, params: dict[str, str]) -> list[User]:
-    access.require_action("access.manage")
+    # Login identities and password resets are tenant-wide administration until
+    # OQ-28 defines a safe delegated responsibility. A scoped assignment must
+    # not reveal accounts elsewhere through an unfiltered list or count.
+    access.require("access.manage")
     rows = User.objects.select_related("human").filter(
         tenant_id=access.tenant_id, human__isnull=False
     )
@@ -930,14 +951,20 @@ def list_users(access: AccessContext, params: dict[str, str]) -> list[User]:
         resolve_site(site_id)
         if not access.can("access.manage", site_id=site_id):
             raise not_found("site")
-        humans = RoleGrant.objects.filter(tenant_id=access.tenant_id, revokes__isnull=True).filter(
-            Q(site_id=site_id) | Q(sbu__site_id=site_id)
-        )
+        now = timezone.now()
+        humans = RoleAssignment.objects.filter(
+            tenant_id=access.tenant_id,
+            effective_from__lte=now,
+            role__is_active=True,
+            human__active=True,
+        ).filter(Q(effective_to__isnull=True) | Q(effective_to__gt=now)).filter(
+            Q(all_sites=True) | Q(site_ids__contains=[site_id])
+        ).filter(Q(all_brands=True) | ~Q(brand_ids=[]))
         rows = rows.filter(human_id__in=humans.values("human_id"))
     return list(rows.order_by("email", "id"))
 
 
-def user_dto(access: AccessContext, user: User, *, with_grants: bool = False) -> dict[str, Any]:
+def user_dto(access: AccessContext, user: User, *, with_pin_state: bool = False) -> dict[str, Any]:
     human = user.human
     data: dict[str, Any] = {
         "human_id": ref(user.human_id),
@@ -946,27 +973,22 @@ def user_dto(access: AccessContext, user: User, *, with_grants: bool = False) ->
         "active": bool(user.is_active and human is not None and human.active),
         "must_change_password": bool(user.must_change_password),
     }
-    if with_grants:
+    if with_pin_state:
         # Store operations ticket 06: on the login's own page, whether there is a
         # counter PIN and whether this login may hold one - never what it is.
         data["has_till_pin"] = bool(user.till_pin_hash)
         data["may_hold_till_pin"] = may_hold_till_pin(user)
         # Whether the *reader* may set or clear it (Admin, B76).
-        data["may_reset_till_pin"] = access.holds("access.manage") and may_reset_till_pin(
+        data["may_reset_till_pin"] = access.can("access.manage") and may_reset_till_pin(
             access.user
         )
-    if with_grants and user.human_id is not None:
-        data["grants"] = [
-            grant_dto(grant, period)
-            for grant, period in live_grants(access.tenant_id, user.human_id)
-        ]
     return resource_dto(
         id=user.pk,
         data=data,
         revision=current_revision("user", str(user.pk)),
         state="active" if data["active"] else "inactive",
         context={},
-        allowed_actions=["update", "grants"] if access.holds("access.manage") else [],
+        allowed_actions=["update"] if access.can("access.manage") else [],
     )
 
 
@@ -1022,7 +1044,6 @@ def create_user(run: CommandRun, *, login: LoginFields) -> User:
         email=login.email,
         tenant_id=run.tenant_id,
         human_id=human.pk,
-        scope_type="all",
         is_active=active,
     )
     apply_password(user, login.password)
@@ -1343,10 +1364,12 @@ def _covers_grant(access: AccessContext, grant: RoleGrant) -> bool:
 
 
 def require_login_in_scope(access: AccessContext, user_pk: int) -> None:
-    """E074: a login is changed only by someone whose scope covers everything its person holds.
+    """A login is changed only if access.manage covers every current assignment cell.
 
-    Otherwise an entity-scoped administrator could reset the password of a
-    tenant-wide one and sign in as them. Out-of-scope logins are hidden (NOT_FOUND).
+    Explicit all-site/all-brand dimensions ask for that same future-proof reach
+    from the actor. A login with no active assignment is tenant-wide for this
+    purpose; otherwise a scoped administrator could take over an unassigned
+    login and give it broader authority. Out-of-scope logins are hidden.
     """
     human_id = (
         User.objects.filter(tenant_id=access.tenant_id, pk=user_pk, human__isnull=False)
@@ -1355,9 +1378,16 @@ def require_login_in_scope(access: AccessContext, user_pk: int) -> None:
     )
     if human_id is None:
         raise not_found("login")
-    for grant, _period in live_grants(access.tenant_id, human_id=human_id):
-        if not _covers_grant(access, grant):
-            raise not_found("login")
+    assignments = effective_assignments(human_id)
+    if not assignments and not access.can("access.manage"):
+        raise not_found("login")
+    for assignment in assignments:
+        site_ids = [None] if assignment.all_sites else assignment.site_ids
+        brand_ids = [None] if assignment.all_brands else assignment.brand_ids
+        for site_id in site_ids:
+            for brand_id in brand_ids:
+                if not access.can("access.manage", site_id=site_id, brand_id=brand_id):
+                    raise not_found("login")
     staff = Staff.objects.filter(human_id=human_id).first()
     if staff is not None:
         placement = placements([staff.pk]).get(staff.pk, NO_PLACEMENT)
@@ -1712,7 +1742,7 @@ def role_dto(access: AccessContext, role: Role) -> dict[str, Any]:
         context={},
         # Role writes need tenant-wide access.manage (``require_tenant_manage``),
         # so a narrower administrator is not offered them.
-        allowed_actions=["update", "access"] if _has_tenant_manage(access) else [],
+        allowed_actions=["update"] if _has_tenant_manage(access) else [],
     )
 
 
@@ -1724,11 +1754,15 @@ def get_role(pk: int) -> Role:
 
 
 def list_roles(access: AccessContext, params: dict[str, str]) -> list[Role]:
-    access.require_action("access.manage")
+    access.require("access.manage")
+    from accounts.role_assignments import INITIAL_ROLE_CODES
+
     query = (params.get("q") or "").strip()
     if len(query) > 100:
         raise invalid("q must be at most 100 characters.", "q")
-    rows = Role.objects.all()
+    rows = Role.objects.filter(tenant_id=access.tenant_id).filter(
+        Q(code__in=INITIAL_ROLE_CODES) | Q(is_system=False)
+    )
     if query:
         rows = rows.filter(Q(code__icontains=query) | Q(name__icontains=query))
     return list(rows.order_by("code", "id"))
@@ -1752,7 +1786,7 @@ def parse_role(body: dict[str, Any]) -> dict[str, Any]:
 
 def _holders(tenant_id: uuid.UUID, role_id: int) -> set[uuid.UUID]:
     return set(
-        RoleGrant.objects.filter(tenant_id=tenant_id, role_id=role_id, revokes__isnull=True)
+        RoleAssignment.objects.filter(tenant_id=tenant_id, role_id=role_id)
         .values_list("human_id", flat=True)
         .distinct()
     )
@@ -1761,12 +1795,13 @@ def _holders(tenant_id: uuid.UUID, role_id: int) -> set[uuid.UUID]:
 def create_role(run: CommandRun, *, fields: dict[str, Any]) -> Role:
     code = str(fields["code"])
     run.advisory_lock(LockRank.SECURITY, [f"role:{code.lower()}"])
-    if Role.objects.filter(code__iexact=code).exists():
+    if Role.objects.filter(tenant_id=run.tenant_id, code__iexact=code).exists():
         raise access_invalid(
             "A role with that code already exists.",
             [issue("ROLE_CODE_TAKEN", "code is already used", field="code")],
         )
     role = Role.objects.create(
+        tenant_id=run.tenant_id,
         code=code,
         name=str(fields["name"]),
         description=str(fields.get("description") or ""),
@@ -1788,6 +1823,10 @@ def update_role(
     role.refresh_from_db()
     revision = current_revision("role", role.code)
     check_revision(expected_revision, revision)
+    from accounts.role_assignments import INITIAL_ROLE_CODES
+
+    if fields.get("active") is False and role.code in INITIAL_ROLE_CODES:
+        raise Refusal("INITIAL_ROLE_REQUIRED", "The six initial role identities must remain active.")
     if fields.get("code") is not None and fields["code"] != role.code:
         raise access_invalid(
             "A role's code never changes; grants and templates refer to it.",
@@ -1970,13 +2009,7 @@ def admin_meta(access: AccessContext) -> dict[str, Any]:
     access.require_action("access.manage")
     sites = access.site_ids("access.manage")
     stores = Store.objects.all() if sites is None else Store.objects.filter(pk__in=sorted(sites))
-    sbus = Sbu.objects.filter(tenant_id=access.tenant_id, retired_at__isnull=True)
-    if sites is not None:
-        sbus = sbus.filter(site_id__in=sorted(sites))
     return {
-        "roles": [
-            {"id": str(role.pk), **role_data(role)} for role in Role.objects.order_by("code")
-        ],
         "sites": [
             {
                 "id": str(store.pk),
@@ -1992,29 +2025,6 @@ def admin_meta(access: AccessContext) -> dict[str, Any]:
             }
             for store in stores.order_by("code")
         ],
-        "sbus": [
-            {
-                "id": str(sbu.pk),
-                "code": sbu.code,
-                "site_id": str(sbu.site_id),
-                "brand_id": ref(sbu.brand_id),
-            }
-            for sbu in sbus.order_by("code")
-        ],
-        "actions": [{"code": code, "label": label} for code, label in ACTIONS.items()],
-        "fields": sorted(FIELDS),
-        "scope_kinds": list(SCOPE_KINDS),
-        "role_templates": [
-            {
-                "code": template.code,
-                "name": template.name,
-                "actions": sorted(template.actions),
-                "fields": sorted(template.fields),
-                "scope_kinds": sorted(template.scope_kinds),
-            }
-            for template in ROLE_TEMPLATES.values()
-        ],
-        "restrictions": _restrictions(),
     }
 
 
@@ -2178,6 +2188,7 @@ def privileged_dtos(access: AccessContext, events: list[AuditEvent]) -> list[dic
         reviewers = {review.reviewer_id for review in done}
         can_review = (
             access.can("access.review", site_id=event.site_id)
+            and str(access.human_id) in (event.authority.get("independent_reviewers", []) if isinstance(event.authority, dict) else [])
             and event.actor_id != access.human_id
             and access.human_id not in reviewers
         )
@@ -2266,6 +2277,9 @@ def review_change(run: CommandRun, *, event_id: uuid.UUID, note: str) -> Privile
         raise Refusal(
             "REVIEW_INVALID", "A different person from the one who made a change reviews it."
         )
+    reviewers = event.authority.get("independent_reviewers") if isinstance(event.authority, dict) else None
+    if not isinstance(reviewers, list) or str(reviewer_id) not in reviewers:
+        raise Refusal("REVIEW_AUTHORITY_UNPROVEN", "This review needs authority established independently before the change.", status=403)
     if PrivilegedReview.objects.filter(audit_event_id=event.pk, reviewer_id=reviewer_id).exists():
         raise Refusal("REVIEW_INVALID", "You have already reviewed this change.")
     review: PrivilegedReview = run.record(

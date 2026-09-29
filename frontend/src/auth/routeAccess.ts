@@ -38,7 +38,6 @@ export function canAccess(
   // A screen of a store feature that is off where this person works (ST-OPS-6)
   // is closed to everybody, break-glass included: the server refuses it too.
   if (screen && !storeFeatureOpen(screen, featuresOn)) return false;
-  if (user.is_superuser) return true;
   // A folded page (#170) owns its URL outright - no menu entry points at it, so
   // `itemOwning` finds nothing and the default-allow branch would let anyone in.
   // It opens for whoever can see at least one of its tabs, and every tab carries
@@ -51,6 +50,9 @@ export function canAccess(
   // either a legacy URL on its way to a redirect (resolved by the router, then
   // guarded at its new home) or a 404-ish stub.
   if (!screen) return true;
+  // The evaluator names every section that has a navigable workflow. No role
+  // code, superuser flag or old profile can supply a missing section.
+  if (!user.navigation.includes(sectionGrant(screen.section))) return false;
   // A goods-v1 screen opens on the session's own action grants and nothing
   // else (GSA-T02, `NavItem.goodsActions`): the same rule that draws its menu
   // line, so the URL and the sidebar cannot disagree. A legacy section never
@@ -74,5 +76,5 @@ export function canAccess(
     isChild && screen.childMinCapability
       ? { ...screen, minCapability: screen.childMinCapability }
       : screen;
-  return itemVisible(gate, held, user.role?.code ?? "", false, [], featuresOn);
+  return itemVisible(gate, held, "", false, goodsActions, featuresOn);
 }

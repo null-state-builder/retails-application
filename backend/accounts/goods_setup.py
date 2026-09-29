@@ -1,8 +1,8 @@
-"""Deployment bootstrap, role templates and grants (design §8.1, §4.2).
+"""Deployment bootstrap and retained historical grant services.
 
 Bootstrap is a protected CLI operation, not a public endpoint: it binds one
 tenant to one deployment key, creates the named administrator as a person with a
-login and an explicit tenant grant, and records setup evidence through the same
+login and explicit scoped role assignments, and records setup evidence through the same
 command kernel as every other official change. It refuses to rebind a deployment
 and creates no business stock.
 """
@@ -20,24 +20,17 @@ from django.utils import timezone
 
 from accounts.actions import ROLE_TEMPLATES, RoleTemplate
 from accounts.role_lists import NON_STAFF_ROLES
+from accounts.role_assignments import INITIAL_FIELD_ACCESS, INITIAL_ROLE_CODES
 from core.commands import CommandResult, CommandRun, CommandSpec, Principal, execute_command
 from core.refusals import Refusal
 from core.tenancy import tenant_context
 
-#: The legacy sidebar role whose section access each PRD role borrows, so a
-#: goods-v1 person can still reach the existing shell's sections.
-LEGACY_NAV_ROLE = {
-    "X-PLT": "it_admin",
-    "C-OWN": "owner",
-    "M-STR": "store_person",
-    "M-CSH": "store_person",
-    "C-WHO": "warehouse",
-    "C-PMO": "data_steward",
-    "C-INV": "ho_ops",
-    "C-BUY": "ho_ops",
-    "C-CAO": "accounts",
-    "C-STO": "ho_ops",
-}
+# Seeded old personas and goods templates are historical evidence after SO-03.
+# Only system-owned rows are retired; a tenant-created role with a colliding
+# code is never silently edited by a deployment seed.
+LEGACY_SEEDED_ROLE_CODES = frozenset(ROLE_TEMPLATES) | frozenset(
+    {"ho_ops", "data_steward", "promo", "store_manager", "store_staff"}
+)
 
 BOOTSTRAP_SERVICE = "bootstrap"
 
@@ -94,18 +87,9 @@ def sync_tenant_staff(*, tenant_id: Any, human_id: Any, tenant_staff: bool) -> N
     can also have become staff since through a live grant the seed config knows
     nothing about (GSA-T03 lets a tenant-wide staff.manage holder grant a real
     role to someone the seed only ever gave X-PLT), so this also checks the
-    human's *effective* grants - :func:`accounts.principal.effective_grants`,
-    the same source E062's ``create_staff`` checks, so a revoked, expired or
-    inactive-role grant (and a revocation row) does not count - and never
-    removes a row that answer would keep. Only an effective grant counts: a
-    brand-new person being seeded for the first time is called with
-    ``tenant_staff=False`` and no grants at all yet (they are granted
-    immediately afterwards, in the same seed pass), and :func:`is_tenant_staff`
-    reads "no roles at all" as ordinary staff - the right answer for someone
-    the goods setup has never touched, but the wrong one for a fresh
-    platform-only login mid-creation. Requiring at least one effective grant
-    before this check can override the caller keeps that case exactly as it
-    was.
+    human's effective assignments and never removes a row that answer would
+    keep. A newly seeded platform-only person has none, so the caller's
+    ``tenant_staff=False`` remains authoritative during creation.
 
     A row is left alone - never deleted - once it carries a real
     ``StaffAssignment``, has been edited or retired (``revision`` past 1, or
@@ -114,11 +98,11 @@ def sync_tenant_staff(*, tenant_id: Any, human_id: Any, tenant_staff: bool) -> N
     a fact this function has no standing to erase.
     """
     from accounts.goods_models import Staff, StaffAssignment
-    from accounts.principal import effective_grants
+    from accounts.role_assignments import effective_assignments
     from masters.goods_models import MasterVersion
 
     if not tenant_staff:
-        live_codes = {grant.role_code for grant in effective_grants(human_id)}
+        live_codes = {assignment.role.code for assignment in effective_assignments(human_id)}
         if live_codes and is_tenant_staff(live_codes):
             tenant_staff = True
     if tenant_staff:
@@ -139,27 +123,73 @@ def sync_tenant_staff(*, tenant_id: Any, human_id: Any, tenant_staff: bool) -> N
 
 
 def ensure_goods_roles() -> dict[str, Any]:
-    """One ``Role`` row per Phase 1 role template (idempotent)."""
+    """Ensure only the six initial tenant roles, retaining old role history."""
     from accounts.models import Role
     from accounts.rbac_matrix import section_access_for
+    from accounts.unified_policy import OWNER_APPROVAL_STEPS
+    from core.tenancy import require_tenant_id
 
+    tenant_id = require_tenant_id()
     roles: dict[str, Any] = {}
-    for code, template in ROLE_TEMPLATES.items():
-        try:
-            access = section_access_for(LEGACY_NAV_ROLE.get(code, ""))
-        except Exception:
-            access = {}
+    for code in sorted(INITIAL_ROLE_CODES):
         role, _ = Role.objects.get_or_create(
-            code=code,
+            tenant_id=tenant_id, code=code,
             defaults={
-                "name": template.name,
-                "description": f"Phase 1 role {code}",
-                "section_access": access,
+                "name": "Admin" if code == "it_admin" else code.replace("_", " ").title(),
+                "description": f"SO-03 initial role {code}",
+                "section_access": section_access_for(code),
+                "field_access": INITIAL_FIELD_ACCESS[code],
+                "permissions_map": {
+                    "step_actions": sorted(OWNER_APPROVAL_STEPS) if code == "owner" else []
+                },
                 "is_system": True,
             },
         )
         roles[code] = role
+    Role.objects.filter(tenant_id=tenant_id, code__in=LEGACY_SEEDED_ROLE_CODES, is_system=True).update(
+        is_active=False
+    )
     return roles
+
+
+def seed_role_assignment(
+    tenant: Any, human: Any, role_code: str, *, source_key: str,
+    all_sites: bool = False, site_ids: Iterable[int] = (),
+    all_brands: bool = False, brand_ids: Iterable[int] = (),
+) -> Any:
+    """Create one deterministic initial assignment; never restore a revoked one.
+
+    A prior migration or an administrator's edit wins over the seed. No legacy
+    grant is created, and repeated seeding cannot widen a narrowed assignment.
+    """
+    from accounts.goods_models import RoleAssignment
+
+    if role_code not in INITIAL_ROLE_CODES:
+        return None
+    from accounts.models import Role
+
+    role = Role.objects.filter(tenant_id=tenant.pk, code=role_code).first()
+    if role is None:
+        return None
+    existing = RoleAssignment.objects.filter(
+        tenant_id=tenant.pk, human_id=human.pk, role_id=role.pk
+    ).first()
+    if existing is not None:
+        return existing
+    sites = sorted(set(int(site) for site in site_ids))
+    brands = sorted(set(int(brand) for brand in brand_ids))
+    if (not all_sites and not sites) or (not all_brands and not brands):
+        return None
+    assignment, _ = RoleAssignment.objects.get_or_create(
+        pk=uuid.uuid5(tenant.deployment_key, f"so03-seed:{source_key}:{role_code}"),
+        defaults={
+            "tenant_id": tenant.pk, "human_id": human.pk, "role_id": role.pk,
+            "all_sites": all_sites, "site_ids": [] if all_sites else sites,
+            "all_brands": all_brands, "brand_ids": [] if all_brands else brands,
+            "effective_from": timezone.now(),
+        },
+    )
+    return assignment
 
 
 def service_principal(tenant_id: uuid.UUID, service_code: str = BOOTSTRAP_SERVICE) -> Principal:
@@ -386,7 +416,7 @@ def create_person(
     workforce and so gets a ``Staff`` row. Callers that know the person's roles
     pass :func:`is_tenant_staff`; a platform-only administrator passes ``False``
     and stays off the People screen (GSA-T03). The ``Staff`` row carries no
-    assignment either way - a seeded person's authority is their grants.
+    authority either way; scoped role assignments do.
     """
     from accounts.goods_models import HumanIdentity, SecurityGuard
     from accounts.models import Role, User
@@ -398,7 +428,10 @@ def create_person(
     )
     SecurityGuard.objects.create(tenant_id=run.tenant_id, human=human)
     sync_tenant_staff(tenant_id=run.tenant_id, human_id=human.pk, tenant_staff=tenant_staff)
-    legacy_role = Role.objects.filter(code=legacy_role_code).first() if legacy_role_code else None
+    legacy_role = (
+        Role.objects.filter(tenant_id=run.tenant_id, code=legacy_role_code).first()
+        if legacy_role_code else None
+    )
     user = User(
         username=email.lower()[:60],
         full_name=display_name[:120],
@@ -465,12 +498,16 @@ def bootstrap_deployment(
             staff_code=admin_staff_code,
             password=admin_password,
             legacy_role_code="it_admin",
-            # C-OWN alongside X-PLT: the bootstrap administrator does business
-            # work too, so they are tenant staff.
-            tenant_staff=is_tenant_staff(["X-PLT", "C-OWN"]),
+            tenant_staff=True,
         )
-        add_grant(run, human, GrantRequest(role_code="X-PLT"))
-        add_grant(run, human, GrantRequest(role_code="C-OWN"))
+        seed_role_assignment(
+            tenant, human, "it_admin", source_key="bootstrap-admin",
+            all_sites=True, all_brands=True,
+        )
+        seed_role_assignment(
+            tenant, human, "owner", source_key="bootstrap-owner",
+            all_sites=True, all_brands=True,
+        )
         run.audit_after = [{"field": "tenant", "redacted": False, "value": code}]
         return CommandResult(resource_type="tenant", resource_id=str(tenant.pk), status_code=201)
 

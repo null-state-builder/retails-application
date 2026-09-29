@@ -20,9 +20,9 @@ from django.db import transaction
 
 from accounts.floors import clamp_to_floors, describe_floors
 from accounts.goods_demo import credentials_section, seed_goods_demo
-from accounts.matrix import seeded_row
 from accounts.models import NAV_GROUPS, Role, User
 from accounts.rbac_matrix import section_access_for
+from accounts.role_assignments import INITIAL_FIELD_ACCESS
 from core.documents import VoucherSeries
 from core.fiscal import financial_year, next_financial_year
 from masters.models import Brand, Gstin, LegalEntity, Season, Store
@@ -76,49 +76,17 @@ ROLES: list[dict[str, Any]] = [
         "description": "Owns assigned brands across stores — bookings, offers, brand reports.",
     },
     {
-        "code": "ho_ops",
-        "name": "HO Operations / Buyer",
-        "landing_page": "ops",
-        "nav_groups": [
-            "home",
-            "master_data",
-            "documents",
-            "ledgers",
-            "controls",
-            "intelligence",
-            "outbound",
-        ],
-        "description": "HO operating core — bookings, transfers, offers, intelligence.",
-    },
-    {
-        "code": "data_steward",
-        "name": "HO Data Steward",
-        "landing_page": "masters",
-        "nav_groups": ["home", "master_data"],
-        "description": "Single steward of master data — vendors/brands/SKU/season/taxonomy.",
-    },
-    {
-        "code": "promo",
-        "name": "Promo / Marketing",
-        "landing_page": "home",
-        "nav_groups": ["home", "intelligence"],
-        "description": "Writes the offers and publishes them to the shops; no money, no stock.",
-    },
-    {
         "code": "it_admin",
-        "name": "System / IT Admin",
+        "name": "Admin",
         "landing_page": "owner",
         "nav_groups": list(NAV_GROUPS),
         "description": "Owns users, RBAC, and all integration/adapter/config plumbing.",
     },
 ]
 
-# Usernames granted Django-superuser break-glass. A superuser bypasses the whole
-# RBAC matrix (manage on every section) and reaches Django `/admin`, so it is
-# kept as its own account, separate from every business persona — including
-# Owner. That way the matrix is genuinely enforced for real people (Owner sees
-# only what the sheet grants, Admin has no Money) and stays auditable; god-mode
-# lives in one clearly-labelled break-glass login instead of a daily persona.
+# The dedicated Django administration login is a separate platform identity.
+# Its Django superuser flag never creates a tenant role assignment or business
+# access; `admin` below is the explicit tenant Admin persona.
 SUPERUSERS = {"superadmin"}
 
 # (username, password, role_code, scope_type, store_codes, full_name, brand_codes)
@@ -163,43 +131,6 @@ DEMO_EMAIL_DOMAIN = "kdps.demo"
 
 def demo_email(username: str) -> str:
     return f"{username}@{DEMO_EMAIL_DOMAIN}"
-
-
-def demo_grants(
-    role_code: str,
-    store_codes: list[str],
-    brand_codes: list[str],
-    stores: dict[str, Store],
-    warehouses: list[Store],
-) -> list[Any]:
-    """The Phase 1 role grants a legacy demo persona holds for goods work."""
-    from accounts.goods_setup import GrantRequest
-
-    def at_sites(code: str, sites: list[Store]) -> list[Any]:
-        return [GrantRequest(role_code=code, scope_kind="site", site_id=site.pk) for site in sites]
-
-    own_sites = [stores[c] for c in store_codes if c in stores]
-    if role_code == "it_admin":
-        return [GrantRequest(role_code="X-PLT")]
-    if role_code == "owner":
-        return [GrantRequest(role_code="C-OWN")]
-    if role_code == "ho_ops":
-        return [GrantRequest(role_code="C-INV"), GrantRequest(role_code="C-BUY")]
-    if role_code == "accounts":
-        return [GrantRequest(role_code="C-CAO")]
-    if role_code == "data_steward":
-        return [GrantRequest(role_code="C-PMO")]
-    if role_code == "brand_manager":
-        return [
-            GrantRequest(role_code="C-BUY", scope_kind="brand", brand_id=brand.pk)
-            for brand in Brand.objects.filter(code__in=brand_codes)
-        ]
-    if role_code == "warehouse":
-        return at_sites("C-WHO", own_sites or warehouses)
-    if role_code == "store_person":
-        # The merged store role takes the wider of the two old grants.
-        return at_sites("M-STR", own_sites)
-    return []
 
 
 def deployment_tenant() -> Any:
@@ -283,24 +214,35 @@ class Command(BaseCommand):
         and write it after. On a first seed there is no row to lock, and the
         unique `code` settles the race instead.
         """
+        from accounts.goods_setup import LEGACY_SEEDED_ROLE_CODES
+        from accounts.unified_policy import initial_step_actions
+        from core.tenancy import require_tenant_id
+
+        tenant_id = require_tenant_id()
         for r in ROLES:
-            existing = Role.objects.select_for_update().filter(code=r["code"]).first()
+            existing = Role.objects.select_for_update().filter(
+                tenant_id=tenant_id, code=r["code"]
+            ).first()
+            # Existing policies are governed records. A seed must not fill in
+            # removed cells, narrow a tuned policy, or restore revoked authority.
+            if existing is not None:
+                continue
             access, corrected = clamp_to_floors(
-                r["code"],
-                seeded_row(
-                    existing.section_access if existing else None,
-                    default=section_access_for(r["code"]),
-                ),
+                r["code"], section_access_for(r["code"]),
             )
             for line in describe_floors(corrected):
                 self.stdout.write(self.style.WARNING(f"{r['code']} narrowed to the floor: {line}"))
             Role.objects.update_or_create(
-                code=r["code"],
+                tenant_id=tenant_id, code=r["code"],
                 defaults={
                     "name": r["name"],
                     "landing_page": r["landing_page"],
                     "nav_groups": r["nav_groups"],
                     "section_access": access,
+                    "field_access": existing.field_access if existing else INITIAL_FIELD_ACCESS.get(r["code"], []),
+                    "permissions_map": existing.permissions_map if existing else {
+                        "step_actions": initial_step_actions(r["code"])
+                    },
                     "description": r["description"],
                     "is_system": True,
                     # Only on creation. Deactivating a role is an access change
@@ -310,6 +252,9 @@ class Command(BaseCommand):
                     **({} if existing else {"is_active": True}),
                 },
             )
+        Role.objects.filter(
+            tenant_id=tenant_id, code__in=LEGACY_SEEDED_ROLE_CODES, is_system=True
+        ).update(is_active=False)
 
     def _seed_entity_gstins(self) -> tuple[LegalEntity, dict[str, Gstin]]:
         entity, _ = LegalEntity.objects.update_or_create(
@@ -564,20 +509,15 @@ class Command(BaseCommand):
             booking.save(update_fields=["estimated_value_paise"])
 
     def _seed_users(self, entity: LegalEntity, stores: dict[str, Store]) -> None:
-        for username, password, role_code, scope, store_codes, full_name, brand_codes in USERS:
-            role = Role.objects.filter(code=role_code).first()
-            # Only the dedicated break-glass account is a Django superuser (see
-            # SUPERUSERS). Every business persona — `admin`/it_admin and `owner`
-            # included — is a normal user enforced by `Role.section_access`, so
-            # the ratified matrix (e.g. Admin = no Money) actually applies.
+        created_usernames: set[str] = set()
+        for username, password, _role_code, _scope, _store_codes, full_name, _brand_codes in USERS:
+            # The dedicated platform login is not a tenant Admin assignment.
             is_super = username in SUPERUSERS
-            user, created = User.objects.update_or_create(
-                username=username,
+            user, created = User.objects.get_or_create(
+                username=username, tenant_id=entity.tenant_id,
                 defaults={
+                    "tenant_id": entity.tenant_id,
                     "full_name": full_name,
-                    "role": role,
-                    "scope_type": scope,
-                    "entity": entity if scope != "all" else None,
                     "is_active": True,
                     "is_staff": is_super,
                     "is_superuser": is_super,
@@ -586,32 +526,22 @@ class Command(BaseCommand):
             # Set the password only when the user is first created — never overwrite
             # an operator-changed password on a re-seed / redeploy.
             if created:
+                created_usernames.add(username)
                 user.set_password(password)
                 user.save(update_fields=["password"])
-            user.stores.set([stores[c] for c in store_codes if c in stores])
-            user.brands.set(Brand.objects.filter(code__in=brand_codes))
-        self._seed_goods_people(stores)
+        self._seed_goods_people(stores, created_usernames)
 
-    def _seed_goods_people(self, stores: dict[str, Store]) -> None:
-        """Give every demo login an email, a person and its Phase 1 role grants.
+    def _seed_goods_people(
+        self, stores: dict[str, Store], created_usernames: set[str]
+    ) -> None:
+        """Attach demo identities and explicit six-role assignments once.
 
-        Login is by email since goods-v1 (design §4.2); a demo login is
-        `<username>@kdps.demo`. Grants are appended once per person through the
-        command kernel, like any other access change, and never re-granted on a
-        re-seed.
+        Unsupported personas remain usable test identities with no authority;
+        their responsibilities await OQ-28 instead of being mapped to Owner.
+        Existing RoleGrant rows remain historical evidence and are not topped up.
         """
-        import uuid as _uuid
-
-        from accounts.goods_models import HumanIdentity, RoleGrant, SecurityGuard
-        from accounts.goods_setup import (
-            add_grant,
-            ensure_goods_roles,
-            is_tenant_staff,
-            service_principal,
-            sync_tenant_staff,
-            top_up_person_grants,
-        )
-        from core.commands import CommandResult, CommandRun, CommandSpec, execute_command
+        from accounts.goods_models import HumanIdentity, SecurityGuard
+        from accounts.goods_setup import ensure_goods_roles, seed_role_assignment, sync_tenant_staff
         from core.tenancy import tenant_context
 
         tenant = deployment_tenant()
@@ -628,56 +558,49 @@ class Command(BaseCommand):
                 full_name,
                 brand_codes,
             ) in USERS:
-                user = User.objects.get(username=username)
-                human = (
-                    user.human
-                    or HumanIdentity.objects.filter(tenant=tenant, staff_code=username).first()
+                # Existing identities need the explicit migration report. A
+                # seed may neither fill a missing identity link nor restore a
+                # removed assignment by trusting a legacy username or role.
+                if username not in created_usernames:
+                    continue
+                user = User.objects.get(username=username, tenant_id=tenant.pk)
+                if HumanIdentity.objects.filter(tenant=tenant, staff_code=username).exists():
+                    continue  # An orphaned identity needs explicit reconciliation.
+                human = HumanIdentity.objects.create(
+                    tenant=tenant, staff_code=username, display_name=full_name
                 )
-                if human is None:
-                    human = HumanIdentity.objects.create(
-                        tenant=tenant, staff_code=username, display_name=full_name
-                    )
                 SecurityGuard.objects.get_or_create(tenant=tenant, human=human)
-                requests = demo_grants(role_code, store_codes, brand_codes, stores, warehouses)
-                # The legacy IT-admin logins hold X-PLT alone, so they are not
-                # tenant staff and stay off the People screen (GSA-T03). A demo
-                # login with no goods grant yet (`promo1`) is an ordinary
-                # employee and keeps its Staff row. This converges on a re-seed
-                # too, so a DB seeded before the rule does not keep a stale row.
                 sync_tenant_staff(
                     tenant_id=tenant.pk,
                     human_id=human.pk,
-                    tenant_staff=is_tenant_staff([r.role_code for r in requests]),
+                    tenant_staff=username != "superadmin",
                 )
                 User.objects.filter(pk=user.pk).update(
                     tenant=tenant, human=human, email=demo_email(username)
                 )
-                if RoleGrant.objects.filter(human=human).exists():
-                    # Already granted - but a grant keeps the actions it was
-                    # written with, so a login granted before a role template
-                    # widened is short of the new ones. Append the difference
-                    # (PRD §3.2 widened the owner's role on 22 September 2026).
-                    top_up_person_grants(tenant, human, username)
-                    continue
-                if not requests:
-                    continue
-
-                def handler(
-                    run: CommandRun, human: Any = human, requests: Any = requests
-                ) -> CommandResult:
-                    for request in requests:
-                        add_grant(run, human, request)
-                    return CommandResult(resource_type="human", resource_id=str(human.pk))
-
-                execute_command(
-                    service_principal(tenant.pk, "seed"),
-                    CommandSpec(
-                        action="seed.demo_grants",
-                        command_id=_uuid.uuid5(tenant.deployment_key, f"demo-grants:{username}"),
-                        business_input={"username": username},
-                    ),
-                    handler,
-                )
+                if username == "superadmin":
+                    continue  # Platform support is never a tenant Admin assignment.
+                if role_code in {"owner", "accounts", "it_admin"}:
+                    seed_role_assignment(
+                        tenant, human, role_code, source_key=f"demo:{username}",
+                        all_sites=True, all_brands=True,
+                    )
+                elif role_code == "brand_manager":
+                    brands = Brand.objects.filter(
+                        tenant_id=tenant.pk, code__in=brand_codes
+                    ).values_list("pk", flat=True)
+                    seed_role_assignment(
+                        tenant, human, role_code, source_key=f"demo:{username}",
+                        all_sites=True, brand_ids=brands,
+                    )
+                elif role_code in {"store_person", "warehouse"}:
+                    selected = [stores[code] for code in store_codes if code in stores]
+                    if role_code == "warehouse" and not selected:
+                        selected = warehouses
+                    seed_role_assignment(
+                        tenant, human, role_code, source_key=f"demo:{username}",
+                        site_ids=[site.pk for site in selected], all_brands=True,
+                    )
 
     def _write_credentials(self) -> None:
         lines = [
@@ -701,9 +624,14 @@ class Command(BaseCommand):
             )
         lines += [
             "",
-            "`superadmin` is the only Django superuser (break-glass: bypasses the RBAC "
-            "matrix, reaches `/admin`). Every other login — including `admin` (it_admin) "
-            "and `owner` — is a normal user enforced by the section-access matrix.",
+            "The role and scope columns above are historical seed labels. New demo",
+            "users receive explicit SO-03 assignments only for the six mapped roles;",
+            "existing users require the migration report before access is enabled.",
+            "`ops1`, `promo1` and `steward` remain gated pending OQ-28.",
+            "",
+            "`superadmin` is a separate Django administration identity and has no "
+            "tenant business assignment. `admin` and `owner` hold explicit "
+            "scoped assignments governed by the six-role policy.",
             "",
         ]
         lines += credentials_section()

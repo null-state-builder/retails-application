@@ -151,6 +151,8 @@ function ProfileSection({ rail }: { rail: boolean }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState("");
   const closePanel = useCallback(() => setOpen(false), []);
   const {
     at: panelAt,
@@ -175,9 +177,7 @@ function ProfileSection({ rail }: { rail: boolean }) {
         {!rail && (
           <span className="user-meta">
             <span className="user-name">{user.full_name || user.username}</span>
-            <span className="user-role">
-              {user.role?.name ?? (user.is_superuser ? "Administrator" : "")}
-            </span>
+            <span className="user-role">{user.role?.name ?? user.scope_label}</span>
           </span>
         )}
         {/* The chevron says the row opens something. In the collapsed rail the
@@ -202,15 +202,29 @@ function ProfileSection({ rail }: { rail: boolean }) {
             </div>
             <button
               className="dropdown-item"
-              onClick={() => {
-                logout();
-                navigate("/login");
+              disabled={signingOut}
+              onClick={async () => {
+                setSigningOut(true);
+                setSignOutError("");
+                try {
+                  await logout();
+                  navigate("/login");
+                } catch {
+                  setSignOutError("Sign out was not confirmed. Please try again.");
+                } finally {
+                  setSigningOut(false);
+                }
               }}
               data-testid="logout-button"
             >
-              <span>Sign out</span>
+              <span>{signingOut ? "Signing out…" : "Sign out"}</span>
               <LogOut size={15} />
             </button>
+            {signOutError && (
+              <p role="alert" data-testid="logout-error">
+                {signOutError}
+              </p>
+            )}
           </div>,
           document.body,
         )}
@@ -327,7 +341,7 @@ function Sidebar({
 
   if (!user) return null;
   // Goods lines follow the session's current action grants (GSA-T02).
-  const rows = sidebarRows(user, session?.actions ?? [], featuresOn);
+  const rows = sidebarRows(user, session?.display_actions ?? [], featuresOn);
 
   function toggleSection(code: string) {
     setCollapsed((current) => {
@@ -632,7 +646,7 @@ function Sidebar({
 export function SectionTabsProvider({ children }: { children: ReactNode }) {
   const { user, session, featuresOn } = useAuth();
   const { pathname } = useLocation();
-  const strip = sectionTabsFor(pathname, user, session?.actions ?? [], featuresOn);
+  const strip = sectionTabsFor(pathname, user, session?.display_actions ?? [], featuresOn);
   if (!strip) return <>{children}</>;
 
   const row = (

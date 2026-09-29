@@ -123,20 +123,25 @@ class CsrfView(APIView):
 #: ``SessionDTO`` (design §6.1) as E001/E002/E003 answer it (``accounts.session_payload``).
 SESSION_RESPONSE: dict[str, Any] = {
     "type": "object",
-    "description": "SessionDTO (design §6.1) plus the legacy shell profile.",
+    "description": "One server-derived access session. Display hints are never authority.",
     "required": [
+        "contract_version",
+        "policy_version",
         "user",
-        "roles",
+        "assignments",
+        "navigation",
+        "sections",
+        "capabilities",
+        "display_actions",
+        "context_choices",
         "sites",
-        "sbus",
-        "actions",
-        "field_grants",
         "expires_at",
         "step_up_valid_until",
         "store_features",
-        "profile",
     ],
     "properties": {
+        "contract_version": {"type": "string", "enum": ["access-v2"]},
+        "policy_version": {"type": "string"},
         "user": {
             "type": "object",
             "required": ["id", "human_id", "display_name", "email", "must_change_password"],
@@ -145,6 +150,7 @@ SESSION_RESPONSE: dict[str, Any] = {
                 "human_id": {"type": "string", "nullable": True},
                 "display_name": {"type": "string"},
                 "email": {"type": "string", "nullable": True},
+                "has_till_pin": {"type": "boolean"},
                 "must_change_password": {
                     "type": "boolean",
                     "description": (
@@ -156,7 +162,36 @@ SESSION_RESPONSE: dict[str, Any] = {
                 },
             },
         },
-        "roles": {"type": "array", "items": {"type": "string"}},
+        "assignments": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["id", "role_code", "all_sites", "site_ids", "all_brands", "brand_ids", "effective_from"],
+                "properties": {
+                    "id": {"type": "string", "format": "uuid"},
+                    "role_code": {"type": "string"},
+                    "all_sites": {"type": "boolean"},
+                    "site_ids": {"type": "array", "items": {"type": "integer"}},
+                    "all_brands": {"type": "boolean"},
+                    "brand_ids": {"type": "array", "items": {"type": "integer"}},
+                    "effective_from": {"type": "string", "format": "date-time"},
+                    "effective_to": {"type": "string", "format": "date-time", "nullable": True},
+                },
+            },
+        },
+        "navigation": {"type": "array", "items": {"type": "string"}},
+        "sections": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+        "capabilities": {"type": "object", "additionalProperties": {"type": "string"}},
+        "display_actions": {"type": "array", "items": {"type": "string"}},
+        "context_choices": {
+            "type": "object",
+            "properties": {
+                "mode": {"type": "string", "enum": ["units", "brands"]},
+                "all_units": {"type": "boolean"},
+                "sites": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+                "brands": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+            },
+        },
         "sites": {
             "type": "array",
             "items": {
@@ -175,9 +210,6 @@ SESSION_RESPONSE: dict[str, Any] = {
                 },
             },
         },
-        "sbus": {"type": "array", "items": {"type": "string"}},
-        "actions": {"type": "array", "items": {"type": "string"}},
-        "field_grants": {"type": "array", "items": {"type": "string"}},
         "expires_at": {"type": "string", "format": "date-time"},
         "step_up_valid_until": {"type": "string", "format": "date-time", "nullable": True},
         "store_features": {
@@ -189,11 +221,6 @@ SESSION_RESPONSE: dict[str, Any] = {
                 "ids of those stores. A feature absent here is off everywhere this "
                 "person works, and its menus hide."
             ),
-        },
-        "profile": {
-            "type": "object",
-            "additionalProperties": True,
-            "description": "The legacy shell profile (UserProfileSerializer).",
         },
         "csrf_token": {
             "type": "string",
@@ -335,6 +362,7 @@ class TillPinView(APIView):
                 status.HTTP_403_FORBIDDEN,
             )
         # One command, so the change is in the audit log - without the PIN.
+        grant_step_up(request.auth, str(request.data.get("current_password") or ""))
         set_own_pin(user, pin, request.auth)
         # The till learns about it on its next sync, like every other fact about
         # this store - there is no push, and there does not need to be.

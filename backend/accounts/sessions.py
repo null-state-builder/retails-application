@@ -142,11 +142,21 @@ def authenticate_email(tenant_id: uuid.UUID, email: str, password: str) -> Any:
 
 
 def issue_session(user: Any) -> IssuedSession:
-    from accounts.goods_models import ServerSession
+    from accounts.goods_models import RoleAssignment, ServerSession, Staff
 
     now = database_now()
     token = new_token()
     csrf = new_token()
+    # A scheduled authority change ends every session issued before it. Session
+    # authentication, command guards, refresh and streaming all already enforce
+    # this absolute deadline, so a delayed worker cannot delay revocation.
+    boundaries = [value for row in RoleAssignment.objects.filter(
+        tenant_id=user.tenant_id, human_id=user.human_id,
+    ).values_list("effective_from", "effective_to", "revoked_at")
+        for value in row if value is not None and value > now]
+    boundaries.extend(value for value in Staff.objects.filter(
+        tenant_id=user.tenant_id, human_id=user.human_id, retired_at__gt=now,
+    ).values_list("retired_at", flat=True) if value is not None)
     session = ServerSession.objects.create(
         tenant_id=user.tenant_id,
         user=user,
@@ -154,7 +164,7 @@ def issue_session(user: Any) -> IssuedSession:
         csrf_hash=token_hash(csrf),
         issued_at=now,
         last_seen_at=now,
-        expires_at=now + ABSOLUTE_LIFE,
+        expires_at=min([now + ABSOLUTE_LIFE, *boundaries]),
         security_epoch=_guard_epoch(user.human),
     )
     return IssuedSession(session=session, token=token, csrf_token=csrf)

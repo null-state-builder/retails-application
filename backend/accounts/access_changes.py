@@ -8,7 +8,6 @@ from typing import Any
 from django.contrib.auth.hashers import make_password
 from django.db import transaction
 from django.db.models import Model
-from django.utils import timezone
 from rest_framework import serializers
 
 from accounts.floors import describe_floors, floor_violations
@@ -228,23 +227,15 @@ APPLIERS: dict[str, Callable[[AccessChange], None]] = {
 }
 
 
-@transaction.atomic
 def apply_access_change(change: AccessChange, *, actor: User) -> None:
-    """Approval callback: apply once, naming the second person who applied it."""
-    if not is_access_administrator(actor):
-        raise AccessChangeRightsError("Only Owner or IT Admin may apply access changes.")
-    locked = AccessChange.objects.select_for_update().get(pk=change.pk)
-    if locked.applied_at is not None:
-        raise AccessChangeError("This access change has already been applied.")
-    try:
-        apply = APPLIERS[locked.resource]
-    except KeyError as exc:  # pragma: no cover - choices and the database constrain this
-        raise AccessChangeError(f"Unsupported access resource {locked.resource!r}.") from exc
-    apply(locked)
-    locked.applied_by = actor
-    locked.applied_at = timezone.now()
-    # The password only ever had to survive until somebody applied it. Leaving
-    # the hash in a row that is kept as evidence gives an offline attack a place
-    # to start, and the audit trail is no poorer for its absence.
-    locked.payload.pop("password_hash", None)
-    locked.save(update_fields=["applied_by", "applied_at", "payload", "updated_at"])
+    """Refuse pre-cutover access mutations retained only as approval evidence.
+
+    The old Setup routes are unmounted, but an already-pending approval can still
+    reach this callback through the shared decision handler. Applying its payload
+    would write User.role or actor policy outside the unified assignments. The
+    approval transaction rolls back when this raises, preserving that history for
+    explicit migration/review without reviving old authority.
+    """
+    raise AccessChangeError(
+        "This legacy access change cannot be applied; use People & Access."
+    )

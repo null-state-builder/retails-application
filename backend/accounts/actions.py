@@ -22,6 +22,7 @@ draft or request a transfer for itself; approving one stays with ``C-OWN`` and
 from __future__ import annotations
 
 from dataclasses import dataclass
+from accounts.sections import CAPABILITY_ORDER, SECTIONS
 
 ACTIONS: dict[str, str] = {
     "org.tenant.manage": "Edit tenant profile",
@@ -77,11 +78,18 @@ ACTIONS: dict[str, str] = {
     "exception.view": "View owned exceptions",
     "exception.manage": "Assign and note exceptions",
     "approvals.view": "View approvals",
+    "approval.decide": "Decide approvals under a pinned workflow policy",
     "export.run": "Run exports",
     "recovery.run": "Run restore and recovery",
     "ops.health.view": "View operations health",
     "audit.view": "Read the audit trail",
+    "payroll.view": "View private payroll records",
+    "brand_terms.view": "View brand commercial terms",
+    "billing.identity.view": "View customer identity for billing",
 }
+
+# Scoped specialist operations; authority lives in versioned role step actions.
+ACTIONS.update({'store.feature.manage': 'Store feature manage', 'tax.settings.manage': 'Tax settings manage', 'document.series.manage': 'Document series manage', 'consent.wording.manage': 'Consent wording manage', 'count.schedule.manage': 'Count schedule manage', 'staff.salesperson.resolve': 'Staff salesperson resolve', 'debit_note.manage': 'Debit_note manage', 'brand_claim.manage': 'Brand_claim manage', 'payable.manage': 'Payable manage', 'sor.settlement.manage': 'Sor settlement manage', 'booking.budget.manage': 'Booking budget manage', 'checklist.template.manage': 'Checklist template manage', 'brand_report.layout.manage': 'Brand_report layout manage', 'till.pin.admin': 'Till pin admin', 'brand_terms.propose': 'Brand_terms propose', 'brand_terms.approve': 'Brand_terms approve'})
 
 FIELDS: dict[str, str] = {
     "cost": "Cost",
@@ -90,6 +98,17 @@ FIELDS: dict[str, str] = {
     "personal": "Personal data",
     "cost_own_pt": "Cost on own prepared PTs",
 }
+
+# Supported section operations use the same versioned workflow thresholds as
+# specialised commands. These are actions, not session-wide section unions.
+SECTION_ACTIONS = {
+    (section, level): f"section.{section}.{level}"
+    for section, _label in SECTIONS for level in CAPABILITY_ORDER if level != "none"
+}
+ACTIONS.update({
+    SECTION_ACTIONS[(section, level)]: f"{label}: {level}"
+    for section, label in SECTIONS for level in CAPABILITY_ORDER if level != "none"
+})
 
 
 @dataclass(frozen=True)
@@ -316,6 +335,14 @@ ROLE_TEMPLATES: dict[str, RoleTemplate] = {
 #: ticket 03D). The access kinds are mirrored for history links in the frontend's
 #: ``lib/administrativeHistory.ts``, checked by ``tests/test_goods_access_history.py``.
 PRIVILEGED_COMMAND_ACTIONS: dict[str, str] = {
+    "access.brand_identity.bind": "Legacy brand ownership was reconciled",
+    "staff.retire": "A staff member was retired",
+    "staff.assign": "A staff placement was changed",
+    "accounts.till_pin.admin_set": "A till PIN was set by an administrator",
+    "accounts.till_pin.reset": "A till PIN was reset by an administrator",
+    "access.assignment.replace": "A person's scoped roles were changed",
+    "access.role.policy": "A role policy was changed",
+    "access.workflow.policy": "Workflow access thresholds were changed",
     "access.user.create": "A login was created",
     "access.user.update": "A login was changed",
     "access.grant.change": "Role grants were changed",

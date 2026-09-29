@@ -8,8 +8,11 @@ token whose hash is all the database keeps.
 
 from __future__ import annotations
 
-from typing import ClassVar
+import uuid
+from typing import Any, ClassVar
 
+from django.contrib.postgres.fields import ArrayField
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from core.goods_base import PROJECTION, EvidenceRow, TenantOwned
@@ -179,3 +182,101 @@ class RoleGrant(EvidenceRow):
             ),
         ]
         indexes = [models.Index(fields=["human", "scope_kind", "effective_from"])]
+
+
+class RoleAssignment(TenantOwned):
+    """One person's role over one explicit site/brand scope tuple.
+
+    ``all_sites`` and ``all_brands`` deliberately differ from a selected list:
+    they include sites or brands created later. An empty selected list confers
+    no access. Legacy source links are retained so historical authority can be
+    traced without consulting old grants when evaluating new requests.
+    """
+
+    human = models.ForeignKey(HumanIdentity, on_delete=models.PROTECT, related_name="role_assignments")
+    role = models.ForeignKey("accounts.Role", on_delete=models.PROTECT, related_name="assignments")
+    all_sites = models.BooleanField(default=False)
+    site_ids = ArrayField(models.BigIntegerField(), default=list, blank=True)
+    all_brands = models.BooleanField(default=False)
+    brand_ids = ArrayField(models.BigIntegerField(), default=list, blank=True)
+    effective_from = models.DateTimeField()
+    effective_to = models.DateTimeField(null=True, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)
+    legacy_grant = models.OneToOneField(
+        RoleGrant, null=True, blank=True, on_delete=models.PROTECT, related_name="replacement_assignment"
+    )
+    legacy_user = models.ForeignKey(
+        "accounts.User", null=True, blank=True, on_delete=models.PROTECT,
+        related_name="migrated_role_assignments",
+    )
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(effective_to__isnull=True)
+                | models.Q(effective_to__gt=models.F("effective_from")),
+                name="ck_roleassignment_period",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(all_sites=False) | models.Q(site_ids=[]),
+                name="ck_roleassignment_site_flag",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(all_brands=False) | models.Q(brand_ids=[]),
+                name="ck_roleassignment_brand_flag",
+            ),
+            models.UniqueConstraint(
+                fields=["tenant", "legacy_user"],
+                condition=models.Q(legacy_grant__isnull=True, legacy_user__isnull=False),
+                name="uq_roleassignment_user_fallback",
+            ),
+        ]
+        indexes = [models.Index(fields=["human", "effective_from", "effective_to"])]
+
+    def clean(self) -> None:
+        errors: dict[str, str] = {}
+        if self.tenant_id is not None:
+            if self.human_id and not HumanIdentity.objects.filter(
+                pk=self.human_id, tenant_id=self.tenant_id
+            ).exists():
+                errors["human"] = "Human identity must belong to the assignment tenant."
+            if self.role_id and not RoleAssignment._role_in_tenant(self.role_id, self.tenant_id):
+                errors["role"] = "Role must belong to the assignment tenant."
+            if self.legacy_grant_id and not RoleGrant.objects.filter(
+                pk=self.legacy_grant_id, tenant_id=self.tenant_id
+            ).exists():
+                errors["legacy_grant"] = "Source grant must belong to the assignment tenant."
+            if self.legacy_user_id and not RoleAssignment._user_in_tenant(
+                self.legacy_user_id, self.tenant_id
+            ):
+                errors["legacy_user"] = "Source login must belong to the assignment tenant."
+            for key, ids, model in (
+                ("site_ids", self.site_ids, "site"),
+                ("brand_ids", self.brand_ids, "brand"),
+            ):
+                if len(ids) != len(set(ids)) or any(item <= 0 for item in ids):
+                    errors[key] = "Selected IDs must be positive and unique."
+                elif ids:
+                    from masters.models import Brand, Store
+
+                    target = Store if model == "site" else Brand
+                    if target.objects.filter(tenant_id=self.tenant_id, pk__in=ids).count() != len(ids):
+                        errors[key] = "Every selected ID must belong to the assignment tenant."
+        if errors:
+            raise ValidationError(errors)
+
+    @staticmethod
+    def _role_in_tenant(role_id: int, tenant_id: uuid.UUID) -> bool:
+        from accounts.models import Role
+
+        return Role.objects.filter(pk=role_id, tenant_id=tenant_id).exists()
+
+    @staticmethod
+    def _user_in_tenant(user_id: int, tenant_id: uuid.UUID) -> bool:
+        from accounts.models import User
+
+        return User.objects.filter(pk=user_id, tenant_id=tenant_id).exists()
+
+    def save(self, *args: Any, **kwargs: Any) -> None:
+        self.full_clean()
+        super().save(*args, **kwargs)

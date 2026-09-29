@@ -446,8 +446,8 @@ const GOODS_APPROVAL_GUIDE: Record<string, GoodsApprovalGuide> = {
  *  the goods inbox worth asking for at all, so nobody else sends the request. */
 export const GOODS_APPROVAL_ACTIONS: readonly string[] = Object.keys(GOODS_APPROVAL_GUIDE);
 
-export function holdsGoodsApprovals(session: { actions: string[] } | null): boolean {
-  return GOODS_APPROVAL_ACTIONS.some((action) => session?.actions?.includes(action));
+export function holdsGoodsApprovals(session: { display_actions: string[] } | null): boolean {
+  return GOODS_APPROVAL_ACTIONS.some((action) => session?.display_actions?.includes(action));
 }
 
 export interface GoodsApprovalView {

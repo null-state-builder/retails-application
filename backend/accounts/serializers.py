@@ -258,7 +258,7 @@ class UserProfileSerializer(serializers.ModelSerializer[User]):
 
     def get_stores(self, obj: User) -> list[dict[str, Any]]:
         return self._cached(
-            obj, "stores", lambda: list(StoreMiniSerializer(scoped_stores(obj), many=True).data)
+            obj, "stores", lambda: list(StoreMiniSerializer(scoped_stores(obj, section="setup", minimum="view"), many=True).data)
         )
 
     def get_sections(self, obj: User) -> list[dict[str, Any]]:
@@ -287,7 +287,7 @@ class UserProfileSerializer(serializers.ModelSerializer[User]):
         # what they work in — their "all" is all their brands.
         if obj.scope_type == BRAND_SCOPE and not obj.is_superuser:
             return False
-        return self._cached(obj, "all_units", lambda: visible_store_ids(obj) is None)
+        return self._cached(obj, "all_units", lambda: visible_store_ids(obj, section="setup", minimum="view") is None)
 
     def get_business_unit_mode(self, obj: User) -> str:
         return "brands" if obj.scope_type == BRAND_SCOPE and not obj.is_superuser else "units"
@@ -295,7 +295,7 @@ class UserProfileSerializer(serializers.ModelSerializer[User]):
     def get_assigned_brands(self, obj: User) -> list[dict[str, Any]]:
         if obj.scope_type != BRAND_SCOPE or obj.is_superuser:
             return []
-        return list(BrandMiniSerializer(scoped_brands(obj), many=True).data)
+        return list(BrandMiniSerializer(scoped_brands(obj, section="setup", minimum="view"), many=True).data)
 
 
 class AdminUserSerializer(serializers.ModelSerializer[User]):

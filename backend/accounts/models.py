@@ -57,6 +57,10 @@ class Role(TimeStampedModel, InheritedTenantMaster):
     # the login/`/me` payload and the server-side section gate read — editing it
     # retunes access with no release (Rule 12). Seeded from `accounts.rbac_matrix`.
     section_access = models.JSONField(default=dict)
+    # Protected-field policy is independent of the section ladder. The keys
+    # are validated by the unified access editor and interpreted by its field
+    # projector; assignments carry only role identity and scope.
+    field_access = models.JSONField(default=list)
     permissions_map = models.JSONField(default=dict)  # fine-grained page-actions, later
     is_system = models.BooleanField(default=False)  # protected from deletion
     is_active = models.BooleanField(default=True)
@@ -217,14 +221,20 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
 
     @property
     def may_post_pt_or_vflip_floor(self) -> bool:
-        """Immutable segregation-of-duties answer consumed by the GL engine.
+        """Legacy unscoped posting floor, now answered by role assignments.
 
-        Break-glass passes, as the ruling says it must: a half-powered emergency
-        key fails at the moment it is needed. What break-glass does *not* buy is
-        the rest of the floor — the actor is still refused unless they are a
-        named, saved person who is not scoped to a store.
+        Resource-specific postings should use the unified evaluator with the
+        document's site and brand. This compatibility property can grant only
+        a full-network Owner or Accounts assignment in the bound tenant.
         """
-        return self.is_superuser or getattr(self.role, "code", "") in HEAD_OFFICE_VALUE_ACTORS
+        from accounts.principal import access_for_user
+        from core.tenancy import current_tenant_id
+
+        if current_tenant_id() is None or current_tenant_id() != self.tenant_id:
+            return False
+        return bool(access_for_user(self).grants_with_roles(
+            "section.money.approve", [(None, None)], HEAD_OFFICE_VALUE_ACTORS,
+        ))
 
 
 class LoginAttempt(models.Model):
@@ -244,6 +254,7 @@ from accounts.goods_models import (  # noqa: E402, F401
     AuthenticationFailure,
     HumanIdentity,
     RoleGrant,
+    RoleAssignment,
     SecurityGuard,
     ServerSession,
     Staff,

@@ -27,9 +27,9 @@ what it proves is that seeding a site does not open it.
 
 `X-SVC` is deliberately absent: it is a service principal, never a human, and it
 must never be reachable by signing in. `syn.platform` is here but is not tenant
-staff: it holds `X-PLT` alone, which administers the deployment rather than works
-in the business, so it gets no `Staff` row and no place on the People screen
-(GSA-T03). Every other persona does, with no assignment - authority is grants.
+staff: its historical `X-PLT` label creates no business authority, so it has no
+`Staff` row or role assignment. Other personas receive explicit assignments
+only where the six-role mapping and scope are unambiguous.
 """
 
 from __future__ import annotations
@@ -41,14 +41,12 @@ from typing import Any
 from django.db import transaction
 
 from accounts.goods_setup import (
-    GrantRequest,
-    add_grant,
     create_person,
     ensure_goods_roles,
     is_tenant_staff,
+    seed_role_assignment,
     service_principal,
     sync_tenant_staff,
-    top_up_person_grants,
 )
 from core.commands import CommandResult, CommandRun, CommandSpec, execute_command
 from core.refusals import Refusal
@@ -85,18 +83,27 @@ class PersonaSpec:
     staff_code: str
     display_name: str
     role_code: str
-    #: Site code for a site-scoped grant; ``None`` means tenant scope.
+    #: Site code for a selected-site assignment; ``None`` means all sites.
     site_code: str | None = None
     #: Extra roles. Only the deliberate multi-role denial fixture has any.
     extra: tuple[tuple[str, str | None], ...] = field(default_factory=tuple)
-    #: Sites where this person prepares PTs for the site's people without being
-    #: one of them: a prepare-only warehouse grant, never counting or acceptance.
+    #: Historical prepare-only destination responsibility. SO-03 does not
+    #: widen the Warehouse role to this site; OQ-28 must resolve the step rule.
     prepares_for: tuple[str, ...] = ()
     note: str = ""
 
     @property
     def email(self) -> str:
         return f"{self.staff_code}@{SYNTHETIC_DOMAIN}"
+
+
+PERSONA_ROLE_MAP = {
+    "C-OWN": "owner",
+    "C-CAO": "accounts",
+    "C-WHO": "warehouse",
+    "M-STR": "store_person",
+    "M-CSH": "store_person",
+}
 
 
 WAREHOUSE = "SYN-GW"
@@ -214,7 +221,7 @@ OPS_PERSONAS: tuple[PersonaSpec, ...] = (
         "C-WHO",
         site_code=OPS_WAREHOUSE,
         prepares_for=(OPS_STORE,),
-        note="prepares and submits PTs at OPS-WH and for OPS-ST; approves none of them",
+        note="Warehouse at OPS-WH; destination prepare-only duty awaits OQ-28",
     ),
     PersonaSpec(
         "ops.store",
@@ -231,28 +238,6 @@ OPS_PERSONAS: tuple[PersonaSpec, ...] = (
         note="bills at the registered till at OPS-ST",
     ),
 )
-
-
-#: What a warehouse operator may do at a store whose PTs they prepare: the PT
-#: work and its labels, nothing physical. The store's own people count, accept
-#: and put away (PT operational agreement: the warehouse uploads the store's PT).
-PREPARE_ONLY_ACTIONS = ("pt.prepare", "pt.view", "label.print", "stock.view", "exception.view")
-
-
-def _prepare_only_grant(site_id: int) -> GrantRequest:
-    return GrantRequest(
-        role_code="C-WHO",
-        scope_kind="site",
-        site_id=site_id,
-        actions=list(PREPARE_ONLY_ACTIONS),
-        narrowed=True,
-    )
-
-
-def _grant(role_code: str, site_code: str | None, sites: dict[str, Any]) -> GrantRequest:
-    if site_code is None:
-        return GrantRequest(role_code=role_code)
-    return GrantRequest(role_code=role_code, scope_kind="site", site_id=sites[site_code].pk)
 
 
 def _build_sites(tenant: Any, specs: tuple[SiteSpec, ...]) -> dict[str, Any]:
@@ -647,57 +632,31 @@ def seed_ops_selling(store: Any) -> None:
             VoucherSeries.objects.get_or_create(fy=fy, store_code=store.code, doc_type=doc_type)
 
 
-def _wire_shell_access(
-    user: Any, role_code: str, site_code: str | None, sites: dict[str, Any]
-) -> None:
-    """Give one ready-pair login the shell the PRD says its role reaches.
-
-    The goods screens are drawn from a person's goods grants, so a goods-only
-    login has always reached those. The *rest* of the shell is not: Sell, Money,
-    Reports and Attendance are drawn from the legacy section ladder, which reads
-    the login's `Role` row and its store scope - and a person seeded with goods
-    grants alone has neither, so PRD §12's ten store rows came out as the goods
-    lines and nothing else, and the counter had no store to bill at.
-
-    The row to point them at is the RBAC v1 one their PRD role *is* -
-    `LEGACY_NAV_ROLE` already states that correspondence, and the shell keys
-    both its section ladder and its persona layouts (PRD §12's ten store rows,
-    the warehouse's own) on those codes. A login carrying a goods-only code gets
-    the sections but none of the layout, which is a sidebar nobody designed.
-    Site personas are scoped to the one site they work at, so the counter knows
-    which store it is standing in.
-
-    Idempotent, and confined to the ready pair and the one Owner who approves
-    their work: the `SYN-GW`/`SYN-GS` personas are deliberately goods-only and
-    are left exactly as they are.
-    """
-    from accounts.goods_setup import LEGACY_NAV_ROLE
-    from accounts.models import Role, ScopeType
-
-    role = Role.objects.filter(code=LEGACY_NAV_ROLE.get(role_code, "")).first()
-    site = sites.get(site_code or "")
-    changed: list[str] = []
-    if role is not None and user.role_id != role.pk:
-        user.role = role
-        changed.append("role")
-    if site is not None and user.scope_type != ScopeType.STORE:
-        user.scope_type = ScopeType.STORE
-        changed.append("scope_type")
-    if changed:
-        user.save(update_fields=changed)
-    if site is not None and not user.stores.filter(pk=site.pk).exists():
-        user.stores.add(site)
-
-
 def seed_goods_personas(
     tenant: Any, sites: dict[str, Any], personas: tuple[PersonaSpec, ...] = GOODS_PERSONAS
 ) -> list[PersonaSpec]:
-    """One login per goods role, each added through the command kernel once."""
+    """Seed logins and only unambiguous six-role scope tuples, once."""
     from accounts.models import User
 
-    # The ready pair's people work in the whole shell, not only in the goods
-    # screens; the deliberately unopened `SYN-GW`/`SYN-GS` pair's people do not.
-    wire_shell = personas is OPS_PERSONAS
+    def assign(human: Any, persona: PersonaSpec) -> None:
+        # A mixed C-WHO/C-INV role and prepare-only destination privilege have
+        # no safe role-for-role mapping. Warehouse at the destination would
+        # also confer counting and acceptance there.
+        if persona.extra:
+            return
+        role_code = PERSONA_ROLE_MAP.get(persona.role_code)
+        if role_code is None:
+            return
+        site = sites.get(persona.site_code or "")
+        if persona.site_code is not None and site is None:
+            return
+        seed_role_assignment(
+            tenant, human, role_code,
+            source_key=f"goods:{persona.staff_code}",
+            all_sites=site is None,
+            site_ids=() if site is None else (site.pk,),
+            all_brands=True,
+        )
 
     created: list[PersonaSpec] = []
     for persona in personas:
@@ -707,28 +666,17 @@ def seed_goods_personas(
         staff = is_tenant_staff([persona.role_code, *(code for code, _ in persona.extra)])
         existing = User.objects.filter(email__iexact=persona.email).first()
         if existing is not None:
-            # Already seeded, possibly before the rule above existed: bring the
-            # row into line rather than leaving a stale one on the screen.
             if existing.human_id is not None:
                 sync_tenant_staff(
                     tenant_id=tenant.pk, human_id=existing.human_id, tenant_staff=staff
                 )
-                # A grant keeps the actions it was written with, so a persona
-                # seeded before a role template widened is short of the new
-                # ones. Top the difference up rather than leaving a login that
-                # cannot do what its role says (PRD §3.2 widened C-OWN).
-                top_up_person_grants(tenant, existing.human, persona.staff_code)
-            if wire_shell:
-                _wire_shell_access(existing, persona.role_code, persona.site_code, sites)
+            # Older seed identities must pass the SO-03 migration report. A
+            # re-seed must not grant one that was blocked or later revoked.
             continue
-        requests = [_grant(persona.role_code, persona.site_code, sites)]
-        requests += [_grant(code, site_code, sites) for code, site_code in persona.extra]
-        requests += [_prepare_only_grant(sites[code].pk) for code in persona.prepares_for]
 
         def handler(
             run: CommandRun,
             persona: PersonaSpec = persona,
-            requests: Any = requests,
             staff: bool = staff,
         ) -> CommandResult:
             human, _user = create_person(
@@ -739,8 +687,7 @@ def seed_goods_personas(
                 password=SYNTHETIC_PASSWORD,
                 tenant_staff=staff,
             )
-            for request in requests:
-                add_grant(run, human, request)
+            assign(human, persona)
             return CommandResult(resource_type="human", resource_id=str(human.pk), status_code=201)
 
         execute_command(
@@ -752,10 +699,6 @@ def seed_goods_personas(
             ),
             handler,
         )
-        if wire_shell:
-            fresh = User.objects.filter(email__iexact=persona.email).first()
-            if fresh is not None:
-                _wire_shell_access(fresh, persona.role_code, persona.site_code, sites)
         created.append(persona)
     return created
 
@@ -786,23 +729,14 @@ def seed_goods_brand(tenant: Any) -> Any:
 
 
 def seed_brand_scoped_persona(tenant: Any, brand: Any) -> None:
-    """`syn.brandscoped`: a C-BUY grant at brand scope and nothing else (GSA-T08).
-
-    C-BUY is the one role template goods-v1 grants at `scope_kind="brand"`
-    (`accounts/actions.py`), and it holds `exception.view` through `_VIEWING`.
-    `GoodsException` carries a `site`, never a `brand` (`alerts/goods_models.py`)
-    — `AccessContext.store_site_ids` (what the exceptions list reads scope from)
-    does not expand a brand-only grant into any site at all, so this persona
-    reads no exception, ever, from any site or brand. That is the proof: a
-    brand-scoped grant leaks nobody's exceptions, this fixture brand's or
-    another one's, because the record it would need to be scoped *by* does not
-    exist on the model. `test_goods_exceptions_centre.py` and
-    `e2e/goods-exceptions.spec.ts` assert this rather than merely relying on it.
-    """
+    """Give the explicit brand fixture a selected-brand assignment."""
     from accounts.models import User
 
     email = f"{BRAND_SCOPED_STAFF_CODE}@{SYNTHETIC_DOMAIN}"
-    if User.objects.filter(email__iexact=email).exists():
+    existing = User.objects.filter(email__iexact=email).first()
+    if existing is not None:
+        # Existing legacy personas are migrated only after their role/scope
+        # evidence is reconciled, and a re-seed cannot restore revoked access.
         return
 
     def handler(run: CommandRun) -> CommandResult:
@@ -814,10 +748,10 @@ def seed_brand_scoped_persona(tenant: Any, brand: Any) -> None:
             password=SYNTHETIC_PASSWORD,
             tenant_staff=is_tenant_staff(["C-BUY"]),
         )
-        add_grant(
-            run,
-            human,
-            GrantRequest(role_code="C-BUY", scope_kind="brand", brand_id=brand.pk),
+        seed_role_assignment(
+            tenant, human, "brand_manager",
+            source_key=f"goods:{BRAND_SCOPED_STAFF_CODE}",
+            all_sites=True, brand_ids=(brand.pk,),
         )
         return CommandResult(resource_type="human", resource_id=str(human.pk), status_code=201)
 
@@ -1238,12 +1172,6 @@ def seed_goods_demo(tenant: Any) -> dict[str, Any]:
         # the sites and registers the till is `syn.owner`.
         ops_sites = seed_ops_sites(tenant)
         seed_goods_personas(tenant, ops_sites, OPS_PERSONAS)
-        # The Owner approves this pair's work, so the Owner is part of this
-        # pair's flow (PRD §3.2) and needs the same shell the two site personas
-        # now get - the approvals queue above all. Tenant-scoped: an Owner
-        # belongs to no single site.
-        if owner is not None:
-            _wire_shell_access(owner, "C-OWN", None, ops_sites)
         seed_ops_till(tenant, ops_sites[OPS_STORE])
         seed_ops_selling(ops_sites[OPS_STORE])
         brand = seed_goods_brand(tenant)
@@ -1267,24 +1195,31 @@ def credentials_section() -> list[str]:
         "described here, and no address at `@synthetic.demo` is a real mailbox.",
         "",
         "Both sites are **planned and goods-unapproved** — on the `goods_v1` stock",
-        "contract like every site, but an empty goods-v1 operating scope. These logins",
-        "can sign in and configure; they cannot receive, post or open stock.",
+        "contract like every site, but an empty goods-v1 operating scope. Mapped",
+        "roles can sign in within their assignments; unresolved personas have no",
+        "business access until OQ-28 is resolved. The sites cannot receive or post.",
         "",
-        "| Email | Password | Role | Scope | Note |",
+        "| Email | Password | Historical role | SO-03 access | Note |",
         "|---|---|---|---|---|",
     ]
     for persona in GOODS_PERSONAS:
         roles = [(persona.role_code, persona.site_code), *persona.extra]
         role_text = ", ".join(code for code, _ in roles)
-        scope_text = ", ".join(site or "tenant" for _, site in roles)
+        mapped = None if persona.extra else PERSONA_ROLE_MAP.get(persona.role_code)
+        if mapped is not None:
+            scope = persona.site_code or "all sites"
+            access = f"{mapped} ({scope}, all brands)"
+        elif persona.role_code == "X-PLT":
+            access = "None (platform identity)"
+        else:
+            access = "None (OQ-28 gated)"
         lines.append(
-            f"| {persona.email} | {SYNTHETIC_PASSWORD} | {role_text} | {scope_text} "
+            f"| {persona.email} | {SYNTHETIC_PASSWORD} | {role_text} | {access} "
             f"| {persona.note} |"
         )
     lines += [
         f"| {BRAND_SCOPED_STAFF_CODE}@{SYNTHETIC_DOMAIN} | {SYNTHETIC_PASSWORD} | C-BUY | brand "
-        f"`{BRAND_CODE}` | GSA-T08: brand scope only — reads no exception anywhere, proving one "
-        "cannot leak across brands |",
+        f"manager (all sites, `{BRAND_CODE}` only) | Explicit brand scope fixture |",
         "",
         "`X-SVC` has no login on purpose: it is the noninteractive service principal",
         "for jobs and imports, and it never approves anything.",
@@ -1325,13 +1260,14 @@ def _ops_credentials_lines() -> list[str]:
         "`RegisteredTill.device_token` is minted at registration and is not a credential; "
         "the session is what authenticates every call the counter makes.",
         "",
-        "| Email | Password | Role | Scope | Note |",
+        "| Email | Password | Historical role | SO-03 access | Note |",
         "|---|---|---|---|---|",
     ]
     for persona in OPS_PERSONAS:
+        role_code = PERSONA_ROLE_MAP.get(persona.role_code, "None (OQ-28 gated)")
         lines.append(
             f"| {persona.email} | {SYNTHETIC_PASSWORD} | {persona.role_code} "
-            f"| {persona.site_code} | {persona.note} |"
+            f"| {role_code} ({persona.site_code}, all brands) | {persona.note} |"
         )
     lines += [
         "",

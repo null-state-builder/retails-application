@@ -19,14 +19,12 @@ import {
   SeasonsPage,
   StoreTargetsPage,
   StoresPage,
-  UsersRolesPage,
   VendorsPage,
 } from "./pages/MasterPages";
 import { OrganisationPage } from "./pages/Organisation";
 import { PeopleAccessPage } from "./pages/PeopleAccess";
 import { ProductsPartiesPage } from "./pages/ProductsParties";
 import { ConfigurationPage } from "./pages/Configuration";
-import { AccessMatrixPage } from "./pages/AccessMatrix";
 import { SellPolicySettingsPage } from "./pages/SellPolicySettings";
 import { AuditLogPage } from "./pages/AuditLog";
 import { SalesReportPage } from "./pages/SalesReport";
@@ -377,8 +375,6 @@ const BUILT: Screen[] = [
   { id: "setup-vendors", path: "/setup/vendors", element: <VendorsPage /> },
   { id: "setup-seasons", path: "/setup/seasons", element: <SeasonsPage /> },
   { id: "setup-gstins", path: "/setup/gstins", element: <GstinsPage /> },
-  { id: "setup-users", path: "/setup/users", element: <UsersRolesPage /> },
-  { id: "setup-access", path: "/setup/access", element: <AccessMatrixPage /> },
   { id: "setup-settings", path: "/setup/settings", element: <SellPolicySettingsPage /> },
   {
     id: "setup-feature-switches",

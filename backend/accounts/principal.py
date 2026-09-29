@@ -12,12 +12,13 @@ lock before it commits (``AccessContext.revalidate``).
 from __future__ import annotations
 
 import uuid
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
-from django.db import connection
+from django.db import connection, transaction
 from django.db.models import Q
 
 from accounts.sessions import step_up_valid_until
@@ -47,6 +48,13 @@ class GrantView:
     #: to a role template that has grown since; a grant somebody made on the
     #: People screen is their decision, not the seed's, at whatever width.
     seeded: bool = False
+    # Unified assignment dimensions.  A selected list is frozen membership;
+    # explicit all includes records created after the assignment.
+    all_sites: bool = False
+    site_ids: frozenset[int] = frozenset()
+    all_brands: bool = False
+    brand_ids: frozenset[int] = frozenset()
+    section_levels: dict[str, str] = field(default_factory=dict)
 
 
 #: One authorisation a request relied on, replayed against fresh grants before commit.
@@ -72,8 +80,28 @@ class AccessContext:
     session: Any
     grants: list[GrantView] = field(default_factory=list)
     _entity_sites: dict[int, set[int]] = field(default_factory=dict)
+    _tenant_entities: set[int] | None = None
+    _tenant_sites: set[int] | None = None
+    _tenant_brands: set[int] | None = None
     #: Positive checks this request relied on; commands replay them before commit.
     _demands: set[Demand] = field(default_factory=set)
+
+    def section_grants(self, section: str, minimum: str) -> list[GrantView]:
+        from accounts.actions import SECTION_ACTIONS
+
+        action = SECTION_ACTIONS.get((section, minimum))
+        return [g for g in self.grants if action in g.actions] if action else []
+
+    def can_section(
+        self, section: str, minimum: str, *, site_id: int | None = None,
+        brand_id: int | None = None, fields: Iterable[str] = (),
+    ) -> bool:
+        required = frozenset(fields)
+        allowed = any(required <= grant.fields and self.grant_covers(grant, site_id, brand_id)
+                      for grant in self.section_grants(section, minimum))
+        if allowed:
+            self._demands.add(("section", section, minimum, site_id, brand_id, required))
+        return allowed
 
     # -- identity --------------------------------------------------------
     def principal(self) -> Principal:
@@ -94,13 +122,50 @@ class AccessContext:
             from masters.models import Store
 
             self._entity_sites[entity_id] = set(
-                Store.objects.filter(gstin__legal_entity_id=entity_id).values_list("id", flat=True)
+                Store.objects.filter(
+                    tenant_id=self.tenant_id, gstin__legal_entity_id=entity_id
+                ).values_list("id", flat=True)
             )
         return self._entity_sites[entity_id]
+
+    def _site_belongs_to_tenant(self, site_id: int | None) -> bool:
+        if site_id is None:
+            return True
+        if self._tenant_sites is None:
+            from masters.models import Store
+
+            self._tenant_sites = set(Store.objects.filter(
+                tenant_id=self.tenant_id
+            ).values_list("id", flat=True))
+        return site_id in self._tenant_sites
+
+    def _brand_belongs_to_tenant(self, brand_id: int | None) -> bool:
+        if brand_id is None:
+            return True
+        if self._tenant_brands is None:
+            from masters.models import Brand
+
+            self._tenant_brands = set(Brand.objects.filter(
+                tenant_id=self.tenant_id
+            ).values_list("id", flat=True))
+        return brand_id in self._tenant_brands
+
+    def _entity_belongs_to_tenant(self, entity_id: int | None) -> bool:
+        if entity_id is None:
+            return True
+        if self._tenant_entities is None:
+            from masters.models import LegalEntity
+
+            self._tenant_entities = set(LegalEntity.objects.filter(
+                tenant_id=self.tenant_id
+            ).values_list("id", flat=True))
+        return entity_id in self._tenant_entities
 
     @staticmethod
     def brand_limit(grant: GrantView) -> int | None:
         """The one brand a grant is limited to; ``None`` when it reaches every brand."""
+        if grant.scope_kind in ("sites", "brands", "cells"):
+            return None if grant.all_brands else (next(iter(grant.brand_ids)) if len(grant.brand_ids) == 1 else -1)
         if grant.scope_kind == "brand":
             return grant.brand_id
         if grant.scope_kind == "sbu":
@@ -111,6 +176,10 @@ class AccessContext:
         self, grant: GrantView, site_id: int | None, entity_id: int | None = None
     ) -> bool:
         """The site dimension alone. ``site_id=None`` is a record held at no site."""
+        if not self._site_belongs_to_tenant(site_id):
+            return False
+        if grant.all_sites or grant.site_ids:
+            return grant.all_sites or (site_id is not None and site_id in grant.site_ids)
         kind = grant.scope_kind
         if kind in ("tenant", "brand"):
             return True
@@ -126,6 +195,10 @@ class AccessContext:
 
     def reaches_brand(self, grant: GrantView, brand_id: int | None) -> bool:
         """The brand dimension alone. ``brand_id=None`` is a record with no brand."""
+        if not self._brand_belongs_to_tenant(brand_id):
+            return False
+        if grant.all_brands or grant.brand_ids:
+            return grant.all_brands or (brand_id is not None and brand_id in grant.brand_ids)
         limit = self.brand_limit(grant)
         return limit is None or (brand_id is not None and brand_id == limit)
 
@@ -137,7 +210,11 @@ class AccessContext:
         *,
         entity_id: int | None = None,
     ) -> bool:
-        return self.reaches_site(grant, site_id, entity_id) and self.reaches_brand(grant, brand_id)
+        return (
+            self._entity_belongs_to_tenant(entity_id)
+            and self.reaches_site(grant, site_id, entity_id)
+            and self.reaches_brand(grant, brand_id)
+        )
 
     # -- checks ------------------------------------------------------------
     def _holds(self, action: str) -> bool:
@@ -209,6 +286,26 @@ class AccessContext:
         if not self.can(action, site_id=site_id, brand_id=brand_id, entity_id=entity_id):
             raise Refusal("NOT_FOUND", "That record was not found.")
 
+    def require_all_actions(
+        self,
+        actions: Iterable[str],
+        *,
+        site_id: int | None = None,
+        brand_id: int | None = None,
+        entity_id: int | None = None,
+    ) -> None:
+        """Require every action from one assignment over the same resource cell."""
+        wanted = frozenset(actions)
+        if not wanted or not all(self._holds(action) for action in wanted):
+            raise Refusal("ACTION_DENIED", "You do not have permission for this action.")
+        if not any(
+            wanted <= grant.actions
+            and self.grant_covers(grant, site_id, brand_id, entity_id=entity_id)
+            for grant in self.grants
+        ):
+            raise Refusal("NOT_FOUND", "That record was not found.")
+        self._demands.add(("all_actions", wanted, site_id, brand_id, entity_id))
+
     def can_reach_site(self, action: str, site_id: int) -> bool:
         """Site identity only (routing targets, lookup context): the site, whatever brand.
 
@@ -246,6 +343,23 @@ class AccessContext:
         found = self._covers_all(wanted, grid, needed, entity_id)
         if found:
             self._demands.add(("cells", wanted, grid, needed, entity_id))
+        return found
+
+    def covers_all_actions(
+        self, actions: Iterable[str], cells: Iterable[tuple[int | None, int | None]],
+        fields: Iterable[str] = (), *, roles: Iterable[str] = (),
+    ) -> bool:
+        """Every cell needs all actions and fields on one qualifying assignment."""
+        wanted, grid = frozenset(actions), frozenset(cells)
+        needed, codes = frozenset(fields), frozenset(roles)
+        found = bool(wanted and grid) and all(any(
+            wanted <= grant.actions and needed <= grant.fields
+            and (not codes or grant.role_code in codes)
+            and self.grant_covers(grant, site, brand)
+            for grant in self.grants
+        ) for site, brand in grid)
+        if found:
+            self._demands.add(("all_cells_actions", wanted, grid, needed, codes))
         return found
 
     def grants_with_roles(
@@ -288,7 +402,7 @@ class AccessContext:
 
     @staticmethod
     def _at_store(grant: GrantView) -> bool:
-        return grant.scope_kind != "brand"
+        return grant.all_brands and grant.scope_kind != "brand"
 
     def _covers_store(
         self, actions: frozenset[str], site_id: int | None, fields: frozenset[str]
@@ -329,6 +443,11 @@ class AccessContext:
         for grant in self.grants:
             if action not in grant.actions or not self._at_store(grant):
                 continue
+            if grant.all_sites:
+                return None
+            sites |= grant.site_ids
+            if grant.site_ids:
+                continue
             if grant.scope_kind == "tenant":
                 return None
             if grant.scope_kind == "entity" and grant.entity_id is not None:
@@ -343,7 +462,12 @@ class AccessContext:
         """Sites where ``action`` covers records that carry no brand; ``None`` means every site."""
         sites: set[int] = set()
         for grant in self.grants:
-            if action not in grant.actions or self.brand_limit(grant) is not None:
+            if action not in grant.actions or not grant.all_brands:
+                continue
+            if grant.all_sites:
+                return None
+            sites |= grant.site_ids
+            if grant.site_ids:
                 continue
             if grant.scope_kind == "tenant":
                 return None
@@ -363,6 +487,11 @@ class AccessContext:
         sites: set[int] = set()
         for grant in self.grants:
             if action not in grant.actions:
+                continue
+            if grant.all_sites:
+                return None
+            sites |= grant.site_ids
+            if grant.site_ids:
                 continue
             if grant.scope_kind in ("tenant", "brand"):
                 return None
@@ -418,6 +547,31 @@ class AccessContext:
             raise Refusal("STEP_UP_REQUIRED", "Confirm your password to continue.")
         self._demands.add(("step_up",))
 
+    @contextmanager
+    def guard_legacy_write(self, allowed: Callable[[AccessContext], bool]) -> Iterator[None]:
+        """Protect a legacy mutation that has not moved into ``execute_command``.
+
+        The first reload share-locks the person's security guard inside the write
+        transaction. Access changes and logout update that guard, so they cannot
+        commit between this check and the business write. The second reload
+        rechecks session, policy and any recorded access demands just before
+        commit. A refusal rolls the entire legacy write back.
+        """
+        if self.session is None or not hasattr(self.session, "token_hash"):
+            raise Refusal("AUTH_REQUIRED", "Sign in to continue.")
+        with transaction.atomic():
+            now = self._reload(lock=True)
+            if not allowed(self):
+                raise Refusal("ACTION_DENIED", "You do not have permission for this action.")
+            for demand in sorted(self._demands, key=repr):
+                self._replay(demand, now)
+            yield
+            now = self._reload(lock=False)
+            if not allowed(self):
+                raise Refusal("ACTION_DENIED", "You do not have permission for this action.")
+            for demand in sorted(self._demands, key=repr):
+                self._replay(demand, now)
+
     # -- commit-time revalidation ----------------------------------------
     def revalidate(self, run: CommandRun, final: bool = False) -> None:
         """Re-check this person's authority inside the command, by database time.
@@ -429,11 +583,24 @@ class AccessContext:
         relied on. The final pass runs after the business effects, just before the
         outcome is written, so anything that expired meanwhile still stops the write.
         """
+        from accounts.access_safeguards import changes_authority, require_administrator_continuity
+
         if final:
             now = self._expire_in_place()
+            if changes_authority(run.spec.action):
+                require_administrator_continuity(run.tenant_id, now)
         else:
             run.claim_rank(LockRank.SECURITY)
+            if changes_authority(run.spec.action):
+                run.advisory_lock(LockRank.SECURITY, ["tenant-access-administration"])
             now = self._reload(lock=True)
+            from accounts.actions import PRIVILEGED_COMMAND_ACTIONS
+            from accounts.access_safeguards import independent_reviewers
+
+            if run.spec.action in PRIVILEGED_COMMAND_ACTIONS:
+                run.authority["independent_reviewers"] = independent_reviewers(
+                    run.tenant_id, run.spec.site_id, self.human_id,
+                )
         for demand in sorted(self._demands, key=repr):
             self._replay(demand, now)
         valid = [str(g.id) for g in self.grants]
@@ -520,9 +687,19 @@ class AccessContext:
 
     def _allows(self, demand: Demand) -> bool:
         kind = demand[0]
+        if kind == "all_cells_actions":
+            _, actions, cells, fields, roles = demand
+            return self.covers_all_actions(actions, cells, fields, roles=roles)
         if kind == "can":
             _kind, action, site_id, brand_id, entity_id = demand
             return self._can(action, site_id, brand_id, entity_id)
+        if kind == "all_actions":
+            _kind, actions, site_id, brand_id, entity_id = demand
+            return any(
+                actions <= grant.actions
+                and self.grant_covers(grant, site_id, brand_id, entity_id=entity_id)
+                for grant in self.grants
+            )
         if kind == "site":
             return any(
                 demand[1] in g.actions and self.reaches_site(g, demand[2]) for g in self.grants
@@ -544,11 +721,16 @@ class AccessContext:
 
     def _replay(self, demand: Demand, now: datetime) -> None:
         kind = demand[0]
+        if kind == "section":
+            _, section, minimum, site_id, brand_id, fields = demand
+            if not self.can_section(section, minimum, site_id=site_id, brand_id=brand_id, fields=fields):
+                raise Refusal("NOT_FOUND", "That record was not found.")
+            return
         if kind == "step_up":
             if step_up_valid_until(self.session, now) is None:
                 raise Refusal("STEP_UP_REQUIRED", "Confirm your password to continue.")
             return
-        action_names = demand[1] if kind in ("cells", "brand", "store") else {demand[1]}
+        action_names = demand[1] if kind in ("cells", "brand", "store", "all_actions", "all_cells_actions") else {demand[1]}
         if not any(self._holds(action) for action in action_names):
             raise Refusal("ACTION_DENIED", "You do not have permission for this action.")
         allowed = self._allows(demand)
@@ -557,78 +739,57 @@ class AccessContext:
 
 
 def effective_grants(human_id: uuid.UUID, now: datetime | None = None) -> list[GrantView]:
-    from accounts.goods_models import RoleGrant
-    from masters.goods_models import EffectiveVersionPeriod
+    """Compile current role assignments into one scoped policy view.
 
-    moment = now or database_now()
-    rows = list(
-        RoleGrant.objects.select_related("role", "sbu")
-        .filter(human_id=human_id, effective_from__lte=moment, revokes__isnull=True)
-        .filter(role__is_active=True)
-        .filter(Q(effective_to__isnull=True) | Q(effective_to__gt=moment))
-    )
-    if not rows:
-        return []
-    maxima = configured_role_access(row.role.code for row in rows)
-    revocations: dict[uuid.UUID, datetime] = {}
-    for target, starts in RoleGrant.objects.filter(revokes__in=[r.pk for r in rows]).values_list(
-        "revokes_id", "effective_from"
-    ):
-        if target not in revocations or starts < revocations[target]:
-            revocations[target] = starts
-    closed = {
-        period.target_id: period
-        for period in EffectiveVersionPeriod.objects.filter(
-            target_kind="grant", target_id__in=[r.pk for r in rows]
-        )
-    }
-    grants: list[GrantView] = []
-    for row in rows:
-        revoked_at = revocations.get(row.pk)
-        if revoked_at is not None and revoked_at <= moment:
+    The old goods ``RoleGrant`` rows remain as migration evidence only.  Neither
+    their action/field sets nor legacy ``User.role`` can grant runtime access.
+    """
+    from accounts.role_assignments import effective_assignments
+    from accounts.unified_policy import role_actions, role_capability, role_fields, workflow_levels
+    from accounts.sections import SECTION_CODES
+
+    result: list[GrantView] = []
+    assignments = effective_assignments(human_id, now or database_now())
+    levels = workflow_levels(assignments[0].tenant_id) if assignments else {}
+    for row in assignments:
+        sites = frozenset(int(site) for site in row.site_ids)
+        brands = frozenset(int(brand) for brand in row.brand_ids)
+        if not (row.all_sites or sites) or not (row.all_brands or brands):
             continue
-        if row.sbu is not None and row.sbu.retired_at is not None and row.sbu.retired_at <= moment:
-            continue  # a retired SBU scopes nothing (its retirement also ends the grant)
-        period = closed.get(row.pk)
-        if period is not None and period.effective_to is not None and period.effective_to <= moment:
-            continue
-        ends = [
-            end
-            for end in (
-                row.effective_to,
-                period.effective_to if period is not None else None,
-                revoked_at,
-            )
-            if end is not None
-        ]
-        actions = row.action_set.get("actions", []) if isinstance(row.action_set, dict) else []
-        fields = row.field_set if isinstance(row.field_set, list) else []
-        maximum = maxima.get(row.role.code)
-        if maximum is not None:
-            # An administrator narrowed this role (E080): grants never exceed it.
-            if maximum.scope_kinds and row.scope_kind not in maximum.scope_kinds:
-                continue
-            actions = [a for a in actions if a in maximum.actions]
-            fields = [f for f in fields if f in maximum.fields]
-        grants.append(
+        if row.all_sites and row.all_brands:
+            kind = "tenant"
+        elif row.all_sites and len(brands) == 1:
+            kind = "brand"
+        elif row.all_sites:
+            kind = "brands"
+        elif row.all_brands and len(sites) == 1:
+            kind = "site"
+        elif row.all_brands:
+            kind = "sites"
+        else:
+            kind = "cells"
+        result.append(
             GrantView(
                 id=row.pk,
                 role_code=row.role.code,
-                scope_kind=row.scope_kind,
-                entity_id=row.entity_id,
-                site_id=row.site_id,
-                sbu_id=row.sbu_id,
-                sbu_site_id=row.sbu.site_id if row.sbu is not None else None,
-                sbu_brand_id=row.sbu.brand_id if row.sbu is not None else None,
-                brand_id=row.brand_id,
-                actions=frozenset(actions),
-                fields=frozenset(fields),
-                ends_at=min(ends) if ends else None,
-                narrowed=bool(isinstance(row.action_set, dict) and row.action_set.get("narrowed")),
-                seeded=bool(isinstance(row.action_set, dict) and row.action_set.get("seeded")),
+                scope_kind=kind,
+                entity_id=None,
+                site_id=next(iter(sites)) if len(sites) == 1 else None,
+                sbu_id=None,
+                sbu_site_id=None,
+                sbu_brand_id=None,
+                brand_id=next(iter(brands)) if len(brands) == 1 else None,
+                actions=role_actions(row.role, action_levels=levels),
+                fields=role_fields(row.role),
+                ends_at=row.effective_to,
+                all_sites=row.all_sites,
+                site_ids=sites,
+                all_brands=row.all_brands,
+                brand_ids=brands,
+                section_levels={section: role_capability(row.role, section) for section in SECTION_CODES},
             )
         )
-    return grants
+    return result
 
 
 @dataclass(frozen=True)
@@ -691,4 +852,24 @@ def resolve_access(request: Any) -> AccessContext:
         grants=effective_grants(user.human_id, database_now()),
     )
     request._goods_access = context
+    user._access_context = context
     return context
+
+
+def access_for_user(user: Any) -> AccessContext:
+    """Adapter for existing services; authenticated calls share the request guard.
+
+    Calls without a server session can calculate read scope, but cannot obtain a
+    guarded write principal. Neither a role nor a required section is inferred.
+    """
+    from core.tenancy import require_tenant_id
+
+    tenant_id = require_tenant_id()
+    human_id = getattr(user, "human_id", None)
+    cached = getattr(user, "_access_context", None)
+    if isinstance(cached, AccessContext) and cached.tenant_id == tenant_id and cached.human_id == human_id:
+        return cached
+    valid = bool(getattr(user, "is_authenticated", False) and getattr(user, "is_active", False)
+                 and human_id and getattr(user, "tenant_id", None) == tenant_id)
+    return AccessContext(user=user, human_id=human_id or uuid.UUID(int=0), tenant_id=tenant_id, session=None,
+                         grants=effective_grants(human_id) if valid and human_id is not None else [])

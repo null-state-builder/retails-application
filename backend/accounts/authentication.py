@@ -8,7 +8,7 @@ session-bound CSRF token. There is no bearer token.
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import Any, cast
 from urllib.parse import urlsplit
 
 from django.conf import settings
@@ -110,6 +110,13 @@ class ServerSessionAuthentication(BaseAuthentication):
             return None
         enforce_write_protection(request._request, session)
         enforce_password_change_restriction(request._request, session.user)
+        from accounts.principal import AccessContext, effective_grants
+
+        session.user._access_context = AccessContext(
+            user=session.user, human_id=session.user.human_id, tenant_id=session.tenant_id,
+            session=session, grants=effective_grants(session.user.human_id),
+        )
+        cast(Any, request)._goods_access = session.user._access_context
         return session.user, session
 
     def authenticate_header(self, request: Request) -> str:

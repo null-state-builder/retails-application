@@ -33,6 +33,7 @@ from accounts.goods_api import (
 )
 from accounts.models import Role, User
 from accounts.principal import AccessContext
+from accounts.role_assignments import INITIAL_ROLE_CODES
 from accounts.till_pin import (
     ADMIN_SET_ACTION,
     RESET_ACTION,
@@ -229,8 +230,8 @@ GRANT_ITEM: dict[str, Any] = {
     },
 }
 
-#: ``user_dto``. ``grants`` is present only on the detail reads and the grant
-#: write, which are the reads that are about authority.
+#: ``user_dto``. Assignment scope is read and written through the canonical
+#: ``/api/auth/admin/users/{id}/assignments`` endpoint.
 USER_DATA: dict[str, Any] = {
     "type": "object",
     "description": "LoginDTO (E071-E074).",
@@ -247,7 +248,6 @@ USER_DATA: dict[str, Any] = {
         "has_till_pin": {"type": "boolean"},
         "may_hold_till_pin": {"type": "boolean"},
         "may_reset_till_pin": {"type": "boolean"},
-        "grants": {"type": "array", "items": GRANT_ITEM},
     },
 }
 
@@ -433,11 +433,16 @@ PRIVILEGED_ITEM: dict[str, Any] = {
     },
 }
 
-#: E214: the choices an access administrator's screens are built from.
+#: E214: site labels for People & Access. Roles and access policy have their
+#: own canonical endpoints; the old grant/action/template catalog is retired.
 ADMIN_META_RESPONSE: dict[str, Any] = {
     "type": "object",
-    "description": "AdminMetaDTO (E214): roles, sites, SBUs, actions, fields and templates.",
-    "additionalProperties": True,
+    "description": "AdminMetaDTO (E214): sites visible to this administrator.",
+    "additionalProperties": False,
+    "required": ["sites"],
+    "properties": {
+        "sites": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
+    },
 }
 
 #: #173: who holds what, and the maximum each role may ever hold.
@@ -646,6 +651,7 @@ class GoodsStaffRetireView(GoodsAPIView):
         def handler(run: CommandRun) -> CommandResult:
             retired = svc.retire_staff(
                 run,
+                access=access,
                 staff_id=pk,
                 expected_revision=meta.expected_revision,
                 effective_at=effective_at,
@@ -755,7 +761,7 @@ class GoodsUserListCreateView(GoodsAPIView):
             request.data, svc.USER_KEYS, required=["human_id", "email", "display_name"]
         )
         login = svc.parse_login(body)
-        access.require_action("access.manage")
+        access.require("access.manage")
         access.require_step_up()
 
         def handler(run: CommandRun) -> CommandResult:
@@ -778,7 +784,7 @@ class GoodsUserListCreateView(GoodsAPIView):
 
 
 class GoodsUserDetailView(GoodsAPIView):
-    """E072 reads a login with its live grants; E074 changes it (step-up)."""
+    """E072 reads one login; E074 changes it after tenant-wide step-up."""
 
     @extend_schema(
         operation_id="goods_v1_auth_admin_users_detail",
@@ -787,9 +793,9 @@ class GoodsUserDetailView(GoodsAPIView):
     def get(self, request: Request, pk: int) -> Response:
         access = self.access(request)
         check_query(request, DETAIL_QUERY)
-        access.require_action("access.manage")
+        access.require("access.manage")
         user = svc.goods_user(access.tenant_id, pk)
-        return Response(svc.user_dto(access, user, with_grants=True))
+        return Response(svc.user_dto(access, user, with_pin_state=True))
 
     @extend_schema(
         request={"application/json": USER_UPDATE_REQUEST},
@@ -802,7 +808,7 @@ class GoodsUserDetailView(GoodsAPIView):
         if not body:
             raise _nothing_to_change()
         login = svc.parse_login(body)
-        access.require_action("access.manage")
+        access.require("access.manage")
         svc.goods_user(access.tenant_id, pk)
         svc.require_login_in_scope(access, pk)
         access.require_step_up()
@@ -829,7 +835,7 @@ class GoodsUserDetailView(GoodsAPIView):
             subject_key=f"user:{pk}",
         )
         user = svc.goods_user(access.tenant_id, pk)
-        return Response(svc.user_dto(access, user, with_grants=True), status=result.status_code)
+        return Response(svc.user_dto(access, user, with_pin_state=True), status=result.status_code)
 
 
 TILL_PIN_RESET_REQUEST: dict[str, Any] = {
@@ -848,7 +854,7 @@ def _require_pin_admin(access: AccessContext, request: Request, pk: int, *, verb
     Admin only (``may_reset_till_pin``), the login exists, and it is in the
     caller's scope. Returns the target login. Each view asks for the fresh
     password (``access.require_step_up()``) itself, after its own checks."""
-    access.require_action("access.manage")
+    access.require("access.manage")
     if not may_reset_till_pin(request.user):
         raise Refusal("ACTION_DENIED", f"Only Admin can {verb} a counter PIN.")
     target = svc.goods_user(access.tenant_id, pk)
@@ -893,7 +899,7 @@ class GoodsUserTillPinResetView(GoodsAPIView):
             subject_key=f"user:{pk}",
         )
         user = svc.goods_user(access.tenant_id, pk)
-        return Response(svc.user_dto(access, user, with_grants=True), status=result.status_code)
+        return Response(svc.user_dto(access, user, with_pin_state=True), status=result.status_code)
 
 
 TILL_PIN_SET_REQUEST: dict[str, Any] = {
@@ -964,7 +970,7 @@ class GoodsUserTillPinSetView(GoodsAPIView):
             subject_key=f"user:{pk}",
         )
         user = svc.goods_user(access.tenant_id, pk)
-        return Response(svc.user_dto(access, user, with_grants=True), status=result.status_code)
+        return Response(svc.user_dto(access, user, with_pin_state=True), status=result.status_code)
 
 
 class GoodsUserGrantsView(GoodsAPIView):
@@ -1085,10 +1091,19 @@ class GoodsUserGrantsView(GoodsAPIView):
             subject_key=f"user:{pk}",
         )
         user = svc.goods_user(access.tenant_id, pk)
-        return Response(svc.user_dto(access, user, with_grants=True), status=result.status_code)
+        return Response(svc.user_dto(access, user, with_pin_state=True), status=result.status_code)
 
 
 # -- roles and the access matrix (E075-E080) -----------------------------------------------
+
+
+def _visible_role(access: AccessContext, pk: int) -> Role:
+    role = svc.get_role(pk)
+    if role.tenant_id != access.tenant_id or (
+        role.is_system and role.code not in INITIAL_ROLE_CODES
+    ):
+        raise Refusal("NOT_FOUND", "That role was not found.")
+    return role
 
 
 class GoodsRoleListCreateView(GoodsAPIView):
@@ -1141,8 +1156,8 @@ class GoodsRoleDetailView(GoodsAPIView):
     def get(self, request: Request, pk: int) -> Response:
         access = self.access(request)
         check_query(request, DETAIL_QUERY)
-        access.require_action("access.manage")
-        return Response(svc.role_dto(access, svc.get_role(pk)))
+        access.require("access.manage")
+        return Response(svc.role_dto(access, _visible_role(access, pk)))
 
     @extend_schema(
         request={"application/json": ROLE_UPDATE_REQUEST},
@@ -1157,7 +1172,7 @@ class GoodsRoleDetailView(GoodsAPIView):
         fields = svc.parse_role(body)
         access.require_action("access.manage")
         svc.require_tenant_manage(access)
-        svc.get_role(pk)
+        _visible_role(access, pk)
         access.require_step_up()
 
         def handler(run: CommandRun) -> CommandResult:
@@ -1176,7 +1191,7 @@ class GoodsRoleDetailView(GoodsAPIView):
             resource_ids=[str(pk)],
             subject_key=f"role:{pk}",
         )
-        return Response(svc.role_dto(access, svc.get_role(pk)), status=result.status_code)
+        return Response(svc.role_dto(access, _visible_role(access, pk)), status=result.status_code)
 
 
 class GoodsRoleAccessView(GoodsAPIView):

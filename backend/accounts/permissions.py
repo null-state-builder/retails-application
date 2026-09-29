@@ -6,11 +6,9 @@ user's sidebar also gates the API: ``require_section(section, minimum)`` is a
 DRF permission any view can carry, and it resolves the acting user's capability
 from ``Role.section_access`` (the DB authority), fail-closed.
 
-Resolution order (all fail-closed):
-  · anonymous / unauthenticated → nothing;
-  · superuser → ``manage`` on every section (the break-glass account);
-  · a user with no role → nothing;
-  · otherwise the capability stored on the role for that section, or ``none``.
+Resolution order (all fail-closed): anonymous or unassigned people have no
+section authority; otherwise each effective role assignment contributes only
+its configured section level inside that assignment's scope.
 """
 
 from __future__ import annotations
@@ -20,10 +18,12 @@ from typing import Any
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 from rest_framework.request import Request
 
+from accounts.role_assignments import effective_assignments
 from accounts.sections import (
-    CAP_MANAGE,
     CAP_NONE,
     CAP_VIEW,
+    CAPABILITY_RANK,
+    CAPABILITY_WORDS,
     SECTIONS,
     is_valid_section,
     meets,
@@ -31,24 +31,33 @@ from accounts.sections import (
 
 
 def _resolve_section(user: Any, section: str) -> tuple[str, str]:
-    """``(capability, sheet-label)`` for ``user`` on ``section`` — one read of
-    the role row, fail-closed to ``(none, "")`` on any doubt."""
+    """Best display rung among effective assignments, never business authority.
+
+    Resource access still evaluates the requested section and scope inside the
+    *same* assignment.  This projection only decides which navigation groups
+    may be offered to a signed-in person.
+    """
     if not (user and getattr(user, "is_authenticated", False)):
         return CAP_NONE, ""
-    if getattr(user, "is_superuser", False):
-        return CAP_MANAGE, "All"
-    role = getattr(user, "role", None)
-    if role is None:
+    human_id = getattr(user, "human_id", None)
+    if human_id is None:
         return CAP_NONE, ""
-    entry = (role.section_access or {}).get(section)
-    if not isinstance(entry, dict):
-        return CAP_NONE, ""
-    capability = entry.get("capability", CAP_NONE)
-    label = entry.get("label", "")
-    return (
-        capability if isinstance(capability, str) else CAP_NONE,
-        label if isinstance(label, str) else "",
-    )
+    from accounts.principal import access_for_user
+
+    access = access_for_user(user)
+    best = next((level for level in reversed(CAPABILITY_RANK)
+                 if level != CAP_NONE and access.section_grants(section, level)), CAP_NONE)
+    return best, CAPABILITY_WORDS[best] if best != CAP_NONE else ""
+
+
+def user_can_at(
+    user: Any, section: str, minimum: str = CAP_VIEW, *,
+    site_id: int | None = None, brand_id: int | None = None,
+) -> bool:
+    """Check one section rung and one resource against the same assignment."""
+    from accounts.principal import access_for_user
+
+    return access_for_user(user).can_section(section, minimum, site_id=site_id, brand_id=brand_id)
 
 
 def user_section_capability(user: Any, section: str) -> str:
@@ -64,14 +73,25 @@ def user_can(user: Any, section: str, minimum: str = CAP_VIEW) -> bool:
 def visible_sections(user: Any) -> list[dict[str, str | int]]:
     """The sections ``user`` may see, in sidebar order, with their capability.
 
-    Only sections the user genuinely reaches (``view`` and up) are returned — a
-    role with no grants, an off-ladder capability, or no role at all yields an
-    empty list, so the shell fails closed to nothing.
+    Additive workflow steps may make a section navigable even with no section
+    rung.  They are returned with capability ``none`` so legacy section gates
+    cannot mistake the navigation hint for broader read permission.
     """
     out: list[dict[str, str | int]] = []
+    from accounts.unified_policy import role_actions, workflow_levels
+
+    human_id = getattr(user, "human_id", None)
+    assignment_roles = [row.role for row in effective_assignments(human_id)] if human_id else []
+    levels = workflow_levels(getattr(user, "tenant_id", None)) if assignment_roles else {}
+    step_sections = {
+        levels[action][0]
+        for role in assignment_roles
+        for action in role_actions(role, action_levels=levels)
+        if action in levels
+    }
     for order, (code, label) in enumerate(SECTIONS):
         capability, scope_label = _resolve_section(user, code)
-        if not meets(capability, CAP_VIEW):
+        if not meets(capability, CAP_VIEW) and code not in step_sections:
             continue
         out.append(
             {

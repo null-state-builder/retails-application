@@ -52,21 +52,13 @@ export function meetsCapability(held: string | undefined, minimum: Capability): 
   return rank >= 0 && rank >= CAPABILITY_ORDER.indexOf(minimum);
 }
 
-/** Does this user reach at least `minimum` on `section`? The client's mirror of
- *  `accounts.permissions.user_can`, break-glass branch included: a superuser
- *  resolves to `manage` everywhere server-side, so a screen must not hide what
- *  the API would let them do.
- *
- *  One home for the rule, because it is easy to write four times and forget the
- *  superuser branch in one of them. Typed structurally rather than against
- *  `User`, so the navigation manifest keeps no dependency on the auth module. */
+/** Server-projected section level, used for presentation only. */
 export function userCan(
-  user: { is_superuser?: boolean; capabilities?: Record<string, string> } | null | undefined,
+  user: { capabilities?: Record<string, string> } | null | undefined,
   section: string,
   minimum: Capability,
 ): boolean {
   if (!user) return false;
-  if (user.is_superuser) return true;
   return meetsCapability(user.capabilities?.[section], minimum);
 }
 
@@ -101,12 +93,12 @@ export function storeFeatureOpen(item: NavItem, featuresOn: ReadonlySet<string>)
 // `hrms: view` ("payroll inputs") while a store person must not, and the store
 // person sits *higher* on the ladder at `hrms: operate` ("own attendance").
 // An ordinal threshold can't separate them, so this stays an explicit role list.
-export const PAYROLL_ROLES = ["owner", "it_admin", "accounts"];
+export const PAYROLL_ACTION = "payroll.view";
 
 // Brand terms carry each brand's margin (ticket 23): Setup reaches the warehouse,
 // the data steward and Admin too, so the ladder cannot keep margins from them.
 // Mirrors the server's `masters.brand_term_readers`.
-export const BRAND_TERM_READERS = ["owner", "brand_manager", "accounts"];
+export const BRAND_TERM_ACTION = "brand_terms.view";
 
 export interface NavItem {
   label: string;
@@ -116,7 +108,7 @@ export interface NavItem {
    *  where the capability ladder genuinely cannot express the rule (Payroll) —
    *  otherwise prefer `minCapability`, which reads the same server-sent data the
    *  API gates on and so cannot drift from it. */
-  roles?: string[];
+  displayAction?: string;
   /** Finer gate than the section: the rung the caller must hold *on this item's
    *  section* to see it. Mirrors a backend permission tighter than the section
    *  itself — e.g. the ledgers are `money: manage`, the rung only Owner and
@@ -683,7 +675,7 @@ export const SECTIONS: NavSectionDef[] = [
         label: "Terms",
         to: "/brands/terms",
         storeFeature: "brand-terms",
-        roles: BRAND_TERM_READERS,
+        displayAction: BRAND_TERM_ACTION,
       },
       // Store operations ST-BRD-4 (ticket 27): the monthly margin share statement
       // per brand, labelled an estimate. A brand's margin is the commercial side
@@ -781,7 +773,7 @@ export const SECTIONS: NavSectionDef[] = [
         minCapability: "manage",
         planned: true,
       },
-      { label: "Payroll", to: "/staff/payroll", roles: PAYROLL_ROLES, planned: true },
+      { label: "Payroll", to: "/staff/payroll", displayAction: PAYROLL_ACTION, planned: true },
     ],
   },
   {
@@ -949,11 +941,9 @@ export const SECTIONS: NavSectionDef[] = [
       { label: "Vendors", to: "/setup/vendors" },
       { label: "Seasons", to: "/setup/seasons" },
       { label: "GSTINs", to: "/setup/gstins" },
-      { label: "Users & Roles", to: "/setup/users", minCapability: "manage" },
       // The access matrix as its own screen (#173): Users & Roles edits one role
       // at a time, this compares all nine at once and is where the money floors
       // are visible. Same rung - reading who may do what is Setup's top rung.
-      { label: "Access", to: "/setup/access", minCapability: "manage" },
       // Store operations feature switches per store (ST-OPS-6). Everyone holding
       // Setup reads it; only Admin changes a switch, which the server enforces.
       { label: "Feature Switches", to: "/setup/feature-switches" },
@@ -1029,7 +1019,7 @@ const LEGACY_PREFIXES: [from: string, to: string][] = [
   ["/masters/vendors", "/setup/vendors"],
   ["/masters/seasons", "/setup/seasons"],
   ["/masters/gstins", "/setup/gstins"],
-  ["/masters/users", "/setup/users"],
+  ["/masters/users", "/setup/people-access"],
   ["/store/sell", "/sell"],
   ["/store/count", "/stock-count"],
   ["/store/transfer", "/transfer"],
@@ -1060,7 +1050,9 @@ const LEGACY_PREFIXES: [from: string, to: string][] = [
   ["/intel/dead-stock", "/reports/stock"],
   ["/intel/forecast", "/reports/stock"],
   ["/intel/reports", "/reports/maker"],
-  ["/edges/rbac", "/setup/users"],
+  ["/edges/rbac", "/setup/people-access?panel=roles"],
+  ["/setup/users", "/setup/people-access?panel=people"],
+  ["/setup/access", "/setup/people-access?panel=roles"],
   ["/edges/tally", "/money/tally"],
   ["/edges/integrations", "/setup/settings"],
   ["/edges/pos", "/setup/settings"],
@@ -1169,13 +1161,12 @@ export function itemVisible(
   featuresOn: ReadonlySet<string> = NO_STORE_FEATURES,
 ): boolean {
   if (!storeFeatureOpen(item, featuresOn)) return false;
-  if (isSuperuser) return true;
+  if (item.displayAction && !goodsActions.includes(item.displayAction)) return false;
   // A goods-v1 line answers to its own action grants alone (`NavItem.goodsActions`).
   if (item.goodsActions) return goodsItemVisible(item, goodsActions);
   // A legacy line a goods grant also opens (`NavItem.orGoodsActions`).
   if (orGoodsVisible(item, goodsActions)) return true;
   if (item.minCapability && !meetsCapability(held, item.minCapability)) return false;
-  if (item.roles && !item.roles.includes(roleCode)) return false;
   return true;
 }
 
@@ -1627,7 +1618,7 @@ const SECTION_DEFS = new Map(SECTIONS.map((s) => [s.code, s]));
 export function visibleSections(
   user: {
     role?: { code?: string } | null;
-    is_superuser: boolean;
+    navigation: string[];
     sections?: { code: string; label?: string; capability: string }[];
   },
   goodsActions: readonly string[] = [],
@@ -1636,12 +1627,14 @@ export function visibleSections(
   const roleCode = user.role?.code ?? "";
   const out: VisibleSection[] = [];
   const drawn = new Set<string>();
+  const navigable = new Set(user.navigation);
   const held = Object.fromEntries((user.sections ?? []).map((g) => [g.code, g.capability]));
   // Server order, not manifest order - the payload is the authority on both
   // which sections and in what order. Fail-closed: no payload ⇒ no sidebar.
   for (const granted of user.sections ?? []) {
     const def = SECTION_DEFS.get(granted.code);
     if (!def) continue; // a section the server knows and this build doesn't
+    if (!navigable.has(def.code)) continue;
     drawn.add(def.code);
     // Item gates are finer than the section: the rung held on *this* section
     // (`minCapability`) or, where the ladder can't express it, a role list. The
@@ -1650,8 +1643,8 @@ export function visibleSections(
     const items = def.items.filter(
       (i) =>
         !i.action &&
-        itemVisible(i, granted.capability, roleCode, user.is_superuser, goodsActions, featuresOn) &&
-        dataGateOpen(i, held, user.is_superuser),
+        itemVisible(i, granted.capability, roleCode, false, goodsActions, featuresOn) &&
+        dataGateOpen(i, held, false),
     );
     // Every item gated away ⇒ nothing to navigate to; don't show an empty head.
     if (items.length) out.push({ def, label: granted.label || def.label, items });
@@ -1662,36 +1655,26 @@ export function visibleSections(
       const derivedItems = derived.items.filter(
         (i) =>
           !i.action &&
-          itemVisible(
-            i,
-            granted.capability,
-            roleCode,
-            user.is_superuser,
-            goodsActions,
-            featuresOn,
-          ) &&
-          dataGateOpen(i, held, user.is_superuser),
+          itemVisible(i, granted.capability, roleCode, false, goodsActions, featuresOn) &&
+          dataGateOpen(i, held, false),
       );
       if (derivedItems.length)
         out.push({ def: derived, label: derived.label, items: derivedItems });
     }
   }
-  // Goods-v1 lines in a section the server did not send (GSA-T02). A
-  // goods-v1-only person's legacy payload is empty, so without this their
-  // grants would reach screens no menu shows. Only the goods lines are drawn:
-  // the section's legacy lines stay behind the legacy grant they always
-  // needed. Appended after the server's sections, in manifest order.
+  // A section may be navigable through step permissions even when its section
+  // level is absent. The server explicitly lists those section codes; display
+  // actions narrow the lines within them.
   for (const def of SECTIONS) {
     if (drawn.has(def.code)) continue;
-    // A legacy line a goods grant also opens counts here on that grant alone -
-    // never on its legacy gate, which this person does not hold.
+    if (!navigable.has(sectionGrant(def.code))) continue;
     const items = def.items.filter(
       (i) =>
         !i.action &&
         storeFeatureOpen(i, featuresOn) &&
         (i.goodsActions
-          ? itemVisible(i, undefined, roleCode, user.is_superuser, goodsActions, featuresOn)
-          : !!i.orGoodsActions && (user.is_superuser || orGoodsVisible(i, goodsActions))),
+          ? itemVisible(i, undefined, roleCode, false, goodsActions, featuresOn)
+          : !!i.orGoodsActions && orGoodsVisible(i, goodsActions)),
     );
     if (items.length) out.push({ def, label: def.label, items });
   }
@@ -1991,7 +1974,7 @@ function menuOnly(section: VisibleSection): VisibleSection {
 export function sidebarRows(
   user: {
     role?: { code?: string } | null;
-    is_superuser: boolean;
+    navigation: string[];
     sections?: { code: string; label?: string; capability: string }[];
   },
   goodsActions: readonly string[] = [],

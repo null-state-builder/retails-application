@@ -10,7 +10,6 @@ import {
 import type { ReactNode } from "react";
 
 import { authApi, authSession, unitContext } from "../lib/api";
-import type { operations } from "../lib/api-schema";
 import { storeFeaturesOn } from "../shell/navConfig";
 
 export interface Store {
@@ -45,37 +44,27 @@ export interface NavSection {
   label: string;
   order: number;
   capability: "view" | "operate" | "approve" | "manage";
-  scope_label: string; // exact RBAC-sheet wording, e.g. "Own store"
+  scope_label?: string;
 }
 
 export interface User {
   id: number;
   username: string;
   full_name: string;
-  is_superuser: boolean;
+  /** Presentation layout only. Assignments are the authority for every action. */
   role: Role | null;
   scope_type: string;
   scope_label: string;
-  entity: number | null;
-  entity_name?: string;
   stores: Store[];
-  nav_groups: string[];
+  sections: NavSection[];
+  capabilities: Record<string, NavSection["capability"]>;
+  navigation: string[];
+  display_actions: string[];
   landing_page: string;
-  // New RBAC contract (may be absent when talking to an older backend).
-  sections?: NavSection[];
-  capabilities?: Record<string, NavSection["capability"]>;
-  /** Stored actor policies this person satisfies — the questions the capability
-   *  ladder cannot ask, because two roles can share a rung of one section and
-   *  still differ on a single action inside it (#75). */
-  actions?: string[];
-  business_units?: Store[];
-  all_business_units?: boolean;
-  // What the top-bar switcher offers (issue #88). A brand manager works across
-  // every store inside their own brands, so they get a brand filter where
-  // everyone else gets a unit list. Both come from the server — never inferred
-  // here from the role code.
-  business_unit_mode?: "units" | "brands";
-  assigned_brands?: Brand[];
+  business_units: Store[];
+  all_business_units: boolean;
+  business_unit_mode: "units" | "brands";
+  assigned_brands: Brand[];
   /** Whether this person has a counter PIN, and whether they are somebody who
    *  could hold one (#182). Never the hash: that goes to a till in its dataset
    *  and nowhere else. */
@@ -83,32 +72,92 @@ export interface User {
   may_hold_till_pin?: boolean;
 }
 
-/** E002's answer, straight from the generated schema (ticket 03A review-fix:
- *  `must_change_password` used to be declared here by hand). */
-type SessionResponse =
-  operations["auth_me_retrieve"]["responses"][200]["content"]["application/json"];
+/** The sole session contract. Display hints shape the UI; the API still checks
+ * each request against the scoped assignments and current policy. */
+export interface GoodsSession {
+  contract_version: "access-v2";
+  policy_version: string;
+  user: {
+    id: string;
+    human_id: string | null;
+    display_name: string;
+    email: string | null;
+    username?: string;
+    must_change_password: boolean;
+    has_till_pin?: boolean;
+    may_hold_till_pin?: boolean;
+  };
+  assignments: {
+    id: string;
+    role_code: string;
+    role_name?: string;
+    all_sites: boolean;
+    site_ids: number[];
+    all_brands: boolean;
+    brand_ids: number[];
+    effective_from: string;
+    effective_to: string | null;
+  }[];
+  sections: NavSection[];
+  capabilities: Record<string, NavSection["capability"]>;
+  navigation: string[];
+  /** Server-calculated hints for buttons. They never authorise a request. */
+  display_actions: string[];
+  sites: {
+    id: string;
+    code: string;
+    name: string;
+    type: string;
+    stock_contract: "legacy" | "goods_v1";
+  }[];
+  context_choices: {
+    mode: "units" | "brands";
+    all_units: boolean;
+    sites: Store[];
+    brands: Brand[];
+  };
+  store_features: Record<string, string[]>;
+  expires_at: string;
+  step_up_valid_until: string | null;
+}
 
-/** `SessionDTO` (goods-v1 design §6.1): who is signed in and what they may do.
- *  `user.must_change_password` (GSA-T03/ticket 03A): an administrator issued a
- *  temporary password that has not yet been replaced. Until it clears, the
- *  server refuses everything but this session's own lifecycle and
- *  `/auth/change-password` (`PASSWORD_CHANGE_REQUIRED`) — `ProtectedRoute`
- *  sends the person straight to `/change-password` on every route. */
-export type GoodsSession = Omit<SessionResponse, "profile" | "csrf_token">;
-
-/** The same answer with the legacy shell profile typed as this app reads it. */
 interface SessionPayload extends GoodsSession {
-  profile: User;
   csrf_token?: string;
+}
+
+export class UnsupportedSessionError extends Error {}
+
+/** Reject an old or partial session before it can draw an access menu. */
+export function readSession(value: unknown): SessionPayload {
+  if (!value || typeof value !== "object")
+    throw new UnsupportedSessionError("Invalid session response");
+  const session = value as Partial<SessionPayload>;
+  if (
+    session.contract_version !== "access-v2" ||
+    typeof session.policy_version !== "string" ||
+    !session.user ||
+    !Array.isArray(session.assignments) ||
+    !Array.isArray(session.sections) ||
+    !session.capabilities ||
+    !Array.isArray(session.navigation) ||
+    !Array.isArray(session.display_actions) ||
+    !Array.isArray(session.sites) ||
+    !session.context_choices ||
+    !Array.isArray(session.context_choices.sites) ||
+    !Array.isArray(session.context_choices.brands)
+  ) {
+    throw new UnsupportedSessionError("Unsupported session response");
+  }
+  return session as SessionPayload;
 }
 
 interface AuthContextValue {
   user: User | null;
-  /** The goods-v1 session (actions, field grants, sites) for the signed-in person. */
+  /** The current unified server session and UI display hints. */
   session: GoodsSession | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<{ mustChangePassword: boolean }>;
-  logout: () => void;
+  logout: () => Promise<void>;
   /** Set when a request came back 401 while a session was already open —
    *  most often because a grant this person relied on was just revoked
    *  (goods-v1 design §4.2, GSA-T03: revocation ends the session at once,
@@ -161,10 +210,25 @@ export function sameAuthority(a: unknown, b: unknown): boolean {
 }
 const BRAND_KEY = "kdps_brand";
 
-/** The units this person may act in — server payload only, with the legacy
- *  `stores` field as the fallback for an older backend. */
+/** The top-bar context is one filter axis at a time. A site and brand from
+ * different assignments must never be presented as one combined selection. */
+export function contextSelection(
+  store: Store | null,
+  brand: Brand | null,
+): {
+  unit?: string;
+  brand?: string;
+} {
+  if (store && brand) throw new Error("A unit and brand cannot be selected together");
+  return {
+    ...(store ? { unit: String(store.id) } : {}),
+    ...(brand ? { brand: String(brand.id) } : {}),
+  };
+}
+
+/** The units this person may act in, supplied as server context choices. */
 export function allowedUnits(u: User): Store[] {
-  return u.business_units ?? u.stores ?? [];
+  return u.business_units;
 }
 
 /** Is the switcher a brand filter rather than a unit list? */
@@ -196,6 +260,48 @@ function pickDefaultBrand(u: User): Brand | null {
   return brands.length === 1 ? (brands[0] ?? null) : null;
 }
 
+/** A shell view of the one session response. No second profile or role-scoped
+ * permissions are fetched or merged into this object. */
+export function shellUser(session: GoodsSession): User {
+  const choices = session.context_choices;
+  const roles = [...new Set(session.assignments.map((a) => a.role_code))];
+  const singleRole = roles.length === 1 ? roles[0] : null;
+  const roleAssignment = singleRole
+    ? session.assignments.find((a) => a.role_code === singleRole)
+    : undefined;
+  const stores = choices.sites;
+  return {
+    id: Number(session.user.id),
+    username: session.user.username ?? session.user.email ?? session.user.display_name,
+    full_name: session.user.display_name,
+    role: singleRole
+      ? {
+          code: singleRole,
+          name: roleAssignment?.role_name ?? singleRole,
+          landing_page: "",
+          nav_groups: [],
+        }
+      : null,
+    scope_type: !choices.all_units && stores.length === 1 ? "store" : "scoped",
+    scope_label: roles.length
+      ? roles.map((code) => code.replaceAll("_", " ")).join(", ")
+      : "No role assigned",
+    stores,
+    sections: session.sections,
+    capabilities: session.capabilities,
+    navigation: session.navigation,
+    display_actions: session.display_actions,
+    landing_page:
+      singleRole === "store_person" ? "store" : singleRole === "warehouse" ? "warehouse" : "owner",
+    business_units: stores,
+    all_business_units: choices.all_units,
+    business_unit_mode: choices.mode,
+    assigned_brands: choices.brands,
+    has_till_pin: Boolean(session.user.has_till_pin),
+    may_hold_till_pin: Boolean(session.user.may_hold_till_pin),
+  };
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<GoodsSession | null>(null);
@@ -220,12 +326,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    *  wait for an effect — a screen's fetch can fire before a parent effect runs
    *  and would otherwise carry the previous unit. */
   function applyContext(store: Store | null, brand: Brand | null) {
-    setActiveStoreState(store);
-    setActiveBrandState(brand);
-    unitContext.set({
-      ...(store ? { unit: store.code } : {}),
-      ...(brand ? { brand: brand.name } : {}),
-    });
+    const selection = contextSelection(store, brand);
+    setActiveStoreState((current) => (current?.id === store?.id ? current : store));
+    setActiveBrandState((current) => (current?.id === brand?.id ? current : brand));
+    unitContext.set(selection);
   }
 
   function setActiveStore(s: Store | null) {
@@ -241,10 +345,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function startSession(payload: SessionPayload) {
-    const u = payload.profile;
+    const { csrf_token: _csrf, ...current } = payload;
+    const u = shellUser(current);
     setUser(u);
-    const { profile: _profile, csrf_token: _csrf, ...goods } = payload;
-    setSession(goods);
+    setSession(current);
     applyContext(pickDefaultStore(u), pickDefaultBrand(u));
     loggedInRef.current = true;
     lastRefresh.current = Date.now();
@@ -266,7 +370,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // means no one is, not an error.
       try {
         const { data } = await authApi.me();
-        if (!cancelled && sessionEpoch.current === epoch) startSession(data);
+        if (!cancelled && sessionEpoch.current === epoch) startSession(readSession(data));
       } catch {
         // Stay logged out.
       } finally {
@@ -300,11 +404,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .me()
       .then(({ data }) => {
         if (sessionEpoch.current !== epoch || !loggedInRef.current) return;
-        const { profile, csrf_token: _csrf, ...goods } = data as SessionPayload;
-        setUser((current) => (sameAuthority(current, profile) ? current : profile));
-        setSession((current) => (sameAuthority(current, goods) ? current : goods));
+        const { csrf_token: _csrf, ...next } = readSession(data);
+        const view = shellUser(next);
+        setUser((current) => (sameAuthority(current, view) ? current : view));
+        setSession((current) => (sameAuthority(current, next) ? current : next));
+        applyContext(pickDefaultStore(view), pickDefaultBrand(view));
       })
-      .catch(() => {
+      .catch((reason) => {
+        if (reason instanceof UnsupportedSessionError) {
+          window.dispatchEvent(new Event("kdps:session-expired"));
+        }
         // A 401 has already been turned into the session-expired event by the
         // interceptor; anything else (offline, a blip) keeps the current view
         // until the next re-read. The server gates every request regardless.
@@ -355,17 +464,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSessionExpired(false);
     setPasswordChanged(false);
     const { data } = await authApi.login(email, password);
-    const payload = data as SessionPayload;
+    const payload = readSession(data);
     startSession(payload);
     return { mustChangePassword: payload.user.must_change_password };
   }
 
-  function logout() {
-    sessionEpoch.current += 1;
+  async function logout() {
+    const epoch = ++sessionEpoch.current;
     authSession.bump();
-    setSessionExpired(false);
-    authApi.logout().catch(() => undefined);
-    endSession();
+    // Keep the session visible until the server confirms revocation. Leaving
+    // the page sooner can cancel this request and restore the cookie on reload.
+    await authApi.logout();
+    if (sessionEpoch.current === epoch) {
+      setSessionExpired(false);
+      endSession();
+    }
   }
 
   /** GSA-T03/ticket 03A: `ChangePassword` calls this instead of `logout()` on
