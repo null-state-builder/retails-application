@@ -178,8 +178,8 @@ export function ManagerPin({
 
         {managers.length === 0 ? (
           <p className="warn-note" data-testid="bill-pin-nobody">
-            No manager of this store has a counter PIN yet. One is set from Till &amp; Sync, by
-            the manager themselves - and only somebody who may approve selling here can hold one.
+            No manager of this store has a counter PIN yet. One is set from Till &amp; Sync, by the
+            manager themselves - and only somebody who may approve selling here can hold one.
           </p>
         ) : (
           <>

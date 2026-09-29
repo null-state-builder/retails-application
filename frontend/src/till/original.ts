@@ -158,8 +158,7 @@ export async function searchKnownCustomers(
 
 /** What a counter is told when it asks about a bill it is not holding. */
 export const UNCACHED_ORIGINAL_CODE = "UNCACHED_ORIGINAL";
-export const UNCACHED_ORIGINAL =
-  "This bill is not on this till — reconnect to look it up";
+export const UNCACHED_ORIGINAL = "This bill is not on this till — reconnect to look it up";
 
 /** A cached bill by its `(fy, till_seq)`, as `FoundBill`. */
 export async function findCachedBill(
@@ -202,9 +201,7 @@ export async function searchCachedBillsByCustomer(
   return rows
     .filter((bill) => {
       const value =
-        key === "mobile"
-          ? digitsOf(bill.customer_mobile)
-          : bill.customer_name.toLocaleLowerCase();
+        key === "mobile" ? digitsOf(bill.customer_mobile) : bill.customer_name.toLocaleLowerCase();
       return value.includes(query);
     })
     .sort((a, b) => b.billed_at.localeCompare(a.billed_at))
@@ -259,22 +256,13 @@ export function fromCached(bill: CachedBill): FoundBill {
  *
  *  Queue first, because a bill rung up ten minutes ago is not in the cache and
  *  never will be until it syncs. */
-export async function findHeldBill(
-  db: TillDb,
-  fy: string,
-  seq: number,
-): Promise<FoundBill | null> {
+export async function findHeldBill(db: TillDb, fy: string, seq: number): Promise<FoundBill | null> {
   return (await findQueuedBill(db, fy, seq)) ?? (await findCachedBill(db, fy, seq));
 }
 
 /** The same, by the number printed on a customer's copy. */
-export async function findHeldBillByDoc(
-  db: TillDb,
-  docNumber: string,
-): Promise<FoundBill | null> {
-  return (
-    (await findQueuedBillByDoc(db, docNumber)) ?? (await findCachedBillByDoc(db, docNumber))
-  );
+export async function findHeldBillByDoc(db: TillDb, docNumber: string): Promise<FoundBill | null> {
+  return (await findQueuedBillByDoc(db, docNumber)) ?? (await findCachedBillByDoc(db, docNumber));
 }
 
 /** A picked master row identifies a person by mobile. Names are deliberately
@@ -502,10 +490,7 @@ export function mergeRecentBills(
   limit = 3,
 ): RecentBillSummary[] {
   const seen = new Set(local.map((b) => b.doc_number));
-  const merged = [
-    ...local,
-    ...server.filter((b) => !seen.has(b.doc_number)),
-  ];
+  const merged = [...local, ...server.filter((b) => !seen.has(b.doc_number))];
   merged.sort((a, b) => b.billed_at.localeCompare(a.billed_at));
   return merged.slice(0, limit);
 }

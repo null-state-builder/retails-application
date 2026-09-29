@@ -125,7 +125,10 @@ api.interceptors.response.use(
     // business work, on any route - not only goods-v1 (`PASSWORD_CHANGE_REQUIRED`,
     // `accounts.authentication.enforce_password_change_restriction`). Ask the
     // session again so `ProtectedRoute` sees `must_change_password` and redirects.
-    if (error.response?.status === 403 && error.response?.data?.code === "PASSWORD_CHANGE_REQUIRED") {
+    if (
+      error.response?.status === 403 &&
+      error.response?.data?.code === "PASSWORD_CHANGE_REQUIRED"
+    ) {
       window.dispatchEvent(new Event("kdps:password-change-required"));
     }
     return Promise.reject(error);
@@ -190,12 +193,14 @@ type ApiPath = keyof paths;
 type PathWithoutPrefix<P extends ApiPath> = P extends `/api${infer Rest}` ? Rest : P;
 type ApiRelativePath = PathWithoutPrefix<ApiPath>;
 type FullApiPath<P extends ApiRelativePath> = `/api${P}` & ApiPath;
-type ApiOperation<P extends ApiRelativePath, Method extends PropertyKey> =
-  paths[FullApiPath<P>] extends infer Path
-    ? Method extends keyof Path
-      ? Path[Method]
-      : never
-    : never;
+type ApiOperation<
+  P extends ApiRelativePath,
+  Method extends PropertyKey,
+> = paths[FullApiPath<P>] extends infer Path
+  ? Method extends keyof Path
+    ? Path[Method]
+    : never
+  : never;
 type JsonBody<Response> = Response extends {
   content: { "application/json": infer Body };
 }

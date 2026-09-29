@@ -65,7 +65,9 @@ export function Login() {
         </div>
         <form className="login-card" onSubmit={submit} data-testid="login-form">
           <p className="eyebrow">Sign in</p>
-          <h2 className="h2" style={{ marginBottom: 18 }}>Welcome back</h2>
+          <h2 className="h2" style={{ marginBottom: 18 }}>
+            Welcome back
+          </h2>
 
           {passwordChanged && (
             <div className="login-success" data-testid="password-changed-note">
@@ -114,7 +116,11 @@ export function Login() {
             </div>
           )}
 
-          <button className="btn btn-cta btn-block btn-lg" disabled={busy} data-testid="login-submit">
+          <button
+            className="btn btn-cta btn-block btn-lg"
+            disabled={busy}
+            data-testid="login-submit"
+          >
             {busy ? "Signing in…" : "Sign in"}
           </button>
 

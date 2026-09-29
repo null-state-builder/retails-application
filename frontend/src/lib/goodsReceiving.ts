@@ -85,7 +85,12 @@ export interface BookingHeader {
 export interface BookingProgress {
   booking_header: BookingHeader;
   /** The names of the header's vendor, brand, season and site. */
-  names?: { vendor?: string | null; brand?: string | null; season?: string | null; site?: string | null };
+  names?: {
+    vendor?: string | null;
+    brand?: string | null;
+    season?: string | null;
+    site?: string | null;
+  };
   lines: { items: BookingLine[]; next_cursor: string | null; total: number };
 }
 
@@ -557,7 +562,8 @@ export const DISPOSITION_KINDS: readonly {
     label: "Keep and value the damage",
     help: "Keep reported damaged pieces in quarantine and freeze their evidenced ticket MRP as memo value. Optional: the damage needs no value to stay held or be reviewed.",
     checker: true,
-    creates: "Quantity and damage hold stay unchanged. ATS stays zero and no books entry is created.",
+    creates:
+      "Quantity and damage hold stay unchanged. ATS stays zero and no books entry is created.",
   },
   {
     kind: "resolve_identity",
@@ -571,7 +577,8 @@ export const DISPOSITION_KINDS: readonly {
     label: "Keep the wrong goods",
     help: "Keep wrong or unidentified pieces already named to a SKU. Once someone else approves, they can go on a PT like good goods. The receipt still says how they arrived.",
     checker: true,
-    creates: "This needs the pieces named first, and approved cost and tax evidence. Damaged pieces are never kept this way, and no hold on the pieces is lifted.",
+    creates:
+      "This needs the pieces named first, and approved cost and tax evidence. Damaged pieces are never kept this way, and no hold on the pieces is lifted.",
     site: true,
   },
 ];

@@ -28,8 +28,26 @@ export type PlusCustomer = {
 };
 
 export const DEMO_CUSTOMERS: PlusCustomer[] = [
-  { name: "Ravi Kumar", mobile: "9000000001", tier: "Gold", points: 1240, creditLimitPaise: 2000000, creditUsedPaise: 650000, storeCreditPaise: 50000, savedSize: "Shirt 40" },
-  { name: "Meena Devi", mobile: "9000000002", tier: "Silver", points: 320, creditLimitPaise: 500000, creditUsedPaise: 480000, storeCreditPaise: 0, savedSize: "Kurta M" },
+  {
+    name: "Ravi Kumar",
+    mobile: "9000000001",
+    tier: "Gold",
+    points: 1240,
+    creditLimitPaise: 2000000,
+    creditUsedPaise: 650000,
+    storeCreditPaise: 50000,
+    savedSize: "Shirt 40",
+  },
+  {
+    name: "Meena Devi",
+    mobile: "9000000002",
+    tier: "Silver",
+    points: 320,
+    creditLimitPaise: 500000,
+    creditUsedPaise: 480000,
+    storeCreditPaise: 0,
+    savedSize: "Kurta M",
+  },
 ];
 
 export const DUE_DAY_CHOICES = [7, 15, 30] as const;
@@ -54,7 +72,11 @@ export function creditRoomPaise(customer: PlusCustomer): number {
 }
 
 /** "What, why, what to do instead" (PRD §28), or null when the credit is fine. */
-export function creditRefusal(customer: PlusCustomer | null, creditPaise: number, pinOk: boolean): string | null {
+export function creditRefusal(
+  customer: PlusCustomer | null,
+  creditPaise: number,
+  pinOk: boolean,
+): string | null {
   if (creditPaise <= 0) return null;
   if (!customer) {
     return "Credit needs a registered customer, so the shop knows who owes. Add the customer, or take another payment.";
@@ -107,11 +129,22 @@ export function usePlusPreview() {
   const patch = useCallback((p: Partial<PlusState>) => setState((s) => ({ ...s, ...p })), []);
   const pickCustomer = useCallback(
     (customer: PlusCustomer | null) =>
-      setState((s) => ({ ...s, customer, registering: false, usePointsCount: 0, storeCreditPaise: 0, creditPaise: 0, pinOk: false })),
+      setState((s) => ({
+        ...s,
+        customer,
+        registering: false,
+        usePointsCount: 0,
+        storeCreditPaise: 0,
+        creditPaise: 0,
+        pinOk: false,
+      })),
     [],
   );
   const reset = useCallback(() => setState(START), []);
-  return useMemo(() => ({ state, patch, pickCustomer, reset }), [state, patch, pickCustomer, reset]);
+  return useMemo(
+    () => ({ state, patch, pickCustomer, reset }),
+    [state, patch, pickCustomer, reset],
+  );
 }
 
 export type Plus = ReturnType<typeof usePlusPreview>;

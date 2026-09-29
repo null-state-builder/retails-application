@@ -79,7 +79,8 @@ export function TopicFilter({
             onClick={() => onChange(value === t ? "" : t)}
             data-testid={`${itemTestId}-${t}`}
           >
-            <Icon size={13} aria-hidden /> {name} <span className="an-count">{counts.get(t) ?? 0}</span>
+            <Icon size={13} aria-hidden /> {name}{" "}
+            <span className="an-count">{counts.get(t) ?? 0}</span>
           </button>
         );
       })}

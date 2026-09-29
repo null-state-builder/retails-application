@@ -92,9 +92,7 @@ export default function BillsPage() {
       );
       setRows(mergeBillRows(local, (data as SaleRow[]).map(serverAsRow)));
     } catch (e) {
-      setError(
-        `${apiErrorMessage(e)} Showing this counter's own bills that have not gone in yet.`,
-      );
+      setError(`${apiErrorMessage(e)} Showing this counter's own bills that have not gone in yet.`);
       setRows(local);
     } finally {
       setLoading(false);
@@ -396,12 +394,7 @@ function BillDetail({
           </p>
         </div>
         <div className="spacer" />
-        <button
-          type="button"
-          className="btn"
-          data-testid="bills-exchange"
-          onClick={onExchange}
-        >
+        <button type="button" className="btn" data-testid="bills-exchange" onClick={onExchange}>
           <Replace size={15} /> Exchange
         </button>
         <button

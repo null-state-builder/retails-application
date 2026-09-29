@@ -117,8 +117,13 @@ export function ScanHero({
             <small>
               {errorMessage ?? (
                 <>
-                  {errorBarcode ? <><span className="mono">{errorBarcode}</span> is not on this counter. </> : null}
-                  Check the tag or look it up; if it arrived before its paperwork, bill it off the tag.
+                  {errorBarcode ? (
+                    <>
+                      <span className="mono">{errorBarcode}</span> is not on this counter.{" "}
+                    </>
+                  ) : null}
+                  Check the tag or look it up; if it arrived before its paperwork, bill it off the
+                  tag.
                 </>
               )}
             </small>

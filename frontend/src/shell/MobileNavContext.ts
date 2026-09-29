@@ -22,7 +22,10 @@ export const MobileNavContext = createContext<{ open: boolean; close: () => void
  *  popup opens, and closes the popup back the moment the drawer opens - so
  *  whichever one is opened second wins, and the shell's z-order never has to
  *  show both at once. */
-export function useMobileNavExclusion(popupOpen: boolean, setPopupOpen: (open: boolean) => void): void {
+export function useMobileNavExclusion(
+  popupOpen: boolean,
+  setPopupOpen: (open: boolean) => void,
+): void {
   const nav = useContext(MobileNavContext);
   const { close } = nav;
   // Keyed on `close` (stable), not the whole `nav` object: the object is

@@ -630,8 +630,7 @@ export function outstandingOf(detail: TransferDetail, lineKey: string): number {
   if (detail.reserved_qty === 0) return 0;
   const approved = detail.lines.find((l) => l.line_key === lineKey)?.qty ?? 0;
   const sent = detail.dispatches.reduce(
-    (total, record) =>
-      total + (record.lines.find((l) => l.line_key === lineKey)?.qty ?? 0),
+    (total, record) => total + (record.lines.find((l) => l.line_key === lineKey)?.qty ?? 0),
     0,
   );
   return Math.max(0, approved - sent);
@@ -649,7 +648,8 @@ export function acceptableOf(record: TransferDispatchRow, lineKey: string): numb
 /** Why putting `qty` pieces of a line away would be refused, or "". */
 export function acceptProblem(qty: number, waiting: number): string {
   if (!Number.isInteger(qty) || qty < 0) return "Put away a whole number of pieces.";
-  if (qty > waiting) return `Only ${waiting} good piece(s) of this line are waiting to be put away.`;
+  if (qty > waiting)
+    return `Only ${waiting} good piece(s) of this line are waiting to be put away.`;
   return "";
 }
 

@@ -106,11 +106,7 @@ export async function applyDataset(db: TillDb, payload: DatasetPayload): Promise
     ],
     async () => {
       if (payload.full) {
-        await Promise.all([
-          db.items.clear(),
-          db.stock.clear(),
-          db.offers.clear(),
-        ]);
+        await Promise.all([db.items.clear(), db.stock.clear(), db.offers.clear()]);
       }
       await db.items.bulkPut(payload.items);
       await db.stock.bulkPut(payload.stock);
@@ -240,9 +236,9 @@ export async function applyDataset(db: TillDb, payload: DatasetPayload): Promise
           // different server response, which could be wider than this chain's.
           value: {
             manual_discount_cap_percent:
-              payload.policy?.manual_discount_cap_percent ?? DEFAULT_POLICY.manual_discount_cap_percent,
-            manual_discount_on_offer_lines:
-              payload.policy?.manual_discount_on_offer_lines ?? false,
+              payload.policy?.manual_discount_cap_percent ??
+              DEFAULT_POLICY.manual_discount_cap_percent,
+            manual_discount_on_offer_lines: payload.policy?.manual_discount_on_offer_lines ?? false,
             return_window_days:
               payload.policy?.return_window_days ?? DEFAULT_POLICY.return_window_days,
           },
@@ -279,8 +275,7 @@ async function applyQueuedReturns(db: TillDb): Promise<void> {
     if (!exchange) continue;
     const cached = await db.bills
       .filter(
-        (row) =>
-          row.fy === exchange.original.fy && row.till_seq === exchange.original.till_seq,
+        (row) => row.fy === exchange.original.fy && row.till_seq === exchange.original.till_seq,
       )
       .first();
     if (!cached) continue;
@@ -546,8 +541,9 @@ export function drainQueue(db: TillDb, transport: TillTransport): Promise<DrainR
   const running = inFlight.get(db.name);
   if (running) return running;
   const stable = stableReads.get(db.name)?.idle;
-  const attempt = (stable ? stable.then(() => drainOnce(db, transport)) : drainOnce(db, transport))
-    .finally(() => inFlight.delete(db.name));
+  const attempt = (
+    stable ? stable.then(() => drainOnce(db, transport)) : drainOnce(db, transport)
+  ).finally(() => inFlight.delete(db.name));
   inFlight.set(db.name, attempt);
   return attempt;
 }

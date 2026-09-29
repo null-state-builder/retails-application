@@ -148,7 +148,8 @@ export function describeAuthority(state: AuthorityState): string {
   if (!state.known) return "This counter has no billing window yet. Connect and renew.";
   if (state.expired) return AUTHORITY_EXPIRED;
   const hours = Math.floor(state.remainingMs / 3_600_000);
-  if (hours >= 1) return `Billing window open for about ${hours} more hour${hours === 1 ? "" : "s"}.`;
+  if (hours >= 1)
+    return `Billing window open for about ${hours} more hour${hours === 1 ? "" : "s"}.`;
   const minutes = Math.max(1, Math.round(state.remainingMs / 60_000));
   return `Billing window closes in about ${minutes} minute${minutes === 1 ? "" : "s"}.`;
 }

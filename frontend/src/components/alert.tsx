@@ -95,7 +95,12 @@ export function AlertTitle({ alert, onNavigate }: { alert: AlertT; onNavigate?: 
   const path = alertDocPath(alert);
   if (!path) return <>{alert.title}</>;
   return (
-    <Link to={path} className="link-cell" onClick={onNavigate} data-testid={`alert-link-${alert.id}`}>
+    <Link
+      to={path}
+      className="link-cell"
+      onClick={onNavigate}
+      data-testid={`alert-link-${alert.id}`}
+    >
       {alert.title}
       <Link2 size={12} style={{ marginLeft: 4 }} />
     </Link>

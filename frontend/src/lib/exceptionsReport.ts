@@ -6,12 +6,11 @@ import { indiaDate } from "./salesReport";
 
 export type ExceptionsGroupBy = "store" | "staff" | "list";
 
-export const EXCEPTIONS_GROUPINGS: { key: ExceptionsGroupBy; label: string }[] =
-  [
-    { key: "store", label: "By store" },
-    { key: "staff", label: "By staff member" },
-    { key: "list", label: "Each exception" },
-  ];
+export const EXCEPTIONS_GROUPINGS: { key: ExceptionsGroupBy; label: string }[] = [
+  { key: "store", label: "By store" },
+  { key: "staff", label: "By staff member" },
+  { key: "list", label: "Each exception" },
+];
 
 export interface ExceptionsFilters {
   store: string;
@@ -21,9 +20,7 @@ export interface ExceptionsFilters {
 }
 
 /** This month so far, by store. */
-export function defaultExceptionsFilters(
-  now: Date = new Date(),
-): ExceptionsFilters {
+export function defaultExceptionsFilters(now: Date = new Date()): ExceptionsFilters {
   const today = indiaDate(now);
   return {
     store: "",
@@ -34,11 +31,8 @@ export function defaultExceptionsFilters(
 }
 
 /** Only the filters that are set, as query parameters. */
-export function exceptionsParams(
-  filters: ExceptionsFilters,
-): Record<string, string> {
+export function exceptionsParams(filters: ExceptionsFilters): Record<string, string> {
   const out: Record<string, string> = {};
-  for (const [key, value] of Object.entries(filters))
-    if (value) out[key] = value;
+  for (const [key, value] of Object.entries(filters)) if (value) out[key] = value;
   return out;
 }

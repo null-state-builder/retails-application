@@ -1,10 +1,6 @@
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import {
-  ArrowLeft,
-  ClipboardCheck,
-  Send,
-} from "lucide-react";
+import { ArrowLeft, ClipboardCheck, Send } from "lucide-react";
 
 import { api, apiErrorMessage } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
@@ -22,15 +18,20 @@ import { PageHeader } from "../components/PageHeader";
 // ---------------------------------------------------------------------------
 
 function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(iso).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 const DS_TONE: Record<number, string> = { 0: "grey", 1: "green", 2: "red" };
 const DS_LABEL: Record<number, string> = { 0: "Draft", 1: "Submitted", 2: "Cancelled" };
 function DocPill({ ds }: { ds: number }) {
-  return <span className={`chip chip-${DS_TONE[ds] ?? "grey"} status-pill`}>{DS_LABEL[ds] ?? ds}</span>;
+  return (
+    <span className={`chip chip-${DS_TONE[ds] ?? "grey"} status-pill`}>{DS_LABEL[ds] ?? ds}</span>
+  );
 }
-
 
 // ---------------------------------------------------------------------------
 // Types
@@ -71,7 +72,6 @@ interface AdjT {
   updated_at: string;
   lines: AdjLineT[];
 }
-
 
 // ---------------------------------------------------------------------------
 // List
@@ -137,19 +137,33 @@ export function AdjustmentListPage() {
                 return (
                   <tr key={a.id} data-testid={`adj-row-${a.id}`}>
                     <td>
-                      <Link to={`/stock-count/adjustments/${a.id}`} className="link-cell mono" data-testid={`adj-link-${a.id}`}>
+                      <Link
+                        to={`/stock-count/adjustments/${a.id}`}
+                        className="link-cell mono"
+                        data-testid={`adj-link-${a.id}`}
+                      >
                         <b>{a.doc_number || `Draft #${a.id}`}</b>
                       </Link>
                     </td>
-                    <td><b className="mono">{a.store_code}</b></td>
+                    <td>
+                      <b className="mono">{a.store_code}</b>
+                    </td>
                     <td>{adjustmentReasonLabel(a.reason)}</td>
                     <td className="num">{a.lines.length}</td>
                     <td className="num">
-                      <span style={{ color: netAdj < 0 ? "var(--red)" : netAdj > 0 ? "var(--green)" : undefined }}>
-                        {netAdj > 0 ? "+" : ""}{netAdj}
+                      <span
+                        style={{
+                          color:
+                            netAdj < 0 ? "var(--red)" : netAdj > 0 ? "var(--green)" : undefined,
+                        }}
+                      >
+                        {netAdj > 0 ? "+" : ""}
+                        {netAdj}
                       </span>
                     </td>
-                    <td><DocPill ds={a.docstatus} /></td>
+                    <td>
+                      <DocPill ds={a.docstatus} />
+                    </td>
                     <td>{fmtDate(a.created_at)}</td>
                   </tr>
                 );
@@ -174,7 +188,12 @@ export function AdjustmentDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  if (loading || !a) return <div className="page-pad"><p className="lead">Loading…</p></div>;
+  if (loading || !a)
+    return (
+      <div className="page-pad">
+        <p className="lead">Loading…</p>
+      </div>
+    );
 
   const netAdj = a.lines.reduce((s, l) => s + l.adj_qty, 0);
   // An adjustment cannot post until a second person has approved it (#70).
@@ -195,7 +214,12 @@ export function AdjustmentDetailPage() {
 
   return (
     <div className="page-pad">
-      <Link to="/stock-count/adjustments" className="btn" style={{ marginBottom: 16 }} data-testid="adj-detail-back">
+      <Link
+        to="/stock-count/adjustments"
+        className="btn"
+        style={{ marginBottom: 16 }}
+        data-testid="adj-detail-back"
+      >
         <ArrowLeft size={15} /> Adjustments
       </Link>
       <div className="toolbar">
@@ -230,8 +254,12 @@ export function AdjustmentDetailPage() {
         </div>
         <div className="card section-card">
           <p className="eyebrow">Net variance</p>
-          <h3 className="h3" style={{ color: netAdj < 0 ? "var(--red)" : netAdj > 0 ? "var(--green)" : undefined }}>
-            {netAdj > 0 ? "+" : ""}{netAdj} pcs
+          <h3
+            className="h3"
+            style={{ color: netAdj < 0 ? "var(--red)" : netAdj > 0 ? "var(--green)" : undefined }}
+          >
+            {netAdj > 0 ? "+" : ""}
+            {netAdj} pcs
           </h3>
         </div>
         <div className="card section-card">
@@ -254,7 +282,11 @@ export function AdjustmentDetailPage() {
         />
       </div>
 
-      {error && <div className="login-error" style={{ maxWidth: 480 }} data-testid="adj-detail-error">{error}</div>}
+      {error && (
+        <div className="login-error" style={{ maxWidth: 480 }} data-testid="adj-detail-error">
+          {error}
+        </div>
+      )}
 
       <div className="table-wrap">
         <table className="data" data-testid="adj-detail-lines">
@@ -274,17 +306,29 @@ export function AdjustmentDetailPage() {
           <tbody>
             {a.lines.map((l) => (
               <tr key={l.id}>
-                <td><b className="mono">{l.sku_code}</b></td>
+                <td>
+                  <b className="mono">{l.sku_code}</b>
+                </td>
                 <td>{l.design || "—"}</td>
                 <td>{l.size || "—"}</td>
                 <td>{l.color || "—"}</td>
                 <td>{l.brand || "—"}</td>
                 <td className="num">{l.book_qty}</td>
                 <td className="num">{l.counted_qty}</td>
-                <td className="num" style={{ fontWeight: 700, color: l.adj_qty < 0 ? "var(--red)" : l.adj_qty > 0 ? "var(--green)" : undefined }}>
-                  {l.adj_qty > 0 ? "+" : ""}{l.adj_qty}
+                <td
+                  className="num"
+                  style={{
+                    fontWeight: 700,
+                    color:
+                      l.adj_qty < 0 ? "var(--red)" : l.adj_qty > 0 ? "var(--green)" : undefined,
+                  }}
+                >
+                  {l.adj_qty > 0 ? "+" : ""}
+                  {l.adj_qty}
                 </td>
-                <td className="num">{l.unit_cost_paise ? <Money paise={l.unit_cost_paise} /> : "—"}</td>
+                <td className="num">
+                  {l.unit_cost_paise ? <Money paise={l.unit_cost_paise} /> : "—"}
+                </td>
               </tr>
             ))}
           </tbody>

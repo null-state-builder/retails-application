@@ -74,7 +74,9 @@ export function BillBar({
           </div>
 
           <div className="bill-identity" aria-live="polite">
-            <strong>Next bill <span className="mono">{nextNumber}</span></strong>
+            <strong>
+              Next bill <span className="mono">{nextNumber}</span>
+            </strong>
             <span className="muted-cell">{draftSaved ? "Draft · saved" : "Ready to scan"}</span>
           </div>
         </div>

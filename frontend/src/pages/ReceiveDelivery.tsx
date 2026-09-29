@@ -133,8 +133,8 @@ function StepPanel({ item, step }: { item: InboxItem; step: ReceivingStep }) {
         <GrnStart grnId={item.grn_id} onCreated={setFreshPt} />
       ) : (
         <p className="muted" data-testid="delivery-pt-elsewhere">
-          PT prepared by the warehouse. The goods stay here and stay unsellable until the
-          warehouse has prepared a PT for this receipt and the Owner has approved it.
+          PT prepared by the warehouse. The goods stay here and stay unsellable until the warehouse
+          has prepared a PT for this receipt and the Owner has approved it.
         </p>
       );
     case "pt_approve":
@@ -219,7 +219,8 @@ function DeliveryPage() {
   const item = found.value ?? history.value;
 
   if (found.denied) return <Denied what="delivery" />;
-  if ((found.loading || history.loading) && !item) return <p className="page-pad muted">Loading…</p>;
+  if ((found.loading || history.loading) && !item)
+    return <p className="page-pad muted">Loading…</p>;
   if (found.failure) return <div className="page-pad warn-note">{found.failure}</div>;
   if (!item) {
     // An official PT that belongs to no delivery - opening stock - is still put

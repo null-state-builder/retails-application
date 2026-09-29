@@ -46,7 +46,9 @@ export function movementText(m: { kind: string; sale_doc_number: string | null }
 }
 
 /** What is left on it, in words. */
-export function balanceText(v: Pick<GiftVoucher, "state" | "balance_paise" | "expired_paise">): string {
+export function balanceText(
+  v: Pick<GiftVoucher, "state" | "balance_paise" | "expired_paise">,
+): string {
   if (v.state === "expired") {
     const lapsed = v.expired_paise + v.balance_paise;
     return lapsed > 0 ? `${formatINR(lapsed)} expired unused` : "Nothing was left";

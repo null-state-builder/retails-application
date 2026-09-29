@@ -12,7 +12,11 @@ const OPTIONS: { value: ThemePreference; label: string; Icon: typeof Sun }[] = [
 export function ThemeToggle({ compact = false }: { compact?: boolean }) {
   const { preference, setPreference } = useTheme();
   return (
-    <div className={`theme-seg ${compact ? "theme-seg-compact" : ""}`} data-testid="theme-toggle" role="group">
+    <div
+      className={`theme-seg ${compact ? "theme-seg-compact" : ""}`}
+      data-testid="theme-toggle"
+      role="group"
+    >
       {OPTIONS.map(({ value, label, Icon }) => (
         <button
           key={value}

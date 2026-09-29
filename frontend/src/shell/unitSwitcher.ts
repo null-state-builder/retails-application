@@ -68,10 +68,7 @@ function brandsModel(user: User, active: Brand | null): SwitcherModel {
   const brands = user.assigned_brands ?? [];
   const options: SwitcherOption[] =
     brands.length > 1
-      ? [
-          { kind: "all-brands", label: "All my brands", hint: "" },
-          ...brands.map(brandOption),
-        ]
+      ? [{ kind: "all-brands", label: "All my brands", hint: "" }, ...brands.map(brandOption)]
       : brands.map(brandOption);
   const label = active ? active.name : brands.length ? "All my brands" : NO_BRAND;
   return {

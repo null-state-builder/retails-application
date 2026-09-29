@@ -73,10 +73,12 @@ export function ChangePassword() {
         </div>
         <form className="login-card" onSubmit={submit} data-testid="change-password-form">
           <p className="eyebrow">Replace your password</p>
-          <h2 className="h2" style={{ marginBottom: 10 }}>Set your own password</h2>
+          <h2 className="h2" style={{ marginBottom: 10 }}>
+            Set your own password
+          </h2>
           <p className="caption" style={{ marginBottom: 18 }}>
-            An administrator gave you a temporary password. Replace it with one only you know
-            before you can do anything else.
+            An administrator gave you a temporary password. Replace it with one only you know before
+            you can do anything else.
           </p>
 
           <div className="field" style={{ marginBottom: 14 }}>

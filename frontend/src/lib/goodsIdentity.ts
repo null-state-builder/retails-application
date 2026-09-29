@@ -76,10 +76,7 @@ export function resolvedSkuId(resolution: IdentityResolution | null): string | n
 }
 
 /** Whether this row still needs a person to choose between products. */
-export function needsChoice(
-  resolution: IdentityResolution | null,
-  chosen: string | null,
-): boolean {
+export function needsChoice(resolution: IdentityResolution | null, chosen: string | null): boolean {
   return Boolean(resolution && resolution.result === "ambiguous" && !chosen);
 }
 
@@ -94,7 +91,10 @@ export function identityForRow(
   const resolved = resolvedSkuId(resolution);
   if (resolved) return { sku_id: resolved, pick: null };
   if (resolution && resolution.result === "ambiguous" && chosen) {
-    return { sku_id: null, pick: { chosen_sku_id: chosen, candidate_hash: resolution.candidate_hash } };
+    return {
+      sku_id: null,
+      pick: { chosen_sku_id: chosen, candidate_hash: resolution.candidate_hash },
+    };
   }
   return { sku_id: null, pick: null };
 }

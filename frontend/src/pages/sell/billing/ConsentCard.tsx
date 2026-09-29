@@ -220,8 +220,7 @@ function ConsentFor({
         )
       ) : (
         <p className="muted-cell bill-consent-note" data-testid="consent-no-display">
-          Open the customer display to ask. Only the customer can say yes; until then both stay
-          off.
+          Open the customer display to ask. Only the customer can say yes; until then both stay off.
         </p>
       )}
       {note && (

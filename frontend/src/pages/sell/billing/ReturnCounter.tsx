@@ -1,11 +1,7 @@
 import { Search, Undo2 } from "lucide-react";
 
 import { Money, formatDateTime } from "../../../lib/format";
-import {
-  describeOriginal,
-  refundFor,
-  returnableQty,
-} from "../../../till/exchange";
+import { describeOriginal, refundFor, returnableQty } from "../../../till/exchange";
 import type { OriginalLine, PickedReturn, PickedReturns } from "../../../till/exchange";
 import type { FoundBill } from "../../../till/original";
 import type { TillKnownCustomer } from "../../../till/types";
@@ -59,7 +55,9 @@ export function ReturnCustomerSearch({
           <strong>Find a customer&rsquo;s bill</strong>
           <span className="muted-cell">Search by the mobile or name they used at billing.</span>
         </div>
-        {!online && <span className="return-offline">Offline · head-office history needs the line</span>}
+        {!online && (
+          <span className="return-offline">Offline · head-office history needs the line</span>
+        )}
       </div>
       <div className="return-customer-form">
         <div className="bill-mode" role="group" aria-label="Search customer by">
@@ -133,9 +131,9 @@ export function ReturnCustomerSearch({
               <span>
                 <strong className="mono">{match.doc_number}</strong>
                 <small>
-                  {formatDateTime(match.billed_at)} · {[match.customer_name, match.customer_mobile]
-                    .filter(Boolean)
-                    .join(" · ") || "No customer name"}
+                  {formatDateTime(match.billed_at)} ·{" "}
+                  {[match.customer_name, match.customer_mobile].filter(Boolean).join(" · ") ||
+                    "No customer name"}
                 </small>
               </span>
               <span>
@@ -189,7 +187,9 @@ export function AgainstBill({
         </div>
         <div className="return-against-value">
           <span>Paid on bill</span>
-          <strong><Money paise={value} /></strong>
+          <strong>
+            <Money paise={value} />
+          </strong>
         </div>
         <div className="return-against-actions">
           <button type="button" className="btn" disabled={locked} onClick={onTakeEverything}>
@@ -245,7 +245,9 @@ export function AgainstBill({
                       disabled={locked || left === 0}
                       value={qty || ""}
                       placeholder="0"
-                      onChange={(event) => onPick(line, { qty: wantedQty(event.target.value, left) })}
+                      onChange={(event) =>
+                        onPick(line, { qty: wantedQty(event.target.value, left) })
+                      }
                     />
                     <small>of {left}</small>
                   </td>
@@ -258,7 +260,11 @@ export function AgainstBill({
                       onChange={(event) => onPick(line, { reason: event.target.value })}
                     >
                       <option value="">Not said</option>
-                      {REASONS.map((reason) => <option key={reason} value={reason}>{reason}</option>)}
+                      {REASONS.map((reason) => (
+                        <option key={reason} value={reason}>
+                          {reason}
+                        </option>
+                      ))}
                     </select>
                   </td>
                   <td>
@@ -267,9 +273,11 @@ export function AgainstBill({
                       aria-label={`Condition of returned line ${line.line_no}`}
                       disabled={locked || !qty}
                       value={choice?.condition ?? "good"}
-                      onChange={(event) => onPick(line, {
-                        condition: event.target.value === "damaged" ? "damaged" : "good",
-                      })}
+                      onChange={(event) =>
+                        onPick(line, {
+                          condition: event.target.value === "damaged" ? "damaged" : "good",
+                        })
+                      }
                     >
                       <option value="good">Good · back on shelf</option>
                       <option value="damaged">Damaged · quarantine</option>
@@ -295,10 +303,16 @@ export function AgainstBill({
           />
           <span>
             <strong>Scan pieces going out</strong>
-            <small>{outgoing ? "Scanner is adding the customer’s replacement pieces." : "Turn on to add the exchange sale."}</small>
+            <small>
+              {outgoing
+                ? "Scanner is adding the customer’s replacement pieces."
+                : "Turn on to add the exchange sale."}
+            </small>
           </span>
         </label>
-        <span className="muted-cell">{marked} {marked === 1 ? "piece" : "pieces"} marked back</span>
+        <span className="muted-cell">
+          {marked} {marked === 1 ? "piece" : "pieces"} marked back
+        </span>
       </footer>
     </section>
   );
@@ -342,7 +356,9 @@ export function RecentBills({
               </small>
             </div>
             <div className="bill-recent-row-right">
-              <strong><Money paise={match.net_paise} /></strong>
+              <strong>
+                <Money paise={match.net_paise} />
+              </strong>
               <small>{formatDateTime(match.billed_at)}</small>
             </div>
           </button>

@@ -112,7 +112,13 @@ export function FinishOverlay({
           <button ref={printButton} type="button" className="btn" disabled={busy} onClick={onPrint}>
             <Printer size={16} /> Print again
           </button>
-          <button ref={nextButton} type="button" className="btn primary" disabled={busy} onClick={onNext}>
+          <button
+            ref={nextButton}
+            type="button"
+            className="btn primary"
+            disabled={busy}
+            onClick={onNext}
+          >
             Next bill <kbd>Enter</kbd>
           </button>
         </footer>

@@ -36,11 +36,7 @@ export function destinationOptions(locations: LocationT[], sourceId: string): Lo
  * Unknown either end (lists still loading) is not cross-state — the same answer
  * the screen gave before either dropdown was touched.
  */
-export function isCrossState(
-  locations: LocationT[],
-  sourceId: string,
-  destId: string,
-): boolean {
+export function isCrossState(locations: LocationT[], sourceId: string, destId: string): boolean {
   if (!sourceId || !destId) return false;
   const src = locations.find((l) => String(l.id) === sourceId);
   const dst = locations.find((l) => String(l.id) === destId);

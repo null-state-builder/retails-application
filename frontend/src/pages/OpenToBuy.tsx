@@ -202,7 +202,12 @@ export function OpenToBuyPage() {
           {online && (
             <>
               {" "}
-              <button type="button" className="btn" data-testid="otb-retry" onClick={() => void load()}>
+              <button
+                type="button"
+                className="btn"
+                data-testid="otb-retry"
+                onClick={() => void load()}
+              >
                 Try again
               </button>
             </>

@@ -1,6 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Boxes, CheckCircle2, IndianRupee, Layers, Minus, Plus, Repeat, ScrollText, ShieldAlert, X } from "lucide-react";
+import {
+  Boxes,
+  CheckCircle2,
+  IndianRupee,
+  Layers,
+  Minus,
+  Plus,
+  Repeat,
+  ScrollText,
+  ShieldAlert,
+  X,
+} from "lucide-react";
 
 import { fmtApprovalWhen } from "../components/approval";
 import type { ApprovalT } from "../components/approval";
@@ -32,7 +43,13 @@ interface RowT {
 
 interface OnHandT {
   group_by: Group;
-  summary: { units_on_hand: number; value_paise: number; lines: number; displayed?: number; truncated?: boolean };
+  summary: {
+    units_on_hand: number;
+    value_paise: number;
+    lines: number;
+    displayed?: number;
+    truncated?: boolean;
+  };
   rows: RowT[];
 }
 
@@ -66,7 +83,14 @@ interface DamageFlagT {
   created_by_name: string;
   approval: ApprovalT | null;
   created_at: string;
-  lines: { sku_code: string; design: string; color: string; size: string; brand: string; qty: number }[];
+  lines: {
+    sku_code: string;
+    design: string;
+    color: string;
+    size: string;
+    brand: string;
+    qty: number;
+  }[];
 }
 
 const TABS: { key: Group; label: string }[] = [
@@ -119,7 +143,10 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
   const [qBrand, setQBrand] = useState("");
   // Option lists come from an unfiltered snapshot so a chosen filter never
   // empties the other dropdown.
-  const [quarOpts, setQuarOpts] = useState<{ stores: [string, string][]; brands: string[] }>({ stores: [], brands: [] });
+  const [quarOpts, setQuarOpts] = useState<{ stores: [string, string][]; brands: string[] }>({
+    stores: [],
+    brands: [],
+  });
 
   // Damage reports that have not become quarantine yet — the reporting store's
   // own view of "I said so, and it hasn't been actioned" (#138).
@@ -136,19 +163,23 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
     setLoading(true);
     setError("");
     if (group === "quarantine") {
-      api.get(withQuery("/stockledger/quarantine", { store: qStore, brand: qBrand }))
+      api
+        .get(withQuery("/stockledger/quarantine", { store: qStore, brand: qBrand }))
         .then((r) => setQuar(r.data))
         .catch((e) => setError(apiErrorMessage(e)))
         .finally(() => setLoading(false));
     } else {
       // Deep link (from a global-search result) and typed term compose: the term
       // narrows inside the link, it does not replace it.
-      api.get(withQuery("/stockledger/on-hand", {
-        group_by: group,
-        sku: skuFilter,
-        brand: brandFilter,
-        q,
-      }))
+      api
+        .get(
+          withQuery("/stockledger/on-hand", {
+            group_by: group,
+            sku: skuFilter,
+            brand: brandFilter,
+            q,
+          }),
+        )
         .then((r) => setData(r.data))
         .catch((e) => setError(apiErrorMessage(e)))
         .finally(() => setLoading(false));
@@ -167,28 +198,37 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
   useEffect(() => {
     if (group !== "quarantine") return;
     setFlagsErr("");
-    api.get("/outbound/mark-damaged?docstatus=0")
+    api
+      .get("/outbound/mark-damaged?docstatus=0")
       .then((r) => setOpenFlags(r.data as DamageFlagT[]))
-      .catch((e) => { setOpenFlags([]); setFlagsErr(apiErrorMessage(e)); });
+      .catch((e) => {
+        setOpenFlags([]);
+        setFlagsErr(apiErrorMessage(e));
+      });
   }, [group, reloadKey]);
 
   // Refresh the filter option lists from the full (unfiltered) quarantine set
   // whenever we enter the tab or the data changes.
   useEffect(() => {
     if (group !== "quarantine") return;
-    api.get("/stockledger/quarantine").then((r) => {
-      const rows: QuarRowT[] = r.data.rows ?? [];
-      const stores = new Map<string, string>();
-      const brands = new Set<string>();
-      for (const row of rows) {
-        stores.set(row.store_code, row.store_name);
-        if (row.brand) brands.add(row.brand);
-      }
-      setQuarOpts({
-        stores: [...stores.entries()].sort((a, b) => a[0].localeCompare(b[0])),
-        brands: [...brands].sort(),
+    api
+      .get("/stockledger/quarantine")
+      .then((r) => {
+        const rows: QuarRowT[] = r.data.rows ?? [];
+        const stores = new Map<string, string>();
+        const brands = new Set<string>();
+        for (const row of rows) {
+          stores.set(row.store_code, row.store_name);
+          if (row.brand) brands.add(row.brand);
+        }
+        setQuarOpts({
+          stores: [...stores.entries()].sort((a, b) => a[0].localeCompare(b[0])),
+          brands: [...brands].sort(),
+        });
+      })
+      .catch(() => {
+        /* option lists are best-effort */
       });
-    }).catch(() => { /* option lists are best-effort */ });
   }, [group, reloadKey]);
 
   // "Mark damaged" is a global action wherever stock is visible. Clicking it
@@ -227,8 +267,8 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
       setFlash(
         mark.flag_status === "confirmed"
           ? `Moved ${qty} × ${dmgRow.sku_code} into quarantine at ${dmgRow.store_code}.`
-          : `Reported ${qty} × ${dmgRow.sku_code} as damaged at ${dmgRow.store_code}. `
-            + "They stay sellable until the warehouse confirms it.",
+          : `Reported ${qty} × ${dmgRow.sku_code} as damaged at ${dmgRow.store_code}. ` +
+              "They stay sellable until the warehouse confirms it.",
       );
       setDmgRow(null);
       setReloadKey((k) => k + 1);
@@ -247,14 +287,30 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
   const hostedQuar = view === "quarantine";
   const cards = isQuar
     ? [
-        { icon: ShieldAlert, label: "Units quarantined", value: quar?.summary.units_quarantined ?? 0 },
-        { icon: IndianRupee, label: "Quarantine value", value: <Money paise={quar?.summary.value_paise ?? 0} /> },
+        {
+          icon: ShieldAlert,
+          label: "Units quarantined",
+          value: quar?.summary.units_quarantined ?? 0,
+        },
+        {
+          icon: IndianRupee,
+          label: "Quarantine value",
+          value: <Money paise={quar?.summary.value_paise ?? 0} />,
+        },
         { icon: Layers, label: "Quarantine lines", value: quar?.summary.lines ?? 0 },
       ]
     : [
         { icon: Boxes, label: "Units on hand", value: data?.summary.units_on_hand ?? 0 },
-        { icon: IndianRupee, label: "Stock value", value: <Money paise={data?.summary.value_paise ?? 0} /> },
-        { icon: Layers, label: group === "store" ? "Stores" : group === "brand" ? "Brands" : "SKU lines", value: data?.summary.lines ?? 0 },
+        {
+          icon: IndianRupee,
+          label: "Stock value",
+          value: <Money paise={data?.summary.value_paise ?? 0} />,
+        },
+        {
+          icon: Layers,
+          label: group === "store" ? "Stores" : group === "brand" ? "Brands" : "SKU lines",
+          value: data?.summary.lines ?? 0,
+        },
       ];
 
   const emptyQuar = !quar || quar.rows.length === 0;
@@ -277,8 +333,12 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
             <>
               {/* V-flip is an ownership correction, not a daily job - so it is an
                   action here inside Stock rather than a line in the sidebar (#87). */}
-              <Link className="btn" to="/stock/vflips" data-testid="vflip-link"><Repeat size={16} /> V-Flip</Link>
-              <Link className="btn" to="/stock/history" data-testid="stock-ledger-link"><ScrollText size={16} /> Movement History</Link>
+              <Link className="btn" to="/stock/vflips" data-testid="vflip-link">
+                <Repeat size={16} /> V-Flip
+              </Link>
+              <Link className="btn" to="/stock/history" data-testid="stock-ledger-link">
+                <ScrollText size={16} /> Movement History
+              </Link>
             </>
           )
         }
@@ -305,7 +365,9 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
         <div className="ok-note" data-testid="onhand-flash">
           <CheckCircle2 size={16} /> {flash}
           <span className="spacer" />
-          <button onClick={() => setFlash("")} aria-label="Dismiss"><X size={15} /></button>
+          <button onClick={() => setFlash("")} aria-label="Dismiss">
+            <X size={15} />
+          </button>
         </div>
       )}
 
@@ -353,20 +415,41 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
 
       {isQuar && (
         <div className="filter-bar" data-testid="quarantine-filters">
-          <select className="select" value={qStore} onChange={(e) => setQStore(e.target.value)} data-testid="quarantine-filter-store">
+          <select
+            className="select"
+            value={qStore}
+            onChange={(e) => setQStore(e.target.value)}
+            data-testid="quarantine-filter-store"
+          >
             <option value="">All stores</option>
             {quarOpts.stores.map(([code, name]) => (
-              <option key={code} value={code}>{code} — {name}</option>
+              <option key={code} value={code}>
+                {code} — {name}
+              </option>
             ))}
           </select>
-          <select className="select" value={qBrand} onChange={(e) => setQBrand(e.target.value)} data-testid="quarantine-filter-brand">
+          <select
+            className="select"
+            value={qBrand}
+            onChange={(e) => setQBrand(e.target.value)}
+            data-testid="quarantine-filter-brand"
+          >
             <option value="">All brands</option>
             {quarOpts.brands.map((b) => (
-              <option key={b} value={b}>{b}</option>
+              <option key={b} value={b}>
+                {b}
+              </option>
             ))}
           </select>
           {(qStore || qBrand) && (
-            <button className="btn btn-sm" onClick={() => { setQStore(""); setQBrand(""); }} data-testid="quarantine-filter-clear">
+            <button
+              className="btn btn-sm"
+              onClick={() => {
+                setQStore("");
+                setQBrand("");
+              }}
+              data-testid="quarantine-filter-clear"
+            >
               Clear filters
             </button>
           )}
@@ -384,29 +467,45 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
       {isQuar && !loading && !error && openFlags.length > 0 && (
         <div className="card section-card" style={{ marginTop: 16 }} data-testid="damage-flags">
           <h3 className="h3" style={{ marginBottom: 4 }}>
-            <ShieldAlert size={16} style={{ color: "var(--rust)", verticalAlign: "-2px", marginRight: 6 }} />
+            <ShieldAlert
+              size={16}
+              style={{ color: "var(--rust)", verticalAlign: "-2px", marginRight: 6 }}
+            />
             Damage reported, not in quarantine
           </h3>
           <p className="stat-label" style={{ marginBottom: 12 }}>
-            These pieces are still sellable — either waiting for a warehouse or HO person to
-            confirm the report, or looked at and sent back as sellable.
+            These pieces are still sellable — either waiting for a warehouse or HO person to confirm
+            the report, or looked at and sent back as sellable.
           </p>
           <div className="table-wrap kdps-scroll">
             <table className="data kdps-table" data-testid="damage-flags-table">
               <thead>
                 <tr>
-                  <th>Barcode (SKU)</th><th>Brand</th><th>Design</th><th>Colour</th><th>Size</th>
-                  <th>Store</th><th className="num">Units</th>
-                  <th>Reported by</th><th>When</th><th>Status</th>
+                  <th>Barcode (SKU)</th>
+                  <th>Brand</th>
+                  <th>Design</th>
+                  <th>Colour</th>
+                  <th>Size</th>
+                  <th>Store</th>
+                  <th className="num">Units</th>
+                  <th>Reported by</th>
+                  <th>When</th>
+                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {openFlags.flatMap((f) =>
                   f.lines.map((l, j) => (
                     <tr key={`${f.id}-${j}`} data-testid={`damage-flag-${f.id}-${j}`}>
-                      <td className="mono">{l.sku_code}</td><td>{l.brand}</td><td>{l.design}</td>
-                      <td>{l.color}</td><td>{l.size}</td><td>{f.store_code}</td>
-                      <td className="num" style={{ fontWeight: 700 }}>{l.qty}</td>
+                      <td className="mono">{l.sku_code}</td>
+                      <td>{l.brand}</td>
+                      <td>{l.design}</td>
+                      <td>{l.color}</td>
+                      <td>{l.size}</td>
+                      <td>{f.store_code}</td>
+                      <td className="num" style={{ fontWeight: 700 }}>
+                        {l.qty}
+                      </td>
                       <td>{f.created_by_name || "—"}</td>
                       <td>{fmtApprovalWhen(f.created_at)}</td>
                       <td>
@@ -426,7 +525,9 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
       {loading ? (
         <p className="lead">Loading…</p>
       ) : error ? (
-        <div className="warn-note" data-testid="onhand-error">{error}</div>
+        <div className="warn-note" data-testid="onhand-error">
+          {error}
+        </div>
       ) : isQuar ? (
         emptyQuar ? (
           <div className="card section-card" data-testid="quarantine-empty">
@@ -439,19 +540,35 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
             <table className="data kdps-table" data-testid="quarantine-table">
               <thead>
                 <tr>
-                  <th>Barcode (SKU)</th><th>Brand</th><th>Design</th><th>Colour</th>
-                  <th>Size</th><th>Season</th><th>Store</th>
-                  <th className="num">Units</th><th className="num">Value ₹</th>
-                  <th>Marked by</th><th>When</th>
+                  <th>Barcode (SKU)</th>
+                  <th>Brand</th>
+                  <th>Design</th>
+                  <th>Colour</th>
+                  <th>Size</th>
+                  <th>Season</th>
+                  <th>Store</th>
+                  <th className="num">Units</th>
+                  <th className="num">Value ₹</th>
+                  <th>Marked by</th>
+                  <th>When</th>
                 </tr>
               </thead>
               <tbody>
                 {quar!.rows.map((r, i) => (
                   <tr key={i} data-testid={`quarantine-row-${i}`}>
-                    <td className="mono">{r.sku_code}</td><td>{r.brand}</td><td>{r.design}</td>
-                    <td>{r.color}</td><td>{r.size}</td><td>{r.season}</td><td>{r.store_code}</td>
-                    <td className="num" style={{ fontWeight: 700 }}>{r.qty}</td>
-                    <td className="num mono"><Money paise={r.value_paise} /></td>
+                    <td className="mono">{r.sku_code}</td>
+                    <td>{r.brand}</td>
+                    <td>{r.design}</td>
+                    <td>{r.color}</td>
+                    <td>{r.size}</td>
+                    <td>{r.season}</td>
+                    <td>{r.store_code}</td>
+                    <td className="num" style={{ fontWeight: 700 }}>
+                      {r.qty}
+                    </td>
+                    <td className="num mono">
+                      <Money paise={r.value_paise} />
+                    </td>
                     <td>{r.marked_by ?? "—"}</td>
                     <td>{r.marked_at ? new Date(r.marked_at).toLocaleString("en-IN") : "—"}</td>
                   </tr>
@@ -471,8 +588,13 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
       ) : (
         <div className="table-wrap kdps-scroll" style={{ marginTop: 16 }}>
           {data!.summary.truncated && (
-            <div className="warn-note" data-testid="onhand-truncated-banner" style={{ marginBottom: 10 }}>
-              Showing the first {data!.summary.displayed ?? data!.rows.length} of {data!.summary.lines} lines. Filter by store or brand to narrow the view.
+            <div
+              className="warn-note"
+              data-testid="onhand-truncated-banner"
+              style={{ marginBottom: 10 }}
+            >
+              Showing the first {data!.summary.displayed ?? data!.rows.length} of{" "}
+              {data!.summary.lines} lines. Filter by store or brand to narrow the view.
             </div>
           )}
           <table className="data kdps-table" data-testid="onhand-table">
@@ -480,12 +602,30 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
               <tr>
                 {group === "sku" && (
                   <>
-                    <th>Barcode (SKU)</th><th>Brand</th><th>Design</th><th>Colour</th>
-                    <th>Size</th><th>Item</th><th>Season</th><th>Store</th>
+                    <th>Barcode (SKU)</th>
+                    <th>Brand</th>
+                    <th>Design</th>
+                    <th>Colour</th>
+                    <th>Size</th>
+                    <th>Item</th>
+                    <th>Season</th>
+                    <th>Store</th>
                   </>
                 )}
-                {group === "brand" && (<><th>Brand</th><th>Store</th><th className="num">SKUs</th></>)}
-                {group === "store" && (<><th>Store</th><th>Name</th><th className="num">SKUs</th></>)}
+                {group === "brand" && (
+                  <>
+                    <th>Brand</th>
+                    <th>Store</th>
+                    <th className="num">SKUs</th>
+                  </>
+                )}
+                {group === "store" && (
+                  <>
+                    <th>Store</th>
+                    <th>Name</th>
+                    <th className="num">SKUs</th>
+                  </>
+                )}
                 <th className="num">Units</th>
                 <th className="num">Value ₹</th>
                 {group === "sku" && <th />}
@@ -496,15 +636,38 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
                 <tr key={i} data-testid={`onhand-row-${i}`}>
                   {group === "sku" && (
                     <>
-                      <td className="mono">{r.sku_code}</td><td>{r.brand}</td><td>{r.design}</td>
-                      <td>{r.color}</td><td>{r.size}</td><td>{r.item}</td><td>{r.season}</td>
+                      <td className="mono">{r.sku_code}</td>
+                      <td>{r.brand}</td>
+                      <td>{r.design}</td>
+                      <td>{r.color}</td>
+                      <td>{r.size}</td>
+                      <td>{r.item}</td>
+                      <td>{r.season}</td>
                       <td>{r.store_code}</td>
                     </>
                   )}
-                  {group === "brand" && (<><td><b>{r.brand}</b></td><td>{r.store_code}</td><td className="num">{r.skus}</td></>)}
-                  {group === "store" && (<><td className="mono">{r.store_code}</td><td>{r.store_name}</td><td className="num">{r.skus}</td></>)}
-                  <td className="num" style={{ fontWeight: 700 }}>{r.net_qty}</td>
-                  <td className="num mono"><Money paise={r.net_value_paise} /></td>
+                  {group === "brand" && (
+                    <>
+                      <td>
+                        <b>{r.brand}</b>
+                      </td>
+                      <td>{r.store_code}</td>
+                      <td className="num">{r.skus}</td>
+                    </>
+                  )}
+                  {group === "store" && (
+                    <>
+                      <td className="mono">{r.store_code}</td>
+                      <td>{r.store_name}</td>
+                      <td className="num">{r.skus}</td>
+                    </>
+                  )}
+                  <td className="num" style={{ fontWeight: 700 }}>
+                    {r.net_qty}
+                  </td>
+                  <td className="num mono">
+                    <Money paise={r.net_value_paise} />
+                  </td>
                   {group === "sku" && (
                     <td>
                       <button
@@ -526,25 +689,48 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
 
       {/* Mark-damaged confirm dialog — set the exact count, then post. */}
       {dmgRow && (
-        <div className="modal-backdrop" data-testid="mark-damaged-modal" onClick={() => !dmgBusy && setDmgRow(null)}>
+        <div
+          className="modal-backdrop"
+          data-testid="mark-damaged-modal"
+          onClick={() => !dmgBusy && setDmgRow(null)}
+        >
           <div className="modal" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
-              <h3 className="h3"><ShieldAlert size={17} style={{ color: "var(--rust)", verticalAlign: "-3px", marginRight: 6 }} />Mark damaged</h3>
-              <button type="button" className="btn" onClick={() => setDmgRow(null)} disabled={dmgBusy}>Cancel</button>
+              <h3 className="h3">
+                <ShieldAlert
+                  size={17}
+                  style={{ color: "var(--rust)", verticalAlign: "-3px", marginRight: 6 }}
+                />
+                Mark damaged
+              </h3>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => setDmgRow(null)}
+                disabled={dmgBusy}
+              >
+                Cancel
+              </button>
             </div>
 
             <p className="lead" style={{ marginBottom: 6 }}>
               <b className="mono">{dmgRow.sku_code}</b> · {dmgRow.brand}
             </p>
             <p className="stat-label" style={{ marginBottom: 18 }}>
-              {[dmgRow.design, dmgRow.color, dmgRow.size].filter(Boolean).join(" · ")} — at <b>{dmgRow.store_code}</b>,
-              {" "}{dmgRow.net_qty} sellable
+              {[dmgRow.design, dmgRow.color, dmgRow.size].filter(Boolean).join(" · ")} — at{" "}
+              <b>{dmgRow.store_code}</b>, {dmgRow.net_qty} sellable
             </p>
 
             <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 8 }}>
               <span className="stat-label">Pieces damaged</span>
               <div className="qty-stepper" data-testid="mark-damaged-stepper">
-                <button type="button" onClick={() => bumpQty(-1)} disabled={dmgBusy || dmgQty <= 1} data-testid="mark-damaged-dec" aria-label="Decrease">
+                <button
+                  type="button"
+                  onClick={() => bumpQty(-1)}
+                  disabled={dmgBusy || dmgQty <= 1}
+                  data-testid="mark-damaged-dec"
+                  aria-label="Decrease"
+                >
                   <Minus size={16} />
                 </button>
                 <input
@@ -558,7 +744,13 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
                     if (Number.isFinite(n)) setDmgQty(clampQty(n));
                   }}
                 />
-                <button type="button" onClick={() => bumpQty(1)} disabled={dmgBusy || dmgQty >= dmgRow.net_qty} data-testid="mark-damaged-inc" aria-label="Increase">
+                <button
+                  type="button"
+                  onClick={() => bumpQty(1)}
+                  disabled={dmgBusy || dmgQty >= dmgRow.net_qty}
+                  data-testid="mark-damaged-inc"
+                  aria-label="Increase"
+                >
                   <Plus size={16} />
                 </button>
               </div>
@@ -566,12 +758,16 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
             </div>
 
             <p className="stat-label" style={{ marginBottom: 18 }}>
-              These pieces stay owned and at the store. A store's report is checked by the
-              warehouse before they stop being free-to-sell; a warehouse or HO person's takes
-              them out of sellable stock at once.
+              These pieces stay owned and at the store. A store's report is checked by the warehouse
+              before they stop being free-to-sell; a warehouse or HO person's takes them out of
+              sellable stock at once.
             </p>
 
-            {dmgErr && <div className="warn-note" data-testid="mark-damaged-error">{dmgErr}</div>}
+            {dmgErr && (
+              <div className="warn-note" data-testid="mark-damaged-error">
+                {dmgErr}
+              </div>
+            )}
 
             <button
               className="btn btn-cta btn-lg"

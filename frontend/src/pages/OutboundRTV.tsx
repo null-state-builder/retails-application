@@ -42,13 +42,19 @@ import { PageHeader } from "../components/PageHeader";
 // ---------------------------------------------------------------------------
 
 function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(iso).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 const DS_TONE: Record<number, string> = { 0: "grey", 1: "green", 2: "red" };
 const DS_LABEL: Record<number, string> = { 0: "Draft", 1: "Submitted", 2: "Cancelled" };
 function DocPill({ ds }: { ds: number }) {
-  return <span className={`chip chip-${DS_TONE[ds] ?? "grey"} status-pill`}>{DS_LABEL[ds] ?? ds}</span>;
+  return (
+    <span className={`chip chip-${DS_TONE[ds] ?? "grey"} status-pill`}>{DS_LABEL[ds] ?? ds}</span>
+  );
 }
 
 const RETURN_TYPE_LABEL: Record<string, string> = {
@@ -195,10 +201,25 @@ interface PoolT {
   rows: PoolRowT[];
 }
 
-interface StoreT { id: number; code: string; name: string; store_type: string; }
-interface VendorT { id: number; name: string; }
-interface BrandT { id: number; name: string; }
-interface TransferT { id: number; doc_number: string | null; destination_store_code: string }
+interface StoreT {
+  id: number;
+  code: string;
+  name: string;
+  store_type: string;
+}
+interface VendorT {
+  id: number;
+  name: string;
+}
+interface BrandT {
+  id: number;
+  name: string;
+}
+interface TransferT {
+  id: number;
+  doc_number: string | null;
+  destination_store_code: string;
+}
 
 // ---------------------------------------------------------------------------
 // List
@@ -216,7 +237,10 @@ export function RTVListPage() {
   const mayCreate = canCreateReturnToBrand(user);
 
   function setTab(next: string) {
-    setParams((p) => { p.set("type", next); return p; });
+    setParams((p) => {
+      p.set("type", next);
+      return p;
+    });
   }
 
   return (
@@ -231,7 +255,11 @@ export function RTVListPage() {
         }
       />
 
-      <div className="mode-toggle" data-testid="rtv-type-toggle" style={{ maxWidth: 520, marginBottom: 18 }}>
+      <div
+        className="mode-toggle"
+        data-testid="rtv-type-toggle"
+        style={{ maxWidth: 520, marginBottom: 18 }}
+      >
         <button
           type="button"
           className={`mode-btn ${tab === "defective" ? "active" : ""}`}
@@ -290,17 +318,25 @@ export function RTVListPage() {
               {data.map((r) => (
                 <tr key={r.id} data-testid={`rtv-row-${r.id}`}>
                   <td>
-                    <Link to={`/return-to-brand/${r.id}`} className="link-cell mono" data-testid={`rtv-link-${r.id}`}>
+                    <Link
+                      to={`/return-to-brand/${r.id}`}
+                      className="link-cell mono"
+                      data-testid={`rtv-link-${r.id}`}
+                    >
                       <b>{r.doc_number || `Draft #${r.id}`}</b>
                     </Link>
                   </td>
                   <td>
                     {r.brand_name || "—"}
                     {r.commercial_label && (
-                      <span className="chip chip-grey" style={{ marginLeft: 6 }}>{r.commercial_label}</span>
+                      <span className="chip chip-grey" style={{ marginLeft: 6 }}>
+                        {r.commercial_label}
+                      </span>
                     )}
                   </td>
-                  <td><b className="mono">{r.store_code}</b></td>
+                  <td>
+                    <b className="mono">{r.store_code}</b>
+                  </td>
                   <td>{r.logistics_route_label || routeLabel(r.logistics_route)}</td>
                   <td className="num">{r.lines.reduce((s, l) => s + l.qty, 0)}</td>
                   <td className="num">{r.value_paise ? <Money paise={r.value_paise} /> : "—"}</td>
@@ -309,16 +345,22 @@ export function RTVListPage() {
                       <span className={`chip chip-${windowTone(r.days_to_window)}`}>
                         {windowText(r.days_to_window)}
                       </span>
-                    ) : "—"}
+                    ) : (
+                      "—"
+                    )}
                   </td>
                   <td>
                     {r.credit_note ? (
-                      <span className="chip chip-green">Received {fmtDate(r.credit_note.received_on)}</span>
+                      <span className="chip chip-green">
+                        Received {fmtDate(r.credit_note.received_on)}
+                      </span>
                     ) : (
                       <span className="chip chip-grey">Pending</span>
                     )}
                   </td>
-                  <td><DocPill ds={r.docstatus} /></td>
+                  <td>
+                    <DocPill ds={r.docstatus} />
+                  </td>
                   <td>{fmtDate(r.created_at)}</td>
                 </tr>
               ))}
@@ -336,7 +378,8 @@ export function RTVListPage() {
 
 function CapMeter({ cap, thisReturnPaise }: { cap: CapT; thisReturnPaise: number }) {
   const used = cap.used_paise + thisReturnPaise;
-  const pct = cap.allowance_paise > 0 ? Math.min(100, Math.round((used / cap.allowance_paise) * 100)) : 100;
+  const pct =
+    cap.allowance_paise > 0 ? Math.min(100, Math.round((used / cap.allowance_paise) * 100)) : 100;
   const over = cap.allowance_paise > 0 && used > cap.allowance_paise;
   // The threshold is the server's (`CAP_WARN_AT`), sent down as a value rather
   // than a percentage — recomputing it here would be a second copy that a
@@ -361,7 +404,11 @@ function CapMeter({ cap, thisReturnPaise }: { cap: CapT; thisReturnPaise: number
       >
         <div
           data-testid="rtv-cap-bar"
-          style={{ width: `${pct}%`, height: "100%", background: `var(--chip-${tone}-fg, currentColor)` }}
+          style={{
+            width: `${pct}%`,
+            height: "100%",
+            background: `var(--chip-${tone}-fg, currentColor)`,
+          }}
         />
       </div>
       <p className="lead" style={{ fontSize: 13 }}>
@@ -371,7 +418,8 @@ function CapMeter({ cap, thisReturnPaise }: { cap: CapT; thisReturnPaise: number
       {over ? (
         <p className="lead" data-testid="rtv-cap-exceeded">
           <span className="chip chip-red">
-            <AlertTriangle size={13} /> Over the allowance by <Money paise={used - cap.allowance_paise} />
+            <AlertTriangle size={13} /> Over the allowance by{" "}
+            <Money paise={used - cap.allowance_paise} />
           </span>{" "}
           Flagged for the approver — the return is not blocked.
         </p>
@@ -419,7 +467,9 @@ export function RTVNewPage() {
   // changes. Asked only once both are known — "everything, everywhere" is not a
   // question this endpoint takes.
   const { data: pool, loading: poolLoading } = useDoc<PoolT>(
-    brandId ? `/outbound/returnable-pool?brand=${brandId}${storeId ? `&store=${storeId}` : ""}` : null,
+    brandId
+      ? `/outbound/returnable-pool?brand=${brandId}${storeId ? `&store=${storeId}` : ""}`
+      : null,
   );
   const { data: transfers } = useList<TransferT>(
     logisticsRoute === "warehouse" && storeId ? "/outbound/transfers" : null,
@@ -469,15 +519,30 @@ export function RTVNewPage() {
 
   async function save() {
     setError("");
-    if (!storeId) { setError("Select a store."); return; }
-    if (!vendorId) { setError("Select the vendor this brand is billed through."); return; }
-    if (!brandId) { setError("Select a brand — the pool is a brand's stock."); return; }
-    if (!logisticsRoute) { setError("Say how the stock gets back to the brand."); return; }
+    if (!storeId) {
+      setError("Select a store.");
+      return;
+    }
+    if (!vendorId) {
+      setError("Select the vendor this brand is billed through.");
+      return;
+    }
+    if (!brandId) {
+      setError("Select a brand — the pool is a brand's stock.");
+      return;
+    }
+    if (!logisticsRoute) {
+      setError("Say how the stock gets back to the brand.");
+      return;
+    }
     if (logisticsRoute === "warehouse" && !viaTransferId) {
       setError("A consolidated return has to name the transfer that brought the pieces in.");
       return;
     }
-    if (!scannedPieces) { setError("Scan the pieces going back."); return; }
+    if (!scannedPieces) {
+      setError("Scan the pieces going back.");
+      return;
+    }
     setSaving(true);
     try {
       // Barcodes and quantities only. What each piece is worth, which bucket it
@@ -506,7 +571,12 @@ export function RTVNewPage() {
   if (!canCreateReturnToBrand(user)) {
     return (
       <div className="page-pad">
-        <Link to="/return-to-brand" className="btn" style={{ marginBottom: 16 }} data-testid="rtv-back-link">
+        <Link
+          to="/return-to-brand"
+          className="btn"
+          style={{ marginBottom: 16 }}
+          data-testid="rtv-back-link"
+        >
           <ArrowLeft size={15} /> Returns
         </Link>
         <div className="card section-card" data-testid="rtv-new-denied">
@@ -521,10 +591,17 @@ export function RTVNewPage() {
 
   return (
     <div className="page-pad">
-      <Link to="/return-to-brand" className="btn" style={{ marginBottom: 16 }} data-testid="rtv-back-link">
+      <Link
+        to="/return-to-brand"
+        className="btn"
+        style={{ marginBottom: 16 }}
+        data-testid="rtv-back-link"
+      >
         <ArrowLeft size={15} /> Returns
       </Link>
-      <h1 className="h1 h2-rust" style={{ marginBottom: 18 }}>New Return to Brand</h1>
+      <h1 className="h1 h2-rust" style={{ marginBottom: 18 }}>
+        New Return to Brand
+      </h1>
 
       <div className="card section-card">
         <p className="eyebrow">Step 1 · Which brand, and how it travels</p>
@@ -532,16 +609,25 @@ export function RTVNewPage() {
           <div className="field">
             <label>Store</label>
             {storeLocked && lockedStore ? (
-              <div className="store-lock" data-testid="rtv-store-locked">{lockedStore.code} · {lockedStore.name}</div>
+              <div className="store-lock" data-testid="rtv-store-locked">
+                {lockedStore.code} · {lockedStore.name}
+              </div>
             ) : (
               <select
                 className="select"
                 value={storeId}
-                onChange={(e) => { setStoreId(e.target.value); setScans({}); }}
+                onChange={(e) => {
+                  setStoreId(e.target.value);
+                  setScans({});
+                }}
                 data-testid="rtv-store-select"
               >
                 <option value="">Select store…</option>
-                {stores.map((s) => <option key={s.id} value={s.id}>{s.code} · {s.name}</option>)}
+                {stores.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.code} · {s.name}
+                  </option>
+                ))}
               </select>
             )}
           </div>
@@ -550,18 +636,34 @@ export function RTVNewPage() {
             <select
               className="select"
               value={brandId}
-              onChange={(e) => { setBrandId(e.target.value); setScans({}); }}
+              onChange={(e) => {
+                setBrandId(e.target.value);
+                setScans({});
+              }}
               data-testid="rtv-brand-select"
             >
               <option value="">Select brand…</option>
-              {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+              {brands.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
             </select>
           </div>
           <div className="field">
             <label>Vendor</label>
-            <select className="select" value={vendorId} onChange={(e) => setVendorId(e.target.value)} data-testid="rtv-vendor-select">
+            <select
+              className="select"
+              value={vendorId}
+              onChange={(e) => setVendorId(e.target.value)}
+              data-testid="rtv-vendor-select"
+            >
               <option value="">Select vendor…</option>
-              {vendors.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
+              {vendors.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name}
+                </option>
+              ))}
             </select>
           </div>
           <div className="field">
@@ -569,7 +671,10 @@ export function RTVNewPage() {
             <select
               className="select"
               value={returnType}
-              onChange={(e) => { setReturnType(e.target.value); setScans({}); }}
+              onChange={(e) => {
+                setReturnType(e.target.value);
+                setScans({});
+              }}
               data-testid="rtv-type-select"
             >
               <option value="defective">Defective / GR return</option>
@@ -580,25 +685,49 @@ export function RTVNewPage() {
         <div className="form-row" style={{ marginTop: 14 }}>
           <div className="field">
             <label>How it gets back</label>
-            <select className="select" value={logisticsRoute} onChange={(e) => setLogisticsRoute(e.target.value)} data-testid="rtv-logistics-select">
+            <select
+              className="select"
+              value={logisticsRoute}
+              onChange={(e) => setLogisticsRoute(e.target.value)}
+              data-testid="rtv-logistics-select"
+            >
               <option value="">Select route…</option>
-              {LOGISTICS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              {LOGISTICS_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
             </select>
           </div>
           {logisticsRoute === "warehouse" && (
             <div className="field">
               <label>Transfer that brought the pieces</label>
-              <select className="select" value={viaTransferId} onChange={(e) => setViaTransferId(e.target.value)} data-testid="rtv-via-transfer-select">
+              <select
+                className="select"
+                value={viaTransferId}
+                onChange={(e) => setViaTransferId(e.target.value)}
+                data-testid="rtv-via-transfer-select"
+              >
                 <option value="">Select transfer…</option>
                 {transfers
                   .filter((t) => t.doc_number)
-                  .map((t) => <option key={t.id} value={t.id}>{t.doc_number} → {t.destination_store_code}</option>)}
+                  .map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.doc_number} → {t.destination_store_code}
+                    </option>
+                  ))}
               </select>
             </div>
           )}
           <div className="field">
             <label>Notes</label>
-            <input className="input" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Optional notes" data-testid="rtv-notes" />
+            <input
+              className="input"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Optional notes"
+              data-testid="rtv-notes"
+            />
           </div>
         </div>
       </div>
@@ -612,12 +741,16 @@ export function RTVNewPage() {
           ) : !pool ? (
             <p className="lead">Could not read the pool for this brand.</p>
           ) : pool.excluded_reason ? (
-            <p className="lead" data-testid="rtv-pool-excluded">{pool.excluded_reason}</p>
+            <p className="lead" data-testid="rtv-pool-excluded">
+              {pool.excluded_reason}
+            </p>
           ) : (
             <>
               <h3 className="h3">
                 {pool.brand.name}
-                <span className="chip chip-grey" style={{ marginLeft: 8 }}>{pool.brand.commercial_label}</span>
+                <span className="chip chip-grey" style={{ marginLeft: 8 }}>
+                  {pool.brand.commercial_label}
+                </span>
                 {pool.brand.return_window_days > 0 && (
                   <span className="chip chip-grey" style={{ marginLeft: 6 }}>
                     <CalendarClock size={13} /> {pool.brand.return_window_days}-day window
@@ -648,18 +781,31 @@ export function RTVNewPage() {
                     </thead>
                     <tbody>
                       {rows.map((r) => (
-                        <tr key={`${r.store}-${r.sku_code}`} data-testid={`rtv-pool-row-${r.sku_code}`}>
-                          <td><b className="mono">{r.sku_code}</b></td>
+                        <tr
+                          key={`${r.store}-${r.sku_code}`}
+                          data-testid={`rtv-pool-row-${r.sku_code}`}
+                        >
+                          <td>
+                            <b className="mono">{r.sku_code}</b>
+                          </td>
                           <td>{r.design || "—"}</td>
                           <td>{r.size || "—"}</td>
                           <td>{r.color || "—"}</td>
-                          <td><b className="mono">{r.store_code}</b></td>
-                          <td className="num">{r.qty}</td>
-                          <td className="num"><Money paise={r.unit_cost_paise} /></td>
                           <td>
-                            <span className={`chip chip-${windowTone(r.days_left)}`}>{windowText(r.days_left)}</span>
+                            <b className="mono">{r.store_code}</b>
                           </td>
-                          <td className="num"><b>{scans[r.sku_code] ?? 0}</b></td>
+                          <td className="num">{r.qty}</td>
+                          <td className="num">
+                            <Money paise={r.unit_cost_paise} />
+                          </td>
+                          <td>
+                            <span className={`chip chip-${windowTone(r.days_left)}`}>
+                              {windowText(r.days_left)}
+                            </span>
+                          </td>
+                          <td className="num">
+                            <b>{scans[r.sku_code] ?? 0}</b>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -699,10 +845,12 @@ export function RTVNewPage() {
       {scannedPieces > 0 && (
         <div className="card section-card" data-testid="rtv-scanned-summary">
           <p className="eyebrow">Ready to send back</p>
-          <h3 className="h3">{scannedPieces} pcs · <Money paise={scannedValue} /></h3>
+          <h3 className="h3">
+            {scannedPieces} pcs · <Money paise={scannedValue} />
+          </h3>
           <p className="lead" style={{ fontSize: 13 }}>
-            Valued from the books, not from this screen. It goes to the approvals
-            inbox — a second person clears it before any stock moves.
+            Valued from the books, not from this screen. It goes to the approvals inbox — a second
+            person clears it before any stock moves.
           </p>
         </div>
       )}
@@ -722,8 +870,17 @@ export function RTVNewPage() {
         />
       )}
 
-      {error && <div className="login-error" style={{ maxWidth: 480 }} data-testid="rtv-create-error">{error}</div>}
-      <button className="btn btn-primary btn-lg" disabled={saving} onClick={save} data-testid="save-rtv-btn">
+      {error && (
+        <div className="login-error" style={{ maxWidth: 480 }} data-testid="rtv-create-error">
+          {error}
+        </div>
+      )}
+      <button
+        className="btn btn-primary btn-lg"
+        disabled={saving}
+        onClick={save}
+        data-testid="save-rtv-btn"
+      >
         <RotateCcw size={16} /> {saving ? "Saving…" : "Create return (draft)"}
       </button>
     </div>
@@ -742,7 +899,10 @@ function CreditNoteCard({ rtv, writable }: { rtv: RTVT; writable: boolean }) {
 
   async function record() {
     setError("");
-    if (!receivedOn) { setError("Date the brand's credit note."); return; }
+    if (!receivedOn) {
+      setError("Date the brand's credit note.");
+      return;
+    }
     setSaving(true);
     try {
       await api.post(`/outbound/rtvs/${rtv.id}/credit-note`, {
@@ -788,15 +948,38 @@ function CreditNoteCard({ rtv, writable }: { rtv: RTVT; writable: boolean }) {
       <div className="form-row" style={{ marginTop: 10 }}>
         <div className="field">
           <label>Received on</label>
-          <input className="input" type="date" value={receivedOn} onChange={(e) => setReceivedOn(e.target.value)} data-testid="rtv-cn-date" />
+          <input
+            className="input"
+            type="date"
+            value={receivedOn}
+            onChange={(e) => setReceivedOn(e.target.value)}
+            data-testid="rtv-cn-date"
+          />
         </div>
         <div className="field">
           <label>Brand's reference</label>
-          <input className="input" value={reference} onChange={(e) => setReference(e.target.value)} placeholder="e.g. CN/2026/0042" data-testid="rtv-cn-ref" />
+          <input
+            className="input"
+            value={reference}
+            onChange={(e) => setReference(e.target.value)}
+            placeholder="e.g. CN/2026/0042"
+            data-testid="rtv-cn-ref"
+          />
         </div>
       </div>
-      {error && <div className="login-error" data-testid="rtv-cn-error">{error}</div>}
-      <button type="button" className="btn" style={{ marginTop: 10 }} disabled={saving} onClick={record} data-testid="rtv-cn-save">
+      {error && (
+        <div className="login-error" data-testid="rtv-cn-error">
+          {error}
+        </div>
+      )}
+      <button
+        type="button"
+        className="btn"
+        style={{ marginTop: 10 }}
+        disabled={saving}
+        onClick={record}
+        data-testid="rtv-cn-save"
+      >
         {saving ? "Recording…" : "Record credit note"}
       </button>
     </div>
@@ -811,13 +994,17 @@ export function RTVDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  if (loading || !r) return <div className="page-pad"><p className="lead">Loading…</p></div>;
+  if (loading || !r)
+    return (
+      <div className="page-pad">
+        <p className="lead">Loading…</p>
+      </div>
+    );
 
   const totalQty = r.lines.reduce((s, l) => s + l.qty, 0);
   // A draft cannot post until a second person has cleared it — the server
   // enforces it, the button only reflects it honestly.
-  const canSubmit =
-    r.docstatus === 0 && canCreateReturnToBrand(user) && isCleared(r.approval);
+  const canSubmit = r.docstatus === 0 && canCreateReturnToBrand(user) && isCleared(r.approval);
 
   async function handleSubmit() {
     setError("");
@@ -834,13 +1021,20 @@ export function RTVDetailPage() {
 
   return (
     <div className="page-pad">
-      <Link to="/return-to-brand" className="btn" style={{ marginBottom: 16 }} data-testid="rtv-detail-back">
+      <Link
+        to="/return-to-brand"
+        className="btn"
+        style={{ marginBottom: 16 }}
+        data-testid="rtv-detail-back"
+      >
         <ArrowLeft size={15} /> Returns
       </Link>
       <div className="toolbar">
         <div>
           <p className="eyebrow">{r.doc_number || `Draft #${r.id}`}</p>
-          <h1 className="h1">{r.brand_name || "Return"} — {r.store_code}</h1>
+          <h1 className="h1">
+            {r.brand_name || "Return"} — {r.store_code}
+          </h1>
           <p className="lead">
             {r.store_name}
             {r.season ? ` · ${r.season}` : ""}
@@ -871,20 +1065,27 @@ export function RTVDetailPage() {
           <p className="eyebrow">Logistics</p>
           <h3 className="h3">{r.logistics_route_label || routeLabel(r.logistics_route)}</h3>
           {r.via_transfer_number && (
-            <p className="lead" style={{ marginTop: 4 }}>via {r.via_transfer_number}</p>
+            <p className="lead" style={{ marginTop: 4 }}>
+              via {r.via_transfer_number}
+            </p>
           )}
         </div>
         <div className="card section-card">
           <p className="eyebrow">Going back</p>
           <h3 className="h3">{totalQty} pcs</h3>
-          <p className="lead" style={{ marginTop: 4 }}>{r.value_paise ? <Money paise={r.value_paise} /> : "—"}</p>
+          <p className="lead" style={{ marginTop: 4 }}>
+            {r.value_paise ? <Money paise={r.value_paise} /> : "—"}
+          </p>
         </div>
         {r.return_window_date && (
           <div className="card section-card">
             <p className="eyebrow">Return window</p>
             <h3 className="h3">{fmtDate(r.return_window_date)}</h3>
             <p className="lead" style={{ marginTop: 4 }}>
-              <span className={`chip chip-${windowTone(r.days_to_window)}`} data-testid="rtv-window-countdown">
+              <span
+                className={`chip chip-${windowTone(r.days_to_window)}`}
+                data-testid="rtv-window-countdown"
+              >
                 {windowText(r.days_to_window)}
               </span>
             </p>
@@ -930,7 +1131,11 @@ export function RTVDetailPage() {
         />
       </div>
 
-      {error && <div className="login-error" style={{ maxWidth: 480 }} data-testid="rtv-detail-error">{error}</div>}
+      {error && (
+        <div className="login-error" style={{ maxWidth: 480 }} data-testid="rtv-detail-error">
+          {error}
+        </div>
+      )}
 
       <div className="table-wrap">
         <table className="data" data-testid="rtv-detail-lines">
@@ -949,7 +1154,9 @@ export function RTVDetailPage() {
           <tbody>
             {r.lines.map((l) => (
               <tr key={l.id}>
-                <td><b className="mono">{l.sku_code}</b></td>
+                <td>
+                  <b className="mono">{l.sku_code}</b>
+                </td>
                 <td>{l.design || "—"}</td>
                 <td>{l.size || "—"}</td>
                 <td>{l.color || "—"}</td>
@@ -960,7 +1167,9 @@ export function RTVDetailPage() {
                   </span>
                 </td>
                 <td className="num">{l.qty}</td>
-                <td className="num">{l.unit_cost_paise ? <Money paise={l.unit_cost_paise} /> : "—"}</td>
+                <td className="num">
+                  {l.unit_cost_paise ? <Money paise={l.unit_cost_paise} /> : "—"}
+                </td>
               </tr>
             ))}
           </tbody>

@@ -48,7 +48,8 @@ export function CounterPinCard({ userId }: { userId: number | string }) {
   function setCounterPin() {
     const typed = pin;
     void run(
-      () => api.post(`/goods-v1/auth/admin/users/${userId}/till-pin`, { pin: typed, ...goodsMeta() }),
+      () =>
+        api.post(`/goods-v1/auth/admin/users/${userId}/till-pin`, { pin: typed, ...goodsMeta() }),
       "Counter PIN set. It works now, and on each till after its next sync.",
     );
   }
@@ -63,8 +64,9 @@ export function CounterPinCard({ userId }: { userId: number | string }) {
   return (
     <div className="pa-counter-pin" data-testid="pa-counter-pin">
       <p className="muted-cell">
-        Counter PIN: <b data-testid="pa-counter-pin-state">{data.has_till_pin ? "set" : "not set"}</b>. A
-        manager can set their own from Till &amp; Sync. Nobody can see a PIN once it is set.
+        Counter PIN:{" "}
+        <b data-testid="pa-counter-pin-state">{data.has_till_pin ? "set" : "not set"}</b>. A manager
+        can set their own from Till &amp; Sync. Nobody can see a PIN once it is set.
       </p>
       {stepUp.dialog}
       <Feedback error={error} ok={ok} />
@@ -95,11 +97,7 @@ export function CounterPinCard({ userId }: { userId: number | string }) {
         </div>
       )}
       {mayChange && data.has_till_pin && (
-        <button
-          className="btn btn-sm"
-          onClick={resetCounterPin}
-          data-testid="pa-counter-pin-reset"
-        >
+        <button className="btn btn-sm" onClick={resetCounterPin} data-testid="pa-counter-pin-reset">
           <KeyRound size={13} /> Reset counter PIN
         </button>
       )}

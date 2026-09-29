@@ -1,12 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import {
-  ArrowLeft,
-  FileX2,
-  Plus,
-  Send,
-  Trash2,
-} from "lucide-react";
+import { ArrowLeft, FileX2, Plus, Send, Trash2 } from "lucide-react";
 
 import { api, apiErrorMessage } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
@@ -23,13 +17,19 @@ import { PageHeader } from "../components/PageHeader";
 // ---------------------------------------------------------------------------
 
 function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(iso).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 const DS_TONE: Record<number, string> = { 0: "grey", 1: "green", 2: "red" };
 const DS_LABEL: Record<number, string> = { 0: "Draft", 1: "Submitted", 2: "Cancelled" };
 function DocPill({ ds }: { ds: number }) {
-  return <span className={`chip chip-${DS_TONE[ds] ?? "grey"} status-pill`}>{DS_LABEL[ds] ?? ds}</span>;
+  return (
+    <span className={`chip chip-${DS_TONE[ds] ?? "grey"} status-pill`}>{DS_LABEL[ds] ?? ds}</span>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -69,7 +69,12 @@ interface WOT {
   lines: WOLineT[];
 }
 
-interface StoreT { id: number; code: string; name: string; store_type: string; }
+interface StoreT {
+  id: number;
+  code: string;
+  name: string;
+  store_type: string;
+}
 
 // ---------------------------------------------------------------------------
 // List
@@ -86,7 +91,11 @@ export function WriteOffListPage() {
       <PageHeader
         actions={
           writable && (
-            <Link className="btn btn-cta" to="/stock-count/writeoffs/new" data-testid="new-writeoff-btn">
+            <Link
+              className="btn btn-cta"
+              to="/stock-count/writeoffs/new"
+              data-testid="new-writeoff-btn"
+            >
               <Plus size={16} /> New write-off
             </Link>
           )
@@ -132,15 +141,23 @@ export function WriteOffListPage() {
                 return (
                   <tr key={w.id} data-testid={`wo-row-${w.id}`}>
                     <td>
-                      <Link to={`/stock-count/writeoffs/${w.id}`} className="link-cell mono" data-testid={`wo-link-${w.id}`}>
+                      <Link
+                        to={`/stock-count/writeoffs/${w.id}`}
+                        className="link-cell mono"
+                        data-testid={`wo-link-${w.id}`}
+                      >
                         <b>{w.doc_number || `Draft #${w.id}`}</b>
                       </Link>
                     </td>
-                    <td><b className="mono">{w.store_code}</b></td>
+                    <td>
+                      <b className="mono">{w.store_code}</b>
+                    </td>
                     <td>{w.reason || "—"}</td>
                     <td className="num">{w.lines.length}</td>
                     <td className="num">{totalQty}</td>
-                    <td><DocPill ds={w.docstatus} /></td>
+                    <td>
+                      <DocPill ds={w.docstatus} />
+                    </td>
                     <td>{fmtDate(w.created_at)}</td>
                   </tr>
                 );
@@ -165,7 +182,11 @@ interface DraftWOLine {
   qty: number | string;
 }
 const emptyLine = (): DraftWOLine => ({
-  sku_code: "", design: "", size: "", color: "", qty: "",
+  sku_code: "",
+  design: "",
+  size: "",
+  color: "",
+  qty: "",
 });
 
 export function WriteOffNewPage() {
@@ -188,8 +209,14 @@ export function WriteOffNewPage() {
 
   async function save() {
     setError("");
-    if (!storeId) { setError("Select a store."); return; }
-    if (!reason.trim()) { setError("Provide a reason for the write-off."); return; }
+    if (!storeId) {
+      setError("Select a store.");
+      return;
+    }
+    if (!reason.trim()) {
+      setError("Provide a reason for the write-off.");
+      return;
+    }
     const payloadLines = lines
       .filter((l) => l.sku_code && Number(l.qty) > 0)
       .map((l) => ({
@@ -199,7 +226,10 @@ export function WriteOffNewPage() {
         color: l.color,
         qty: Number(l.qty),
       }));
-    if (!payloadLines.length) { setError("Add at least one line with a SKU and quantity."); return; }
+    if (!payloadLines.length) {
+      setError("Add at least one line with a SKU and quantity.");
+      return;
+    }
     setSaving(true);
     try {
       // No approver in the payload: the server refuses to let the maker be the
@@ -219,10 +249,17 @@ export function WriteOffNewPage() {
 
   return (
     <div className="page-pad">
-      <Link to="/stock-count/writeoffs" className="btn" style={{ marginBottom: 16 }} data-testid="wo-back-link">
+      <Link
+        to="/stock-count/writeoffs"
+        className="btn"
+        style={{ marginBottom: 16 }}
+        data-testid="wo-back-link"
+      >
         <ArrowLeft size={15} /> Write-offs
       </Link>
-      <h1 className="h1 h2-rust" style={{ marginBottom: 18 }}>New Write-off</h1>
+      <h1 className="h1 h2-rust" style={{ marginBottom: 18 }}>
+        New Write-off
+      </h1>
 
       <div className="card section-card">
         <p className="eyebrow">Step 1 · Write-off details</p>
@@ -230,35 +267,63 @@ export function WriteOffNewPage() {
           <div className="field">
             <label>Store</label>
             {storeLocked && lockedStore ? (
-              <div className="store-lock" data-testid="wo-store-locked">{lockedStore.code} · {lockedStore.name}</div>
+              <div className="store-lock" data-testid="wo-store-locked">
+                {lockedStore.code} · {lockedStore.name}
+              </div>
             ) : (
-              <select className="select" value={storeId} onChange={(e) => setStoreId(e.target.value)} data-testid="wo-store-select">
+              <select
+                className="select"
+                value={storeId}
+                onChange={(e) => setStoreId(e.target.value)}
+                data-testid="wo-store-select"
+              >
                 <option value="">Select store…</option>
-                {stores.map((s) => <option key={s.id} value={s.id}>{s.code} · {s.name}</option>)}
+                {stores.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.code} · {s.name}
+                  </option>
+                ))}
               </select>
             )}
           </div>
           <div className="field">
             <label>Reason</label>
-            <input className="input" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Dead stock clearance, refused defectives" data-testid="wo-reason" />
+            <input
+              className="input"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="e.g. Dead stock clearance, refused defectives"
+              data-testid="wo-reason"
+            />
           </div>
           <div className="field">
             <label>Approval</label>
             <div className="store-lock" data-testid="wo-approved-by">
-              Goes to Action Needed — someone other than you must approve it
-              before it can post.
+              Goes to Action Needed — someone other than you must approve it before it can post.
             </div>
           </div>
         </div>
       </div>
 
       <div className="card section-card">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 10,
+          }}
+        >
           <div>
             <p className="eyebrow">Step 2 · Items to write off</p>
             <h3 className="h3">Write-off lines</h3>
           </div>
-          <button type="button" className="btn" onClick={() => setLines((l) => [...l, emptyLine()])} data-testid="add-wo-line">
+          <button
+            type="button"
+            className="btn"
+            onClick={() => setLines((l) => [...l, emptyLine()])}
+            data-testid="add-wo-line"
+          >
             <Plus size={15} /> Add line
           </button>
         </div>
@@ -276,20 +341,69 @@ export function WriteOffNewPage() {
           <tbody>
             {lines.map((l, i) => (
               <tr key={i}>
-                <td><input value={l.sku_code} onChange={(e) => setLine(i, "sku_code", e.target.value)} data-testid={`wo-sku-${i}`} /></td>
-                <td><input value={l.design} onChange={(e) => setLine(i, "design", e.target.value)} data-testid={`wo-design-${i}`} /></td>
-                <td><input value={l.size} onChange={(e) => setLine(i, "size", e.target.value)} data-testid={`wo-size-${i}`} /></td>
-                <td><input value={l.color} onChange={(e) => setLine(i, "color", e.target.value)} data-testid={`wo-color-${i}`} /></td>
-                <td><input className="num" value={l.qty} onChange={(e) => setLine(i, "qty", e.target.value)} data-testid={`wo-qty-${i}`} /></td>
-                <td><button type="button" className="line-del" onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))} data-testid={`delete-wo-line-${i}`}><Trash2 size={15} /></button></td>
+                <td>
+                  <input
+                    value={l.sku_code}
+                    onChange={(e) => setLine(i, "sku_code", e.target.value)}
+                    data-testid={`wo-sku-${i}`}
+                  />
+                </td>
+                <td>
+                  <input
+                    value={l.design}
+                    onChange={(e) => setLine(i, "design", e.target.value)}
+                    data-testid={`wo-design-${i}`}
+                  />
+                </td>
+                <td>
+                  <input
+                    value={l.size}
+                    onChange={(e) => setLine(i, "size", e.target.value)}
+                    data-testid={`wo-size-${i}`}
+                  />
+                </td>
+                <td>
+                  <input
+                    value={l.color}
+                    onChange={(e) => setLine(i, "color", e.target.value)}
+                    data-testid={`wo-color-${i}`}
+                  />
+                </td>
+                <td>
+                  <input
+                    className="num"
+                    value={l.qty}
+                    onChange={(e) => setLine(i, "qty", e.target.value)}
+                    data-testid={`wo-qty-${i}`}
+                  />
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    className="line-del"
+                    onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))}
+                    data-testid={`delete-wo-line-${i}`}
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      {error && <div className="login-error" style={{ maxWidth: 480 }} data-testid="wo-create-error">{error}</div>}
-      <button className="btn btn-primary btn-lg" disabled={saving} onClick={save} data-testid="save-wo-btn">
+      {error && (
+        <div className="login-error" style={{ maxWidth: 480 }} data-testid="wo-create-error">
+          {error}
+        </div>
+      )}
+      <button
+        className="btn btn-primary btn-lg"
+        disabled={saving}
+        onClick={save}
+        data-testid="save-wo-btn"
+      >
         <FileX2 size={16} /> {saving ? "Saving…" : "Create write-off (draft)"}
       </button>
     </div>
@@ -308,7 +422,12 @@ export function WriteOffDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  if (loading || !w) return <div className="page-pad"><p className="lead">Loading…</p></div>;
+  if (loading || !w)
+    return (
+      <div className="page-pad">
+        <p className="lead">Loading…</p>
+      </div>
+    );
 
   const totalQty = w.lines.reduce((s, l) => s + l.qty, 0);
   const totalValue = w.lines.reduce((s, l) => s + l.qty * l.unit_cost_paise, 0);
@@ -332,14 +451,21 @@ export function WriteOffDetailPage() {
 
   return (
     <div className="page-pad">
-      <Link to="/stock-count/writeoffs" className="btn" style={{ marginBottom: 16 }} data-testid="wo-detail-back">
+      <Link
+        to="/stock-count/writeoffs"
+        className="btn"
+        style={{ marginBottom: 16 }}
+        data-testid="wo-detail-back"
+      >
         <ArrowLeft size={15} /> Write-offs
       </Link>
       <div className="toolbar">
         <div>
           <p className="eyebrow">{w.doc_number || `Draft #${w.id}`}</p>
           <h1 className="h1">Write-off — {w.store_code}</h1>
-          <p className="lead">{w.store_name} · {w.reason || "No reason"}</p>
+          <p className="lead">
+            {w.store_name} · {w.reason || "No reason"}
+          </p>
         </div>
         <div className="spacer" />
         <DocPill ds={w.docstatus} />
@@ -386,7 +512,11 @@ export function WriteOffDetailPage() {
         />
       </div>
 
-      {error && <div className="login-error" style={{ maxWidth: 480 }} data-testid="wo-detail-error">{error}</div>}
+      {error && (
+        <div className="login-error" style={{ maxWidth: 480 }} data-testid="wo-detail-error">
+          {error}
+        </div>
+      )}
 
       <div className="table-wrap">
         <table className="data" data-testid="wo-detail-lines">
@@ -404,13 +534,17 @@ export function WriteOffDetailPage() {
           <tbody>
             {w.lines.map((l) => (
               <tr key={l.id}>
-                <td><b className="mono">{l.sku_code}</b></td>
+                <td>
+                  <b className="mono">{l.sku_code}</b>
+                </td>
                 <td>{l.design || "—"}</td>
                 <td>{l.size || "—"}</td>
                 <td>{l.color || "—"}</td>
                 <td>{l.brand || "—"}</td>
                 <td className="num">{l.qty}</td>
-                <td className="num">{l.unit_cost_paise ? <Money paise={l.unit_cost_paise} /> : "—"}</td>
+                <td className="num">
+                  {l.unit_cost_paise ? <Money paise={l.unit_cost_paise} /> : "—"}
+                </td>
               </tr>
             ))}
           </tbody>

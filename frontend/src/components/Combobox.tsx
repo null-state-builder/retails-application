@@ -100,9 +100,7 @@ export function Combobox({
 
   useEffect(() => {
     if (!open) return;
-    listRef.current
-      ?.querySelector(`[data-idx="${active}"]`)
-      ?.scrollIntoView({ block: "nearest" });
+    listRef.current?.querySelector(`[data-idx="${active}"]`)?.scrollIntoView({ block: "nearest" });
   }, [active, open]);
 
   function onKeyDown(e: React.KeyboardEvent) {

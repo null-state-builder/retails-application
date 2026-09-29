@@ -53,7 +53,12 @@ interface Change {
 }
 
 interface Detail extends Row {
-  cohorts: { season: string; unit_cost_paise: number; mrp_paise: number | null; last_doc_number: string }[];
+  cohorts: {
+    season: string;
+    unit_cost_paise: number;
+    mrp_paise: number | null;
+    last_doc_number: string;
+  }[];
   history: Change[];
 }
 
@@ -118,7 +123,9 @@ export function PriceListPage() {
           <button
             type="button"
             className="btn btn-cta"
-            onClick={() => setPrintingRows((data?.rows || []).filter((r) => selected.has(r.barcode)))}
+            onClick={() =>
+              setPrintingRows((data?.rows || []).filter((r) => selected.has(r.barcode)))
+            }
             data-testid="price-print-selected"
           >
             <Printer size={14} /> Print {selected.size} selected tag{selected.size === 1 ? "" : "s"}
@@ -310,7 +317,8 @@ function PriceDetail({
                 ) : (
                   data.cohorts.map((c, i) => (
                     <p className="price-sub" key={i}>
-                      {c.season || "—"} · cost {money(c.unit_cost_paise)} · {c.last_doc_number || "no doc"}
+                      {c.season || "—"} · cost {money(c.unit_cost_paise)} ·{" "}
+                      {c.last_doc_number || "no doc"}
                     </p>
                   ))
                 )}

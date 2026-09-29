@@ -77,7 +77,13 @@ function useChecklist(store: string) {
 }
 
 /** The lists themselves, as Today's card and the full page both draw them. */
-export function StoreChecklist({ store = "", compact = false }: { store?: string; compact?: boolean }) {
+export function StoreChecklist({
+  store = "",
+  compact = false,
+}: {
+  store?: string;
+  compact?: boolean;
+}) {
   const { data, error, setError, online, setOnline, lost, setLost, load } = useChecklist(store);
   const [busy, setBusy] = useState("");
   const [saved, setSaved] = useState("");
@@ -127,7 +133,12 @@ export function StoreChecklist({ store = "", compact = false }: { store?: string
       {online && (
         <>
           {" "}
-          <button type="button" className="btn" data-testid="checklist-retry" onClick={() => void load()}>
+          <button
+            type="button"
+            className="btn"
+            data-testid="checklist-retry"
+            onClick={() => void load()}
+          >
             Try again
           </button>
         </>
@@ -172,14 +183,18 @@ export function StoreChecklist({ store = "", compact = false }: { store?: string
         </p>
       ) : (
         data.lists.map((list) => (
-          <ChecklistBlock key={`${list.template_id}-${list.due_on}`} list={list} disabled={disabled} busy={busy} onTick={tick} />
+          <ChecklistBlock
+            key={`${list.template_id}-${list.due_on}`}
+            list={list}
+            disabled={disabled}
+            busy={busy}
+            onTick={tick}
+          />
         ))
       )}
       {data.missed.length > 0 && (
         <div className="cl-missed" data-testid="checklist-missed">
-          <p className="cl-missed-head">
-            Missed in the last {data.missed_days} days, still to do
-          </p>
+          <p className="cl-missed-head">Missed in the last {data.missed_days} days, still to do</p>
           {data.missed.map((list) => (
             <ChecklistBlock
               key={`${list.template_id}-${list.due_on}`}
@@ -220,7 +235,9 @@ function ChecklistBlock({
       <div className="cl-list-head">
         <b>{list.name}</b>
         <span className="cl-when">
-          {missed ? `Was due ${dayText(list.due_on)}, ${dueByText(list.due_by)}` : `Due ${dueByText(list.due_by)}`}
+          {missed
+            ? `Was due ${dayText(list.due_on)}, ${dueByText(list.due_by)}`
+            : `Due ${dueByText(list.due_by)}`}
           {!missed && <> · {progressText(list.items)}</>}
         </span>
       </div>
@@ -281,12 +298,17 @@ function ChecklistItem({
         )}
         {done ? (
           <span className="cl-meta" data-testid="checklist-ticked">
-            {done.by} · {new Date(done.at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+            {done.by} ·{" "}
+            {new Date(done.at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
             {done.late && " · late"}
             {done.has_photo && (
               <>
                 {" · "}
-                <a href={apiUrl(`/store/checklists/ticks/${done.id}/photo`)} target="_blank" rel="noreferrer">
+                <a
+                  href={apiUrl(`/store/checklists/ticks/${done.id}/photo`)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   Photo
                 </a>
               </>
@@ -311,7 +333,10 @@ function ChecklistItem({
           >
             {sending ? "Ticking…" : "Tick"}
           </button>
-          <label className={`btn btn-sm cl-photo ${disabled ? "cl-photo-off" : ""}`} title="Tick with a photo">
+          <label
+            className={`btn btn-sm cl-photo ${disabled ? "cl-photo-off" : ""}`}
+            title="Tick with a photo"
+          >
             <Camera size={14} /> Photo
             <input
               key={fileKey}

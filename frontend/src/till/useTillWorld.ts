@@ -97,16 +97,15 @@ export function useTillWorld(db: TillDb | null, version: string): TillWorld {
 
   const load = useCallback(async (): Promise<TillWorld> => {
     if (!db) return EMPTY;
-    const [items, stock, offers, seasons, slabs, salespeople, managers] =
-      await Promise.all([
-        db.items.toArray(),
-        db.stock.toArray(),
-        db.offers.toArray(),
-        db.seasons.toArray(),
-        db.gstSlabs.toArray(),
-        db.salespeople.toArray(),
-        db.managers.toArray(),
-      ]);
+    const [items, stock, offers, seasons, slabs, salespeople, managers] = await Promise.all([
+      db.items.toArray(),
+      db.stock.toArray(),
+      db.offers.toArray(),
+      db.seasons.toArray(),
+      db.gstSlabs.toArray(),
+      db.salespeople.toArray(),
+      db.managers.toArray(),
+    ]);
     return {
       items,
       stock,

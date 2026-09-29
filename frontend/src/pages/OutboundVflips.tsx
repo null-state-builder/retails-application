@@ -1,11 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import {
-  ArrowLeft,
-  Plus,
-  RefreshCw,
-  Trash2,
-} from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw, Trash2 } from "lucide-react";
 
 import { api, apiErrorMessage } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
@@ -22,13 +17,19 @@ import { PageHeader } from "../components/PageHeader";
 // ---------------------------------------------------------------------------
 
 function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(iso).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 const DS_TONE: Record<number, string> = { 0: "grey", 1: "green", 2: "red" };
 const DS_LABEL: Record<number, string> = { 0: "Draft", 1: "Submitted", 2: "Cancelled" };
 function DocPill({ ds }: { ds: number }) {
-  return <span className={`chip chip-${DS_TONE[ds] ?? "grey"} status-pill`}>{DS_LABEL[ds] ?? ds}</span>;
+  return (
+    <span className={`chip chip-${DS_TONE[ds] ?? "grey"} status-pill`}>{DS_LABEL[ds] ?? ds}</span>
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -70,8 +71,16 @@ interface VFlipT {
   lines: VFlipLineT[];
 }
 
-interface StoreT { id: number; code: string; name: string; store_type: string; }
-interface BrandT { id: number; name: string; }
+interface StoreT {
+  id: number;
+  code: string;
+  name: string;
+  store_type: string;
+}
+interface BrandT {
+  id: number;
+  name: string;
+}
 
 // ---------------------------------------------------------------------------
 // List
@@ -96,10 +105,18 @@ export function VFlipListPage() {
         }
       />
 
-      <div className="card section-card" style={{ marginBottom: 18, padding: "14px 18px" }} data-testid="vflip-info-banner">
+      <div
+        className="card section-card"
+        style={{ marginBottom: 18, padding: "14px 18px" }}
+        data-testid="vflip-info-banner"
+      >
         <p className="lead" style={{ margin: 0 }}>
-          <RefreshCw size={14} style={{ verticalAlign: "middle", marginRight: 6, color: "var(--rust)" }} />
-          V-flip converts brand-owned SOR/consignment stock to KDPS-owned. Physical stock stays on shelf; brand display prefixed with "V ".
+          <RefreshCw
+            size={14}
+            style={{ verticalAlign: "middle", marginRight: 6, color: "var(--rust)" }}
+          />
+          V-flip converts brand-owned SOR/consignment stock to KDPS-owned. Physical stock stays on
+          shelf; brand display prefixed with "V ".
         </p>
       </div>
 
@@ -143,16 +160,24 @@ export function VFlipListPage() {
                 return (
                   <tr key={v.id} data-testid={`vflip-row-${v.id}`}>
                     <td>
-                      <Link to={`/stock/vflips/${v.id}`} className="link-cell mono" data-testid={`vflip-link-${v.id}`}>
+                      <Link
+                        to={`/stock/vflips/${v.id}`}
+                        className="link-cell mono"
+                        data-testid={`vflip-link-${v.id}`}
+                      >
                         <b>{v.doc_number || `Draft #${v.id}`}</b>
                       </Link>
                     </td>
-                    <td><b className="mono">{v.store_code}</b></td>
+                    <td>
+                      <b className="mono">{v.store_code}</b>
+                    </td>
                     <td>{v.original_brand_name}</td>
                     <td>{v.season || "—"}</td>
                     <td className="num">{v.lines.length}</td>
                     <td className="num">{totalQty}</td>
-                    <td><DocPill ds={v.docstatus} /></td>
+                    <td>
+                      <DocPill ds={v.docstatus} />
+                    </td>
                     <td>{fmtDate(v.created_at)}</td>
                   </tr>
                 );
@@ -177,7 +202,11 @@ interface DraftVFlipLine {
   qty: number | string;
 }
 const emptyLine = (): DraftVFlipLine => ({
-  sku_code: "", design: "", size: "", color: "", qty: "",
+  sku_code: "",
+  design: "",
+  size: "",
+  color: "",
+  qty: "",
 });
 
 export function VFlipNewPage() {
@@ -202,8 +231,14 @@ export function VFlipNewPage() {
 
   async function save() {
     setError("");
-    if (!storeId) { setError("Select a store."); return; }
-    if (!brandId) { setError("Select the original brand."); return; }
+    if (!storeId) {
+      setError("Select a store.");
+      return;
+    }
+    if (!brandId) {
+      setError("Select the original brand.");
+      return;
+    }
     const payloadLines = lines
       .filter((l) => l.sku_code && Number(l.qty) > 0)
       .map((l) => ({
@@ -213,7 +248,10 @@ export function VFlipNewPage() {
         color: l.color,
         qty: Number(l.qty),
       }));
-    if (!payloadLines.length) { setError("Add at least one line with a SKU and quantity."); return; }
+    if (!payloadLines.length) {
+      setError("Add at least one line with a SKU and quantity.");
+      return;
+    }
     setSaving(true);
     try {
       // No authoriser in the payload: the server refuses to let the maker be
@@ -234,10 +272,17 @@ export function VFlipNewPage() {
 
   return (
     <div className="page-pad">
-      <Link to="/stock/vflips" className="btn" style={{ marginBottom: 16 }} data-testid="vflip-back-link">
+      <Link
+        to="/stock/vflips"
+        className="btn"
+        style={{ marginBottom: 16 }}
+        data-testid="vflip-back-link"
+      >
         <ArrowLeft size={15} /> V-Flips
       </Link>
-      <h1 className="h1 h2-rust" style={{ marginBottom: 18 }}>New V-Flip</h1>
+      <h1 className="h1 h2-rust" style={{ marginBottom: 18 }}>
+        New V-Flip
+      </h1>
 
       <div className="card section-card">
         <p className="eyebrow">Step 1 · Flip details</p>
@@ -245,24 +290,50 @@ export function VFlipNewPage() {
           <div className="field">
             <label>Store</label>
             {storeLocked && lockedStore ? (
-              <div className="store-lock" data-testid="vflip-store-locked">{lockedStore.code} · {lockedStore.name}</div>
+              <div className="store-lock" data-testid="vflip-store-locked">
+                {lockedStore.code} · {lockedStore.name}
+              </div>
             ) : (
-              <select className="select" value={storeId} onChange={(e) => setStoreId(e.target.value)} data-testid="vflip-store-select">
+              <select
+                className="select"
+                value={storeId}
+                onChange={(e) => setStoreId(e.target.value)}
+                data-testid="vflip-store-select"
+              >
                 <option value="">Select store…</option>
-                {stores.map((s) => <option key={s.id} value={s.id}>{s.code} · {s.name}</option>)}
+                {stores.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.code} · {s.name}
+                  </option>
+                ))}
               </select>
             )}
           </div>
           <div className="field">
             <label>Original brand (SOR/consignment)</label>
-            <select className="select" value={brandId} onChange={(e) => setBrandId(e.target.value)} data-testid="vflip-brand-select">
+            <select
+              className="select"
+              value={brandId}
+              onChange={(e) => setBrandId(e.target.value)}
+              data-testid="vflip-brand-select"
+            >
               <option value="">Select brand…</option>
-              {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+              {brands.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
             </select>
           </div>
           <div className="field">
             <label>Season</label>
-            <input className="input" value={season} onChange={(e) => setSeason(e.target.value)} placeholder="e.g. AW24" data-testid="vflip-season" />
+            <input
+              className="input"
+              value={season}
+              onChange={(e) => setSeason(e.target.value)}
+              placeholder="e.g. AW24"
+              data-testid="vflip-season"
+            />
           </div>
           <div className="field">
             <label>Authorized by</label>
@@ -274,12 +345,24 @@ export function VFlipNewPage() {
       </div>
 
       <div className="card section-card">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 10,
+          }}
+        >
           <div>
             <p className="eyebrow">Step 2 · Items to flip</p>
             <h3 className="h3">V-flip lines</h3>
           </div>
-          <button type="button" className="btn" onClick={() => setLines((l) => [...l, emptyLine()])} data-testid="add-vflip-line">
+          <button
+            type="button"
+            className="btn"
+            onClick={() => setLines((l) => [...l, emptyLine()])}
+            data-testid="add-vflip-line"
+          >
             <Plus size={15} /> Add line
           </button>
         </div>
@@ -297,20 +380,69 @@ export function VFlipNewPage() {
           <tbody>
             {lines.map((l, i) => (
               <tr key={i}>
-                <td><input value={l.sku_code} onChange={(e) => setLine(i, "sku_code", e.target.value)} data-testid={`vf-sku-${i}`} /></td>
-                <td><input value={l.design} onChange={(e) => setLine(i, "design", e.target.value)} data-testid={`vf-design-${i}`} /></td>
-                <td><input value={l.size} onChange={(e) => setLine(i, "size", e.target.value)} data-testid={`vf-size-${i}`} /></td>
-                <td><input value={l.color} onChange={(e) => setLine(i, "color", e.target.value)} data-testid={`vf-color-${i}`} /></td>
-                <td><input className="num" value={l.qty} onChange={(e) => setLine(i, "qty", e.target.value)} data-testid={`vf-qty-${i}`} /></td>
-                <td><button type="button" className="line-del" onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))} data-testid={`delete-vf-line-${i}`}><Trash2 size={15} /></button></td>
+                <td>
+                  <input
+                    value={l.sku_code}
+                    onChange={(e) => setLine(i, "sku_code", e.target.value)}
+                    data-testid={`vf-sku-${i}`}
+                  />
+                </td>
+                <td>
+                  <input
+                    value={l.design}
+                    onChange={(e) => setLine(i, "design", e.target.value)}
+                    data-testid={`vf-design-${i}`}
+                  />
+                </td>
+                <td>
+                  <input
+                    value={l.size}
+                    onChange={(e) => setLine(i, "size", e.target.value)}
+                    data-testid={`vf-size-${i}`}
+                  />
+                </td>
+                <td>
+                  <input
+                    value={l.color}
+                    onChange={(e) => setLine(i, "color", e.target.value)}
+                    data-testid={`vf-color-${i}`}
+                  />
+                </td>
+                <td>
+                  <input
+                    className="num"
+                    value={l.qty}
+                    onChange={(e) => setLine(i, "qty", e.target.value)}
+                    data-testid={`vf-qty-${i}`}
+                  />
+                </td>
+                <td>
+                  <button
+                    type="button"
+                    className="line-del"
+                    onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))}
+                    data-testid={`delete-vf-line-${i}`}
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      {error && <div className="login-error" style={{ maxWidth: 480 }} data-testid="vflip-create-error">{error}</div>}
-      <button className="btn btn-primary btn-lg" disabled={saving} onClick={save} data-testid="save-vflip-btn">
+      {error && (
+        <div className="login-error" style={{ maxWidth: 480 }} data-testid="vflip-create-error">
+          {error}
+        </div>
+      )}
+      <button
+        className="btn btn-primary btn-lg"
+        disabled={saving}
+        onClick={save}
+        data-testid="save-vflip-btn"
+      >
         <RefreshCw size={16} /> {saving ? "Saving…" : "Create V-flip (draft)"}
       </button>
     </div>
@@ -330,7 +462,12 @@ export function VFlipDetailPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState("");
 
-  if (loading || !v) return <div className="page-pad"><p className="lead">Loading…</p></div>;
+  if (loading || !v)
+    return (
+      <div className="page-pad">
+        <p className="lead">Loading…</p>
+      </div>
+    );
 
   const totalQty = v.lines.reduce((s, l) => s + l.qty, 0);
   const totalValue = v.lines.reduce((s, l) => s + l.qty * l.unit_cost_paise, 0);
@@ -353,7 +490,12 @@ export function VFlipDetailPage() {
 
   return (
     <div className="page-pad">
-      <Link to="/stock/vflips" className="btn" style={{ marginBottom: 16 }} data-testid="vflip-detail-back">
+      <Link
+        to="/stock/vflips"
+        className="btn"
+        style={{ marginBottom: 16 }}
+        data-testid="vflip-detail-back"
+      >
         <ArrowLeft size={15} /> V-Flips
       </Link>
       <div className="toolbar">
@@ -387,15 +529,18 @@ export function VFlipDetailPage() {
           <div className="modal">
             <div className="modal-head">
               <h3 className="h3">Confirm V-flip</h3>
-              <button type="button" className="btn" onClick={() => setShowConfirm(false)}>Cancel</button>
+              <button type="button" className="btn" onClick={() => setShowConfirm(false)}>
+                Cancel
+              </button>
             </div>
             <p className="lead" style={{ marginBottom: 14 }}>
-              This will permanently convert <b>{totalQty} pcs</b> of <b>{v.original_brand_name}</b> stock
-              at <b>{v.store_code}</b> from brand-owned (SOR/consignment) to KDPS-owned.
-              The physical stock stays on the shelf. The brand display will be prefixed with "V ".
+              This will permanently convert <b>{totalQty} pcs</b> of <b>{v.original_brand_name}</b>{" "}
+              stock at <b>{v.store_code}</b> from brand-owned (SOR/consignment) to KDPS-owned. The
+              physical stock stays on the shelf. The brand display will be prefixed with "V ".
             </p>
             <p className="lead" style={{ marginBottom: 14 }}>
-              Settlement claim tracking will be handled in Sprint 8 (Payments). This action <b>cannot be undone</b>.
+              Settlement claim tracking will be handled in Sprint 8 (Payments). This action{" "}
+              <b>cannot be undone</b>.
             </p>
             <button
               className="btn btn-cta btn-lg"
@@ -438,7 +583,11 @@ export function VFlipDetailPage() {
         />
       </div>
 
-      {error && <div className="login-error" style={{ maxWidth: 480 }} data-testid="vflip-detail-error">{error}</div>}
+      {error && (
+        <div className="login-error" style={{ maxWidth: 480 }} data-testid="vflip-detail-error">
+          {error}
+        </div>
+      )}
 
       <div className="table-wrap">
         <table className="data" data-testid="vflip-detail-lines">
@@ -457,14 +606,18 @@ export function VFlipDetailPage() {
           <tbody>
             {v.lines.map((l) => (
               <tr key={l.id}>
-                <td><b className="mono">{l.sku_code}</b></td>
+                <td>
+                  <b className="mono">{l.sku_code}</b>
+                </td>
                 <td>{l.design || "—"}</td>
                 <td>{l.size || "—"}</td>
                 <td>{l.color || "—"}</td>
                 <td>{l.brand || "—"}</td>
                 <td>{l.season || "—"}</td>
                 <td className="num">{l.qty}</td>
-                <td className="num">{l.unit_cost_paise ? <Money paise={l.unit_cost_paise} /> : "—"}</td>
+                <td className="num">
+                  {l.unit_cost_paise ? <Money paise={l.unit_cost_paise} /> : "—"}
+                </td>
               </tr>
             ))}
           </tbody>

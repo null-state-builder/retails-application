@@ -165,7 +165,8 @@ function OfferCard({ row }: { row: RunningOffer }) {
       <div className="toolbar">
         <div>
           <p className="eyebrow">
-            <Tag size={13} /> <span data-testid={`running-source-${row.id}`}>{sourceLabel(row)}</span>
+            <Tag size={13} />{" "}
+            <span data-testid={`running-source-${row.id}`}>{sourceLabel(row)}</span>
           </p>
           <h3 className="h3">{row.name}</h3>
           <p className="lead" data-testid={`running-reward-${row.id}`}>
@@ -214,8 +215,8 @@ function OfferCard({ row }: { row: RunningOffer }) {
 
           {row.items_truncated && (
             <p className="hint" data-testid={`running-truncated-${row.id}`}>
-              This rule reaches {row.items_count} pieces; the first {row.items.length} are
-              listed. Search for the one you are holding.
+              This rule reaches {row.items_count} pieces; the first {row.items.length} are listed.
+              Search for the one you are holding.
             </p>
           )}
 

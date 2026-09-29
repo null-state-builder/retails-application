@@ -45,9 +45,7 @@ export function TransferRequestsPage() {
   const others = sites.filter((s) => String(s.id) !== String(site));
   const source = sourceId || others[0]?.id || "";
 
-  const list = useAllPages<TransferRequestRow>(
-    site ? `${REQUESTS}?site=${site}&limit=100` : null,
-  );
+  const list = useAllPages<TransferRequestRow>(site ? `${REQUESTS}?site=${site}&limit=100` : null);
   // What the other site could actually send. A request for something nobody
   // has is a request nobody can answer, so the list is the sending site's own
   // transferable stock rather than a free-text product search.
@@ -85,7 +83,9 @@ export function TransferRequestsPage() {
       });
       setAsks({});
       setNote("");
-      setOk("Asked. Nothing is reserved until the sending site drafts it and somebody approves it.");
+      setOk(
+        "Asked. Nothing is reserved until the sending site drafts it and somebody approves it.",
+      );
       list.reload();
     } catch (e) {
       setError(apiErrorMessage(e));
@@ -206,7 +206,7 @@ export function TransferRequestsPage() {
           </p>
         </div>
       ) : (
-        state ?? (
+        (state ?? (
           <div className="table-wrap">
             <table className="data" data-testid="requests-table">
               <caption className="sr-only">
@@ -238,7 +238,7 @@ export function TransferRequestsPage() {
               </tbody>
             </table>
           </div>
-        )
+        ))
       )}
     </div>
   );

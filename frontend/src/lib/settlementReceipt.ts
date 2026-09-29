@@ -31,8 +31,7 @@ export interface SettlementReceiptData {
 function esc(text: string): string {
   return text.replace(
     /[&<>"']/g,
-    (c) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string,
   );
 }
 
@@ -66,7 +65,9 @@ export function settlementReceiptHtml(entry: SettlementReceiptData): string {
     ["Mode", MODE_WORDS[entry.mode] ?? esc(entry.mode || "—")],
     ...(entry.reference ? ([["Reference", esc(entry.reference)]] as [string, string][]) : []),
     ...(entry.description ? ([["Note", esc(entry.description)]] as [string, string][]) : []),
-    ...(entry.posted_by_name ? ([["Recorded by", esc(entry.posted_by_name)]] as [string, string][]) : []),
+    ...(entry.posted_by_name
+      ? ([["Recorded by", esc(entry.posted_by_name)]] as [string, string][])
+      : []),
   ];
 
   return `<!doctype html>

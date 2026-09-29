@@ -78,7 +78,11 @@ export interface Pending extends Attempt {
 /** The command identity for `attempt`. Pressing the very same Save again after a
  *  dropped connection replays the command it was sent under, so the server never
  *  sets the budget twice. Anything else is a new command. */
-export function commandIdFor(pending: Pending | null, attempt: Attempt, fresh: () => string): string {
+export function commandIdFor(
+  pending: Pending | null,
+  attempt: Attempt,
+  fresh: () => string,
+): string {
   const same =
     pending !== null &&
     pending.key === attempt.key &&

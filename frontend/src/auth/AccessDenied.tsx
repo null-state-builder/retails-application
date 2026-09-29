@@ -8,7 +8,9 @@ export function AccessDenied() {
   return (
     <div className="page-pad">
       <p className="eyebrow">Access</p>
-      <h1 className="h1" style={{ marginBottom: 20 }}>No access</h1>
+      <h1 className="h1" style={{ marginBottom: 20 }}>
+        No access
+      </h1>
       <div
         className="card"
         style={{ padding: "44px 38px", borderTop: "3px solid var(--layer-controls)" }}
@@ -30,7 +32,9 @@ export function AccessDenied() {
         >
           <ShieldAlert size={26} />
         </div>
-        <h3 className="h3" style={{ marginBottom: 8 }}>You don't have access to this page</h3>
+        <h3 className="h3" style={{ marginBottom: 8 }}>
+          You don't have access to this page
+        </h3>
         <p className="lead" style={{ maxWidth: 560, lineHeight: 1.65 }}>
           This page is limited to certain roles. If you believe you should have access, ask an
           administrator to review your role.

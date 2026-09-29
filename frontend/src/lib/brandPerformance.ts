@@ -23,7 +23,12 @@ export interface BrandPerformanceFilters {
 /** This month so far, each brand at each store. */
 export function defaultBrandPerformanceFilters(now: Date = new Date()): BrandPerformanceFilters {
   const today = indiaDate(now);
-  return { store: "", date_from: `${today.slice(0, 8)}01`, date_to: today, group_by: "brand_store" };
+  return {
+    store: "",
+    date_from: `${today.slice(0, 8)}01`,
+    date_to: today,
+    group_by: "brand_store",
+  };
 }
 
 /** Only the filters that are set, as query parameters; brand and store is the default. */

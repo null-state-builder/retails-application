@@ -23,13 +23,17 @@ export interface CorrectionDraft {
 }
 
 function sameSize(a: string, b: string): boolean {
-  return a.trim().replace(/\s+/g, " ").toUpperCase() === b.trim().replace(/\s+/g, " ").toUpperCase();
+  return (
+    a.trim().replace(/\s+/g, " ").toUpperCase() === b.trim().replace(/\s+/g, " ").toUpperCase()
+  );
 }
 
 /** Where a size came from, in words. */
 export function savedSizeNote(row: SavedSize, when: (iso: string) => string): string {
   if (row.how === "staff") return `Corrected with the customer's agreement ${when(row.as_of)}`;
-  return row.doc_number ? `From bill ${row.doc_number} ${when(row.as_of)}` : `From a bill ${when(row.as_of)}`;
+  return row.doc_number
+    ? `From bill ${row.doc_number} ${when(row.as_of)}`
+    : `From a bill ${when(row.as_of)}`;
 }
 
 /** Why a correction cannot be sent yet, or "" when it can. */

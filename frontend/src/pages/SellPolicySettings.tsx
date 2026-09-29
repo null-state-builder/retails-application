@@ -72,7 +72,8 @@ export function SellPolicySettingsPage() {
         <section className="card section-card" data-testid="sell-policy-card">
           <h2 className="h3">Manual discounts</h2>
           <p className="muted-cell">
-            These are head-office limits. The counter applies them offline and cannot use a manager PIN to go past them.
+            These are head-office limits. The counter applies them offline and cannot use a manager
+            PIN to go past them.
           </p>
           {loading ? (
             <p>Loading policy…</p>

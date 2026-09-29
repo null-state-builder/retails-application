@@ -45,7 +45,12 @@ export function BrandClaimsPage() {
   const [list, setList] = useState<BrandClaimList | null>(null);
   const [claim, setClaim] = useState<BrandClaimDetail | null>(null);
   const [acceptNote, setAcceptNote] = useState("");
-  const [settle, setSettle] = useState<SettleDraft>({ number: "", date: today(), rupees: "", reason: "" });
+  const [settle, setSettle] = useState<SettleDraft>({
+    number: "",
+    date: today(),
+    rupees: "",
+    reason: "",
+  });
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
@@ -191,7 +196,12 @@ export function BrandClaimsPage() {
           {online && (
             <>
               {" "}
-              <button type="button" className="btn" data-testid="bc-retry" onClick={() => void load()}>
+              <button
+                type="button"
+                className="btn"
+                data-testid="bc-retry"
+                onClick={() => void load()}
+              >
                 Try again
               </button>
             </>
@@ -225,14 +235,16 @@ export function BrandClaimsPage() {
           <p data-testid="bc-next">{nextStep(claim)}</p>
           {claim.promotion_flag && (
             <p className="warn-note" data-testid="bc-flag">
-              {claim.brand.name} has a promotion-services agreement. Money paid under it may be payment
-              for a service, not a discount. Accounts to check before treating it as a discount claim.
+              {claim.brand.name} has a promotion-services agreement. Money paid under it may be
+              payment for a service, not a discount. Accounts to check before treating it as a
+              discount claim.
             </p>
           )}
           {!claim.switched_on && (claim.status === "raised" || claim.status === "accepted") && (
             <p className="warn-note" data-testid="bc-switched-off">
-              Brand discount claims are switched off at {claim.store.name}. The claim stays here, but it
-              cannot be moved on until Admin switches them on again in Setup, Feature Switches.
+              Brand discount claims are switched off at {claim.store.name}. The claim stays here,
+              but it cannot be moved on until Admin switches them on again in Setup, Feature
+              Switches.
             </p>
           )}
           <dl className="facts" data-testid="bc-facts">
@@ -245,7 +257,9 @@ export function BrandClaimsPage() {
             <dt>Month</dt>
             <dd>
               {monthLabel(claim.month)}
-              {claim.sequence > 1 ? ` (claim ${claim.sequence}: bills that arrived after the first)` : ""}
+              {claim.sequence > 1
+                ? ` (claim ${claim.sequence}: bills that arrived after the first)`
+                : ""}
             </dd>
             <dt>Claimed</dt>
             <dd data-testid="bc-amount">
@@ -255,8 +269,8 @@ export function BrandClaimsPage() {
               <>
                 <dt>Not claimed</dt>
                 <dd data-testid="bc-unknown">
-                  <Money paise={Number(claim.unknown_paise)} /> of this brand's offer discount has an
-                  unknown split (no approved terms or share), so it is not claimed.
+                  <Money paise={Number(claim.unknown_paise)} /> of this brand's offer discount has
+                  an unknown split (no approved terms or share), so it is not claimed.
                 </dd>
               </>
             )}
@@ -268,7 +282,8 @@ export function BrandClaimsPage() {
               <>
                 <dt>Accepted</dt>
                 <dd data-testid="bc-accepted">
-                  {claim.accepted_on} ({claim.accepted_by}){claim.accepted_note ? `: ${claim.accepted_note}` : ""}
+                  {claim.accepted_on} ({claim.accepted_by})
+                  {claim.accepted_note ? `: ${claim.accepted_note}` : ""}
                 </dd>
               </>
             )}
@@ -291,8 +306,8 @@ export function BrandClaimsPage() {
             )}
           </dl>
           <p className="muted-cell">
-            Settled through the brand's commercial credit note: no GST effect on our bills. Not posted to
-            the accounts.
+            Settled through the brand's commercial credit note: no GST effect on our bills. Not
+            posted to the accounts.
           </p>
 
           {allowed.has("accept") && (
@@ -449,8 +464,8 @@ export function BrandClaimsPage() {
           <>
             {!list.switched_on && (
               <p className="warn-note" data-testid="bc-off">
-                Brand discount claims are switched off at every store you work at. Claims already raised
-                stay here to read.
+                Brand discount claims are switched off at every store you work at. Claims already
+                raised stay here to read.
               </p>
             )}
             {!list.month_ended && (
@@ -485,20 +500,30 @@ export function BrandClaimsPage() {
                         <td>{row.store.code}</td>
                         <td>
                           {row.brand_name}
-                          {row.brand_id === null && <div className="muted-cell">Not one brand in the list</div>}
+                          {row.brand_id === null && (
+                            <div className="muted-cell">Not one brand in the list</div>
+                          )}
                         </td>
                         <td className="num">
                           <Money paise={Number(row.amount_paise)} />
                         </td>
                         <td className="num">
-                          {Number(row.unknown_paise) === 0 ? "-" : <Money paise={Number(row.unknown_paise)} />}
+                          {Number(row.unknown_paise) === 0 ? (
+                            "-"
+                          ) : (
+                            <Money paise={Number(row.unknown_paise)} />
+                          )}
                         </td>
                         <td className="num">{row.raised}</td>
                         <td>
-                          {row.promotion_flag && <span className="chip chip-amber">Promotion services</span>}
+                          {row.promotion_flag && (
+                            <span className="chip chip-amber">Promotion services</span>
+                          )}
                           {!row.switched_on && <span className="chip">Switched off</span>}
                           {row.brand_id !== null && Number(row.amount_paise) < 0 && (
-                            <div className="muted-cell">More given back than sold: taken off the next claim</div>
+                            <div className="muted-cell">
+                              More given back than sold: taken off the next claim
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -514,7 +539,9 @@ export function BrandClaimsPage() {
                   className="btn btn-primary"
                   data-testid="bc-raise"
                   disabled={!writable || toRaise.length === 0}
-                  title={toRaise.length === 0 ? "Nothing is left to claim for this month." : undefined}
+                  title={
+                    toRaise.length === 0 ? "Nothing is left to claim for this month." : undefined
+                  }
                   onClick={raiseAll}
                 >
                   Raise {toRaise.length} claim(s) for {monthLabel(list.month)}
@@ -557,7 +584,9 @@ export function BrandClaimsPage() {
                           <Money paise={Number(row.amount_paise)} />
                         </td>
                         <td>
-                          <span className={`chip ${STATUS_CHIP[row.status]}`}>{STATUS_LABEL[row.status]}</span>
+                          <span className={`chip ${STATUS_CHIP[row.status]}`}>
+                            {STATUS_LABEL[row.status]}
+                          </span>
                         </td>
                         <td>
                           <button

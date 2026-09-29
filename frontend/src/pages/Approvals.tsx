@@ -96,13 +96,7 @@ export function ApprovalsList({
         .map((a) => ({ at: a.requested_at, legacy: a })),
       ...goods.value
         .filter((a) =>
-          matches(
-            q,
-            goodsApprovalView(a).label,
-            a.title,
-            a.maker.name,
-            a.parent_document?.number,
-          ),
+          matches(q, goodsApprovalView(a).label, a.title, a.maker.name, a.parent_document?.number),
         )
         .map((a) => ({ at: a.requested_at ?? "", goods: a })),
     ];
@@ -113,7 +107,8 @@ export function ApprovalsList({
     () => new Map((session?.sites ?? []).map((s) => [s.id, s.name])),
     [session],
   );
-  const stillLoading = (loading && data.length === 0) || (goods.loading && goods.value.length === 0);
+  const stillLoading =
+    (loading && data.length === 0) || (goods.loading && goods.value.length === 0);
 
   return (
     <>
@@ -177,8 +172,8 @@ export function ApprovalsList({
       )}
 
       <p className="an-quiet" style={{ marginTop: 14 }}>
-        <ShieldCheck size={14} aria-hidden /> Every decision is recorded on the document — made
-        by, approved by, and when. Nobody approves their own request.
+        <ShieldCheck size={14} aria-hidden /> Every decision is recorded on the document — made by,
+        approved by, and when. Nobody approves their own request.
       </p>
     </>
   );

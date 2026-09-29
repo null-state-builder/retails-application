@@ -204,8 +204,8 @@ export function TransferDocumentPage() {
           </div>
           {!document.values_shown && (
             <p className="warn-note" data-testid="document-values-hidden">
-              The values and tax on this document are shown only to a login allowed to see cost.
-              Ask head office to print it with values.
+              The values and tax on this document are shown only to a login allowed to see cost. Ask
+              head office to print it with values.
             </p>
           )}
           <div className="table-wrap">

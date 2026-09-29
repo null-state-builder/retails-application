@@ -215,9 +215,9 @@ export function DebitNotesPage() {
           <p data-testid="dn-next">{nextStep(note)}</p>
           {!note.switched_on && note.stage !== "issued" && note.stage !== "cancelled" && (
             <p className="warn-note" data-testid="dn-switched-off">
-              Debit notes are switched off at {note.site.name}. The note stays here, but nothing
-              new can be done to it until Admin switches them on again in Setup, Feature Switches.
-              It can still be cancelled.
+              Debit notes are switched off at {note.site.name}. The note stays here, but nothing new
+              can be done to it until Admin switches them on again in Setup, Feature Switches. It
+              can still be cancelled.
             </p>
           )}
           <dl className="facts" data-testid="dn-facts">
@@ -296,7 +296,9 @@ export function DebitNotesPage() {
                             <>
                               <Money paise={Number(line.unit_cost_paise)} />
                               <div className="muted-cell">
-                                {line.cost_from === "invoice" ? "From the invoice" : "Typed by Accounts"}
+                                {line.cost_from === "invoice"
+                                  ? "From the invoice"
+                                  : "Typed by Accounts"}
                               </div>
                             </>
                           )
@@ -342,13 +344,21 @@ export function DebitNotesPage() {
                         )}
                       </td>
                       <td className="num">
-                        {line.taxable_paise === null ? "-" : <Money paise={Number(line.taxable_paise)} />}
+                        {line.taxable_paise === null ? (
+                          "-"
+                        ) : (
+                          <Money paise={Number(line.taxable_paise)} />
+                        )}
                       </td>
                       <td className="num">
                         {line.tax_paise === null ? "-" : <Money paise={Number(line.tax_paise)} />}
                       </td>
                       <td className="num">
-                        {line.total_paise === null ? "-" : <Money paise={Number(line.total_paise)} />}
+                        {line.total_paise === null ? (
+                          "-"
+                        ) : (
+                          <Money paise={Number(line.total_paise)} />
+                        )}
                       </td>
                     </tr>
                   );
@@ -397,9 +407,9 @@ export function DebitNotesPage() {
 
           {note.approval && (
             <p className="muted-cell" data-testid="dn-approval">
-              Asked by {note.approval.requested_by} on{" "}
-              {formatDateTime(note.approval.requested_at)}.
-              {note.approval.status === "pending" && " Waiting for the Owner in the approvals inbox."}
+              Asked by {note.approval.requested_by} on {formatDateTime(note.approval.requested_at)}.
+              {note.approval.status === "pending" &&
+                " Waiting for the Owner in the approvals inbox."}
               {note.approval.status === "approved" &&
                 ` Approved by ${note.approval.decided_by}${note.approval.decided_at ? ` on ${formatDateTime(note.approval.decided_at)}` : ""}.`}
               {note.approval.status === "rejected" &&
@@ -558,7 +568,9 @@ export function DebitNotesPage() {
                       <Money paise={Number(row.total_paise)} />
                     </td>
                     <td>
-                      <span className={`chip ${STAGE_CHIP[row.stage]}`}>{STAGE_LABEL[row.stage]}</span>
+                      <span className={`chip ${STAGE_CHIP[row.stage]}`}>
+                        {STAGE_LABEL[row.stage]}
+                      </span>
                     </td>
                     <td>
                       <button

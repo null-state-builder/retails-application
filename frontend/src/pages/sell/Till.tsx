@@ -103,8 +103,8 @@ export default function TillPage() {
           <h2 className="h3">Bill {till.halt.doc_number} was not accepted</h2>
           <p className="till-halt-why">{till.halt.message}</p>
           <p className="muted-cell">
-            Nothing has been lost - the bill is still here, and every bill behind it is
-            waiting on this one. Selling continues on the next number. Refused at{" "}
+            Nothing has been lost - the bill is still here, and every bill behind it is waiting on
+            this one. Selling continues on the next number. Refused at{" "}
             {formatDateTime(till.halt.at)} · {till.halt.code}
           </p>
           <button
@@ -168,7 +168,11 @@ export default function TillPage() {
           <Row label="Salespeople" value={String(till.counts.salespeople)} />
           <Row label="Managers who can authorise" value={String(till.counts.managers)} />
           <Row label="Tax slabs" value={String(till.counts.gstSlabs)} />
-          <Row label="Tax settings" value={taxSettingsNote(till.taxSettings)} testId="till-tax-settings" />
+          <Row
+            label="Tax settings"
+            value={taxSettingsNote(till.taxSettings)}
+            testId="till-tax-settings"
+          />
           <Row
             label="Invoice numbers"
             value={numberingNote(till.numbering)}
@@ -176,19 +180,13 @@ export default function TillPage() {
           />
           <Row
             label="Offline refusals"
-            value={
-              till.onlineOnlyRefusals
-                ? "On: offline, no B2B bill and no credit note"
-                : "Off"
-            }
+            value={till.onlineOnlyRefusals ? "On: offline, no B2B bill and no credit note" : "Off"}
             testId="till-online-only"
           />
           <Row
             label="Manager PIN"
             value={
-              till.managerPinRules
-                ? "On: another manager's own PIN, never the cashier's"
-                : "Off"
+              till.managerPinRules ? "On: another manager's own PIN, never the cashier's" : "Off"
             }
             testId="till-manager-pin"
           />
@@ -452,14 +450,13 @@ function RecoverCounter({ engine, busy }: { engine: TillEngine; busy: boolean })
         <AlertTriangle size={16} /> This counter lost its local data
       </h2>
       <p className="till-halt-why">
-        The browser cleared what this till had stored - the price list, and the bill number it
-        was on. Nothing that had already synced is lost, but this device does not know where the
+        The browser cleared what this till had stored - the price list, and the bill number it was
+        on. Nothing that had already synced is lost, but this device does not know where the
         store&rsquo;s bill numbers have got to, so it will not take a bill until it has asked.
       </p>
       <p className="muted-cell">
-        Recovering takes the whole price list again and asks head office how far this
-        store&rsquo;s bills have got. The next bill number will move; the screen will say what
-        it moved to.
+        Recovering takes the whole price list again and asks head office how far this store&rsquo;s
+        bills have got. The next bill number will move; the screen will say what it moved to.
       </p>
       {failed && (
         <p className="till-alert" data-testid="till-recover-failed">
@@ -536,9 +533,9 @@ function Handover({ engine, till }: { engine: TillEngine; till: TillSnapshot }) 
       {mayHandOver && !asking && (
         <>
           <p className="muted-cell">
-            Use this when the counter machine has been replaced or will not come back. This
-            device takes over the store&rsquo;s bill numbers, and whatever the old machine
-            printed but never sent is listed here to be keyed back in from the printed copies.
+            Use this when the counter machine has been replaced or will not come back. This device
+            takes over the store&rsquo;s bill numbers, and whatever the old machine printed but
+            never sent is listed here to be keyed back in from the printed copies.
           </p>
           <button
             type="button"
@@ -558,8 +555,8 @@ function Handover({ engine, till }: { engine: TillEngine; till: TillSnapshot }) 
       {mayHandOver && asking && (
         <>
           <p className="muted-cell">
-            Say what happened. It is recorded against your name, and it is what explains the
-            gap in this store&rsquo;s bill numbers to whoever asks later.
+            Say what happened. It is recorded against your name, and it is what explains the gap in
+            this store&rsquo;s bill numbers to whoever asks later.
           </p>
           <div className="field">
             <label htmlFor="till-handover-reason">Why is the counter moving?</label>
@@ -657,14 +654,14 @@ function PaperReentry({
     <div className="till-reentry" data-testid="till-reentry">
       <h3 className="h3">Bills to key in from the printed copies</h3>
       <p className="muted-cell">
-        Handed over {formatDateTime(handover.at)}. These numbers were printed on the old
-        machine and never reached head office. Find each printed copy and enter it again under
-        the same number - the customer keeps the one they have.
+        Handed over {formatDateTime(handover.at)}. These numbers were printed on the old machine and
+        never reached head office. Find each printed copy and enter it again under the same number -
+        the customer keeps the one they have.
         {stillHidden > 0 && (
           <>
             {" "}
-            {stillHidden} more are missing than can be listed at once; they appear here as these
-            are entered and sync.
+            {stillHidden} more are missing than can be listed at once; they appear here as these are
+            entered and sync.
           </>
         )}
       </p>
@@ -801,8 +798,8 @@ function PauseForTransfer({ engine, till }: { engine: TillEngine; till: TillSnap
           <p className="muted-cell" data-testid="till-pause-held">
             This counter is holding the store&rsquo;s stock for offline selling (working set{" "}
             {allocationVersion}), so no transfer out of this store can be approved. To send stock
-            out, pause billing. Every bill must have synced first. Billing stays paused, even if
-            the line drops or the browser restarts, until you resume it here.
+            out, pause billing. Every bill must have synced first. Billing stays paused, even if the
+            line drops or the browser restarts, until you resume it here.
           </p>
           <div className="field">
             <label htmlFor="till-pause-reason">Why is billing being paused?</label>
@@ -976,9 +973,9 @@ function ScanSounds({ engine, muted }: { engine: TillEngine; muted: boolean }) {
     <section className="card till-card till-sound-card">
       <h2 className="h3">Scan sounds</h2>
       <p className="muted-cell">
-        A short tick when a scan puts a piece on the bill, and a different, lower buzz when it
-        does not - an unknown tag, or a piece still waiting to be told which season it is. Set
-        on this counter, and it stays set.
+        A short tick when a scan puts a piece on the bill, and a different, lower buzz when it does
+        not - an unknown tag, or a piece still waiting to be told which season it is. Set on this
+        counter, and it stays set.
       </p>
       <div className="till-sound-row">
         <button
@@ -1030,9 +1027,8 @@ function NoCounter() {
     <div className="page-pad">
       <PageHeader lead="The offline counter, its local copy and its bill queue." />
       <p className="warn-note" data-testid="till-no-counter">
-        This login is not a counter. A till signs in as one store: the local price list and
-        manager authorisations belong to a single shop, so a login that can see several has no
-        till to show.
+        This login is not a counter. A till signs in as one store: the local price list and manager
+        authorisations belong to a single shop, so a login that can see several has no till to show.
       </p>
     </div>
   );
@@ -1071,8 +1067,8 @@ function TestBill() {
     <section className="card till-card till-dev">
       <h2 className="h3">Development only</h2>
       <p className="muted-cell">
-        Numbers one piece from the local price list at its ticket price, queues it, and lets
-        the sync engine take it to the server - the whole spine, without the billing screen.
+        Numbers one piece from the local price list at its ticket price, queues it, and lets the
+        sync engine take it to the server - the whole spine, without the billing screen.
       </p>
       <button
         type="button"
@@ -1083,7 +1079,11 @@ function TestBill() {
       >
         {working ? "Queueing…" : "Queue a test bill"}
       </button>
-      {note && <p className="till-dev-note" data-testid="till-test-bill-note">{note}</p>}
+      {note && (
+        <p className="till-dev-note" data-testid="till-test-bill-note">
+          {note}
+        </p>
+      )}
     </section>
   );
 }

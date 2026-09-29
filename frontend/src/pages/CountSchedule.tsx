@@ -137,7 +137,12 @@ export function CountSchedulePage() {
       {online && (
         <>
           {" "}
-          <button type="button" className="btn" data-testid="sched-retry" onClick={() => void load()}>
+          <button
+            type="button"
+            className="btn"
+            data-testid="sched-retry"
+            onClick={() => void load()}
+          >
             Try again
           </button>
         </>

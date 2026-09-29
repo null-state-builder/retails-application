@@ -48,7 +48,10 @@ interface LineRow {
   matched_by_name: string;
 }
 
-const STATUS_META: Record<LineRow["status"], { label: string; color: string; icon: typeof CheckCircle2 }> = {
+const STATUS_META: Record<
+  LineRow["status"],
+  { label: string; color: string; icon: typeof CheckCircle2 }
+> = {
   matched: { label: "Matched", color: "var(--green)", icon: CheckCircle2 },
   review: { label: "Needs review", color: "var(--rust)", icon: AlertTriangle },
   unmatched: { label: "Unmatched", color: "var(--red)", icon: XCircle },
@@ -64,7 +67,9 @@ const TABS: { key: "" | LineRow["status"]; label: string }[] = [
 ];
 
 export function BankReconciliationPage() {
-  const { data: imports, reload: reloadImports } = useDoc<{ rows: ImportRow[] }>("/finledger/bank/imports");
+  const { data: imports, reload: reloadImports } = useDoc<{ rows: ImportRow[] }>(
+    "/finledger/bank/imports",
+  );
   const [selected, setSelected] = useState<number | null>(null);
   const [tab, setTab] = useState<"" | LineRow["status"]>("review");
   const linesUrl = selected
@@ -116,9 +121,9 @@ export function BankReconciliationPage() {
       <PageHeader lead="Upload a bank statement (CSV or Excel) and it's matched against the books automatically — what's left is what needs a look." />
 
       <div className="warn-note" style={{ marginBottom: 18 }} data-testid="bank-api-roadmap-note">
-        Using file upload for now — direct bank API sync is on the roadmap once your bank
-        provides API access. When that's available it will feed the same matching engine
-        below, so this screen won't need to change.
+        Using file upload for now — direct bank API sync is on the roadmap once your bank provides
+        API access. When that's available it will feed the same matching engine below, so this
+        screen won't need to change.
       </div>
 
       <div className="card section-card" style={{ marginBottom: 24 }}>
@@ -137,17 +142,33 @@ export function BankReconciliationPage() {
             onChange={(e) => setBankLabel(e.target.value)}
             data-testid="bank-upload-label-input"
           />
-          <button className="btn btn-cta" disabled={!file || busy} onClick={upload} data-testid="bank-upload-submit">
+          <button
+            className="btn btn-cta"
+            disabled={!file || busy}
+            onClick={upload}
+            data-testid="bank-upload-submit"
+          >
             <Upload size={15} /> Upload &amp; match
           </button>
         </div>
-        {error && <div className="warn-note" style={{ marginTop: 10 }} data-testid="bank-upload-error">{error}</div>}
+        {error && (
+          <div className="warn-note" style={{ marginTop: 10 }} data-testid="bank-upload-error">
+            {error}
+          </div>
+        )}
       </div>
 
       <div className="table-wrap" style={{ marginBottom: 24 }}>
         <table className="data" data-testid="bank-imports-table">
           <thead>
-            <tr><th>File</th><th>Bank</th><th>Uploaded by</th><th className="num">Rows</th><th className="num">Matched</th><th /></tr>
+            <tr>
+              <th>File</th>
+              <th>Bank</th>
+              <th>Uploaded by</th>
+              <th className="num">Rows</th>
+              <th className="num">Matched</th>
+              <th />
+            </tr>
           </thead>
           <tbody>
             {(imports?.rows ?? []).map((b) => (
@@ -156,7 +177,9 @@ export function BankReconciliationPage() {
                 <td>{b.bank_label || "—"}</td>
                 <td>{b.uploaded_by_name || "—"}</td>
                 <td className="num">{b.row_count}</td>
-                <td className="num">{b.matched_count}/{b.row_count}</td>
+                <td className="num">
+                  {b.matched_count}/{b.row_count}
+                </td>
                 <td>
                   <button
                     className="btn btn-sm"
@@ -169,7 +192,11 @@ export function BankReconciliationPage() {
               </tr>
             ))}
             {(imports?.rows ?? []).length === 0 && (
-              <tr><td colSpan={6} className="muted-cell" data-testid="bank-imports-empty">No statements uploaded yet.</td></tr>
+              <tr>
+                <td colSpan={6} className="muted-cell" data-testid="bank-imports-empty">
+                  No statements uploaded yet.
+                </td>
+              </tr>
             )}
           </tbody>
         </table>
@@ -192,7 +219,14 @@ export function BankReconciliationPage() {
           <div className="table-wrap">
             <table className="data" data-testid="bank-lines-table">
               <thead>
-                <tr><th>Date</th><th>Narration</th><th className="num">Amount ₹</th><th>Status</th><th>Match</th><th /></tr>
+                <tr>
+                  <th>Date</th>
+                  <th>Narration</th>
+                  <th className="num">Amount ₹</th>
+                  <th>Status</th>
+                  <th>Match</th>
+                  <th />
+                </tr>
               </thead>
               <tbody>
                 {(lines?.rows ?? []).map((l) => {
@@ -203,11 +237,21 @@ export function BankReconciliationPage() {
                     <tr key={l.id} data-testid={`bank-line-row-${l.id}`}>
                       <td className="mono">{new Date(l.txn_date).toLocaleDateString("en-IN")}</td>
                       <td>{l.narration}</td>
-                      <td className="num mono" style={{ color: signed >= 0 ? "var(--green)" : "var(--red)" }}>
+                      <td
+                        className="num mono"
+                        style={{ color: signed >= 0 ? "var(--green)" : "var(--red)" }}
+                      >
                         <Money paise={signed} />
                       </td>
                       <td>
-                        <span style={{ color: meta.color, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        <span
+                          style={{
+                            color: meta.color,
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 4,
+                          }}
+                        >
                           <Icon size={13} /> {meta.label}
                         </span>
                       </td>
@@ -215,35 +259,57 @@ export function BankReconciliationPage() {
                         {l.status === "matched" && l.matched_entry_doc_number && (
                           <span className="mono">{l.matched_entry_doc_number}</span>
                         )}
-                        {(l.status === "review" || l.status === "unmatched") && l.candidates.length > 0 && (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                            {l.candidates.map((c) => (
-                              <div key={c.entry_id} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
-                                <button
-                                  className="btn btn-sm"
-                                  disabled={busy}
-                                  onClick={() => act(l.id, { action: "link", entry_id: c.entry_id })}
-                                  data-testid={`bank-line-${l.id}-link-${c.entry_id}`}
+                        {(l.status === "review" || l.status === "unmatched") &&
+                          l.candidates.length > 0 && (
+                            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                              {l.candidates.map((c) => (
+                                <div
+                                  key={c.entry_id}
+                                  style={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 6,
+                                    fontSize: 12,
+                                  }}
                                 >
-                                  <Link2 size={11} /> {c.doc_number}
-                                </button>
-                                <span className="muted-cell">
-                                  {c.description || "—"} · <Money paise={c.amount_paise} /> · {c.score}% match
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                                  <button
+                                    className="btn btn-sm"
+                                    disabled={busy}
+                                    onClick={() =>
+                                      act(l.id, { action: "link", entry_id: c.entry_id })
+                                    }
+                                    data-testid={`bank-line-${l.id}-link-${c.entry_id}`}
+                                  >
+                                    <Link2 size={11} /> {c.doc_number}
+                                  </button>
+                                  <span className="muted-cell">
+                                    {c.description || "—"} · <Money paise={c.amount_paise} /> ·{" "}
+                                    {c.score}% match
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                       </td>
                       <td>
                         <div style={{ display: "flex", gap: 6 }}>
                           {l.status === "matched" && (
-                            <button className="btn btn-sm" disabled={busy} onClick={() => act(l.id, { action: "unlink" })} data-testid={`bank-line-${l.id}-unlink`}>
+                            <button
+                              className="btn btn-sm"
+                              disabled={busy}
+                              onClick={() => act(l.id, { action: "unlink" })}
+                              data-testid={`bank-line-${l.id}-unlink`}
+                            >
                               Unlink
                             </button>
                           )}
                           {l.status !== "ignored" && l.status !== "matched" && (
-                            <button className="btn btn-sm" disabled={busy} onClick={() => act(l.id, { action: "ignore" })} data-testid={`bank-line-${l.id}-ignore`}>
+                            <button
+                              className="btn btn-sm"
+                              disabled={busy}
+                              onClick={() => act(l.id, { action: "ignore" })}
+                              data-testid={`bank-line-${l.id}-ignore`}
+                            >
                               Ignore
                             </button>
                           )}
@@ -253,7 +319,11 @@ export function BankReconciliationPage() {
                   );
                 })}
                 {(lines?.rows ?? []).length === 0 && (
-                  <tr><td colSpan={6} className="muted-cell" data-testid="bank-lines-empty">Nothing in this list.</td></tr>
+                  <tr>
+                    <td colSpan={6} className="muted-cell" data-testid="bank-lines-empty">
+                      Nothing in this list.
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>

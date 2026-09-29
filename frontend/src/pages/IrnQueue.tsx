@@ -106,7 +106,10 @@ function RecordPanel({ row, onDone }: { row: IrnRowT; onDone: () => void }) {
     setError("");
     setBusy(true);
     try {
-      await api.put(`/sell/irn-queue/${row.id}`, { status, irn: status === "generated" ? irn : "" });
+      await api.put(`/sell/irn-queue/${row.id}`, {
+        status,
+        irn: status === "generated" ? irn : "",
+      });
       onDone();
     } catch (e) {
       setError(apiErrorMessage(e));
@@ -248,7 +251,9 @@ export default function IrnQueue() {
                   </td>
                   <td className="irn-buyer">
                     <span className="mono">{row.buyer_gstin}</span>
-                    {row.customer_name ? <div className="muted-cell">{row.customer_name}</div> : null}
+                    {row.customer_name ? (
+                      <div className="muted-cell">{row.customer_name}</div>
+                    ) : null}
                   </td>
                   <td>{TAX_KIND_WORDS[row.b2b_tax_kind] || "—"}</td>
                   <td className="num">

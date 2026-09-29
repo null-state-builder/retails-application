@@ -123,7 +123,11 @@ export function CustomerPage() {
 
   /** Send one right. A dropped connection keeps the form and the command's
    *  identity; any answer from the server ends that command. */
-  async function act<T>(right: Right, path: string, body: Record<string, unknown>): Promise<T | null> {
+  async function act<T>(
+    right: Right,
+    path: string,
+    body: Record<string, unknown>,
+  ): Promise<T | null> {
     if (!navigator.onLine) {
       setOnline(false);
       return null;
@@ -168,7 +172,9 @@ export function CustomerPage() {
       setDraft(null);
       setWas(null);
       setHeld(null);
-      setDone("Corrected. Every till learns it at its next sync. Past bills keep what they printed.");
+      setDone(
+        "Corrected. Every till learns it at its next sync. Past bills keep what they printed.",
+      );
     }
   }
 
@@ -269,7 +275,12 @@ export function CustomerPage() {
       {online && (
         <>
           {" "}
-          <button type="button" className="btn" data-testid="customer-retry" onClick={() => void load()}>
+          <button
+            type="button"
+            className="btn"
+            data-testid="customer-retry"
+            onClick={() => void load()}
+          >
             Try again
           </button>
         </>
@@ -702,9 +713,9 @@ export function CustomerPage() {
             {moving && (
               <div className="card section-card" data-testid="rights-move-form">
                 <p className="muted-cell">
-                  The customer has a new number. The record moves to it; bills on the old number stay
-                  theirs. The old number's consents are withdrawn, and the customer answers again on
-                  the display. Only with the customer here.
+                  The customer has a new number. The record moves to it; bills on the old number
+                  stay theirs. The old number's consents are withdrawn, and the customer answers
+                  again on the display. Only with the customer here.
                 </p>
                 <label className="field">
                   <span>New number</span>

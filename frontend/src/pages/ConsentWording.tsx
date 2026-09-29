@@ -55,7 +55,9 @@ export function ConsentWordingPage() {
         "/goods-v1/masters/consent-wording/versions",
         { ...goodsMeta(data.current_version), ...form },
       );
-      setSaved(`Saved as version ${response.data.version}. Tills ask with it from their next sync.`);
+      setSaved(
+        `Saved as version ${response.data.version}. Tills ask with it from their next sync.`,
+      );
       await load(true);
     } catch (reason) {
       setError(apiErrorMessage(reason));

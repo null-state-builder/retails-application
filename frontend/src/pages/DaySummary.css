@@ -12,9 +12,16 @@
  * index.css covers this file and nothing new is needed for dark.
  */
 
-.day-panel { padding: 18px 20px; margin-bottom: 18px; }
-.day-panel-head { margin-bottom: 14px; }
-.day-panel-head .eyebrow { margin-bottom: 2px; }
+.day-panel {
+  padding: 18px 20px;
+  margin-bottom: 18px;
+}
+.day-panel-head {
+  margin-bottom: 14px;
+}
+.day-panel-head .eyebrow {
+  margin-bottom: 2px;
+}
 
 /* Picking the day. A date input rather than a chip row of the last few days:
    a drawer is reconciled against whichever day somebody is holding a slip for,
@@ -35,7 +42,9 @@
   letter-spacing: 0.04em;
 }
 
-.day-picker .input { width: auto; }
+.day-picker .input {
+  width: auto;
+}
 
 /* The four tenders. */
 .day-modes {
@@ -54,11 +63,21 @@
   padding: 13px 15px;
 }
 
-.day-num { font-size: 19px; font-weight: 700; color: var(--navy); }
-.day-label { font-size: 12px; color: var(--muted); }
+.day-num {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--navy);
+}
+.day-label {
+  font-size: 12px;
+  color: var(--muted);
+}
 
 /* The UPI tile's only control: visibility, not a gate (#241). */
-.day-upi-split { font-size: 11px; color: var(--muted); }
+.day-upi-split {
+  font-size: 11px;
+  color: var(--muted);
+}
 
 /* The counts behind the money - bills, pieces back, notes given. Secondary to
    the tiles above and separated by a rule, so the eye reads the money first. */
@@ -79,20 +98,32 @@
   color: var(--muted);
 }
 
-.day-count b { font-size: 15px; color: var(--navy); }
+.day-count b {
+  font-size: 15px;
+  color: var(--navy);
+}
 
 /* The one sentence somebody counts cash against. A credit note closes a
    liability rather than filling a drawer, so the drawer figure is said out loud
    instead of being left to be worked out from four tiles. */
-.day-drawer { margin-top: 12px; }
+.day-drawer {
+  margin-top: 12px;
+}
 
 /* --- the day's exceptions ---------------------------------------------- */
 
 /* The one line on the screen the day picker does not govern, said in the panel
    head so nobody has to infer it from an empty list. */
-.day-flags-scope { margin: 6px 0 0; font-size: 12.5px; }
+.day-flags-scope {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+}
 
-.flag-list { display: flex; flex-direction: column; gap: 10px; }
+.flag-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
 
 .flag-row {
   background: var(--inner);
@@ -117,17 +148,35 @@
   font-size: 13.5px;
 }
 
-.flag-ic { color: var(--amber); flex: none; }
+.flag-ic {
+  color: var(--amber);
+  flex: none;
+}
 .flag-row[data-status="resolved"] .flag-ic,
-.flag-row[data-status="ignored"] .flag-ic { color: var(--caption); }
+.flag-row[data-status="ignored"] .flag-ic {
+  color: var(--caption);
+}
 
-.flag-bill { font-size: 12.5px; color: var(--navy); text-decoration: underline; }
+.flag-bill {
+  font-size: 12.5px;
+  color: var(--navy);
+  text-decoration: underline;
+}
 
-.flag-say { font-size: 13px; color: var(--muted); margin: 5px 0 0; }
+.flag-say {
+  font-size: 13px;
+  color: var(--muted);
+  margin: 5px 0 0;
+}
 
 /* What the person who cleared it said. Quoted in the markup, italic here, so it
    reads as somebody's sentence rather than as another machine finding. */
-.flag-note { font-size: 12.5px; color: var(--caption); font-style: italic; margin: 5px 0 0; }
+.flag-note {
+  font-size: 12.5px;
+  color: var(--caption);
+  font-style: italic;
+  margin: 5px 0 0;
+}
 
 /* Clearing one: a note and two buttons on one row, not a stack - stacked, the
    row grew to three times the height of the ones around it. */
@@ -139,13 +188,25 @@
   margin-top: 10px;
 }
 
-.flag-clear .input { flex: 1 1 220px; min-width: 180px; padding: 6px 10px; font-size: 12.5px; }
-.flag-clear .btn { padding: 6px 10px; font-size: 12.5px; }
+.flag-clear .input {
+  flex: 1 1 220px;
+  min-width: 180px;
+  padding: 6px 10px;
+  font-size: 12.5px;
+}
+.flag-clear .btn {
+  padding: 6px 10px;
+  font-size: 12.5px;
+}
 
 /* The refusal, full width under the row it belongs to, so it cannot squeeze the
    controls that produced it. */
-.flag-error { flex-basis: 100%; }
+.flag-error {
+  flex-basis: 100%;
+}
 
 @media (max-width: 900px) {
-  .day-modes { grid-template-columns: repeat(2, 1fr); }
+  .day-modes {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }

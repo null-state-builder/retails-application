@@ -69,7 +69,8 @@ export function measureText(m: MeasureT): string {
       ? `Acted on within 7 days: ${m.on_time} of ${m.counted} (${m.percent}%).`
       : "Acted on within 7 days: none to count yet.",
   ];
-  if (m.waiting) parts.push(`${m.waiting} still inside ${m.waiting === 1 ? "its" : "their"} 7 days.`);
+  if (m.waiting)
+    parts.push(`${m.waiting} still inside ${m.waiting === 1 ? "its" : "their"} 7 days.`);
   if (m.closed_first) parts.push(`${m.closed_first} closed before anybody acted.`);
   return parts.join(" ");
 }

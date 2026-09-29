@@ -56,7 +56,8 @@ export function canAccess(
   // line, so the URL and the sidebar cannot disagree. A legacy section never
   // opens it; the server still refuses any read or command the grant's scope
   // does not reach.
-  if (screen.goodsActions) return itemVisible(screen, undefined, "", false, goodsActions, featuresOn);
+  if (screen.goodsActions)
+    return itemVisible(screen, undefined, "", false, goodsActions, featuresOn);
   // A legacy screen a goods grant also opens (`NavItem.orGoodsActions`).
   if (orGoodsVisible(screen, goodsActions)) return true;
   // A heading the server never sends answers to the section that opens it.

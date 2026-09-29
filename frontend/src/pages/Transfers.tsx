@@ -37,10 +37,7 @@ const DIRECTIONS = [
 
 type DirectionKey = (typeof DIRECTIONS)[number]["key"];
 
-function siteLabel(
-  sites: { id: string; code: string; name: string }[],
-  id: string | null,
-): string {
+function siteLabel(sites: { id: string; code: string; name: string }[], id: string | null): string {
   if (!id) return "—";
   const found = sites.find((site) => String(site.id) === String(id));
   return found ? `${found.name} (${found.code})` : `#${id}`;
@@ -173,7 +170,7 @@ export function TransfersPage() {
           </p>
         </div>
       ) : (
-        state ?? (
+        (state ?? (
           <div className="table-wrap">
             <table className="data" data-testid="transfers-table">
               <caption className="sr-only">
@@ -263,7 +260,7 @@ export function TransfersPage() {
               </tbody>
             </table>
           </div>
-        )
+        ))
       )}
     </div>
   );

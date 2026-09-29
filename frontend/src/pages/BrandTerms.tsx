@@ -5,13 +5,7 @@ import { PageHeader } from "../components/PageHeader";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
-import {
-  emptyTermsDraft,
-  figure,
-  modelLabel,
-  statusChip,
-  termsRequest,
-} from "../lib/brandTerms";
+import { emptyTermsDraft, figure, modelLabel, statusChip, termsRequest } from "../lib/brandTerms";
 import type { CommercialModel, TermsDraft } from "../lib/brandTerms";
 import { formatDateTime } from "../lib/format";
 
@@ -350,12 +344,14 @@ export function BrandTermsPage() {
       <section className="card section-card" data-testid="brand-terms-unknown">
         <h2 className="h3">Brands with an unknown model</h2>
         {summary.unknown.length === 0 ? (
-          <p className="muted-cell">Every brand has an approved model for each season selling now.</p>
+          <p className="muted-cell">
+            Every brand has an approved model for each season selling now.
+          </p>
         ) : (
           <>
             <p className="muted-cell">
-              Nothing is assumed for these brands. Work that needs the model treats them as
-              unknown and says so. Fill them in before P1 goes live.
+              Nothing is assumed for these brands. Work that needs the model treats them as unknown
+              and says so. Fill them in before P1 goes live.
             </p>
             <ul>
               {summary.unknown.map((b) => (
@@ -551,7 +547,9 @@ function BrandPanel({
               </label>
             ))}
           </div>
-          <p className="muted-cell">Leave a figure blank if it is not known. It stays unknown, never 0.</p>
+          <p className="muted-cell">
+            Leave a figure blank if it is not known. It stays unknown, never 0.
+          </p>
           <label className="field">
             <span>Why</span>
             <input
@@ -655,7 +653,10 @@ function BrandPanel({
               data-testid="promotion-agreement"
               value={promotion.agreement}
               onChange={(e) =>
-                onPromotion({ ...promotion, agreement: e.target.value as PromotionDraft["agreement"] })
+                onPromotion({
+                  ...promotion,
+                  agreement: e.target.value as PromotionDraft["agreement"],
+                })
               }
             >
               <option value="">Pick one</option>

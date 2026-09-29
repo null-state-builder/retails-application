@@ -14,8 +14,18 @@
 export const FY_START_MONTH = 4;
 
 const MONTH_NAMES = [
-  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
 ];
 
 /** One month of a financial year: what the server calls it, and what a person does. */

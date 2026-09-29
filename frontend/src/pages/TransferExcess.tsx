@@ -80,7 +80,11 @@ export function ExcessTable({
                 {observation.decisions.length === 0
                   ? "None yet"
                   : observation.decisions.map((decision) => (
-                      <p key={decision.id} data-testid="excess-decision" data-state={decision.state}>
+                      <p
+                        key={decision.id}
+                        data-testid="excess-decision"
+                        data-state={decision.state}
+                      >
                         {EXCESS_DECISION_LABEL[decision.state] ?? decision.state}
                         {decision.number ? ` · ${decision.number}` : ""}
                         {decision.matched ? " · matched" : ""}
@@ -168,8 +172,8 @@ function CorrectiveForm({
       <h4 className="h4">Correct “{observation.description}” with a corrective transfer</h4>
       <p className="lead">
         If these goods are the sender&apos;s own, name the item and show why. The sender must hold
-        that many sendable pieces of it; a different person approves the corrective transfer,
-        and confirming it matches these pieces once - nothing arrives a second time. If the sender
+        that many sendable pieces of it; a different person approves the corrective transfer, and
+        confirming it matches these pieces once - nothing arrives a second time. If the sender
         cannot show the stock, the goods stay held here, unvalued.
       </p>
       <Field id={`${id}-sku`} label="Which of the sender's items it is">
@@ -262,14 +266,14 @@ export function CorrectivePanel({ detail, onRun }: { detail: TransferDetail; onR
         <Link to={`/goods/transfers/${detail.corrective_for.id}`} data-testid="corrective-for">
           {detail.corrective_for.number ?? "the original transfer"}
         </Link>
-        . It is never shipped: its goods are already there. Confirming it records its dispatch
-        and arrival together and matches those observed pieces once.
+        . It is never shipped: its goods are already there. Confirming it records its dispatch and
+        arrival together and matches those observed pieces once.
       </p>
       {decision ? (
         <p data-testid="corrective-decision" data-state={decision.state}>
           {EXCESS_DECISION_LABEL[decision.state] ?? decision.state}
-          {decision.number ? ` · ${decision.number}` : ""} · {decision.quantity} piece(s) ·
-          evidence {decision.source_evidence_reference}
+          {decision.number ? ` · ${decision.number}` : ""} · {decision.quantity} piece(s) · evidence{" "}
+          {decision.source_evidence_reference}
           {decision.matched ? " · matched" : ""}
         </p>
       ) : null}

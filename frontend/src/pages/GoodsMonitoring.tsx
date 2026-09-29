@@ -22,7 +22,15 @@ import { Link } from "react-router-dom";
 import { Download, RefreshCw, Search } from "lucide-react";
 
 import { api, apiErrorMessage, apiUrl, goodsMeta } from "../lib/api";
-import { Denied, Feedback, Field, hold, listState, useGoodsFetch, useStepUp } from "../lib/goodsScreen";
+import {
+  Denied,
+  Feedback,
+  Field,
+  hold,
+  listState,
+  useGoodsFetch,
+  useStepUp,
+} from "../lib/goodsScreen";
 import {
   attentionCount,
   commandStatusLabel,
@@ -151,7 +159,10 @@ function HealthPanel() {
                 <td className="muted">{item.owner_role}</td>
                 <td>
                   {item.issue_id ? (
-                    <Link to={issuePath(item.issue_id)} data-testid={`mon-health-issue-${item.code}`}>
+                    <Link
+                      to={issuePath(item.issue_id)}
+                      data-testid={`mon-health-issue-${item.code}`}
+                    >
                       Open the exception
                     </Link>
                   ) : (

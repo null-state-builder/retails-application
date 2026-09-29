@@ -201,9 +201,7 @@ export function TaskChecklistsPage() {
   }
 
   const canSave =
-    !disabled &&
-    draft.name.trim() !== "" &&
-    draft.items.some((i) => i.text.trim() !== "");
+    !disabled && draft.name.trim() !== "" && draft.items.some((i) => i.text.trim() !== "");
 
   return (
     <div className="page-pad">

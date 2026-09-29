@@ -361,8 +361,8 @@ export function NewTransferPanel({
     <section className="card section-card" data-testid="transfer-new-panel">
       <h3 className="h3">New transfer</h3>
       <p className="lead">
-        Choose where the goods are going and how many of each to send. Drafting reserves nothing —
-        a different person approves the movement, and that approval is what reserves the pieces.
+        Choose where the goods are going and how many of each to send. Drafting reserves nothing — a
+        different person approves the movement, and that approval is what reserves the pieces.
       </p>
       {heldPool ? (
         <p className="warn-note" data-testid="transfer-new-quarantine-note">
@@ -606,10 +606,7 @@ export function TransferDetailPage() {
           <dt>Arrived that nobody sent</dt>
           <dd data-testid="transfer-excess">{detail.excess_qty}</dd>
           <dt>Balance</dt>
-          <dd
-            data-testid="transfer-balance"
-            data-balanced={String(detail.reconciliation.balanced)}
-          >
+          <dd data-testid="transfer-balance" data-balanced={String(detail.reconciliation.balanced)}>
             {detail.reconciliation.approved} approved = {detail.reconciliation.dispatched} sent +{" "}
             {detail.reconciliation.reserved} still reserved + {detail.reconciliation.cancelled}{" "}
             cancelled
@@ -681,8 +678,8 @@ export function TransferDetailPage() {
       <section className="card section-card" data-testid="transfer-dispatches">
         <h3 className="h3">Shipments</h3>
         <p className="lead">
-          One approved movement may take several shipments. Each is received as one whole
-          shipment; there is no staged partial receipt inside one of them.
+          One approved movement may take several shipments. Each is received as one whole shipment;
+          there is no staged partial receipt inside one of them.
         </p>
         {detail.dispatches.length === 0 ? (
           <p className="muted">Nothing has left yet.</p>
@@ -1327,8 +1324,7 @@ function ShipmentCard({
         {record.lines.flatMap((line) =>
           line.origins.map((share) => (
             <li key={`${line.line_key}-${share.origin_id ?? "none"}`}>
-              {detail.lines.find((l) => l.line_key === line.line_key)?.description || line.sku_id}{" "}
-              ·{" "}
+              {detail.lines.find((l) => l.line_key === line.line_key)?.description || line.sku_id} ·{" "}
               {share.origin_id ? (
                 <Link to={`/goods/stock/origins/${share.origin_id}`}>
                   {originLabel(share.origin_id)}
@@ -1364,8 +1360,7 @@ function ShipmentCard({
       may("return_to_source") ? (
         <ReturnForm record={record} detail={detail} onRun={onRun} />
       ) : null}
-      {may("accept_returned") &&
-      record.lines.some((line) => line.returned_awaiting_putaway > 0) ? (
+      {may("accept_returned") && record.lines.some((line) => line.returned_awaiting_putaway > 0) ? (
         <AcceptReturnedForm record={record} detail={detail} sites={sites} onRun={onRun} />
       ) : null}
       {record.state === "counted" && may("accept") ? (
@@ -1424,10 +1419,7 @@ function CountForm({
   const problems = [
     ...record.lines.map((line) => countProblem(found[line.line_key] ?? blank, line.qty)),
     ...record.lines.map((line) =>
-      wrongProblem(
-        found[line.line_key]?.wrong ?? 0,
-        instead[line.line_key]?.description ?? "",
-      ),
+      wrongProblem(found[line.line_key]?.wrong ?? 0, instead[line.line_key]?.description ?? ""),
     ),
   ].filter(Boolean);
   const quarantined = isHeldCustody(detail.custody);
@@ -1887,7 +1879,12 @@ function ReturnForm({
   const rows = record.lines.map((line) => {
     const found = back[line.line_key] ?? { good: 0, damaged: 0 };
     const unreturned = unreturnedOf(record, line.line_key);
-    return { line, found, unreturned, problem: returnProblem(found.good, found.damaged, unreturned) };
+    return {
+      line,
+      found,
+      unreturned,
+      problem: returnProblem(found.good, found.damaged, unreturned),
+    };
   });
   const total = rows.reduce((sum, row) => sum + row.found.good + row.found.damaged, 0);
   const problem = rows.find((row) => row.problem)?.problem ?? "";
@@ -1911,15 +1908,15 @@ function ReturnForm({
     <div className="form-grid" data-testid={`return-form-${record.sequence_no}`}>
       <h4 className="h4">It came back</h4>
       <p className="lead">
-        Record only what is physically back here. Good pieces wait in receiving until they are
-        put away again; damaged ones go to quarantine for a second person to review. Anything
-        still missing stays open on this shipment. Nothing is recorded as delivered.
+        Record only what is physically back here. Good pieces wait in receiving until they are put
+        away again; damaged ones go to quarantine for a second person to review. Anything still
+        missing stays open on this shipment. Nothing is recorded as delivered.
       </p>
       {rows.map(({ line, found, unreturned }) => (
         <table key={line.line_key} data-testid="return-line">
           <caption>
-            {detail.lines.find((l) => l.line_key === line.line_key)?.description || line.sku_id}{" "}
-            — {unreturned} still unaccounted for
+            {detail.lines.find((l) => l.line_key === line.line_key)?.description || line.sku_id} —{" "}
+            {unreturned} still unaccounted for
           </caption>
           <thead>
             <tr>
@@ -2130,8 +2127,8 @@ function ShortageForm({
       <h4 className="h4">Resolve what never arrived</h4>
       <p className="lead">
         Propose the missing pieces as a transit shortage, with this shipment&apos;s count as the
-        check. They stay in transit until a different person approves the correction; nobody at
-        the sending site has to sign it off.
+        check. They stay in transit until a different person approves the correction; nobody at the
+        sending site has to sign it off.
       </p>
       {pairs.length > 0 ? (
         <Field
@@ -2180,7 +2177,9 @@ function ShortageForm({
                   type="number"
                   min={0}
                   max={row.unclaimed}
-                  value={pair ? String(row.qty) : (asked[row.line.line_key] ?? String(row.unclaimed))}
+                  value={
+                    pair ? String(row.qty) : (asked[row.line.line_key] ?? String(row.unclaimed))
+                  }
                   disabled={Boolean(pair)}
                   aria-label={`Missing pieces of ${row.line.sku_id} to propose`}
                   onChange={(e) =>

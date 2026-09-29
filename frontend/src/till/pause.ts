@@ -86,7 +86,7 @@ export async function positionNow(
   db: TillDb,
   now: Date = new Date(),
 ): Promise<{ fy: string; nextSeq: number }> {
-  const fy = await readMeta(db, META.fy, "") || financialYear(now);
+  const fy = (await readMeta(db, META.fy, "")) || financialYear(now);
   return { fy, nextSeq: await counterFor(db, fy) };
 }
 

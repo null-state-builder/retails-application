@@ -67,11 +67,14 @@ export function DocumentNumberingPage() {
     if (!editing) return;
     const target = editing;
     void run(async () => {
-      const response = await api.post<{ code: string }>("/goods-v1/masters/document-series/prefixes", {
-        ...goodsMeta(target.revision || undefined),
-        ...target.owner,
-        code: target.code.trim().toUpperCase(),
-      });
+      const response = await api.post<{ code: string }>(
+        "/goods-v1/masters/document-series/prefixes",
+        {
+          ...goodsMeta(target.revision || undefined),
+          ...target.owner,
+          code: target.code.trim().toUpperCase(),
+        },
+      );
       setEditing(null);
       return `Prefix ${response.data.code} is saved.`;
     });

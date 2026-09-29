@@ -233,9 +233,9 @@ export function UpiCharge({
         </div>
 
         <p className="muted-cell" data-testid="bill-upi-fallback">
-          Closing this leaves the bill exactly as it is. The UPI amount stays on the payment
-          card, and saving it records the payment on the cashier&apos;s word - which the day
-          close shows separately from the ones the bank confirmed.
+          Closing this leaves the bill exactly as it is. The UPI amount stays on the payment card,
+          and saving it records the payment on the cashier&apos;s word - which the day close shows
+          separately from the ones the bank confirmed.
         </p>
       </div>
     </div>
@@ -270,7 +270,8 @@ function Waiting({ standing, says }: { standing: ChargeStanding; says: string })
 
 /** Success, failed, unknown: what the bank said, in the face it earns. */
 function Answer({ card }: { card: ChargeCard }) {
-  const Icon = card.tone === "good" ? CheckCircle2 : card.tone === "doubt" ? WifiOff : AlertTriangle;
+  const Icon =
+    card.tone === "good" ? CheckCircle2 : card.tone === "doubt" ? WifiOff : AlertTriangle;
   return (
     <p className={`bill-upi-answer is-${card.tone}`} data-testid="bill-upi-answer">
       <Icon size={18} />

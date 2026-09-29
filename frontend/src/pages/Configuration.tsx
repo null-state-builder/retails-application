@@ -15,7 +15,7 @@ import type { ReactNode } from "react";
 import { CalendarClock, ClipboardCheck, Save, Send, Sparkles, X } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
-import {api, apiErrorMessage, goodsMeta} from "../lib/api";
+import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import {
   Denied,
   Feedback,
@@ -284,7 +284,9 @@ function DraftPanel({
 }) {
   const { session } = useAuth();
   const canDraft = hold(session, "config.draft");
-  const doc = useResourceDoc<ConfigData>(draftId ? `/goods-v1/masters/configurations/${draftId}` : null);
+  const doc = useResourceDoc<ConfigData>(
+    draftId ? `/goods-v1/masters/configurations/${draftId}` : null,
+  );
   // Only the series form names a legal entity, and only an entity manager may
   // read the list — fetching it for every kind would make a configuration
   // drafter's every draft screen issue a refusal they cannot act on.
@@ -315,8 +317,11 @@ function DraftPanel({
   const blocked = backdateBlocksSubmit(backdate, reviewed);
 
   function applyRefusal(e: unknown) {
-    const details = (e as { response?: { data?: { details?: { issues?: { field?: string; message?: string }[] } } } })
-      ?.response?.data?.details;
+    const details = (
+      e as {
+        response?: { data?: { details?: { issues?: { field?: string; message?: string }[] } } };
+      }
+    )?.response?.data?.details;
     const dateIssue = (details?.issues ?? []).find(
       (issue) => issue.field === "effective_from" || issue.field === "effective_to",
     );

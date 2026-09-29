@@ -86,7 +86,8 @@ export function invoiceNumberProblem(number: string): string | null {
   if (number.length > MAX_NUMBER_LENGTH) {
     return `${number} is ${number.length} characters; a tax invoice number may have 16 at most.`;
   }
-  if (!ALLOWED.test(number)) return `${number} uses a character other than letters, digits, - and /.`;
+  if (!ALLOWED.test(number))
+    return `${number} uses a character other than letters, digits, - and /.`;
   return null;
 }
 
@@ -133,7 +134,9 @@ export async function takeInvoiceNumber(db: TillDb, billedAt: Date): Promise<str
     key: META.numbering,
     value: {
       ...state,
-      blocks: state.blocks.map((row) => (row.id === block.id ? { ...row, next: row.next + 1 } : row)),
+      blocks: state.blocks.map((row) =>
+        row.id === block.id ? { ...row, next: row.next + 1 } : row,
+      ),
     } satisfies TillNumbering,
   });
   return number;

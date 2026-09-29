@@ -103,7 +103,11 @@ export function BrokenSizesPage() {
   }, [load, siteId]);
 
   /** Send one write; true once the server has it. The page reloads either way. */
-  async function write(path: string, body: Record<string, unknown>, done: string): Promise<boolean> {
+  async function write(
+    path: string,
+    body: Record<string, unknown>,
+    done: string,
+  ): Promise<boolean> {
     if (!navigator.onLine) {
       setOnline(false);
       return false;
@@ -423,7 +427,8 @@ function ClosedAlerts({ rows }: { rows: AlertRow[] }) {
                     : "Not acted on"}
                 </td>
                 <td>
-                  {row.closed_at ? formatDateTime(row.closed_at) : ""}: {closedText(row.closed_reason)}
+                  {row.closed_at ? formatDateTime(row.closed_at) : ""}:{" "}
+                  {closedText(row.closed_reason)}
                 </td>
                 <td>{outcomeText(row.outcome)}</td>
               </tr>
@@ -467,8 +472,8 @@ function Rules({
     <section className="card section-card" data-testid="broken-rules">
       <h3 className="section-title">Core sizes by category</h3>
       <p className="muted-cell">
-        A style-colour is broken when this share or more of its category's core sizes is missing
-        at the store while it still has stock. A category with no core sizes is not checked.
+        A style-colour is broken when this share or more of its category's core sizes is missing at
+        the store while it still has stock. A category with no core sizes is not checked.
         {canSet
           ? " Changes apply from the next daily check; every change is in the audit log."
           : " A master-data steward sets these."}
@@ -514,7 +519,12 @@ function Rules({
                         data-testid={`broken-rule-toggle-${rule.category || "none"}`}
                         disabled={disabled}
                         onClick={() =>
-                          void onSave(rule.category, rule.core_sizes, rule.missing_percent, !rule.active)
+                          void onSave(
+                            rule.category,
+                            rule.core_sizes,
+                            rule.missing_percent,
+                            !rule.active,
+                          )
                         }
                       >
                         {rule.active ? "Remove" : "Use again"}

@@ -104,8 +104,8 @@ export function SalespersonMatchesPage() {
           <>
             <p className="muted-cell">
               Pick the person each one was. Only people who worked at that store are offered. If the
-              person is missing, add them in <Link to="/setup/people-access">People and access</Link>{" "}
-              first.
+              person is missing, add them in{" "}
+              <Link to="/setup/people-access">People and access</Link> first.
             </p>
             <div className="table-wrap">
               <table className="data" data-testid="matches-unmatched">

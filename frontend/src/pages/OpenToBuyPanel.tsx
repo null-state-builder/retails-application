@@ -141,7 +141,11 @@ export function OpenToBuyPanel({
           </button>
         )}
         {check.ask && (
-          <Link className="btn" to={`/booking/open-to-buy/${check.ask.id}`} data-testid="otb-panel-ask">
+          <Link
+            className="btn"
+            to={`/booking/open-to-buy/${check.ask.id}`}
+            data-testid="otb-panel-ask"
+          >
             Open the request
           </Link>
         )}

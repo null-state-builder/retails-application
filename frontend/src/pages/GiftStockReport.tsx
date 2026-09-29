@@ -238,7 +238,8 @@ export function GiftStockReportPage() {
         </div>
         <p className="muted-cell" data-testid="gift-as-of">
           {asOfText(data.as_of)}
-          {data.as_of && ` · the copy is brought up to date every ${data.refreshed_every_minutes} minutes`}
+          {data.as_of &&
+            ` · the copy is brought up to date every ${data.refreshed_every_minutes} minutes`}
           {` · ${data.stores.map((s) => s.code).join(", ")} · ${data.date_from} to ${data.date_to}`}
         </p>
         {error && (

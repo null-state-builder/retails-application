@@ -72,8 +72,8 @@ export function AlterationChargeCard({
             />
           </label>
           <p className="muted-cell bill-consent-note">
-            A free alteration needs no line. Make the job card on Customer Orders, Alterations
-            after saving the bill.
+            A free alteration needs no line. Make the job card on Customer Orders, Alterations after
+            saving the bill.
           </p>
           <div className="toolbar">
             <button

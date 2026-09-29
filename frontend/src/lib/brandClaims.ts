@@ -55,7 +55,9 @@ export function monthLabel(month: string): string {
 
 /** Rows that would raise a claim: a brand in the list, something owed, the switch on. */
 export function raisable(rows: ToRaise[]): ToRaise[] {
-  return rows.filter((row) => row.brand_id !== null && Number(row.amount_paise) > 0 && row.switched_on);
+  return rows.filter(
+    (row) => row.brand_id !== null && Number(row.amount_paise) > 0 && row.switched_on,
+  );
 }
 
 /** What Accounts types when the brand's credit note arrives. */
@@ -78,7 +80,10 @@ export type SettleCheck =
 
 /** The settle request, or what is wrong with what was typed. The server checks
  *  it all again; this only saves a round trip. */
-export function settleBody(claim: Pick<BrandClaim, "amount_paise">, draft: SettleDraft): SettleCheck {
+export function settleBody(
+  claim: Pick<BrandClaim, "amount_paise">,
+  draft: SettleDraft,
+): SettleCheck {
   const paise = rupeesToPaise(draft.rupees);
   const claimed = Number(claim.amount_paise);
   const short = typeof paise === "string" && Number(paise) < claimed;

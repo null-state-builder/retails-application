@@ -20,12 +20,7 @@ import { Money } from "../lib/format";
 import { canCloseTransferGap } from "../lib/outbound-rbac";
 import { isCleared } from "../components/approval";
 import { PageHeader } from "../components/PageHeader";
-import {
-  GapStatePill,
-  ReceiptExceptions,
-  fmtDate,
-  type TransferT,
-} from "./OutboundTransfers";
+import { GapStatePill, ReceiptExceptions, fmtDate, type TransferT } from "./OutboundTransfers";
 import "./Booking.css";
 
 interface InTransitRowT {
@@ -81,7 +76,11 @@ function skuLabel(r: { design: string; color: string; size: string; brand: strin
  * a transfer only ever has one closure document, and after a rejection
  * correcting that document is the only way the pieces get out of transit.
  */
-function CloseGapForm({ transfer, correcting, onDone }: {
+function CloseGapForm({
+  transfer,
+  correcting,
+  onDone,
+}: {
   transfer: TransferT;
   correcting?: { id: number; reason: string; note: string };
   onDone: () => void;
@@ -127,7 +126,9 @@ function CloseGapForm({ transfer, correcting, onDone }: {
           >
             <option value="">Select a reason…</option>
             {GAP_REASONS.map((r) => (
-              <option key={r.value} value={r.value}>{r.label}</option>
+              <option key={r.value} value={r.value}>
+                {r.label}
+              </option>
             ))}
           </select>
         </div>
@@ -147,7 +148,11 @@ function CloseGapForm({ transfer, correcting, onDone }: {
           <b>What this posts:</b> {chosen.effect}
         </p>
       )}
-      {error && <div className="login-error" data-testid={`gap-error-${transfer.id}`}>{error}</div>}
+      {error && (
+        <div className="login-error" data-testid={`gap-error-${transfer.id}`}>
+          {error}
+        </div>
+      )}
       <button
         className="btn btn-primary"
         style={{ marginTop: 10 }}
@@ -160,7 +165,8 @@ function CloseGapForm({ transfer, correcting, onDone }: {
       </button>
       <p className="lead" style={{ marginTop: 8, opacity: 0.75 }}>
         This does not close the gap yet. A second, senior person has to approve it from the{" "}
-        <Link to="/action-needed?show=approvals">Action Needed</Link>, and only then do the entries post.
+        <Link to="/action-needed?show=approvals">Action Needed</Link>, and only then do the entries
+        post.
       </p>
     </div>
   );
@@ -170,7 +176,11 @@ function CloseGapForm({ transfer, correcting, onDone }: {
 // One gap
 // ---------------------------------------------------------------------------
 
-function GapCard({ transfer, canClose, onChanged }: {
+function GapCard({
+  transfer,
+  canClose,
+  onChanged,
+}: {
   transfer: TransferT;
   canClose: boolean;
   onChanged: () => void;
@@ -195,7 +205,11 @@ function GapCard({ transfer, canClose, onChanged }: {
   }
 
   return (
-    <div className="card section-card" style={{ marginBottom: 18 }} data-testid={`gap-card-${transfer.id}`}>
+    <div
+      className="card section-card"
+      style={{ marginBottom: 18 }}
+      data-testid={`gap-card-${transfer.id}`}
+    >
       <div className="toolbar" style={{ marginBottom: 8 }}>
         <div>
           <p className="eyebrow">
@@ -237,7 +251,11 @@ function GapCard({ transfer, canClose, onChanged }: {
                 ? " Turned down — correct it and send it again, or the pieces stay in transit."
                 : " Waiting for a second, senior person to approve it."}
           </p>
-          {error && <div className="login-error" data-testid={`gap-post-error-${transfer.id}`}>{error}</div>}
+          {error && (
+            <div className="login-error" data-testid={`gap-post-error-${transfer.id}`}>
+              {error}
+            </div>
+          )}
           {canClose && isCleared(closure.approval) && (
             <button
               className="btn btn-cta"
@@ -252,7 +270,8 @@ function GapCard({ transfer, canClose, onChanged }: {
           {/* Only once a checker has had their say. A pending closure must not
               offer this: the server refuses to change a document somebody is
               deciding on, and the button would only invite the attempt. */}
-          {canClose && closure.approval?.status !== "pending" &&
+          {canClose &&
+            closure.approval?.status !== "pending" &&
             (correcting ? (
               <CloseGapForm
                 transfer={transfer}
@@ -299,13 +318,14 @@ function GapCard({ transfer, canClose, onChanged }: {
 export function InTransitPage() {
   const { user } = useAuth();
   const canClose = canCloseTransferGap(user);
-  const { data: gaps, loading: gapsLoading, reload } = useList<TransferT>(
-    "/outbound/transfers/gaps",
-  );
+  const {
+    data: gaps,
+    loading: gapsLoading,
+    reload,
+  } = useList<TransferT>("/outbound/transfers/gaps");
   // A summary + its rows in one object, not a bare list — so useDoc, not useList.
-  const { data: transit, loading: transitLoading } = useDoc<InTransitPayloadT>(
-    "/stockledger/in-transit",
-  );
+  const { data: transit, loading: transitLoading } =
+    useDoc<InTransitPayloadT>("/stockledger/in-transit");
   const summary = transit?.summary;
   const rows = transit?.rows ?? [];
 
@@ -324,13 +344,13 @@ export function InTransitPage() {
         <p className="lead">Loading…</p>
       ) : gaps.length === 0 ? (
         <div className="card section-card" data-testid="gaps-empty">
-          <p className="eyebrow"><ShieldCheck size={15} /> Nothing open</p>
+          <p className="eyebrow">
+            <ShieldCheck size={15} /> Nothing open
+          </p>
           Every transfer that has been received was received in full.
         </div>
       ) : (
-        gaps.map((t) => (
-          <GapCard key={t.id} transfer={t} canClose={canClose} onChanged={reload} />
-        ))
+        gaps.map((t) => <GapCard key={t.id} transfer={t} canClose={canClose} onChanged={reload} />)
       )}
 
       {/* Then the plain in-transit position. */}
@@ -341,11 +361,15 @@ export function InTransitPage() {
         <div className="form-row" style={{ marginBottom: 18 }}>
           <div className="card section-card">
             <p className="eyebrow">Pieces in transit</p>
-            <h3 className="h3" data-testid="transit-units">{summary.units_in_transit}</h3>
+            <h3 className="h3" data-testid="transit-units">
+              {summary.units_in_transit}
+            </h3>
           </div>
           <div className="card section-card">
             <p className="eyebrow">Value in transit</p>
-            <h3 className="h3"><Money paise={summary.value_paise} /></h3>
+            <h3 className="h3">
+              <Money paise={summary.value_paise} />
+            </h3>
           </div>
           <div className="card section-card">
             <p className="eyebrow">Open transfers</p>
@@ -357,7 +381,9 @@ export function InTransitPage() {
         <p className="lead">Loading…</p>
       ) : rows.length === 0 ? (
         <div className="card section-card" data-testid="transit-empty">
-          <p className="eyebrow"><Truck size={15} /> Nothing on the road</p>
+          <p className="eyebrow">
+            <Truck size={15} /> Nothing on the road
+          </p>
           Every dispatched piece has been accounted for.
         </div>
       ) : (
@@ -377,13 +403,23 @@ export function InTransitPage() {
             <tbody>
               {rows.map((r) => (
                 <tr key={`${r.transfer_doc_number}-${r.sku_code}`}>
-                  <td><b className="mono">{r.transfer_doc_number}</b></td>
-                  <td><b className="mono">{r.source_store_code}</b></td>
-                  <td><b className="mono">{r.destination_store_code}</b></td>
+                  <td>
+                    <b className="mono">{r.transfer_doc_number}</b>
+                  </td>
+                  <td>
+                    <b className="mono">{r.source_store_code}</b>
+                  </td>
+                  <td>
+                    <b className="mono">{r.destination_store_code}</b>
+                  </td>
                   <td className="mono">{r.sku_code}</td>
                   <td>{skuLabel(r)}</td>
-                  <td className="num"><b>{r.qty}</b></td>
-                  <td className="num"><Money paise={r.value_paise} /></td>
+                  <td className="num">
+                    <b>{r.qty}</b>
+                  </td>
+                  <td className="num">
+                    <Money paise={r.value_paise} />
+                  </td>
                 </tr>
               ))}
             </tbody>

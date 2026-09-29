@@ -25,14 +25,13 @@ export function RailFoot({
   onReprint: () => void;
   onSave: () => void;
 }) {
-  const primaryLabel =
-    saving
-      ? "Saving…"
-      : paper !== null
-        ? `Save bill ${paper}`
-        : mode === "return"
-          ? "Exchange & print"
-          : "Save & print";
+  const primaryLabel = saving
+    ? "Saving…"
+    : paper !== null
+      ? `Save bill ${paper}`
+      : mode === "return"
+        ? "Exchange & print"
+        : "Save & print";
 
   return (
     <footer className="bill-rail-foot">

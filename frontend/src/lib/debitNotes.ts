@@ -138,7 +138,11 @@ export interface Pending extends Attempt {
  *  does it twice. Anything else - another step, another body, or the note at a
  *  new revision because the lost press did reach the server - is a new command,
  *  so the server never refuses it as a reused identity. */
-export function commandIdFor(pending: Pending | null, attempt: Attempt, fresh: () => string): string {
+export function commandIdFor(
+  pending: Pending | null,
+  attempt: Attempt,
+  fresh: () => string,
+): string {
   const same =
     pending !== null &&
     pending.noteId === attempt.noteId &&

@@ -81,44 +81,71 @@ export function DailyCashPage() {
           <div className="stat-grid">
             <div className="card stat-card">
               <ArrowDownRight size={18} style={{ color: "var(--green)" }} />
-              <div className="stat-value mono" data-testid="dc-money-in"><Money paise={data.money_in_paise} /></div>
+              <div className="stat-value mono" data-testid="dc-money-in">
+                <Money paise={data.money_in_paise} />
+              </div>
               <div className="stat-label">Money in</div>
             </div>
             <div className="card stat-card">
               <ArrowUpRight size={18} style={{ color: "var(--red)" }} />
-              <div className="stat-value mono" data-testid="dc-money-out"><Money paise={data.money_out_paise} /></div>
+              <div className="stat-value mono" data-testid="dc-money-out">
+                <Money paise={data.money_out_paise} />
+              </div>
               <div className="stat-label">Money out</div>
             </div>
             <div className="card stat-card">
               <Scale size={18} style={{ color: "var(--rust)" }} />
-              <div className="stat-value mono" data-testid="dc-net"><Money paise={data.net_paise} /></div>
+              <div className="stat-value mono" data-testid="dc-net">
+                <Money paise={data.net_paise} />
+              </div>
               <div className="stat-label">Net for the day</div>
             </div>
           </div>
           <div className="table-wrap" style={{ marginBottom: 24 }}>
             <table className="data" data-testid="daily-cash-accounts-table">
               <thead>
-                <tr><th>Account</th><th className="num">In</th><th className="num">Out</th><th className="num">Net</th></tr>
+                <tr>
+                  <th>Account</th>
+                  <th className="num">In</th>
+                  <th className="num">Out</th>
+                  <th className="num">Net</th>
+                </tr>
               </thead>
               <tbody>
                 {data.accounts.map((a) => (
                   <tr key={a.account} data-testid={`dc-account-row-${a.account}`}>
-                    <td><b>{ACCOUNT_LABEL[a.account] ?? a.account}</b></td>
-                    <td className="num" style={{ color: "var(--green)" }}><Money paise={a.in_paise} /></td>
-                    <td className="num" style={{ color: "var(--red)" }}><Money paise={a.out_paise} /></td>
-                    <td className="num"><Money paise={a.net_paise} /></td>
+                    <td>
+                      <b>{ACCOUNT_LABEL[a.account] ?? a.account}</b>
+                    </td>
+                    <td className="num" style={{ color: "var(--green)" }}>
+                      <Money paise={a.in_paise} />
+                    </td>
+                    <td className="num" style={{ color: "var(--red)" }}>
+                      <Money paise={a.out_paise} />
+                    </td>
+                    <td className="num">
+                      <Money paise={a.net_paise} />
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           {data.entries.length === 0 ? (
-            <p className="muted-cell" data-testid="daily-cash-empty">Nothing moved on this day.</p>
+            <p className="muted-cell" data-testid="daily-cash-empty">
+              Nothing moved on this day.
+            </p>
           ) : (
             <div className="table-wrap">
               <table className="data" data-testid="daily-cash-entries-table">
                 <thead>
-                  <tr><th>Time</th><th>Voucher</th><th>Account</th><th>Note</th><th className="num">Amount ₹</th></tr>
+                  <tr>
+                    <th>Time</th>
+                    <th>Voucher</th>
+                    <th>Account</th>
+                    <th>Note</th>
+                    <th className="num">Amount ₹</th>
+                  </tr>
                 </thead>
                 <tbody>
                   {data.entries.map((e) => (
@@ -126,8 +153,17 @@ export function DailyCashPage() {
                       <td className="mono">{when(e.created_at)}</td>
                       <td className="mono">{e.doc_number}</td>
                       <td>{ACCOUNT_LABEL[e.account] ?? e.account}</td>
-                      <td>{e.description}{e.vendor_name ? ` · ${e.vendor_name}` : ""}</td>
-                      <td className="num mono" style={{ fontWeight: 700, color: e.amount >= 0 ? "var(--green)" : "var(--red)" }}>
+                      <td>
+                        {e.description}
+                        {e.vendor_name ? ` · ${e.vendor_name}` : ""}
+                      </td>
+                      <td
+                        className="num mono"
+                        style={{
+                          fontWeight: 700,
+                          color: e.amount >= 0 ? "var(--green)" : "var(--red)",
+                        }}
+                      >
                         <Money paise={e.amount} />
                       </td>
                     </tr>

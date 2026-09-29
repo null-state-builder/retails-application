@@ -53,10 +53,7 @@ export function FeatureSwitchesPage() {
     () => new Map((data?.features ?? []).map((f) => [f.key, f.name])),
     [data],
   );
-  const storeCode = useMemo(
-    () => new Map((data?.stores ?? []).map((s) => [s.id, s.code])),
-    [data],
-  );
+  const storeCode = useMemo(() => new Map((data?.stores ?? []).map((s) => [s.id, s.code])), [data]);
 
   async function change(key: string, enabled: boolean, mode?: string) {
     const current = states.get(key);
@@ -184,7 +181,9 @@ export function FeatureSwitchesPage() {
                             data-testid={`feature-mode-${f.key}`}
                             value={state.mode}
                             disabled={cannot}
-                            onChange={(event) => void change(f.key, state.chosen, event.target.value)}
+                            onChange={(event) =>
+                              void change(f.key, state.chosen, event.target.value)
+                            }
                           >
                             <option value="manual">Manual</option>
                             <option value="connected">Connected provider</option>

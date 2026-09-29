@@ -16,14 +16,37 @@ export function BillDiscountChip({ plus, locked }: { plus: Plus; locked: boolean
         <h3 className="eyebrow">Bill discount</h3>
         <span className="plus-ruling">Needs a ruling</span>
       </header>
-      <button type="button" className="btn plus-btn plus-wide" aria-expanded={open} disabled={locked} onClick={() => setOpen(!open)}>
-        <Percent size={16} aria-hidden /> {discountPaise > 0 ? <>Bill discount <Money paise={discountPaise} /></> : "Add bill discount"}
+      <button
+        type="button"
+        className="btn plus-btn plus-wide"
+        aria-expanded={open}
+        disabled={locked}
+        onClick={() => setOpen(!open)}
+      >
+        <Percent size={16} aria-hidden />{" "}
+        {discountPaise > 0 ? (
+          <>
+            Bill discount <Money paise={discountPaise} />
+          </>
+        ) : (
+          "Add bill discount"
+        )}
       </button>
       {open && (
         <div className="plus-fields">
-          <RupeeInput placeholder="0" testId="plus-discount-amount" label="Discount amount" paise={discountPaise} locked={locked} onChange={(p) => plus.patch({ discountPaise: p ?? 0 })} />
+          <RupeeInput
+            placeholder="0"
+            testId="plus-discount-amount"
+            label="Discount amount"
+            paise={discountPaise}
+            locked={locked}
+            onChange={(p) => plus.patch({ discountPaise: p ?? 0 })}
+          />
           <input className="input plus-input" placeholder="Reason" aria-label="Reason" />
-          <p className="plus-note">A manager types their own PIN to approve. Shown here only, nothing is taken off the real bill.</p>
+          <p className="plus-note">
+            A manager types their own PIN to approve. Shown here only, nothing is taken off the real
+            bill.
+          </p>
         </div>
       )}
     </section>

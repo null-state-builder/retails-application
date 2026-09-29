@@ -32,7 +32,9 @@ const OFFLINE = "Reports need a connection. Reconnect to see or export this repo
  *  It reads live data only: offline it says it needs a connection, and comes
  *  back by itself when the line does. */
 export function BrandPerformanceReportPage() {
-  const [filters, setFilters] = useState<BrandPerformanceFilters>(() => defaultBrandPerformanceFilters());
+  const [filters, setFilters] = useState<BrandPerformanceFilters>(() =>
+    defaultBrandPerformanceFilters(),
+  );
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
@@ -239,7 +241,8 @@ export function BrandPerformanceReportPage() {
         </div>
         <p className="muted-cell" data-testid="brand-performance-as-of">
           {asOfText(data.as_of)}
-          {data.as_of && ` · the copy is brought up to date every ${data.refreshed_every_minutes} minutes`}
+          {data.as_of &&
+            ` · the copy is brought up to date every ${data.refreshed_every_minutes} minutes`}
           {` · ${data.stores.map((s) => s.code).join(", ")} · ${data.date_from} to ${data.date_to}`}
         </p>
         {data.estimate_note && (
@@ -266,7 +269,9 @@ export function BrandPerformanceReportPage() {
         )}
         {rows.length === 0 ? (
           <p className="muted-cell" data-testid="brand-performance-empty">
-            {busy ? "Loading…" : "Nothing sold, received or in stock in this period at these stores."}
+            {busy
+              ? "Loading…"
+              : "Nothing sold, received or in stock in this period at these stores."}
           </p>
         ) : (
           <div className="table-wrap">
@@ -309,9 +314,20 @@ export function BrandPerformanceReportPage() {
   );
 }
 
-function BrandPerformanceRow({ row, columns, total }: { row: GstRow; columns: GstColumn[]; total?: boolean }) {
+function BrandPerformanceRow({
+  row,
+  columns,
+  total,
+}: {
+  row: GstRow;
+  columns: GstColumn[];
+  total?: boolean;
+}) {
   return (
-    <tr data-testid={total ? "brand-performance-total" : "brand-performance-row"} data-key={String(row.key ?? "")}>
+    <tr
+      data-testid={total ? "brand-performance-total" : "brand-performance-row"}
+      data-key={String(row.key ?? "")}
+    >
       {columns.map((c, index) => {
         const text = gstCell(row[c.key], c.kind);
         return (

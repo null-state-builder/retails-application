@@ -13,7 +13,15 @@ import { PlannedPage } from "./pages/PlannedPage";
 import { LegacyRedirect } from "./shell/LegacyRedirect";
 import { LEGACY_PATHS, NAV_ITEMS, itemPath } from "./shell/navConfig";
 import { Home } from "./pages/Home";
-import { BrandsPage, GstinsPage, SeasonsPage, StoreTargetsPage, StoresPage, UsersRolesPage, VendorsPage } from "./pages/MasterPages";
+import {
+  BrandsPage,
+  GstinsPage,
+  SeasonsPage,
+  StoreTargetsPage,
+  StoresPage,
+  UsersRolesPage,
+  VendorsPage,
+} from "./pages/MasterPages";
 import { OrganisationPage } from "./pages/Organisation";
 import { PeopleAccessPage } from "./pages/PeopleAccess";
 import { ProductsPartiesPage } from "./pages/ProductsParties";
@@ -88,9 +96,18 @@ import { GoodsMovementsPage } from "./pages/GoodsMovements";
 import { GoodsCountDetailPage, GoodsCountsPage } from "./pages/GoodsCounts";
 // Goods-v1 monitoring, durable exports and command lookup (ticket 18).
 import { GoodsMonitoringPage } from "./pages/GoodsMonitoring";
-import { TransferListPage, TransferNewPage, TransferDetailPage, TransferPtPage } from "./pages/OutboundTransfers";
+import {
+  TransferListPage,
+  TransferNewPage,
+  TransferDetailPage,
+  TransferPtPage,
+} from "./pages/OutboundTransfers";
 import { DistributionGridPage } from "./pages/DistributionGrid";
-import { StockRequestListPage, StockRequestNewPage, StockRequestDetailPage } from "./pages/OutboundStockRequests";
+import {
+  StockRequestListPage,
+  StockRequestNewPage,
+  StockRequestDetailPage,
+} from "./pages/OutboundStockRequests";
 import { InTransitPage } from "./pages/OutboundInTransit";
 import { RTVListPage, RTVNewPage, RTVDetailPage } from "./pages/OutboundRTV";
 import { AdjustmentListPage, AdjustmentDetailPage } from "./pages/OutboundAdjustments";
@@ -167,7 +184,11 @@ const BUILT: Screen[] = [
   // be read as a delivery id.
   // A delivery is addressed by its arrival (`delivery`), its GRN (`grn`) or
   // its PT (`pt`), so a link to any of its records opens the delivery (OPS-17).
-  { id: "goods-receive-delivery", path: "/goods/receive/:kind/:id", element: <ReceiveDeliveryPage /> },
+  {
+    id: "goods-receive-delivery",
+    path: "/goods/receive/:kind/:id",
+    element: <ReceiveDeliveryPage />,
+  },
   { id: "goods-receive-new", path: "/goods/receive/new", element: <ReceiveNewPage /> },
   { id: "goods-receive-history", path: "/goods/receive/history", element: <ReceiveHistoryPage /> },
   { id: "goods-receive", path: "/goods/receive", element: <ReceiveInboxPage /> },
@@ -181,7 +202,11 @@ const BUILT: Screen[] = [
   // file uses everywhere else (a document id must never shadow a section word).
   // Goods-v1 opening stock for synthetic tenants (ticket 10).
   { id: "goods-opening", path: "/goods/opening", element: <GoodsOpeningPage /> },
-  { id: "goods-stock-origin-journey", path: "/goods/stock/origins/:id", element: <GoodsOriginJourneyPage /> },
+  {
+    id: "goods-stock-origin-journey",
+    path: "/goods/stock/origins/:id",
+    element: <GoodsOriginJourneyPage />,
+  },
   { id: "goods-stock", path: "/goods/stock", element: <GoodsStockPage /> },
   // Goods-v1 labels and print jobs (ticket 11).
   { id: "goods-labels", path: "/goods/labels", element: <GoodsLabelsPage /> },
@@ -193,8 +218,16 @@ const BUILT: Screen[] = [
   // Goods-v1 transfers (OPS-06). "requests" comes before the `:id` route for
   // the reason this file gives everywhere: a section word must never be read
   // as a record id.
-  { id: "goods-transfer-requests", path: "/goods/transfers/requests", element: <GoodsTransferRequestsPage /> },
-  { id: "goods-transfer-detail", path: "/goods/transfers/:id", element: <GoodsTransferDetailPage /> },
+  {
+    id: "goods-transfer-requests",
+    path: "/goods/transfers/requests",
+    element: <GoodsTransferRequestsPage />,
+  },
+  {
+    id: "goods-transfer-detail",
+    path: "/goods/transfers/:id",
+    element: <GoodsTransferDetailPage />,
+  },
   // Store operations ticket 36: a shipment's delivery challan or tax invoice, to print.
   {
     id: "goods-transfer-document",
@@ -208,11 +241,19 @@ const BUILT: Screen[] = [
   { id: "transfer-list", path: "/transfer", element: <TransferListPage /> },
   { id: "transfer-new", path: "/transfer/new", element: <TransferNewPage /> },
   // Before /transfer/:id, or "in-transit"/"requests"/"distribution" would be read as a transfer id (#71).
-  { id: "transfer-distribution", path: "/transfer/distribution", element: <DistributionGridPage /> },
+  {
+    id: "transfer-distribution",
+    path: "/transfer/distribution",
+    element: <DistributionGridPage />,
+  },
   { id: "transfer-in-transit", path: "/transfer/in-transit", element: <InTransitPage /> },
   { id: "stock-request-list", path: "/transfer/requests", element: <StockRequestListPage /> },
   { id: "stock-request-new", path: "/transfer/requests/new", element: <StockRequestNewPage /> },
-  { id: "stock-request-detail", path: "/transfer/requests/:id", element: <StockRequestDetailPage /> },
+  {
+    id: "stock-request-detail",
+    path: "/transfer/requests/:id",
+    element: <StockRequestDetailPage />,
+  },
   { id: "transfer-detail", path: "/transfer/:id", element: <TransferDetailPage /> },
   // The printable PT the carton travels with (#72).
   { id: "transfer-pt", path: "/transfer/:id/pt", element: <TransferPtPage /> },
@@ -221,7 +262,11 @@ const BUILT: Screen[] = [
   // Store operations ticket 35: when each store's blind count is due.
   { id: "count-schedule", path: "/stock-count/schedule", element: <CountSchedulePage /> },
   { id: "adjustment-list", path: "/stock-count/adjustments", element: <AdjustmentListPage /> },
-  { id: "adjustment-detail", path: "/stock-count/adjustments/:id", element: <AdjustmentDetailPage /> },
+  {
+    id: "adjustment-detail",
+    path: "/stock-count/adjustments/:id",
+    element: <AdjustmentDetailPage />,
+  },
   { id: "writeoff-list", path: "/stock-count/writeoffs", element: <WriteOffListPage /> },
   { id: "writeoff-new", path: "/stock-count/writeoffs/new", element: <WriteOffNewPage /> },
   { id: "writeoff-detail", path: "/stock-count/writeoffs/:id", element: <WriteOffDetailPage /> },
@@ -321,7 +366,11 @@ const BUILT: Screen[] = [
   // Setup
   { id: "setup-organisation", path: "/setup/organisation", element: <OrganisationPage /> },
   { id: "setup-people-access", path: "/setup/people-access", element: <PeopleAccessPage /> },
-  { id: "setup-products-parties", path: "/setup/products-parties", element: <ProductsPartiesPage /> },
+  {
+    id: "setup-products-parties",
+    path: "/setup/products-parties",
+    element: <ProductsPartiesPage />,
+  },
   { id: "setup-configuration", path: "/setup/configuration", element: <ConfigurationPage /> },
   { id: "setup-stores", path: "/setup/stores", element: <StoresPage /> },
   { id: "setup-brands", path: "/setup/brands", element: <BrandsPage /> },
@@ -331,7 +380,11 @@ const BUILT: Screen[] = [
   { id: "setup-users", path: "/setup/users", element: <UsersRolesPage /> },
   { id: "setup-access", path: "/setup/access", element: <AccessMatrixPage /> },
   { id: "setup-settings", path: "/setup/settings", element: <SellPolicySettingsPage /> },
-  { id: "setup-feature-switches", path: "/setup/feature-switches", element: <FeatureSwitchesPage /> },
+  {
+    id: "setup-feature-switches",
+    path: "/setup/feature-switches",
+    element: <FeatureSwitchesPage />,
+  },
   { id: "setup-feature-check", path: "/setup/feature-check", element: <FeatureCheckPage /> },
   { id: "setup-audit", path: "/setup/audit", element: <AuditLogPage /> },
   { id: "setup-tax-settings", path: "/setup/tax-settings", element: <TaxSettingsPage /> },
@@ -405,11 +458,13 @@ const PLANNED: Screen[] = NAV_ITEMS.filter((i) => i.planned && !i.deepLink).map(
 // anybody remembering this file. A static segment outranks a dynamic one, so
 // these win over a `:id` route whatever the order here.
 const CLAIMABLE: Screen[] = [...BUILT, ...PLANNED];
-const LEGACY: Screen[] = LEGACY_PATHS.filter((path) => matchRoutes(CLAIMABLE, path)).map((path) => ({
-  id: `legacy:${path}`,
-  path,
-  element: <LegacyRedirect />,
-}));
+const LEGACY: Screen[] = LEGACY_PATHS.filter((path) => matchRoutes(CLAIMABLE, path)).map(
+  (path) => ({
+    id: `legacy:${path}`,
+    path,
+    element: <LegacyRedirect />,
+  }),
+);
 
 export const PROTECTED_ROUTES: Screen[] = [...CLAIMABLE, ...LEGACY];
 

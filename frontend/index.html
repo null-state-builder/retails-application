@@ -19,7 +19,9 @@
       (function () {
         try {
           var p = localStorage.getItem("kdps-theme");
-          var dark = p === "dark" || (p !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          var dark =
+            p === "dark" ||
+            (p !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
           document.documentElement.dataset.theme = dark ? "dark" : "light";
           var m = document.querySelector('meta[name="theme-color"]');
           if (m) m.setAttribute("content", dark ? "#201d18" : "#faf7f2");

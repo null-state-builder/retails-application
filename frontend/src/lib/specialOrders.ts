@@ -43,7 +43,9 @@ export function collectable(o: Pick<SpecialOrder, "status">): boolean {
 }
 
 /** What was asked for, in one line. */
-export function itemText(o: Pick<SpecialOrder, "brand_name" | "style_code" | "size" | "colour">): string {
+export function itemText(
+  o: Pick<SpecialOrder, "brand_name" | "style_code" | "size" | "colour">,
+): string {
   return [o.brand_name, o.style_code, o.colour, o.size].filter(Boolean).join(" · ");
 }
 
@@ -126,7 +128,8 @@ export function draftProblem(draft: SpecialOrderDraft): string {
   if (!draft.brand) return "Choose the brand.";
   if (!draft.style_code.trim() || !draft.size.trim() || !draft.colour.trim())
     return "Type the style, size and colour.";
-  if (draft.advance.trim() && !rupeesToPaise(draft.advance)) return "Type the advance in rupees, or leave it blank.";
+  if (draft.advance.trim() && !rupeesToPaise(draft.advance))
+    return "Type the advance in rupees, or leave it blank.";
   return "";
 }
 

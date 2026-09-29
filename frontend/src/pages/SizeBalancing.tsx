@@ -126,7 +126,10 @@ export function SizeBalancingPage() {
       sent.current.delete(key);
       setSaved(
         decision === "approve"
-          ? { text: `From ${row.sending.code}: approved. A transfer request was raised.`, request: true }
+          ? {
+              text: `From ${row.sending.code}: approved. A transfer request was raised.`,
+              request: true,
+            }
           : { text: `From ${row.sending.code}: rejected.`, request: false },
       );
       ok = true;

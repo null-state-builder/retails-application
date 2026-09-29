@@ -57,7 +57,9 @@ export function ActionNeededPage() {
 
   const chips: { key: Show; label: string; n?: number | null }[] = [
     { key: "all", label: "All" },
-    ...(canSeeApprovals ? [{ key: "approvals" as const, label: "Approvals", n: approvalCount }] : []),
+    ...(canSeeApprovals
+      ? [{ key: "approvals" as const, label: "Approvals", n: approvalCount }]
+      : []),
     ...(canSeeExceptions
       ? [{ key: "exceptions" as const, label: "Exceptions", n: exceptionCount }]
       : []),

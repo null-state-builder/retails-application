@@ -20,13 +20,7 @@ import { splitTax, taxKindFor } from "./gstin";
 import { taxLabel } from "./tax";
 import type { B2bTaxKind } from "./gstin";
 import { describePiece } from "./lookup";
-import type {
-  BillLine,
-  BillTender,
-  QueuedBill,
-  TillCustomer,
-  TillStoreIdentity,
-} from "./types";
+import type { BillLine, BillTender, QueuedBill, TillCustomer, TillStoreIdentity } from "./types";
 
 export interface ReceiptOptions {
   /** Cash the customer physically handed over, so the paper can show the change.
@@ -79,8 +73,7 @@ function money(paise: number): string {
 function esc(text: string): string {
   return text.replace(
     /[&<>"']/g,
-    (c) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string,
   );
 }
 
@@ -167,7 +160,15 @@ export function receiptHtml(
   // for the pieces coming back and a new tax invoice for the pieces going out,
   // printed together on this one slip (§6 ST-CMP-2; baseline, CA to confirm).
   if (bill.return_tax && back.length) {
-    return withCreditNote(bill, store, options, { rows, pieces, customer, buyerGstin, taxKind, change, cashTaken });
+    return withCreditNote(bill, store, options, {
+      rows,
+      pieces,
+      customer,
+      buyerGstin,
+      taxKind,
+      change,
+      cashTaken,
+    });
   }
   const returnedBlock = back.length
     ? `<hr><p class="dim">Given back against bill ${esc(String(bill.exchange?.original.till_seq ?? ""))}</p>
@@ -212,8 +213,12 @@ export function receiptHtml(
   // GSTIN was given for - which is the entire reason they handed it over.
   const buyerBlock = buyerGstin
     ? `<p class="dim buyer">Buyer${customer.name ? ` ${esc(customer.name)}` : ""}<br>
-        GSTIN ${esc(buyerGstin)}${options.irn ? `<br>
-        IRN ${esc(options.irn)}` : ""}</p>`
+        GSTIN ${esc(buyerGstin)}${
+          options.irn
+            ? `<br>
+        IRN ${esc(options.irn)}`
+            : ""
+        }</p>`
     : "";
 
   // How it was paid, mode by mode. A split bill's customer copy has to say which
@@ -331,7 +336,9 @@ function withCreditNote(
   const taxRows =
     parts.taxKind === "none"
       ? [row("GST included", money(soldTax))]
-      : splitTax(soldTax, parts.taxKind).map((part) => row(`${part.label} included`, money(part.paise)));
+      : splitTax(soldTax, parts.taxKind).map((part) =>
+          row(`${part.label} included`, money(part.paise)),
+        );
   const original = options.creditNote?.original
     ? esc(options.creditNote.original)
     : esc(`${bill.exchange?.original.fy ?? ""} bill ${bill.exchange?.original.till_seq ?? ""}`);

@@ -137,8 +137,8 @@ export function OfferReturnCard({ offerId }: Props) {
       </p>
       <p className="hint">
         The goods this offer covers, at its stores, while it ran - against a baseline period you
-        choose. Customers, stock and season differ between two periods, so the change is not all
-        the offer's doing.
+        choose. Customers, stock and season differ between two periods, so the change is not all the
+        offer's doing.
       </p>
 
       {(!online || lost) && (
@@ -187,12 +187,7 @@ export function OfferReturnCard({ offerId }: Props) {
             required
           />
         </label>
-        <button
-          type="submit"
-          className="btn"
-          disabled={busy || !online}
-          data-testid="ret-compare"
-        >
+        <button type="submit" className="btn" disabled={busy || !online} data-testid="ret-compare">
           Compare
         </button>
       </form>
@@ -200,8 +195,10 @@ export function OfferReturnCard({ offerId }: Props) {
       {data && ran && base && (
         <>
           <p className="hint" data-testid="ret-as-of">
-            {data.as_of ? `Bills ${asOfText(data.as_of).replace(/^As/, "as")}` : "No copy of the bills yet"} ·{" "}
-            {data.stores.map((s) => s.code).join(", ") || "no stores"}
+            {data.as_of
+              ? `Bills ${asOfText(data.as_of).replace(/^As/, "as")}`
+              : "No copy of the bills yet"}{" "}
+            · {data.stores.map((s) => s.code).join(", ") || "no stores"}
             {!base.stated && " · Baseline: the same number of days just before the offer started"}
           </p>
           <div className="table-wrap">
@@ -231,8 +228,12 @@ export function OfferReturnCard({ offerId }: Props) {
                   <tr key={figure.key} data-testid={`ret-row-${figure.key}`}>
                     <td>{figure.label}</td>
                     <td data-testid={`ret-cell-offer-${figure.key}`}>{cellText(ran, figure)}</td>
-                    <td data-testid={`ret-cell-baseline-${figure.key}`}>{cellText(base, figure)}</td>
-                    <td data-testid={`ret-change-${figure.key}`}>{changeText(data.change, figure)}</td>
+                    <td data-testid={`ret-cell-baseline-${figure.key}`}>
+                      {cellText(base, figure)}
+                    </td>
+                    <td data-testid={`ret-change-${figure.key}`}>
+                      {changeText(data.change, figure)}
+                    </td>
                   </tr>
                 ))}
               </tbody>

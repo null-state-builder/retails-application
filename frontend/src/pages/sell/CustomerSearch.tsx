@@ -62,28 +62,25 @@ export default function CustomerSearchPage() {
   const [error, setError] = useState("");
   const [printProblem, setPrintProblem] = useState("");
 
-  const runSearch = useCallback(
-    async (searchKey: SearchKey, q: string) => {
-      if (!q) {
-        setError("Type a mobile number, a name or a bill number to search for.");
-        return;
-      }
-      setLoading(true);
-      setError("");
-      setPrintProblem("");
-      setOpen(null);
-      try {
-        const { data } = await api.get(withQuery("/sell/sales", { [searchKey]: q }));
-        setRows(data as SaleRow[]);
-      } catch (e) {
-        setError(apiErrorMessage(e));
-        setRows(null);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [],
-  );
+  const runSearch = useCallback(async (searchKey: SearchKey, q: string) => {
+    if (!q) {
+      setError("Type a mobile number, a name or a bill number to search for.");
+      return;
+    }
+    setLoading(true);
+    setError("");
+    setPrintProblem("");
+    setOpen(null);
+    try {
+      const { data } = await api.get(withQuery("/sell/sales", { [searchKey]: q }));
+      setRows(data as SaleRow[]);
+    } catch (e) {
+      setError(apiErrorMessage(e));
+      setRows(null);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   function search() {
     void runSearch(key, term.trim());
@@ -277,7 +274,12 @@ function BillDetail({ bill, onReprint }: { bill: PostedBill; onReprint: () => vo
           </p>
         </div>
         <div className="spacer" />
-        <button type="button" className="btn btn-cta" data-testid="find-reprint" onClick={onReprint}>
+        <button
+          type="button"
+          className="btn btn-cta"
+          data-testid="find-reprint"
+          onClick={onReprint}
+        >
           <Printer size={15} /> Print again
         </button>
       </div>
@@ -303,7 +305,9 @@ function BillDetail({ bill, onReprint }: { bill: PostedBill; onReprint: () => vo
                   .join(" · ") ||
                   line.manual_desc ||
                   "—"}
-                {line.direction === "return" ? <span className="chip chip-navy">Returned</span> : null}
+                {line.direction === "return" ? (
+                  <span className="chip chip-navy">Returned</span>
+                ) : null}
               </td>
               <td className="mono">{line.barcode}</td>
               <td>{line.season || "—"}</td>

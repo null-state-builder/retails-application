@@ -63,137 +63,155 @@ export function Lines({
             <span>Pull the scanner trigger. The cursor stays in the scan bar, always.</span>
           </div>
         ) : (
-        <table className="bill-grid" data-testid="bill-lines">
-        {/* Fixed widths, not content widths. All twelve columns D10 names have
+          <table className="bill-grid" data-testid="bill-lines">
+            {/* Fixed widths, not content widths. All twelve columns D10 names have
             to be on the counter's screen at once - a Net column that scrolled
             off the right would be the one number the cashier reads aloud. */}
-        <colgroup>
-          {COLUMN_WIDTHS.map((width, i) => (
-            <col
-              key={i}
-              className={i === 2 ? "bill-size-column" : undefined}
-              style={i === 1 ? undefined : { width }}
-            />
-          ))}
-        </colgroup>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Item</th>
-            <th className="bill-size-column">Size</th>
-            <th className="num">Qty</th>
-            <th className="num">Rate</th>
-            <th className="num">Discount</th>
-            <th className="num">Net</th>
-            <th>Salesperson</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {lines.map((line) => (
-            <Fragment key={line.key}>
-            <tr className="bill-line" data-testid={`bill-line-${line.line_no}`}>
-              <td className="bill-line-number bill-col-no">{line.line_no}</td>
-              <td className="bill-col-item">
-                <ItemIdentityCell line={line} locked={locked} onEdit={onEdit} onPicked={onPicked} />
-                {/* Operationally important badges visible in main row. */}
-                <div className="bill-item-meta">
-                  {line.kind === "alteration" ? (
-                    // Ticket 22: a service, so no brand, no tag and no offer.
-                    <span className="bill-tag" data-testid={`bill-alteration-${line.line_no}`}>
-                      SAC {line.hsn} · GST {Number(line.gst_rate)}%
-                    </span>
-                  ) : (
-                    <>
-                  {!line.sold_before_inward && (
-                    <span title={`${line.brand} · ${line.barcode}`}>{line.brand}</span>
+            <colgroup>
+              {COLUMN_WIDTHS.map((width, i) => (
+                <col
+                  key={i}
+                  className={i === 2 ? "bill-size-column" : undefined}
+                  style={i === 1 ? undefined : { width }}
+                />
+              ))}
+            </colgroup>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Item</th>
+                <th className="bill-size-column">Size</th>
+                <th className="num">Qty</th>
+                <th className="num">Rate</th>
+                <th className="num">Discount</th>
+                <th className="num">Net</th>
+                <th>Salesperson</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {lines.map((line) => (
+                <Fragment key={line.key}>
+                  <tr className="bill-line" data-testid={`bill-line-${line.line_no}`}>
+                    <td className="bill-line-number bill-col-no">{line.line_no}</td>
+                    <td className="bill-col-item">
+                      <ItemIdentityCell
+                        line={line}
+                        locked={locked}
+                        onEdit={onEdit}
+                        onPicked={onPicked}
+                      />
+                      {/* Operationally important badges visible in main row. */}
+                      <div className="bill-item-meta">
+                        {line.kind === "alteration" ? (
+                          // Ticket 22: a service, so no brand, no tag and no offer.
+                          <span
+                            className="bill-tag"
+                            data-testid={`bill-alteration-${line.line_no}`}
+                          >
+                            SAC {line.hsn} · GST {Number(line.gst_rate)}%
+                          </span>
+                        ) : (
+                          <>
+                            {!line.sold_before_inward && (
+                              <span title={`${line.brand} · ${line.barcode}`}>{line.brand}</span>
+                            )}
+                            <span className="mono bill-barcode" title={line.barcode}>
+                              {line.barcode}
+                            </span>
+                            {line.offer_credits.map((credit) => (
+                              <span className="bill-offer" key={credit.offer_id}>
+                                {credit.offer_name || "Offer"}
+                              </span>
+                            ))}
+                            {line.sold_before_inward && <span className="bill-tag">Off tag</span>}
+                            {line.no_discount && <span className="bill-tag">No discount</span>}
+                          </>
+                        )}
+                      </div>
+                      <span className="bill-size-fold mono">Size {line.size}</span>
+                    </td>
+                    <td className="bill-size-column bill-col-size mono">{line.size}</td>
+                    <td className="num bill-col-qty" data-label="Qty">
+                      <QtyCell line={line} locked={locked} onEdit={onEdit} onPicked={onPicked} />
+                    </td>
+                    <td className="num bill-col-rate" data-label="Rate">
+                      <RateCell line={line} locked={locked} onEdit={onEdit} />
+                    </td>
+                    <td
+                      className={
+                        line.disc_paise > 0
+                          ? "num bill-col-disc bill-discount-carrying"
+                          : "num bill-col-disc"
+                      }
+                      data-label="Discount"
+                    >
+                      <DiscountCell line={line} locked={locked} onEdit={onEdit} />
+                    </td>
+                    <td className="num bill-col-net" data-label="Net">
+                      <Money paise={line.net_paise} />
+                      <span className="bill-net-tax">
+                        incl GST <GstBadge line={line} />
+                      </span>
+                    </td>
+                    <td className="bill-col-who" data-label="Salesperson">
+                      <select
+                        className={
+                          line.salesperson === null
+                            ? "select bill-cell bill-salesman-missing"
+                            : "select bill-cell"
+                        }
+                        disabled={locked}
+                        data-testid={`bill-salesman-${line.line_no}`}
+                        aria-label={`Salesperson, line ${line.line_no}`}
+                        value={line.salesperson ?? ""}
+                        onChange={(e) => onSalesperson(line.key, e.target.value || null)}
+                      >
+                        <option value="">Nobody</option>
+                        {salespeople.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
+                      </select>
+                      {splitAllowed && !line.split && line.kind !== "alteration" && (
+                        <button
+                          type="button"
+                          className="bill-split-open"
+                          disabled={locked}
+                          data-testid={`bill-split-${line.line_no}`}
+                          aria-label={`Split line ${line.line_no} with a second salesperson`}
+                          onClick={() => onEdit(line.key, { split: newSplit() })}
+                        >
+                          Split
+                        </button>
+                      )}
+                    </td>
+                    <td className="bill-col-del">
+                      <button
+                        type="button"
+                        className="line-del"
+                        disabled={locked}
+                        data-testid={`bill-remove-${line.line_no}`}
+                        aria-label={`Remove line ${line.line_no}`}
+                        onClick={() => onRemove(line.key)}
+                      >
+                        <X size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                  {line.split && (
+                    <SplitRow
+                      line={line}
+                      salespeople={salespeople}
+                      locked={locked}
+                      onEdit={onEdit}
+                    />
                   )}
-                  <span className="mono bill-barcode" title={line.barcode}>{line.barcode}</span>
-                  {line.offer_credits.map((credit) => (
-                    <span className="bill-offer" key={credit.offer_id}>
-                      {credit.offer_name || "Offer"}
-                    </span>
-                  ))}
-                  {line.sold_before_inward && <span className="bill-tag">Off tag</span>}
-                  {line.no_discount && <span className="bill-tag">No discount</span>}
-                    </>
-                  )}
-                </div>
-                <span className="bill-size-fold mono">Size {line.size}</span>
-              </td>
-              <td className="bill-size-column bill-col-size mono">{line.size}</td>
-              <td className="num bill-col-qty" data-label="Qty">
-                <QtyCell line={line} locked={locked} onEdit={onEdit} onPicked={onPicked} />
-              </td>
-              <td className="num bill-col-rate" data-label="Rate">
-                <RateCell line={line} locked={locked} onEdit={onEdit} />
-              </td>
-              <td
-                className={line.disc_paise > 0 ? "num bill-col-disc bill-discount-carrying" : "num bill-col-disc"}
-                data-label="Discount"
-              >
-                <DiscountCell line={line} locked={locked} onEdit={onEdit} />
-              </td>
-              <td className="num bill-col-net" data-label="Net">
-                <Money paise={line.net_paise} />
-                <span className="bill-net-tax">incl GST <GstBadge line={line} /></span>
-              </td>
-              <td className="bill-col-who" data-label="Salesperson">
-                <select
-                  className={line.salesperson === null ? "select bill-cell bill-salesman-missing" : "select bill-cell"}
-                  disabled={locked}
-                  data-testid={`bill-salesman-${line.line_no}`}
-                  aria-label={`Salesperson, line ${line.line_no}`}
-                  value={line.salesperson ?? ""}
-                  onChange={(e) =>
-                    onSalesperson(line.key, e.target.value || null)
-                  }
-                >
-                  <option value="">Nobody</option>
-                  {salespeople.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-                {splitAllowed && !line.split && line.kind !== "alteration" && (
-                  <button
-                    type="button"
-                    className="bill-split-open"
-                    disabled={locked}
-                    data-testid={`bill-split-${line.line_no}`}
-                    aria-label={`Split line ${line.line_no} with a second salesperson`}
-                    onClick={() => onEdit(line.key, { split: newSplit() })}
-                  >
-                    Split
-                  </button>
-                )}
-              </td>
-              <td className="bill-col-del">
-                <button
-                  type="button"
-                  className="line-del"
-                  disabled={locked}
-                  data-testid={`bill-remove-${line.line_no}`}
-                  aria-label={`Remove line ${line.line_no}`}
-                  onClick={() => onRemove(line.key)}
-                >
-                  <X size={14} />
-                </button>
-              </td>
-            </tr>
-            {line.split && (
-              <SplitRow
-                line={line}
-                salespeople={salespeople}
-                locked={locked}
-                onEdit={onEdit}
-              />
-            )}
-            </Fragment>
-          ))}
-        </tbody>
-        </table>
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
       <footer className="bill-grid-footer">
@@ -236,7 +254,9 @@ function SplitRow({
   if (!split) return null;
   const firstName = salespeople.find((s) => s.id === line.salesperson)?.name ?? "First";
   const problem = whySplitIsWrong(line.salesperson, split);
-  const values = problem ? null : splitValue(line.net_paise, [split.first_percent, split.second_percent]);
+  const values = problem
+    ? null
+    : splitValue(line.net_paise, [split.first_percent, split.second_percent]);
   const shown = (percent: number) => (Number.isNaN(percent) ? "" : String(percent));
   return (
     <tr className="bill-split-row" data-testid={`bill-split-row-${line.line_no}`}>
@@ -523,8 +543,6 @@ function ItemCell({ line, locked, onEdit }: CellProps) {
   );
 }
 
-
-
 /** The ticket price. Editable only because a piece can reach a shelf with no
  *  MRP recorded (contract, step 3) - and then a human reads it off the tag.
  *
@@ -617,7 +635,12 @@ function DiscountCell({ line, locked, onEdit }: CellProps) {
  * the cart gets - which truncates, so "1.5" is one piece and never 15 and never
  * a fraction on the write path.
  */
-function QtyCell({ line, locked: lockedBill, onEdit, onPicked }: CellProps & { onPicked: () => void }) {
+function QtyCell({
+  line,
+  locked: lockedBill,
+  onEdit,
+  onPicked,
+}: CellProps & { onPicked: () => void }) {
   // Ticket 22: an alteration charge is always one.
   const locked = lockedBill || line.kind === "alteration";
   const [text, setText] = useState(String(line.qty));
@@ -639,7 +662,14 @@ function QtyCell({ line, locked: lockedBill, onEdit, onPicked }: CellProps & { o
 
   return (
     <span className="bill-qty-stepper">
-      <button type="button" disabled={locked || line.qty <= 1} onClick={() => step(-1)} aria-label={`Remove one, line ${line.line_no}`}>−</button>
+      <button
+        type="button"
+        disabled={locked || line.qty <= 1}
+        onClick={() => step(-1)}
+        aria-label={`Remove one, line ${line.line_no}`}
+      >
+        −
+      </button>
       <input
         className="input bill-cell"
         inputMode="numeric"
@@ -657,7 +687,14 @@ function QtyCell({ line, locked: lockedBill, onEdit, onPicked }: CellProps & { o
         // is what the cashier should be looking at once they leave it.
         onBlur={() => setText(String(line.qty))}
       />
-      <button type="button" disabled={locked} onClick={() => step(1)} aria-label={`Add one, line ${line.line_no}`}>+</button>
+      <button
+        type="button"
+        disabled={locked}
+        onClick={() => step(1)}
+        aria-label={`Add one, line ${line.line_no}`}
+      >
+        +
+      </button>
     </span>
   );
 }

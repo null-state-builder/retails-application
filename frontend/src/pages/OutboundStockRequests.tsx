@@ -1,14 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import {
-  ArrowLeft,
-  PackageSearch,
-  Plus,
-  Search,
-  Trash2,
-  Truck,
-  XCircle,
-} from "lucide-react";
+import { ArrowLeft, PackageSearch, Plus, Search, Trash2, Truck, XCircle } from "lucide-react";
 
 import { api, apiErrorMessage } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
@@ -26,7 +18,11 @@ import "./Booking.css";
 // ---------------------------------------------------------------------------
 
 function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  return new Date(iso).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 // The six honest statuses a store sees on its ask (#74) — derived server-side,
@@ -96,7 +92,12 @@ interface StockRequestT {
   fulfilling_transfers: FulfillingTransferT[];
 }
 
-interface StoreT { id: number; code: string; name: string; store_type: string; }
+interface StoreT {
+  id: number;
+  code: string;
+  name: string;
+  store_type: string;
+}
 
 interface StockSearchRowT {
   store_code: string;
@@ -131,7 +132,11 @@ export function StockRequestListPage() {
       <PageHeader
         actions={
           writable && (
-            <Link className="btn btn-cta" to="/transfer/requests/new" data-testid="new-stock-request-btn">
+            <Link
+              className="btn btn-cta"
+              to="/transfer/requests/new"
+              data-testid="new-stock-request-btn"
+            >
               <Plus size={16} /> New request
             </Link>
           )
@@ -178,15 +183,25 @@ export function StockRequestListPage() {
                 return (
                   <tr key={r.id} data-testid={`sr-row-${r.id}`}>
                     <td>
-                      <Link to={`/transfer/requests/${r.id}`} className="link-cell mono" data-testid={`sr-link-${r.id}`}>
+                      <Link
+                        to={`/transfer/requests/${r.id}`}
+                        className="link-cell mono"
+                        data-testid={`sr-link-${r.id}`}
+                      >
                         <b>{r.doc_number || `Draft #${r.id}`}</b>
                       </Link>
                     </td>
-                    <td><b className="mono">{r.requesting_store_code}</b></td>
-                    <td><b className="mono">{r.fulfilling_store_code}</b></td>
+                    <td>
+                      <b className="mono">{r.requesting_store_code}</b>
+                    </td>
+                    <td>
+                      <b className="mono">{r.fulfilling_store_code}</b>
+                    </td>
                     <td className="num">{r.lines.length}</td>
                     <td className="num">{totalQty}</td>
-                    <td><StatusPill status={r.status} label={r.status_display} /></td>
+                    <td>
+                      <StatusPill status={r.status} label={r.status_display} />
+                    </td>
                     <td data-testid={`sr-expected-${r.id}`}>
                       {r.expected_arrival_at ? formatDateTime(r.expected_arrival_at) : "—"}
                     </td>
@@ -216,7 +231,10 @@ function CrossLocationSearch({ onAdd }: { onAdd: (row: StockSearchRowT) => void 
 
   useEffect(() => {
     const q = term.trim();
-    if (!q) { setRows([]); return; }
+    if (!q) {
+      setRows([]);
+      return;
+    }
     let live = true;
     setLoading(true);
     api
@@ -245,8 +263,8 @@ function CrossLocationSearch({ onAdd }: { onAdd: (row: StockSearchRowT) => void 
           />
         </div>
       </div>
-      {term.trim() && (
-        loading ? (
+      {term.trim() &&
+        (loading ? (
           <p className="lead">Searching…</p>
         ) : data.length === 0 ? (
           <p className="lead">No stock matches “{term}” anywhere.</p>
@@ -267,17 +285,30 @@ function CrossLocationSearch({ onAdd }: { onAdd: (row: StockSearchRowT) => void 
               </thead>
               <tbody>
                 {data.map((row, i) => (
-                  <tr key={`${row.store_code}-${row.sku_code}-${i}`} data-testid={`stock-search-row-${i}`}>
-                    <td><b className="mono">{row.store_code}</b></td>
+                  <tr
+                    key={`${row.store_code}-${row.sku_code}-${i}`}
+                    data-testid={`stock-search-row-${i}`}
+                  >
+                    <td>
+                      <b className="mono">{row.store_code}</b>
+                    </td>
                     <td className="mono">{row.sku_code}</td>
                     <td>{row.design || "—"}</td>
                     <td>{row.size || "—"}</td>
                     <td>{row.color || "—"}</td>
                     <td className="num">{row.qty}</td>
                     <td className="num">
-                      {row.is_own
-                        ? (row.unit_cost_paise ? <Money paise={row.unit_cost_paise} /> : "—")
-                        : <span className="lead" style={{ color: "var(--muted)" }}>Not your store</span>}
+                      {row.is_own ? (
+                        row.unit_cost_paise ? (
+                          <Money paise={row.unit_cost_paise} />
+                        ) : (
+                          "—"
+                        )
+                      ) : (
+                        <span className="lead" style={{ color: "var(--muted)" }}>
+                          Not your store
+                        </span>
+                      )}
                     </td>
                     <td>
                       <button
@@ -294,8 +325,7 @@ function CrossLocationSearch({ onAdd }: { onAdd: (row: StockSearchRowT) => void 
               </tbody>
             </table>
           </div>
-        )
-      )}
+        ))}
     </div>
   );
 }
@@ -325,7 +355,9 @@ export function StockRequestNewPage() {
   const storeLocked = user?.scope_type === "store" && (user?.stores?.length ?? 0) >= 1;
   const lockedStore = storeLocked ? user!.stores[0] : null;
 
-  const [requestingId, setRequestingId] = useState<string>(lockedStore ? String(lockedStore.id) : "");
+  const [requestingId, setRequestingId] = useState<string>(
+    lockedStore ? String(lockedStore.id) : "",
+  );
   const [fulfillingId, setFulfillingId] = useState("");
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<DraftLine[]>([]);
@@ -357,8 +389,14 @@ export function StockRequestNewPage() {
 
   async function save() {
     setError("");
-    if (!requestingId) { setError("Select the store asking for stock."); return; }
-    if (!fulfillingId) { setError("Select who this is asked of."); return; }
+    if (!requestingId) {
+      setError("Select the store asking for stock.");
+      return;
+    }
+    if (!fulfillingId) {
+      setError("Select who this is asked of.");
+      return;
+    }
     const payloadLines = lines
       .filter((l) => l.sku_code && Number(l.qty) > 0)
       .map((l) => ({
@@ -372,7 +410,10 @@ export function StockRequestNewPage() {
         hsn: l.hsn,
         qty: Number(l.qty),
       }));
-    if (!payloadLines.length) { setError("Add at least one line from the search above."); return; }
+    if (!payloadLines.length) {
+      setError("Add at least one line from the search above.");
+      return;
+    }
     setSaving(true);
     try {
       const { data } = await api.post("/outbound/stock-requests", {
@@ -391,10 +432,17 @@ export function StockRequestNewPage() {
 
   return (
     <div className="page-pad">
-      <Link to="/transfer/requests" className="btn" style={{ marginBottom: 16 }} data-testid="sr-back-link">
+      <Link
+        to="/transfer/requests"
+        className="btn"
+        style={{ marginBottom: 16 }}
+        data-testid="sr-back-link"
+      >
         <ArrowLeft size={15} /> Stock requests
       </Link>
-      <h1 className="h1 h2-rust" style={{ marginBottom: 18 }}>New stock request</h1>
+      <h1 className="h1 h2-rust" style={{ marginBottom: 18 }}>
+        New stock request
+      </h1>
 
       <div className="card section-card">
         <p className="eyebrow">Step 1 · Who is asking, and of whom</p>
@@ -402,26 +450,50 @@ export function StockRequestNewPage() {
           <div className="field">
             <label>Requesting store</label>
             {storeLocked && lockedStore ? (
-              <div className="store-lock" data-testid="sr-requesting-locked">{lockedStore.code} · {lockedStore.name}</div>
+              <div className="store-lock" data-testid="sr-requesting-locked">
+                {lockedStore.code} · {lockedStore.name}
+              </div>
             ) : (
-              <select className="select" value={requestingId} onChange={(e) => setRequestingId(e.target.value)} data-testid="sr-requesting-select">
+              <select
+                className="select"
+                value={requestingId}
+                onChange={(e) => setRequestingId(e.target.value)}
+                data-testid="sr-requesting-select"
+              >
                 <option value="">Select store…</option>
-                {stores.map((s) => <option key={s.id} value={s.id}>{s.code} · {s.name}</option>)}
+                {stores.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.code} · {s.name}
+                  </option>
+                ))}
               </select>
             )}
           </div>
           <div className="field">
             <label>Fulfilling store / warehouse</label>
-            <select className="select" value={fulfillingId} onChange={(e) => setFulfillingId(e.target.value)} data-testid="sr-fulfilling-select">
+            <select
+              className="select"
+              value={fulfillingId}
+              onChange={(e) => setFulfillingId(e.target.value)}
+              data-testid="sr-fulfilling-select"
+            >
               <option value="">Select warehouse or store…</option>
               {fulfillingOptions.map((l) => (
-                <option key={l.id} value={l.id}>{l.code} · {l.name} {l.store_type === "warehouse" ? "(WH)" : ""}</option>
+                <option key={l.id} value={l.id}>
+                  {l.code} · {l.name} {l.store_type === "warehouse" ? "(WH)" : ""}
+                </option>
               ))}
             </select>
           </div>
           <div className="field" style={{ flex: 1 }}>
             <label>Notes</label>
-            <input className="input" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Why this store needs it" data-testid="sr-notes" />
+            <input
+              className="input"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Why this store needs it"
+              data-testid="sr-notes"
+            />
           </div>
         </div>
       </div>
@@ -429,7 +501,14 @@ export function StockRequestNewPage() {
       <CrossLocationSearch onAdd={addFromSearch} />
 
       <div className="card section-card">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 10,
+          }}
+        >
           <div>
             <p className="eyebrow">Step 2 · What this request asks for</p>
             <h3 className="h3">Requested lines</h3>
@@ -456,8 +535,24 @@ export function StockRequestNewPage() {
                   <td>{l.design || "—"}</td>
                   <td>{l.size || "—"}</td>
                   <td>{l.color || "—"}</td>
-                  <td><input className="num" value={l.qty} onChange={(e) => setLineQty(i, e.target.value)} data-testid={`sr-qty-${i}`} /></td>
-                  <td><button type="button" className="line-del" onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))} data-testid={`delete-sr-line-${i}`}><Trash2 size={15} /></button></td>
+                  <td>
+                    <input
+                      className="num"
+                      value={l.qty}
+                      onChange={(e) => setLineQty(i, e.target.value)}
+                      data-testid={`sr-qty-${i}`}
+                    />
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      className="line-del"
+                      onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))}
+                      data-testid={`delete-sr-line-${i}`}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -465,8 +560,17 @@ export function StockRequestNewPage() {
         )}
       </div>
 
-      {error && <div className="login-error" style={{ maxWidth: 480 }} data-testid="sr-create-error">{error}</div>}
-      <button className="btn btn-primary btn-lg" disabled={saving} onClick={save} data-testid="save-stock-request-btn">
+      {error && (
+        <div className="login-error" style={{ maxWidth: 480 }} data-testid="sr-create-error">
+          {error}
+        </div>
+      )}
+      <button
+        className="btn btn-primary btn-lg"
+        disabled={saving}
+        onClick={save}
+        data-testid="save-stock-request-btn"
+      >
         <PackageSearch size={16} /> {saving ? "Saving…" : "Raise request"}
       </button>
     </div>
@@ -481,7 +585,9 @@ function FulfilPanel({ r, onDone }: { r: StockRequestT; onDone: () => void }) {
   // qty_committed, not qty_fulfilled: an earlier pass's transfer may still be
   // an unreceived draft, and its promise must count here too, or the form
   // would offer a quantity the server (correctly) refuses.
-  const remaining = r.lines.map((l) => ({ ...l, left: l.qty - l.qty_committed })).filter((l) => l.left > 0);
+  const remaining = r.lines
+    .map((l) => ({ ...l, left: l.qty - l.qty_committed }))
+    .filter((l) => l.left > 0);
   const [qtys, setQtys] = useState<Record<number, string>>({});
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -492,10 +598,15 @@ function FulfilPanel({ r, onDone }: { r: StockRequestT; onDone: () => void }) {
     const payload = remaining
       .map((l) => ({ line_id: l.id, qty: Number(qtys[l.id] || 0) }))
       .filter((l) => l.qty > 0);
-    if (!payload.length) { setError("Enter a quantity for at least one line."); return; }
+    if (!payload.length) {
+      setError("Enter a quantity for at least one line.");
+      return;
+    }
     setBusy(true);
     try {
-      const { data } = await api.post(`/outbound/stock-requests/${r.id}/fulfil`, { lines: payload });
+      const { data } = await api.post(`/outbound/stock-requests/${r.id}/fulfil`, {
+        lines: payload,
+      });
       navigate(`/transfer/${data.id}`);
     } catch (e) {
       setError(apiErrorMessage(e));
@@ -509,8 +620,8 @@ function FulfilPanel({ r, onDone }: { r: StockRequestT; onDone: () => void }) {
     <div className="card section-card" data-testid="fulfil-panel">
       <p className="eyebrow">Fulfil this request</p>
       <p className="lead" style={{ marginBottom: 10 }}>
-        Send some or all of what is left — this creates a draft transfer, pre-filled with what
-        you enter below. It still needs the Operations Head's approval before anything dispatches.
+        Send some or all of what is left — this creates a draft transfer, pre-filled with what you
+        enter below. It still needs the Operations Head's approval before anything dispatches.
       </p>
       <table className="lines-table" data-testid="fulfil-lines">
         <thead>
@@ -538,8 +649,18 @@ function FulfilPanel({ r, onDone }: { r: StockRequestT; onDone: () => void }) {
           ))}
         </tbody>
       </table>
-      {error && <div className="login-error" style={{ marginTop: 10 }} data-testid="fulfil-error">{error}</div>}
-      <button className="btn btn-cta" style={{ marginTop: 12 }} disabled={busy} onClick={fulfil} data-testid="fulfil-btn">
+      {error && (
+        <div className="login-error" style={{ marginTop: 10 }} data-testid="fulfil-error">
+          {error}
+        </div>
+      )}
+      <button
+        className="btn btn-cta"
+        style={{ marginTop: 12 }}
+        disabled={busy}
+        onClick={fulfil}
+        data-testid="fulfil-btn"
+      >
         <Truck size={15} /> {busy ? "Creating transfer…" : "Create pre-filled transfer"}
       </button>
       <ClosePanel r={r} onDone={onDone} />
@@ -578,9 +699,19 @@ function ClosePanel({ r, onDone }: { r: StockRequestT; onDone: () => void }) {
         style={{ maxWidth: 420, marginBottom: 8 }}
         data-testid="close-note"
       />
-      {error && <div className="login-error" data-testid="close-error">{error}</div>}
+      {error && (
+        <div className="login-error" data-testid="close-error">
+          {error}
+        </div>
+      )}
       <div>
-        <button type="button" className="btn" disabled={busy} onClick={close} data-testid="close-request-btn">
+        <button
+          type="button"
+          className="btn"
+          disabled={busy}
+          onClick={close}
+          data-testid="close-request-btn"
+        >
           <XCircle size={15} /> {busy ? "Closing…" : "Close request"}
         </button>
       </div>
@@ -594,7 +725,12 @@ export function StockRequestDetailPage() {
   const { data: r, loading, reload } = useDoc<StockRequestT>(`/outbound/stock-requests/${id}`);
   const writable = canWriteTransfer(user);
 
-  if (loading || !r) return <div className="page-pad"><p className="lead">Loading…</p></div>;
+  if (loading || !r)
+    return (
+      <div className="page-pad">
+        <p className="lead">Loading…</p>
+      </div>
+    );
 
   const totalQty = r.lines.reduce((s, l) => s + l.qty, 0);
   const totalFulfilled = r.lines.reduce((s, l) => s + l.qty_fulfilled, 0);
@@ -602,14 +738,24 @@ export function StockRequestDetailPage() {
 
   return (
     <div className="page-pad">
-      <Link to="/transfer/requests" className="btn" style={{ marginBottom: 16 }} data-testid="sr-detail-back">
+      <Link
+        to="/transfer/requests"
+        className="btn"
+        style={{ marginBottom: 16 }}
+        data-testid="sr-detail-back"
+      >
         <ArrowLeft size={15} /> Stock requests
       </Link>
       <div className="toolbar">
         <div>
           <p className="eyebrow">{r.doc_number || `Draft #${r.id}`}</p>
-          <h1 className="h1">{r.requesting_store_code} asks {r.fulfilling_store_code}</h1>
-          <p className="lead">{r.requesting_store_name} → {r.fulfilling_store_name}{r.notes ? ` · ${r.notes}` : ""}</p>
+          <h1 className="h1">
+            {r.requesting_store_code} asks {r.fulfilling_store_code}
+          </h1>
+          <p className="lead">
+            {r.requesting_store_name} → {r.fulfilling_store_name}
+            {r.notes ? ` · ${r.notes}` : ""}
+          </p>
         </div>
         <div className="spacer" />
         {r.source === "cross_store_search" && (
@@ -664,7 +810,11 @@ export function StockRequestDetailPage() {
         />
       </div>
 
-      {canAct && <div style={{ marginBottom: 18 }}><FulfilPanel r={r} onDone={reload} /></div>}
+      {canAct && (
+        <div style={{ marginBottom: 18 }}>
+          <FulfilPanel r={r} onDone={reload} />
+        </div>
+      )}
 
       <div className="table-wrap" style={{ marginBottom: 18 }}>
         <table className="data" data-testid="sr-detail-lines">
@@ -682,7 +832,9 @@ export function StockRequestDetailPage() {
           <tbody>
             {r.lines.map((l) => (
               <tr key={l.id}>
-                <td><b className="mono">{l.sku_code}</b></td>
+                <td>
+                  <b className="mono">{l.sku_code}</b>
+                </td>
                 <td>{l.design || "—"}</td>
                 <td>{l.size || "—"}</td>
                 <td>{l.color || "—"}</td>
@@ -697,7 +849,9 @@ export function StockRequestDetailPage() {
 
       {r.fulfilling_transfers.length > 0 && (
         <div className="table-wrap">
-          <p className="eyebrow" style={{ marginBottom: 8 }}>Transfers answering this request</p>
+          <p className="eyebrow" style={{ marginBottom: 8 }}>
+            Transfers answering this request
+          </p>
           <table className="data" data-testid="sr-fulfilling-transfers">
             <thead>
               <tr>
@@ -711,11 +865,17 @@ export function StockRequestDetailPage() {
               {r.fulfilling_transfers.map((t) => (
                 <tr key={t.id}>
                   <td>
-                    <Link to={`/transfer/${t.id}`} className="link-cell mono" data-testid={`sr-transfer-link-${t.id}`}>
+                    <Link
+                      to={`/transfer/${t.id}`}
+                      className="link-cell mono"
+                      data-testid={`sr-transfer-link-${t.id}`}
+                    >
                       <Search size={13} /> {t.doc_number || `Draft #${t.id}`}
                     </Link>
                   </td>
-                  <td>{t.source_store_code} → {t.destination_store_code}</td>
+                  <td>
+                    {t.source_store_code} → {t.destination_store_code}
+                  </td>
                   <td>{t.docstatus === 1 ? "Dispatched" : "Draft"}</td>
                   <td>{fmtDate(t.created_at)}</td>
                 </tr>

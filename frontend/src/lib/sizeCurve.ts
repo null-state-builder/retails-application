@@ -23,11 +23,7 @@ interface TypedLine {
 
 /** A style total: a style and a whole number of pieces, with no size yet. */
 export function canFill(line: TypedLine): boolean {
-  return (
-    Boolean(line.style_code.trim()) &&
-    !line.size.trim() &&
-    /^[1-9]\d*$/.test(line.qty.trim())
-  );
+  return Boolean(line.style_code.trim()) && !line.size.trim() && /^[1-9]\d*$/.test(line.qty.trim());
 }
 
 /** The form's lines with line `index` replaced by one line per size the split

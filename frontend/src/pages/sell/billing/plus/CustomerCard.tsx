@@ -50,7 +50,12 @@ export function CustomerCard({ plus, locked }: { plus: Plus; locked: boolean }) 
       {mobile.length === 10 && !known && (
         <p className="plus-note">
           New number.{" "}
-          <button type="button" className="plus-link" data-testid="plus-register-open" onClick={() => plus.patch({ registering: true })}>
+          <button
+            type="button"
+            className="plus-link"
+            data-testid="plus-register-open"
+            onClick={() => plus.patch({ registering: true })}
+          >
             Register this customer
           </button>
         </p>
@@ -58,7 +63,12 @@ export function CustomerCard({ plus, locked }: { plus: Plus; locked: boolean }) 
       <p className="plus-demo">
         <span>Demo customers</span>
         {DEMO_CUSTOMERS.map((c) => (
-          <button key={c.mobile} type="button" disabled={locked} onClick={() => plus.pickCustomer(c)}>
+          <button
+            key={c.mobile}
+            type="button"
+            disabled={locked}
+            onClick={() => plus.pickCustomer(c)}
+          >
             {c.name}
           </button>
         ))}
@@ -70,18 +80,35 @@ export function CustomerCard({ plus, locked }: { plus: Plus; locked: boolean }) 
   );
 }
 
-function Found({ customer, plus, locked }: { customer: PlusCustomer; plus: Plus; locked: boolean }) {
-  const over = customer.creditUsedPaise >= customer.creditLimitPaise && customer.creditUsedPaise > 0;
+function Found({
+  customer,
+  plus,
+  locked,
+}: {
+  customer: PlusCustomer;
+  plus: Plus;
+  locked: boolean;
+}) {
+  const over =
+    customer.creditUsedPaise >= customer.creditLimitPaise && customer.creditUsedPaise > 0;
   return (
     <section className="plus-card" data-testid="plus-customer">
       <header className="plus-head">
         <h3 className="eyebrow">Customer</h3>
-        <button type="button" className="plus-x" aria-label="Remove customer" disabled={locked} onClick={() => plus.pickCustomer(null)}>
+        <button
+          type="button"
+          className="plus-x"
+          aria-label="Remove customer"
+          disabled={locked}
+          onClick={() => plus.pickCustomer(null)}
+        >
           <X size={16} aria-hidden />
         </button>
       </header>
       <div className="plus-who">
-        <span className="plus-avatar" aria-hidden><UserRound size={18} /></span>
+        <span className="plus-avatar" aria-hidden>
+          <UserRound size={18} />
+        </span>
         <div>
           <strong data-testid="plus-name">{customer.name}</strong>
           <span className="mono">{customer.mobile}</span>
@@ -89,19 +116,29 @@ function Found({ customer, plus, locked }: { customer: PlusCustomer; plus: Plus;
         <span className={`plus-tier is-${customer.tier.toLowerCase()}`}>{customer.tier}</span>
       </div>
       <ul className="plus-chips">
-        <li data-testid="plus-points-chip"><Award size={14} aria-hidden /> {customer.points.toLocaleString("en-IN")} points</li>
+        <li data-testid="plus-points-chip">
+          <Award size={14} aria-hidden /> {customer.points.toLocaleString("en-IN")} points
+        </li>
         {customer.creditUsedPaise > 0 && (
           <li className={over ? "is-warn" : ""} data-testid="plus-due-chip">
             <HandCoins size={14} aria-hidden /> Owes <Money paise={customer.creditUsedPaise} />
           </li>
         )}
         {customer.savedSize && (
-          <li><Ruler size={14} aria-hidden /> {customer.savedSize}</li>
+          <li>
+            <Ruler size={14} aria-hidden /> {customer.savedSize}
+          </li>
         )}
       </ul>
       {customer.creditUsedPaise > 0 && (
-        <button type="button" className="plus-link" data-testid="plus-receive-open" disabled={locked} onClick={() => plus.patch({ receiveOpen: true })}>
-          Receive payment (<Money paise={creditRoomPaise(customer)} />{" "}credit left)
+        <button
+          type="button"
+          className="plus-link"
+          data-testid="plus-receive-open"
+          disabled={locked}
+          onClick={() => plus.patch({ receiveOpen: true })}
+        >
+          Receive payment (<Money paise={creditRoomPaise(customer)} /> credit left)
         </button>
       )}
     </section>
@@ -118,21 +155,49 @@ function Register({ plus, start }: { plus: Plus; start: string }) {
     <section className="plus-card" data-testid="plus-register">
       <header className="plus-head">
         <h3 className="eyebrow">Register customer</h3>
-        <button type="button" className="plus-x" aria-label="Cancel" onClick={() => plus.patch({ registering: false })}>
+        <button
+          type="button"
+          className="plus-x"
+          aria-label="Cancel"
+          onClick={() => plus.patch({ registering: false })}
+        >
           <X size={16} aria-hidden />
         </button>
       </header>
       <div className="plus-fields">
-        <input className="input plus-input" placeholder="Name" aria-label="Customer name" data-testid="plus-reg-name" value={name} onChange={(e) => setName(e.target.value)} />
-        <input className="input plus-input mono" inputMode="numeric" placeholder="Mobile" aria-label="Mobile number" data-testid="plus-reg-mobile" value={mobile} onChange={(e) => setMobile(e.target.value)} />
-        <input className="input plus-input" type="date" aria-label="Birthday (optional)" title="Birthday (optional)" value={birthday} onChange={(e) => setBirthday(e.target.value)} />
+        <input
+          className="input plus-input"
+          placeholder="Name"
+          aria-label="Customer name"
+          data-testid="plus-reg-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+        <input
+          className="input plus-input mono"
+          inputMode="numeric"
+          placeholder="Mobile"
+          aria-label="Mobile number"
+          data-testid="plus-reg-mobile"
+          value={mobile}
+          onChange={(e) => setMobile(e.target.value)}
+        />
+        <input
+          className="input plus-input"
+          type="date"
+          aria-label="Birthday (optional)"
+          title="Birthday (optional)"
+          value={birthday}
+          onChange={(e) => setBirthday(e.target.value)}
+        />
       </div>
       <label className="plus-check">
         <input type="checkbox" checked={sendBill} onChange={(e) => setSendBill(e.target.checked)} />
         <span>The customer says: send my bill to my phone</span>
       </label>
       <p className="plus-wait">
-        <span className="plus-dot" aria-hidden /> Offers: the customer says yes on the display. Staff cannot tick it.
+        <span className="plus-dot" aria-hidden /> Offers: the customer says yes on the display.
+        Staff cannot tick it.
       </p>
       <button
         type="button"

@@ -285,9 +285,7 @@ export function ScanScreen({
   const hasMismatch =
     totalExpected != null && totalArrived !== totalExpected && totalArrived > 0 && !strictExpected;
   const short =
-    strictExpected && totalExpected != null && totalArrived > 0
-      ? totalExpected - totalArrived
-      : 0;
+    strictExpected && totalExpected != null && totalArrived > 0 ? totalExpected - totalArrived : 0;
 
   return (
     <div className="scan-screen" data-testid="scan-screen">
@@ -297,7 +295,13 @@ export function ScanScreen({
           <div className="doc">{docLabel}</div>
           <div className="route">{routeLabel}</div>
         </div>
-        <button type="button" className="scan-close" onClick={onClose} aria-label="Close" data-testid="scan-close">
+        <button
+          type="button"
+          className="scan-close"
+          onClick={onClose}
+          aria-label="Close"
+          data-testid="scan-close"
+        >
           <X size={22} />
         </button>
       </div>
@@ -344,7 +348,10 @@ export function ScanScreen({
         </div>
       )}
 
-      <div className={`scan-target ${flash ? `flash-${flash}` : ""}`} onClick={() => sinkRef.current?.focus()}>
+      <div
+        className={`scan-target ${flash ? `flash-${flash}` : ""}`}
+        onClick={() => sinkRef.current?.focus()}
+      >
         <div className="scan-count" data-testid="scan-count">
           {totalArrived}
           {totalExpected != null && <span className="of"> / {totalExpected}</span>}
@@ -408,7 +415,11 @@ export function ScanScreen({
           const done = l.expected != null && count === l.expected;
           const over = l.expected != null && count > l.expected;
           return (
-            <div key={l.barcode} className={`scan-line ${done ? "done" : ""} ${over ? "over" : ""}`} data-testid={`scan-line-${l.barcode}`}>
+            <div
+              key={l.barcode}
+              className={`scan-line ${done ? "done" : ""} ${over ? "over" : ""}`}
+              data-testid={`scan-line-${l.barcode}`}
+            >
               <div>
                 <div className="code">{l.barcode}</div>
                 <div className="meta">
@@ -439,7 +450,9 @@ export function ScanScreen({
         ))}
         {lines.length === 0 && Object.keys(extras).length === 0 && (
           <div className="scan-line">
-            <div className="meta">Nothing scanned yet — scan the first piece to start the list.</div>
+            <div className="meta">
+              Nothing scanned yet — scan the first piece to start the list.
+            </div>
           </div>
         )}
       </div>
@@ -459,7 +472,9 @@ export function ScanScreen({
       )}
 
       {error ? (
-        <div className="scan-error" data-testid="scan-error">{error}</div>
+        <div className="scan-error" data-testid="scan-error">
+          {error}
+        </div>
       ) : hasMismatch ? (
         <div className="scan-mismatch-note" data-testid="scan-mismatch-note">
           Scanned ≠ planned — the transfer will carry a mismatch flag.
@@ -471,7 +486,13 @@ export function ScanScreen({
       ) : null}
 
       <div className="scan-foot">
-        <button type="button" className="scan-undo" onClick={undoLast} disabled={history.length === 0 || busy} data-testid="scan-undo">
+        <button
+          type="button"
+          className="scan-undo"
+          onClick={undoLast}
+          disabled={history.length === 0 || busy}
+          data-testid="scan-undo"
+        >
           <CornerUpLeft size={16} /> Undo
         </button>
         <button

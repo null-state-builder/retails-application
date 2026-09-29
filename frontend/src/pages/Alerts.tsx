@@ -34,8 +34,7 @@ export function AlertsPage() {
   const { user, session } = useAuth();
   // Each block keeps the gate its old screen had: deadlines behind Home, the
   // goods notifications behind the exception grants.
-  const canSeeDeadlines =
-    !!user?.is_superuser || (user?.capabilities?.home ?? "none") !== "none";
+  const canSeeDeadlines = !!user?.is_superuser || (user?.capabilities?.home ?? "none") !== "none";
   const canSeeGoods = canSeeExceptions(session);
 
   return (
@@ -46,7 +45,9 @@ export function AlertsPage() {
         <section data-testid="alerts-deadlines">
           <div className="an-section-head">
             <h2 className="h3">Coming up</h2>
-            <span className="an-section-hint">Deadlines. Each one clears itself once it stops being true.</span>
+            <span className="an-section-hint">
+              Deadlines. Each one clears itself once it stops being true.
+            </span>
           </div>
           <DeadlineAlerts />
         </section>
@@ -56,7 +57,9 @@ export function AlertsPage() {
         <section data-testid="alerts-goods" className={canSeeDeadlines ? "an-section" : undefined}>
           <div className="an-section-head">
             <h2 className="h3">Notifications</h2>
-            <span className="an-section-hint">What happened. Open one to see it on Action Needed.</span>
+            <span className="an-section-hint">
+              What happened. Open one to see it on Action Needed.
+            </span>
           </div>
           <GoodsNotificationsFeed />
         </section>
@@ -87,7 +90,9 @@ function DeadlineAlerts() {
             <AlertTitle alert={a} />
             <span className="an-note-where"> · {alertWhere(a)}</span>
           </span>
-          <span className={`chip chip-${daysLeftTone(a.days_left)}`}>{daysLeftLabel(a.days_left)}</span>
+          <span className={`chip chip-${daysLeftTone(a.days_left)}`}>
+            {daysLeftLabel(a.days_left)}
+          </span>
           <span className="an-note-time">Raised {fmtAlertWhen(a.created_at)}</span>
         </li>
       ))}

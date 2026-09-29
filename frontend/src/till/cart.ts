@@ -49,7 +49,13 @@ import { resolveOffers } from "./offers";
 import type { BankOffer, Entitlement, LineOutcome, OfferCart } from "./offers";
 import { covers } from "./pin";
 import type { Authorisation } from "./pin";
-import { LEGACY_TAX_VERSION, rateHundredths, splitInclusive, taxLine, taxVersionFor } from "./pricing";
+import {
+  LEGACY_TAX_VERSION,
+  rateHundredths,
+  splitInclusive,
+  taxLine,
+  taxVersionFor,
+} from "./pricing";
 import {
   emptyPayment,
   revalidateAllocation,
@@ -173,9 +179,7 @@ export function inheritBillSalesperson(cart: Cart, salesperson: string | null): 
   if (salesperson === null) return cart;
   return {
     ...cart,
-    lines: cart.lines.map((line) =>
-      line.salesperson === null ? { ...line, salesperson } : line,
-    ),
+    lines: cart.lines.map((line) => (line.salesperson === null ? { ...line, salesperson } : line)),
   };
 }
 
@@ -455,7 +459,11 @@ export function withReturnTax(exchange: Exchange, world: PricingWorld, day: stri
     lines: exchange.lines.map((leg) => {
       const line = bill.lines.find((row) => row.line_no === leg.original_line);
       if (!line) return leg;
-      const worked = returnLeg({ ...line, bank_offer_paise: shares[line.line_no] ?? 0 }, leg.qty, late);
+      const worked = returnLeg(
+        { ...line, bank_offer_paise: shares[line.line_no] ?? 0 },
+        leg.qty,
+        late,
+      );
       return {
         ...leg,
         refund_paise: worked.refund_paise,
@@ -513,7 +521,8 @@ export function priceCart(
   // the return tax rules - its own bill's rate and value, no tax after the
   // credit-note deadline, the bank's part set aside (B60).
   const returnTax = world.tax?.return_tax === true && cart.exchange !== null;
-  const exchange = returnTax && cart.exchange ? withReturnTax(cart.exchange, world, day) : cart.exchange;
+  const exchange =
+    returnTax && cart.exchange ? withReturnTax(cart.exchange, world, day) : cart.exchange;
   const refunds = refundTotals(exchange?.lines ?? []);
   const subtotal = lines.reduce((n, l) => n + l.net_paise, 0) - refunds.refund_paise;
   const round = roundingOf(
@@ -599,19 +608,25 @@ export function priceCart(
 function offerCart(cart: Cart, day: string): OfferCart {
   return {
     day,
-    lines: cart.lines.flatMap((line, index) => line.kind === "alteration" ? [] : [{
-      line_no: index + 1,
-      brand: line.brand,
-      item: line.item,
-      design: line.design,
-      size: line.size,
-      color: line.color,
-      barcode: line.barcode,
-      season: line.season,
-      qty: line.qty,
-      mrp_paise: line.mrp_paise,
-      no_discount: line.no_discount,
-    }]),
+    lines: cart.lines.flatMap((line, index) =>
+      line.kind === "alteration"
+        ? []
+        : [
+            {
+              line_no: index + 1,
+              brand: line.brand,
+              item: line.item,
+              design: line.design,
+              size: line.size,
+              color: line.color,
+              barcode: line.barcode,
+              season: line.season,
+              qty: line.qty,
+              mrp_paise: line.mrp_paise,
+              no_discount: line.no_discount,
+            },
+          ],
+    ),
   };
 }
 
@@ -748,7 +763,9 @@ export function whyItCannotClose(bill: PricedBill): string {
   // books cannot place and no words to say what it was is a bill the queue would
   // halt on, taking every bill behind it - after the customer had paid and walked
   // out with the receipt. The counter has to say what it sold (#186).
-  const undescribed = bill.lines.find((line) => line.sold_before_inward && !line.manual_desc.trim());
+  const undescribed = bill.lines.find(
+    (line) => line.sold_before_inward && !line.manual_desc.trim(),
+  );
   if (undescribed) {
     return (
       `Line ${undescribed.line_no} is not in the system. ` +
@@ -976,7 +993,9 @@ export function toDraft(bill: PricedBill, identity: BillIdentity): BillDraft {
       gst_paise: bill.gst_paise,
       round_paise: bill.round_paise,
     },
-    ...(bill.exchange && bill.authorisation && covers(bill.authorisation, [lateReturnAsk(bill.exchange)])
+    ...(bill.exchange &&
+    bill.authorisation &&
+    covers(bill.authorisation, [lateReturnAsk(bill.exchange)])
       ? {
           override: {
             user_id: bill.authorisation.user_id,

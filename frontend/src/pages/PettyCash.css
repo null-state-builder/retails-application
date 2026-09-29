@@ -1,23 +1,56 @@
 /* Money > Petty Cash (ticket 42). House tokens only, like Cash Count beside it. */
 
-.petty-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-.petty-grid .section-card { display: flex; flex-direction: column; gap: 10px; }
-.petty-grid .btn { align-self: flex-start; }
-.petty-store { max-width: 320px; margin-bottom: 14px; }
+.petty-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+.petty-grid .section-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.petty-grid .btn {
+  align-self: flex-start;
+}
+.petty-store {
+  max-width: 320px;
+  margin-bottom: 14px;
+}
 
 .petty-row {
-  display: flex; justify-content: space-between; gap: 16px; padding: 7px 0;
-  border-bottom: 1px solid var(--hairline); max-width: 520px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--hairline);
+  max-width: 520px;
 }
-.petty-row:last-child { border-bottom: none; }
-.petty-row-label { font-size: 12.5px; color: var(--muted); }
-.petty-row-value { font-size: 13.5px; font-weight: 600; color: var(--ink); text-align: right; }
+.petty-row:last-child {
+  border-bottom: none;
+}
+.petty-row-label {
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.petty-row-value {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  text-align: right;
+}
 
 .petty-float-form {
-  display: grid; grid-template-columns: 180px 1fr auto; gap: 12px; align-items: end;
+  display: grid;
+  grid-template-columns: 180px 1fr auto;
+  gap: 12px;
+  align-items: end;
   margin-top: 14px;
 }
 
 @media (max-width: 900px) {
-  .petty-grid, .petty-float-form { grid-template-columns: 1fr; }
+  .petty-grid,
+  .petty-float-form {
+    grid-template-columns: 1fr;
+  }
 }

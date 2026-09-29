@@ -43,39 +43,42 @@ export function StockAgeingPage() {
   const [busy, setBusy] = useState(false);
   const request = useRef(0);
 
-  const load = useCallback(async (site: number | null) => {
-    if (!navigator.onLine) {
-      setOnline(false);
-      return;
-    }
-    const mine = ++request.current;
-    setBusy(true);
-    setError("");
-    try {
-      const response = await api.get<Payload>("/goods-v1/stock/ageing", {
-        params: site ? { site_id: site } : {},
-      });
-      if (mine !== request.current) return;
-      setLost(false);
-      setData(response.data);
-    } catch (reason) {
-      if (mine !== request.current) return;
-      if (isConnectionLost(reason)) setLost(true);
-      else if (site && apiErrorCode(reason) === "NOT_FOUND") {
-        setRefused(apiErrorMessage(reason));
-        setParams(
-          (current) => {
-            const next = new URLSearchParams(current);
-            next.delete("site_id");
-            return next;
-          },
-          { replace: true },
-        );
-      } else setError(apiErrorMessage(reason));
-    } finally {
-      if (mine === request.current) setBusy(false);
-    }
-  }, [setParams]);
+  const load = useCallback(
+    async (site: number | null) => {
+      if (!navigator.onLine) {
+        setOnline(false);
+        return;
+      }
+      const mine = ++request.current;
+      setBusy(true);
+      setError("");
+      try {
+        const response = await api.get<Payload>("/goods-v1/stock/ageing", {
+          params: site ? { site_id: site } : {},
+        });
+        if (mine !== request.current) return;
+        setLost(false);
+        setData(response.data);
+      } catch (reason) {
+        if (mine !== request.current) return;
+        if (isConnectionLost(reason)) setLost(true);
+        else if (site && apiErrorCode(reason) === "NOT_FOUND") {
+          setRefused(apiErrorMessage(reason));
+          setParams(
+            (current) => {
+              const next = new URLSearchParams(current);
+              next.delete("site_id");
+              return next;
+            },
+            { replace: true },
+          );
+        } else setError(apiErrorMessage(reason));
+      } finally {
+        if (mine === request.current) setBusy(false);
+      }
+    },
+    [setParams],
+  );
 
   useEffect(() => {
     void load(siteId);

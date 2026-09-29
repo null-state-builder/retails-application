@@ -137,12 +137,12 @@ export function ReceiveInboxPage({ view = "pending" }: { view?: "pending" | "his
           </p>
         </div>
       ) : (
-        state ?? (
+        (state ?? (
           <div className="table-wrap">
             <table className="data" data-testid="inbox-table">
               <caption className="sr-only">
-                Deliveries on their way in to this site, each with the step it is waiting on and
-                the role that owns it.
+                Deliveries on their way in to this site, each with the step it is waiting on and the
+                role that owns it.
               </caption>
               <thead>
                 <tr>
@@ -210,7 +210,7 @@ export function ReceiveInboxPage({ view = "pending" }: { view?: "pending" | "his
               </tbody>
             </table>
           </div>
-        )
+        ))
       )}
 
       {/* Official PTs no delivery above carries - opening stock - are still put

@@ -42,7 +42,11 @@ interface Press {
 }
 
 function Amount({ paise }: { paise: string }) {
-  return Number(paise) === 0 ? <span className="muted-cell">-</span> : <Money paise={Number(paise)} />;
+  return Number(paise) === 0 ? (
+    <span className="muted-cell">-</span>
+  ) : (
+    <Money paise={Number(paise)} />
+  );
 }
 
 function PositionCells({ row }: { row: Position }) {
@@ -236,7 +240,12 @@ export function PayablesPage() {
           {online && (
             <>
               {" "}
-              <button type="button" className="btn" data-testid="pay-retry" onClick={() => void load()}>
+              <button
+                type="button"
+                className="btn"
+                data-testid="pay-retry"
+                onClick={() => void load()}
+              >
                 Try again
               </button>
             </>
@@ -245,8 +254,8 @@ export function PayablesPage() {
       )}
       {unsent && (
         <p className="warn-note" data-testid="pay-unsent" role="status">
-          The answer to your last save was lost, so it may or may not be recorded. Send it again: it is
-          recorded once either way.{" "}
+          The answer to your last save was lost, so it may or may not be recorded. Send it again: it
+          is recorded once either way.{" "}
           <button
             type="button"
             className="btn btn-primary"
@@ -307,8 +316,8 @@ export function PayablesPage() {
           <>
             {!data.switched_on && (
               <p className="warn-note" data-testid="pay-off">
-                Brand payables are switched off at every store you work at. What is recorded stays here to
-                read.
+                Brand payables are switched off at every store you work at. What is recorded stays
+                here to read.
               </p>
             )}
             {data.rows.length === 0 ? (
@@ -353,8 +362,9 @@ export function PayablesPage() {
               <div data-testid="pay-unknown">
                 <h3 className="h3">Brands with no recorded model</h3>
                 <p className="muted-cell">
-                  These brands have no approved terms for the invoice's season and date, so they are not
-                  counted as outright above and have no due date. Record their terms in Brands, Terms.
+                  These brands have no approved terms for the invoice's season and date, so they are
+                  not counted as outright above and have no due date. Record their terms in Brands,
+                  Terms.
                 </p>
                 <div className="table-wrap">
                   <table className="data">
@@ -396,8 +406,8 @@ export function PayablesPage() {
         <section className="card section-card" data-testid="pay-invoice-form">
           <h2 className="h3">Record a vendor invoice</h2>
           <p className="muted-cell">
-            From the vendor's tax invoice for an outright brand: the total including tax. The due date comes
-            from the payment days in the brand's terms for that season.
+            From the vendor's tax invoice for an outright brand: the total including tax. The due
+            date comes from the payment days in the brand's terms for that season.
           </p>
           <div className="toolbar">
             <label className="field">
@@ -547,8 +557,8 @@ export function PayablesPage() {
         <section className="card section-card" data-testid="pay-payment-form">
           <h2 className="h3">Record a payment</h2>
           <p className="muted-cell">
-            A payment already made to one vendor for one store. Spread it over that vendor's open invoices
-            there, of any brand. Nothing is sent to the bank from here.
+            A payment already made to one vendor for one store. Spread it over that vendor's open
+            invoices there, of any brand. Nothing is sent to the bank from here.
           </p>
           <div className="toolbar">
             <label className="field">
@@ -680,7 +690,10 @@ export function PayablesPage() {
                           disabled={!writable}
                           value={payment.lines[inv.id] ?? ""}
                           onChange={(e) =>
-                            setPayment({ ...payment, lines: { ...payment.lines, [inv.id]: e.target.value } })
+                            setPayment({
+                              ...payment,
+                              lines: { ...payment.lines, [inv.id]: e.target.value },
+                            })
                           }
                         />
                       </td>
@@ -762,7 +775,9 @@ export function PayablesPage() {
                         {inv.status === "cancelled" ? (
                           <span className="chip">Cancelled: {inv.cancel_reason}</span>
                         ) : (
-                          <span className={`chip ${inv.band && inv.band !== "not_due" ? "chip-amber" : ""}`}>
+                          <span
+                            className={`chip ${inv.band && inv.band !== "not_due" ? "chip-amber" : ""}`}
+                          >
                             {bandLabel(inv.band)}
                           </span>
                         )}
@@ -775,7 +790,12 @@ export function PayablesPage() {
                             data-testid={`pay-inv-cancel-${inv.id}`}
                             disabled={!writable}
                             onClick={() =>
-                              setCancelling({ kind: "invoices", id: inv.id, revision: inv.revision, reason: "" })
+                              setCancelling({
+                                kind: "invoices",
+                                id: inv.id,
+                                revision: inv.revision,
+                                reason: "",
+                              })
                             }
                           >
                             Cancel
@@ -816,7 +836,9 @@ export function PayablesPage() {
                       <td>{MODE_LABEL[pmt.mode] ?? pmt.mode}</td>
                       <td>
                         {pmt.reference}
-                        {pmt.status === "cancelled" && <div className="chip">Cancelled: {pmt.cancel_reason}</div>}
+                        {pmt.status === "cancelled" && (
+                          <div className="chip">Cancelled: {pmt.cancel_reason}</div>
+                        )}
                       </td>
                       <td className="num">
                         <Money paise={Number(pmt.amount_paise)} />
@@ -824,7 +846,8 @@ export function PayablesPage() {
                       <td>
                         {pmt.allocations.map((a) => (
                           <div key={a.invoice_id}>
-                            {a.invoice_number} ({a.brand_name}): <Money paise={Number(a.amount_paise)} />
+                            {a.invoice_number} ({a.brand_name}):{" "}
+                            <Money paise={Number(a.amount_paise)} />
                           </div>
                         ))}
                       </td>
@@ -836,7 +859,12 @@ export function PayablesPage() {
                             data-testid={`pay-pmt-cancel-${pmt.id}`}
                             disabled={!writable}
                             onClick={() =>
-                              setCancelling({ kind: "payments", id: pmt.id, revision: pmt.revision, reason: "" })
+                              setCancelling({
+                                kind: "payments",
+                                id: pmt.id,
+                                revision: pmt.revision,
+                                reason: "",
+                              })
                             }
                           >
                             Cancel
@@ -853,7 +881,9 @@ export function PayablesPage() {
           {cancelling && (
             <div className="toolbar" data-testid="pay-cancel-form">
               <label className="field">
-                <span>Why cancel this {cancelling.kind === "invoices" ? "invoice" : "payment"}?</span>
+                <span>
+                  Why cancel this {cancelling.kind === "invoices" ? "invoice" : "payment"}?
+                </span>
                 <input
                   className="input"
                   maxLength={240}
@@ -871,7 +901,11 @@ export function PayablesPage() {
                 onClick={() =>
                   void send({
                     url: `${PAGE_API}/${cancelling.kind}/${cancelling.id}/cancel`,
-                    attempt: { noteId: cancelling.id, revision: cancelling.revision, step: `cancel:${cancelling.kind}` },
+                    attempt: {
+                      noteId: cancelling.id,
+                      revision: cancelling.revision,
+                      step: `cancel:${cancelling.kind}`,
+                    },
                     body: { reason: cancelling.reason.trim() },
                     said:
                       cancelling.kind === "invoices"
@@ -883,7 +917,12 @@ export function PayablesPage() {
               >
                 Cancel it
               </button>
-              <button type="button" className="btn" disabled={busy} onClick={() => setCancelling(null)}>
+              <button
+                type="button"
+                className="btn"
+                disabled={busy}
+                onClick={() => setCancelling(null)}
+              >
                 Keep it
               </button>
             </div>

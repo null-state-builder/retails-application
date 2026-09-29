@@ -12,16 +12,12 @@ import {
   defaultExceptionsFilters,
   exceptionsParams,
 } from "../lib/exceptionsReport";
-import type {
-  ExceptionsFilters,
-  ExceptionsGroupBy,
-} from "../lib/exceptionsReport";
+import type { ExceptionsFilters, ExceptionsGroupBy } from "../lib/exceptionsReport";
 import "./Shared.css";
 
 type Payload = ApiRead<ApiSchemas["ExceptionsReport"]>;
 
-const OFFLINE =
-  "Reports need a connection. Reconnect to see or export this report.";
+const OFFLINE = "Reports need a connection. Reconnect to see or export this report.";
 
 /** Reports > Exceptions (store operations PRD ST-RPT-6, ticket 48).
  *
@@ -33,9 +29,7 @@ const OFFLINE =
  *  data only: offline it says it needs a connection, and comes back by itself
  *  when the line does. */
 export function ExceptionsReportPage() {
-  const [filters, setFilters] = useState<ExceptionsFilters>(() =>
-    defaultExceptionsFilters(),
-  );
+  const [filters, setFilters] = useState<ExceptionsFilters>(() => defaultExceptionsFilters());
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
@@ -50,14 +44,8 @@ export function ExceptionsReportPage() {
       return;
     }
     const mine = ++request.current;
-    if (
-      wanted.date_from &&
-      wanted.date_to &&
-      wanted.date_to < wanted.date_from
-    ) {
-      setError(
-        "The period ends before it starts. Choose a To date on or after the From date.",
-      );
+    if (wanted.date_from && wanted.date_to && wanted.date_to < wanted.date_from) {
+      setError("The period ends before it starts. Choose a To date on or after the From date.");
       return;
     }
     setBusy(true);
@@ -96,10 +84,7 @@ export function ExceptionsReportPage() {
     };
   }, [filters, load]);
 
-  function set<K extends keyof ExceptionsFilters>(
-    key: K,
-    value: ExceptionsFilters[K],
-  ) {
+  function set<K extends keyof ExceptionsFilters>(key: K, value: ExceptionsFilters[K]) {
     setFilters((current) => ({ ...current, [key]: value }));
   }
 
@@ -274,9 +259,7 @@ export function ExceptionsReportPage() {
         )}
         {rows.length === 0 ? (
           <p className="muted-cell" data-testid="exceptions-empty">
-            {busy
-              ? "Loading…"
-              : "No exceptions in this period at these stores."}
+            {busy ? "Loading…" : "No exceptions in this period at these stores."}
           </p>
         ) : (
           <div className="table-wrap">
@@ -296,11 +279,7 @@ export function ExceptionsReportPage() {
               </thead>
               <tbody>
                 {rows.map((row, index) => (
-                  <ExceptionsTableRow
-                    key={String(row.key ?? index)}
-                    row={row}
-                    columns={columns}
-                  />
+                  <ExceptionsTableRow key={String(row.key ?? index)} row={row} columns={columns} />
                 ))}
               </tbody>
               <tfoot>
@@ -310,9 +289,7 @@ export function ExceptionsReportPage() {
           </div>
         )}
         <details className="muted-cell" data-testid="exceptions-basis">
-          <summary>
-            How these figures are worked out (formula {data.formula_version})
-          </summary>
+          <summary>How these figures are worked out (formula {data.formula_version})</summary>
           <ul>
             {data.basis.map((line) => (
               <li key={line}>{line}</li>

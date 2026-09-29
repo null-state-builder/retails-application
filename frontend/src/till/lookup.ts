@@ -182,9 +182,13 @@ export async function searchCustomers(
     // typed is allowed to crowd the other off the screen.
     const windows = await Promise.all(
       prefixes.map(async (prefix) =>
-        (await db.customers.where("mobile").startsWith(prefix).limit(limit * 5).toArray()).sort(
-          namedFirst,
-        ),
+        (
+          await db.customers
+            .where("mobile")
+            .startsWith(prefix)
+            .limit(limit * 5)
+            .toArray()
+        ).sort(namedFirst),
       ),
     );
     const picked = new Map<string, TillKnownCustomer>();
@@ -225,7 +229,9 @@ export function describePiece(piece: {
   size: string;
   color: string;
 }): string {
-  return [piece.brand, piece.item, piece.design, piece.size, piece.color].filter(Boolean).join(" · ");
+  return [piece.brand, piece.item, piece.design, piece.size, piece.color]
+    .filter(Boolean)
+    .join(" · ");
 }
 
 /** What a scanned code resolves to, and what the counter should be told about it. */

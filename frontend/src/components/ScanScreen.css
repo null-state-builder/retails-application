@@ -66,11 +66,17 @@
   border-bottom: 2px dashed var(--line, rgba(var(--navy-rgb), 0.25));
   transition: background 120ms ease;
 }
-.scan-target.flash-ok { background: rgba(46, 125, 50, 0.18); }
-.scan-target.flash-bad { background: rgba(198, 40, 40, 0.22); }
+.scan-target.flash-ok {
+  background: rgba(46, 125, 50, 0.18);
+}
+.scan-target.flash-bad {
+  background: rgba(198, 40, 40, 0.22);
+}
 /* Accepted, but flagged (damaged / extra) — its own colour, so the operator can
    tell "in, but not clean" from "in" without reading a word. */
-.scan-target.flash-flag { background: rgba(var(--rust-rgb), 0.18); }
+.scan-target.flash-flag {
+  background: rgba(var(--rust-rgb), 0.18);
+}
 .scan-count {
   font-size: 72px;
   font-weight: 800;
@@ -95,9 +101,15 @@
   font-size: 14px;
   font-weight: 600;
 }
-.scan-last.ok { color: #2e7d32; }
-.scan-last.bad { color: #c62828; }
-.scan-last.flag { color: var(--rust); }
+.scan-last.ok {
+  color: #2e7d32;
+}
+.scan-last.bad {
+  color: #c62828;
+}
+.scan-last.flag {
+  color: var(--rust);
+}
 
 /* ---- good / damaged mode switch (receive only, #71) ---- */
 .scan-modes {
@@ -196,13 +208,29 @@
   font-size: 18px;
   white-space: nowrap;
 }
-.scan-line .counts .exp { opacity: 0.55; font-weight: 600; }
-.scan-line.done .counts { color: #2e7d32; }
-.scan-line.over .counts { color: var(--rust); }
-.scan-line .tick { color: #2e7d32; display: flex; }
-.scan-line .scan-line-flag { color: var(--rust); }
-.scan-line.extra { background: rgba(var(--rust-rgb), 0.07); }
-.scan-line.extra .counts { color: var(--rust); }
+.scan-line .counts .exp {
+  opacity: 0.55;
+  font-weight: 600;
+}
+.scan-line.done .counts {
+  color: #2e7d32;
+}
+.scan-line.over .counts {
+  color: var(--rust);
+}
+.scan-line .tick {
+  color: #2e7d32;
+  display: flex;
+}
+.scan-line .scan-line-flag {
+  color: var(--rust);
+}
+.scan-line.extra {
+  background: rgba(var(--rust-rgb), 0.07);
+}
+.scan-line.extra .counts {
+  color: var(--rust);
+}
 
 /* ---- footer ---- */
 .scan-foot {
@@ -244,7 +272,10 @@
   gap: 8px;
   cursor: pointer;
 }
-.scan-confirm:disabled { opacity: 0.45; cursor: default; }
+.scan-confirm:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
 .scan-mismatch-note {
   position: fixed;
   left: 0;

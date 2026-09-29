@@ -45,7 +45,12 @@ export default function CashLedger() {
   const [q, setQ] = useState("");
 
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ direction: "in", amount: "", account: "CASH", description: "" });
+  const [form, setForm] = useState({
+    direction: "in",
+    amount: "",
+    account: "CASH",
+    description: "",
+  });
   const PAGE_SIZE = 50;
 
   function loadAll() {
@@ -53,11 +58,14 @@ export default function CashLedger() {
     setEntriesLoading(true);
     const params = new URLSearchParams({ page: String(page), page_size: String(PAGE_SIZE) });
     if (q.trim()) params.set("q", q.trim());
-    api.get(`/finledger/cash/entries?${params}`).then((r) => {
-      setEntries(r.data.results);
-      setCount(r.data.count);
-      setHasNext(Boolean(r.data.next));
-    }).finally(() => setEntriesLoading(false));
+    api
+      .get(`/finledger/cash/entries?${params}`)
+      .then((r) => {
+        setEntries(r.data.results);
+        setCount(r.data.count);
+        setHasNext(Boolean(r.data.next));
+      })
+      .finally(() => setEntriesLoading(false));
   }
   useEffect(loadAll, [page, q]);
   useEffect(() => setPage(1), [q]);
@@ -101,18 +109,37 @@ export default function CashLedger() {
         lead="Cash and bank movements. Append-only: a correction is a reversing entry."
         actions={
           isFinance && (
-            <button className="btn btn-cta" onClick={() => { setOpen(true); setError(""); }} data-testid="cl-record-btn"><Plus size={15} /> Record Movement</button>
+            <button
+              className="btn btn-cta"
+              onClick={() => {
+                setOpen(true);
+                setError("");
+              }}
+              data-testid="cl-record-btn"
+            >
+              <Plus size={15} /> Record Movement
+            </button>
           )
         }
       />
 
       <div className="stat-grid" data-testid="cl-summary">
-        <div className="card stat-card"><Wallet size={18} style={{ color: "var(--rust)" }} /><div className="stat-value mono" data-testid="cl-total"><Money paise={summary?.total_paise ?? 0} /></div><div className="stat-label">Total cash on hand (₹)</div></div>
+        <div className="card stat-card">
+          <Wallet size={18} style={{ color: "var(--rust)" }} />
+          <div className="stat-value mono" data-testid="cl-total">
+            <Money paise={summary?.total_paise ?? 0} />
+          </div>
+          <div className="stat-label">Total cash on hand (₹)</div>
+        </div>
         {(summary?.accounts ?? []).map((a) => (
           <div className="card stat-card" key={a.account}>
             <Wallet size={18} style={{ color: "var(--navy)" }} />
-            <div className="stat-value mono"><Money paise={a.balance_paise} /></div>
-            <div className="stat-label">{a.account} ({a.entries})</div>
+            <div className="stat-value mono">
+              <Money paise={a.balance_paise} />
+            </div>
+            <div className="stat-label">
+              {a.account} ({a.entries})
+            </div>
           </div>
         ))}
       </div>
@@ -122,27 +149,65 @@ export default function CashLedger() {
           <div className="toolbar" style={{ marginBottom: 12 }}>
             <h3 className="h3">Record cash movement</h3>
             <div className="spacer" />
-            <button className="btn btn-sm" onClick={() => setOpen(false)} data-testid="cl-cancel"><X size={14} /> Cancel</button>
+            <button className="btn btn-sm" onClick={() => setOpen(false)} data-testid="cl-cancel">
+              <X size={14} /> Cancel
+            </button>
           </div>
           <div className="form-grid">
-            <select className="select" value={form.direction} onChange={(e) => setForm({ ...form, direction: e.target.value })} data-testid="cl-direction-select">
+            <select
+              className="select"
+              value={form.direction}
+              onChange={(e) => setForm({ ...form, direction: e.target.value })}
+              data-testid="cl-direction-select"
+            >
               <option value="in">Receipt (cash in)</option>
               <option value="out">Payment (cash out)</option>
             </select>
-            <input className="input" type="number" placeholder="Amount ₹" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} data-testid="cl-amount-input" />
-            <select className="select" value={form.account} onChange={(e) => setForm({ ...form, account: e.target.value })} data-testid="cl-account-input">
+            <input
+              className="input"
+              type="number"
+              placeholder="Amount ₹"
+              value={form.amount}
+              onChange={(e) => setForm({ ...form, amount: e.target.value })}
+              data-testid="cl-amount-input"
+            />
+            <select
+              className="select"
+              value={form.account}
+              onChange={(e) => setForm({ ...form, account: e.target.value })}
+              data-testid="cl-account-input"
+            >
               <option value="CASH">CASH</option>
               <option value="BANK">BANK</option>
               <option value="UPI">UPI</option>
             </select>
-            <input className="input" placeholder="Description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} data-testid="cl-desc-input" />
-            <button className="btn btn-cta" disabled={busy || !form.amount} onClick={submit} data-testid="cl-submit"><Plus size={15} /> Save</button>
+            <input
+              className="input"
+              placeholder="Description"
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              data-testid="cl-desc-input"
+            />
+            <button
+              className="btn btn-cta"
+              disabled={busy || !form.amount}
+              onClick={submit}
+              data-testid="cl-submit"
+            >
+              <Plus size={15} /> Save
+            </button>
           </div>
-          {error && <div className="warn-note" style={{ marginTop: 10 }} data-testid="cl-error">{error}</div>}
+          {error && (
+            <div className="warn-note" style={{ marginTop: 10 }} data-testid="cl-error">
+              {error}
+            </div>
+          )}
         </div>
       )}
 
-      <h3 className="h3" style={{ margin: "22px 0 8px" }}>All movements</h3>
+      <h3 className="h3" style={{ margin: "22px 0 8px" }}>
+        All movements
+      </h3>
       <ListSearchBar
         value={q}
         onChange={setQ}
@@ -160,36 +225,88 @@ export default function CashLedger() {
       ) : (
         <div className="table-wrap">
           <table className="data" data-testid="cl-entries-table">
-            <thead><tr><th>Voucher</th><th>Type</th><th>Account</th><th>Description</th><th className="num">Amount ₹</th><th /></tr></thead>
+            <thead>
+              <tr>
+                <th>Voucher</th>
+                <th>Type</th>
+                <th>Account</th>
+                <th>Description</th>
+                <th className="num">Amount ₹</th>
+                <th />
+              </tr>
+            </thead>
             <tbody>
               {entries.map((e) => (
                 <tr key={e.id} data-testid={`cl-entry-row-${e.id}`}>
                   <td className="mono">{e.doc_number}</td>
                   <td>
-                    <span className={`chip chip-${e.kind === "receipt" ? "green" : e.kind === "payment" ? "amber" : "red"}`}>
-                      {e.kind === "receipt" ? <ArrowDownCircle size={12} style={{ verticalAlign: "-2px" }} /> : e.kind === "payment" ? <ArrowUpCircle size={12} style={{ verticalAlign: "-2px" }} /> : null} {e.kind_label}
+                    <span
+                      className={`chip chip-${e.kind === "receipt" ? "green" : e.kind === "payment" ? "amber" : "red"}`}
+                    >
+                      {e.kind === "receipt" ? (
+                        <ArrowDownCircle size={12} style={{ verticalAlign: "-2px" }} />
+                      ) : e.kind === "payment" ? (
+                        <ArrowUpCircle size={12} style={{ verticalAlign: "-2px" }} />
+                      ) : null}{" "}
+                      {e.kind_label}
                     </span>
                   </td>
                   <td className="mono">{e.account}</td>
-                  <td>{e.description}{e.vendor_name ? ` · ${e.vendor_name}` : ""}</td>
-                  <td className="num mono" style={{ fontWeight: 700, color: e.amount < 0 ? "var(--rust)" : "inherit" }}><Money paise={e.amount} /></td>
-                  <td>{isFinance && e.kind !== "reversal" && (
-                    <button className="btn btn-sm" disabled={busy} onClick={() => reverse(e.id)} data-testid={`cl-reverse-${e.id}`}><RotateCcw size={13} /> Reverse</button>
-                  )}</td>
+                  <td>
+                    {e.description}
+                    {e.vendor_name ? ` · ${e.vendor_name}` : ""}
+                  </td>
+                  <td
+                    className="num mono"
+                    style={{ fontWeight: 700, color: e.amount < 0 ? "var(--rust)" : "inherit" }}
+                  >
+                    <Money paise={e.amount} />
+                  </td>
+                  <td>
+                    {isFinance && e.kind !== "reversal" && (
+                      <button
+                        className="btn btn-sm"
+                        disabled={busy}
+                        onClick={() => reverse(e.id)}
+                        data-testid={`cl-reverse-${e.id}`}
+                      >
+                        <RotateCcw size={13} /> Reverse
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
           <div className="pager" data-testid="cl-pager">
-            <span className="pager-info">Showing {(page - 1) * PAGE_SIZE + 1}–{(page - 1) * PAGE_SIZE + entries.length} of {count}</span>
+            <span className="pager-info">
+              Showing {(page - 1) * PAGE_SIZE + 1}–{(page - 1) * PAGE_SIZE + entries.length} of{" "}
+              {count}
+            </span>
             <div className="spacer" />
-            <button className="btn btn-sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} data-testid="cl-prev">Prev</button>
+            <button
+              className="btn btn-sm"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => p - 1)}
+              data-testid="cl-prev"
+            >
+              Prev
+            </button>
             <span className="pager-page">Page {page}</span>
-            <button className="btn btn-sm" disabled={!hasNext} onClick={() => setPage((p) => p + 1)} data-testid="cl-next">Next</button>
+            <button
+              className="btn btn-sm"
+              disabled={!hasNext}
+              onClick={() => setPage((p) => p + 1)}
+              data-testid="cl-next"
+            >
+              Next
+            </button>
           </div>
         </div>
       )}
-      <Link to="/money/vendor" className="btn" style={{ marginTop: 18 }}>← Vendor Ledger</Link>
+      <Link to="/money/vendor" className="btn" style={{ marginTop: 18 }}>
+        ← Vendor Ledger
+      </Link>
     </div>
   );
 }

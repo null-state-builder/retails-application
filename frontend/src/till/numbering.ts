@@ -200,42 +200,37 @@ async function writeBill(
   // it gave back on the cached original in the same commit as the bill that gave
   // them back, or a crash between the two would leave the same piece returnable
   // twice on this device.
-  return db.transaction(
-    "rw",
-    [db.meta, db.queue, db.stock, db.items, db.bills],
-    async () => {
-      // The transfer pause is read here, inside the transaction that would take
-      // the number, rather than trusted from a screen (change PRD §10.2). A
-      // paused counter's shelf may already be promised to a transfer, and this is
-      // the one place every bill - a sale, an exchange, a paper re-entry - has
-      // to pass through.
-      if (await readMeta(db, META.pause, null)) throw new TillPausedError();
-      const seq = atSeq === null ? await nextBillNumber(db, fy) : await claimHole(db, fy, atSeq);
-      if (atSeq !== null) await recordPaperEntry(db, fy, seq);
-      const prefix = await seriesPrefixOf(db);
-      // Ticket 04: the number in the new invoice series, taken in this same
-      // transaction so a bill that rolls back gives it back. A bill keyed in from
-      // paper already carries whatever its printed copy says, so it takes none.
-      const invoice =
-        atSeq === null ? await takeInvoiceNumber(db, new Date(draft.billed_at)) : null;
-      const bill: QueuedBill = {
-        ...draft,
-        idempotency_uuid: idempotencyUuid,
-        store: storeCode,
-        fy,
-        till_seq: seq,
-        origin: draft.origin ?? (navigator.onLine ? "online" : "offline"),
-        doc_number: renderBillNumber(fy, storeCode, seq),
-        till_number: renderTillNumber(prefix, seq),
-        ...(invoice ? { tax_invoice_number: invoice } : {}),
-        attempts: 0,
-      };
-      await db.queue.add(bill);
-      await moveStock(db, bill);
-      await markReturnedPieces(db, bill);
-      return bill;
-    },
-  );
+  return db.transaction("rw", [db.meta, db.queue, db.stock, db.items, db.bills], async () => {
+    // The transfer pause is read here, inside the transaction that would take
+    // the number, rather than trusted from a screen (change PRD §10.2). A
+    // paused counter's shelf may already be promised to a transfer, and this is
+    // the one place every bill - a sale, an exchange, a paper re-entry - has
+    // to pass through.
+    if (await readMeta(db, META.pause, null)) throw new TillPausedError();
+    const seq = atSeq === null ? await nextBillNumber(db, fy) : await claimHole(db, fy, atSeq);
+    if (atSeq !== null) await recordPaperEntry(db, fy, seq);
+    const prefix = await seriesPrefixOf(db);
+    // Ticket 04: the number in the new invoice series, taken in this same
+    // transaction so a bill that rolls back gives it back. A bill keyed in from
+    // paper already carries whatever its printed copy says, so it takes none.
+    const invoice = atSeq === null ? await takeInvoiceNumber(db, new Date(draft.billed_at)) : null;
+    const bill: QueuedBill = {
+      ...draft,
+      idempotency_uuid: idempotencyUuid,
+      store: storeCode,
+      fy,
+      till_seq: seq,
+      origin: draft.origin ?? (navigator.onLine ? "online" : "offline"),
+      doc_number: renderBillNumber(fy, storeCode, seq),
+      till_number: renderTillNumber(prefix, seq),
+      ...(invoice ? { tax_invoice_number: invoice } : {}),
+      attempts: 0,
+    };
+    await db.queue.add(bill);
+    await moveStock(db, bill);
+    await markReturnedPieces(db, bill);
+    return bill;
+  });
 }
 
 /**
@@ -257,9 +252,7 @@ async function markReturnedPieces(db: TillDb, bill: QueuedBill): Promise<void> {
   const exchange = bill.exchange;
   if (!exchange) return;
   const cached = await db.bills
-    .filter(
-      (row) => row.fy === exchange.original.fy && row.till_seq === exchange.original.till_seq,
-    )
+    .filter((row) => row.fy === exchange.original.fy && row.till_seq === exchange.original.till_seq)
     .first();
   if (!cached) return;
   const given = new Map<number, { qty: number; paise: number }>();

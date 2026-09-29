@@ -205,7 +205,11 @@ export function filterCards(
   const open = found.filter((card) => isOpenStatus(card.status));
   const counts = { open: open.length, done: found.length - open.length, all: found.length };
   const shown =
-    filter === "open" ? open : filter === "done" ? found.filter((c) => !isOpenStatus(c.status)) : found;
+    filter === "open"
+      ? open
+      : filter === "done"
+        ? found.filter((c) => !isOpenStatus(c.status))
+        : found;
   return { shown, counts };
 }
 
@@ -238,7 +242,9 @@ export function lineTotals(lines: CostedLine[]): {
 } {
   const sum = (pick: (line: CostedLine) => number | null) => {
     const given = lines.filter((line) => pick(line) !== null);
-    return given.length ? given.reduce((total, line) => total + line.qty * (pick(line) ?? 0), 0) : null;
+    return given.length
+      ? given.reduce((total, line) => total + line.qty * (pick(line) ?? 0), 0)
+      : null;
   };
   return {
     pieces: lines.reduce((total, line) => total + line.qty, 0),

@@ -381,7 +381,11 @@ function RequestPanel({
       </p>
 
       {error && (
-        <div className="login-error" style={{ maxWidth: 480 }} data-testid="availability-request-error">
+        <div
+          className="login-error"
+          style={{ maxWidth: 480 }}
+          data-testid="availability-request-error"
+        >
           {error}
         </div>
       )}

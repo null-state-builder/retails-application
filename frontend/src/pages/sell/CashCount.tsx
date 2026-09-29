@@ -131,8 +131,8 @@ export default function CashCountPage() {
 
       {!online && (
         <p className="warn-note" data-testid="cash-offline">
-          You are offline. The count and deposits are saved straight to head office, so they
-          wait until the connection is back. What you have typed stays here.
+          You are offline. The count and deposits are saved straight to head office, so they wait
+          until the connection is back. What you have typed stays here.
         </p>
       )}
       {loadError && (
@@ -328,9 +328,8 @@ function CountForm({
           </Row>
           <p className="muted-cell cash-since">
             Count the petty cash box together with the drawer. Since{" "}
-            {formatDateTime(position.window_from)}. Card{" "}
-            <Money paise={position.tenders.card} /> and UPI <Money paise={position.tenders.upi} />{" "}
-            are not in the drawer.
+            {formatDateTime(position.window_from)}. Card <Money paise={position.tenders.card} /> and
+            UPI <Money paise={position.tenders.upi} /> are not in the drawer.
           </p>
         </div>
 
@@ -389,9 +388,9 @@ function CountForm({
                 </>
               ) : (
                 <>
-                  Cash {varianceWords(variance)} by <Money paise={Math.abs(variance)} />. A
-                  manager of this store confirms it with their own PIN, and it goes to the store
-                  manager as an exception to explain. Nothing is booked to balance it.
+                  Cash {varianceWords(variance)} by <Money paise={Math.abs(variance)} />. A manager
+                  of this store confirms it with their own PIN, and it goes to the store manager as
+                  an exception to explain. Nothing is booked to balance it.
                 </>
               )}
             </p>
@@ -520,7 +519,9 @@ function Movements({
       onSaved();
     } catch (e) {
       if (droppedConnection(e)) {
-        setMessage("Not recorded: the connection dropped. Press Record again when you are back online.");
+        setMessage(
+          "Not recorded: the connection dropped. Press Record again when you are back online.",
+        );
       } else {
         moveId.current = newUuid();
         setMessage(apiErrorMessage(e));
@@ -534,9 +535,9 @@ function Movements({
     <section className="card cash-card" data-testid="cash-movements">
       <h2 className="h3">Cash taken out of the drawer</h2>
       <p className="muted-cell">
-        A bank deposit or a handover to head office. Both sides are recorded: who took it out,
-        and who received it with the slip or receipt number. It comes off the expected cash of
-        the next count.
+        A bank deposit or a handover to head office. Both sides are recorded: who took it out, and
+        who received it with the slip or receipt number. It comes off the expected cash of the next
+        count.
       </p>
       {position.movements.length > 0 && (
         <ul className="cash-move-list" data-testid="cash-move-list">
@@ -595,7 +596,9 @@ function Movements({
           />
         </div>
         <div className="field">
-          <label htmlFor="cash-move-ref">{deposit ? "Deposit slip number" : "Receipt number"}</label>
+          <label htmlFor="cash-move-ref">
+            {deposit ? "Deposit slip number" : "Receipt number"}
+          </label>
           <input
             id="cash-move-ref"
             className="input"

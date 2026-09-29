@@ -120,7 +120,8 @@ export function GoodsStockPage() {
   // ordinary validation problem (the server's own INVALID_REQUEST), never
   // crash the screen on `Invalid Date.toISOString()`.
   const asOfDate = asOf ? new Date(asOf) : null;
-  const asOfIso = asOfDate && !Number.isNaN(asOfDate.getTime()) ? asOfDate.toISOString() : undefined;
+  const asOfIso =
+    asOfDate && !Number.isNaN(asOfDate.getTime()) ? asOfDate.toISOString() : undefined;
   const season = params.get("season") ?? "";
   const query = {
     site_id: siteId || undefined,
@@ -204,7 +205,10 @@ export function GoodsStockPage() {
 
   return (
     <div className="stock-layout">
-      <PageHeader title="Stock" lead="Physical, valued and available quantities, with holds, reservations and reasons." />
+      <PageHeader
+        title="Stock"
+        lead="Physical, valued and available quantities, with holds, reservations and reasons."
+      />
 
       <div className="form-grid">
         <Field id="stock-site" label="Site">
@@ -367,7 +371,9 @@ function SummaryPanel({ summary }: { summary: ReadState<StockSummary> }) {
           <dt>Value</dt>
           <dd data-testid="stock-summary-value">
             {t.value_paise !== undefined ? formatPaiseString(t.value_paise) : "Unknown"}
-            {t.value_completeness && t.value_completeness !== "complete" ? ` (${t.value_completeness})` : ""}
+            {t.value_completeness && t.value_completeness !== "complete"
+              ? ` (${t.value_completeness})`
+              : ""}
           </dd>
         </div>
       )}
@@ -411,7 +417,10 @@ function StockTable({
         ? "Nothing is quarantined or held for this scope."
         : "No stock in this scope.";
 
-  const state = listState({ loading: rows.loading, failure: rows.failure, empty: (rows.data?.items.length ?? 0) === 0 }, emptyText);
+  const state = listState(
+    { loading: rows.loading, failure: rows.failure, empty: (rows.data?.items.length ?? 0) === 0 },
+    emptyText,
+  );
   if (state) return state;
 
   const items = rows.data?.items ?? [];
@@ -471,19 +480,29 @@ function StockRowView({
   review: string | null;
   onMarkDamaged: ((row: StockRow, qty: number, reason: string) => Promise<void>) | null;
 }) {
-  const valueKey = basis === "cost" ? row.cost_value_paise : basis === "ticket" ? row.ticket_value_paise : undefined;
-  const available = view === "in-transit" ? row.physical_qty : isWarehouse ? row.transferable_qty : row.ats_qty;
+  const valueKey =
+    basis === "cost"
+      ? row.cost_value_paise
+      : basis === "ticket"
+        ? row.ticket_value_paise
+        : undefined;
+  const available =
+    view === "in-transit" ? row.physical_qty : isWarehouse ? row.transferable_qty : row.ats_qty;
   return (
     <tr>
       <td>
         {view === "in-transit"
           ? `${row.source_site_id ?? "?"} → ${row.destination_site_id ?? "?"}`
-          : row.location_id ?? "—"}
+          : (row.location_id ?? "—")}
       </td>
       <td>
         {row.description || (row.sku_id ? row.sku_id.slice(0, 8) : "Unidentified")}
         {row.origin_id && (
-          <Link to={`/goods/stock/origins/${row.origin_id}`} className="chip chip-navy" data-testid="stock-journey-link">
+          <Link
+            to={`/goods/stock/origins/${row.origin_id}`}
+            className="chip chip-navy"
+            data-testid="stock-journey-link"
+          >
             Journey <ChevronRight size={12} />
           </Link>
         )}
@@ -620,9 +639,12 @@ export function GoodsOriginJourneyPage() {
       {journey.deniedAction && <Denied what="origin" />}
       {journey.failure && <p className="warn-note">{journey.failure}</p>}
       {journey.loading && <span className="muted">Loading…</span>}
-      {!journey.loading && !journey.deniedAction && !journey.failure && (journey.data?.items.length ?? 0) === 0 && (
-        <span className="muted">No events found for this origin.</span>
-      )}
+      {!journey.loading &&
+        !journey.deniedAction &&
+        !journey.failure &&
+        (journey.data?.items.length ?? 0) === 0 && (
+          <span className="muted">No events found for this origin.</span>
+        )}
       {journey.data && journey.data.items.length > 0 && (
         <ol className="journey-timeline" data-testid="journey-timeline">
           {journey.data.items.map((event) => (
@@ -635,7 +657,9 @@ export function GoodsOriginJourneyPage() {
                 {event.source_site_id || event.destination_site_id
                   ? ` · ${event.source_site_id ?? "?"} → ${event.destination_site_id ?? "?"}`
                   : ""}
-                {event.value_paise !== undefined ? ` · ${formatPaiseString(event.value_paise)}` : ""}
+                {event.value_paise !== undefined
+                  ? ` · ${formatPaiseString(event.value_paise)}`
+                  : ""}
               </div>
             </li>
           ))}

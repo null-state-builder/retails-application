@@ -229,7 +229,8 @@ export function DiscountFundingPage() {
         </div>
         <p className="muted-cell" data-testid="funding-as-of">
           {asOfText(data.as_of)}
-          {data.as_of && ` · the copy is brought up to date every ${data.refreshed_every_minutes} minutes`}
+          {data.as_of &&
+            ` · the copy is brought up to date every ${data.refreshed_every_minutes} minutes`}
           {` · ${data.stores.map((s) => s.code).join(", ")} · ${data.date_from} to ${data.date_to}`}
         </p>
         {error && (
@@ -293,7 +294,15 @@ export function DiscountFundingPage() {
   );
 }
 
-function FundingTableRow({ row, columns, total }: { row: Row; columns: Column[]; total?: boolean }) {
+function FundingTableRow({
+  row,
+  columns,
+  total,
+}: {
+  row: Row;
+  columns: Column[];
+  total?: boolean;
+}) {
   const cells = row as unknown as Record<string, unknown>;
   return (
     <tr data-testid={total ? "funding-total" : "funding-row"} data-key={row.key}>

@@ -41,14 +41,25 @@ export function PartnerBillingPage() {
     let live = true;
     api
       .get<BillingPolicy>("/outbound/partner-billing-policy")
-      .then((r) => { if (live) { setPolicy(r.data); setLoaded(true); } })
-      .catch((e) => { if (live) setError(apiErrorMessage(e)); })
+      .then((r) => {
+        if (live) {
+          setPolicy(r.data);
+          setLoaded(true);
+        }
+      })
+      .catch((e) => {
+        if (live) setError(apiErrorMessage(e));
+      })
       .finally(() => live && setLoading(false));
-    return () => { live = false; };
+    return () => {
+      live = false;
+    };
   }, [canView]);
 
   async function save(mode: BillingPolicy["mode"]) {
-    setError(""); setSaved(""); setSaving(true);
+    setError("");
+    setSaved("");
+    setSaving(true);
     try {
       const r = await api.put<BillingPolicy>("/outbound/partner-billing-policy", { mode });
       setPolicy(r.data);
@@ -95,12 +106,18 @@ export function PartnerBillingPage() {
                 />
                 Post a receivable at Purchase Price
               </label>
-              {policy.set_by_name && <p className="muted-cell">Last set by {policy.set_by_name}.</p>}
+              {policy.set_by_name && (
+                <p className="muted-cell">Last set by {policy.set_by_name}.</p>
+              )}
               {saving && <p className="muted-cell">Saving…</p>}
             </div>
           )}
           {error && <p className="warn-note">{error}</p>}
-          {saved && <p className="ok-note" data-testid="billing-policy-saved">{saved}</p>}
+          {saved && (
+            <p className="ok-note" data-testid="billing-policy-saved">
+              {saved}
+            </p>
+          )}
         </section>
       )}
     </div>

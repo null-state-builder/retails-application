@@ -25,7 +25,9 @@ type MovementLineWire = NonNullable<
 >[number];
 
 /** Every kind the movement read can carry, read off the generated client. */
-export type MovementKind = NonNullable<NonNullable<NonNullable<MovementWire["data"]>["header"]>["kind"]>;
+export type MovementKind = NonNullable<
+  NonNullable<NonNullable<MovementWire["data"]>["header"]>["kind"]
+>;
 /** How a line's value is established (`value_basis`, adjustments only). */
 export type ValueBasis = NonNullable<MovementLineWire["value_basis"]>;
 
@@ -363,7 +365,9 @@ export function damageRowWords(
 ): string | null {
   const [first, ...rest] = damageReportsFor(row, reports);
   if (!first) return null;
-  return rest.length ? `${damageReviewWords(first)} (+${rest.length} more)` : damageReviewWords(first);
+  return rest.length
+    ? `${damageReviewWords(first)} (+${rest.length} more)`
+    : damageReviewWords(first);
 }
 
 // ---------------------------------------------------------------------------
@@ -422,13 +426,15 @@ export const SHIPMENT_STATUS_LABEL: Record<ShipmentStatus, string> = {
   delivered: "Delivered — the vendor confirmed every piece",
   partly_returned: "Accounted for — part delivered, part came back",
   returned_to_source: "Came back — delivery failed",
-  shortfall_closed: "Closed — the Owner recognised the pieces the vendor never confirmed as a shortfall",
+  shortfall_closed:
+    "Closed — the Owner recognised the pieces the vendor never confirmed as a shortfall",
 };
 
 /** A shipment's e-way evidence as three separate facts, in one line. */
 export function ewayWords(eway: RtvShipment["eway"]): string {
   if (!eway) return "—";
-  const left = eway.at_dispatch === "present" ? "left with an e-way bill" : "left without an e-way bill";
+  const left =
+    eway.at_dispatch === "present" ? "left with an e-way bill" : "left without an e-way bill";
   if (!eway.reference) return left;
   const later = eway.attached_at ? `; ${eway.reference} attached later` : `; ${eway.reference}`;
   return `${left}${later}${eway.verified ? " · verified" : " · not verified"}`;
@@ -480,7 +486,9 @@ export const WITHDRAWAL_REASONS = Object.keys(WITHDRAWAL_LABEL) as WithdrawalRea
 
 export function rtvStateWords(state: RtvState | null | undefined, headState: string): string {
   if (state) return RTV_STATE_LABEL[state];
-  return headState === "submitted" ? "Waiting for the Owner's approval" : "Draft — not approved yet";
+  return headState === "submitted"
+    ? "Waiting for the Owner's approval"
+    : "Draft — not approved yet";
 }
 
 /** Pieces of a stock row an RTV may take, as a hint: quarantined recorded pieces
@@ -490,7 +498,8 @@ export function rtvStateWords(state: RtvState | null | undefined, headState: str
 export function returnableQty(row: StockSearchRow, locationKind: string | undefined): number {
   if (!hasSource(row) || !row.sku_id || row.valued_qty === 0) return 0;
   const valued = Math.min(row.valued_qty, row.physical_qty);
-  if (locationKind === "quarantine") return Math.max(0, Math.min(valued, row.held_qty) - row.reserved_qty);
+  if (locationKind === "quarantine")
+    return Math.max(0, Math.min(valued, row.held_qty) - row.reserved_qty);
   if (row.condition !== "good" || row.accepted_qty === 0) return 0;
   return removableQty(row);
 }
@@ -558,18 +567,23 @@ export type WriteOffDetail = NonNullable<NonNullable<MovementWire["data"]>["writ
  *  (pre-PT) custody, a damage memo value, vendor-owned goods, or pieces already
  *  written off. Goods still available are put on hold first. */
 export function writeOffQty(row: StockSearchRow, locationKind: string | undefined): number {
-  if (locationKind !== "quarantine" || !hasSource(row) || !row.sku_id || row.valued_qty === 0) return 0;
+  if (locationKind !== "quarantine" || !hasSource(row) || !row.sku_id || row.valued_qty === 0)
+    return 0;
   const valued = Math.min(row.valued_qty, row.physical_qty);
   return Math.max(0, Math.min(valued, row.held_qty) - row.reserved_qty);
 }
 
 /** Where a write-off stands, in the words the screen uses. Before the Owner decides
  *  nothing is recognised; after, the value is gone and the goods are not. */
-export function writeOffStateWords(detail: WriteOffDetail | null | undefined, headState: string): string {
+export function writeOffStateWords(
+  detail: WriteOffDetail | null | undefined,
+  headState: string,
+): string {
   if (detail?.state === "written_off") return "Written off — the goods stay here, in quarantine";
-  return headState === "submitted" ? "Waiting for the Owner's approval" : "Draft — nothing written off yet";
+  return headState === "submitted"
+    ? "Waiting for the Owner's approval"
+    : "Draft — nothing written off yet";
 }
-
 
 // ---------------------------------------------------------------------------
 // Disposal of recorded stock (goods ticket 15D)
@@ -594,7 +608,10 @@ export const DISPOSAL_METHODS = Object.keys(DISPOSAL_METHOD_LABEL) as DisposalMe
 
 /** Where a disposal stands, in the words the screen uses. Before the Owner decides
  *  the goods are still on the books; after, exactly the disposed pieces are gone. */
-export function disposalStateWords(detail: DisposalDetail | null | undefined, headState: string): string {
+export function disposalStateWords(
+  detail: DisposalDetail | null | undefined,
+  headState: string,
+): string {
   if (detail?.state === "disposed") return "Disposed of — these pieces have left the site";
   return headState === "submitted"
     ? "Waiting for the Owner's approval"

@@ -71,7 +71,11 @@ export default function StockLedger() {
     () => [
       { icon: ScrollText, label: "Ledger entries", value: summary?.entries ?? 0 },
       { icon: Boxes, label: "Net units on hand", value: summary?.net_qty ?? 0 },
-      { icon: IndianRupee, label: "Net stock value (₹)", value: <Money paise={summary?.net_value_paise ?? 0} /> },
+      {
+        icon: IndianRupee,
+        label: "Net stock value (₹)",
+        value: <Money paise={summary?.net_value_paise ?? 0} />,
+      },
       { icon: Layers, label: "Distinct SKUs", value: summary?.distinct_skus ?? 0 },
     ],
     [summary],
@@ -82,7 +86,9 @@ export default function StockLedger() {
       <PageHeader
         lead="Every movement, in the order it happened. The stock ledger is append-only — a correction is a reversing entry, never an edit."
         actions={
-          <Link className="btn" to="/stock" data-testid="stock-on-hand-link"><PackageCheck size={16} /> Stock on Hand</Link>
+          <Link className="btn" to="/stock" data-testid="stock-on-hand-link">
+            <PackageCheck size={16} /> Stock on Hand
+          </Link>
         }
       />
 
@@ -146,7 +152,9 @@ export default function StockLedger() {
                 <tr key={e.id} data-testid={`stock-entry-${e.id}`}>
                   <td className="mono">{e.doc_number}</td>
                   <td>
-                    <span className={`chip chip-${e.kind === "pt_inward" ? "green" : "red"}`}>{e.kind_label}</span>
+                    <span className={`chip chip-${e.kind === "pt_inward" ? "green" : "red"}`}>
+                      {e.kind_label}
+                    </span>
                   </td>
                   <td>{e.store_code}</td>
                   <td className="mono">{e.sku_code}</td>
@@ -156,8 +164,15 @@ export default function StockLedger() {
                   <td>{e.size}</td>
                   <td>{e.item}</td>
                   <td>{e.season}</td>
-                  <td className="num" style={{ color: e.qty < 0 ? "var(--red)" : "inherit", fontWeight: 700 }}>{e.qty}</td>
-                  <td className="num mono"><Money paise={e.amount} /></td>
+                  <td
+                    className="num"
+                    style={{ color: e.qty < 0 ? "var(--red)" : "inherit", fontWeight: 700 }}
+                  >
+                    {e.qty}
+                  </td>
+                  <td className="num mono">
+                    <Money paise={e.amount} />
+                  </td>
                   <td>{e.booking_number || "—"}</td>
                 </tr>
               ))}
@@ -165,12 +180,27 @@ export default function StockLedger() {
           </table>
           <div className="pager" data-testid="stock-pager">
             <span className="pager-info">
-              Showing {(page - 1) * PAGE_SIZE + 1}–{(page - 1) * PAGE_SIZE + entries.length} of {count}
+              Showing {(page - 1) * PAGE_SIZE + 1}–{(page - 1) * PAGE_SIZE + entries.length} of{" "}
+              {count}
             </span>
             <div className="spacer" />
-            <button className="btn btn-sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} data-testid="stock-prev">Prev</button>
+            <button
+              className="btn btn-sm"
+              disabled={page <= 1}
+              onClick={() => setPage((p) => p - 1)}
+              data-testid="stock-prev"
+            >
+              Prev
+            </button>
             <span className="pager-page">Page {page}</span>
-            <button className="btn btn-sm" disabled={!hasNext} onClick={() => setPage((p) => p + 1)} data-testid="stock-next">Next</button>
+            <button
+              className="btn btn-sm"
+              disabled={!hasNext}
+              onClick={() => setPage((p) => p + 1)}
+              data-testid="stock-next"
+            >
+              Next
+            </button>
           </div>
         </div>
       )}

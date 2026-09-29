@@ -164,7 +164,9 @@ export function GoodsMovementsPage() {
   const [openId, setOpenId] = useState(params.get("movement") ?? "");
 
   const search = useGoodsFetch<StockSearchPage, StockSearchPage | null>(
-    siteId ? `${SEARCH}?source_site_id=${siteId}${query ? `&q=${encodeURIComponent(query)}` : ""}` : null,
+    siteId
+      ? `${SEARCH}?source_site_id=${siteId}${query ? `&q=${encodeURIComponent(query)}` : ""}`
+      : null,
     (r) => r,
     null,
   );
@@ -417,9 +419,13 @@ function SearchResults({
                   data-condition={row.condition}
                 >
                   <td data-testid="mv-row-location">
-                    {row.location_id ? (locationNames.get(row.location_id) ?? row.location_id) : "—"}
+                    {row.location_id
+                      ? (locationNames.get(row.location_id) ?? row.location_id)
+                      : "—"}
                   </td>
-                  <td>{row.description || (row.sku_id ? row.sku_id.slice(0, 8) : "Unidentified")}</td>
+                  <td>
+                    {row.description || (row.sku_id ? row.sku_id.slice(0, 8) : "Unidentified")}
+                  </td>
                   <td>{row.condition}</td>
                   <td className="num">{row.physical_qty}</td>
                   <td className="num" data-testid="mv-row-accepted">
@@ -810,9 +816,7 @@ function MovementForm({
         condition: row.condition,
         ...(row.origin_id ? { origin_id: row.origin_id } : {}),
         ...(needsDestination ? { destination_location_id: destination } : {}),
-        ...(mode === "release"
-          ? { hold_keys: holdKeys.split(/[\s,]+/).filter(Boolean) }
-          : {}),
+        ...(mode === "release" ? { hold_keys: holdKeys.split(/[\s,]+/).filter(Boolean) } : {}),
       };
       const { data } = await api.post<ResourceDTO<MovementData>>(MOVEMENTS, {
         kind: mode === "move" ? "bin_move" : mode,
@@ -857,8 +861,7 @@ function MovementForm({
       {mode === "found" && (
         <p className="lead" data-testid="mv-found-note">
           Found pieces are recorded as new, held stock once someone else approves. They cannot be
-          sold or sent until they are accepted, and without a recorded cost they wait in
-          quarantine.
+          sold or sent until they are accepted, and without a recorded cost they wait in quarantine.
         </p>
       )}
       {isRtv && (
@@ -872,17 +875,17 @@ function MovementForm({
         <p className="lead" data-testid="mv-writeoff-note">
           A write-off records that the value of these pieces is lost, at their own recorded cost,
           once the Owner approves it. Nothing leaves: the pieces stay here in quarantine, held and
-          counted, until they are actually disposed of. Reserved pieces, goods with no recorded
-          cost and the brand&apos;s own (vendor-owned) goods are never written off.
+          counted, until they are actually disposed of. Reserved pieces, goods with no recorded cost
+          and the brand&apos;s own (vendor-owned) goods are never written off.
         </p>
       )}
       {isDisposal && (
         <p className="lead" data-testid="mv-dispose-note">
           Record goods that were actually destroyed or handed over for scrap/recycling. Only the
-          pieces you record leave, once the Owner approves; the rest stay here in quarantine.
-          Pieces promised to a return to vendor must be withdrawn from it first. Written-off goods
-          are disposed of by naming their write-off, so their loss is not counted twice. Donation
-          and sale as damaged goods are not offered.
+          pieces you record leave, once the Owner approves; the rest stay here in quarantine. Pieces
+          promised to a return to vendor must be withdrawn from it first. Written-off goods are
+          disposed of by naming their write-off, so their loss is not counted twice. Donation and
+          sale as damaged goods are not offered.
         </p>
       )}
       {mode === "release" && (
@@ -1233,7 +1236,9 @@ function MovementDetail({
   onSubmitted,
   onError,
 }: {
-  open: ReturnType<typeof useGoodsFetch<ResourceDTO<MovementData>, ResourceDTO<MovementData> | null>>;
+  open: ReturnType<
+    typeof useGoodsFetch<ResourceDTO<MovementData>, ResourceDTO<MovementData> | null>
+  >;
   locationNames: Map<string, string>;
   /** Goods ticket 15F: where returned RTV goods may be put away. */
   putawayLocations: PutawayLocation[];
@@ -1301,8 +1306,8 @@ function MovementDetail({
               : disposing
                 ? "Approved. Exactly the disposed pieces have left the books; the rest stay in quarantine."
                 : adjustment
-                ? "Approved. The adjustment is recorded."
-                : "Approved. The goods are back in the location the release named."
+                  ? "Approved. The adjustment is recorded."
+                  : "Approved. The goods are back in the location the release named."
           : returning
             ? "Turned down. The return stays a draft and nothing was reserved."
             : writingOff
@@ -1310,8 +1315,8 @@ function MovementDetail({
               : disposing
                 ? "Turned down. The disposal stays a draft and nothing left the books."
                 : adjustment
-                ? "Turned down. The adjustment stays a draft and nothing moved."
-                : "Turned down. The release stays a draft and nothing moved.",
+                  ? "Turned down. The adjustment stays a draft and nothing moved."
+                  : "Turned down. The release stays a draft and nothing moved.",
       );
     } catch (e) {
       onError(e);
@@ -1417,7 +1422,11 @@ function MovementDetail({
           doc={doc}
           lineName={(key) => {
             const found = lines.items.find((row) => row.line_key === key);
-            return found ? (found.sku_id ? `SKU ${found.sku_id.slice(0, 8)}…` : key.slice(0, 8)) : key.slice(0, 8);
+            return found
+              ? found.sku_id
+                ? `SKU ${found.sku_id.slice(0, 8)}…`
+                : key.slice(0, 8)
+              : key.slice(0, 8);
           }}
           putawayLocations={putawayLocations}
           onDone={onSubmitted}
@@ -1473,7 +1482,8 @@ function MovementDetail({
               </td>
               <td data-testid="mv-detail-destination">
                 {line.destination_location_id
-                  ? (locationNames.get(line.destination_location_id) ?? line.destination_location_id)
+                  ? (locationNames.get(line.destination_location_id) ??
+                    line.destination_location_id)
                   : header.kind === "rtv"
                     ? "To the vendor, when collected"
                     : header.kind === "writeoff"
@@ -1535,8 +1545,8 @@ function MovementDetail({
                 : header.kind === "disposal"
                   ? "Approve the disposal"
                   : isAdjustment(header.kind)
-                ? "Approve the adjustment"
-                : "Approve the release"}
+                    ? "Approve the adjustment"
+                    : "Approve the release"}
           </button>
           <button
             className="btn btn-sm"
@@ -1612,8 +1622,8 @@ function WriteOffPanel({ doc }: { doc: ResourceDTO<MovementData> }) {
         </ul>
       )}
       <p className="lead" data-testid="wo-note">
-        A write-off moves nothing. The goods stay counted at the site, in quarantine and unavailable,
-        until a disposal records that they actually left. No accounting entry is made.
+        A write-off moves nothing. The goods stay counted at the site, in quarantine and
+        unavailable, until a disposal records that they actually left. No accounting entry is made.
       </p>
     </section>
   );

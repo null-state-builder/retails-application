@@ -124,7 +124,12 @@ function Following({ storeCode }: { storeCode: string }) {
     <main className="cdisplay" data-testid="display" data-screen={state.view.screen}>
       <Screen view={state.view} />
       {question && (
-        <div className="cdisplay-question" role="dialog" aria-modal="true" data-testid="display-question">
+        <div
+          className="cdisplay-question"
+          role="dialog"
+          aria-modal="true"
+          data-testid="display-question"
+        >
           <p className="cdisplay-question-text">{question.text}</p>
           <div className="cdisplay-question-choices">
             {question.choices.map((choice) => (
@@ -234,7 +239,11 @@ function Screen({ view }: { view: DisplayView }) {
           <Money paise={view.total_paise} />
         </p>
         {view.upi && (
-          <div className="cdisplay-upi" data-testid="display-upi" data-qr={view.upi.qr || undefined}>
+          <div
+            className="cdisplay-upi"
+            data-testid="display-upi"
+            data-qr={view.upi.qr || undefined}
+          >
             <p>
               Pay <Money paise={view.upi.amount_paise} /> by UPI
             </p>
