@@ -72,6 +72,8 @@ def run_with_proof(action: str) -> None:
         execute([*PROOF, "up"])
         if action in {"browser", "seed", "launcher", "verify"}:
             execute([*PROOF, "prepare"])
+        if action in {"browser", "verify"}:
+            execute([str(PYTHON), str(ROOT / "scripts/so03_browser_fixture.py")], proof=True)
         if action in {"seed", "verify"}:
             seed_repeatability()
         if action in {"launcher", "verify"}:

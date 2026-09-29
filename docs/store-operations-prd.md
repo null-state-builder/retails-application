@@ -78,7 +78,7 @@ The six initial roles are Owner, Store Person, Warehouse, Brand Manager, Account
 | People | Attendance, Roster, Leave, Incentives, Registers, Payroll Export |
 | Setup | Configuration, Audit Log, Task Checklists, Feature Switches and Tax Settings |
 
-One permission system applies: the main PRD's six initial roles and section levels, each user's site and brand scope, and the applicable workflow step rules. No separate goods grant or permission bridge authorises store work. The full action and field matrix remains OQ-28. Store Person does not see Brands, cost, margin or payables.
+One permission system applies: the main PRD's six initial role defaults, versioned role/workflow policy, each person's effective-dated role assignments with their own explicit site/brand scope, and applicable workflow step rules. No separate goods grant or lasting permission bridge authorises store work. The remaining action and field detail stays gated by OQ-28. Store Person does not see Brands, cost, margin or payables.
 
 ### 5.2 UX rules for store screens
 
@@ -1071,7 +1071,7 @@ Gate IDs are retained for traceability. A gate blocks its affected capability, n
 | OQ-19 | Salary structures and incentive source data needed for overtime, incentives and payroll export. |
 | OQ-24 | Representative bank statements for each supported account and import layout. |
 | OQ-26 | Commercial ownership, settlement, commission, buy-out, return, support and payment rules for the relevant brand model. Recorded model names alone do not settle these effects. |
-| OQ-28 | The full role/action/field/site/brand matrix and journeys remain open. The six-role, single-permission-system baseline is settled; a separate grant bridge is not approved. |
+| OQ-28 | The six initial role defaults, per-assignment scope semantics, protected-field baseline and single authority are settled. Remaining responsibility mapping, detailed actions/fields, actual person-to-scope assignments and journeys stay open and gate affected activation. A lasting grant bridge is not approved. |
 | OQ-29 | Real-tenant opening stock approval requires recorded migration sources, mapping, quality and external-book reconciliation. OQ-54's season rule is already answered and does not close this gate. |
 | OQ-44 | No-bill return eligibility, cost origin, stock condition and zero-price promotion/tax/funding treatment. The reporting caps in ST-RPT-6 do not grant eligibility. |
 | OQ-45 | SO-09 must settle the controls applicable to active online store credit, including issuance, identity, validity, partial redemption, store scope, recovery and reconciliation. Refund/tender restoration and concurrent offline return rules remain open where applicable. |
@@ -1115,6 +1115,6 @@ These decisions settle the identified source tensions and align this store incre
 | Trading-store counts | OQ-57 is answered: freeze sales for the affected store, confirm all tills are synced and stopped online before count start, and reopen after closure or cancellation. |
 | Reports | Both targets apply: 95/100 standard requests within three seconds on the approved reference dataset and visible one-store/one-month load within five seconds on supported hardware and connection. Reporting must not delay billing. |
 | Opening stock | OQ-54 is answered in the main PRD's season rule. Real-tenant opening approval remains blocked by OQ-29 migration sources and reconciliation. |
-| Permissions | The main PRD requires one six-role permission system with site/brand scope and step rules. A separate section-permission or goods-grant bridge in current code is an SO-03 implementation gap, not approved policy. OQ-28 still governs the full matrix. |
+| Permissions | The main PRD requires one authority with six initial role defaults, scoped role assignments and step rules. A separate section-permission or goods-grant bridge in current code is an SO-03 implementation gap. OQ-28 still governs undecided responsibilities and detailed action/field journeys. |
 
 The listed golden tax cases still require CA approval. Source implementation labels and superseded examples are not evidence of completed behaviour.

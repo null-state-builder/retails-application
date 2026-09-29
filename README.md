@@ -43,3 +43,5 @@ From the root, `npm run verify` starts and validates an independent disposable P
 For targeted proof work, use `npm run proof:up`, `npm run proof:prepare` and `npm run proof:down`. `proof:down` removes only the disposable proof volume. Browser reports and failure traces stay under `frontend/playwright-report` and `frontend/test-results`; CI uploads them on failure. The detailed results and remaining limits are in the [SO-02 evidence record](docs/planning/so-02-engineering-baseline-evidence.md).
 
 Passing SO-02 verifies the engineering baseline. Real opening stock, provider activation, permissions and store workflows have separate owners and gates in the [store requirement register](docs/planning/store-operations-requirement-register.md).
+
+Before changing a store workflow, use the [consolidation contribution checklist](CONTRIBUTING.md) and its maintained SO-03 inventory to identify the target implementation, callers, data migration and retirement gate.

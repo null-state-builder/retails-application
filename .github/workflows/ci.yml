@@ -29,6 +29,8 @@ jobs:
         run: npm install --global yarn@1.22.22
       - name: Set up from committed locks
         run: npm run setup
+      - name: Check SO-03 consolidation inventory and protected boundaries
+        run: backend/.venv/bin/python scripts/check_so03_consolidation.py --check
       - name: Install Chromium and system libraries
         run: PLAYWRIGHT_BROWSERS_PATH="$GITHUB_WORKSPACE/.local/playwright-browsers" yarn --cwd frontend playwright install --with-deps chromium
       - name: Verify the complete baseline

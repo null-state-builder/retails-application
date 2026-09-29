@@ -1,0 +1,550 @@
+# SO-03 access consolidation — maintained completion ledger
+
+**Updated:** 30 September 2026. **State:** implementing in the preserved, uncommitted KDPS working tree. Final acceptance remains blocked. Current commands, outcomes and the tested content identity are maintained in [access evidence](so-03-access-evidence.md).
+
+## Approved scope and safeguards
+
+SO-03 owns one server-side evaluator, scoped role assignments, versioned role/workflow policy, stable brand identity needed for access, canonical access administration and access enforcement across active delivery channels. SO-04–SO-14 and SO-16–SO-20 retain business retirement ownership; SO-15 and SO-21 verify consolidation milestones. SBU retirement stays disabled until SO-04.
+
+Owner and Admin may administer policy within authorised scope. Administration does not grant protected business fields. Personal assignment changes are refused; shared-policy changes may benefit the changer after step-up and session invalidation. A reviewer must be a different human and have independent authority before the change; an authorised beneficiary may review. Follow-ups use the existing working calendar, not elapsed calendar hours.
+
+Assignments retain their site/brand tuples and stable IDs. Explicit all includes future members; selected scope remains fixed and empty scope grants nothing. Missing workflow actions stay disabled until an explicit versioned upgrade. Name matches are reconciliation suggestions only; trusted tenant-owned relationships or reviewed mappings establish brand identity.
+
+## Implemented continuation slices
+
+- Scoped helpers require explicit section/rung parameters and fail closed when absent. Legacy active context values must be stable site/brand IDs.
+- Specialist access gates now use named, stored role steps and `AccessContext` scope/field demands. Existing roles receive no automatic step top-up; the policy editor offers defaults for explicit review.
+- Staff retirement, future assignment editing/removal, scheduled session expiry, direct self-assignment refusal, last-administrator continuity and independent review provenance have targeted denial tests.
+- Stable brand references and append-only bindings preserve business snapshots. Mapping rejects stale, foreign and conflicting sources. Immutable ledger identity can follow a proven booking relationship. Existing foreign references cannot be silently rebound.
+- Goods scan candidates and sale/report writers carry proven brand IDs. A printed bill whose source remains unresolved is preserved without inventing brand identity; brand-scoped readers cannot obtain it, and reconciliation remains required.
+- Alert inbox/history uses stable brand identity or explicit whole-site scope. Protected financial/customer/employee titles require fields in the same qualifying assignment. The alert job validates tenant source ownership before writes, preserves established links and carries known brand IDs. Whole-site alert snapshots cannot be mapped to one brand. The seen cursor writes only the caller’s timestamp under a live session/security lock, with Home authority rechecked before commit.
+- The scheduled browser journey edits and removes a real backend future assignment, checking the same ID and exact start. Disposable proof setup explicitly versions missing section policy and the Owner staff step through canonical password-confirmed policy endpoints; production evaluation has no fallback.
+
+- Logout waits for server revocation before clearing the local session and navigating. A failed request remains visible for retry; delayed acknowledgement and immediate reload are covered by real-backend browser regressions.
+
+## Remaining completion gates
+
+| Work | Current gate and required result |
+| --- | --- |
+| Active-path acceptance ledger | Most registered entry points still carry pending access contracts. Complete handler → service → data → action/scope/projection traces with named denial evidence; static candidates are not proof. Frozen adapters retain individual review status in the manifest. |
+| Approval authority | `ApprovalPolicy`/`ApprovalRoute` and three caller role-list snapshots still contribute approval responsibility outside the unified versioned workflow record. Consolidate them, recheck full resource scope, document inputs, policy versions and limits, and retain maker/checker evidence. See SO03-B02. |
+| Stable identity propagation | Finish every affected writer, derived fact, immutable binding and report/file reader. Reconcile historical source ownership and explicitly report incomplete totals. Do not claim that adding columns completes migration. See SO03-B01. |
+| Session and resource UI | Three forms still use the session-wide `field_visibility` hint. Replace it with server-derived scope/resource field decisions and remove the union contract. Session-derived navigation remains a display hint. See SO03-B03. |
+| Guard and boundary coverage | Finish review of human writes and delayed channels; remove dead grant editors/writers and tighten the allowlist. Run the checker’s own tests and record dynamic edges rather than assuming import checks cover them. |
+| Migration rehearsal | Re-run clean/0021 upgrade/repeat/revoked source and target/rollback evidence against final implementation; preserve independent later edits and source links. Existing proof results remain historical until included in the final ledger. |
+| Browser acceptance | Scoped login, policy revocation and real scheduled editing have passed on the preceding slice. Real reconciliation, independent review and delayed delivery journeys remain required. Latest baseline status belongs in access evidence. |
+| Real-tenant reconciliation | No safely identified connection is available. Read-only source/target totals and exclusions remain a completion requirement; real writes require separately reviewed mappings and cutover authority. Missing identities, ambiguous scopes and OQ-28 responsibilities remain inactive. |
+
+## Verification rule
+
+Freeze HEAD plus working-tree content, then run focused denials, the SO-02 backend/frontend/API/browser/seed baselines, inventory/boundary checks and checker tests. Record every failure and subsequent rerun. A later runtime change invalidates affected earlier results. SO-03 cannot be marked complete while a required check, active authority trace or real-tenant reconciliation gate remains open.
+
+## Historical static investigation — 29 September 2026
+
+The investigation below is preserved as historical evidence. Its code line references, “code today” matrix, old role-ceiling wording and proposed decisions are superseded by the approved ledger above and current evidence.
+
+# SO-03 access consolidation — completion plan
+
+## Context
+
+SO-03 must end with one server-side permission authority, applied the same way on every channel. That authority is:
+
+- versioned role and workflow policy;
+- effective-dated role assignments, each carrying its own site/brand scope by stable ID;
+- additive step rules.
+
+Legacy access bridges must also be retired and assignment migration reconciled.
+
+The preserved, uncommitted working tree contains an interrupted implementation (HEAD `b9e1e25`, 187 changed paths; most SO-03 code and all SO-03 tests are untracked). Its own evidence already says SO-03 is **not complete**.
+
+**This investigation.** It was read-only and static:
+
+- 3 parallel trace agents reviewed the code.
+- I spot-checked each high-severity claim in source myself.
+- The only checks re-run on this tree were `check_so03_consolidation.py --check` (2,908 surfaces match) and `check_so03_boundaries.py` (pass). Every other green result is historical. No tests, migrations or database probes were run.
+- Line numbers below refer to the current working tree.
+
+**Headline.** The ledger's 88 frozen references understate the problem. The main risks sit **outside** that list:
+
+- a union-based section gate plus a hidden per-request `_required_section` stamp that the legacy scoping helpers depend on;
+- 22 hand-kept role-code gates;
+- name-based brand predicates on about 30 text `brand` columns. Brand names are not unique within a tenant, and a Brand Manager can rename their own brand to another brand's name, which is an **escalation**;
+- cost and customer fields returned with no field check;
+- admin-policy lockout and escalation gaps.
+
+SO-03 cannot be accepted on the current tree.
+
+---
+
+## 1. Intended target
+
+Sources: roadmap SO-03; main PRD §4.2, §4.3, §10.1–10.6, §15.2 (step-up), §15.3 OQ-28 and Appendix B; store PRD §4, §5.1, ST-OPS-5, §33.2 and §34; register rows R-CTL-003, R-CTL-004 and R-QLT-006.
+
+| ID | Requirement |
+| --- | --- |
+| T1 | **Six roles** (Owner, Store Person, Warehouse, Brand Manager, Accounts, Admin = `it_admin`) are initial *configurable* defaults. They use the B.4 grid and the B.3 ladder (none < view < operate < approve < manage). A new role starts with no authority. |
+| T2 | **One authority:** versioned role policy (section levels plus protected fields), effective-dated scoped assignments and versioned step rules. There is no second grant system and no lasting bridge. |
+| T3 | **Scope per assignment**, by stable site/brand IDs, never names. "All" includes future members; a selected set stays fixed; an empty scope grants nothing. Actions, fields and scope never combine across assignments. Every site×brand cell of a multi-row operation must be covered by one qualifying assignment. |
+| T4 | **Role and workflow policy** are editable without code, with step-up, versioned, and bounded by fixed safeguards: tenant isolation, field ceilings, workflow floors, approval limits and separate-person rules. |
+| T5 | **Protected-field defaults (§10.4)** apply to reads *and* writes on API, search, exports, files, events and till datasets. Data is never sent and then hidden. A cost-basis request without authority gets an explicit field-denied answer. Warehouse sees cost only on its own PTs. Admin has no Money access. History shows "Restricted person" where the reader may not see the actor. |
+| T6 | **Separate-person approvals:** the preparer, maker or row reviewer never approves; the drafter or reporter never confirms their own item; approval binds the exact inputs and policy version. |
+| T7 | **Step-up** is required for staff retire, login changes, role assignments, role/workflow policy and privileged review. It is not required for staff create/edit. |
+| T8 | An **authority change invalidates** affected sessions when it takes effect. A password change ends sessions. A must-change-password session is restricted. |
+| T9 | Each privileged change creates an **Owner-owned follow-up**, due within one working day, closed only by a *different* authorised person. |
+| T10 | **Login creation** confirms identity and email ownership; the admin sets a temporary password; resets are assisted. |
+| T11 | People, login, policy and privileged-change **history** is scoped, newest-first and paginated. |
+| T12 | **Step rules (§4.3)** are additive. PT approver is configurable (office, warehouse or either, plus an optional second check). |
+| T13 | **Export, restore and monitoring** need Owner or Admin with step-up. An Admin export omits Money. |
+| T14 | **X-PLT** is not tenant Admin. Service identities have their own scope and audit identity. |
+| T15 | **Manager override** uses a personal, hashed PIN, and the approving identity is retained. |
+| T16 | **One versioned `/api/auth/me`.** The server returns `allowed_actions`. Client hints never authorise. One People & Access editor; tested bookmark redirects. |
+| T17 | The **same evaluator on every channel**: UI/API, search/count, imports, exports, files/print, events/reconnect, queued jobs and till sync. Delayed delivery re-checks authority. |
+| T18 | **Safe assignment migration:** preserve historical grants, approval evidence and identity links. Never map an unsupported responsibility to Owner. |
+| T19 | **Retire old authority:** `RoleGrant` runtime, `User.role/scope_type/stores/brands`, actor policies, role-code gates, superuser shortcuts. CI blocks their return. |
+| T20 | Every remaining duplicate has an owned replacement or retirement item (C01–C20). |
+
+**Out of SO-03 scope (owner in brackets):**
+
+- SBU restore; tenant-owned season/barcode; legacy brand aliases → stable IDs; Brand master governance [SO-04].
+- Salesperson identity [SO-05].
+- Excluded offer provenance; EOSS/price-book semantics [SO-06].
+- Legacy stock/transfer/count/RTV writer retirement (C06–C09) [SO-08].
+- Offline lease, till cutover, 48 PWA modules, OQ-31/32, sell-policy tenancy [SO-09].
+- Customer-rights workflow (C11) [SO-10].
+- Unowned cash/bank history; payables and debit-note semantics [SO-12].
+- Brand-report layouts [SO-13].
+- Approval/alert snapshot model, alert routing OQ-18 [SO-14].
+- P1 retirement closure [SO-15].
+- Release-level RLS/disclosure proof and re-inventory [SO-21].
+- Store Manager role [OQ-28, before multi-store].
+
+**Still open under OQ-28** (gates the affected journeys; does not stop the foundation work):
+
+- responsibilities outside the six roles;
+- real person→scope assignments;
+- the detailed action/field matrix, including the missing sell/money/offers/hrms action vocabulary;
+- login contents, journeys and localisation.
+
+SO-03 applies **safety-only** changes to other items' legacy paths, as AGENTS.md allows, and leaves their retirement to those items.
+
+---
+
+## 2. Requirement → code → evidence matrix
+
+| ID | Code today | Evidence on this tree | Status |
+| --- | --- | --- | --- |
+| T1 | `accounts/role_assignments.py:22-35`, `unified_policy.py:136-156`, bootstrap/seed | `test_six_role_field_and_step_floors`, `test_fresh_bootstrap_uses_six_roles…` (historical run) | **Incomplete**: sell/money/offers/hrms have no actions in `ACTION_LEVELS` (`unified_policy.py:32-47`); initial roles can be deactivated (`goods_admin_services.py:1815-1850`) |
+| T2 | `principal.effective_grants` (`:685-734`); RoleGrant not read at runtime | `test_login_projection_has_no_legacy_grants` | **Incomplete**: the union gate `require_section` plus the stamp (`permissions.py:157-162`); 22 role lists (`accounts/role_lists.py`); a second policy writer in `seed_foundation._seed_roles` (`:203-256`); `has_effective_role` decisions are not replayed at commit |
+| T3 | `AccessContext.can/covers_all`; `masters/scoping.py` | `test_roles_cannot_exchange_…`, `test_search_keeps_each_assignment…` | **Blocked** by SO03-B01 and the brand-rename escalation; **Incomplete** because of the cross-assignment defects in §3 |
+| T4 | `unified_admin.RolePolicyView/WorkflowPolicyView` | browser journey 3 only | **Incomplete**: no workflow floors (`unified_admin.py:424-433`); a changed action set locks the tenant out (`unified_policy.py:73-74`); custom roles can carry every field (`:155-156`); no backend tests |
+| T5 | goods-v1 transfer/booking/report projection | transfer, booking and report field tests | **Incomplete**: the FIELD gaps in §3 (legacy stock value, price list, returnable pool, stocktake variance, debit notes, customer data, dashboard, approvals `value_paise`) |
+| T6 | goods `SELF_APPROVAL` refusals (`approvals/goods_services.py:229-231`, `outbound/transfers.py:1014-1018`) | none recorded for SO-03 | **Incomplete**: EOSS decide makes the maker the checker (`offers/eoss_views.py:136-202`); legacy approvals resolve the brand by name |
+| T7 | `grant_step_up` / `require_step_up` on admin writes | browser journey 3 | **Unverified**: no backend step-up or expiry tests |
+| T8 | `bump_security_epoch`; `ServerSessionAuthentication` | `test_security_epoch_revocation…`, browser journey 3 | **Partly done**: must-change-password is untested; session end at a *scheduled* effect time is undecided (Q16) |
+| T9 | `open_privileged_follow_up`; reviewer ≠ actor (`goods_admin_services.py:2271`) | none | **Incomplete**: no due date; the beneficiary may acknowledge; `staff.retire`, `staff.assign` and admin PIN actions are missing from `PRIVILEGED_COMMAND_ACTIONS` (`accounts/actions.py:318-334`) |
+| T10 | `GoodsUserListCreateView` | `test_login_scope_reads_assignment_cells` | **Unverified** (identity-confirmation fields not traced) |
+| T11 | `core/goods_administrative_history.py` | none | **Incomplete**: assignment (`assignments:<human>`) and workflow-policy changes are missing (`:214,247`) |
+| T12 | `STEP_ROLES`, `OWNER_APPROVAL_STEPS`, `CONFIGURED_APPROVAL_STEPS` | floors test | **Partly done**: the PT-approver setting is not traced |
+| T13 | `export.run` with step-up; queued export re-checks | 4 export revocation tests | **Unverified**: "Admin export omits Money" has no test |
+| T14 | superuser without assignment is denied; platform identity excluded | `test_superuser_without_assignment…` | **Incomplete**: no support-identity path (the PLATFORM findings); Django admin authorises by `is_staff` (DEBUG-only) |
+| T15 | `accounts/till_pin.py` | `test_till_scope_and_pin_list…` | **Incomplete**: the self-PIN card never shows (`may_hold_till_pin` missing from `session_payload.py:81-88`, but read at `Till.tsx:877`); no endpoint tests |
+| T16 | `session_payload.py` (`access-v1`) | `unifiedSession.test.ts` (6) | **Incomplete**: no backend contract test; synthetic actions (`:56-61`); inactive stores (`:34-37`); `Bookings.tsx:65-70` role list; legacy-shaped shell user (`AuthContext.tsx:267-305`) |
+| T17 | exports, files, SSE and till re-check | 8 revocation tests | **Incomplete**: search, alerts, approvals and stock use name scope; brand report files are keyed by name; print is untested; no browser coverage of delayed paths |
+| T18 | `assignment_migration.py`, `migrate_role_assignments` | 16 tests; synthetic dry run | **Blocked**: no real-tenant access; hardening gaps (§5) |
+| T19 | goods admin URLs, AccessMatrix and SBU POST removed | `test_so03_retired_access_paths` (3) | **Incomplete**: dead legacy admin code; `scope_type` written (`goods_admin_services.py:1047`); seed writes legacy fields; the boundary guard has blind spots (§3.5) |
+| T20 | register C01–C20 | drift check passes | **Complete as a register**, not as proof |
+
+---
+
+## 3. Active access paths and their disposition
+
+Dispositions:
+- **K** = keep (canonical);
+- **S** = supported legacy (safety fix in SO-03, retirement by its owner);
+- **F** = fix now (safety blocker);
+- **R** = retire (dead or unmounted);
+- **H** = historical read-only.
+
+### 3.1 Root causes that affect many paths
+
+| # | Root cause | Where | Effect |
+| --- | --- | --- | --- |
+| RC1 | `require_section` passes on the best rung of **any** assignment, then stamps `request.user._required_section`. `masters.scoping._assignments` filters by that stamp. Without it (views that only use `IsAuthenticated`, all goods-v1 views, calls with no `section=`), **every assignment counts** and no section check applies. | `accounts/permissions.py:133-174`, `masters/scoping.py:65-77` | Scope is correct only by accident. Changing a permission class silently widens scope. Some paths already combine section power from one assignment with scope from another. |
+| RC2 | Brand matched by **display name**, while `Brand.name` is only unique on `(tenant, code)`. | `masters/scoping.py:122-190,254-423`; `outbound/scoping.py:97,126`; `outbound/serializers.py:84-91`; `approvals/services.py:425`; about 30 text `brand` columns | SO03-B01. Duplicate or renamed names move authority between brands. |
+| RC3 | A Brand Manager can rename their own brand to any name. | `masters/goods_views.py:2581-2604` (only `vendor.manage` on that brand); `masters/models.py:273-275` | **Escalation**: they gain brand B's stock, cost, alerts, approvals, transfers and offers, and can drain B's pieces into an RTV. |
+| RC4 | 22 role-code gates (`declare_role_list`) and inline role codes sit outside the versioned policy. | `accounts/role_lists.py`; `sell/services/dataset.py:127`; `till_pin.py:118-125`; `masters/scoping.py:59-62,360`; `session_payload.py:108`; `alerts/goods_services.py:516` | Policy edits cannot grant or revoke these. New roles can never hold them. |
+| RC5 | `has_effective_role` and `user_can_at` decisions are not recorded as `AccessContext` demands. Several commands build a `Principal` without a guard. | `role_assignments.py:68-120`; `principal.py:541-567`; `sell/services/petty_cash.py:297-304`; `storefront/checklists.py:457-467`; `till_pin.py:169-185`; `sell/views.py:220-237` | An expiry between the check and the commit is not caught. |
+| RC6 | Legacy serializers return protected fields without a field-grant check. | see the tables below | Violates T5. |
+
+### 3.2 Authentication, session and admin (A00)
+
+| Path | Handler | Disposition |
+| --- | --- | --- |
+| login, refresh, logout, step-up, change-password | `accounts/views.py:235-529`, `sessions.py`, `authentication.py:44-116` | **K**. Add step-up expiry, must-change-password and change-password tests. |
+| `GET /api/auth/me` | `views.py:287-295` → `session_payload.py:21-129` | **K**, plus fixes: add `may_hold_till_pin`; drop the synthetic actions; filter inactive stores; replace the role-code mode choice; reflect idle expiry; add a backend contract test. |
+| `PUT /api/auth/me/till-pin` | `views.py:298-370`, `till_pin.py:108-185` | **S → F**: the union gate then a role-code check; add a guard; move to a policy action (Q8). |
+| `users/<id>/assignments` GET/PUT | `unified_admin.py:193-313` | **K**, plus ceiling (Q4), provenance and history subject. |
+| `roles/<code>/policy`, `workflow-policy` | `unified_admin.py:316-470` | **F**: workflow floors (D4), action-set upgrade path (D1), custom-role field ceiling (Q4), backend tests. |
+| `roles`, `roles/<pk>` | `goods_admin_views.py:1109-1194`, `goods_admin_services.py:1796-1850` | **F**: refuse deactivating an initial role, or at least the last holder of `access.manage` (Q7). |
+| `users`, `users/<pk>` | `goods_admin_views.py:743-838`, `goods_admin_services.py:1018-1151` | **F**: stop writing `scope_type` (`:1047`); decide whether one admin may reset another admin's or the Owner's credentials (Q4). |
+| staff list/detail/assign/retire | `goods_admin_views.py:508-737` | **K** (C02 owns the retirement). Add `staff.retire` and `staff.assign` to the privileged kinds; add tests. |
+| `users/<id>/till-pin[/reset]` | `goods_admin_views.py:852-973` | **S**: role list `TILL_PIN_RESETTERS`; make it privileged; add tests. |
+| `privileged-changes`, `…/review` | `goods_admin_views.py:1277-1351`, `goods_admin_services.py:2139-2295` | **F**: add the due date; exclude the beneficiary (Q5); add tests. |
+| `meta` | `goods_admin_views.py:1354` | **K** |
+| Unmounted legacy admin | `accounts/views.py:601-1005`; `goods_admin_views.py` `GoodsUserGrantsView` (976, writes RoleGrant), `GoodsRoleAccessView` (1197), `GoodsAccessMatrixView` (1237), `GoodsActorPolicyListView` (1250), `GoodsApprovalPolicyListView` (1262); `accounts/serializers.py:179-399`; `actor_policies.py`; dead ranges in `goods_admin_services.py` (1154-1721, 1853-2096) and `goods_setup.py` (200-395); `principal.configured_role_access` (no tenant filter) | **R** |
+| Legacy AccessChange approval hook | `apps.py:28-31` → `access_changes.py:230-241` (always raises) | **H**. Stale pending rows need a governed close (Q15). |
+| Django admin | `config/urls.py:48,84`; Brand, Store, Gstin, LegalEntity, Season and CategoryMargin are editable; authorisation is by `is_staff` | **S**. DEBUG plus flag only. Production must stay unmountable. Brand edit is the same escalation vector as RC3. |
+| CLI `seed_foundation` | `:203-256` rewrites `Role.section_access`/`nav_groups`; `:512-540` writes `User.role/scope_type/stores/brands/is_superuser` | **F**: stop the legacy User writes; route the role baseline through a versioned policy write, or restrict it to first creation. |
+| CLI `bootstrap_deployment` | `goods_setup.py:441-454` writes `role` and `scope_type` | **F** (legacy fields only) |
+| CLI `migrate_role_assignments` | `assignment_migration.py`, command `:25-41` | **F**: hardening (§5) |
+| CLI `dump_rbac_matrix`, `seed_admin`; `rbac_matrix`, `matrix`, `floors` | defaults and floors still used by seed and `unified_admin` | **R/K**: keep the floors; move the defaults into the unified policy; retire the dump command. |
+
+### 3.3 The 40 frozen references still awaiting a trace — statically traced here
+
+The column "Needed for trace_status → verified" names the missing proof. A static trace alone does not flip the flag.
+
+| Ledger # | Source | Verdict | Required change | Needed for trace_status → verified |
+| --- | --- | --- | --- | --- |
+| 18 | `accounts/goods_admin_views.py` | mounted: K; dead classes: R | D2–D5, D8, D9 | admin denial and policy tests |
+| 29, 30 | `accounts/permissions.py` | adapter; `require_section` is RC1 | W2 | RC1 guard test |
+| 39, 40 | `alerts/goods_services.py` (`_recipients` :525-544) | K (same grant); role list cut at 40 characters (:516) | fix the truncation; Q8 | recipient test |
+| 41 | `alerts/views.py:84-136` | **active legacy**: NAME; financial alerts never shown (brand is `""`) | W3 | alerts denial test with a duplicate/renamed brand |
+| 42–44 | `core/goods_administrative_history.py` | K; misses assignment and workflow subjects | W7 | history test |
+| 47 | `finledger/payables.py` | S: same-assignment edits; reads lack the `financial` field check | W4 | field test |
+| 48 | `inbound/debit_notes.py` | S: `unit_cost_paise` without a cost check (:87,273); approval brand by name (:707) | W3, W4 | field and approval tests |
+| 53 | `masters/goods_store_feature_views.py` | K-eq; no tenant filter (:260) | W4 (tenant) | tenant test |
+| 55 | `masters/views.py` | GET brands NAME/union (:128,142); store targets FIELD, not guarded (:341,386) | W3, W4 | brand and target tests |
+| 56 | `offers/eoss_views.py` | **F**: union gate, no scope; decide = maker is checker; config gate is approve not manage; config delete commits on a 400 | W1 | EOSS denial and maker-checker tests |
+| 57 | `offers/price_views.py` | **F**: union gate, no scope; cost, margin and cohort cost exposed; reprice has no brand scope | W1 | cost-field and brand-scope tests |
+| 58 | `offers/views.py` | **F**: create has no scope; edit/stop uses the read gate (one store in common suffices; brand-scoped users can stop storewide offers); brand filtered by NAME | W1, W3 | `covers_all` offer tests |
+| 59 | `outbound/count_schedule_views.py` | K-eq; tenant filters rely on RLS | W4 (tenant) | – |
+| 62 | `outbound/goods_size_balancing_views.py` | K | – | existing pattern test |
+| 63 | `outbound/permissions.py` | S; the gap-closure self-closure bar reads the stamp (`outbound/posting.py:985`) → **cross-assignment** | W1 | gap-closure test |
+| 64 | `reporting/views.py`, `base.py` | K-eq; brand report files keyed by NAME (`brand_reports.py:129-132,221-243`) | W3 | ambiguous-name refusal test |
+| 65 | `search/views.py` | **active legacy**: NAME via `scope_by_store_and_brand` | W3 | duplicate/renamed brand search test |
+| 66 | `sell/discount_views.py` | S: stamp-reliant; no tenant filter when all sites (:170-183) | W2, W4 | – |
+| 67, 68 | `sell/goods_missing_hsn_views.py`, `goods_salesperson_views.py` | K-eq | – | denial test |
+| 69 | `sell/permissions.py` | **F**: till register and handover take approve from one assignment and the store from another (`sell/views.py:651-675,864-884`); sell policy PUT behind a union gate, unscoped and unaudited (`:141-151`) | W1 | cross-assignment test |
+| 70, 74 | `sell/petty_cash_views.py`, `services/petty_cash.py` | S; position shows manage-only data at an operate-only store (:246,264); Principal has no guard | W1, W5 | projection test |
+| 71 | `sell/running_offers_views.py` | S (stamp-reliant) | W2 | – |
+| 72 | `sell/services/brand_claims.py` | S; `financial` not checked | W4 | – |
+| 73 | `sell/services/customer_rights.py` + `goods_customer_views.py:283-298` | **F**: the customer is found under `sell:view` scope and acted on at a separate `sell:operate` store. Erase, merge and move reach tenant-wide data. Customer fields are not projected. | W1, W4 | two-assignment erase/merge test |
+| 75 | `sell/services/resolve.py` | K-eq (`user_can_at` at the till site) | W5 | – |
+| 76 | `sell/services/salespeople.py` | **not fully traced** (reads via `goods_admin_services`; authority sits in callers) | trace in W1 | trace plus test |
+| 79 | `stockledger/broken_size_views.py` | K | – | – |
+| 82 | `stockledger/views.py` | **F / active legacy**: `/entries`, `/summary`, `/in-transit`, `/quarantine`, `/on-hand` are `IsAuthenticated` only, NAME-scoped, and return cost-basis value (`amount = qty × unit_cost`, `projections.py:78`). `/api/stock/availability` returns nothing to anyone who is not a Brand Manager (`scoping.py:360-368`). | W1, W3 | section, field and name tests |
+| 83, 84 | `storefront/checklist_views.py`, `checklists.py` | S; Principal has no guard | W5 | – |
+| 85 | `storefront/views.py` / `dashboard.py:339-366` | **F**: sales and tender totals served under `home: view` alone | W1/W4 | field test |
+| 86, 87 | `vendors/serializers.py` | K (per-grant cost) | – | existing booking test |
+| 88 | `vendors/views.py` | K / K-eq | – | vendor test |
+
+The other 48 frozen references keep their recorded dispositions. The 14 `unmounted_legacy` entries become **R** in W9.
+
+### 3.4 Active authority paths outside the frozen list
+
+| Path | Handler | Defect | Disposition (owner of retirement) |
+| --- | --- | --- | --- |
+| Brand rename | `masters/goods_views.py:2581-2604`; Django admin Brand | RC3 escalation | **F** W1 (C01/SO-04) |
+| Legacy approvals inbox, list, decide | `approvals/views.py:48-155`, `services.py:393-484` | no section gate; NAME (`:425,481`); `value_paise` unprojected (`serializers.py:56`) | **F** W1/W3/W4 (C15/SO-14) |
+| Legacy outbound | `outbound/views.py`: stock-search `:928-989` (cost/margin, no tenant filter); returnable-pool `:1474-1531` (unchecked brand, cost and cap exposed, `returnable.py:214` has no tenant filter); RTV create picks pieces by name (`posting.py:1578`); RTV list uses `brand__name` although a foreign key exists (`:1466`); stocktake variance cost `:2190-2227`; reads with no section `:729,799,1296,1413,1697,1721,1781,1805,2039,2061,2219` | FIELD, NAME, RC1 | **F** W1–W4 (C06–C09/SO-08) |
+| Legacy transfer read scope | `outbound/scoping.py:46-137`; cost cells `serializers.py:84-91` | NAME on line text | **S** W3 (C07/SO-08) |
+| Legacy sell customer bodies | `sell/serializers.py:753-755,834-835`; gift voucher, alteration, special order and reservation views (`actionable_stores` with no section) | FIELD; stamp-reliant | **S** W2/W4 (C10–C12) |
+| Store targets | `masters/views.py:307-395` | `financial` not checked; no write guard | **S** W4 (C01) |
+| Audit log | `masters/audit_log.py:273-294` | `personal` field taken from a site-only reach → partial cross-assignment | **F** W4 (C15) |
+| `/api/stock/availability` | `stockledger/views.py:460-571`; `scoping.py:344-372` | fail-closed bug; NAME | **S** W3 (C06) |
+| GL posting floor | `core/posting.py:175-263` | VFlip passes brand None (denies) | **S** (C13) |
+| Role-code lists (22) | `accounts/role_lists.py` → 23 `has_effective_role` sites (brand terms, payables, debit notes, brand claims, petty cash, OTB, settings editors, count schedule, SOR ageing, checklists, brand layouts, salesperson, till PIN) | RC4, RC5 | **Decision Q8**, then W6 |
+| Header context | `masters/unit_context.py`; `X-KDPS-Brand` falls back to name (`scoping.py:184,304`) | narrows only; name fallback | **F** W3 (IDs only) |
+| Seed role writer | `seed_foundation._seed_roles` | policy writer outside the versioned editor | **F** W7 |
+| Queued jobs, exports, files, SSE, till dataset | `files/goods_exports.py:273-461`, `files/goods_views.py:196-245`, `alerts/goods_views.py:618-696`, `sell/services/dataset.py:109-150,881-916` | re-check at delivery (tested). The export worker does not replay step-up or session. | **K** (decide whether step-up must replay) |
+| Print | `ptmapper/goods_print_views.py:176-300`; 10 frontend print sinks | canonical backend path; untested; frontend sinks unresolved in inventory | **K**; add tests |
+| Report exports | `reporting/base.py:426-477` | fields re-checked; session not | **S** W5 |
+| Scheduled and service jobs (17), outbox (3), signals (4) | service identities | no user authority | **K** (verify no user-scoped output leaves without a re-check) |
+| Frontend role/superuser remnants | `Bookings.tsx:65-70`, `navConfig.ts:194,1159`, `AuthContext.tsx:267-305`, `lib/administrativeHistory.ts:73-89` | display only; stale | **R** W7 |
+
+### 3.5 Blind spots in the boundary guard (`scripts/check_so03_boundaries.py`)
+
+- It only scans backend `.py` modules. There are no frontend role literals checks.
+- Legacy-field detection only matches `user.X` or `request.user.X` for `role`, `scope_type` and `is_superuser`. It misses `self.request.user.*`, `obj.*`, `actor.*`, `.stores` and `.brands`.
+- It ignores `masters.scoping` name helpers, `has_effective_role`, `role_lists`, `require_section` without a scoped helper, and `IsAuthenticated`-only views.
+- The script's own unit tests (`scripts/test_*.py`) are not run in CI (`.github/workflows/ci.yml:33-39`).
+
+### 3.6 Duplicates owned by other items (recorded, not expanded)
+
+| Finding | Owner |
+| --- | --- |
+| EOSS config delete commits on validation failure (`offers/eoss_views.py:258-276`); sell policy global singleton with no tenant | SO-06, SO-09 |
+| Legacy alert and approval brand-name snapshots, and snapshot writers (`outbound/maker_checker.py`, `vendors/approval.py:54`, `open_to_buy.py:816`, `offers/approval.py:84`, `alerts/checks.py:135`) | SO-14. SO-03 only changes how the scope is resolved. |
+| Legacy stock and outbound tables with text brand and no tenant column | SO-08 |
+| Seven test files cited in code comments do not exist (e.g. `tests/test_goods_access_history.py`) | SO-02/SO-03 evidence hygiene |
+
+---
+
+## 4. Work sequence (smallest safe path to one authority)
+
+Each item lists: dependency; paths; change; evidence; gate.
+
+Rules for every item:
+
+- Every item ends with `check_so03_consolidation.py --check`, the boundary check and its focused tests, **on a committed revision**.
+- Ledger entries flip to `verified` only when a test is named.
+- Rollback for every item = revert the commit. Migrations must be reversible. No item re-enables legacy authority.
+
+### W0 — Checkpoint and baseline
+
+- **Dependency:** Q18.
+- **Change:**
+  1. Commit the preserved working tree to a branch, unchanged.
+  2. Record its fingerprint.
+  3. Run the full baseline (§6) to replace the historical results.
+- **Gate:** a baseline report tied to that SHA. Existing failures are listed, not fixed.
+
+### W1 — Contain active escalation, cross-assignment and leak paths (the safety blockers)
+
+- **Dependency:** W0; Q1–Q3 for 1a.
+- **Changes:**
+  - **1a. Brand identity.**
+    - Pre-check for case-insensitive duplicate names per tenant; any duplicate becomes a blocker report.
+    - Add `UniqueConstraint(Lower("name"), "tenant")`.
+    - Brand rename requires tenant-wide authority, and is refused while legacy text rows carry the old name (or is frozen until SO-04, per Q2).
+    - Apply the same guard to Django admin, or make Brand read-only there.
+  - **1b. Legacy stock readers** (`stockledger/views.py:167-385`):
+    - add `require_section("stock","view")`;
+    - project `amount`/`value_paise`/`net_value_paise` with `covers_all({"stock.view"}, cells, {"cost"})`, otherwise return an explicit field-denied answer.
+  - **1c. Outbound:**
+    - stock-search: tenant filter plus per-row `field_grants`;
+    - returnable pool: brand reach, cost projection, tenant-scoped cap;
+    - stocktake variance: cost projection;
+    - gap-closure self-bar: computed from `effective_assignments`, not the stamp.
+  - **1d. Customer rights:** resolve the customer from the acting store's own `sell:operate` assignment. Erase, merge and move require coverage per Q9.
+  - **1e. Offers:**
+    - create, edit and stop require `covers_all` over every (store, brand) cell on one `offers_price` operate assignment, by brand ID;
+    - price list projects cost and margin; reprice is brand-scoped;
+    - EOSS decide creates a *pending* offer that needs a different approver; config needs manage.
+  - **1f. Till:** register and handover need `user_can_at("sell", approve, site)`. Sell policy PUT needs one all/all `sell: manage` assignment and runs as a command with audit.
+  - **1g. Other projections:**
+    - dashboard money tiles need `money: view` plus `financial` on one assignment covering the store;
+    - petty-cash position computes `may_set_float` per store;
+    - legacy approvals list gets a section gate.
+  - **1h. Admin safety:**
+    - `workflow_levels` merges unknown or missing actions from the shipped defaults instead of returning `{}`, and never drops `access.manage` or `access.review` (D1);
+    - add workflow floors equivalent to `floor_violations` (D4);
+    - refuse deactivating an initial role or the last access administrator (D5).
+- **Evidence:** one denial test per change, each using a **two-assignment caller** and, for names, a duplicate/renamed brand.
+- **Gate:** every **F** row in §3 has a named passing denial test. Ledger #41, #56–58, #63, #69, #73, #82 and #85 are verified.
+
+### W2 — Remove the stamp dependency (RC1)
+
+- **Dependency:** W1.
+- **Change:**
+  - every `masters.scoping` helper takes an explicit `(section, minimum)` and **fails closed** without one;
+  - `require_section` stops mutating `request.user`;
+  - every `IsAuthenticated`-only legacy view gets an explicit section gate;
+  - goods-v1 callers pass a section.
+  - Add a boundary rule that rejects helper calls without a section.
+- **Evidence:** an AST check plus a regression test (a view without a gate returns none).
+- **Gate:** zero unsectioned helper calls; all 83+ backend tests pass.
+
+### W3 — Remove name-based brand scope (SO03-B01)
+
+- **Dependency:** W1a; Q1.
+- **Change:**
+  - use the brand ID wherever a foreign key exists (RTV `brand_id`, Offer, sell `brand_ref`);
+  - approvals resolve the cell from the source document's brand foreign key; writers add a `brand_id` snapshot (backfilled from the source) without changing the text snapshot;
+  - text-only legacy rows (stock ledger, on-hand, in-transit, quarantine, alerts, outbound lines) map text to an ID through the now-unique tenant Brand name; rows that are unmapped, renamed or ambiguous are **inaccessible to selected-brand assignments** (all-brand assignments are unaffected);
+  - `X-KDPS-Brand` accepts IDs only;
+  - brand reports refuse ambiguous keys.
+  - Produce a read-only unmapped-row count per table for SO-04, SO-08 and SO-14.
+- **Evidence:** duplicate, renamed and ambiguous brand denial tests on search, stock, alerts, approvals, transfers and offers.
+- **Gate:** SO03-B01 closed in the inventory; boundary rule bans `__iexact` or `name__in` brand predicates in access helpers.
+
+### W4 — Protected-field and tenant projection sweep (RC6)
+
+- **Dependency:** W2.
+- **Change:** one projector built on `AccessContext.field_grants`/`covers_all` for:
+  - customer fields: sell serializers, customer rights, voucher/alteration/special-order/reservation bodies;
+  - cost: debit notes;
+  - financial: brand claims, payables, discount report, store targets, approvals `value_paise`;
+  - `personal`: the audit log;
+  - explicit tenant filters on the RLS-reliant lookups (`goods_store_feature_views.py:260`, `count_schedule_views.py:228-478`, `outbound/views.py:1341-2187`).
+- **Evidence:** a field-denied test per role default in §10.4, covering API, CSV/XLSX and search.
+- **Gate:** no protected field in any legacy response without a projector (enforced by a serializer-field ledger).
+
+### W5 — Commit-time replay (RC5)
+
+- **Dependency:** W2.
+- **Change:**
+  - `has_effective_role` and `user_can_at` record `AccessContext` demands when a request context exists;
+  - add guards to the petty-cash, checklist, till-PIN and sale-sync principals, and add a session check to report exports.
+- **Evidence:** tests where the assignment expires or is revoked between check and commit.
+- **Gate:** no `Principal(` without a `guard` on a user-initiated write (boundary rule).
+
+### W6 — One policy for role-code gates (RC4)
+
+- **Dependency:** Q8; OQ-28 detail for sell/money/offers/hrms.
+- **Change:**
+  - register the granting role lists as named step actions in `ACTION_LEVELS`/`STEP_ROLES`, with initial role defaults equal to today's lists, so behaviour does not change;
+  - gate them through `AccessContext`;
+  - keep only the restrictive floors (`ACCESS_ADMINISTRATORS`, `NON_STAFF_ROLES`, `HEAD_OFFICE_VALUE_ACTORS`) as documented fixed safeguards;
+  - replace inline role-code checks (dataset, till PIN, `is_brand_scoped`, session mode, alert routing) with actions or assignment properties.
+- **Evidence:** a policy edit grants or revokes each former list; a new role gains nothing by default.
+- **Gate:** `role_lists` contains floors only; a boundary rule forbids new granting lists.
+
+### W7 — Admin, session and history contract
+
+- **Dependency:** W1h; Q4–Q7, Q15, Q16.
+- **Change:**
+  - D6: add `may_hold_till_pin` to the session;
+  - D7: stop `scope_type` writes in admin, bootstrap and seed;
+  - D8: complete the privileged kinds and fix the migration audit kinds;
+  - D9: history subjects for assignments and workflow policy, plus frontend labels;
+  - D3: follow-up due date and the review-separation rule;
+  - D13: session payload cleanup;
+  - D15: governed close of stale AccessChange approvals, keeping the evidence;
+  - seed role baseline written through the versioned policy;
+  - frontend: `Bookings.tsx` uses `field_visibility`; remove `isSuperuser` and the legacy shell-user fields;
+  - regenerate the API contract.
+- **Evidence:** backend tests for the `/me` contract, policy validation and floors, privileged follow-up and review, step-up expiry, must-change-password and admin till-PIN; browser journeys.
+- **Gate:** api-check passes; A00 has zero unresolved API consumers.
+
+### W8 — Migration hardening and reconciliation
+
+- **Dependency:** W7; Q10–Q14, Q17.
+- **Change (D10):**
+  - `--tenant` becomes required;
+  - `--expect-fingerprint` binds apply to the reviewed dry run;
+  - `--allow-seeded-tenant-admin` must be explicit;
+  - fix the repeated MISSING_TENANT rows and the "grant revoked before it started" case;
+  - revoke sessions only for people whose authority changed (unless Q16 decides otherwise);
+  - a per-person before/after report (role, cells, actions, fields, flagged entity→frozen-site sets);
+  - **rollback** = a batch-tagged command that sets `revoked_at` on migrated rows by `legacy_grant_id`/`legacy_user_id`, bumps epochs and never re-enables legacy authority.
+- **Steps:** proof dry run → review → apply → re-apply (no-op) → rollback rehearsal → re-apply. Then a **read-only real-tenant dry run** (external, Q14), a finding-by-finding disposition, and an apply with the fingerprint.
+- **Gate:** every finding is mapped, explicitly left inactive, or held with an owner; totals reconcile (humans, users, grants, candidates, blocked, sessions); proof and real reports are attached to the revision.
+
+### W9 — Retire old authority code
+
+- **Dependency:** W6, W7, and W8 for the migration sources.
+- **Change:**
+  - delete everything marked **R** in §3.2;
+  - `RoleGrant`, `ActorPolicy` and `AccessChange` become write-blocked history (model `save` guard or DB trigger);
+  - `User.role/scope_type/stores/brands` become read-only migration evidence;
+  - add the retired modules, symbols and prefixes to `protected_boundaries`;
+  - shrink the allowlist (the 14 unmounted entries go);
+  - extend the boundary checker for the §3.5 blind spots and add `scripts/test_*.py` to CI.
+- **Gate:** boundary check passes with the contracted ledger; zero `active_legacy_authority` and zero `needs_resource_trace`.
+
+### W10 — Route-level authorization ledger and final evidence
+
+- **Dependency:** W1–W9.
+- **Change:**
+  - add a structured `access` block to every mounted non-platform API record in the inventory: `{authority, scope_basis: id|store_only|tenant_wide, fields: projected|none, denial_tests: [...]}`;
+  - `--check` fails on a missing block, on `scope_basis=name`, or on an unknown test ID;
+  - classify the 293 goods-v1 routes by pattern and spot-trace any that call legacy helpers.
+- **Gate:** §6 passes on one SHA; §7 is satisfied.
+
+---
+
+## 5. Migration assessment
+
+| Aspect | Source | Target | Proof establishes | Needs real-tenant reconciliation |
+| --- | --- | --- | --- | --- |
+| Identity | `User` (34), `HumanIdentity` (46), legacy username links | `RoleAssignment.human` + `legacy_user_id` | inactive, retired and cross-tenant identities are refused; 0 unbound users | the real human↔login matches; MISSING/AMBIGUOUS_IDENTITY |
+| Role | `User.role` via `USER_ROLE_ALIASES`; grant role via `GRANT_ROLE_ALIASES` | six role codes | 15 UNMAPPED_ROLE (`ho_ops`, `promo`, `data_steward`, 11 logins with no role); 10 UNMAPPED_GRANT (C-BUY, C-INV, C-PMO, C-STO) | the mapping decision per person (Q11) |
+| Scope | login scope ∩ grant scope; brand by **ID**; entity → current sites frozen | `all_*`/`*_ids` | intersection preserves one tuple; 1 EMPTY_INTERSECTION | whether entity→frozen sites is intended (Q10); ambiguous scopes |
+| Dates / revocation | grant periods → `effective_to`; revocations → end dates; `revoked_at` never set | `effective_from/to` | stale plans refused; revoked targets never restored | real historic periods |
+| Links | `legacy_grant_id`, `legacy_user_id`, unique constraint | – | idempotent re-apply (0 created twice) | – |
+| Policy | `rbac_matrix` baseline → `MasterVersion` `so03_access_cutover`, owner step defaults | versioned role and workflow policy | a single cutover version | a tuned real policy may differ |
+| Fields | role `field_access` ceilings | – | **28 of 34 synthetic users change their protected-field exposure**; not reviewed | acceptance of the real deltas (Q12) |
+| Sessions | 36 active | all revoked at cutover | one-time revoke | operational window |
+| Rollback | none today | W8 batch revoke | – | rehearsal |
+
+The synthetic proof (`/tmp/so03-proof-reconcile-20260929.json`, 1 tenant, 20 candidates, 17 blocked people, 29 findings, 3 platform grants retired) proves the **planner logic** only. It says nothing about real identities, real scope intent, real field deltas or real policy tuning. The local real-tenant probe failed. **No real-tenant connection is assumed.**
+
+---
+
+## 6. Final checks (all on one committed SHA, results recorded against it)
+
+1. **Backend:** `python3 scripts/baseline.py backend` (Django check, `makemigrations --check`, ruff, mypy, import contracts, pytest).
+2. **Frontend:** `python3 scripts/baseline.py frontend` (typecheck, lint, format, vitest).
+3. **API contract:** `python3 scripts/baseline.py api-check`.
+4. **Browser:** `python3 scripts/baseline.py browser`, adding real (not mocked) journeys:
+   - the assignment PUT;
+   - the privileged review by a second person;
+   - a selected-brand Brand Manager denied another brand on search, stock and approvals;
+   - a Store Person denied cost;
+   - must-change-password;
+   - a delayed export or file refused after revocation;
+   - the self till-PIN card.
+5. **Seed:** `python3 scripts/baseline.py seed` (the reseed preserves policy and creates no legacy writes).
+6. **Inventory and boundaries:**
+   - `backend/.venv/bin/python scripts/check_so03_consolidation.py --check`;
+   - `backend/.venv/bin/python scripts/check_so03_boundaries.py`;
+   - `backend/.venv/bin/python -m pytest scripts/`;
+   - the W10 route ledger check.
+7. **Migration:**
+   - roll 0021/0022 and the new migrations back and forward on the proof DB;
+   - proof sequence dry run → apply → re-apply → rollback → re-apply, with diffed reports;
+   - the real-tenant read-only dry run report with dispositions.
+8. **Denial matrix:**
+   - two-tenant;
+   - wrong site; wrong brand;
+   - two-assignment recombination;
+   - duplicate/renamed brand;
+   - expired, future, empty and inactive assignments;
+   - field-denied per role;
+   - self-approval;
+   - revocation during delayed delivery.
+
+   Each is referenced from the W10 ledger.
+9. `git diff --check`, plus the tree fingerprint recorded in the access evidence.
+
+## 7. SO-03 "done when" checklist (tests alone cannot satisfy it)
+
+- [ ] Every mounted non-platform API record has a W10 `access` block. None has `scope_basis=name` or an empty `denial_tests`. The check is enforced by `--check` in CI.
+- [ ] The ledger has 0 `needs_resource_trace` and 0 `active_legacy_authority`. SO03-B01 is closed. The allowlist has contracted to historical and migration evidence only.
+- [ ] No `masters.scoping` call runs without an explicit section. No `IsAuthenticated`-only business read. No `Principal` without a guard on a user write. All three are boundary-enforced.
+- [ ] Brand names are unique per tenant (case-insensitive). Rename cannot move authority. No access predicate compares brand text.
+- [ ] `role_lists` holds only documented restrictive floors. Every granting decision is in the versioned policy (or Q8 records otherwise).
+- [ ] Workflow and role policy have floors, a safe action-set upgrade, protection against initial-role or last-admin lockout, and backend tests.
+- [ ] Privileged follow-ups have the due date, the full kind list and the agreed separation rule, with tests.
+- [ ] Every §10.4 field default is proven denied on API, file, search and event for each role.
+- [ ] Dead legacy admin, grant and actor code is deleted. Legacy tables are write-blocked history. The boundary checker covers the §3.5 blind spots and its tests run in CI.
+- [ ] Migration is hardened (fingerprint-bound, rollback rehearsed). The real-tenant read-only reconciliation is attached, with every finding dispositioned. Otherwise SO-03 stays open, or Q17 explicitly moves it to an SO-22 activation hold.
+- [ ] Every open OQ-28 item is recorded as an activation gate on its named journey.
+- [ ] All §6 checks pass on one committed SHA. The evidence docs are updated, and **no earlier green run is cited as proof**.
+
+---
+
+## 8. Decisions and external data needed from you
+
+| # | Decision / input | Recommendation | If left unresolved |
+| --- | --- | --- | --- |
+| Q1 | B01 approach for text-only legacy rows | Unique-name map, and fail closed for unmapped rows on selected-brand assignments | W3 cannot start; Brand Managers keep escalation or leak exposure |
+| Q2 | Brand rename until SO-04 | Freeze rename, except with tenant-wide authority and no legacy text rows under the old name | RC3 escalation stays open |
+| Q3 | Real tenant's existing case-insensitive duplicate brand names (data) | Report them, then merge or rename under SO-04 | The constraint migration cannot apply |
+| Q4 | Access-admin ceilings: may an `access.manage` holder assign roles or fields they do not hold, assign themselves, create a custom role with Money fields, or reset the Owner's credentials? | Refuse self-assignment and granting beyond one's own fields; a custom role cannot exceed the Owner/Accounts ceilings; Owner credential resets need the Owner role | Admin can reach Money, against B.5 r6; single-person escalation |
+| Q5 | Privileged review: may the beneficiary acknowledge? How is "working day" defined? | Exclude the changer and the beneficiary; use the tenant calendar | T9 remains incomplete |
+| Q6 | Workflow floors (the minimum rung per action) and handling of the action set on release | Floors for org/config/master/access actions; merge defaults | D1 lockout risk on the next release |
+| Q7 | May initial roles be deactivated? | No; refuse | Tenant lockout |
+| Q8 | The 22 role-code lists: convert to policy actions or keep as fixed safeguards; sell/money/offers/hrms action vocabulary (OQ-28 detail) | Convert the granting lists with unchanged defaults; keep the 3 floors | "One source of truth" cannot be claimed |
+| Q9 | Customer erase/merge/move scope (effect is tenant-wide) | Require the customer to be visible at the acting store on the same assignment; erase also needs all-sites `sell: operate` | Cross-store erase risk |
+| Q10 | Legacy entity scope → frozen current sites, or all sites? | Frozen, and flagged per person | Silent widening or narrowing |
+| Q11 | Mapping for `ho_ops`, `promo`, `data_steward`, role-less logins and C-BUY/C-INV/C-PMO/C-STO grants (OQ-28a–c partly decide these) | Map per person to Brand Manager or Owner under B.5 r9–10; C-STO and the rest stay inactive | These people have no access after cutover |
+| Q12 | Acceptance of protected-field changes per person | Review the before/after report and sign it off | Unreviewed disclosure changes |
+| Q13 | Support procedure for X-PLT (PLATFORM findings) | A separate, audited support identity, with no tenant assignment | Support has no governed access path |
+| Q14 | **External:** a read-only real-tenant DB endpoint, credentials, tenant list and a time window | – | T18 stays blocked; SO-03 cannot close |
+| Q15 | Stale pending AccessChange approvals | Close as "superseded by SO-03" and keep the evidence | Permanent inbox noise |
+| Q16 | Must sessions end when a *scheduled* assignment starts or ends, or is recomputing per request enough? | Per-request recompute plus an epoch bump from a scheduled job | T8 ambiguity |
+| Q17 | May SO-03 close with real-tenant reconciliation held under SO-22? | Only if Q14 cannot be met; record it as an explicit activation hold | SO-03 stays open |
+| Q18 | Commit the preserved tree to a branch so evidence binds to a revision | Yes, as the first step | No evidence can be revision-specific |
+| Q19 | EOSS approver (who approves offers EOSS generates) | Owner, as a different person | Maker = checker persists |
+
+**Where the evidence is insufficient:**
+
+- These traces are static. None of them was executed.
+- About 293 goods-v1 routes were checked by pattern, not one by one.
+- Ledger #76 is only partly traced.
+- The print sinks, 80 unresolved API consumers and the 48 till modules (SO-09) have not been traced end to end.
+- None of the real-tenant data has been seen.
+
+**SO-03 is not complete.**

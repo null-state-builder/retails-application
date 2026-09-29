@@ -42,7 +42,7 @@ The following decisions are recorded in the two PRDs as normative text. An unres
 | Report performance | Keep both targets: ≥95/100 standard report requests in ≤3 s on the approved reference dataset, and one-store/one-month visible load in ≤5 s on supported hardware and connection. | Define and record both measured boundaries/datasets; preserve billing isolation: SO-14/SO-21. |
 | Opening season and real readiness | OQ-54 is answered: real season where known; audited *unknown historical season* only when source evidence cannot establish it. | Real-tenant opening still depends on migration sources OQ-29: SO-04/SO-22. |
 | B2B and IRN | Applicable B2B invoice/credit-note processing is online and pending until IRN capture permits invoice issue/print and goods release. | CA sign-off of baseline and manual P2 lifecycle: SO-09/SO-16. |
-| Permissions | The six-role, per-user site/brand scope and step-rule model is the sole authority; no lasting bridge or second grant system. | OQ-28 matrix and consolidation/proof: SO-03/SO-21. |
+| Permissions | The six initial role defaults, versioned policy, per-assignment site/brand scope and step rules form the sole authority; no lasting bridge or second grant system. | Remaining OQ-28 decisions and consolidation/proof: SO-03/SO-21. |
 
 ## Named decision and release gates
 

@@ -144,151 +144,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/admin/access-matrix": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description The roles x sections grid an administrator edits (#173).
-         *
-         *     The answer is the **stored** matrix - ``Role.section_access`` as it is
-         *     today, not the seed table it started from - plus the cells the money floor
-         *     has locked and the sentence to show over each. The grid is data all the way
-         *     down: sections, rungs, roles and locks all arrive from here, so adding a
-         *     section or ratifying a floor needs no front-end release (Rule 12).
-         */
-        get: operations["auth_admin_access_matrix_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/auth/admin/actor-policies": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["auth_admin_actor_policies_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/auth/admin/actor-policies/{action}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Every Setup write becomes a proposal a second administrator applies.
-         *
-         *     Always combined with a `generics.GenericAPIView` subclass (see the view
-         *     classes below), which is where `get_serializer`/`get_object` actually come
-         *     from - this mixin alone is never instantiated on its own.
-         */
-        get: operations["auth_admin_actor_policies_retrieve"];
-        /**
-         * @description Every Setup write becomes a proposal a second administrator applies.
-         *
-         *     Always combined with a `generics.GenericAPIView` subclass (see the view
-         *     classes below), which is where `get_serializer`/`get_object` actually come
-         *     from - this mixin alone is never instantiated on its own.
-         */
-        put: operations["auth_admin_actor_policies_update"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * @description Every Setup write becomes a proposal a second administrator applies.
-         *
-         *     Always combined with a `generics.GenericAPIView` subclass (see the view
-         *     classes below), which is where `get_serializer`/`get_object` actually come
-         *     from - this mixin alone is never instantiated on its own.
-         */
-        patch: operations["auth_admin_actor_policies_partial_update"];
-        trace?: never;
-    };
-    "/api/auth/admin/approval-policies": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Every Setup write becomes a proposal a second administrator applies.
-         *
-         *     Always combined with a `generics.GenericAPIView` subclass (see the view
-         *     classes below), which is where `get_serializer`/`get_object` actually come
-         *     from - this mixin alone is never instantiated on its own.
-         */
-        get: operations["auth_admin_approval_policies_list"];
-        put?: never;
-        /**
-         * @description Every Setup write becomes a proposal a second administrator applies.
-         *
-         *     Always combined with a `generics.GenericAPIView` subclass (see the view
-         *     classes below), which is where `get_serializer`/`get_object` actually come
-         *     from - this mixin alone is never instantiated on its own.
-         */
-        post: operations["auth_admin_approval_policies_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/auth/admin/approval-policies/{kind}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * @description Every Setup write becomes a proposal a second administrator applies.
-         *
-         *     Always combined with a `generics.GenericAPIView` subclass (see the view
-         *     classes below), which is where `get_serializer`/`get_object` actually come
-         *     from - this mixin alone is never instantiated on its own.
-         */
-        get: operations["auth_admin_approval_policies_retrieve"];
-        /**
-         * @description Every Setup write becomes a proposal a second administrator applies.
-         *
-         *     Always combined with a `generics.GenericAPIView` subclass (see the view
-         *     classes below), which is where `get_serializer`/`get_object` actually come
-         *     from - this mixin alone is never instantiated on its own.
-         */
-        put: operations["auth_admin_approval_policies_update"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /**
-         * @description Every Setup write becomes a proposal a second administrator applies.
-         *
-         *     Always combined with a `generics.GenericAPIView` subclass (see the view
-         *     classes below), which is where `get_serializer`/`get_object` actually come
-         *     from - this mixin alone is never instantiated on its own.
-         */
-        patch: operations["auth_admin_approval_policies_partial_update"];
-        trace?: never;
-    };
     "/api/auth/admin/meta": {
         parameters: {
             query?: never;
@@ -296,7 +151,59 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description E214: the setup choices the goods admin screens offer, inside the caller's scope. */
         get: operations["auth_admin_meta_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/admin/privileged-changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description E084: login, grant, role, export and restore changes with their acknowledgements. */
+        get: operations["auth_admin_privileged_changes_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/admin/privileged-changes/{id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description E237: acknowledge someone else's privileged change; never an approval or a reversal. */
+        post: operations["auth_admin_privileged_changes_review_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/admin/reconciliation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        get: operations["auth_admin_reconciliation_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -312,22 +219,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * @description Every Setup write becomes a proposal a second administrator applies.
-         *
-         *     Always combined with a `generics.GenericAPIView` subclass (see the view
-         *     classes below), which is where `get_serializer`/`get_object` actually come
-         *     from - this mixin alone is never instantiated on its own.
-         */
-        get: operations["auth_admin_roles_list"];
+        /** @description E075 lists roles; E077 creates one (step-up). */
+        get: operations["auth_admin_roles_retrieve"];
         put?: never;
-        /**
-         * @description Every Setup write becomes a proposal a second administrator applies.
-         *
-         *     Always combined with a `generics.GenericAPIView` subclass (see the view
-         *     classes below), which is where `get_serializer`/`get_object` actually come
-         *     from - this mixin alone is never instantiated on its own.
-         */
+        /** @description E075 lists roles; E077 creates one (step-up). */
         post: operations["auth_admin_roles_create"];
         delete?: never;
         options?: never;
@@ -335,31 +230,17 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/admin/roles/{code}/access": {
+    "/api/auth/admin/roles/{code}/policy": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        /**
-         * @description Replace one role's row of the matrix - as a proposal, never as a save.
-         *
-         *     Two things stand between an administrator and the stored row, and both are
-         *     floor rules rather than policy:
-         *
-         *     · the **money floor** (``accounts.floors``) refuses a cell that would put a
-         *       store seat on the books or hand full Money or full Setup to a role the
-         *       ruling does not trust - cell by cell, naming each one;
-         *     · **"never by one person alone"** (rule 4) makes the write a proposal a
-         *       second Owner or IT Admin applies through the existing approvals
-         *       machinery. The api-contract sketched an immediate 200 here; a direct write
-         *       would have been the one door in the system where one person could change
-         *       a role, which is exactly what the rule this ticket is enforcing forbids.
-         *       So the endpoint answers 202 with the approval to clear.
-         */
-        put: operations["auth_admin_roles_access_update"];
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        get: operations["auth_admin_roles_policy_retrieve"];
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        put: operations["auth_admin_roles_policy_update"];
         post?: never;
         delete?: never;
         options?: never;
@@ -374,34 +255,85 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * @description Every Setup write becomes a proposal a second administrator applies.
-         *
-         *     Always combined with a `generics.GenericAPIView` subclass (see the view
-         *     classes below), which is where `get_serializer`/`get_object` actually come
-         *     from - this mixin alone is never instantiated on its own.
-         */
-        get: operations["auth_admin_roles_retrieve"];
-        /**
-         * @description Every Setup write becomes a proposal a second administrator applies.
-         *
-         *     Always combined with a `generics.GenericAPIView` subclass (see the view
-         *     classes below), which is where `get_serializer`/`get_object` actually come
-         *     from - this mixin alone is never instantiated on its own.
-         */
-        put: operations["auth_admin_roles_update"];
+        /** @description E076 reads a role; E078 changes its name, description or active flag (step-up). */
+        get: operations["goods_v1_auth_admin_roles_detail"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        /**
-         * @description Every Setup write becomes a proposal a second administrator applies.
-         *
-         *     Always combined with a `generics.GenericAPIView` subclass (see the view
-         *     classes below), which is where `get_serializer`/`get_object` actually come
-         *     from - this mixin alone is never instantiated on its own.
-         */
+        /** @description E076 reads a role; E078 changes its name, description or active flag (step-up). */
         patch: operations["auth_admin_roles_partial_update"];
+        trace?: never;
+    };
+    "/api/auth/admin/staff": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description E061 lists staff in scope; E062 creates one, with or without a first assignment. */
+        get: operations["auth_admin_staff_retrieve"];
+        put?: never;
+        /** @description E061 lists staff in scope; E062 creates one, with or without a first assignment. */
+        post: operations["auth_admin_staff_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/admin/staff/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description E063 reads one staff member; E064 corrects their details or moves them. */
+        get: operations["goods_v1_auth_admin_staff_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description E063 reads one staff member; E064 corrects their details or moves them. */
+        patch: operations["auth_admin_staff_partial_update"];
+        trace?: never;
+    };
+    "/api/auth/admin/staff/{id}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description E070: move a staff member to a new primary site from a later start. */
+        post: operations["auth_admin_staff_assign_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/admin/staff/{id}/retire": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description E065: retire a staff member once their open responsibilities are handed over. */
+        post: operations["auth_admin_staff_retire_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/auth/admin/users": {
@@ -411,22 +343,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * @description Every Setup write becomes a proposal a second administrator applies.
-         *
-         *     Always combined with a `generics.GenericAPIView` subclass (see the view
-         *     classes below), which is where `get_serializer`/`get_object` actually come
-         *     from - this mixin alone is never instantiated on its own.
-         */
-        get: operations["auth_admin_users_list"];
+        /** @description E071 lists goods logins; E073 creates a login for an existing person (step-up). */
+        get: operations["auth_admin_users_retrieve"];
         put?: never;
-        /**
-         * @description Every Setup write becomes a proposal a second administrator applies.
-         *
-         *     Always combined with a `generics.GenericAPIView` subclass (see the view
-         *     classes below), which is where `get_serializer`/`get_object` actually come
-         *     from - this mixin alone is never instantiated on its own.
-         */
+        /** @description E071 lists goods logins; E073 creates a login for an existing person (step-up). */
         post: operations["auth_admin_users_create"];
         delete?: never;
         options?: never;
@@ -441,34 +361,114 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /**
-         * @description Every Setup write becomes a proposal a second administrator applies.
-         *
-         *     Always combined with a `generics.GenericAPIView` subclass (see the view
-         *     classes below), which is where `get_serializer`/`get_object` actually come
-         *     from - this mixin alone is never instantiated on its own.
-         */
-        get: operations["auth_admin_users_retrieve"];
-        /**
-         * @description Every Setup write becomes a proposal a second administrator applies.
-         *
-         *     Always combined with a `generics.GenericAPIView` subclass (see the view
-         *     classes below), which is where `get_serializer`/`get_object` actually come
-         *     from - this mixin alone is never instantiated on its own.
-         */
-        put: operations["auth_admin_users_update"];
+        /** @description E072 reads one login; E074 changes it after tenant-wide step-up. */
+        get: operations["goods_v1_auth_admin_users_detail"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
         head?: never;
-        /**
-         * @description Every Setup write becomes a proposal a second administrator applies.
-         *
-         *     Always combined with a `generics.GenericAPIView` subclass (see the view
-         *     classes below), which is where `get_serializer`/`get_object` actually come
-         *     from - this mixin alone is never instantiated on its own.
-         */
+        /** @description E072 reads one login; E074 changes it after tenant-wide step-up. */
         patch: operations["auth_admin_users_partial_update"];
+        trace?: never;
+    };
+    "/api/auth/admin/users/{id}/assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        get: operations["auth_admin_users_assignments_retrieve"];
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        put: operations["auth_admin_users_assignments_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/admin/users/{id}/till-pin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Admin sets a manager's counter PIN, which works at once (ticket 06, B76).
+         *
+         *     The reset's checks (``access.manage``, Admin only, the login in scope, a
+         *     fresh password), plus: the login must be somebody a till could hold a PIN
+         *     for (``may_hold_till_pin``), and the PIN must pass the counter's rules. Only
+         *     its hash is stored; the tills learn it on their next sync. Neither the PIN
+         *     nor its hash is echoed, logged or put in the command's input or audit
+         *     record ("set" / "not set" only).
+         */
+        post: operations["goods_v1_auth_admin_users_till_pin_set"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/admin/users/{id}/till-pin/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Admin clears a manager's counter PIN (store operations ticket 06).
+         *
+         *     The same checks as changing a login (E074: ``access.manage``, the login in the
+         *     caller's scope, a fresh password confirmation), narrowed to Admin
+         *     (``accounts.role_lists.TILL_PIN_RESETTERS``, baseline B6). Every till drops
+         *     the old PIN on its next sync. The command's audit record says "set" /
+         *     "not set", never the PIN.
+         */
+        post: operations["goods_v1_auth_admin_users_till_pin_reset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/admin/workflow-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Versioned section thresholds shared by every scoped role assignment.
+         *
+         *     Approval routes remain in the established approval-policy service; their
+         *     role, separate-person, limit and document-state checks are applied after
+         *     the action decision and cannot be replaced by a threshold edit.
+         */
+        get: operations["auth_admin_workflow_policy_retrieve"];
+        /**
+         * @description Versioned section thresholds shared by every scoped role assignment.
+         *
+         *     Approval routes remain in the established approval-policy service; their
+         *     role, separate-person, limit and document-state checks are applied after
+         *     the action decision and cannot be replaced by a threshold edit.
+         */
+        put: operations["auth_admin_workflow_policy_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/auth/change-password": {
@@ -755,6 +755,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /** @description Read an old blob only while its current assignment covers its owner. */
         get: operations["files_download_retrieve"];
         put?: never;
         post?: never;
@@ -1131,371 +1132,6 @@ export interface paths {
         get: operations["goods_v1_approvals_inbox_retrieve"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/goods-v1/auth/admin/access-matrix": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description E079: effective roles, grants, action descriptions and fixed restrictions. */
-        get: operations["goods_v1_auth_admin_access_matrix_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/goods-v1/auth/admin/actor-policies": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description E082: effective approved actor policies and open policy drafts. */
-        get: operations["goods_v1_auth_admin_actor_policies_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/goods-v1/auth/admin/actor-policies/{action}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
-        get: operations["goods_v1_auth_admin_actor_policies_detail"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
-        patch: operations["goods_v1_auth_admin_actor_policies_partial_update"];
-        trace?: never;
-    };
-    "/api/goods-v1/auth/admin/approval-policies": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description E083: effective approved approval policies and open policy drafts. */
-        get: operations["goods_v1_auth_admin_approval_policies_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/goods-v1/auth/admin/approval-policies/{kind}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
-        get: operations["goods_v1_auth_admin_approval_policies_detail"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
-        patch: operations["goods_v1_auth_admin_approval_policies_partial_update"];
-        trace?: never;
-    };
-    "/api/goods-v1/auth/admin/meta": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description E214: the setup choices the goods admin screens offer, inside the caller's scope. */
-        get: operations["goods_v1_auth_admin_meta_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/goods-v1/auth/admin/privileged-changes": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description E084: login, grant, role, export and restore changes with their acknowledgements. */
-        get: operations["goods_v1_auth_admin_privileged_changes_retrieve"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/goods-v1/auth/admin/privileged-changes/{id}/review": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description E237: acknowledge someone else's privileged change; never an approval or a reversal. */
-        post: operations["goods_v1_auth_admin_privileged_changes_review_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/goods-v1/auth/admin/roles": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description E075 lists roles; E077 creates one (step-up). */
-        get: operations["goods_v1_auth_admin_roles_retrieve"];
-        put?: never;
-        /** @description E075 lists roles; E077 creates one (step-up). */
-        post: operations["goods_v1_auth_admin_roles_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/goods-v1/auth/admin/roles/{code}/access": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        /** @description E080: set a role's goods action and field maximum, never beyond its template (step-up). */
-        put: operations["goods_v1_auth_admin_roles_access_update"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/goods-v1/auth/admin/roles/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description E076 reads a role; E078 changes its name, description or active flag (step-up). */
-        get: operations["goods_v1_auth_admin_roles_detail"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** @description E076 reads a role; E078 changes its name, description or active flag (step-up). */
-        patch: operations["goods_v1_auth_admin_roles_partial_update"];
-        trace?: never;
-    };
-    "/api/goods-v1/auth/admin/staff": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description E061 lists staff in scope; E062 creates one, with or without a first assignment. */
-        get: operations["goods_v1_auth_admin_staff_retrieve"];
-        put?: never;
-        /** @description E061 lists staff in scope; E062 creates one, with or without a first assignment. */
-        post: operations["goods_v1_auth_admin_staff_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/goods-v1/auth/admin/staff/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description E063 reads one staff member; E064 corrects their details or moves them. */
-        get: operations["goods_v1_auth_admin_staff_detail"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** @description E063 reads one staff member; E064 corrects their details or moves them. */
-        patch: operations["goods_v1_auth_admin_staff_partial_update"];
-        trace?: never;
-    };
-    "/api/goods-v1/auth/admin/staff/{id}/assign": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description E070: move a staff member to a new primary site from a later start. */
-        post: operations["goods_v1_auth_admin_staff_assign_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/goods-v1/auth/admin/staff/{id}/retire": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description E065: retire a staff member once their open responsibilities are handed over. */
-        post: operations["goods_v1_auth_admin_staff_retire_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/goods-v1/auth/admin/users": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description E071 lists goods logins; E073 creates a login for an existing person (step-up). */
-        get: operations["goods_v1_auth_admin_users_retrieve"];
-        put?: never;
-        /** @description E071 lists goods logins; E073 creates a login for an existing person (step-up). */
-        post: operations["goods_v1_auth_admin_users_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/goods-v1/auth/admin/users/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** @description E072 reads a login with its live grants; E074 changes it (step-up). */
-        get: operations["goods_v1_auth_admin_users_detail"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** @description E072 reads a login with its live grants; E074 changes it (step-up). */
-        patch: operations["goods_v1_auth_admin_users_partial_update"];
-        trace?: never;
-    };
-    "/api/goods-v1/auth/admin/users/{id}/grants": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** @description E081: add or revoke one person's role grants, one row per scope (step-up). */
-        post: operations["goods_v1_auth_admin_users_grants_create"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/goods-v1/auth/admin/users/{id}/till-pin": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Admin sets a manager's counter PIN, which works at once (ticket 06, B76).
-         *
-         *     The reset's checks (``access.manage``, Admin only, the login in scope, a
-         *     fresh password), plus: the login must be somebody a till could hold a PIN
-         *     for (``may_hold_till_pin``), and the PIN must pass the counter's rules. Only
-         *     its hash is stored; the tills learn it on their next sync. Neither the PIN
-         *     nor its hash is echoed, logged or put in the command's input or audit
-         *     record ("set" / "not set" only).
-         */
-        post: operations["goods_v1_auth_admin_users_till_pin_set"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/goods-v1/auth/admin/users/{id}/till-pin/reset": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description Admin clears a manager's counter PIN (store operations ticket 06).
-         *
-         *     The same checks as changing a login (E074: ``access.manage``, the login in the
-         *     caller's scope, a fresh password confirmation), narrowed to Admin
-         *     (``accounts.role_lists.TILL_PIN_RESETTERS``, baseline B6). Every till drops
-         *     the old PIN on its next sync. The command's audit record says "set" /
-         *     "not set", never the PIN.
-         */
-        post: operations["goods_v1_auth_admin_users_till_pin_reset"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2491,6 +2127,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/goods-v1/masters/brand-reconciliation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        get: operations["goods_v1_masters_brand_reconciliation_retrieve"];
+        put?: never;
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        post: operations["goods_v1_masters_brand_reconciliation_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/goods-v1/masters/brand-terms": {
         parameters: {
             query?: never;
@@ -3316,32 +2970,6 @@ export interface paths {
         get: operations["goods_v1_masters_stores_sbus_retrieve"];
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/goods-v1/masters/stores/{site_id}/sbus/{id}/retire": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * @description E246: C-OWN retires one site SBU after a fresh password confirmation.
-         *
-         *     Refusals: ACTION_DENIED (no retire grant), NOT_FOUND (SBU outside scope, or not
-         *     at that site), INVALID_REQUEST (body), STEP_UP_REQUIRED, REVISION_SUPERSEDED
-         *     (stale expected_revision or reviewed_hash), COMMAND_CONFLICT (a reused command
-         *     id with a different body), SBU_RETIREMENT_BLOCKED (already retired, or any
-         *     residual still refers to it; ``details.issues`` names each one). There is no
-         *     residual override.
-         */
-        post: operations["goods_v1_masters_stores_sbus_retire_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5440,7 +5068,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Record the day a season ended, or clear it (master-data stewards; audited). */
+        /** @description Block changes to a shared legacy season until SO-04 maps its tenant owner. */
         post: operations["goods_v1_stock_ageing_season_end_create"];
         delete?: never;
         options?: never;
@@ -5508,7 +5136,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Set one category's core sizes and share (master-data stewards; audited). */
+        /** @description Set one tenant's category rule with tenant-wide authority (audited). */
         post: operations["goods_v1_stock_broken_sizes_rules_create"];
         delete?: never;
         options?: never;
@@ -9812,26 +9440,20 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description The vendor master. Reads stay open (every booking form needs the list);
-         *     writes are the master-data steward's, the same gate stores, brands, seasons
-         *     and GSTINs have carried since D8.
+         * @description Legacy vendor picker and editor, narrowed by tenant and assigned brands.
          *
-         *     Until this review the whole endpoint sat on a bare ``IsAuthenticated``: a
-         *     store cashier could mint the supplier that every future booking, GRN and
-         *     payable then hangs off, and nothing could correct one afterwards because
-         *     there was no detail route at all.
+         *     A vendor shared by several brands appears to an entitled reader with only
+         *     their brand links. Changing the shared row requires authority over every
+         *     linked brand; an unbranded vendor needs tenant-wide vendor authority.
          */
         get: operations["vendors_list"];
         put?: never;
         /**
-         * @description The vendor master. Reads stay open (every booking form needs the list);
-         *     writes are the master-data steward's, the same gate stores, brands, seasons
-         *     and GSTINs have carried since D8.
+         * @description Legacy vendor picker and editor, narrowed by tenant and assigned brands.
          *
-         *     Until this review the whole endpoint sat on a bare ``IsAuthenticated``: a
-         *     store cashier could mint the supplier that every future booking, GRN and
-         *     payable then hangs off, and nothing could correct one afterwards because
-         *     there was no detail route at all.
+         *     A vendor shared by several brands appears to an entitled reader with only
+         *     their brand links. Changing the shared row requires authority over every
+         *     linked brand; an unbranded vendor needs tenant-wide vendor authority.
          */
         post: operations["vendors_create"];
         delete?: never;
@@ -9880,51 +9502,6 @@ export interface components {
          * @enum {string}
          */
         AccountEnum: "CASH" | "BANK" | "CARD" | "UPI";
-        ActorPolicy: {
-            readonly id: number;
-            readonly action: string;
-            label: string;
-            description?: string;
-            roles?: string[];
-        };
-        AdminRole: {
-            readonly id: number;
-            code: string;
-            name: string;
-            description?: string;
-            landing_page?: string;
-            nav_groups?: unknown;
-            section_access?: unknown;
-            permissions_map?: unknown;
-            readonly is_system: boolean;
-            is_active?: boolean;
-            readonly user_count: number;
-        };
-        AdminUser: {
-            readonly id: number;
-            username: string;
-            full_name?: string;
-            readonly role: components["schemas"]["Role"];
-            role_id?: number | null;
-            scope_type?: components["schemas"]["ScopeTypeEnum"];
-            readonly scope_label: string;
-            entity?: number | null;
-            readonly entity_name: string;
-            readonly stores: components["schemas"]["StoreMini"][];
-            store_ids?: number[];
-            readonly brands: components["schemas"]["BrandMini"][];
-            brand_ids?: number[];
-            is_active?: boolean;
-            is_staff?: boolean;
-            /**
-             * Superuser status
-             * @description Designates that this user has all permissions without explicitly assigning them.
-             */
-            readonly is_superuser: boolean;
-            /** Format: date-time */
-            readonly date_joined: string;
-            password?: string;
-        };
         /**
          * @description * `none` - none
          *     * `held` - held
@@ -10210,26 +9787,6 @@ export interface components {
          * @enum {string}
          */
         ApprovalDecisionActionEnum: "approve" | "reject";
-        ApprovalPolicyAdmin: {
-            readonly id: number;
-            /** @description Document family this governs, e.g. 'adjustment'. */
-            kind: string;
-            readonly label: string;
-            /**
-             * Format: int64
-             * @description Value at stake at or below which no second person is asked — the document posts and the decision is logged. 0 disables the tolerance: every document of this kind needs a checker.
-             */
-            tolerance_paise?: number;
-            /**
-             * Format: int64
-             * @description Up to this value the in-charge roles may approve; above it, only the escalated roles. 0 sends every one straight to HO.
-             */
-            band_paise?: number;
-            /** @description Role codes that may approve within the band (in-charge + HO). */
-            band_roles?: string[];
-            /** @description Role codes that may approve above the band (HO only). */
-            escalated_roles?: string[];
-        };
         /** @description One inbox row / one document's approval block. */
         ApprovalRead: {
             readonly id: number;
@@ -10669,11 +10226,6 @@ export interface components {
         BrandLayoutsStandard: {
             sale: components["schemas"]["BrandLayout"];
             soh: components["schemas"]["BrandLayout"];
-        };
-        BrandMini: {
-            id: number;
-            code: string;
-            name: string;
         };
         BrandMonth: {
             report: string;
@@ -13640,71 +13192,6 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["VendorLedgerEntry"][];
         };
-        PatchedActorPolicy: {
-            readonly id?: number;
-            readonly action?: string;
-            label?: string;
-            description?: string;
-            roles?: string[];
-        };
-        PatchedAdminRole: {
-            readonly id?: number;
-            code?: string;
-            name?: string;
-            description?: string;
-            landing_page?: string;
-            nav_groups?: unknown;
-            section_access?: unknown;
-            permissions_map?: unknown;
-            readonly is_system?: boolean;
-            is_active?: boolean;
-            readonly user_count?: number;
-        };
-        PatchedAdminUser: {
-            readonly id?: number;
-            username?: string;
-            full_name?: string;
-            readonly role?: components["schemas"]["Role"];
-            role_id?: number | null;
-            scope_type?: components["schemas"]["ScopeTypeEnum"];
-            readonly scope_label?: string;
-            entity?: number | null;
-            readonly entity_name?: string;
-            readonly stores?: components["schemas"]["StoreMini"][];
-            store_ids?: number[];
-            readonly brands?: components["schemas"]["BrandMini"][];
-            brand_ids?: number[];
-            is_active?: boolean;
-            is_staff?: boolean;
-            /**
-             * Superuser status
-             * @description Designates that this user has all permissions without explicitly assigning them.
-             */
-            readonly is_superuser?: boolean;
-            /** Format: date-time */
-            readonly date_joined?: string;
-            password?: string;
-        };
-        PatchedApprovalPolicyAdmin: {
-            readonly id?: number;
-            /** @description Document family this governs, e.g. 'adjustment'. */
-            kind?: string;
-            readonly label?: string;
-            /**
-             * Format: int64
-             * @description Value at stake at or below which no second person is asked — the document posts and the decision is logged. 0 disables the tolerance: every document of this kind needs a checker.
-             */
-            tolerance_paise?: number;
-            /**
-             * Format: int64
-             * @description Up to this value the in-charge roles may approve; above it, only the escalated roles. 0 sends every one straight to HO.
-             */
-            band_paise?: number;
-            /** @description Role codes that may approve within the band (in-charge + HO). */
-            band_roles?: string[];
-            /** @description Role codes that may approve above the band (HO only). */
-            escalated_roles?: string[];
-        };
         PatchedBrand: {
             readonly id?: number;
             code?: string;
@@ -14577,16 +14064,6 @@ export interface components {
          * @enum {string}
          */
         RewardTypeEnum: "pct_off" | "amt_off" | "item_free" | "fixed_price" | "gift";
-        Role: {
-            readonly id: number;
-            code: string;
-            name: string;
-            description?: string;
-            landing_page?: string;
-            nav_groups?: unknown;
-            is_system?: boolean;
-            is_active?: boolean;
-        };
         /**
          * @description * `transfer` - Transfer request
          *     * `booking` - Booking line
@@ -15024,16 +14501,6 @@ export interface components {
          * @enum {string}
          */
         ScopeEnum: "store" | "brand" | "section";
-        /**
-         * @description * `all` - All (network-wide)
-         *     * `entity` - Legal entity
-         *     * `region` - Region / state
-         *     * `store_group` - Store group
-         *     * `store` - Single store
-         *     * `brand` - Assigned brands (across stores)
-         * @enum {string}
-         */
-        ScopeTypeEnum: "all" | "entity" | "region" | "store_group" | "store" | "brand";
         Season: {
             readonly id: number;
             code: string;
@@ -16059,15 +15526,6 @@ export interface components {
             truncated: boolean;
             open_count: number;
         };
-        StoreMini: {
-            id: number;
-            code: string;
-            name: string;
-            store_type: string;
-            state_name: string;
-            state_code: string;
-            gstin_number: string;
-        };
         /**
          * @description One cell of the target grid: which store, which month, how many paise.
          *
@@ -17073,273 +16531,6 @@ export interface operations {
             };
         };
     };
-    auth_admin_access_matrix_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        sections: {
-                            code: string;
-                            label: string;
-                        }[];
-                        capabilities: {
-                            code: string;
-                            label: string;
-                        }[];
-                        rules: {
-                            rule?: number;
-                            text?: string;
-                        }[];
-                        roles: {
-                            code?: string;
-                            name?: string;
-                            is_system?: boolean;
-                            is_active?: boolean;
-                            user_count?: number;
-                            /** @description Section code to its stored or proposed access cell. */
-                            section_access?: {
-                                [key: string]: {
-                                    /** @enum {string} */
-                                    capability: "none" | "view" | "operate" | "approve" | "manage";
-                                    label?: string;
-                                };
-                            };
-                            locked?: {
-                                [key: string]: {
-                                    max_capability?: string;
-                                    rule?: string;
-                                    reason?: string;
-                                };
-                            };
-                        }[];
-                    };
-                };
-            };
-        };
-    };
-    auth_admin_actor_policies_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ActorPolicy"][];
-                };
-            };
-        };
-    };
-    auth_admin_actor_policies_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                action: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ActorPolicy"];
-                };
-            };
-        };
-    };
-    auth_admin_actor_policies_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                action: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ActorPolicy"];
-                "application/x-www-form-urlencoded": components["schemas"]["ActorPolicy"];
-                "multipart/form-data": components["schemas"]["ActorPolicy"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ActorPolicy"];
-                };
-            };
-        };
-    };
-    auth_admin_actor_policies_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                action: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedActorPolicy"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedActorPolicy"];
-                "multipart/form-data": components["schemas"]["PatchedActorPolicy"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ActorPolicy"];
-                };
-            };
-        };
-    };
-    auth_admin_approval_policies_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApprovalPolicyAdmin"][];
-                };
-            };
-        };
-    };
-    auth_admin_approval_policies_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ApprovalPolicyAdmin"];
-                "application/x-www-form-urlencoded": components["schemas"]["ApprovalPolicyAdmin"];
-                "multipart/form-data": components["schemas"]["ApprovalPolicyAdmin"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApprovalPolicyAdmin"];
-                };
-            };
-        };
-    };
-    auth_admin_approval_policies_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                kind: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApprovalPolicyAdmin"];
-                };
-            };
-        };
-    };
-    auth_admin_approval_policies_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                kind: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ApprovalPolicyAdmin"];
-                "application/x-www-form-urlencoded": components["schemas"]["ApprovalPolicyAdmin"];
-                "multipart/form-data": components["schemas"]["ApprovalPolicyAdmin"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApprovalPolicyAdmin"];
-                };
-            };
-        };
-    };
-    auth_admin_approval_policies_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                kind: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["PatchedApprovalPolicyAdmin"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedApprovalPolicyAdmin"];
-                "multipart/form-data": components["schemas"]["PatchedApprovalPolicyAdmin"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ApprovalPolicyAdmin"];
-                };
-            };
-        };
-    };
     auth_admin_meta_retrieve: {
         parameters: {
             query?: never;
@@ -17355,139 +16546,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        nav_groups: string[];
-                        sections: {
-                            code: string;
-                            label: string;
-                        }[];
-                        capabilities: string[];
-                        scope_types: {
-                            value?: string;
-                            label?: string;
-                        }[];
-                        stores: {
-                            id?: number;
-                            code?: string;
-                            name?: string;
-                            store_type?: string;
-                        }[];
-                        brands: {
-                            id?: number;
-                            code?: string;
-                            name?: string;
-                        }[];
-                    };
-                };
-            };
-        };
-    };
-    auth_admin_roles_list: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AdminRole"][];
-                };
-            };
-        };
-    };
-    auth_admin_roles_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AdminRole"];
-                "application/x-www-form-urlencoded": components["schemas"]["AdminRole"];
-                "multipart/form-data": components["schemas"]["AdminRole"];
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AdminRole"];
-                };
-            };
-        };
-    };
-    auth_admin_roles_access_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                code: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    /** @description Section code to its stored or proposed access cell. */
-                    section_access: {
-                        [key: string]: {
-                            /** @enum {string} */
-                            capability: "none" | "view" | "operate" | "approve" | "manage";
-                            label?: string;
-                        };
-                    };
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        /** @enum {string} */
-                        status?: "unchanged";
-                        detail?: string;
-                        code?: string;
-                        /** @description Section code to its stored or proposed access cell. */
-                        section_access?: {
-                            [key: string]: {
-                                /** @enum {string} */
-                                capability: "none" | "view" | "operate" | "approve" | "manage";
-                                label?: string;
-                            };
-                        };
-                    };
-                };
-            };
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        change_id: number;
-                        approval_id: number;
-                        /** @enum {string} */
-                        status: "pending_approval";
-                        detail: string;
-                        cells?: {
+                        sites: {
                             [key: string]: unknown;
                         }[];
                     };
                 };
             };
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -17517,7 +16612,115 @@ export interface operations {
                     };
                 };
             };
-            422: {
+        };
+    };
+    auth_admin_privileged_changes_retrieve: {
+        parameters: {
+            query?: {
+                /** @description Opaque next-page cursor, newest first by a stable keyset. */
+                cursor?: string;
+                /** @description Only this change, by id; the owned follow-up links here (03D). */
+                id?: string;
+                /** @description Changes per page, from 1 through 100. */
+                limit?: number;
+                /** @description Matches the action or subject, 100 characters at most. */
+                q?: string;
+                /** @description Only changes recorded at this site. */
+                site_id?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items?: ({
+                            action?: string;
+                            subject_key?: string | null;
+                            actor_id?: string | null;
+                            actor_name?: string | null;
+                            service_code?: string | null;
+                            outcome?: string;
+                            reason_code?: string | null;
+                            site_id?: string | null;
+                            before?: {
+                                [key: string]: unknown;
+                            }[];
+                            after?: {
+                                [key: string]: unknown;
+                            }[];
+                            /** Format: date-time */
+                            event_at?: string;
+                            /** Format: date-time */
+                            recorded_at?: string;
+                            reviews?: {
+                                reviewer_id?: string;
+                                reviewer_name?: string | null;
+                                note?: string | null;
+                                /** Format: date-time */
+                                reviewed_at?: string;
+                            }[];
+                        } & {
+                            [key: string]: unknown;
+                        })[];
+                        next_cursor?: string | null;
+                        /** Format: date-time */
+                        as_of?: string;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -17534,7 +16737,506 @@ export interface operations {
             };
         };
     };
+    auth_admin_privileged_changes_review_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision?: number;
+                    note: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        action?: string;
+                        subject_key?: string | null;
+                        actor_id?: string | null;
+                        actor_name?: string | null;
+                        service_code?: string | null;
+                        outcome?: string;
+                        reason_code?: string | null;
+                        site_id?: string | null;
+                        before?: {
+                            [key: string]: unknown;
+                        }[];
+                        after?: {
+                            [key: string]: unknown;
+                        }[];
+                        /** Format: date-time */
+                        event_at?: string;
+                        /** Format: date-time */
+                        recorded_at?: string;
+                        reviews?: {
+                            reviewer_id?: string;
+                            reviewer_name?: string | null;
+                            note?: string | null;
+                            /** Format: date-time */
+                            reviewed_at?: string;
+                        }[];
+                    } & {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+        };
+    };
+    auth_admin_reconciliation_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
     auth_admin_roles_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items?: {
+                            id?: string;
+                            /** @enum {string} */
+                            record_contract?: "goods-v1";
+                            revision?: number;
+                            content_hash?: string;
+                            state?: string;
+                            number?: string | null;
+                            version?: number | null;
+                            context?: {
+                                [key: string]: unknown;
+                            };
+                            allowed_actions?: string[];
+                            /** @description RoleDTO (E075-E080). */
+                            data?: {
+                                code?: string;
+                                name?: string;
+                                description?: string | null;
+                                active?: boolean;
+                            };
+                        }[];
+                        next_cursor?: string | null;
+                        /** Format: date-time */
+                        as_of?: string;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+        };
+    };
+    auth_admin_roles_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    code: string;
+                    name: string;
+                    description?: string | null;
+                    active?: boolean;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id?: string;
+                        /** @enum {string} */
+                        record_contract?: "goods-v1";
+                        revision?: number;
+                        content_hash?: string;
+                        state?: string;
+                        number?: string | null;
+                        version?: number | null;
+                        context?: {
+                            [key: string]: unknown;
+                        };
+                        allowed_actions?: string[];
+                        /** @description RoleDTO (E075-E080). */
+                        data?: {
+                            code?: string;
+                            name?: string;
+                            description?: string | null;
+                            active?: boolean;
+                        };
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+        };
+    };
+    auth_admin_roles_policy_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    auth_admin_roles_policy_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_auth_admin_roles_detail: {
         parameters: {
             query?: never;
             header?: never;
@@ -17550,34 +17252,87 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AdminRole"];
+                    "application/json": {
+                        id?: string;
+                        /** @enum {string} */
+                        record_contract?: "goods-v1";
+                        revision?: number;
+                        content_hash?: string;
+                        state?: string;
+                        number?: string | null;
+                        version?: number | null;
+                        context?: {
+                            [key: string]: unknown;
+                        };
+                        allowed_actions?: string[];
+                        /** @description RoleDTO (E075-E080). */
+                        data?: {
+                            code?: string;
+                            name?: string;
+                            description?: string | null;
+                            active?: boolean;
+                        };
+                    };
                 };
             };
-        };
-    };
-    auth_admin_roles_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AdminRole"];
-                "application/x-www-form-urlencoded": components["schemas"]["AdminRole"];
-                "multipart/form-data": components["schemas"]["AdminRole"];
-            };
-        };
-        responses: {
-            200: {
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AdminRole"];
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
                 };
             };
         };
@@ -17593,9 +17348,17 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["PatchedAdminRole"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedAdminRole"];
-                "multipart/form-data": components["schemas"]["PatchedAdminRole"];
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    code?: string;
+                    name?: string;
+                    description?: string | null;
+                    active?: boolean;
+                };
             };
         };
         responses: {
@@ -17604,12 +17367,137 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AdminRole"];
+                    "application/json": {
+                        id?: string;
+                        /** @enum {string} */
+                        record_contract?: "goods-v1";
+                        revision?: number;
+                        content_hash?: string;
+                        state?: string;
+                        number?: string | null;
+                        version?: number | null;
+                        context?: {
+                            [key: string]: unknown;
+                        };
+                        allowed_actions?: string[];
+                        /** @description RoleDTO (E075-E080). */
+                        data?: {
+                            code?: string;
+                            name?: string;
+                            description?: string | null;
+                            active?: boolean;
+                        };
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
                 };
             };
         };
     };
-    auth_admin_users_list: {
+    auth_admin_staff_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -17623,7 +17511,978 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AdminUser"][];
+                    "application/json": {
+                        items?: {
+                            id?: string;
+                            /** @enum {string} */
+                            record_contract?: "goods-v1";
+                            revision?: number;
+                            content_hash?: string;
+                            state?: string;
+                            number?: string | null;
+                            version?: number | null;
+                            context?: {
+                                [key: string]: unknown;
+                            };
+                            allowed_actions?: string[];
+                            /** @description StaffDTO (E061-E065). */
+                            data?: {
+                                /** Format: uuid */
+                                human_id?: string;
+                                staff_code?: string;
+                                display_name?: string;
+                                salesperson?: boolean;
+                                site_id?: string | null;
+                                /** Format: date-time */
+                                effective_from?: string | null;
+                                mobile?: string | null;
+                            };
+                        }[];
+                        next_cursor?: string | null;
+                        /** Format: date-time */
+                        as_of?: string;
+                        /** @description Whether the caller's staff.manage reaches tenant-wide, so they may create a head-office person with no site (E062). */
+                        can_create_unplaced?: boolean;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+        };
+    };
+    auth_admin_staff_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    /** Format: uuid */
+                    human_id?: string;
+                    staff_code: string;
+                    display_name: string;
+                    mobile?: string | null;
+                    salesperson?: boolean;
+                    site_id?: string | null;
+                    /** Format: date-time */
+                    effective_from?: string | null;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id?: string;
+                        /** @enum {string} */
+                        record_contract?: "goods-v1";
+                        revision?: number;
+                        content_hash?: string;
+                        state?: string;
+                        number?: string | null;
+                        version?: number | null;
+                        context?: {
+                            [key: string]: unknown;
+                        };
+                        allowed_actions?: string[];
+                        /** @description StaffDTO (E061-E065). */
+                        data?: {
+                            /** Format: uuid */
+                            human_id?: string;
+                            staff_code?: string;
+                            display_name?: string;
+                            salesperson?: boolean;
+                            site_id?: string | null;
+                            /** Format: date-time */
+                            effective_from?: string | null;
+                            mobile?: string | null;
+                        };
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_auth_admin_staff_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id?: string;
+                        /** @enum {string} */
+                        record_contract?: "goods-v1";
+                        revision?: number;
+                        content_hash?: string;
+                        state?: string;
+                        number?: string | null;
+                        version?: number | null;
+                        context?: {
+                            [key: string]: unknown;
+                        };
+                        allowed_actions?: string[];
+                        /** @description StaffDTO (E061-E065). */
+                        data?: {
+                            /** Format: uuid */
+                            human_id?: string;
+                            staff_code?: string;
+                            display_name?: string;
+                            salesperson?: boolean;
+                            site_id?: string | null;
+                            /** Format: date-time */
+                            effective_from?: string | null;
+                            mobile?: string | null;
+                        };
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+        };
+    };
+    auth_admin_staff_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    /** Format: uuid */
+                    human_id?: string;
+                    staff_code?: string;
+                    display_name?: string;
+                    mobile?: string | null;
+                    salesperson?: boolean;
+                    site_id?: string | null;
+                    /** Format: date-time */
+                    effective_from?: string | null;
+                    expected_revision: number;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id?: string;
+                        /** @enum {string} */
+                        record_contract?: "goods-v1";
+                        revision?: number;
+                        content_hash?: string;
+                        state?: string;
+                        number?: string | null;
+                        version?: number | null;
+                        context?: {
+                            [key: string]: unknown;
+                        };
+                        allowed_actions?: string[];
+                        /** @description StaffDTO (E061-E065). */
+                        data?: {
+                            /** Format: uuid */
+                            human_id?: string;
+                            staff_code?: string;
+                            display_name?: string;
+                            salesperson?: boolean;
+                            site_id?: string | null;
+                            /** Format: date-time */
+                            effective_from?: string | null;
+                            mobile?: string | null;
+                        };
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+        };
+    };
+    auth_admin_staff_assign_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    site_id: number;
+                    /** Format: date-time */
+                    effective_from: string;
+                    reason_code: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id?: string;
+                        /** @enum {string} */
+                        record_contract?: "goods-v1";
+                        revision?: number;
+                        content_hash?: string;
+                        state?: string;
+                        number?: string | null;
+                        version?: number | null;
+                        context?: {
+                            [key: string]: unknown;
+                        };
+                        allowed_actions?: string[];
+                        /** @description StaffAssignmentDTO (E070). */
+                        data?: {
+                            /** Format: uuid */
+                            staff_id?: string;
+                            site_id?: string;
+                            /** Format: date-time */
+                            effective_from?: string;
+                            /** Format: date-time */
+                            effective_to?: string | null;
+                            primary?: boolean;
+                        };
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+        };
+    };
+    auth_admin_staff_retire_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    reason_code: string;
+                    /** Format: date-time */
+                    effective_at: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id?: string;
+                        /** @enum {string} */
+                        record_contract?: "goods-v1";
+                        revision?: number;
+                        content_hash?: string;
+                        state?: string;
+                        number?: string | null;
+                        version?: number | null;
+                        context?: {
+                            [key: string]: unknown;
+                        };
+                        allowed_actions?: string[];
+                        /** @description StaffDTO (E061-E065). */
+                        data?: {
+                            /** Format: uuid */
+                            human_id?: string;
+                            staff_code?: string;
+                            display_name?: string;
+                            salesperson?: boolean;
+                            site_id?: string | null;
+                            /** Format: date-time */
+                            effective_from?: string | null;
+                            mobile?: string | null;
+                        };
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+        };
+    };
+    auth_admin_users_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items?: {
+                            id?: string;
+                            /** @enum {string} */
+                            record_contract?: "goods-v1";
+                            revision?: number;
+                            content_hash?: string;
+                            state?: string;
+                            number?: string | null;
+                            version?: number | null;
+                            context?: {
+                                [key: string]: unknown;
+                            };
+                            allowed_actions?: string[];
+                            /** @description LoginDTO (E071-E074). */
+                            data?: {
+                                human_id?: string | null;
+                                email?: string;
+                                display_name?: string;
+                                active?: boolean;
+                                must_change_password?: boolean;
+                                has_till_pin?: boolean;
+                                may_hold_till_pin?: boolean;
+                                may_reset_till_pin?: boolean;
+                            };
+                        }[];
+                        next_cursor?: string | null;
+                        /** Format: date-time */
+                        as_of?: string;
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
                 };
             };
         };
@@ -17635,11 +18494,20 @@ export interface operations {
             path?: never;
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
-                "application/json": components["schemas"]["AdminUser"];
-                "application/x-www-form-urlencoded": components["schemas"]["AdminUser"];
-                "multipart/form-data": components["schemas"]["AdminUser"];
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    human_id: string;
+                    email: string;
+                    display_name: string;
+                    active?: boolean;
+                    password?: string;
+                    identity_email_confirmed?: boolean;
+                };
             };
         };
         responses: {
@@ -17648,12 +18516,141 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AdminUser"];
+                    "application/json": {
+                        id?: string;
+                        /** @enum {string} */
+                        record_contract?: "goods-v1";
+                        revision?: number;
+                        content_hash?: string;
+                        state?: string;
+                        number?: string | null;
+                        version?: number | null;
+                        context?: {
+                            [key: string]: unknown;
+                        };
+                        allowed_actions?: string[];
+                        /** @description LoginDTO (E071-E074). */
+                        data?: {
+                            human_id?: string | null;
+                            email?: string;
+                            display_name?: string;
+                            active?: boolean;
+                            must_change_password?: boolean;
+                            has_till_pin?: boolean;
+                            may_hold_till_pin?: boolean;
+                            may_reset_till_pin?: boolean;
+                        };
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
                 };
             };
         };
     };
-    auth_admin_users_retrieve: {
+    goods_v1_auth_admin_users_detail: {
         parameters: {
             query?: never;
             header?: never;
@@ -17669,34 +18666,91 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AdminUser"];
+                    "application/json": {
+                        id?: string;
+                        /** @enum {string} */
+                        record_contract?: "goods-v1";
+                        revision?: number;
+                        content_hash?: string;
+                        state?: string;
+                        number?: string | null;
+                        version?: number | null;
+                        context?: {
+                            [key: string]: unknown;
+                        };
+                        allowed_actions?: string[];
+                        /** @description LoginDTO (E071-E074). */
+                        data?: {
+                            human_id?: string | null;
+                            email?: string;
+                            display_name?: string;
+                            active?: boolean;
+                            must_change_password?: boolean;
+                            has_till_pin?: boolean;
+                            may_hold_till_pin?: boolean;
+                            may_reset_till_pin?: boolean;
+                        };
+                    };
                 };
             };
-        };
-    };
-    auth_admin_users_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AdminUser"];
-                "application/x-www-form-urlencoded": components["schemas"]["AdminUser"];
-                "multipart/form-data": components["schemas"]["AdminUser"];
-            };
-        };
-        responses: {
-            200: {
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AdminUser"];
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
                 };
             };
         };
@@ -17712,9 +18766,17 @@ export interface operations {
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["PatchedAdminUser"];
-                "application/x-www-form-urlencoded": components["schemas"]["PatchedAdminUser"];
-                "multipart/form-data": components["schemas"]["PatchedAdminUser"];
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    email?: string;
+                    display_name?: string;
+                    active?: boolean;
+                    password?: string;
+                    identity_email_confirmed?: boolean;
+                };
             };
         };
         responses: {
@@ -17723,7 +18785,578 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["AdminUser"];
+                    "application/json": {
+                        id?: string;
+                        /** @enum {string} */
+                        record_contract?: "goods-v1";
+                        revision?: number;
+                        content_hash?: string;
+                        state?: string;
+                        number?: string | null;
+                        version?: number | null;
+                        context?: {
+                            [key: string]: unknown;
+                        };
+                        allowed_actions?: string[];
+                        /** @description LoginDTO (E071-E074). */
+                        data?: {
+                            human_id?: string | null;
+                            email?: string;
+                            display_name?: string;
+                            active?: boolean;
+                            must_change_password?: boolean;
+                            has_till_pin?: boolean;
+                            may_hold_till_pin?: boolean;
+                            may_reset_till_pin?: boolean;
+                        };
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+        };
+    };
+    auth_admin_users_assignments_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    auth_admin_users_assignments_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    current_password: string;
+                    assignments: {
+                        /**
+                         * Format: uuid
+                         * @description Existing row ID; supply together with effective_from.
+                         */
+                        id?: string;
+                        /**
+                         * Format: date-time
+                         * @description The original start date for an existing row; new rows omit this.
+                         */
+                        effective_from?: string;
+                        role_code: string;
+                        all_sites: boolean;
+                        site_ids: number[];
+                        all_brands: boolean;
+                        brand_ids: number[];
+                        /** Format: date-time */
+                        effective_to?: string | null;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_auth_admin_users_till_pin_set: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    contract_version: string;
+                    /** @description 4 to 6 digits. Stored only as a hash. */
+                    pin: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id?: string;
+                        /** @enum {string} */
+                        record_contract?: "goods-v1";
+                        revision?: number;
+                        content_hash?: string;
+                        state?: string;
+                        number?: string | null;
+                        version?: number | null;
+                        context?: {
+                            [key: string]: unknown;
+                        };
+                        allowed_actions?: string[];
+                        /** @description LoginDTO (E071-E074). */
+                        data?: {
+                            human_id?: string | null;
+                            email?: string;
+                            display_name?: string;
+                            active?: boolean;
+                            must_change_password?: boolean;
+                            has_till_pin?: boolean;
+                            may_hold_till_pin?: boolean;
+                            may_reset_till_pin?: boolean;
+                        };
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_auth_admin_users_till_pin_reset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    contract_version: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id?: string;
+                        /** @enum {string} */
+                        record_contract?: "goods-v1";
+                        revision?: number;
+                        content_hash?: string;
+                        state?: string;
+                        number?: string | null;
+                        version?: number | null;
+                        context?: {
+                            [key: string]: unknown;
+                        };
+                        allowed_actions?: string[];
+                        /** @description LoginDTO (E071-E074). */
+                        data?: {
+                            human_id?: string | null;
+                            email?: string;
+                            display_name?: string;
+                            active?: boolean;
+                            must_change_password?: boolean;
+                            has_till_pin?: boolean;
+                            may_hold_till_pin?: boolean;
+                            may_reset_till_pin?: boolean;
+                        };
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+        };
+    };
+    auth_admin_workflow_policy_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    auth_admin_workflow_policy_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -17863,15 +19496,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
+                        /** @enum {string} */
+                        contract_version: "access-v2";
+                        policy_version: string;
                         user: {
                             id: string;
                             human_id: string | null;
                             display_name: string;
                             email: string | null;
+                            has_till_pin?: boolean;
                             /** @description GSA-T03/ticket 03A: true while this login holds an administrator-issued temporary password. Until E239 replaces it, every route but this session's own lifecycle and E239 answers 403 PASSWORD_CHANGE_REQUIRED. */
                             must_change_password: boolean;
                         };
-                        roles: string[];
+                        assignments: {
+                            /** Format: uuid */
+                            id: string;
+                            role_code: string;
+                            all_sites: boolean;
+                            site_ids: number[];
+                            all_brands: boolean;
+                            brand_ids: number[];
+                            /** Format: date-time */
+                            effective_from: string;
+                            /** Format: date-time */
+                            effective_to?: string | null;
+                        }[];
+                        navigation: string[];
+                        sections: {
+                            [key: string]: unknown;
+                        }[];
+                        capabilities: {
+                            [key: string]: string;
+                        };
+                        display_actions: string[];
+                        context_choices: {
+                            /** @enum {string} */
+                            mode?: "units" | "brands";
+                            all_units?: boolean;
+                            sites?: {
+                                [key: string]: unknown;
+                            }[];
+                            brands?: {
+                                [key: string]: unknown;
+                            }[];
+                        };
                         sites: {
                             id: string;
                             code: string;
@@ -17883,9 +19551,6 @@ export interface operations {
                              */
                             stock_contract: "legacy" | "goods_v1";
                         }[];
-                        sbus: string[];
-                        actions: string[];
-                        field_grants: string[];
                         /** Format: date-time */
                         expires_at: string;
                         /** Format: date-time */
@@ -17893,10 +19558,6 @@ export interface operations {
                         /** @description Store operations feature switches (ST-OPS-6): each feature that is on at one or more of the stores this person may act at, with the ids of those stores. A feature absent here is off everywhere this person works, and its menus hide. */
                         store_features: {
                             [key: string]: string[];
-                        };
-                        /** @description The legacy shell profile (UserProfileSerializer). */
-                        profile: {
-                            [key: string]: unknown;
                         };
                         /** @description Sent by E001 and E003 only, which issue or rotate the session. */
                         csrf_token?: string;
@@ -18002,15 +19663,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
+                        /** @enum {string} */
+                        contract_version: "access-v2";
+                        policy_version: string;
                         user: {
                             id: string;
                             human_id: string | null;
                             display_name: string;
                             email: string | null;
+                            has_till_pin?: boolean;
                             /** @description GSA-T03/ticket 03A: true while this login holds an administrator-issued temporary password. Until E239 replaces it, every route but this session's own lifecycle and E239 answers 403 PASSWORD_CHANGE_REQUIRED. */
                             must_change_password: boolean;
                         };
-                        roles: string[];
+                        assignments: {
+                            /** Format: uuid */
+                            id: string;
+                            role_code: string;
+                            all_sites: boolean;
+                            site_ids: number[];
+                            all_brands: boolean;
+                            brand_ids: number[];
+                            /** Format: date-time */
+                            effective_from: string;
+                            /** Format: date-time */
+                            effective_to?: string | null;
+                        }[];
+                        navigation: string[];
+                        sections: {
+                            [key: string]: unknown;
+                        }[];
+                        capabilities: {
+                            [key: string]: string;
+                        };
+                        display_actions: string[];
+                        context_choices: {
+                            /** @enum {string} */
+                            mode?: "units" | "brands";
+                            all_units?: boolean;
+                            sites?: {
+                                [key: string]: unknown;
+                            }[];
+                            brands?: {
+                                [key: string]: unknown;
+                            }[];
+                        };
                         sites: {
                             id: string;
                             code: string;
@@ -18022,9 +19718,6 @@ export interface operations {
                              */
                             stock_contract: "legacy" | "goods_v1";
                         }[];
-                        sbus: string[];
-                        actions: string[];
-                        field_grants: string[];
                         /** Format: date-time */
                         expires_at: string;
                         /** Format: date-time */
@@ -18032,10 +19725,6 @@ export interface operations {
                         /** @description Store operations feature switches (ST-OPS-6): each feature that is on at one or more of the stores this person may act at, with the ids of those stores. A feature absent here is off everywhere this person works, and its menus hide. */
                         store_features: {
                             [key: string]: string[];
-                        };
-                        /** @description The legacy shell profile (UserProfileSerializer). */
-                        profile: {
-                            [key: string]: unknown;
                         };
                         /** @description Sent by E001 and E003 only, which issue or rotate the session. */
                         csrf_token?: string;
@@ -18133,15 +19822,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
+                        /** @enum {string} */
+                        contract_version: "access-v2";
+                        policy_version: string;
                         user: {
                             id: string;
                             human_id: string | null;
                             display_name: string;
                             email: string | null;
+                            has_till_pin?: boolean;
                             /** @description GSA-T03/ticket 03A: true while this login holds an administrator-issued temporary password. Until E239 replaces it, every route but this session's own lifecycle and E239 answers 403 PASSWORD_CHANGE_REQUIRED. */
                             must_change_password: boolean;
                         };
-                        roles: string[];
+                        assignments: {
+                            /** Format: uuid */
+                            id: string;
+                            role_code: string;
+                            all_sites: boolean;
+                            site_ids: number[];
+                            all_brands: boolean;
+                            brand_ids: number[];
+                            /** Format: date-time */
+                            effective_from: string;
+                            /** Format: date-time */
+                            effective_to?: string | null;
+                        }[];
+                        navigation: string[];
+                        sections: {
+                            [key: string]: unknown;
+                        }[];
+                        capabilities: {
+                            [key: string]: string;
+                        };
+                        display_actions: string[];
+                        context_choices: {
+                            /** @enum {string} */
+                            mode?: "units" | "brands";
+                            all_units?: boolean;
+                            sites?: {
+                                [key: string]: unknown;
+                            }[];
+                            brands?: {
+                                [key: string]: unknown;
+                            }[];
+                        };
                         sites: {
                             id: string;
                             code: string;
@@ -18153,9 +19877,6 @@ export interface operations {
                              */
                             stock_contract: "legacy" | "goods_v1";
                         }[];
-                        sbus: string[];
-                        actions: string[];
-                        field_grants: string[];
                         /** Format: date-time */
                         expires_at: string;
                         /** Format: date-time */
@@ -18163,10 +19884,6 @@ export interface operations {
                         /** @description Store operations feature switches (ST-OPS-6): each feature that is on at one or more of the stores this person may act at, with the ids of those stores. A feature absent here is off everywhere this person works, and its menus hide. */
                         store_features: {
                             [key: string]: string[];
-                        };
-                        /** @description The legacy shell profile (UserProfileSerializer). */
-                        profile: {
-                            [key: string]: unknown;
                         };
                         /** @description Sent by E001 and E003 only, which issue or rotate the session. */
                         csrf_token?: string;
@@ -19984,3937 +21701,6 @@ export interface operations {
                 };
             };
             404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_access_matrix_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        roles?: {
-                            [key: string]: unknown;
-                        }[];
-                        grants?: {
-                            [key: string]: unknown;
-                        }[];
-                        actions?: {
-                            code?: string;
-                            label?: string;
-                        }[];
-                        restrictions?: {
-                            action?: string;
-                            reason?: string;
-                        }[];
-                        role_maxima?: {
-                            role_code: string;
-                            actions: string[];
-                            fields: string[];
-                            scope_kinds: string[];
-                        }[];
-                    } & {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_actor_policies_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        items?: ({
-                            id?: string;
-                            /** @enum {string} */
-                            record_contract?: "goods-v1";
-                            revision?: number;
-                            state?: string;
-                            version?: number | null;
-                            data?: {
-                                [key: string]: unknown;
-                            };
-                        } & {
-                            [key: string]: unknown;
-                        })[];
-                        next_cursor?: string | null;
-                        /** Format: date-time */
-                        as_of?: string;
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_actor_policies_detail: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                action: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id?: string;
-                        /** @enum {string} */
-                        record_contract?: "goods-v1";
-                        revision?: number;
-                        content_hash?: string;
-                        state?: string;
-                        number?: string | null;
-                        version?: number | null;
-                        context?: {
-                            site_id?: string | null;
-                            entity_id?: string | null;
-                            brand_id?: string | null;
-                            sbu_id?: string | null;
-                        };
-                        data?: {
-                            action?: string;
-                            roles?: string[];
-                            purpose?: string | null;
-                            site_ids?: number[];
-                            brand_ids?: number[];
-                            require_distinct?: boolean;
-                            qty_max?: number | null;
-                            value_max?: string | null;
-                            step_up?: boolean;
-                            unknown_value?: string | null;
-                        };
-                        allowed_actions?: string[];
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        message?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        message?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        message?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        message?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_actor_policies_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                action: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    /** Format: uuid */
-                    command_id: string;
-                    /** @enum {string} */
-                    contract_version: "goods-v1";
-                    expected_revision: number;
-                    action?: string;
-                    brand_ids?: number[];
-                    purpose?: string | null;
-                    qty_max?: number | null;
-                    require_distinct?: boolean;
-                    roles?: string[];
-                    site_ids?: number[];
-                    step_up?: boolean;
-                    unknown_value?: string | null;
-                    value_max?: string | null;
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id?: string;
-                        /** @enum {string} */
-                        record_contract?: "goods-v1";
-                        revision?: number;
-                        content_hash?: string;
-                        state?: string;
-                        number?: string | null;
-                        version?: number | null;
-                        context?: {
-                            site_id?: string | null;
-                            entity_id?: string | null;
-                            brand_id?: string | null;
-                            sbu_id?: string | null;
-                        };
-                        data?: {
-                            action?: string;
-                            roles?: string[];
-                            purpose?: string | null;
-                            site_ids?: number[];
-                            brand_ids?: number[];
-                            require_distinct?: boolean;
-                            qty_max?: number | null;
-                            value_max?: string | null;
-                            step_up?: boolean;
-                            unknown_value?: string | null;
-                        };
-                        allowed_actions?: string[];
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        message?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        message?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        message?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        message?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        message?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        message?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_approval_policies_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        items?: ({
-                            id?: string;
-                            /** @enum {string} */
-                            record_contract?: "goods-v1";
-                            revision?: number;
-                            state?: string;
-                            version?: number | null;
-                            data?: {
-                                [key: string]: unknown;
-                            };
-                        } & {
-                            [key: string]: unknown;
-                        })[];
-                        next_cursor?: string | null;
-                        /** Format: date-time */
-                        as_of?: string;
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_approval_policies_detail: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                kind: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id?: string;
-                        /** @enum {string} */
-                        record_contract?: "goods-v1";
-                        revision?: number;
-                        content_hash?: string;
-                        state?: string;
-                        number?: string | null;
-                        version?: number | null;
-                        context?: {
-                            site_id?: string | null;
-                            entity_id?: string | null;
-                            brand_id?: string | null;
-                            sbu_id?: string | null;
-                        };
-                        data?: {
-                            action?: string;
-                            roles?: string[];
-                            purpose?: string | null;
-                            site_ids?: number[];
-                            brand_ids?: number[];
-                            require_distinct?: boolean;
-                            qty_max?: number | null;
-                            value_max?: string | null;
-                            step_up?: boolean;
-                            unknown_value?: string | null;
-                        };
-                        allowed_actions?: string[];
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        message?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        message?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        message?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        message?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_approval_policies_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                kind: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    /** Format: uuid */
-                    command_id: string;
-                    /** @enum {string} */
-                    contract_version: "goods-v1";
-                    expected_revision: number;
-                    action?: string;
-                    brand_ids?: number[];
-                    purpose?: string | null;
-                    qty_max?: number | null;
-                    require_distinct?: boolean;
-                    roles?: string[];
-                    site_ids?: number[];
-                    step_up?: boolean;
-                    unknown_value?: string | null;
-                    value_max?: string | null;
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id?: string;
-                        /** @enum {string} */
-                        record_contract?: "goods-v1";
-                        revision?: number;
-                        content_hash?: string;
-                        state?: string;
-                        number?: string | null;
-                        version?: number | null;
-                        context?: {
-                            site_id?: string | null;
-                            entity_id?: string | null;
-                            brand_id?: string | null;
-                            sbu_id?: string | null;
-                        };
-                        data?: {
-                            action?: string;
-                            roles?: string[];
-                            purpose?: string | null;
-                            site_ids?: number[];
-                            brand_ids?: number[];
-                            require_distinct?: boolean;
-                            qty_max?: number | null;
-                            value_max?: string | null;
-                            step_up?: boolean;
-                            unknown_value?: string | null;
-                        };
-                        allowed_actions?: string[];
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        message?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        message?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        message?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        message?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        message?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        message?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_meta_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_privileged_changes_retrieve: {
-        parameters: {
-            query?: {
-                /** @description Opaque next-page cursor, newest first by a stable keyset. */
-                cursor?: string;
-                /** @description Only this change, by id; the owned follow-up links here (03D). */
-                id?: string;
-                /** @description Changes per page, from 1 through 100. */
-                limit?: number;
-                /** @description Matches the action or subject, 100 characters at most. */
-                q?: string;
-                /** @description Only changes recorded at this site. */
-                site_id?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        items?: ({
-                            action?: string;
-                            subject_key?: string | null;
-                            actor_id?: string | null;
-                            actor_name?: string | null;
-                            service_code?: string | null;
-                            outcome?: string;
-                            reason_code?: string | null;
-                            site_id?: string | null;
-                            before?: {
-                                [key: string]: unknown;
-                            }[];
-                            after?: {
-                                [key: string]: unknown;
-                            }[];
-                            /** Format: date-time */
-                            event_at?: string;
-                            /** Format: date-time */
-                            recorded_at?: string;
-                            reviews?: {
-                                reviewer_id?: string;
-                                reviewer_name?: string | null;
-                                note?: string | null;
-                                /** Format: date-time */
-                                reviewed_at?: string;
-                            }[];
-                        } & {
-                            [key: string]: unknown;
-                        })[];
-                        next_cursor?: string | null;
-                        /** Format: date-time */
-                        as_of?: string;
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_privileged_changes_review_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    /** Format: uuid */
-                    command_id: string;
-                    /** @enum {string} */
-                    contract_version: "goods-v1";
-                    expected_revision?: number;
-                    note: string;
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        action?: string;
-                        subject_key?: string | null;
-                        actor_id?: string | null;
-                        actor_name?: string | null;
-                        service_code?: string | null;
-                        outcome?: string;
-                        reason_code?: string | null;
-                        site_id?: string | null;
-                        before?: {
-                            [key: string]: unknown;
-                        }[];
-                        after?: {
-                            [key: string]: unknown;
-                        }[];
-                        /** Format: date-time */
-                        event_at?: string;
-                        /** Format: date-time */
-                        recorded_at?: string;
-                        reviews?: {
-                            reviewer_id?: string;
-                            reviewer_name?: string | null;
-                            note?: string | null;
-                            /** Format: date-time */
-                            reviewed_at?: string;
-                        }[];
-                    } & {
-                        [key: string]: unknown;
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_roles_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        items?: {
-                            id?: string;
-                            /** @enum {string} */
-                            record_contract?: "goods-v1";
-                            revision?: number;
-                            content_hash?: string;
-                            state?: string;
-                            number?: string | null;
-                            version?: number | null;
-                            context?: {
-                                [key: string]: unknown;
-                            };
-                            allowed_actions?: string[];
-                            /** @description RoleDTO (E075-E080). */
-                            data?: {
-                                code?: string;
-                                name?: string;
-                                description?: string | null;
-                                active?: boolean;
-                            };
-                        }[];
-                        next_cursor?: string | null;
-                        /** Format: date-time */
-                        as_of?: string;
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_roles_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    /** Format: uuid */
-                    command_id: string;
-                    /** @enum {string} */
-                    contract_version: "goods-v1";
-                    code: string;
-                    name: string;
-                    description?: string | null;
-                    active?: boolean;
-                };
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id?: string;
-                        /** @enum {string} */
-                        record_contract?: "goods-v1";
-                        revision?: number;
-                        content_hash?: string;
-                        state?: string;
-                        number?: string | null;
-                        version?: number | null;
-                        context?: {
-                            [key: string]: unknown;
-                        };
-                        allowed_actions?: string[];
-                        /** @description RoleDTO (E075-E080). */
-                        data?: {
-                            code?: string;
-                            name?: string;
-                            description?: string | null;
-                            active?: boolean;
-                        };
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_roles_access_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                code: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    /** Format: uuid */
-                    command_id: string;
-                    /** @enum {string} */
-                    contract_version: "goods-v1";
-                    expected_revision: number;
-                    grants: {
-                        scope: {
-                            /** @enum {string} */
-                            scope_kind: "tenant" | "entity" | "site" | "sbu" | "brand";
-                        };
-                        actions: {
-                            actions: string[];
-                            /** @enum {string} */
-                            scope_kind?: "tenant" | "entity" | "site" | "sbu" | "brand";
-                        };
-                        fields: string[];
-                    }[];
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id?: string;
-                        /** @enum {string} */
-                        record_contract?: "goods-v1";
-                        revision?: number;
-                        content_hash?: string;
-                        state?: string;
-                        number?: string | null;
-                        version?: number | null;
-                        context?: {
-                            [key: string]: unknown;
-                        };
-                        allowed_actions?: string[];
-                        /** @description RoleDTO (E075-E080). */
-                        data?: {
-                            code?: string;
-                            name?: string;
-                            description?: string | null;
-                            active?: boolean;
-                        };
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_roles_detail: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id?: string;
-                        /** @enum {string} */
-                        record_contract?: "goods-v1";
-                        revision?: number;
-                        content_hash?: string;
-                        state?: string;
-                        number?: string | null;
-                        version?: number | null;
-                        context?: {
-                            [key: string]: unknown;
-                        };
-                        allowed_actions?: string[];
-                        /** @description RoleDTO (E075-E080). */
-                        data?: {
-                            code?: string;
-                            name?: string;
-                            description?: string | null;
-                            active?: boolean;
-                        };
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_roles_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    /** Format: uuid */
-                    command_id: string;
-                    /** @enum {string} */
-                    contract_version: "goods-v1";
-                    expected_revision: number;
-                    code?: string;
-                    name?: string;
-                    description?: string | null;
-                    active?: boolean;
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id?: string;
-                        /** @enum {string} */
-                        record_contract?: "goods-v1";
-                        revision?: number;
-                        content_hash?: string;
-                        state?: string;
-                        number?: string | null;
-                        version?: number | null;
-                        context?: {
-                            [key: string]: unknown;
-                        };
-                        allowed_actions?: string[];
-                        /** @description RoleDTO (E075-E080). */
-                        data?: {
-                            code?: string;
-                            name?: string;
-                            description?: string | null;
-                            active?: boolean;
-                        };
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_staff_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        items?: {
-                            id?: string;
-                            /** @enum {string} */
-                            record_contract?: "goods-v1";
-                            revision?: number;
-                            content_hash?: string;
-                            state?: string;
-                            number?: string | null;
-                            version?: number | null;
-                            context?: {
-                                [key: string]: unknown;
-                            };
-                            allowed_actions?: string[];
-                            /** @description StaffDTO (E061-E065). */
-                            data?: {
-                                /** Format: uuid */
-                                human_id?: string;
-                                staff_code?: string;
-                                display_name?: string;
-                                salesperson?: boolean;
-                                site_id?: string | null;
-                                /** Format: date-time */
-                                effective_from?: string | null;
-                                mobile?: string | null;
-                            };
-                        }[];
-                        next_cursor?: string | null;
-                        /** Format: date-time */
-                        as_of?: string;
-                        /** @description Whether the caller's staff.manage reaches tenant-wide, so they may create a head-office person with no site (E062). */
-                        can_create_unplaced?: boolean;
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_staff_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    /** Format: uuid */
-                    command_id: string;
-                    /** @enum {string} */
-                    contract_version: "goods-v1";
-                    /** Format: uuid */
-                    human_id?: string;
-                    staff_code: string;
-                    display_name: string;
-                    mobile?: string | null;
-                    salesperson?: boolean;
-                    site_id?: string | null;
-                    /** Format: date-time */
-                    effective_from?: string | null;
-                };
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id?: string;
-                        /** @enum {string} */
-                        record_contract?: "goods-v1";
-                        revision?: number;
-                        content_hash?: string;
-                        state?: string;
-                        number?: string | null;
-                        version?: number | null;
-                        context?: {
-                            [key: string]: unknown;
-                        };
-                        allowed_actions?: string[];
-                        /** @description StaffDTO (E061-E065). */
-                        data?: {
-                            /** Format: uuid */
-                            human_id?: string;
-                            staff_code?: string;
-                            display_name?: string;
-                            salesperson?: boolean;
-                            site_id?: string | null;
-                            /** Format: date-time */
-                            effective_from?: string | null;
-                            mobile?: string | null;
-                        };
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_staff_detail: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id?: string;
-                        /** @enum {string} */
-                        record_contract?: "goods-v1";
-                        revision?: number;
-                        content_hash?: string;
-                        state?: string;
-                        number?: string | null;
-                        version?: number | null;
-                        context?: {
-                            [key: string]: unknown;
-                        };
-                        allowed_actions?: string[];
-                        /** @description StaffDTO (E061-E065). */
-                        data?: {
-                            /** Format: uuid */
-                            human_id?: string;
-                            staff_code?: string;
-                            display_name?: string;
-                            salesperson?: boolean;
-                            site_id?: string | null;
-                            /** Format: date-time */
-                            effective_from?: string | null;
-                            mobile?: string | null;
-                        };
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_staff_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    /** Format: uuid */
-                    command_id: string;
-                    /** @enum {string} */
-                    contract_version: "goods-v1";
-                    /** Format: uuid */
-                    human_id?: string;
-                    staff_code?: string;
-                    display_name?: string;
-                    mobile?: string | null;
-                    salesperson?: boolean;
-                    site_id?: string | null;
-                    /** Format: date-time */
-                    effective_from?: string | null;
-                    expected_revision: number;
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id?: string;
-                        /** @enum {string} */
-                        record_contract?: "goods-v1";
-                        revision?: number;
-                        content_hash?: string;
-                        state?: string;
-                        number?: string | null;
-                        version?: number | null;
-                        context?: {
-                            [key: string]: unknown;
-                        };
-                        allowed_actions?: string[];
-                        /** @description StaffDTO (E061-E065). */
-                        data?: {
-                            /** Format: uuid */
-                            human_id?: string;
-                            staff_code?: string;
-                            display_name?: string;
-                            salesperson?: boolean;
-                            site_id?: string | null;
-                            /** Format: date-time */
-                            effective_from?: string | null;
-                            mobile?: string | null;
-                        };
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_staff_assign_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    /** Format: uuid */
-                    command_id: string;
-                    /** @enum {string} */
-                    contract_version: "goods-v1";
-                    expected_revision: number;
-                    site_id: number;
-                    /** Format: date-time */
-                    effective_from: string;
-                    reason_code: string;
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id?: string;
-                        /** @enum {string} */
-                        record_contract?: "goods-v1";
-                        revision?: number;
-                        content_hash?: string;
-                        state?: string;
-                        number?: string | null;
-                        version?: number | null;
-                        context?: {
-                            [key: string]: unknown;
-                        };
-                        allowed_actions?: string[];
-                        /** @description StaffAssignmentDTO (E070). */
-                        data?: {
-                            /** Format: uuid */
-                            staff_id?: string;
-                            site_id?: string;
-                            /** Format: date-time */
-                            effective_from?: string;
-                            /** Format: date-time */
-                            effective_to?: string | null;
-                            primary?: boolean;
-                        };
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_staff_retire_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    /** Format: uuid */
-                    command_id: string;
-                    /** @enum {string} */
-                    contract_version: "goods-v1";
-                    expected_revision: number;
-                    reason_code: string;
-                    /** Format: date-time */
-                    effective_at: string;
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id?: string;
-                        /** @enum {string} */
-                        record_contract?: "goods-v1";
-                        revision?: number;
-                        content_hash?: string;
-                        state?: string;
-                        number?: string | null;
-                        version?: number | null;
-                        context?: {
-                            [key: string]: unknown;
-                        };
-                        allowed_actions?: string[];
-                        /** @description StaffDTO (E061-E065). */
-                        data?: {
-                            /** Format: uuid */
-                            human_id?: string;
-                            staff_code?: string;
-                            display_name?: string;
-                            salesperson?: boolean;
-                            site_id?: string | null;
-                            /** Format: date-time */
-                            effective_from?: string | null;
-                            mobile?: string | null;
-                        };
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_users_retrieve: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        items?: {
-                            id?: string;
-                            /** @enum {string} */
-                            record_contract?: "goods-v1";
-                            revision?: number;
-                            content_hash?: string;
-                            state?: string;
-                            number?: string | null;
-                            version?: number | null;
-                            context?: {
-                                [key: string]: unknown;
-                            };
-                            allowed_actions?: string[];
-                            /** @description LoginDTO (E071-E074). */
-                            data?: {
-                                human_id?: string | null;
-                                email?: string;
-                                display_name?: string;
-                                active?: boolean;
-                                must_change_password?: boolean;
-                                has_till_pin?: boolean;
-                                may_hold_till_pin?: boolean;
-                                may_reset_till_pin?: boolean;
-                                grants?: {
-                                    id?: string;
-                                    /** Format: uuid */
-                                    human_id?: string;
-                                    role_id?: string;
-                                    role_code?: string;
-                                    scope?: {
-                                        [key: string]: unknown;
-                                    };
-                                    actions?: {
-                                        actions?: string[];
-                                        scope_kind?: string;
-                                    };
-                                    fields?: string[];
-                                    /** Format: date-time */
-                                    effective_from?: string | null;
-                                    /** Format: date-time */
-                                    effective_to?: string | null;
-                                }[];
-                            };
-                        }[];
-                        next_cursor?: string | null;
-                        /** Format: date-time */
-                        as_of?: string;
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_users_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    /** Format: uuid */
-                    command_id: string;
-                    /** @enum {string} */
-                    contract_version: "goods-v1";
-                    human_id: string;
-                    email: string;
-                    display_name: string;
-                    active?: boolean;
-                    password?: string;
-                    identity_email_confirmed?: boolean;
-                };
-            };
-        };
-        responses: {
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id?: string;
-                        /** @enum {string} */
-                        record_contract?: "goods-v1";
-                        revision?: number;
-                        content_hash?: string;
-                        state?: string;
-                        number?: string | null;
-                        version?: number | null;
-                        context?: {
-                            [key: string]: unknown;
-                        };
-                        allowed_actions?: string[];
-                        /** @description LoginDTO (E071-E074). */
-                        data?: {
-                            human_id?: string | null;
-                            email?: string;
-                            display_name?: string;
-                            active?: boolean;
-                            must_change_password?: boolean;
-                            has_till_pin?: boolean;
-                            may_hold_till_pin?: boolean;
-                            may_reset_till_pin?: boolean;
-                            grants?: {
-                                id?: string;
-                                /** Format: uuid */
-                                human_id?: string;
-                                role_id?: string;
-                                role_code?: string;
-                                scope?: {
-                                    [key: string]: unknown;
-                                };
-                                actions?: {
-                                    actions?: string[];
-                                    scope_kind?: string;
-                                };
-                                fields?: string[];
-                                /** Format: date-time */
-                                effective_from?: string | null;
-                                /** Format: date-time */
-                                effective_to?: string | null;
-                            }[];
-                        };
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_users_detail: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id?: string;
-                        /** @enum {string} */
-                        record_contract?: "goods-v1";
-                        revision?: number;
-                        content_hash?: string;
-                        state?: string;
-                        number?: string | null;
-                        version?: number | null;
-                        context?: {
-                            [key: string]: unknown;
-                        };
-                        allowed_actions?: string[];
-                        /** @description LoginDTO (E071-E074). */
-                        data?: {
-                            human_id?: string | null;
-                            email?: string;
-                            display_name?: string;
-                            active?: boolean;
-                            must_change_password?: boolean;
-                            has_till_pin?: boolean;
-                            may_hold_till_pin?: boolean;
-                            may_reset_till_pin?: boolean;
-                            grants?: {
-                                id?: string;
-                                /** Format: uuid */
-                                human_id?: string;
-                                role_id?: string;
-                                role_code?: string;
-                                scope?: {
-                                    [key: string]: unknown;
-                                };
-                                actions?: {
-                                    actions?: string[];
-                                    scope_kind?: string;
-                                };
-                                fields?: string[];
-                                /** Format: date-time */
-                                effective_from?: string | null;
-                                /** Format: date-time */
-                                effective_to?: string | null;
-                            }[];
-                        };
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_users_partial_update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    /** Format: uuid */
-                    command_id: string;
-                    /** @enum {string} */
-                    contract_version: "goods-v1";
-                    email?: string;
-                    display_name?: string;
-                    active?: boolean;
-                    password?: string;
-                    identity_email_confirmed?: boolean;
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id?: string;
-                        /** @enum {string} */
-                        record_contract?: "goods-v1";
-                        revision?: number;
-                        content_hash?: string;
-                        state?: string;
-                        number?: string | null;
-                        version?: number | null;
-                        context?: {
-                            [key: string]: unknown;
-                        };
-                        allowed_actions?: string[];
-                        /** @description LoginDTO (E071-E074). */
-                        data?: {
-                            human_id?: string | null;
-                            email?: string;
-                            display_name?: string;
-                            active?: boolean;
-                            must_change_password?: boolean;
-                            has_till_pin?: boolean;
-                            may_hold_till_pin?: boolean;
-                            may_reset_till_pin?: boolean;
-                            grants?: {
-                                id?: string;
-                                /** Format: uuid */
-                                human_id?: string;
-                                role_id?: string;
-                                role_code?: string;
-                                scope?: {
-                                    [key: string]: unknown;
-                                };
-                                actions?: {
-                                    actions?: string[];
-                                    scope_kind?: string;
-                                };
-                                fields?: string[];
-                                /** Format: date-time */
-                                effective_from?: string | null;
-                                /** Format: date-time */
-                                effective_to?: string | null;
-                            }[];
-                        };
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_users_grants_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    /** Format: uuid */
-                    command_id: string;
-                    /** @enum {string} */
-                    contract_version: "goods-v1";
-                    expected_revision: number;
-                    reason_code: string;
-                    grants: ({
-                        /** Format: uuid */
-                        revokes: string;
-                        /** Format: date-time */
-                        effective_from?: string;
-                        /** Format: uuid */
-                        human_id?: string;
-                    } | {
-                        /** Format: uuid */
-                        human_id?: string;
-                        role_id?: number;
-                        scope: {
-                            scope_kind: string;
-                            entity_id?: number;
-                            site_id?: number;
-                            sbu_id?: number;
-                            brand_id?: number;
-                        };
-                        actions: {
-                            actions: string[];
-                            scope_kind?: string;
-                        };
-                        fields: string[];
-                        /** Format: date-time */
-                        effective_from: string;
-                        /** Format: date-time */
-                        effective_to?: string;
-                    })[];
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id?: string;
-                        /** @enum {string} */
-                        record_contract?: "goods-v1";
-                        revision?: number;
-                        content_hash?: string;
-                        state?: string;
-                        number?: string | null;
-                        version?: number | null;
-                        context?: {
-                            [key: string]: unknown;
-                        };
-                        allowed_actions?: string[];
-                        /** @description LoginDTO (E071-E074). */
-                        data?: {
-                            human_id?: string | null;
-                            email?: string;
-                            display_name?: string;
-                            active?: boolean;
-                            must_change_password?: boolean;
-                            has_till_pin?: boolean;
-                            may_hold_till_pin?: boolean;
-                            may_reset_till_pin?: boolean;
-                            grants?: {
-                                id?: string;
-                                /** Format: uuid */
-                                human_id?: string;
-                                role_id?: string;
-                                role_code?: string;
-                                scope?: {
-                                    [key: string]: unknown;
-                                };
-                                actions?: {
-                                    actions?: string[];
-                                    scope_kind?: string;
-                                };
-                                fields?: string[];
-                                /** Format: date-time */
-                                effective_from?: string | null;
-                                /** Format: date-time */
-                                effective_to?: string | null;
-                            }[];
-                        };
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_users_till_pin_set: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    /** Format: uuid */
-                    command_id: string;
-                    contract_version: string;
-                    /** @description 4 to 6 digits. Stored only as a hash. */
-                    pin: string;
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id?: string;
-                        /** @enum {string} */
-                        record_contract?: "goods-v1";
-                        revision?: number;
-                        content_hash?: string;
-                        state?: string;
-                        number?: string | null;
-                        version?: number | null;
-                        context?: {
-                            [key: string]: unknown;
-                        };
-                        allowed_actions?: string[];
-                        /** @description LoginDTO (E071-E074). */
-                        data?: {
-                            human_id?: string | null;
-                            email?: string;
-                            display_name?: string;
-                            active?: boolean;
-                            must_change_password?: boolean;
-                            has_till_pin?: boolean;
-                            may_hold_till_pin?: boolean;
-                            may_reset_till_pin?: boolean;
-                            grants?: {
-                                id?: string;
-                                /** Format: uuid */
-                                human_id?: string;
-                                role_id?: string;
-                                role_code?: string;
-                                scope?: {
-                                    [key: string]: unknown;
-                                };
-                                actions?: {
-                                    actions?: string[];
-                                    scope_kind?: string;
-                                };
-                                fields?: string[];
-                                /** Format: date-time */
-                                effective_from?: string | null;
-                                /** Format: date-time */
-                                effective_to?: string | null;
-                            }[];
-                        };
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            503: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_auth_admin_users_till_pin_reset: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    /** Format: uuid */
-                    command_id: string;
-                    contract_version: string;
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id?: string;
-                        /** @enum {string} */
-                        record_contract?: "goods-v1";
-                        revision?: number;
-                        content_hash?: string;
-                        state?: string;
-                        number?: string | null;
-                        version?: number | null;
-                        context?: {
-                            [key: string]: unknown;
-                        };
-                        allowed_actions?: string[];
-                        /** @description LoginDTO (E071-E074). */
-                        data?: {
-                            human_id?: string | null;
-                            email?: string;
-                            display_name?: string;
-                            active?: boolean;
-                            must_change_password?: boolean;
-                            has_till_pin?: boolean;
-                            may_hold_till_pin?: boolean;
-                            may_reset_till_pin?: boolean;
-                            grants?: {
-                                id?: string;
-                                /** Format: uuid */
-                                human_id?: string;
-                                role_id?: string;
-                                role_code?: string;
-                                scope?: {
-                                    [key: string]: unknown;
-                                };
-                                actions?: {
-                                    actions?: string[];
-                                    scope_kind?: string;
-                                };
-                                fields?: string[];
-                                /** Format: date-time */
-                                effective_from?: string | null;
-                                /** Format: date-time */
-                                effective_to?: string | null;
-                            }[];
-                        };
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            409: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        error?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                        retryable?: boolean;
-                    };
-                };
-            };
-            503: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -31043,6 +28829,65 @@ export interface operations {
                         details?: {
                             [key: string]: unknown;
                         };
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_masters_brand_reconciliation_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_masters_brand_reconciliation_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    /** @enum {string} */
+                    resource: "alerts.alert" | "approvals.approval" | "outbound.countsessionline" | "outbound.markdamagedline" | "outbound.returntovendorline" | "outbound.stockadjustmentline" | "outbound.stockrequestline" | "outbound.storetransferline" | "outbound.transfergapclosureline" | "outbound.transferreceiptexception" | "outbound.vflipline" | "outbound.writeoffline" | "reporting.brandsalelinefact" | "reporting.discountfundingfact" | "reporting.giftitcfact" | "reporting.inventoryitemfact" | "reporting.inventoryreceiptfact" | "reporting.inventorystockfact" | "reporting.marginsharefact" | "reporting.offersimlinefact" | "reporting.saleslinefact" | "reporting.shrinkagelinefact" | "sell.returnline" | "sell.saleline" | "sell.savedsize" | "stockledger.intransitstock" | "stockledger.quarantinestock" | "stockledger.stockledgerentry" | "stockledger.stockonhand";
+                    current_password: string;
+                    rows: {
+                        id: number;
+                        brand_id: number;
+                        fingerprint: string;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
                     };
                 };
             };
@@ -38350,133 +36195,6 @@ export interface operations {
                 };
             };
             404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        message?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-        };
-    };
-    goods_v1_masters_stores_sbus_retire_create: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-                site_id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    /** Format: uuid */
-                    command_id: string;
-                    /** @enum {string} */
-                    contract_version: "goods-v1";
-                    expected_revision: number;
-                    reason_code: string;
-                    reviewed_hash: string;
-                };
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        id?: string;
-                        /** @enum {string} */
-                        record_contract?: "goods-v1";
-                        revision?: number;
-                        content_hash?: string;
-                        state?: string;
-                        number?: string | null;
-                        version?: number | null;
-                        context?: {
-                            site_id?: string | null;
-                            entity_id?: string | null;
-                            brand_id?: string | null;
-                            sbu_id?: string | null;
-                        };
-                        data?: {
-                            site_id?: string;
-                            brand_id?: string | null;
-                            code?: string;
-                            /** Format: date-time */
-                            retired_at?: string | null;
-                        };
-                        allowed_actions?: string[];
-                    };
-                };
-            };
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        message?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        message?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        message?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        code?: string;
-                        message?: string;
-                        details?: {
-                            [key: string]: unknown;
-                        };
-                    };
-                };
-            };
-            409: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -76679,8 +74397,8 @@ export interface operations {
                 content: {
                     "application/json": {
                         summary: {
-                            value_paise: number;
-                            value_rupees: string;
+                            value_paise?: number;
+                            value_rupees?: string;
                             units_in_transit: number;
                             transfers: number;
                         };
@@ -76697,8 +74415,8 @@ export interface operations {
                             item: string;
                             hsn: string;
                             qty: number;
-                            value_paise: number;
-                            value_rupees: string;
+                            value_paise?: number;
+                            value_rupees?: string;
                             /** Format: date-time */
                             updated_at: string;
                         }[];
@@ -76731,8 +74449,8 @@ export interface operations {
                         /** @enum {string} */
                         group_by: "sku" | "brand" | "store";
                         summary: {
-                            value_paise: number;
-                            value_rupees: string;
+                            value_paise?: number;
+                            value_rupees?: string;
                             units_on_hand: number;
                             lines: number;
                             displayed: number;
@@ -76752,8 +74470,8 @@ export interface operations {
                             sku_code: string;
                             net_qty: number;
                             skus: number;
-                            net_value_paise: number;
-                            net_value_rupees: string;
+                            net_value_paise?: number;
+                            net_value_rupees?: string;
                         }[];
                     };
                 };
@@ -76779,8 +74497,8 @@ export interface operations {
                 content: {
                     "application/json": {
                         summary: {
-                            value_paise: number;
-                            value_rupees: string;
+                            value_paise?: number;
+                            value_rupees?: string;
                             units_quarantined: number;
                             lines: number;
                         };
@@ -76796,8 +74514,8 @@ export interface operations {
                             item: string;
                             hsn: string;
                             qty: number;
-                            value_paise: number;
-                            value_rupees: string;
+                            value_paise?: number;
+                            value_rupees?: string;
                             marked_by: string | null;
                             /** Format: date-time */
                             marked_at: string;
@@ -76824,10 +74542,10 @@ export interface operations {
                     "application/json": {
                         entries: number;
                         net_qty: number;
-                        net_value_paise: number;
+                        net_value_paise?: number;
                         distinct_skus: number;
                         distinct_documents: number;
-                        net_value_rupees: string;
+                        net_value_rupees?: string;
                     };
                 };
             };

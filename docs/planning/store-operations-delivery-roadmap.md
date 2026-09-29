@@ -3,7 +3,7 @@
 **Project:** RetailsOps — KDPS first deployment\
 **Created:** 29 September 2026\
 **Purpose:** A discussion-by-discussion delivery checklist based on the decisions made in this conversation.\
-**Next item:** SO-03 — Unified access and consolidation plan.
+**Active item:** SO-03 — Unified access and consolidation plan (Implementing; current verification and remaining authority/migration gates are recorded in access evidence, 30 September 2026).
 
 ## 1. The delivery order we agreed
 
@@ -31,6 +31,7 @@ The [main PRD](../prd.md) continues to govern shared architecture, data integrit
 | P1 implementation | Broad source coverage exists; individual workflows still require requirement-level verification. |
 | P2–P4 implementation | Partial or missing work remains; policy and provider dependencies remain open. |
 | Acceptance | Startup and screen access do not establish stock, billing, cash, recovery or store-operation acceptance. |
+| SO-03 access consolidation | The preserved, uncommitted working tree has isolated backend/frontend/API/browser and inventory baseline evidence. Staff retirement, online sale replay, delayed delivery, tenant-wide policy reads, whole-site ageing and arrival counter assignment received further access checks. Pending resource traces, incomplete identity propagation, approval policy consolidation, session field-union consumers, real-tenant reconciliation and OQ-28 decisions keep SO-03 open. See the [access evidence](so-03-access-evidence.md) and [implementation review](so-03-interrupted-implementation-review.md). |
 
 Local setup and restart instructions are in the [README](../../README.md). Existing implementation assessments are provisional until the relevant delivery item is examined and tested.
 
@@ -61,7 +62,7 @@ Acceptance checks, audit, permissions, feature controls and safe migration apply
 | 00 | SO-00 | Local startup and login | Foundation | Completed — limited to startup/login |
 | 01 | SO-01 | Requirement coverage and decision reconciliation | Foundation | Accepted — documented coverage and decisions, 29 September 2026 |
 | 02 | SO-02 | Reproducible build and engineering baseline | Foundation | Accepted, 29 September 2026 — [Mac, Linux and hosted CI evidence](so-02-engineering-baseline-evidence.md) |
-| 03 | SO-03 | Unified access and consolidation plan | Foundation | Queued |
+| 03 | SO-03 | Unified access and consolidation plan | Foundation | Implementing — authority coverage and real-tenant migration remain blocked; [evidence](so-03-access-evidence.md) |
 | 04 | SO-04 | Organisation, product masters and opening-stock workflow | Foundation / P1 | Queued |
 | 05 | SO-05 | Staff, assignments and manager authority | P1 | Queued |
 | 06 | SO-06 | Brand terms, tax configuration and offers | P1 | Queued |
@@ -130,6 +131,14 @@ The dated decisions, gate ledger, implementation pointers and completion checks 
 - **Work:** Unify authentication/session payload and authorisation checks across UI, APIs, search, exports, files and events. Migrate assignments safely. Start removing superseded access bridges once replacement coverage is proven.
 - **Done when:** Access decisions have one source of truth, denial tests pass, and every remaining duplicate has an explicit replacement and retirement item. This item starts consolidation; SO-15 and SO-21 verify completion across the delivered workflows.
 - **Sources:** Main PRD §4.3 and Appendix B; ST-OPS-5.
+
+**Prerequisite consolidation checkpoint — inventory before further feature work:** Maintain one machine-readable [inventory](so-03-consolidation-inventory.json), its generated [register](so-03-consolidation-register.md) and [dependency map](so-03-dependency-map.md). Classify every discovered route, screen, command, registered job, service/model family, configuration and migration with one accountable owner, target and retirement condition. Trace writers and downstream readers across authorization, data and delivery channels; mark dynamic edges and unverified ownership as explicit gates. Review the interrupted SO-03 patch against this map and correct stale evidence claims. CI must reject inventory drift, new dependencies on retired components and reintroduced legacy permission sources. Complete this checkpoint before resuming access feature implementation; it does not change a public business contract or declare the unfinished access patch accepted.
+
+**Checkpoint record — 29 September 2026:** The inventory, generated map/register, CI guard and [foundation evidence](so-03-foundation-evidence.md) are present in the working tree. The machine manifest and generated register record current discovery totals and individual reference dispositions. The [later access evidence](so-03-access-evidence.md) records the latest isolated checks and the remaining active-path, real-tenant and offline gates. SO-03 remains **Implementing**.
+
+**Workflow retirement rule:** SO-04–SO-14 and SO-16–SO-20 each confirm their mapped boundary, rehearse data migration, move readers and writers to one target, cut over without permanent dual writes, remove obsolete mutations and attach revision-specific evidence. Necessary legacy paths receive bounded safety, integrity and continuity support with an owner and retirement gate. SO-15 checks P1 retirement and SO-21 checks the complete store milestone.
+
+**Decision and work record — 29 September 2026:** The six Appendix B roles are initial configurable defaults. Each effective-dated role assignment carries its own explicit site/brand scope; all-sites/all-brands includes future members, while selected membership remains fixed. Sensitive-field defaults, additive step rules, separate-person approvals, stepped-up access changes, affected-session invalidation and distinct-person review within one working day are agreed. The [SO-03 consolidation register](so-03-consolidation-register.md) maps mounted API and screen families to targets, data movement and retirement owners; the PRD edits record the agreed rules. The scheduled-assignment interface, migration 0022, stock search, protected outbound projection, SBU route removal, optional admin guard, legacy approval callback and selected-brand transfer read scope have been addressed. Staff retirement now ends unified assignments; online sale replay, delayed exports/files/events, till dataset delivery, special-order transfer, tenant-wide settings reads, whole-site ageing and arrival counter assignment have further authority checks. The [access evidence](so-03-access-evidence.md) records current isolated test counts and the read-only proof-tenant report with 17 blocked people. The [implementation review](so-03-interrupted-implementation-review.md) names remaining access gaps, including remaining stable identity propagation, approval responsibility outside unified workflow policy and global field-visibility consumers. Brand-text readers now fail closed without a proven tenant-owned ID; this does not reconcile historical records. Real-tenant reconciliation and affected OQ-28 decisions remain activation gates; later workflow duplicates retain their SO-04–SO-20 owners and SO-15/SO-21 checkpoints.
 
 ### SO-04 — Organisation, product masters and opening-stock workflow
 
@@ -224,6 +233,7 @@ The dated decisions, gate ledger, implementation pointers and completion checks 
 - **Outcome:** All P1 workflows operate together on one implementation.
 - **Walkthrough:** Booking → arrival/count → GRN → PT approval → physical acceptance → transfer → store receipt → sale → exchange → cash close → reports.
 - **Work:** Exercise discrepancies, refusals, replay and connection loss. Verify the migration of required records; remove superseded screens, routes, services, models/bridges and obsolete demo fixtures once replacement coverage is proven. Synthetic test fixtures remain legitimate where explicitly needed.
+- **Consolidation handoff:** Close the P1 rows C01–C15 in the [SO-03 register](so-03-consolidation-register.md), or record each unmet row's owner and blocker with reconciled history and denial evidence. The shared access authority itself must already be proved by SO-03.
 - **Done when:** P1 coverage and acceptance evidence are complete; no P1 workflow depends on an old/new implementation split; remaining gates are explicitly recorded. P1 completion is an internal checkpoint, not the agreed final store milestone or permission to pilot early.
 - **Sources:** ST-OPS-5; store PRD §24 and §25.
 
@@ -274,6 +284,7 @@ The dated decisions, gate ledger, implementation pointers and completion checks 
 - **Required proofs:** Main PRD §16.10 requires the 50,000-line PT under 30 seconds with safe interruption; 50-way stock/numbering concurrency; 200 offline bills surviving the specified failures; forced RLS and scoped disclosure checks; evidence tamper/stopped-stream detection; and point-in-time restore plus independently reconciled portable export.
 - **Infrastructure:** Complete provider-enforced evidence retention, independent verification/audit-log transport, monitoring and recovery. The local filesystem evidence adapter does not establish production protection. Close affected OQ-33/OQ-34/OQ-37/OQ-38/OQ-40 release gates.
 - **Done when:** Required evidence passes, applicable activation approvals are recorded, all duplicate implementations are retired and the release record identifies delivered requirements, actual checks and residual limitations. No unapproved scope omissions remain hidden.
+- **Consolidation handoff:** Re-inventory the mounted routes, service/model readers and screen journeys against C01–C20 of the [SO-03 register](so-03-consolidation-register.md); prove no duplicate business write authority and identify any retention-only historical tables.
 
 ### SO-22 — Prepare the real pilot store
 
