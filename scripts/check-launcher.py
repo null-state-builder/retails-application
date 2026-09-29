@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
+import secrets
 import socket
 import subprocess
 import sys
@@ -12,6 +14,8 @@ import time
 from pathlib import Path
 from urllib.error import URLError
 from urllib.request import urlopen
+
+from proof import COMPOSE_COMMAND, PROJECT
 
 ROOT = Path(__file__).resolve().parent.parent
 LAUNCHER = [sys.executable, str(ROOT / "scripts/dev-local.py"), "--proof"]
@@ -65,12 +69,41 @@ def missing_prerequisite() -> None:
         raise RuntimeError("Launcher accepted a missing backend runtime.")
 
 
-def unavailable_database() -> None:
-    """Point Compose at a nonexistent proof project without stopping the real one."""
+def proof_project_isolation() -> None:
+    """An inherited Compose project name must not select the working database."""
     env = os.environ.copy()
-    env["COMPOSE_PROJECT_NAME"] = "kdps-so02-unavailable-fixture"
+    env["COMPOSE_PROJECT_NAME"] = "kdps-local"
+    result = subprocess.run(
+        [*COMPOSE_COMMAND, "config", "--format", "json"],
+        cwd=ROOT, text=True, capture_output=True, env=env, check=True,
+    )
+    actual = json.loads(result.stdout)["name"]
+    if actual != PROJECT:
+        raise RuntimeError(f"Proof Compose project changed under inherited environment: {actual}")
+
+
+def unavailable_database() -> None:
+    """Point this one launcher probe at a nonexistent proof project."""
+    code = """
+import importlib.util
+from pathlib import Path
+import sys
+root, fixture = Path(sys.argv[1]), sys.argv[2]
+sys.path.insert(0, str(root / 'scripts'))
+import proof
+proof.COMPOSE_COMMAND = ['docker', 'compose', '-p', fixture, '-f', str(proof.COMPOSE)]
+spec = importlib.util.spec_from_file_location('kdps_dev_launcher', root / 'scripts/dev-local.py')
+if spec is None or spec.loader is None:
+    raise RuntimeError('Could not import the launcher')
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+sys.argv = [str(root / 'scripts/dev-local.py'), '--proof']
+module.main()
+"""
+    fixture = "kdps-proof-unavailable-" + secrets.token_hex(6)
     refusal = subprocess.run(
-        LAUNCHER, cwd=ROOT, text=True, capture_output=True, env=env, check=False
+        [sys.executable, "-c", code, str(ROOT), fixture],
+        cwd=ROOT, text=True, capture_output=True, check=False,
     )
     if (
         refusal.returncode == 0
@@ -149,6 +182,7 @@ if not stopped():
     raise SystemExit("Launcher smoke requires free API/frontend ports 8000 and 5173.")
 
 missing_prerequisite()
+proof_project_isolation()
 unavailable_database()
 
 with socket.socket() as occupied:

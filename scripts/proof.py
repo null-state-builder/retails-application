@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import os
 from pathlib import Path
 import secrets
@@ -16,11 +17,16 @@ from urllib.parse import quote
 ROOT = Path(__file__).resolve().parent.parent
 PROOF_ENV = ROOT / ".local" / "proof-postgres.env"
 COMPOSE = ROOT / "compose.proof.yaml"
+PROJECT = "kdps-proof-" + hashlib.sha256(str(ROOT).encode()).hexdigest()[:12]
 DATABASE_NAME = "kdps_proof"
 DATABASE_USER = "kdps_proof"
 TEST_DATABASE_NAME = "kdps_proof_test"
 PORT = 55433
-COMPOSE_COMMAND = ["docker", "compose", "-f", str(COMPOSE)]
+COMPOSE_COMMAND = ["docker", "compose", "-p", PROJECT, "-f", str(COMPOSE)]
+IDENTITY_SQL = (
+    "SELECT current_setting('server_version_num') || '|' || current_database() || '|' || "
+    "current_user || '|' || system_identifier::text FROM pg_control_system()"
+)
 
 
 def require_tool(name: str) -> None:
@@ -77,6 +83,7 @@ def proof_environment(config: dict[str, str]) -> dict[str, str]:
         PYTHONPATH=str(ROOT / "backend") + (os.pathsep + inherited_python_path if inherited_python_path else ""),
     )
     env.pop("KDPS_REHEARSAL_DB", None)
+    env.pop("COMPOSE_PROJECT_NAME", None)
     return env
 
 
@@ -87,20 +94,41 @@ def compose(*args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
 
 
 def assert_database() -> None:
-    """Check the server identity before any migration, seed or application test."""
+    """Confirm the owned container is also the server reached by the application."""
+    config = proof_config(create=False)
     result = subprocess.run(
         [
             *COMPOSE_COMMAND, "exec", "-T", "database", "psql", "-X", "-A", "-t",
             "-U", DATABASE_USER, "-d", DATABASE_NAME, "-c",
-            "SELECT current_setting('server_version_num'), current_database(), current_user",
+            IDENTITY_SQL,
         ],
         cwd=ROOT, text=True, capture_output=True,
     )
     if result.returncode:
         raise RuntimeError("The isolated proof database is unavailable; run `python3 scripts/proof.py up`.")
     fields = result.stdout.strip().split("|")
-    if len(fields) != 3 or fields[0] != "170011" or fields[1:] != [DATABASE_NAME, DATABASE_USER]:
+    if len(fields) != 4 or fields[:3] != ["170011", DATABASE_NAME, DATABASE_USER] or not fields[3]:
         raise RuntimeError("Proof database identity/version mismatch; verification refused.")
+    python = ROOT / "backend/.venv/bin/python"
+    if not python.exists():
+        raise RuntimeError("Backend dependencies are absent; run `npm run setup` before proof verification.")
+    password = quote(config["POSTGRES_PASSWORD"], safe="")
+    host_url = f"postgresql://{DATABASE_USER}:{password}@127.0.0.1:{PORT}/{DATABASE_NAME}"
+    probe = subprocess.run(
+        [
+            str(python), "-c",
+            "import os, psycopg; "
+            "connection = psycopg.connect(os.environ['KDPS_PROOF_DATABASE_URL'], connect_timeout=3); "
+            "print(connection.execute(os.environ['KDPS_PROOF_IDENTITY_SQL']).fetchone()[0]); "
+            "connection.close()",
+        ],
+        cwd=ROOT,
+        env={**os.environ, "KDPS_PROOF_DATABASE_URL": host_url, "KDPS_PROOF_IDENTITY_SQL": IDENTITY_SQL},
+        text=True,
+        capture_output=True,
+    )
+    if probe.returncode or probe.stdout.strip() != result.stdout.strip():
+        raise RuntimeError("Host port 55433 does not reach this checkout's proof PostgreSQL; verification refused.")
 
 
 def run(command: list[str]) -> None:
