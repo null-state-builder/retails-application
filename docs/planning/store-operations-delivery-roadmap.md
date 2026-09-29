@@ -3,7 +3,7 @@
 **Project:** RetailsOps — KDPS first deployment\
 **Created:** 29 September 2026\
 **Purpose:** A discussion-by-discussion delivery checklist based on the decisions made in this conversation.\
-**Next item:** SO-02 — Reproducible build and engineering baseline.
+**Next item:** SO-03 — Unified access and consolidation plan. SO-02's hosted Linux CI run remains pending.
 
 ## 1. The delivery order we agreed
 
@@ -25,8 +25,8 @@ The [main PRD](../prd.md) continues to govern shared architecture, data integrit
 | Local application | Running; the user confirms they can log in and navigate screens. |
 | Runtime | Django backend, React/Vite frontend, background worker and isolated PostgreSQL 17.11 database were started locally. |
 | Startup checks | Fresh-database migrations, foundation seed, Django system check, frontend build and Owner login/dashboard requests passed during setup. |
-| Dependency baseline | Manifests and lockfiles were reconstructed because they were absent from the supplied source. Compatibility still needs broader verification. |
-| TypeScript | The initial strict check reported **192 errors** with the reconstructed dependency baseline. This is a recorded baseline, not a fresh count for every future revision. |
+| Dependency baseline | Reconstructed manifests and committed lockfiles install into empty environments without lockfile changes; exact versions and Linux limits are in the [SO-02 evidence](so-02-engineering-baseline-evidence.md). |
+| TypeScript | The initial strict check reported **192 errors**; SO-02 repaired them without relaxing the prescribed options. The current strict check passes. |
 | Data | Local setup uses synthetic accounts and masters. It is not a real-store opening or migration. |
 | P1 implementation | Broad source coverage exists; individual workflows still require requirement-level verification. |
 | P2–P4 implementation | Partial or missing work remains; policy and provider dependencies remain open. |
@@ -60,7 +60,7 @@ Acceptance checks, audit, permissions, feature controls and safe migration apply
 | --- | --- | --- | --- | --- |
 | 00 | SO-00 | Local startup and login | Foundation | Completed — limited to startup/login |
 | 01 | SO-01 | Requirement coverage and decision reconciliation | Foundation | Accepted — documented coverage and decisions, 29 September 2026 |
-| 02 | SO-02 | Reproducible build and engineering baseline | Foundation | Implementing — see [verification record](so-02-engineering-baseline-evidence.md) |
+| 02 | SO-02 | Reproducible build and engineering baseline | Foundation | Accepted for engineering baseline, 29 September 2026 — [Mac/Linux evidence](so-02-engineering-baseline-evidence.md); hosted CI pending |
 | 03 | SO-03 | Unified access and consolidation plan | Foundation | Queued |
 | 04 | SO-04 | Organisation, product masters and opening-stock workflow | Foundation / P1 | Queued |
 | 05 | SO-05 | Staff, assignments and manager authority | P1 | Queued |
@@ -121,7 +121,7 @@ The dated decisions, gate ledger, implementation pointers and completion checks 
 - **Discuss:** Reconstructed dependency compatibility; strict TypeScript failures; absent original test tooling; missing app icons/PWA assets; generated API-contract checks; clean setup and restart behaviour.
 - **Work:** Fix the baseline without weakening the prescribed checks. Establish the relevant backend, frontend and browser test commands and requirement-linked acceptance evidence. Verify dependency installs from committed lockfiles.
 - **Done when:** Clean setup, build, required type checks and baseline checks pass; startup instructions are usable; later items have a repeatable way to demonstrate success and failure cases.
-- **Engineering verification:** The [SO-02 evidence record](so-02-engineering-baseline-evidence.md) tracks actual commands and failures. SO-02 remains open until its clean rehearsal and every required check pass; a configured tool or passing build alone does not establish acceptance.
+- **Engineering verification:** The [SO-02 evidence record](so-02-engineering-baseline-evidence.md) records the committed code, clean disposable-checkout setup and two complete Mac verification passes, negative probes and a complete manual Linux verification pass. Engineering baseline acceptance is recorded on 29 September 2026. The hosted GitHub Actions result remains pending; the manual Linux pass is not a hosted CI run. Later SO items still own workflow, supported-device and release proofs.
 
 ### SO-03 — Unified access and consolidation plan
 
