@@ -21,11 +21,10 @@ from decimal import Decimal
 from typing import Any
 
 from accounts.models import User
-from accounts.permissions import user_can
+from accounts.permissions import user_can_at
 from accounts.sections import CAP_APPROVE
 from accounts.till_pin import may_hold_till_pin
 from masters.models import Cohort, GstSlab, Season, Store
-from masters.scoping import actionable_store_ids
 from sell.pricing import Slab
 from stockledger.models import MERCH_DIM_FIELDS, StockOnHand
 
@@ -183,13 +182,12 @@ def manager_for_override(user_id: Any, store: Store, *, own_pin_rules: bool = Fa
     if not user_id:
         return None
     user: User | None = (
-        User.objects.filter(pk=user_id, is_active=True).select_related("role").first()
+        User.objects.filter(pk=user_id, tenant_id=store.tenant_id, is_active=True).first()
     )
-    if user is None or not user_can(user, "sell", CAP_APPROVE):
+    if user is None or not user_can_at(
+        user, "sell", CAP_APPROVE, site_id=store.pk, brand_id=None
+    ):
         return None
-    allowed = actionable_store_ids(user)
-    if allowed is not None and store.id not in allowed:
-        return None
-    if own_pin_rules and not (may_hold_till_pin(user) and user.stores.filter(pk=store.pk).exists()):
+    if own_pin_rules and not may_hold_till_pin(user, site_id=store.pk):
         return None
     return user

@@ -18,7 +18,6 @@ from accounts.sections import CAP_VIEW
 from core.money import paise_to_rupees_str
 from core.refusals import refusal_body
 from core.textsearch import search_term, text_filter
-from masters.models import Sku
 from masters.scoping import scope_by_entitled_brands, scope_by_store_and_brand
 from stockledger.models import (
     InTransitStock,
@@ -28,6 +27,7 @@ from stockledger.models import (
     merch_dims,
 )
 from stockledger.serializers import StockLedgerEntrySerializer
+from stockledger.access import project_stock
 
 
 class StockLedgerPagination(PageNumberPagination):
@@ -47,19 +47,13 @@ MONEY_PROPERTIES: dict[str, Any] = {
     "value_paise": {"type": "integer"}, "value_rupees": {"type": "string"},
 }
 LEDGER_SUMMARY = {
-    "type": "object", "required": [
-        "entries", "net_qty", "net_value_paise", "net_value_rupees",
-        "distinct_skus", "distinct_documents",
-    ],
+    "type": "object", "required": ['entries', 'net_qty', 'distinct_skus', 'distinct_documents'],
     "properties": {name: {"type": "integer"} for name in (
         "entries", "net_qty", "net_value_paise", "distinct_skus", "distinct_documents"
     )} | {"net_value_rupees": {"type": "string"}},
 }
 TRANSIT_ROW = {
-    "type": "object", "required": [
-        "transfer_doc_number", "source_store_code", "destination_store_code",
-        "sku_code", *MERCH_FIELDS, "qty", "value_paise", "value_rupees", "updated_at",
-    ],
+    "type": "object", "required": ['transfer_doc_number', 'source_store_code', 'destination_store_code', 'sku_code', *MERCH_FIELDS, 'qty', 'updated_at'],
     "properties": {
         **{name: {"type": "string"} for name in (
             "transfer_doc_number", "source_store_code", "destination_store_code", "sku_code"
@@ -72,19 +66,14 @@ TRANSIT_ROW = {
 TRANSIT_RESPONSE = {
     "type": "object", "required": ["summary", "rows"],
     "properties": {
-        "summary": {"type": "object", "required": [
-            "units_in_transit", "value_paise", "value_rupees", "transfers"
-        ], "properties": MONEY_PROPERTIES | {
+        "summary": {"type": "object", "required": ['units_in_transit', 'transfers'], "properties": MONEY_PROPERTIES | {
             "units_in_transit": {"type": "integer"}, "transfers": {"type": "integer"}
         }},
         "rows": {"type": "array", "items": TRANSIT_ROW},
     },
 }
 QUARANTINE_ROW = {
-    "type": "object", "required": [
-        "store_code", "store_name", "sku_code", *MERCH_FIELDS, "qty",
-        "value_paise", "value_rupees", "marked_by", "marked_at",
-    ],
+    "type": "object", "required": ['store_code', 'store_name', 'sku_code', *MERCH_FIELDS, 'qty', 'marked_by', 'marked_at'],
     "properties": {
         "store_code": {"type": "string"}, "store_name": {"type": "string"},
         "sku_code": {"type": "string"}, **MERCH_FIELDS,
@@ -97,19 +86,14 @@ QUARANTINE_ROW = {
 QUARANTINE_RESPONSE = {
     "type": "object", "required": ["summary", "rows"],
     "properties": {
-        "summary": {"type": "object", "required": [
-            "units_quarantined", "value_paise", "value_rupees", "lines"
-        ], "properties": MONEY_PROPERTIES | {
+        "summary": {"type": "object", "required": ['units_quarantined', 'lines'], "properties": MONEY_PROPERTIES | {
             "units_quarantined": {"type": "integer"}, "lines": {"type": "integer"}
         }},
         "rows": {"type": "array", "items": QUARANTINE_ROW},
     },
 }
 ON_HAND_ROW = {
-    "type": "object", "required": [
-        "store_code", "store_name", "brand", "design", "color", "size", "item",
-        "season", "sku_code", "net_qty", "skus", "net_value_paise", "net_value_rupees",
-    ],
+    "type": "object", "required": ['store_code', 'store_name', 'brand', 'design', 'color', 'size', 'item', 'season', 'sku_code', 'net_qty', 'skus'],
     "properties": {
         "store_id": {"type": "integer", "description": "Present only when group_by=sku."},
         **{name: {"type": "string"} for name in (
@@ -124,9 +108,7 @@ ON_HAND_RESPONSE = {
     "type": "object", "required": ["group_by", "summary", "rows"],
     "properties": {
         "group_by": {"type": "string", "enum": ["sku", "brand", "store"]},
-        "summary": {"type": "object", "required": [
-            "units_on_hand", "value_paise", "value_rupees", "lines", "displayed", "truncated"
-        ], "properties": MONEY_PROPERTIES | {
+        "summary": {"type": "object", "required": ['units_on_hand', 'lines', 'displayed', 'truncated'], "properties": MONEY_PROPERTIES | {
             "units_on_hand": {"type": "integer"}, "lines": {"type": "integer"},
             "displayed": {"type": "integer"}, "truncated": {"type": "boolean"},
         }},
@@ -165,7 +147,7 @@ AVAILABILITY_REFUSAL = {
 
 
 class StockLedgerListView(generics.ListAPIView[StockLedgerEntry]):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, require_section("stock", CAP_VIEW)]
     serializer_class = StockLedgerEntrySerializer
     pagination_class = StockLedgerPagination
 
@@ -174,7 +156,7 @@ class StockLedgerListView(generics.ListAPIView[StockLedgerEntry]):
             StockLedgerEntry.objects.select_related("store", "booking"),
             self.request.user,
             "store_id",
-        )
+         section="stock", minimum="view")
         doc = self.request.query_params.get("doc_number")
         if doc:
             qs = qs.filter(doc_number=doc)
@@ -184,11 +166,11 @@ class StockLedgerListView(generics.ListAPIView[StockLedgerEntry]):
 
 
 class StockLedgerSummaryView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, require_section("stock", CAP_VIEW)]
 
     @extend_schema(responses={200: LEDGER_SUMMARY})
     def get(self, request: Request) -> Response:
-        qs = scope_by_store_and_brand(StockLedgerEntry.objects.all(), request.user, "store_id")
+        qs = scope_by_store_and_brand(StockLedgerEntry.objects.all(), request.user, "store_id", section="stock", minimum="view")
         agg = qs.aggregate(
             entries=Count("id"),
             net_qty=Sum("qty"),
@@ -197,14 +179,14 @@ class StockLedgerSummaryView(APIView):
         distinct_skus = qs.values("sku_code").distinct().count()
         distinct_docs = qs.values("doc_number").distinct().count()
         return Response(
-            {
+            project_stock(request, qs, {
                 "entries": agg["entries"] or 0,
                 "net_qty": agg["net_qty"] or 0,
                 "net_value_paise": agg["net_value"] or 0,
                 "net_value_rupees": paise_to_rupees_str(agg["net_value"] or 0),
                 "distinct_skus": distinct_skus,
                 "distinct_documents": distinct_docs,
-            }
+            })
         )
 
 
@@ -215,7 +197,7 @@ class InTransitView(APIView):
     is answerable until the receiver scans in, so scoping rides on the
     source store."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, require_section("stock", CAP_VIEW)]
 
     @extend_schema(
         parameters=[OpenApiParameter("transfer", str)],
@@ -228,9 +210,10 @@ class InTransitView(APIView):
             ),
             request.user,
             "source_store_id",
-        )
+         section="stock", minimum="view")
         if doc := request.query_params.get("transfer"):
             qs = qs.filter(transfer_doc_number=doc)
+        qs = scope_by_store_and_brand(qs, request.user, "destination_store_id", section="stock", minimum="view", context=False)
 
         totals = qs.aggregate(units=Sum("qty"), value=Sum("value_paise"))
         rows = [
@@ -248,7 +231,7 @@ class InTransitView(APIView):
             for o in qs.order_by("transfer_doc_number", "sku_code")
         ]
         return Response(
-            {
+            project_stock(request, qs, {
                 "summary": {
                     "units_in_transit": totals["units"] or 0,
                     "value_paise": totals["value"] or 0,
@@ -256,7 +239,7 @@ class InTransitView(APIView):
                     "transfers": qs.values("transfer_doc_number").distinct().count(),
                 },
                 "rows": rows,
-            }
+            })
         )
 
 
@@ -266,7 +249,7 @@ class QuarantineView(APIView):
     projection, each row carrying who marked it and when (Rule 10). Scoped by
     store, filterable by brand (the ownership filter) and store."""
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, require_section("stock", CAP_VIEW)]
 
     @extend_schema(
         parameters=[OpenApiParameter("store", str), OpenApiParameter("brand", str)],
@@ -277,7 +260,7 @@ class QuarantineView(APIView):
             QuarantineStock.objects.filter(qty__gt=0).select_related("store", "marked_by"),
             request.user,
             "store_id",
-        )
+         section="stock", minimum="view")
         if store := request.query_params.get("store"):
             qs = qs.filter(store__code=store)
         if brand := request.query_params.get("brand"):
@@ -299,7 +282,7 @@ class QuarantineView(APIView):
             for o in qs.order_by("store__code", "brand", "sku_code")
         ]
         return Response(
-            {
+            project_stock(request, qs, {
                 "summary": {
                     "units_quarantined": totals["units"] or 0,
                     "value_paise": totals["value"] or 0,
@@ -307,7 +290,7 @@ class QuarantineView(APIView):
                     "lines": len(rows),
                 },
                 "rows": rows,
-            }
+            })
         )
 
 
@@ -333,7 +316,7 @@ def search_on_hand(qs: Any, term: str) -> Any:
     """
     if not term:
         return qs
-    if Sku.objects.filter(barcode__iexact=term).exists():
+    if qs.filter(sku_code__iexact=term).exists():
         return qs.filter(sku_code__iexact=term)
     return text_filter(qs, term, ON_HAND_SEARCH_FIELDS)
 
@@ -348,7 +331,7 @@ class StockOnHandView(APIView):
     `[:2000]` drop is gone.
     """
 
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, require_section("stock", CAP_VIEW)]
     MAX_LINES = 2000
 
     @extend_schema(
@@ -367,7 +350,7 @@ class StockOnHandView(APIView):
             StockOnHand.objects.filter(net_qty__gt=0).select_related("store"),
             request.user,
             "store_id",
-        )
+         section="stock", minimum="view")
         if store := request.query_params.get("store"):
             qs = qs.filter(store__code=store)
         if brand := request.query_params.get("brand"):
@@ -385,7 +368,7 @@ class StockOnHandView(APIView):
         totals = qs.aggregate(units=Sum("net_qty"), value=Sum("net_value_paise"))
         rows, lines = self._rows(qs, group_by)
         return Response(
-            {
+            project_stock(request, qs, {
                 "group_by": group_by,
                 "summary": {
                     "units_on_hand": totals["units"] or 0,
@@ -396,7 +379,7 @@ class StockOnHandView(APIView):
                     "truncated": len(rows) < lines,
                 },
                 "rows": rows,
-            }
+            })
         )
 
     def _rows(self, qs: Any, group_by: str) -> tuple[list[dict[str, Any]], int]:
@@ -424,7 +407,7 @@ class StockOnHandView(APIView):
             ]
             return rows, lines
 
-        fields = ["store__code", "brand"] if group_by == "brand" else ["store__code", "store__name"]
+        fields = ["store__code", "_access_brand_id", "brand"] if group_by == "brand" else ["store__code", "store__name"]
         grouped = (
             qs.values(*fields)
             .annotate(
@@ -522,8 +505,8 @@ class StockAvailabilityView(APIView):
         # The half of the boundary this exception does *not* suspend. No-op for
         # everybody else — `visible_brand_names` answers None unless the caller
         # is brand-scoped.
-        qs = scope_by_entitled_brands(qs, request.user)
-        qs = qs.filter(sku_code__in=self._matching_barcodes(term))
+        qs = scope_by_entitled_brands(qs, request.user, section="stock", minimum="view")
+        qs = search_on_hand(qs, term)
         if brand := (request.query_params.get("brand") or "").strip():
             qs = qs.filter(brand__iexact=brand)
         if size := (request.query_params.get("size") or "").strip():
@@ -539,7 +522,7 @@ class StockAvailabilityView(APIView):
         # headed with whichever brand's row arrived first.
         styles = list(
             qs.order_by("brand", "design")
-            .values_list("brand", "design")
+            .values_list("_access_brand_id", "brand", "design")
             .distinct()[: self.MAX_DESIGNS + 1]
         )
         truncated = len(styles) > self.MAX_DESIGNS
@@ -548,11 +531,12 @@ class StockAvailabilityView(APIView):
             return Response({"results": [], "truncated": False})
 
         match = Q()
-        for brand_name, design in shown:
-            match |= Q(brand=brand_name, design=design)
+        for brand_id, _brand_name, design in shown:
+            match |= Q(_access_brand_id=brand_id, design=design)
         rows = (
             qs.filter(match)
             .values(
+                "_access_brand_id",
                 "design",
                 "brand",
                 "item",
@@ -570,27 +554,6 @@ class StockAvailabilityView(APIView):
         )
         return Response({"results": self._nest(rows), "truncated": truncated})
 
-    def _matching_barcodes(self, term: str) -> Any:
-        """The SKUs a typed term or a scanned tag means, as a subquery.
-
-        Three habits, in the order they are meant: a whole barcode is a scan and
-        means that tag alone; otherwise the term is the *start* of a style code
-        (people read design numbers left to right off the tag), or anywhere
-        inside the item name for someone who only knows it as "chinos".
-
-        A queryset rather than a list on purpose — the match runs as one SQL
-        subquery, so a three-letter term that hits ten thousand styles never
-        travels through Python on its way back into the filter.
-        """
-        # Not narrowed to active SKUs: stock that exists can be asked for, and a
-        # style retired in the master with pieces still on a shelf is exactly the
-        # one a store is hunting for.
-        scanned = Sku.objects.filter(barcode__iexact=term)
-        if scanned.exists():
-            return scanned.values("barcode")
-        return Sku.objects.filter(Q(design__istartswith=term) | Q(item__icontains=term)).values(
-            "barcode"
-        )
 
     @staticmethod
     def _nest(rows: Any) -> list[dict[str, Any]]:
@@ -610,10 +573,10 @@ class StockAvailabilityView(APIView):
         style in two if it ever changed is not worth the line it saves.
         """
         results: list[dict[str, Any]] = []
-        by_style: dict[tuple[str, str], dict[str, Any]] = {}
-        by_size: dict[tuple[str, str, str], dict[str, Any]] = {}
+        by_style: dict[tuple[int, str], dict[str, Any]] = {}
+        by_size: dict[tuple[int, str, str], dict[str, Any]] = {}
         for row in rows:
-            style = (row["brand"], row["design"])
+            style = (row["_access_brand_id"], row["design"])
             size = row["size"]
             entry = by_style.get(style)
             if entry is None:

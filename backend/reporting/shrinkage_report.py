@@ -143,7 +143,7 @@ def _months(date_from: date, date_to: date) -> list[date]:
 
 def build(scope: ReportScope, group_by: str) -> dict[str, Any]:
     """The shrinkage report for ``scope``, grouped by ``group_by``, as the viewer may see it."""
-    show_cost = sees_cost(scope.user)
+    show_cost = sees_cost(scope.user, scope.stores)
     missing = Missing()
     as_of = freshness(FRESHNESS_KEY, missing)
     _sales_freshness(missing)

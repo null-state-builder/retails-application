@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING, Any, cast
 
 import openpyxl
 from django.db.models import QuerySet, Sum
+from django.db.models import Q
 from django.http import HttpResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
@@ -35,7 +36,9 @@ from rest_framework.views import APIView
 from core.documents import DocStatus
 from core.money import paise_to_rupees_str
 from core.textsearch import search_term, text_filter
-from finledger.models import PartnerLedgerEntry
+from core.tenancy import require_tenant_id
+from accounts.principal import resolve_access
+from finledger.access import IsBooksKeeper, guarded_book_write, partner_entries
 from finledger.posting import (
     AlreadyReversedError,
     account_for_mode,
@@ -87,14 +90,14 @@ from outbound.permissions import (
     CanExecuteVFlip,
     CanFlipOwnership,
     CanManageBillingPolicy,
-    CanManagePartnerSettlements,
     CanReadReturnToBrand,
+    CanReadStock,
     CanReadTransferPT,
-    CanViewPartnerDues,
     CanWriteReturnToBrand,
     CanWriteStockCount,
     CanWriteTransfer,
     enforce_store_scope,
+    require_vflip_scope,
 )
 from outbound.posting import (
     OutboundPostingError,
@@ -146,7 +149,6 @@ from outbound.serializers import (
     WriteOffReadSerializer,
     WriteOffWriteSerializer,
 )
-from outbound.transfer_pt import KDPS_COLUMNS
 from stockledger.views import search_on_hand
 
 if TYPE_CHECKING:
@@ -402,7 +404,10 @@ def _transfers(user: Any) -> QuerySet[StoreTransfer]:
     Scoped here rather than at each view, so a new transfer read cannot be added
     ungated — the only way to a `StoreTransfer` on a read path is through this.
     """
-    qs = StoreTransfer.objects.select_related(
+    qs = StoreTransfer.objects.filter(
+        source_store__tenant_id=require_tenant_id(),
+        destination_store__tenant_id=require_tenant_id(),
+    ).select_related(
         "source_store", "destination_store", "created_by"
     ).prefetch_related("lines", *APPROVAL_JOINS)
     return scope_transfers(qs, user)
@@ -412,7 +417,7 @@ class TransferListCreateView(generics.ListCreateAPIView[StoreTransfer]):
     def get_permissions(self) -> list[BasePermission]:
         if self.request.method == "POST":
             return [CanWriteTransfer()]
-        return [IsAuthenticated()]
+        return [CanReadTransferPT()]
 
     def get_queryset(self) -> QuerySet[StoreTransfer]:
         # Scoped before anything else narrows it, so the typed term filters the
@@ -432,10 +437,13 @@ class TransferListCreateView(generics.ListCreateAPIView[StoreTransfer]):
     def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         ser = StoreTransferWriteSerializer(data=request.data, context={"request": request})
         ser.is_valid(raise_exception=True)
-        enforce_store_scope(request.user, ser.validated_data["source_store"].id)
+        resolve_access(request).require(
+            "transfer.allocate", site_id=ser.validated_data["source_store"].id,
+        )
+        enforce_store_scope(request.user, ser.validated_data["source_store"].id, section='transfer', minimum='operate')
         instance = ser.save()
         return Response(
-            StoreTransferReadSerializer(instance).data,
+            StoreTransferReadSerializer(instance, context={"request": request}).data,
             status=status.HTTP_201_CREATED,
         )
 
@@ -443,7 +451,7 @@ class TransferListCreateView(generics.ListCreateAPIView[StoreTransfer]):
 class TransferDetailView(generics.RetrieveAPIView[StoreTransfer]):
     #: Scoped, so a transfer between two other stores is a 404 — knowing the id
     #: is not a way in, and the answer must not tell you the document is real.
-    permission_classes = [IsAuthenticated]
+    permission_classes = [CanReadTransferPT]
     serializer_class = StoreTransferReadSerializer
 
     def get_queryset(self) -> QuerySet[StoreTransfer]:
@@ -464,14 +472,18 @@ class TransferDispatchView(APIView):
     def post(self, request: Request, pk: int) -> Response:
         try:
             transfer = (
-                StoreTransfer.objects.select_related("source_store", "destination_store")
+                StoreTransfer.objects.filter(
+                    source_store__tenant_id=require_tenant_id(),
+                    destination_store__tenant_id=require_tenant_id(),
+                ).select_related("source_store", "destination_store")
                 .prefetch_related("lines")
                 .get(pk=pk)
             )
         except StoreTransfer.DoesNotExist:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        enforce_store_scope(request.user, transfer.source_store_id)
+        resolve_access(request).require("transfer.move", site_id=transfer.source_store_id)
+        enforce_store_scope(request.user, transfer.source_store_id, section='transfer', minimum='operate')
 
         if transfer.docstatus != DocStatus.DRAFT:
             return Response(
@@ -488,7 +500,7 @@ class TransferDispatchView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         transfer.refresh_from_db()
-        return Response(StoreTransferReadSerializer(transfer).data)
+        return Response(StoreTransferReadSerializer(transfer, context={"request": request}).data)
 
 
 class TransferReceiveView(APIView):
@@ -510,14 +522,18 @@ class TransferReceiveView(APIView):
     def post(self, request: Request, pk: int) -> Response:
         try:
             transfer = (
-                StoreTransfer.objects.select_related("source_store", "destination_store")
+                StoreTransfer.objects.filter(
+                    source_store__tenant_id=require_tenant_id(),
+                    destination_store__tenant_id=require_tenant_id(),
+                ).select_related("source_store", "destination_store")
                 .prefetch_related("lines")
                 .get(pk=pk)
             )
         except StoreTransfer.DoesNotExist:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        enforce_store_scope(request.user, transfer.destination_store_id)
+        resolve_access(request).require("transfer.move", site_id=transfer.destination_store_id)
+        enforce_store_scope(request.user, transfer.destination_store_id, section='transfer', minimum='operate')
 
         if transfer.docstatus != DocStatus.SUBMITTED:
             return Response(
@@ -540,7 +556,7 @@ class TransferReceiveView(APIView):
         except OutboundPostingError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(StoreTransferReadSerializer(_transfer_for_read(pk)).data)
+        return Response(StoreTransferReadSerializer(_transfer_for_read(pk), context={"request": request}).data)
 
 
 # ---------------------------------------------------------------------------
@@ -590,15 +606,16 @@ class TransferPTBaseView(APIView):
         # that is a 404, not an empty file.
         if pt is None:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
-        return self.render(pt)
+        return self.render(pt, request)
 
-    def render(self, pt: TransferPT) -> HttpResponse:  # pragma: no cover - subclassed
+    def render(self, pt: TransferPT, request: Request) -> HttpResponse:  # pragma: no cover - subclassed
         raise NotImplementedError
 
-    def rows_in_column_order(self, pt: TransferPT) -> list[list[Any]]:
-        """The stored rows as plain lists, in the KDPS column order — the shape
-        both file formats write."""
-        return [[row.get(column, "") for column in KDPS_COLUMNS] for row in pt.rows]
+    def rows_in_column_order(self, pt: TransferPT, request: Request) -> tuple[list[str], list[list[Any]]]:
+        """Project the protected PT columns before either file format is built."""
+        projected = TransferPTSerializer(pt, context={"request": request}).data
+        columns = list(projected["columns"])
+        return columns, [[row.get(column, "") for column in columns] for row in projected["rows"]]
 
     def as_attachment(self, resp: HttpResponse, pt: TransferPT) -> HttpResponse:
         """Name the download after the voucher, with the slashes a voucher series
@@ -611,8 +628,8 @@ class TransferPTBaseView(APIView):
 class TransferPTView(TransferPTBaseView):
     """GET: the transfer's PT, whole — the shape the print screen renders."""
 
-    def render(self, pt: TransferPT) -> HttpResponse:
-        return Response(TransferPTSerializer(pt).data)
+    def render(self, pt: TransferPT, request: Request) -> HttpResponse:
+        return Response(TransferPTSerializer(pt, context={"request": request}).data)
 
 
 @extend_schema_view(get=extend_schema(responses={(200, "text/csv"): OpenApiTypes.BINARY}))
@@ -621,11 +638,12 @@ class TransferPTCsvView(TransferPTBaseView):
 
     extension = "csv"
 
-    def render(self, pt: TransferPT) -> HttpResponse:
+    def render(self, pt: TransferPT, request: Request) -> HttpResponse:
         resp = HttpResponse(content_type="text/csv")
         writer = csv.writer(resp)
-        writer.writerow(KDPS_COLUMNS)
-        writer.writerows(self.rows_in_column_order(pt))
+        columns, rows = self.rows_in_column_order(pt, request)
+        writer.writerow(columns)
+        writer.writerows(rows)
         return self.as_attachment(resp, pt)
 
 
@@ -641,13 +659,14 @@ class TransferPTXlsxView(TransferPTBaseView):
 
     extension = "xlsx"
 
-    def render(self, pt: TransferPT) -> HttpResponse:
+    def render(self, pt: TransferPT, request: Request) -> HttpResponse:
         wb = openpyxl.Workbook()
         ws = wb.active
         assert ws is not None
         ws.title = "KDPS PT"
-        ws.append(KDPS_COLUMNS)
-        for row in self.rows_in_column_order(pt):
+        columns, rows = self.rows_in_column_order(pt, request)
+        ws.append(columns)
+        for row in rows:
             ws.append(row)
         buf = io.BytesIO()
         wb.save(buf)
@@ -671,7 +690,10 @@ def _transfer_for_read(pk: int) -> StoreTransfer:
     the stale prefetch caches from before the post.
     """
     return (
-        StoreTransfer.objects.select_related("source_store", "destination_store", "created_by")
+        StoreTransfer.objects.filter(
+            source_store__tenant_id=require_tenant_id(),
+            destination_store__tenant_id=require_tenant_id(),
+        ).select_related("source_store", "destination_store", "created_by")
         .prefetch_related("lines", "receipt__exceptions", "gap_closure__lines")
         .get(pk=pk)
     )
@@ -711,7 +733,7 @@ class TransferGapListView(generics.ListAPIView[StoreTransfer]):
     def get_queryset(self) -> QuerySet[StoreTransfer]:
         gaps: QuerySet[StoreTransfer] = scope_by_store(
             _open_gap_transfers(), self.request.user, "source_store_id"
-        )
+        , section="transfer", minimum="view")
         return gaps
 
 
@@ -735,7 +757,7 @@ class TransferGapClosureCreateView(APIView):
 
         # The gap belongs to the sender, so this is a write against the sender's
         # store; the receiving store's own bar is in ``_refuse_self_closure``.
-        enforce_store_scope(request.user, transfer.source_store_id)
+        enforce_store_scope(request.user, transfer.source_store_id, section='transfer', minimum='approve')
 
         ser = GapClosureInputSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
@@ -751,7 +773,7 @@ class TransferGapClosureCreateView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         return Response(
-            GapClosureReadSerializer(_gap_closure_for_read(closure.pk)).data,
+            GapClosureReadSerializer(_gap_closure_for_read(closure.pk), context={"request": request}).data,
             status=status.HTTP_201_CREATED,
         )
 
@@ -799,7 +821,7 @@ class GapClosureDetailView(generics.RetrieveAPIView[TransferGapClosure]):
             ).prefetch_related("lines", *APPROVAL_JOINS),
             self.request.user,
             "store_id",
-        )
+         section="transfer", minimum="view")
         return closures
 
     def patch(self, request: Request, *args: Any, **kwargs: Any) -> Response:
@@ -809,7 +831,7 @@ class GapClosureDetailView(generics.RetrieveAPIView[TransferGapClosure]):
         cannot strand the pieces in transit for good.
         """
         closure = self.get_object()
-        enforce_store_scope(request.user, closure.store_id)
+        enforce_store_scope(request.user, closure.store_id, section='transfer', minimum='approve')
 
         ser = GapClosureInputSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
@@ -824,7 +846,7 @@ class GapClosureDetailView(generics.RetrieveAPIView[TransferGapClosure]):
         except OutboundPostingError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(GapClosureReadSerializer(_gap_closure_for_read(closure.pk)).data)
+        return Response(GapClosureReadSerializer(_gap_closure_for_read(closure.pk), context={"request": request}).data)
 
 
 class GapClosureSubmitView(APIView):
@@ -845,7 +867,7 @@ class GapClosureSubmitView(APIView):
         except TransferGapClosure.DoesNotExist:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        enforce_store_scope(request.user, closure.store_id)
+        enforce_store_scope(request.user, closure.store_id, section='transfer', minimum='approve')
 
         # No draft check here: ``post_gap_closure`` makes it, and a second copy
         # would only be a second place for the two to disagree.
@@ -854,7 +876,7 @@ class GapClosureSubmitView(APIView):
         except OutboundPostingError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(GapClosureReadSerializer(_gap_closure_for_read(pk)).data)
+        return Response(GapClosureReadSerializer(_gap_closure_for_read(pk), context={"request": request}).data)
 
 
 class ScanLookupView(APIView):
@@ -885,7 +907,7 @@ class ScanLookupView(APIView):
         # their own stores — an out-of-scope store looks identical to no stock.
         # Scoped by entitlement, not by the switcher: the scan screen names the
         # store it is standing in, so the top bar must not veto scanning there.
-        visible = scope_by_entitlement(StockOnHand.objects.all(), request.user, "store_id")
+        visible = scope_by_entitlement(StockOnHand.objects.all(), request.user, "store_id", section="transfer", minimum="view")
         try:
             on_hand = visible.get(store_id=int(store_id), sku_code=barcode)
         except (StockOnHand.DoesNotExist, ValueError):
@@ -942,7 +964,7 @@ class CrossLocationStockSearchView(APIView):
         )
         # None (not a list) reads as "unrestricted" — a network role sees cost
         # everywhere, same as it already does on every other stock screen.
-        own_ids = actionable_store_ids(request.user)
+        own_ids = actionable_store_ids(request.user, section="transfer", minimum="view")
 
         data = []
         for row in rows:
@@ -995,7 +1017,7 @@ class DistributionSuggestedSplitView(APIView):
             warehouse_id = int(warehouse_raw)
         except ValueError as exc:
             raise ValidationError({"warehouse": "Must be a store id."}) from exc
-        enforce_store_scope(request.user, warehouse_id)
+        enforce_store_scope(request.user, warehouse_id, section='transfer', minimum='operate')
 
         store_ids = []
         for raw in request.query_params.get("stores", "").split(","):
@@ -1028,6 +1050,7 @@ class BillingPolicyView(APIView):
     def get(self, request: Request) -> Response:
         return Response(BillingPolicySerializer(BillingPolicy.current()).data)
 
+    @guarded_book_write
     @extend_schema(
         request={"application/json": {
             "type": "object", "required": ["mode"], "properties": {
@@ -1063,12 +1086,14 @@ class PartnerDuesView(APIView):
     is no BILL kind on that ledger to double-count: the billed side stays this
     view's own aggregation, exactly as before settlements existed."""
 
-    permission_classes = [IsAuthenticated, CanViewPartnerDues]
+    permission_classes = [IsAuthenticated, IsBooksKeeper]
 
     @extend_schema(responses={200: PARTNER_DUES_SCHEMA})
     def get(self, request: Request) -> Response:
         transfers = (
             StoreTransfer.objects.filter(
+                source_store__tenant_id=require_tenant_id(),
+                destination_store__tenant_id=require_tenant_id(),
                 destination_store__is_partner=True,
                 docstatus=DocStatus.SUBMITTED,
                 partner_billing_value_paise__isnull=False,
@@ -1108,7 +1133,7 @@ class PartnerDuesView(APIView):
 
         paid_by_store = {
             r["store_id"]: r["paid"] or 0
-            for r in PartnerLedgerEntry.objects.filter(store_id__in=by_store.keys())
+            for r in partner_entries().filter(store_id__in=by_store.keys())
             .values("store_id")
             .annotate(paid=Sum("amount"))
         }
@@ -1136,14 +1161,14 @@ class PartnerSettlementsView(APIView):
     list its settlement history (`money: view`) — the other half of
     `PartnerDuesView`'s Total Owed, offset there rather than double-kept here."""
 
-    permission_classes = [IsAuthenticated, CanManagePartnerSettlements]
+    permission_classes = [IsAuthenticated, IsBooksKeeper]
 
     @extend_schema(
         parameters=[OpenApiParameter("store", int)],
         responses={200: PARTNER_SETTLEMENT_LIST_SCHEMA},
     )
     def get(self, request: Request) -> Response:
-        qs = PartnerLedgerEntry.objects.select_related("store", "posted_by").order_by(
+        qs = partner_entries().select_related("store", "posted_by").order_by(
             "-created_at", "-id"
         )
         store_id = request.query_params.get("store")
@@ -1174,13 +1199,16 @@ class PartnerSettlementsView(APIView):
             }
         )
 
+    @guarded_book_write
     @extend_schema(
         request={"application/json": PARTNER_SETTLEMENT_REQUEST},
         responses={201: PARTNER_SETTLEMENT_CREATED_SCHEMA, 400: {"type": "object", "properties": {"detail": {"type": "string"}}}},
     )
     def post(self, request: Request) -> Response:
         store_id: Any = request.data.get("store_id")
-        store = Store.objects.filter(pk=store_id, is_partner=True).first()
+        store = Store.objects.filter(
+            tenant_id=require_tenant_id(), pk=store_id, is_partner=True
+        ).first()
         if not store:
             return Response(
                 {"detail": "store_id is required / must be a partner store."}, status=400
@@ -1214,11 +1242,14 @@ class PartnerSettlementsView(APIView):
 
 
 class PartnerSettlementReverseView(APIView):
-    permission_classes = [IsAuthenticated, CanManagePartnerSettlements]
+    permission_classes = [IsAuthenticated, IsBooksKeeper]
 
+    @guarded_book_write
     @extend_schema(request=None, responses={201: PARTNER_SETTLEMENT_REVERSED_SCHEMA})
     def post(self, request: Request, pk: int) -> Response:
-        entry = PartnerLedgerEntry.objects.filter(pk=pk).first()
+        entry = partner_entries().filter(
+            pk=pk, posted_by__tenant_id=require_tenant_id()
+        ).first()
         if not entry:
             return Response({"detail": "Not found."}, status=404)
         try:
@@ -1278,7 +1309,7 @@ class StockRequestListCreateView(generics.ListCreateAPIView[StockRequest]):
         ser.is_valid(raise_exception=True)
         # A store may only ask on its own behalf — the same rule that gates
         # every other outbound write.
-        enforce_store_scope(request.user, ser.validated_data["requesting_store"].id)
+        enforce_store_scope(request.user, ser.validated_data["requesting_store"].id, section='transfer', minimum='operate')
         instance = ser.save()
         return Response(
             StockRequestReadSerializer(instance).data,
@@ -1313,7 +1344,7 @@ class StockRequestFulfilView(APIView):
         except StockRequest.DoesNotExist:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        enforce_store_scope(request.user, stock_request.fulfilling_store_id)
+        enforce_store_scope(request.user, stock_request.fulfilling_store_id, section='transfer', minimum='operate')
 
         ser = StockRequestFulfilInputSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
@@ -1325,7 +1356,7 @@ class StockRequestFulfilView(APIView):
         except OutboundPostingError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(StoreTransferReadSerializer(transfer).data, status=status.HTTP_201_CREATED)
+        return Response(StoreTransferReadSerializer(transfer, context={"request": request}).data, status=status.HTTP_201_CREATED)
 
 
 class StockRequestCloseView(APIView):
@@ -1341,7 +1372,7 @@ class StockRequestCloseView(APIView):
         except StockRequest.DoesNotExist:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        enforce_store_scope(request.user, stock_request.fulfilling_store_id)
+        enforce_store_scope(request.user, stock_request.fulfilling_store_id, section='transfer', minimum='operate')
 
         ser = StockRequestCloseInputSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
@@ -1386,7 +1417,7 @@ class MarkDamagedView(generics.ListCreateAPIView[MarkDamaged]):
             "store", "created_by", "confirmed_by"
         ).prefetch_related("lines", *APPROVAL_JOINS)
         qs = _filter_docstatus(qs, self.request)
-        marks: QuerySet[MarkDamaged] = scope_by_store(qs, self.request.user, "store_id")
+        marks: QuerySet[MarkDamaged] = scope_by_store(qs, self.request.user, "store_id", section="return_to_brand", minimum="view")
         return marks
 
     def get_serializer_class(self) -> type[BaseSerializer[Any]]:
@@ -1398,7 +1429,7 @@ class MarkDamagedView(generics.ListCreateAPIView[MarkDamaged]):
         ser = MarkDamagedInputSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         store = ser.validated_data["store"]
-        enforce_store_scope(request.user, store.id)
+        enforce_store_scope(request.user, store.id, section='return_to_brand', minimum='operate')
 
         try:
             mark = mark_damaged(
@@ -1410,7 +1441,7 @@ class MarkDamagedView(generics.ListCreateAPIView[MarkDamaged]):
         except OutboundPostingError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(MarkDamagedReadSerializer(mark).data, status=status.HTTP_201_CREATED)
+        return Response(MarkDamagedReadSerializer(mark, context={"request": request}).data, status=status.HTTP_201_CREATED)
 
 
 # ---------------------------------------------------------------------------
@@ -1425,10 +1456,14 @@ def _rtvs(user: Any) -> QuerySet[ReturnToVendor]:
     manager's decision, and a brand manager is scoped to brands — the store gate
     alone would show them nothing, including their own brands' returns.
     """
-    qs = ReturnToVendor.objects.select_related(
+    qs = ReturnToVendor.objects.filter(
+        Q(brand__isnull=True) | Q(brand__tenant_id=require_tenant_id()),
+        store__tenant_id=require_tenant_id(),
+        vendor__tenant_id=require_tenant_id(),
+    ).select_related(
         "store", "vendor", "brand", "created_by", "approved_by", "via_transfer", "credit_note"
     ).prefetch_related("lines", *APPROVAL_JOINS)
-    scoped: QuerySet[ReturnToVendor] = scope_by_store_or_brand(qs, user, "store_id", "brand__name")
+    scoped: QuerySet[ReturnToVendor] = scope_by_store_or_brand(qs, user, "store_id", "brand", section="return_to_brand", minimum="view")
     return scoped
 
 
@@ -1458,7 +1493,7 @@ class ReturnablePoolView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
         try:
-            brand = Brand.objects.get(pk=brand_id)
+            brand = Brand.objects.get(pk=brand_id, tenant_id=require_tenant_id())
         except (Brand.DoesNotExist, ValueError):
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -1505,7 +1540,7 @@ class RTVListCreateView(generics.ListCreateAPIView[ReturnToVendor]):
             # Brand, the stored actor policy says which of them may send stock
             # back rather than only flag it damaged.
             return [CanWriteReturnToBrand(), CanCreateReturnToBrand()]
-        return [IsAuthenticated()]
+        return [CanReadReturnToBrand()]
 
     def get_queryset(self) -> QuerySet[ReturnToVendor]:
         qs = _filter_docstatus(_rtvs(self.request.user), self.request)
@@ -1525,7 +1560,10 @@ class RTVListCreateView(generics.ListCreateAPIView[ReturnToVendor]):
         ser = ReturnToBrandCreateSerializer(data=request.data, context={"request": request})
         ser.is_valid(raise_exception=True)
         data = ser.validated_data
-        enforce_store_scope(request.user, data["store"].id)
+        resolve_access(request).require(
+            "rtv.execute", site_id=data["store"].id, brand_id=data["brand"].id,
+        )
+        enforce_store_scope(request.user, data["store"].id, section='return_to_brand', minimum='operate')
         try:
             rtv = raise_return_to_brand(
                 store=data["store"],
@@ -1541,13 +1579,13 @@ class RTVListCreateView(generics.ListCreateAPIView[ReturnToVendor]):
         except OutboundPostingError as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(
-            ReturnToVendorReadSerializer(rtv).data,
+            ReturnToVendorReadSerializer(rtv, context={"request": request}).data,
             status=status.HTTP_201_CREATED,
         )
 
 
 class RTVDetailView(generics.RetrieveAPIView[ReturnToVendor]):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [CanReadReturnToBrand]
     serializer_class = ReturnToVendorReadSerializer
 
     def get_queryset(self) -> QuerySet[ReturnToVendor]:
@@ -1563,14 +1601,21 @@ class RTVSubmitView(APIView):
     def post(self, request: Request, pk: int) -> Response:
         try:
             rtv = (
-                ReturnToVendor.objects.select_related("store", "vendor", "brand")
+                ReturnToVendor.objects.filter(
+                    Q(brand__isnull=True) | Q(brand__tenant_id=require_tenant_id()),
+                    store__tenant_id=require_tenant_id(),
+                    vendor__tenant_id=require_tenant_id(),
+                ).select_related("store", "vendor", "brand")
                 .prefetch_related("lines")
                 .get(pk=pk)
             )
         except ReturnToVendor.DoesNotExist:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        enforce_store_scope(request.user, rtv.store_id)
+        resolve_access(request).require(
+            "rtv.execute", site_id=rtv.store_id, brand_id=rtv.brand_id,
+        )
+        enforce_store_scope(request.user, rtv.store_id, section='return_to_brand', minimum='operate')
 
         if rtv.docstatus != DocStatus.DRAFT:
             return Response(
@@ -1584,7 +1629,7 @@ class RTVSubmitView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         rtv.refresh_from_db()
-        return Response(ReturnToVendorReadSerializer(rtv).data)
+        return Response(ReturnToVendorReadSerializer(rtv, context={"request": request}).data)
 
 
 class RTVCreditNoteView(APIView):
@@ -1608,7 +1653,10 @@ class RTVCreditNoteView(APIView):
         except ReturnToVendor.DoesNotExist:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        enforce_store_scope(request.user, rtv.store_id)
+        resolve_access(request).require(
+            "rtv.execute", site_id=rtv.store_id, brand_id=rtv.brand_id,
+        )
+        enforce_store_scope(request.user, rtv.store_id, section='return_to_brand', minimum='operate')
         if rtv.docstatus != DocStatus.SUBMITTED:
             return Response(
                 {"error": "A credit note answers a return that has actually gone back."},
@@ -1621,7 +1669,7 @@ class RTVCreditNoteView(APIView):
         ser.is_valid(raise_exception=True)
         ser.save(rtv=rtv, recorded_by=request.user)
         rtv.refresh_from_db()
-        return Response(ReturnToVendorReadSerializer(rtv).data)
+        return Response(ReturnToVendorReadSerializer(rtv, context={"request": request}).data)
 
 
 # ---------------------------------------------------------------------------
@@ -1634,7 +1682,7 @@ def _adjustments(user: Any) -> QuerySet[StockAdjustment]:
     qs = StockAdjustment.objects.select_related(
         "store", "approved_by", "created_by"
     ).prefetch_related("lines", *APPROVAL_JOINS)
-    scoped: QuerySet[StockAdjustment] = scope_by_store(qs, user, "store_id")
+    scoped: QuerySet[StockAdjustment] = scope_by_store(qs, user, "store_id", section="stock_count", minimum="view")
     return scoped
 
 
@@ -1661,10 +1709,10 @@ class AdjustmentListCreateView(generics.ListCreateAPIView[StockAdjustment]):
     def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         ser = StockAdjustmentWriteSerializer(data=request.data, context={"request": request})
         ser.is_valid(raise_exception=True)
-        enforce_store_scope(request.user, ser.validated_data["store"].id)
+        enforce_store_scope(request.user, ser.validated_data["store"].id, section='stock_count', minimum='operate')
         instance = ser.save()
         return Response(
-            StockAdjustmentReadSerializer(instance).data,
+            StockAdjustmentReadSerializer(instance, context={"request": request}).data,
             status=status.HTTP_201_CREATED,
         )
 
@@ -1691,7 +1739,7 @@ class AdjustmentSubmitView(APIView):
         except StockAdjustment.DoesNotExist:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        enforce_store_scope(request.user, adj.store_id)
+        enforce_store_scope(request.user, adj.store_id, section='stock_count', minimum='operate')
 
         if adj.docstatus != DocStatus.DRAFT:
             return Response(
@@ -1705,7 +1753,7 @@ class AdjustmentSubmitView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         adj.refresh_from_db()
-        return Response(StockAdjustmentReadSerializer(adj).data)
+        return Response(StockAdjustmentReadSerializer(adj, context={"request": request}).data)
 
 
 # ---------------------------------------------------------------------------
@@ -1718,7 +1766,7 @@ def _writeoffs(user: Any) -> QuerySet[WriteOff]:
     qs = WriteOff.objects.select_related("store", "approved_by", "created_by").prefetch_related(
         "lines", *APPROVAL_JOINS
     )
-    scoped: QuerySet[WriteOff] = scope_by_store(qs, user, "store_id")
+    scoped: QuerySet[WriteOff] = scope_by_store(qs, user, "store_id", section="stock_count", minimum="view")
     return scoped
 
 
@@ -1745,10 +1793,10 @@ class WriteOffListCreateView(generics.ListCreateAPIView[WriteOff]):
     def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         ser = WriteOffWriteSerializer(data=request.data, context={"request": request})
         ser.is_valid(raise_exception=True)
-        enforce_store_scope(request.user, ser.validated_data["store"].id)
+        enforce_store_scope(request.user, ser.validated_data["store"].id, section='stock_count', minimum='operate')
         instance = ser.save()
         return Response(
-            WriteOffReadSerializer(instance).data,
+            WriteOffReadSerializer(instance, context={"request": request}).data,
             status=status.HTTP_201_CREATED,
         )
 
@@ -1773,7 +1821,7 @@ class WriteOffSubmitView(APIView):
         except WriteOff.DoesNotExist:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        enforce_store_scope(request.user, wo.store_id)
+        enforce_store_scope(request.user, wo.store_id, section='stock_count', minimum='operate')
 
         if wo.docstatus != DocStatus.DRAFT:
             return Response(
@@ -1787,7 +1835,7 @@ class WriteOffSubmitView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         wo.refresh_from_db()
-        return Response(WriteOffReadSerializer(wo).data)
+        return Response(WriteOffReadSerializer(wo, context={"request": request}).data)
 
 
 # ---------------------------------------------------------------------------
@@ -1802,10 +1850,13 @@ def _vflips(user: Any) -> QuerySet[VFlip]:
     is a change of ownership *at a location*, and its brand names the stock's old
     owner rather than a caller's boundary.
     """
-    qs = VFlip.objects.select_related(
+    qs = VFlip.objects.filter(
+        store__tenant_id=require_tenant_id(),
+        original_brand__tenant_id=require_tenant_id(),
+    ).select_related(
         "store", "original_brand", "authorized_by", "created_by"
     ).prefetch_related("lines", *APPROVAL_JOINS)
-    scoped: QuerySet[VFlip] = scope_by_store(qs, user, "store_id")
+    scoped: QuerySet[VFlip] = scope_by_store(qs, user, "store_id", section="stock", minimum="view")
     return scoped
 
 
@@ -1817,7 +1868,7 @@ class VFlipListCreateView(generics.ListCreateAPIView[VFlip]):
     def get_permissions(self) -> list[BasePermission]:
         if self.request.method == "POST":
             return [CanFlipOwnership()]
-        return [IsAuthenticated()]
+        return [CanReadStock()]
 
     def get_queryset(self) -> QuerySet[VFlip]:
         qs = _filter_docstatus(_vflips(self.request.user), self.request)
@@ -1832,16 +1883,20 @@ class VFlipListCreateView(generics.ListCreateAPIView[VFlip]):
     def create(self, request: Request, *args: Any, **kwargs: Any) -> Response:
         ser = VFlipWriteSerializer(data=request.data, context={"request": request})
         ser.is_valid(raise_exception=True)
-        enforce_store_scope(request.user, ser.validated_data["store"].id)
+        require_vflip_scope(
+            request, ser.validated_data["store"].id,
+            ser.validated_data["original_brand"].id,
+        )
+        enforce_store_scope(request.user, ser.validated_data["store"].id, section='stock', minimum='manage')
         instance = ser.save()
         return Response(
-            VFlipReadSerializer(instance).data,
+            VFlipReadSerializer(instance, context={"request": request}).data,
             status=status.HTTP_201_CREATED,
         )
 
 
 class VFlipDetailView(generics.RetrieveAPIView[VFlip]):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [CanReadStock]
     serializer_class = VFlipReadSerializer
 
     def get_queryset(self) -> QuerySet[VFlip]:
@@ -1857,14 +1912,18 @@ class VFlipSubmitView(APIView):
     def post(self, request: Request, pk: int) -> Response:
         try:
             vflip = (
-                VFlip.objects.select_related("store", "original_brand")
+                VFlip.objects.filter(
+                    store__tenant_id=require_tenant_id(),
+                    original_brand__tenant_id=require_tenant_id(),
+                ).select_related("store", "original_brand")
                 .prefetch_related("lines")
                 .get(pk=pk)
             )
         except VFlip.DoesNotExist:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        enforce_store_scope(request.user, vflip.store_id)
+        require_vflip_scope(request, vflip.store_id, vflip.original_brand_id)
+        enforce_store_scope(request.user, vflip.store_id, section='stock', minimum='manage')
 
         if vflip.docstatus != DocStatus.DRAFT:
             return Response(
@@ -1878,7 +1937,7 @@ class VFlipSubmitView(APIView):
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         vflip.refresh_from_db()
-        return Response(VFlipReadSerializer(vflip).data)
+        return Response(VFlipReadSerializer(vflip, context={"request": request}).data)
 
 
 # ---------------------------------------------------------------------------
@@ -1911,8 +1970,19 @@ class RequestApprovalView(generics.GenericAPIView[Any]):
         return cast(type[BaseSerializer[Any]], self.read_serializer)
 
     def _load(self, pk: int) -> Any:
+        qs = self.model.objects.all()
+        tenant_id = require_tenant_id()
+        if self.model is StoreTransfer:
+            qs = qs.filter(source_store__tenant_id=tenant_id, destination_store__tenant_id=tenant_id)
+        elif self.model is ReturnToVendor:
+            qs = qs.filter(
+                Q(brand__isnull=True) | Q(brand__tenant_id=tenant_id),
+                store__tenant_id=tenant_id, vendor__tenant_id=tenant_id,
+            )
+        elif self.model is VFlip:
+            qs = qs.filter(store__tenant_id=tenant_id, original_brand__tenant_id=tenant_id)
         return (
-            self.model.objects.select_related(*self.related)
+            qs.select_related(*self.related)
             .prefetch_related("lines", *APPROVAL_JOINS)
             .get(pk=pk)
         )
@@ -1924,7 +1994,7 @@ class RequestApprovalView(generics.GenericAPIView[Any]):
         except self.model.DoesNotExist:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
 
-        enforce_store_scope(request.user, getattr(doc, self.scope_field))
+        enforce_store_scope(request.user, getattr(doc, self.scope_field), section={"storetransfer": "transfer", "transfergapclosure": "transfer", "returntovendor": "return_to_brand", "stockadjustment": "stock_count", "writeoff": "stock_count", "vflip": "stock"}.get(self.model._meta.model_name, ""), minimum='operate')
 
         try:
             ask_again(doc, requested_by=request.user)
@@ -1954,7 +2024,7 @@ def _stocktakes(user: Any) -> QuerySet[Stocktake]:
     qs = Stocktake.objects.select_related("store", "opened_by", "adjustment").prefetch_related(
         "sessions__lines", "sessions__counted_by"
     )
-    scoped: QuerySet[Stocktake] = scope_by_store(qs, user, "store_id")
+    scoped: QuerySet[Stocktake] = scope_by_store(qs, user, "store_id", section="stock_count", minimum="view")
     return scoped
 
 
@@ -1977,7 +2047,7 @@ class StocktakeListCreateView(APIView):
         ser = StocktakeCreateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         store = ser.validated_data["store"]
-        enforce_store_scope(request.user, store.id)
+        enforce_store_scope(request.user, store.id, section='stock_count', minimum='operate')
         stocktake = open_stocktake(
             store, user=cast("User", request.user), note=ser.validated_data["note"]
         )
@@ -2009,7 +2079,7 @@ class CountSessionCreateView(APIView):
             stocktake = Stocktake.objects.select_related("store").get(pk=pk)
         except Stocktake.DoesNotExist:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
-        enforce_store_scope(request.user, stocktake.store_id)
+        enforce_store_scope(request.user, stocktake.store_id, section='stock_count', minimum='operate')
 
         ser = CountSessionCreateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
@@ -2051,7 +2121,7 @@ class CountLookupView(APIView):
                 {"error": "Pass store= and barcode="}, status=status.HTTP_400_BAD_REQUEST
             )
         try:
-            enforce_store_scope(request.user, int(store_id))
+            enforce_store_scope(request.user, int(store_id), section='stock_count', minimum='operate')
         except ValueError:
             return Response({"error": "store must be an id"}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -2078,7 +2148,7 @@ class CountSessionScanView(APIView):
         session = _load_session(pk)
         if session is None:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
-        enforce_store_scope(request.user, session.stocktake.store_id)
+        enforce_store_scope(request.user, session.stocktake.store_id, section='stock_count', minimum='operate')
 
         ser = CountScanInputSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
@@ -2099,7 +2169,7 @@ class CountSessionSubmitView(APIView):
         session = _load_session(pk)
         if session is None:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
-        enforce_store_scope(request.user, session.stocktake.store_id)
+        enforce_store_scope(request.user, session.stocktake.store_id, section='stock_count', minimum='operate')
 
         try:
             submit_session(session)
@@ -2173,7 +2243,7 @@ class StocktakeRecountView(APIView):
             stocktake = _load_stocktake(pk, request.user)
         except Stocktake.DoesNotExist:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
-        enforce_store_scope(request.user, stocktake.store_id)
+        enforce_store_scope(request.user, stocktake.store_id, section='stock_count', minimum='operate')
 
         ser = RecountInputSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
@@ -2210,7 +2280,7 @@ class StocktakeApplyView(APIView):
             stocktake = _load_stocktake(pk, request.user)
         except Stocktake.DoesNotExist:
             return Response({"error": "Not found"}, status=status.HTTP_404_NOT_FOUND)
-        enforce_store_scope(request.user, stocktake.store_id)
+        enforce_store_scope(request.user, stocktake.store_id, section='stock_count', minimum='operate')
 
         ser = ApplyVarianceInputSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
@@ -2236,5 +2306,5 @@ class StocktakeApplyView(APIView):
         except (CountError, OutboundPostingError) as e:
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(
-            StockAdjustmentReadSerializer(adjustment).data, status=status.HTTP_201_CREATED
+            StockAdjustmentReadSerializer(adjustment, context={"request": request}).data, status=status.HTTP_201_CREATED
         )

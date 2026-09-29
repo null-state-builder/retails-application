@@ -118,7 +118,7 @@ class SizeBalanceRejectRequestSerializer(serializers.Serializer[Any]):
 
 
 def _stores_in_scope(user: Any) -> list[Store]:
-    return list(actionable_stores(user).filter(store_type=Store.StoreType.STORE))
+    return list(actionable_stores(user, section="stock").filter(store_type=Store.StoreType.STORE))
 
 
 def balancing_stores(user: Any) -> list[Store]:

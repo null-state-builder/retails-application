@@ -674,7 +674,15 @@ class EventStreamView(GoodsAPIView):
                     if not access.refresh():
                         break
                     fresh, total = changes(cursor)
+                    authority = tuple(access.grants)
                 for offset, item in enumerate(fresh, start=cursor + 1):
+                    # A busy stream can spend time sending one batch. Recheck
+                    # before each item, not only before the batch: a revoked
+                    # session or an assignment that expires meanwhile must not
+                    # release the remaining identifiers from the old snapshot.
+                    with tenant_context(access.tenant_id):
+                        if not access.refresh() or tuple(access.grants) != authority:
+                            return
                     yield f"id: {offset}\nevent: change\ndata: {json.dumps(item)}\n\n".encode()
                 cursor = total
                 if time.monotonic() >= deadline:

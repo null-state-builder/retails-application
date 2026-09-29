@@ -22,7 +22,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.permissions import require_section
-from accounts.sections import CAP_OPERATE
+from accounts.sections import CAP_MANAGE, CAP_OPERATE
 from core.refusals import Refusal, first_message, refusal_body
 from masters.store_features import require_feature
 from sell.petty_cash_models import PettyCashSpend
@@ -96,7 +96,7 @@ class PettyCashFloatView(APIView):
         if not form.is_valid():
             return _invalid(form.errors)
         data = dict(form.validated_data)
-        store = petty_cash.store_for(request.user, data["site_id"])
+        store = petty_cash.store_for(request.user, data["site_id"], minimum=CAP_MANAGE)
         require_feature(store, petty_cash.FEATURE_KEY)
         row = petty_cash.set_float(store, request.user, data)
         return Response(PettyCashFloatReadSerializer(row).data)

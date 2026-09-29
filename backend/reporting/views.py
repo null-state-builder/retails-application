@@ -46,6 +46,8 @@ A read writes nothing. An export writes one audit entry, ``reports.export``.
 
 from __future__ import annotations
 
+from accounts.principal import resolve_access
+
 from typing import Any
 
 from django.utils.text import slugify
@@ -76,7 +78,9 @@ from reporting import (
     staff_report,
     staff_targets,
 )
-from reporting.base import record_export, report_scope, sees_cost, workbook, xlsx_response
+from reporting.base import (
+    record_export, report_scope, sees_cost, sees_financial_report, workbook, xlsx_response,
+)
 
 CanReadReports = require_section("reports", CAP_VIEW)
 #: Ticket 30: reading an estimate is reading the rulebook (``offers_price: view``);
@@ -221,10 +225,12 @@ class SalesReportExportView(APIView):
             total=body["total"],
         )
         record_export(
-            request.user,
+            request.user, access=resolve_access(request),
             report=sales_report.REPORT,
             scope=built["scope"],
             detail={"group_by": body["group_by"], "rows": len(body["rows"])},
+            contains_cost=body["shows_cost"],
+            contains_targets=body["shows_target"],
         )
         return xlsx_response(content, "sales-report")
 
@@ -333,7 +339,7 @@ class OfferSimulationExportView(APIView):
     )
     def get(self, request: Request) -> Any:
         offer = _offer(request, request.query_params.get("offer"))
-        return xlsx_response(offer_simulation.export(request.user, offer), "offer-simulation")
+        return xlsx_response(offer_simulation.export(request.user, offer, access=resolve_access(request)), "offer-simulation")
 
 
 # -- Return on each offer (store operations ticket 31, ST-OFR-1) ------------------------
@@ -436,7 +442,7 @@ class OfferReturnExportView(APIView):
     )
     def get(self, request: Request) -> Any:
         offer = _offer(request, request.query_params.get("offer"))
-        content = offer_return.export(request.user, offer, request.query_params)
+        content = offer_return.export(request.user, offer, request.query_params, access=resolve_access(request))
         return xlsx_response(content, "offer-return")
 
 
@@ -497,6 +503,8 @@ def _gst_view(request: Request) -> str:
 def _gst_body(request: Request) -> dict[str, Any]:
     view = _gst_view(request)
     scope = report_scope(request.user, request.query_params, gst_report.FEATURE_KEY)
+    if not sees_financial_report(request.user, scope.stores):
+        raise Refusal("SCOPE_DENIED", "That financial report is outside your scope.", status=403)
     return {"scope": scope, "body": gst_report.build(scope, view)}
 
 
@@ -536,10 +544,11 @@ class GstReportExportView(APIView):
             sheet=gst_report.SHEET,
         )
         record_export(
-            request.user,
+            request.user, access=resolve_access(request),
             report=gst_report.REPORT,
             scope=built["scope"],
             detail={"view": body["view"], "rows": len(body["rows"])},
+            contains_financial=True,
         )
         return xlsx_response(content, f"gst-report-{body['view'].replace('_', '-')}")
 
@@ -596,7 +605,7 @@ def _gift_body(request: Request) -> dict[str, Any]:
         gift_report.FEATURE_KEY,
         readable_when_off=gift_report.stores_with_tags(),
     )
-    shows_cost = sees_cost(request.user)
+    shows_cost = sees_cost(request.user, scope.stores)
     return {
         "scope": scope,
         "shows_cost": shows_cost,
@@ -642,7 +651,7 @@ class GiftReportExportView(APIView):
             sheet=gift_report.SHEET,
         )
         record_export(
-            request.user,
+            request.user, access=resolve_access(request),
             report=gift_report.REPORT,
             scope=built["scope"],
             detail={
@@ -650,6 +659,7 @@ class GiftReportExportView(APIView):
                 "rows": len(body["rows"]),
                 "shows_cost": built["shows_cost"],
             },
+            contains_cost=built["shows_cost"],
         )
         return xlsx_response(content, f"gift-stock-{body['view']}")
 
@@ -718,6 +728,8 @@ def _funding_body(request: Request) -> dict[str, Any]:
             f"group_by must be one of {', '.join(discount_funding.GROUPINGS)}.",
         )
     scope = report_scope(request.user, request.query_params, discount_funding.FEATURE_KEY)
+    if not sees_financial_report(request.user, scope.stores):
+        raise Refusal("SCOPE_DENIED", "That financial report is outside your scope.", status=403)
     return {"scope": scope, "body": discount_funding.build(scope, group_by)}
 
 
@@ -759,10 +771,11 @@ class DiscountFundingExportView(APIView):
             sheet=discount_funding.SHEET,
         )
         record_export(
-            request.user,
+            request.user, access=resolve_access(request),
             report=discount_funding.REPORT,
             scope=built["scope"],
             detail={"group_by": body["group_by"], "rows": len(body["rows"])},
+            contains_financial=True,
         )
         return xlsx_response(content, f"discount-funding-{body['group_by']}")
 
@@ -885,10 +898,11 @@ class ShrinkageReportExportView(APIView):
             total=body["total"],
         )
         record_export(
-            request.user,
+            request.user, access=resolve_access(request),
             report=shrinkage_report.REPORT,
             scope=built["scope"],
             detail={"group_by": body["group_by"], "rows": len(body["rows"])},
+            contains_cost=body["shows_cost"],
         )
         return xlsx_response(content, "shrinkage-report")
 
@@ -978,6 +992,8 @@ def _margin_body(request: Request) -> dict[str, Any]:
         "date_to": last.isoformat(),
     }
     scope = report_scope(request.user, period, margin_share.FEATURE_KEY)
+    if not sees_financial_report(request.user, scope.stores):
+        raise Refusal("SCOPE_DENIED", "That financial report is outside your scope.", status=403)
     return {"scope": scope, "brand": brand, "body": margin_share.build(scope, month, brand)}
 
 
@@ -1019,7 +1035,7 @@ class MarginShareExportView(APIView):
             sheet=margin_share.SHEET,
         )
         record_export(
-            request.user,
+            request.user, access=resolve_access(request),
             report=margin_share.REPORT,
             scope=built["scope"],
             detail={
@@ -1027,6 +1043,7 @@ class MarginShareExportView(APIView):
                 "brand": brand.pk if brand else None,
                 "rows": len(body["rows"]),
             },
+            contains_financial=True,
         )
         who = slugify(brand.name) if brand else "all-brands"
         return xlsx_response(content, f"margin-share-{who}-{body['month']}")
@@ -1163,10 +1180,11 @@ class InventoryReportExportView(APIView):
             total=body["total"],
         )
         record_export(
-            request.user,
+            request.user, access=resolve_access(request),
             report=inventory_report.REPORT,
             scope=built["scope"],
             detail={"group_by": body["group_by"], "span": body["span"], "rows": len(body["rows"])},
+            contains_cost=body["shows_cost"],
         )
         return xlsx_response(content, f"inventory-report-{body['group_by']}")
 
@@ -1294,7 +1312,7 @@ class ExceptionsReportExportView(APIView):
             total=body["total"],
         )
         record_export(
-            request.user,
+            request.user, access=resolve_access(request),
             report=exceptions_report.REPORT,
             scope=built["scope"],
             detail={"group_by": body["group_by"], "rows": len(body["rows"])},
@@ -1436,10 +1454,11 @@ class BrandPerformanceExportView(APIView):
             total=body["total"],
         )
         record_export(
-            request.user,
+            request.user, access=resolve_access(request),
             report=brand_performance.REPORT,
             scope=built["scope"],
             detail={"group_by": body["group_by"], "rows": len(body["rows"])},
+            contains_cost=body["shows_cost"],
         )
         return xlsx_response(content, f"brand-performance-{body['group_by']}")
 
@@ -1548,10 +1567,12 @@ class StaffReportExportView(APIView):
             total=body["total"],
         )
         record_export(
-            request.user,
+            request.user, access=resolve_access(request),
             report=staff_report.REPORT,
             scope=built["scope"],
             detail={"view": body["view"], "rows": len(body["rows"])},
+            contains_targets=body["shows_target"],
+            contains_team=body["view"] == staff_report.TEAM,
         )
         return xlsx_response(content, "staff-performance-report")
 

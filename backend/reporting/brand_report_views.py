@@ -20,6 +20,8 @@ command whose audit record holds the layout before and after.
 
 from __future__ import annotations
 
+from accounts.principal import resolve_access
+
 import uuid
 from typing import Any
 
@@ -36,6 +38,7 @@ from rest_framework.views import APIView
 from core.commands import CommandResult, CommandRun, CommandSpec, execute_command
 from core.refusals import Refusal
 from masters.models import Brand, Store
+from masters.brand_identity import with_brand_identity
 from masters.store_feature_registry import BRAND_REPORTS
 from reporting import brand_layouts, brand_reports
 from reporting.base import (
@@ -325,14 +328,17 @@ def _month_body(request: Request) -> dict[str, Any]:
     index = brand_reports.brand_index(brands)
 
     lines: dict[str, tuple[int, int]] = {}
-    for row in (
-        BrandSaleLineFact.objects.filter(
+    sale_query = BrandSaleLineFact.objects.filter(
             store_id__in=scope.store_ids, day__gte=when.first, day__lte=when.upto
         )
-        .values("brand_key")
+    known_sales = with_brand_identity(sale_query, tenant_id)
+    if sale_query.exclude(pk__in=known_sales.values("pk")).exists():
+        raise Refusal("BRAND_RECONCILIATION_REQUIRED", "Brand reports require reviewed source identities before totals are complete.")
+    for row in (
+        known_sales.values("_access_brand_id")
         .annotate(lines=Count("id"), pieces=Sum("qty"))
     ):
-        lines[row["brand_key"]] = (int(row["lines"]), int(row["pieces"] or 0))
+        lines[str(row["_access_brand_id"])] = (int(row["lines"]), int(row["pieces"] or 0))
     stock: dict[str, int] = {}
     unsnapped: list[Store] = []
     for store in scope.stores:
@@ -344,12 +350,16 @@ def _month_body(request: Request) -> dict[str, Any]:
         if snapshot is None:
             unsnapped.append(store)
             continue
+        stock_query = InventoryItemFact.objects.filter(store=store, day=snapshot.day)
+        known_stock = with_brand_identity(stock_query, tenant_id)
+        if stock_query.exclude(pk__in=known_stock.values("pk")).exists():
+            raise Refusal("BRAND_RECONCILIATION_REQUIRED", "Stock report source identities require review before totals are complete.")
         for row in (
-            InventoryItemFact.objects.filter(store=store, day=snapshot.day)
-            .values("brand_key")
+            known_stock.values("_access_brand_id")
             .annotate(pieces=Sum("pieces"))
         ):
-            stock[row["brand_key"]] = stock.get(row["brand_key"], 0) + int(row["pieces"] or 0)
+            key = str(row["_access_brand_id"])
+            stock[key] = stock.get(key, 0) + int(row["pieces"] or 0)
     if unsnapped:
         names = ", ".join(f"{s.name} ({s.code})" for s in unsnapped)
         missing.add(
@@ -437,7 +447,9 @@ def _month_body(request: Request) -> dict[str, Any]:
         "brand_options": [_brand(b) for b in brands],
         "files": files,
         "runs": runs,
-        "can_edit_layouts": brand_layouts.may_edit(request.user),
+        "can_edit_layouts": brand_layouts.may_edit(request.user) or any(
+            brand_layouts.may_edit(request.user, brand.pk) for brand in brands
+        ),
     }
 
 
@@ -479,7 +491,7 @@ class BrandReportMakeView(APIView):
         brand = _brand_of(request.query_params.get("brand"), scope.picked.tenant_id)
         made = brand_reports.make(scope.picked, brand, kind, when)
         record_export(
-            request.user,
+            request.user, access=resolve_access(request),
             report=f"{REPORT}:{kind}",
             scope=scope,
             detail={
@@ -511,6 +523,8 @@ class BrandReportFileView(APIView):
         )
         if kept is None:
             raise Refusal("NOT_FOUND", "That report file was not found.", status=404)
+        if kept.about.get("identity_basis") != "stable-brand-id-v1":
+            raise Refusal("BRAND_RECONCILIATION_REQUIRED", "This historical report file needs an identity review before delivery.")
         when = brand_reports.period(kept.month.strftime("%Y-%m"))
         params = {
             "store": kept.store.code,
@@ -525,7 +539,7 @@ class BrandReportFileView(APIView):
                 raise Refusal("NOT_FOUND", "That report file was not found.", status=404) from None
             raise
         record_export(
-            request.user,
+            request.user, access=resolve_access(request),
             report=f"{REPORT}:{kept.kind}",
             scope=scope,
             detail={
@@ -573,7 +587,9 @@ def _layouts_body(request: Request) -> dict[str, Any]:
         return [{"key": key, "label": label} for key, label in pairs.items()]
 
     return {
-        "can_edit": brand_layouts.may_edit(request.user),
+        "can_edit": brand_layouts.may_edit(request.user) or any(
+            brand_layouts.may_edit(request.user, brand.pk) for brand in brands
+        ),
         "field_catalogue": {kind: fields(kind) for kind in brand_layouts.KINDS},
         "formats": choices(brand_layouts.FORMATS),
         "placeholders": choices(brand_layouts.PLACEHOLDERS),
@@ -611,10 +627,6 @@ class BrandLayoutsView(APIView):
         responses=BrandLayoutSerializer,
     )
     def post(self, request: Request) -> Response:
-        if not brand_layouts.may_edit(request.user):
-            raise Refusal(
-                "ACTION_DENIED", "Only Accounts can change a brand's report layout.", status=403
-            )
         stores = _require_switch(request)
         data = request.data if isinstance(request.data, dict) else {}
         try:
@@ -633,6 +645,10 @@ class BrandLayoutsView(APIView):
             )
         tenant_id = _tenant(request, stores)
         brand = None if data.get("brand_id") is None else _brand_of(data.get("brand_id"), tenant_id)
+        if not brand_layouts.may_edit(request.user, brand.pk if brand else None):
+            raise Refusal(
+                "ACTION_DENIED", "Only Accounts can change a brand's report layout.", status=403
+            )
         layout = data.get("layout")
         # Checked before the command too, so a wrong layout is refused with its reason
         # and leaves no command behind to replay.

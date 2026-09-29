@@ -133,7 +133,7 @@ class RunningOffersView(APIView):
         responses={200: RUNNING_SCHEMA, 400: REFUSAL_SCHEMA, 404: REFUSAL_SCHEMA},
     )
     def get(self, request: Request) -> Response:
-        sites = list(scoped_stores(request.user).order_by("code"))
+        sites = list(scoped_stores(request.user, section="offers_price", minimum="view").order_by("code"))
         raw_day = (request.query_params.get("day") or "").strip()
         if raw_day:
             try:

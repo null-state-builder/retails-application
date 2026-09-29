@@ -37,7 +37,7 @@ from typing import Any
 from django.utils import timezone
 
 from accounts.permissions import user_can
-from accounts.role_lists import BRAND_CLAIM_EDITOR_ROLES
+from accounts.principal import access_for_user
 from accounts.sections import CAP_MANAGE
 from alerts.models import Alert, AlertKind, AlertStatus
 from core.commands import CommandRun, LockRank
@@ -231,29 +231,21 @@ def snapshot(claim: BrandClaim) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-def _role(user: Any) -> str:
-    return str(getattr(getattr(user, "role", None), "code", "") or "")
-
-
 def may_read(user: Any) -> bool:
     """Owner and Accounts: ``money: manage``. Store roles never see a claim."""
-    if getattr(user, "is_superuser", False):
-        return True
     return user_can(user, "money", CAP_MANAGE)
 
 
-def may_edit(user: Any) -> bool:
+def may_edit(user: Any, site_id: int | None = None, brand_id: int | None = None) -> bool:
     """Accounts (``money: manage`` narrowed to the declared editors)."""
-    if getattr(user, "is_superuser", False):
-        return True
-    return may_read(user) and _role(user) in BRAND_CLAIM_EDITOR_ROLES
+    return access_for_user(user).covers_all({'brand_claim.manage'}, [(site_id, brand_id)], ['financial'])
 
 
 def readable_stores(user: Any, tenant_id: Any) -> list[Store]:
     """The stores whose claims this person reads, in their own company."""
     if not may_read(user):
         return []
-    ids = actionable_store_ids(user)
+    ids = actionable_store_ids(user, section="money", minimum=CAP_MANAGE)
     rows = Store.objects.filter(tenant_id=tenant_id).order_by("code")
     return list(rows if ids is None else rows.filter(pk__in=ids))
 
@@ -427,6 +419,8 @@ def _raise_flag(claim: BrandClaim) -> None:
         )[:240],
         dedupe_key=f"brand_claim:{claim.pk}",
         store_id=claim.store_id,
+        brand=claim.brand.name,
+        brand_ref=claim.brand,
         object_id=claim.pk,
         due_date=None,
         status=AlertStatus.OPEN,
@@ -504,6 +498,8 @@ def raise_claims(
             continue
         if wanted is not None and brand_id not in wanted:
             continue
+        if not may_edit(user, store_id, brand_id):
+            raise Refusal("NOT_FOUND", "That store and brand are not in your claim scope.")
         store, brand = by_id[store_id], brands[brand_id]
         earlier = BrandClaim.objects.filter(
             tenant_id=tenant_id, brand_id=brand_id, store_id=store_id, month=month

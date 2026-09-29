@@ -340,6 +340,11 @@ class StoreTransferLine(TimeStampedModel):
     color = models.CharField(max_length=60, blank=True, default="")
     size = models.CharField(max_length=24, blank=True, default="")
     brand = models.CharField(max_length=120, blank=True, default="")
+    # Stable scope identity; historical brand text is display evidence only.
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     season = models.CharField(max_length=120, blank=True, default="")
     item = models.CharField(max_length=120, blank=True, default="")
     hsn = models.CharField(max_length=24, blank=True, default="")
@@ -496,6 +501,11 @@ class TransferReceiptException(TimeStampedModel):
     color = models.CharField(max_length=60, blank=True, default="")
     size = models.CharField(max_length=24, blank=True, default="")
     brand = models.CharField(max_length=120, blank=True, default="")
+    # Stable scope identity; historical brand text is display evidence only.
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     season = models.CharField(max_length=120, blank=True, default="")
     item = models.CharField(max_length=120, blank=True, default="")
     hsn = models.CharField(max_length=24, blank=True, default="")
@@ -666,6 +676,11 @@ class StockRequestLine(TimeStampedModel):
     color = models.CharField(max_length=60, blank=True, default="")
     size = models.CharField(max_length=24, blank=True, default="")
     brand = models.CharField(max_length=120, blank=True, default="")
+    # Stable scope identity; historical brand text is display evidence only.
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     season = models.CharField(max_length=120, blank=True, default="")
     item = models.CharField(max_length=120, blank=True, default="")
     hsn = models.CharField(max_length=24, blank=True, default="")
@@ -840,6 +855,11 @@ class TransferGapClosureLine(TimeStampedModel):
     color = models.CharField(max_length=60, blank=True, default="")
     size = models.CharField(max_length=24, blank=True, default="")
     brand = models.CharField(max_length=120, blank=True, default="")
+    # Stable scope identity; historical brand text is display evidence only.
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     season = models.CharField(max_length=120, blank=True, default="")
     item = models.CharField(max_length=120, blank=True, default="")
     hsn = models.CharField(max_length=24, blank=True, default="")
@@ -954,6 +974,11 @@ class MarkDamagedLine(TimeStampedModel):
     color = models.CharField(max_length=60, blank=True, default="")
     size = models.CharField(max_length=24, blank=True, default="")
     brand = models.CharField(max_length=120, blank=True, default="")
+    # Stable scope identity; historical brand text is display evidence only.
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     season = models.CharField(max_length=120, blank=True, default="")
     item = models.CharField(max_length=120, blank=True, default="")
     hsn = models.CharField(max_length=24, blank=True, default="")
@@ -1111,6 +1136,11 @@ class ReturnToVendorLine(TimeStampedModel):
     color = models.CharField(max_length=60, blank=True, default="")
     size = models.CharField(max_length=24, blank=True, default="")
     brand = models.CharField(max_length=120, blank=True, default="")
+    # Stable scope identity; historical brand text is display evidence only.
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     season = models.CharField(max_length=120, blank=True, default="")
     item = models.CharField(max_length=120, blank=True, default="")
     hsn = models.CharField(max_length=24, blank=True, default="")
@@ -1246,6 +1276,11 @@ class StockAdjustmentLine(TimeStampedModel):
     color = models.CharField(max_length=60, blank=True, default="")
     size = models.CharField(max_length=24, blank=True, default="")
     brand = models.CharField(max_length=120, blank=True, default="")
+    # Stable scope identity; historical brand text is display evidence only.
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     season = models.CharField(max_length=120, blank=True, default="")
     item = models.CharField(max_length=120, blank=True, default="")
     hsn = models.CharField(max_length=24, blank=True, default="")
@@ -1330,6 +1365,11 @@ class WriteOffLine(TimeStampedModel):
     color = models.CharField(max_length=60, blank=True, default="")
     size = models.CharField(max_length=24, blank=True, default="")
     brand = models.CharField(max_length=120, blank=True, default="")
+    # Stable scope identity; historical brand text is display evidence only.
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     season = models.CharField(max_length=120, blank=True, default="")
     item = models.CharField(max_length=120, blank=True, default="")
     hsn = models.CharField(max_length=24, blank=True, default="")
@@ -1409,6 +1449,11 @@ class VFlipLine(TimeStampedModel):
     color = models.CharField(max_length=60, blank=True, default="")
     size = models.CharField(max_length=24, blank=True, default="")
     brand = models.CharField(max_length=120, blank=True, default="")
+    # Stable scope identity; historical brand text is display evidence only.
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     season = models.CharField(max_length=120, blank=True, default="")
     item = models.CharField(max_length=120, blank=True, default="")
     hsn = models.CharField(max_length=24, blank=True, default="")
@@ -1561,6 +1606,11 @@ class CountSessionLine(models.Model):
     color = models.CharField(max_length=60, blank=True, default="")
     size = models.CharField(max_length=24, blank=True, default="")
     brand = models.CharField(max_length=120, blank=True, default="")
+    # Stable scope identity; historical brand text is display evidence only.
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     season = models.CharField(max_length=120, blank=True, default="")
     item = models.CharField(max_length=120, blank=True, default="")
     hsn = models.CharField(max_length=24, blank=True, default="")

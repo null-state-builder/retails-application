@@ -30,6 +30,7 @@ from rest_framework.response import Response
 from accounts.goods_api import GoodsAPIView, business_body, check_query, parse_meta
 from core.commands import CommandResult, CommandRun
 from core.refusals import Refusal, issue
+from masters.models import Brand
 from masters.store_features import is_feature_on
 from sell.claim_models import BrandClaim
 from sell.models import Sale
@@ -246,11 +247,20 @@ def _require_reader(user: Any) -> None:
         raise Refusal("ACTION_DENIED", "Brand claims are Accounts' and the Owner's work.")
 
 
-def _require_editor(user: Any) -> None:
-    if not bc.may_edit(user):
+def _require_editor(user: Any, claim: BrandClaim) -> None:
+    if not bc.may_edit(user, claim.store_id, claim.brand_id):
         raise Refusal(
             "ACTION_DENIED", "Accounts raises brand claims and records how the brand settles them."
         )
+
+
+def _can_edit_any(user: Any, tenant_id: Any) -> bool:
+    brand_ids = Brand.objects.filter(tenant_id=tenant_id, is_active=True).values_list("pk", flat=True)
+    return any(
+        bc.may_edit(user, store.pk, brand_id)
+        for store in bc.readable_stores(user, tenant_id)
+        for brand_id in brand_ids
+    )
 
 
 def _readable(user: Any, tenant_id: Any, pk: int) -> BrandClaim:
@@ -264,7 +274,7 @@ def _answer(user: Any, tenant_id: Any, pk: int, *, with_lines: bool) -> dict[str
     claim = _readable(user, tenant_id, pk)
     body = claim_json(
         claim,
-        editor=bc.may_edit(user),
+        editor=bc.may_edit(user, claim.store_id, claim.brand_id),
         switched_on=is_feature_on(claim.store_id, bc.FEATURE_KEY),
     )
     if with_lines:
@@ -311,7 +321,7 @@ class GoodsBrandClaimListView(GoodsAPIView):
         )
         stores = bc.readable_stores(user, access.tenant_id)
         switches = {store.pk: is_feature_on(store, bc.FEATURE_KEY) for store in stores}
-        editor = bc.may_edit(user)
+        editor = _can_edit_any(user, access.tenant_id)
         claims = bc.readable_claims(user, access.tenant_id).filter(month=month)
         rows = bc.to_raise(user, access.tenant_id, month, timezone.now())
         body = {
@@ -320,7 +330,11 @@ class GoodsBrandClaimListView(GoodsAPIView):
             "can_edit": editor,
             "switched_on": any(switches.values()),
             "claims": [
-                claim_json(claim, editor=editor, switched_on=switches.get(claim.store_id, False))
+                claim_json(
+                    claim,
+                    editor=bc.may_edit(user, claim.store_id, claim.brand_id),
+                    switched_on=switches.get(claim.store_id, False),
+                )
                 for claim in claims
             ],
             "to_raise": [
@@ -361,7 +375,8 @@ class GoodsBrandClaimRaiseView(GoodsAPIView):
         access = self.access(request)
         user = request.user
         _require_reader(user)
-        _require_editor(user)
+        if not _can_edit_any(user, access.tenant_id):
+            raise Refusal("ACTION_DENIED", "Only Accounts may raise brand claims.")
         meta = parse_meta(request.data, revision_bound=False)
         body = business_body(request.data, {"month", "store_ids", "brand_ids"}, required=("month",))
         month = bc.parse_month(body["month"])
@@ -417,7 +432,7 @@ class _StepView(GoodsAPIView):
         user = request.user
         _require_reader(user)
         claim = _readable(user, access.tenant_id, pk)
-        _require_editor(user)
+        _require_editor(user, claim)
         meta = parse_meta(request.data, revision_bound=True)
         body = business_body(request.data, self.fields, required=self.required)
 

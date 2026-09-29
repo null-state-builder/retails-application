@@ -113,7 +113,7 @@ def date_text(day: date) -> str:
 
 def sale_period_running(store: Store, day: date) -> bool:
     """Is a sale period running at ``store`` on ``day``? (baseline B93)."""
-    return Offer.objects.live_on(day).for_store(store.code).filter(mode=Offer.Mode.EOSS).exists()
+    return Offer.objects.for_tenant(store.tenant_id).live_on(day).for_store(store.code).filter(mode=Offer.Mode.EOSS).exists()
 
 
 @dataclass(frozen=True)

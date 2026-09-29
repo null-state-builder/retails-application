@@ -8,40 +8,29 @@ Readers hold ``stock: view`` or higher, for the selling stores in their own scop
 where the ``season-ageing`` switch is on. A store outside that is not found. The
 read changes nothing and carries no cost or margin.
 
-A season's end date is a company-wide master fact, so it is written by the
-master-data stewards (``masters.writes``: Owner, IT Admin, data steward), and
-only while the switch is on at a store they can see. Every write runs as one
-command, so its ``AuditEvent`` records who, when, and the date before and after.
-The unknown historical season has no end date, and an end date cannot be in the
-future: a season has ended when it has.
+Legacy seasons lack a tenant owner. Their names remain shared reference data
+until SO-04 reconciles them; end-date writes are blocked at this route.
 """
 
 from __future__ import annotations
 
-from datetime import date
 from typing import Any
 
 from django.utils import timezone
-from django.utils.dateparse import parse_date
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from accounts.actor_policies import user_may_act
 from accounts.goods_api import (
     GoodsAPIView,
-    business_body,
     check_query,
     parse_int_id,
-    parse_meta,
 )
-from accounts.permissions import user_can
+from accounts.permissions import user_can, user_can_at
 from accounts.sections import CAP_VIEW
-from core.commands import CommandResult, CommandRun, LockRank
-from core.refusals import Refusal, issue
+from core.refusals import Refusal
 from masters.models import Season, Store
-from masters.permissions import MASTER_WRITES
 from masters.scoping import actionable_stores
 from masters.store_feature_registry import SEASON_AGEING
 from masters.store_features import feature, switch_states
@@ -128,8 +117,13 @@ class SeasonEndRequestSerializer(serializers.Serializer[Any]):
 
 
 def ageing_stores(user: Any) -> list[Store]:
-    """The selling stores in this person's scope where the switch is on."""
-    stores = list(actionable_stores(user).filter(store_type=Store.StoreType.STORE))
+    """Stores where one assignment covers the report's complete brand scope."""
+    stores = [
+        store for store in actionable_stores(user, section="stock").filter(
+            store_type=Store.StoreType.STORE
+        )
+        if user_can_at(user, "stock", CAP_VIEW, site_id=store.pk, brand_id=None)
+    ]
     states = switch_states(stores, [feature(SEASON_AGEING)])
     return [store for store, state in zip(stores, states, strict=True) if state.enabled]
 
@@ -180,92 +174,19 @@ class GoodsStockAgeingView(GoodsAPIView):
             "seasons": [season_json(s) for s in Season.objects.order_by("-sort_order", "code")]
             if stores
             else [],
-            "can_set_season_end": bool(stores) and user_may_act(request.user, MASTER_WRITES),
+            "can_set_season_end": False,
         }
         return Response(StockAgeingSerializer(body).data)
 
 
-def _ended_on(body: dict[str, Any], today: date) -> date | None:
-    raw = body.get("ended_on")
-    if raw is None:
-        return None
-    parsed = parse_date(raw) if isinstance(raw, str) else None
-    if parsed is None:
-        raise Refusal(
-            "INVALID_REQUEST",
-            "ended_on must be a date (YYYY-MM-DD) or null.",
-            issues=[issue("INVALID", "not a date", field="ended_on")],
-        )
-    if parsed > today:
-        raise Refusal(
-            "INVALID_REQUEST",
-            "A season's end is recorded once it has ended: the date cannot be in the future.",
-            issues=[issue("INVALID", "in the future", field="ended_on")],
-        )
-    return parsed
-
-
 class GoodsSeasonEndView(GoodsAPIView):
-    """Record the day a season ended, or clear it (master-data stewards; audited)."""
+    """Block changes to a shared legacy season until SO-04 maps its tenant owner."""
 
     @extend_schema(request=SeasonEndRequestSerializer, responses=AgeingSeasonSerializer)
     def post(self, request: Request) -> Response:
-        access = self.access(request)
-        if not user_may_act(request.user, MASTER_WRITES):
-            raise Refusal("ACTION_DENIED", "Only a master-data steward records a season's end.")
-        if not ageing_stores(request.user):
-            raise Refusal(
-                "FEATURE_OFF",
-                "Season-aware stock ageing is not switched on at any store you work at.",
-                status=403,
-            )
-        meta = parse_meta(request.data, revision_bound=False)
-        body = business_body(request.data, {"season_id", "ended_on"}, required=["season_id"])
-        if "ended_on" not in body:
-            raise Refusal(
-                "INVALID_REQUEST",
-                "ended_on is required (a date, or null to clear it).",
-                issues=[issue("REQUIRED", "ended_on is required", field="ended_on")],
-            )
-        season_id = parse_int_id(body["season_id"], "season_id")
-        ended_on = _ended_on(body, timezone.localdate())
-        season = Season.objects.filter(pk=season_id).first()
-        if season is None:
-            raise Refusal("NOT_FOUND", "That season was not found.", status=404)
-        if season.historical_unknown and ended_on is not None:
-            raise Refusal(
-                "INVALID_REQUEST",
-                "The unknown historical season has no end date: nobody knows when it was.",
-                issues=[issue("INVALID", "unknown historical season", field="season_id")],
-            )
-
-        def handler(run: CommandRun) -> CommandResult:
-            run.advisory_lock(LockRank.DOCUMENT, [f"season-end:{season.pk}"])
-            row = Season.objects.select_for_update().get(pk=season.pk)
-            run.audit_before = {
-                "season": row.code,
-                "ended_on": row.ended_on.isoformat() if row.ended_on else None,
-            }
-            row.ended_on = ended_on
-            row.save(update_fields=["ended_on", "updated_at"])
-            run.audit_after = {
-                "season": row.code,
-                "ended_on": ended_on.isoformat() if ended_on else None,
-            }
-            return CommandResult(resource_type="season", resource_id=str(row.pk), revision=1)
-
-        result = self.run_command(
-            request,
-            access=access,
-            action=SEASON_END_ACTION,
-            meta=meta,
-            business_input={
-                "season_id": season.pk,
-                "ended_on": ended_on.isoformat() if ended_on else None,
-            },
-            handler=handler,
-            resource_ids=[f"season:{season.pk}"],
-            subject_key=f"season:{season.pk}",
+        self.access(request)
+        raise Refusal(
+            "TENANT_SCOPE_UNRESOLVED",
+            "Map this season to a tenant-owned master before editing its end date.",
+            status=409,
         )
-        season.refresh_from_db()
-        return Response(AgeingSeasonSerializer(season_json(season)).data, status=result.status_code)

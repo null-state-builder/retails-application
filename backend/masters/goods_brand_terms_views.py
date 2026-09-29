@@ -639,6 +639,8 @@ class GoodsBrandTermsProposeView(GoodsAPIView):
             required=["brand_id", "season_id"],
         )
         brand = _changeable_brand(user, _int_id(body["brand_id"], "brand_id"))
+        if not may_propose(user, brand.pk):
+            raise Refusal("ACTION_DENIED", "You cannot propose terms for this brand.")
         require_switched_on(user)
         season = Season.objects.filter(
             pk=_int_id(body["season_id"], "season_id"), historical_unknown=False
@@ -782,6 +784,8 @@ class GoodsBrandPromotionProposeView(GoodsAPIView):
             required=["brand_id"],
         )
         brand = _changeable_brand(user, _int_id(body["brand_id"], "brand_id"))
+        if not may_propose(user, brand.pk):
+            raise Refusal("ACTION_DENIED", "You cannot propose terms for this brand.")
         require_switched_on(user)
         problems = Problems()
         applies = parse_day(body.get("applies_from"), problems)
@@ -920,7 +924,7 @@ def _check_decider(user: Any, row: Any, outcome: str, *, mine: bool) -> None:
         if not mine:
             raise Refusal("ACTION_DENIED", "Only the person who proposed a change withdraws it.")
         return
-    if not may_approve(user):
+    if not may_approve(user, row.brand_id):
         raise Refusal("ACTION_DENIED", "Only the Owner approves or rejects brand terms.")
     _changeable_brand(user, row.brand_id)
     if mine:

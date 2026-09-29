@@ -183,17 +183,19 @@ def _person(actor: Any) -> Principal:
     return Principal(tenant_id=tenant_id, human_id=human_id, user_id=getattr(actor, "pk", None))
 
 
-def _transfer_access(store: Store, actor: Any, principal: Principal) -> Principal:
+def _transfer_access(store: Store, actor: Any, principal: Principal, session: Any) -> Principal:
     """The person's own ``transfer.allocate`` at this store (as any request needs),
     and the principal that carries the grants the command relied on."""
     from outbound.transfers import ALLOCATE_ACTION
 
+    if session is None or not hasattr(session, "token_hash"):
+        raise _refuse("SCOPE_DENIED", "Sign in to request a transfer.", 403)
     assert principal.human_id is not None
     access = AccessContext(
         user=actor,
         human_id=principal.human_id,
         tenant_id=principal.tenant_id,
-        session=None,
+        session=session,
         grants=effective_grants(principal.human_id),
     )
     if not access.can(ALLOCATE_ACTION, site_id=store.pk):
@@ -452,6 +454,7 @@ def order_by_transfer(
     *,
     source_code: str,
     barcode: str,
+    session: Any,
     command_id: uuid.UUID | None = None,
 ) -> None:
     """Raise a transfer request for one piece from ``source_code`` to this store."""
@@ -468,7 +471,7 @@ def order_by_transfer(
             "SPECIAL_ORDER_GOODS_ONLY",
             f"{store.code} does not take transfers on goods records yet. Choose a booking line.",
         )
-    principal = _transfer_access(store, actor, principal)
+    principal = _transfer_access(store, actor, principal, session)
     code = (source_code or "").strip().upper()
     source = (
         Store.objects.filter(code=code, is_active=True, tenant_id=store.tenant_id)

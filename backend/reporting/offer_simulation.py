@@ -601,7 +601,7 @@ def read(user: Any, offer: Offer) -> dict[str, Any]:
     found = sim_stores(user, offer)
     _refuse_scope(found)
     simulation = OfferSimulation.objects.filter(offer=offer).select_related("run_by").first()
-    show_cost = sees_cost(user)
+    show_cost = sees_cost(user, found.stores)
     if simulation is None:
         return _never_run(offer, found, show_cost)
     result = simulation.result or {}
@@ -654,7 +654,7 @@ SHEET_ROWS: tuple[tuple[str, str, str, bool], ...] = (
 )
 
 
-def export(user: Any, offer: Offer) -> bytes:
+def export(user: Any, offer: Offer, *, access: Any = None) -> bytes:
     """The newest estimate as one sheet: what it is, its basis and gaps, then the figures.
 
     Built from ``read``, so it carries exactly what this viewer may see, and the
@@ -695,7 +695,7 @@ def export(user: Any, offer: Offer) -> bytes:
         store for store in viewer_stores(user) if store.pk in {s["id"] for s in body["stores"]}
     ]
     record_export(
-        user,
+        user, access=access,
         report="offer-simulation",
         scope=ReportScope(
             user=user,
@@ -705,6 +705,7 @@ def export(user: Any, offer: Offer) -> bytes:
             date_to=max(date.fromisoformat(p["date_to"]) for p in body["periods"]),
         ),
         detail={"offer": offer.pk, "simulation": body["simulation"]},
+        contains_cost=body["shows_cost"],
     )
     return content
 

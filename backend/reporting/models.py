@@ -47,6 +47,11 @@ class SalesLineFact(models.Model):
     #: The bill this row counts towards, or None: only a sold piece makes a bill.
     bill_id = models.BigIntegerField(null=True, blank=True)
     brand = models.CharField(max_length=120, blank=True, default="")
+    # Stable scope identity; historical brand text is display evidence only.
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     category = models.CharField(max_length=120, blank=True, default="")
     #: The season as the bill line names it (code or name), "" where it names none.
     #: The inventory report (ticket 43) reads a brand's terms by brand and season.
@@ -145,6 +150,11 @@ class OfferSimLineFact(models.Model):
     line_id = models.BigIntegerField()
     line_no = models.IntegerField()
     brand = models.CharField(max_length=120, blank=True, default="")
+    # Stable scope identity; historical brand text is display evidence only.
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     brand_key = models.CharField(max_length=120, blank=True, default="")
     item = models.CharField(max_length=120, blank=True, default="")
     design = models.CharField(max_length=120, blank=True, default="")
@@ -415,6 +425,11 @@ class GiftItcFact(models.Model):
     doc_number = models.CharField(max_length=128, blank=True, default="")
     barcode = models.CharField(max_length=64, blank=True, default="")
     brand = models.CharField(max_length=120, blank=True, default="")
+    # Stable scope identity; historical brand text is display evidence only.
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     item = models.CharField(max_length=120, blank=True, default="")
     hsn = models.CharField(max_length=24, blank=True, default="")
     pieces = models.IntegerField()
@@ -505,6 +520,11 @@ class ShrinkageLineFact(models.Model):
     reason_code = models.CharField(max_length=60, blank=True, default="")
     sku_id = models.UUIDField(null=True, blank=True)
     brand = models.CharField(max_length=120, blank=True, default="")
+    # Stable scope identity; historical brand text is display evidence only.
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     category = models.CharField(max_length=120, blank=True, default="")
     pieces = models.IntegerField()
     cost_paise = MoneyField(null=True, blank=True)
@@ -611,6 +631,11 @@ class InventoryStockFact(models.Model):
     store = models.ForeignKey("masters.Store", on_delete=models.DO_NOTHING, related_name="+")
     day = models.DateField()
     brand = models.CharField(max_length=120, blank=True, default="")
+    # Stable scope identity; historical brand text is display evidence only.
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     category = models.CharField(max_length=120, blank=True, default="")
     season_id = models.BigIntegerField(null=True, blank=True)
     season = models.CharField(max_length=120, blank=True, default="")
@@ -655,6 +680,11 @@ class InventoryReceiptFact(models.Model):
     source = models.CharField(max_length=10, choices=Source.choices)
     sku_id = models.UUIDField(null=True, blank=True)
     brand = models.CharField(max_length=120, blank=True, default="")
+    # Stable scope identity; historical brand text is display evidence only.
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     category = models.CharField(max_length=120, blank=True, default="")
     season_id = models.BigIntegerField(null=True, blank=True)
     season = models.CharField(max_length=120, blank=True, default="")
@@ -757,6 +787,11 @@ class BrandSaleLineFact(models.Model):
     line_id = models.BigIntegerField()
     line_no = models.IntegerField(default=0)
     brand = models.CharField(max_length=120, blank=True, default="")
+    # Stable scope identity; historical brand text is display evidence only.
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     brand_key = models.CharField(max_length=120, blank=True, default="")
     item = models.CharField(max_length=120, blank=True, default="")
     design = models.CharField(max_length=120, blank=True, default="")
@@ -798,6 +833,11 @@ class InventoryItemFact(models.Model):
     store = models.ForeignKey("masters.Store", on_delete=models.DO_NOTHING, related_name="+")
     day = models.DateField()
     brand = models.CharField(max_length=120, blank=True, default="")
+    # Stable scope identity; historical brand text is display evidence only.
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     brand_key = models.CharField(max_length=120, blank=True, default="")
     item = models.CharField(max_length=120, blank=True, default="")
     design = models.CharField(max_length=120, blank=True, default="")

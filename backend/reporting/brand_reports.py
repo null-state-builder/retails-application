@@ -55,7 +55,7 @@ from core.refusals import Refusal
 from masters.models import Brand, Store
 from masters.store_feature_registry import BRAND_REPORTS
 from masters.store_features import feature, switch_states
-from offers.resolution import normalise
+from masters.brand_identity import with_brand_identity
 from reporting import brand_layouts
 from reporting.base import XLSX, Missing, freshness
 from reporting.brand_layouts import FIXED, SALE, SOH
@@ -87,8 +87,8 @@ SALE_BASIS = [
     "it came off and what the customer was paid back.",
     "Price is MRP times pieces; Total is what the customer paid, GST inside; Discount is the "
     "difference.",
-    "A line is the brand's when the brand on the bill matches the brand's name or short "
-    "code, ignoring case, spaces and punctuation.",
+    "Brand membership uses the source record's stable, tenant-owned brand identity. "
+    "Historical display labels are retained but never matched to establish ownership.",
     "Alteration charges are a service, not the brand's goods, and are left out.",
 ]
 SOH_BASIS = [
@@ -128,8 +128,8 @@ def period(raw: str | None) -> Period:
 
 
 def keys_of(brand: Brand) -> set[str]:
-    """What a bill's brand reduces to when it names this brand: its name or its code."""
-    return {key for key in (normalise(brand.name), normalise(brand.code)) if key}
+    """A report groups on stable identity; display names and codes never bind rows."""
+    return {str(brand.pk)}
 
 
 def brand_index(brands: Iterable[Brand]) -> dict[str, list[Brand]]:
@@ -216,17 +216,21 @@ class StoreMonth:
     goods_records: bool
     #: False when that snapshot was taken before stock by barcode was kept.
     items_kept: bool = True
+    unresolved_identity: bool = False
 
 
 def read_store_month(store: Store, when: Period, keys: set[str] | None = None) -> StoreMonth:
     lines = BrandSaleLineFact.objects.filter(
         store=store, day__gte=when.first, day__lte=when.upto
     ).order_by("day", "doc_number", "doc_id", "line_no", "id")
+    known_lines = with_brand_identity(lines, store.tenant_id)
+    unresolved = lines.exclude(pk__in=known_lines.values("pk")).exists()
+    lines = known_lines
     if keys is not None:
-        lines = lines.filter(brand_key__in=sorted(keys))
+        lines = lines.filter(_access_brand_id__in=sorted(keys))
     sales: dict[str, list[BrandSaleLineFact]] = defaultdict(list)
     for line in lines:
-        sales[line.brand_key].append(line)
+        sales[str(line._access_brand_id)].append(line)
     snapshot = (
         InventorySnapshot.objects.filter(store=store, day__gte=when.first, day__lte=when.upto)
         .order_by("-day")
@@ -237,10 +241,13 @@ def read_store_month(store: Store, when: Period, keys: set[str] | None = None) -
         items = InventoryItemFact.objects.filter(store=store, day=snapshot.day).order_by(
             "item", "design", "size", "barcode", "mrp_paise", "id"
         )
+        known_items = with_brand_identity(items, store.tenant_id)
+        unresolved |= items.exclude(pk__in=known_items.values("pk")).exists()
+        items = known_items
         if keys is not None:
-            items = items.filter(brand_key__in=sorted(keys))
+            items = items.filter(_access_brand_id__in=sorted(keys))
         for item in items:
-            stock[item.brand_key].append(item)
+            stock[str(item._access_brand_id)].append(item)
     return StoreMonth(
         store=store,
         when=when,
@@ -249,6 +256,7 @@ def read_store_month(store: Store, when: Period, keys: set[str] | None = None) -
         stock_day=snapshot.day if snapshot else None,
         goods_records=snapshot.goods_records if snapshot else True,
         items_kept=snapshot.items_kept if snapshot else True,
+        unresolved_identity=unresolved,
     )
 
 
@@ -281,6 +289,7 @@ class Made:
 
     def about(self) -> dict[str, Any]:
         return {
+            "identity_basis": "stable-brand-id-v1",
             "store": self.store.code,
             "brand": self.brand.code,
             "kind": self.kind,
@@ -310,6 +319,8 @@ def build(
 ) -> Made:
     """One brand's report of ``kind`` from what ``store_month`` holds."""
     when, store = store_month.when, store_month.store
+    if store_month.unresolved_identity:
+        raise Refusal("BRAND_RECONCILIATION_REQUIRED", "This report is incomplete while source brand identities await review.")
     chosen = layout or brand_layouts.effective(brand, kind)
     if kind == SALE:
         rows = sale_rows(_of(store_month.sales, brand), brand)

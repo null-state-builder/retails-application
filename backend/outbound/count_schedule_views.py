@@ -40,7 +40,7 @@ from accounts.goods_api import (
     parse_meta,
 )
 from accounts.permissions import user_can
-from accounts.role_lists import COUNT_SCHEDULE_EDITOR_ROLES
+from accounts.principal import access_for_user
 from accounts.sections import CAP_APPROVE, CAP_VIEW
 from core.commands import CommandResult, CommandRun, LockRank
 from core.refusals import Refusal, issue
@@ -56,20 +56,17 @@ STOP_ACTION = "stock.count_schedule.stop"
 
 
 def may_read(user: Any) -> bool:
-    return bool(getattr(user, "is_superuser", False)) or user_can(user, "stock_count", CAP_VIEW)
+    return user_can(user, "stock_count", CAP_VIEW)
 
 
-def may_edit(user: Any) -> bool:
-    """The Owner: ``stock_count: approve`` and a declared editor role (or break-glass)."""
-    if getattr(user, "is_superuser", False):
-        return True
-    code = getattr(getattr(user, "role", None), "code", "")
-    return user_can(user, "stock_count", CAP_APPROVE) and code in COUNT_SCHEDULE_EDITOR_ROLES
+def may_edit(user: Any, site_id: int, brand_id: int | None = None) -> bool:
+    """The Owner's count policy authority over this site and brand."""
+    return access_for_user(user).covers_all({'count.schedule.manage'}, [(site_id, brand_id)], [])
 
 
 def schedule_stores(user: Any) -> list[Store]:
     """The active stores in this person's scope where the switch is on."""
-    return rules.switched_on(list(actionable_stores(user)))
+    return rules.switched_on(list(actionable_stores(user, section="stock_count", minimum=CAP_VIEW)))
 
 
 # -- serializers (the OpenAPI shape the PWA's client is generated from) -------------
@@ -220,10 +217,14 @@ class CountScheduleListView(GoodsAPIView):
         if not may_read(request.user):
             raise Refusal("ACTION_DENIED", "You do not have access to Stock Count.")
         today = timezone.localdate()
-        in_scope = list(actionable_stores(request.user))
+        in_scope = list(actionable_stores(request.user, section="stock_count", minimum=CAP_VIEW))
         stores = rules.switched_on(in_scope)
         goods = rules.goods_v1_sites([store.pk for store in stores])
-        editor = may_edit(request.user) and bool(stores)
+        brand_ids = list(Brand.objects.filter(is_active=True).values_list("pk", flat=True))
+        editor = any(
+            may_edit(request.user, store.pk, brand_id)
+            for store in stores for brand_id in [None, *brand_ids]
+        )
         schedules = rules.live_schedules(stores)
         log = rules.CountLog(store.pk for store in stores)
         body = {
@@ -254,7 +255,6 @@ class CountScheduleListView(GoodsAPIView):
     )
     def post(self, request: Request) -> Response:
         access = self.access(request)
-        _require_editor(request.user)
         meta = parse_meta(request.data, revision_bound=False)
         body = business_body(
             request.data,
@@ -264,6 +264,7 @@ class CountScheduleListView(GoodsAPIView):
         store = _store_in_scope(request.user, body["site_id"])
         require_feature(store, rules.FEATURE_KEY)
         brand = _brand(body.get("brand_id"))
+        _require_editor(request.user, store.pk, brand.pk if brand else None)
         every = _every(body)
         today = timezone.localdate()
         first = _first_due_on(body, today)
@@ -336,12 +337,12 @@ class CountScheduleChangeView(GoodsAPIView):
     )
     def post(self, request: Request, pk: uuid.UUID) -> Response:
         access = self.access(request)
-        _require_editor(request.user)
         meta = parse_meta(request.data, revision_bound=True)
         body = business_body(
             request.data, {"every", "first_due_on"}, required=["every", "first_due_on"]
         )
         schedule = _schedule_in_scope(request.user, pk)
+        _require_editor(request.user, schedule.site_id, schedule.brand_id)
         require_feature(schedule.site, rules.FEATURE_KEY)
         every = _every(body)
         today = timezone.localdate()
@@ -391,10 +392,10 @@ class CountScheduleStopView(GoodsAPIView):
     @extend_schema(request=ScheduleStopRequestSerializer, responses=ScheduleRowSerializer)
     def post(self, request: Request, pk: uuid.UUID) -> Response:
         access = self.access(request)
-        _require_editor(request.user)
         meta = parse_meta(request.data, revision_bound=True)
         business_body(request.data, set())
         schedule = _schedule_in_scope(request.user, pk)
+        _require_editor(request.user, schedule.site_id, schedule.brand_id)
 
         def handler(run: CommandRun) -> CommandResult:
             row = _locked(run, schedule.pk)
@@ -433,14 +434,14 @@ class CountScheduleStopView(GoodsAPIView):
 # -- checks shared by the writes -------------------------------------------------------
 
 
-def _require_editor(user: Any) -> None:
-    if not may_edit(user):
+def _require_editor(user: Any, site_id: int, brand_id: int | None) -> None:
+    if not may_edit(user, site_id, brand_id):
         raise Refusal("ACTION_DENIED", "Only the Owner sets a store's count schedule.")
 
 
 def _store_in_scope(user: Any, raw: Any) -> Store:
     store_id = parse_int_id(raw, "site_id")
-    allowed = actionable_store_ids(user)
+    allowed = actionable_store_ids(user, section="stock_count", minimum=CAP_APPROVE)
     store = Store.objects.filter(pk=store_id, is_active=True).first()
     if store is None or (allowed is not None and store.pk not in allowed):
         raise Refusal("NOT_FOUND", "That store was not found.", status=404)
@@ -449,7 +450,7 @@ def _store_in_scope(user: Any, raw: Any) -> Store:
 
 def _schedule_in_scope(user: Any, pk: uuid.UUID) -> CountSchedule:
     schedule = CountSchedule.objects.select_related("site", "brand").filter(pk=pk).first()
-    allowed = actionable_store_ids(user)
+    allowed = actionable_store_ids(user, section="stock_count", minimum=CAP_APPROVE)
     if schedule is None or (allowed is not None and schedule.site_id not in allowed):
         raise Refusal("NOT_FOUND", "That schedule was not found.", status=404)
     return schedule

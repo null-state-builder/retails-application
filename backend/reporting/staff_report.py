@@ -38,9 +38,10 @@ from django.db.models import Count, Max, Q, QuerySet, Sum
 from django.utils import timezone
 
 from accounts.goods_models import Staff
-from accounts.models import ScopeType
-from accounts.permissions import user_can
-from accounts.sections import CAP_APPROVE, CAP_MANAGE
+from accounts.role_assignments import effective_assignments
+from accounts.sections import CAP_APPROVE, CAP_MANAGE, CAP_VIEW, meets
+from accounts.unified_policy import role_capability, role_fields
+from masters.models import Store
 from masters.models import StaffTarget
 from reporting.base import (
     Column,
@@ -66,7 +67,6 @@ FEATURE_KEY = "staff-performance-report"
 TEAM = "team"
 OWN = "own"
 #: Logins that see every salesperson in their scope without ``sell: approve``.
-HEAD_OFFICE_SCOPES = frozenset({ScopeType.ALL, ScopeType.ENTITY})
 
 BASIS = [
     "Bills the server has accepted and not cancelled, dated by the bill's time at the till, "
@@ -86,19 +86,33 @@ BASIS = [
 OWN_BASIS = "You see your own results only: sales credited to your staff record."
 
 
-def sees_team(user: Any) -> bool:
-    """Is ``user`` a manager (the team) rather than a salesperson (their own rows)?"""
-    if getattr(user, "is_superuser", False):
-        return True
-    if user_can(user, "sell", CAP_APPROVE):
-        return True
-    # Head office by name, so a scope added later starts on "own rows only".
-    return getattr(user, "scope_type", None) in HEAD_OFFICE_SCOPES
+def sees_team(user: Any, stores: list[Store] | None = None) -> bool:
+    """Team rows require manager authority at every store in the aggregate."""
+    if not stores or not getattr(user, "is_active", False):
+        return False
+    if any(store.tenant_id != getattr(user, "tenant_id", None) for store in stores):
+        return False
+    human_id = getattr(user, "human_id", None)
+    if human_id is None:
+        return False
+    rows = [
+        row for row in effective_assignments(human_id)
+        if row.all_brands
+        and meets(role_capability(row.role, "reports"), CAP_VIEW)
+        and (
+            meets(role_capability(row.role, "sell"), CAP_APPROVE)
+            or (meets(role_capability(row.role, "money"), CAP_MANAGE)
+                and "financial" in role_fields(row.role))
+        )
+    ]
+    return all(any(row.all_sites or store.pk in row.site_ids for row in rows) for store in stores)
 
 
-def may_set_targets(user: Any) -> bool:
-    """Whoever sets store targets sets staff targets: ``money: manage`` (#171)."""
-    return user_can(user, "money", CAP_MANAGE)
+def may_set_targets(user: Any, stores: list[Store] | None = None) -> bool:
+    """Financial target editing requires one qualifying row for every store."""
+    from reporting.base import sees_financial_report
+
+    return sees_financial_report(user, stores)
 
 
 def own_staff(user: Any) -> Staff | None:
@@ -165,8 +179,8 @@ def _label(key: str, name: str, code: str) -> str:
 def build(scope: ReportScope) -> dict[str, Any]:
     """The staff report for ``scope``, as the viewer may see it."""
     user = scope.user
-    view = TEAM if sees_team(user) else OWN
-    show_target = sees_targets(user)
+    view = TEAM if sees_team(user, scope.stores) else OWN
+    show_target = sees_targets(user, scope.stores)
     missing = Missing()
     as_of = freshness(FRESHNESS_KEY, missing)
     note_scope(scope, TITLE, missing)
@@ -258,7 +272,7 @@ def build(scope: ReportScope) -> dict[str, Any]:
         extra={
             "view": view,
             "shows_target": show_target,
-            "can_set_targets": may_set_targets(user),
+            "can_set_targets": may_set_targets(user, scope.stores),
             "columns": [column_json(column) for column in columns(show_target)],
             "rows": rows,
             "total": total,

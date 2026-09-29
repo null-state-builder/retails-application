@@ -81,7 +81,7 @@ class Command(BaseCommand):
     # -- what the rulebook says -----------------------------------------------
     def _priced(self, store: Store, day: date, limit: int = 40) -> list[dict[str, Any]]:
         """Every piece in the shop, with what the rulebook would give it today."""
-        rules = rulebook_for(store.code, day)
+        rules = rulebook_for(store.code, day, tenant_id=store.tenant_id)
         rows = list(StockOnHand.objects.filter(store=store, net_qty__gt=1).order_by("-net_qty"))
         flags = dict(
             Sku.objects.filter(barcode__in=[row.sku_code for row in rows]).values_list(

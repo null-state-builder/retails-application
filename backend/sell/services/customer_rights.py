@@ -62,7 +62,7 @@ from core.refusals import Refusal, issue
 from core.tenancy import current_tenant_id
 from masters.consent_wording import current_wording
 from masters.models import Customer, CustomerNumber, Store
-from masters.scoping import actionable_store_ids, active_store_ids, is_brand_scoped
+from masters.scoping import actionable_store_ids, active_store_ids, is_brand_scoped, visible_store_ids
 from masters.store_feature_registry import CUSTOMER_MERGE_RETENTION, CUSTOMER_RIGHTS
 from masters.store_features import feature, is_feature_on, switch_states
 from sell.gstin import describe as describe_gstin
@@ -132,8 +132,11 @@ def _scope_stores(user: Any) -> list[Store]:
     a brand-scoped login: customers are found through stores."""
     if is_brand_scoped(user):
         return []
-    ids = active_store_ids(user)
+    ids = active_store_ids(user, section="sell", minimum="view")
+    permitted = visible_store_ids(user, section="sell", minimum=CAP_VIEW)
     rows = _company_stores(user)
+    if permitted is not None:
+        rows = rows.filter(pk__in=permitted)
     if ids is not None:
         rows = rows.filter(pk__in=ids)
     return list(rows)
@@ -149,7 +152,7 @@ def acting_stores(user: Any) -> list[Store]:
     without ``sell: operate``."""
     if not may_act(user):
         return []
-    ids = actionable_store_ids(user)
+    ids = actionable_store_ids(user, section="sell", minimum=CAP_OPERATE)
     rows = _company_stores(user).filter(is_active=True)
     if ids is not None:
         rows = rows.filter(pk__in=ids)
@@ -157,11 +160,11 @@ def acting_stores(user: Any) -> list[Store]:
 
 
 def may_read(user: Any) -> bool:
-    return bool(getattr(user, "is_superuser", False) or user_can(user, "sell", CAP_VIEW))
+    return user_can(user, "sell", CAP_VIEW)
 
 
 def may_act(user: Any) -> bool:
-    return bool(getattr(user, "is_superuser", False) or user_can(user, "sell", CAP_OPERATE))
+    return user_can(user, "sell", CAP_OPERATE)
 
 
 def require_reader(user: Any) -> list[Store]:
@@ -195,7 +198,7 @@ def acting_store(user: Any, site_id: Any) -> Store:
     store = next((s for s in acting_stores(user) if s.pk == wanted), None)
     if store is not None:
         return store
-    ids = actionable_store_ids(user)
+    ids = actionable_store_ids(user, section="sell", minimum=CAP_OPERATE)
     open_here = _company_stores(user).filter(pk=wanted, is_active=True).exists()
     if open_here and (ids is None or wanted in ids):
         raise Refusal("FEATURE_OFF", OFF_MESSAGE, status=403)

@@ -19,6 +19,7 @@ from approvals.models import CLEARED_STATUSES
 from core.gl import GLAccount
 from core.posting import PostingRef, assert_pt_or_vflip_actor, cr, dr, post_entries
 from masters.ownership import brand_is_owned
+from core.tenancy import require_tenant_id
 
 # Re-exported on purpose (see ``outbound.costing``'s module note): for a caller,
 # the error still belongs to posting. The `as` spelling is what makes that a
@@ -32,7 +33,8 @@ from stockledger.models import (
     QuarantineStock,
     StockLedgerEntry,
     StockOnHand,
-    merch_dims,
+    identity_dims,
+    retain_projection_identity,
 )
 
 if TYPE_CHECKING:
@@ -93,6 +95,7 @@ def _line_amount(line: Any, qty: int, doc_number: str) -> int:
     return qty * unit_cost_paise
 
 
+@transaction.atomic
 def _write_stock_entry(
     *,
     store: Store,
@@ -110,13 +113,7 @@ def _write_stock_entry(
         store=store,
         gstin=gstin,
         sku_code=line.sku_code,
-        design=getattr(line, "design", ""),
-        color=getattr(line, "color", ""),
-        size=getattr(line, "size", ""),
-        brand=getattr(line, "brand", ""),
-        season=getattr(line, "season", ""),
-        item=getattr(line, "item", ""),
-        hsn=getattr(line, "hsn", ""),
+        **identity_dims(line, store.tenant_id),
         qty=qty,
         amount=amount_paise,
         kind=kind,
@@ -137,10 +134,12 @@ def _write_stock_entry(
             "season": getattr(line, "season", ""),
             "item": getattr(line, "item", ""),
             "hsn": getattr(line, "hsn", ""),
+            **identity_dims(line, store.tenant_id),
             "net_qty": 0,
             "net_value_paise": 0,
         },
     )
+    retain_projection_identity(obj, identity_dims(line, store.tenant_id))
     obj.net_qty += qty
     obj.net_value_paise += amount_paise
     # Refresh descriptive fields on inward (positive qty)
@@ -222,7 +221,7 @@ def _write_transit_entry(
         store=transfer.source_store,
         gstin=transfer.source_store.gstin,
         sku_code=line.sku_code,
-        **merch_dims(line),
+        **identity_dims(line, require_tenant_id()),
         qty=qty,
         amount=amount_paise,
         kind=kind,
@@ -237,11 +236,12 @@ def _write_transit_entry(
             "source_store": transfer.source_store,
             "destination_store": transfer.destination_store,
             "gstin": transfer.source_store.gstin,
-            **merch_dims(line),
+            **identity_dims(line, require_tenant_id()),
             "qty": 0,
             "value_paise": 0,
         },
     )
+    retain_projection_identity(bucket, identity_dims(line, require_tenant_id()))
     bucket.qty += qty
     bucket.value_paise += amount_paise
     if bucket.qty == 0:
@@ -336,7 +336,7 @@ def resolve_line_identity(store_id: int, sku_code: str, season: str = "") -> dic
     payload; the cost never is.
     """
     on_hand = StockOnHand.objects.filter(store_id=store_id, sku_code=sku_code).first()
-    dims = {k: v for k, v in merch_dims(on_hand).items() if v} if on_hand is not None else {}
+    dims = {k: v for k, v in identity_dims(on_hand, require_tenant_id()).items() if v} if on_hand is not None else {}
     return {**dims, "unit_cost_paise": resolve_line_cost(store_id, sku_code, season)}
 
 
@@ -543,13 +543,13 @@ def _resolve_extra_identity(transfer: StoreTransfer, barcode: str) -> dict[str, 
     from masters.models import Sku
 
     sku = Sku.objects.filter(barcode=barcode).first()
-    master_dims = {k: v for k, v in merch_dims(sku).items() if v} if sku is not None else {}
+    master_dims = {k: v for k, v in identity_dims(sku, require_tenant_id()).items() if v} if sku is not None else {}
     for store_id in (transfer.destination_store_id, transfer.source_store_id):
         cost = book_unit_cost(store_id, barcode)
         if cost <= 0:
             continue
         on_hand = StockOnHand.objects.filter(store_id=store_id, sku_code=barcode).first()
-        dims = {k: v for k, v in merch_dims(on_hand).items() if v} if on_hand is not None else {}
+        dims = {k: v for k, v in identity_dims(on_hand, require_tenant_id()).items() if v} if on_hand is not None else {}
         return {**master_dims, **dims, "unit_cost_paise": cost}
     return {**master_dims, "unit_cost_paise": 0}
 
@@ -676,7 +676,7 @@ def post_transfer_receipt(
                 TransferReceiptException(
                     kind=ReceiptExceptionKind.SHORT,
                     sku_code=barcode,
-                    **merch_dims(line),
+                    **identity_dims(line, require_tenant_id()),
                     qty=short,
                     unit_cost_paise=line.unit_cost_paise,
                     note="Stays in transit until the gap is closed.",
@@ -715,7 +715,7 @@ def post_transfer_receipt(
             broken_row = TransferReceiptException(
                 kind=ReceiptExceptionKind.DAMAGED,
                 sku_code=barcode,
-                **merch_dims(line),
+                **identity_dims(line, require_tenant_id()),
                 qty=qty_damaged,
                 unit_cost_paise=line.unit_cost_paise,
             )
@@ -976,14 +976,14 @@ def _refuse_self_closure(closure: TransferGapClosure, *people: User | None) -> N
     checker. A missing person cannot be entitled to anything, so they are skipped
     here; that they are *required* is ``require_approved``'s rule, not this one.
     """
-    from masters.scoping import actionable_store_ids
+    from accounts.role_assignments import effective_assignments
 
     destination_id = closure.transfer.destination_store_id
     for person in people:
-        if person is None:
+        if person is None or person.human_id is None:
             continue
-        allowed = actionable_store_ids(person)
-        if allowed is not None and destination_id in allowed:
+        if any(not row.all_sites and destination_id in row.site_ids
+               for row in effective_assignments(person.human_id)):
             raise OutboundPostingError(
                 "A gap is closed by the Operations Head at HO, never by the store that "
                 "received short — this decision has to sit with somebody outside "
@@ -1007,7 +1007,7 @@ def build_gap_closure_lines(closure: TransferGapClosure) -> list[TransferGapClos
         TransferGapClosureLine(
             closure=closure,
             sku_code=line.sku_code,
-            **merch_dims(line),
+            **identity_dims(line, require_tenant_id()),
             qty=line.qty_in_transit,
             unit_cost_paise=line.unit_cost_paise,
         )
@@ -1338,7 +1338,7 @@ def _write_quarantine_entry(
         store=store,
         gstin=gstin,
         sku_code=line.sku_code,
-        **merch_dims(line),
+        **identity_dims(line, require_tenant_id()),
         qty=qty,
         amount=amount_paise,
         kind=kind,
@@ -1351,7 +1351,7 @@ def _write_quarantine_entry(
         sku_code=line.sku_code,
         defaults={
             "gstin": gstin,
-            **merch_dims(line),
+            **identity_dims(line, require_tenant_id()),
             "qty": 0,
             "value_paise": 0,
         },
@@ -1362,6 +1362,7 @@ def _write_quarantine_entry(
     # barcode take different locks, never conflict, and one of the two updates is
     # lost — leaving the projection saying something the ledger does not.
     bucket = QuarantineStock.objects.select_for_update().get(store=store, sku_code=line.sku_code)
+    retain_projection_identity(bucket, identity_dims(line, require_tenant_id()))
     bucket.qty += qty
     bucket.value_paise += amount_paise
     if qty > 0:
@@ -2011,7 +2012,9 @@ def post_vflip(vflip: VFlip, user: Any = None) -> list[StockLedgerEntry]:
     require_approved(vflip)  # maker ≠ checker (#70)
     # Runs even when legacy/malformed lines total ₹0 and therefore produce no GL
     # legs. Ownership itself cannot move past the immutable people floor.
-    assert_pt_or_vflip_actor(user)
+    assert_pt_or_vflip_actor(
+        user, site_id=vflip.store_id, brand_id=vflip.original_brand_id
+    )
 
     for line in lines:
         _check_stock(vflip.store_id, line.sku_code, line.qty)
@@ -2082,6 +2085,7 @@ def post_vflip(vflip: VFlip, user: Any = None) -> list[StockLedgerEntry]:
             store=vflip.store,
             gstin=vflip.store.gstin,
             posted_by=user,
+            brand_id=vflip.original_brand_id,
         )
         post_entries(
             doc_ref,

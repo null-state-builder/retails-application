@@ -47,7 +47,9 @@ from typing import Any
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Q, Sum
+from django.utils import timezone
 
+from accounts.goods_models import StaffAssignment
 from accounts.models import User
 from accounts.permissions import user_can
 from accounts.role_lists import PETTY_CASH_APPROVER_ROLES
@@ -66,7 +68,7 @@ from core.commands import (
 )
 from core.offbox import OffboxError, get_store
 from core.refusals import Refusal
-from core.tenancy import current_tenant_id
+from core.tenancy import current_tenant_id, require_tenant_id
 from masters.models import Store
 from masters.scoping import actionable_store_ids
 from masters.store_feature_registry import PETTY_CASH
@@ -123,7 +125,7 @@ def needs_approval(amount_paise: int) -> bool:
 
 def may_read(user: Any) -> bool:
     """The store (``money: operate``, "Expenses only (create)"), Owner and Accounts."""
-    return bool(getattr(user, "is_superuser", False)) or user_can(user, "money", CAP_OPERATE)
+    return user_can(user, "money", CAP_OPERATE)
 
 
 def may_record(user: Any) -> bool:
@@ -133,15 +135,15 @@ def may_record(user: Any) -> bool:
 
 def may_set_float(user: Any) -> bool:
     """Head office sets the float and names the custodian: ``money: manage``."""
-    return bool(getattr(user, "is_superuser", False)) or user_can(user, "money", CAP_MANAGE)
+    return user_can(user, "money", CAP_MANAGE)
 
 
-def store_for(user: Any, site_id: Any) -> Store:
+def store_for(user: Any, site_id: Any, *, minimum: str = CAP_OPERATE) -> Store:
     """The store ``user`` asked about, if they may act there; else "not found".
 
     With no store named, a person scoped to exactly one store gets that store.
     """
-    ids = actionable_store_ids(user)
+    ids = actionable_store_ids(user, section="money", minimum=minimum)
     if site_id in (None, ""):
         if ids is not None and len(ids) == 1:
             site_id = ids[0]
@@ -153,7 +155,7 @@ def store_for(user: Any, site_id: Any) -> Store:
         raise Refusal("VALIDATION", "Choose a store.", status=400) from None
     if ids is not None and pk not in ids:
         raise Refusal("NOT_FOUND", "That store was not found.", status=404)
-    store = Store.objects.filter(pk=pk, is_active=True).first()
+    store = Store.objects.filter(tenant_id=require_tenant_id(), pk=pk, is_active=True).first()
     if store is None:
         raise Refusal("NOT_FOUND", "That store was not found.", status=404)
     return store
@@ -162,8 +164,10 @@ def store_for(user: Any, site_id: Any) -> Store:
 def custodian_choices(store: Store) -> list[User]:
     """The people who can hold this store's box: active, and placed at this store."""
     rows = (
-        User.objects.filter(is_active=True, stores=store)
-        .exclude(scope_type__in=["all", "brand"])
+        User.objects.filter(
+            tenant_id=store.tenant_id, is_active=True,
+            human__staff__assignments__site_id=store.pk,
+        )
         .order_by("full_name", "username")
         .distinct()
     )
@@ -171,7 +175,17 @@ def custodian_choices(store: Store) -> list[User]:
 
 
 def _placed_at(user: Any, store: Store) -> bool:
-    ids = actionable_store_ids(user)
+    human_id = getattr(user, "human_id", None)
+    if human_id is None or getattr(user, "tenant_id", None) != store.tenant_id:
+        return False
+    now = timezone.now()
+    placed = StaffAssignment.objects.filter(
+        tenant_id=store.tenant_id, staff__human_id=human_id, site_id=store.pk,
+        effective_from__lte=now,
+    ).filter(Q(effective_to__isnull=True) | Q(effective_to__gt=now)).exists()
+    if not placed:
+        return False
+    ids = actionable_store_ids(user, section="money", minimum=CAP_OPERATE)
     return ids is not None and store.pk in ids
 
 

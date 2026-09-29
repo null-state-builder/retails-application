@@ -31,9 +31,11 @@ from collections.abc import Mapping, Sequence, Set
 from dataclasses import dataclass, replace
 from datetime import date
 from typing import Any
+import uuid
 
 from django.db.models import Q
 
+from core.tenancy import require_tenant_id
 from masters.models import Sku
 from offers.models import Offer
 from offers.resolution import Cart, CartLine, Resolution, Rule, resolve
@@ -73,19 +75,20 @@ class BillLine:
     no_discount: bool = False
 
 
-def _running_on(store_code: str, day: date) -> Any:
+def _running_on(store_code: str, day: date, tenant_id: uuid.UUID | None = None) -> Any:
     """Rows a bill printed at this store on this day could have been priced under."""
     return (
-        Offer.objects.filter(status__in=BILLABLE_STATUSES, starts_on__lte=day)
+        Offer.objects.for_tenant(tenant_id if tenant_id is not None else require_tenant_id())
+        .filter(status__in=BILLABLE_STATUSES, starts_on__lte=day)
         .filter(Q(ends_on__isnull=True) | Q(ends_on__gte=day))
         .filter(store_scope__stores__contains=[store_code.upper()])
         .select_related("brand")
     )
 
 
-def rulebook_for(store_code: str, day: date) -> list[Rule]:
+def rulebook_for(store_code: str, day: date, *, tenant_id: uuid.UUID | None = None) -> list[Rule]:
     """The rules that were running at this store on this day, in engine terms."""
-    return [offer.as_rule() for offer in _running_on(store_code, day).order_by("priority", "id")]
+    return [offer.as_rule() for offer in _running_on(store_code, day, tenant_id).order_by("priority", "id")]
 
 
 def _cart_line(line: BillLine) -> CartLine:
@@ -111,6 +114,7 @@ def resolve_bill(
     rules: Sequence[Rule] | None = None,
     *,
     after_discount: bool = False,
+    tenant_id: uuid.UUID | None = None,
 ) -> Resolution:
     """Price these lines against the store's rulebook as it stood on `day`.
 
@@ -121,7 +125,7 @@ def resolve_bill(
     cart = Cart(lines=tuple(_cart_line(line) for line in lines), day=day)
     return resolve(
         cart,
-        list(rules) if rules is not None else rulebook_for(store_code, day),
+        list(rules) if rules is not None else rulebook_for(store_code, day, tenant_id=tenant_id),
         after_discount=after_discount,
     )
 
@@ -134,6 +138,7 @@ def credit_from_cited_rule(
     line_no: int,
     *,
     after_discount: bool = False,
+    tenant_id: uuid.UUID | None = None,
 ) -> int:
     """What the rule this line *names* gives it - the second opinion the cap takes.
 
@@ -168,7 +173,7 @@ def credit_from_cited_rule(
     """
     if not offer_id:
         return 0
-    offer = _running_on(store_code, day).filter(pk=offer_id).first()
+    offer = _running_on(store_code, day, tenant_id).filter(pk=offer_id).first()
     if offer is None:
         return 0
     cart = Cart(

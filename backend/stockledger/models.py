@@ -10,6 +10,7 @@ no item master to be auditable. Inward qty is positive; a reversal is negative.
 from __future__ import annotations
 
 from collections.abc import Collection, Iterable
+from typing import Any
 
 from django.db import models
 
@@ -26,6 +27,34 @@ MERCH_DIM_FIELDS = ("design", "color", "size", "brand", "season", "item", "hsn")
 def merch_dims(obj: object) -> dict[str, str]:
     """The merchandising dims of any dim-carrying row/line, as one bundle."""
     return {f: getattr(obj, f, "") or "" for f in MERCH_DIM_FIELDS}
+
+
+def identity_dims(obj: Any, tenant_id: Any) -> dict[str, Any]:
+    """Carry proven identity alongside the unchanged historical display dimensions."""
+    from core.refusals import Refusal
+    from masters.brand_identity import RESOURCES, identity_id
+    from masters.models import Brand
+
+    dims: dict[str, Any] = merch_dims(obj)
+    brand_id = getattr(obj, "brand_ref_id", None)
+    label = getattr(getattr(obj, "_meta", None), "label_lower", "")
+    if brand_id is None and label in RESOURCES and getattr(obj, "pk", None) is not None:
+        brand_id = identity_id(obj, tenant_id)
+    if brand_id is not None:
+        if not Brand.objects.filter(pk=brand_id, tenant_id=tenant_id).exists():
+            raise Refusal("IDENTITY_CONFLICT", "Stock identity belongs to another tenant.")
+        dims["brand_ref_id"] = brand_id
+    return dims
+
+
+def retain_projection_identity(row: Any, dims: dict[str, Any]) -> None:
+    from core.refusals import Refusal
+
+    brand_id = dims.get("brand_ref_id")
+    if brand_id is not None:
+        if row.brand_ref_id is not None and row.brand_ref_id != brand_id:
+            raise Refusal("IDENTITY_CONFLICT", "A stock projection cannot change established brand ownership.")
+        row.brand_ref_id = brand_id
 
 
 class LegacyStockLedgerManager(models.Manager["StockLedgerEntry"]):
@@ -98,6 +127,10 @@ class StockLedgerEntry(LedgerEntry):
     color = models.CharField(max_length=60, blank=True, default="")
     size = models.CharField(max_length=24, blank=True, default="")
     brand = models.CharField(max_length=120, blank=True, default="")
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     season = models.CharField(max_length=120, blank=True, default="")
     item = models.CharField(max_length=120, blank=True, default="")
     hsn = models.CharField(max_length=24, blank=True, default="")
@@ -160,6 +193,11 @@ class StockOnHand(models.Model):
     color = models.CharField(max_length=60, blank=True, default="")
     size = models.CharField(max_length=24, blank=True, default="")
     brand = models.CharField(max_length=120, blank=True, default="")
+    # Stable scope identity; historical brand text is display evidence only.
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     season = models.CharField(max_length=120, blank=True, default="")
     item = models.CharField(max_length=120, blank=True, default="")
     hsn = models.CharField(max_length=24, blank=True, default="")
@@ -219,6 +257,11 @@ class InTransitStock(models.Model):
     color = models.CharField(max_length=60, blank=True, default="")
     size = models.CharField(max_length=24, blank=True, default="")
     brand = models.CharField(max_length=120, blank=True, default="")
+    # Stable scope identity; historical brand text is display evidence only.
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     season = models.CharField(max_length=120, blank=True, default="")
     item = models.CharField(max_length=120, blank=True, default="")
     hsn = models.CharField(max_length=24, blank=True, default="")
@@ -269,6 +312,11 @@ class QuarantineStock(models.Model):
     color = models.CharField(max_length=60, blank=True, default="")
     size = models.CharField(max_length=24, blank=True, default="")
     brand = models.CharField(max_length=120, blank=True, default="")
+    # Stable scope identity; historical brand text is display evidence only.
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     season = models.CharField(max_length=120, blank=True, default="")
     item = models.CharField(max_length=120, blank=True, default="")
     hsn = models.CharField(max_length=24, blank=True, default="")

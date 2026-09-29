@@ -98,6 +98,11 @@ class Alert(TimeStampedModel):
         help_text="Scopes the inbox for a brand-scoped user. Blank means this "
         "alert is not about one brand.",
     )
+    # Stable scope identity; historical brand text is display evidence only.
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     object_id = models.BigIntegerField(
         null=True,
         blank=True,

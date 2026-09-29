@@ -31,6 +31,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from approvals.names import display_name
+from accounts.principal import resolve_access
 from core.dates import parse_day
 from core.refusals import Refusal, first_message, refusal_body
 from masters.models import Store
@@ -179,7 +180,7 @@ def _sales(user: Any) -> QuerySet[Sale]:
         ),
         user,
         "store_id",
-    )
+     section="sell", minimum="view")
     return rows
 
 
@@ -199,6 +200,16 @@ def till_store(request: Request) -> tuple[Store | None, Response]:
         return resolve_till_store(request.user), Response(status=200)
     except TillScopeError as exc:
         return None, Response(refusal_body("TILL_SCOPE", str(exc)), status=403)
+
+
+def _can_accept_bill(access: Any, store_code: str) -> bool:
+    try:
+        store = resolve_till_store(access.user)
+    except TillScopeError:
+        return False
+    return store.code.casefold() == store_code.strip().casefold() and access.covers_all_actions(
+        {"section.sell.operate"}, [(store.pk, None)], {"customer"}, roles={"store_person"},
+    )
 
 
 class SaleListCreateView(APIView):
@@ -221,7 +232,9 @@ class SaleListCreateView(APIView):
         if not form.is_valid():
             return Response(refusal_body("VALIDATION", first_message(form.errors)), status=400)
         try:
-            result = accept_sale(dict(form.validated_data), request.user)
+            access = resolve_access(request)
+            with access.guard_legacy_write(lambda current: _can_accept_bill(current, form.validated_data["store"])):
+                result = accept_sale(dict(form.validated_data), request.user)
         except AcceptError as exc:
             return Response(refusal_body(exc.code, exc.message), status=exc.status)
         body = {
@@ -402,7 +415,23 @@ class DatasetView(APIView):
         if store is None:
             return refusal
         payload = build_dataset(store, request.query_params.get("since") or "")
-        return Response(_with_till_allocation(store, payload))
+        payload = _with_till_allocation(store, payload)
+        # Building a large dataset can outlast a session or assignment. No
+        # buffered stock, customer or manager-PIN data may leave after revocation.
+        access = resolve_access(request)
+        if not access.refresh():
+            raise Refusal("AUTH_REQUIRED", "Your access changed. Sign in again.")
+        try:
+            current = resolve_till_store(request.user)
+        except TillScopeError as exc:
+            return Response(refusal_body("TILL_SCOPE", str(exc)), status=403)
+        if current.pk != store.pk:
+            return Response(refusal_body("TILL_SCOPE", "This login changed stores."), status=403)
+        if not access.covers_all_actions(
+            {"section.sell.operate"}, [(store.pk, None)], {"customer"}, roles={"store_person"},
+        ):
+            raise Refusal("FIELD_DENIED", "This dataset requires customer access at the counter.", status=403)
+        return Response(payload)
 
 
 class CustomerDisplayView(APIView):
@@ -948,7 +977,7 @@ def _irn_rows(user: Any) -> QuerySet[IrnQueueItem]:
     Ordering is `IrnQueueItem.Meta` - due date, then id. It is the model's, not
     this function's, because "the oldest deadline first" is what the queue *is*.
     """
-    rows: QuerySet[IrnQueueItem] = scope_by_store(_irn_queue(), user, "sale__store_id")
+    rows: QuerySet[IrnQueueItem] = scope_by_store(_irn_queue(), user, "sale__store_id", section="sell", minimum="view")
     return rows
 
 
@@ -961,7 +990,7 @@ def _irn_row_to_act_on(user: Any) -> QuerySet[IrnQueueItem]:
     would find every other shop's row answering "no such bill", which is the
     switcher silently stripping a right an administrator granted.
     """
-    rows: QuerySet[IrnQueueItem] = scope_by_entitlement(_irn_queue(), user, "sale__store_id")
+    rows: QuerySet[IrnQueueItem] = scope_by_entitlement(_irn_queue(), user, "sale__store_id", section="sell", minimum="operate")
     return rows
 
 
@@ -1108,7 +1137,7 @@ def _flags(user: Any) -> QuerySet[ContinuityFlag]:
     """
     rows: QuerySet[ContinuityFlag] = scope_by_store(
         ContinuityFlag.objects.select_related("store", "sale", "resolved_by"), user, "store_id"
-    )
+    , section="sell", minimum="view")
     return rows
 
 
@@ -1123,7 +1152,7 @@ def _flag_to_act_on(user: Any) -> QuerySet[ContinuityFlag]:
     """
     rows: QuerySet[ContinuityFlag] = scope_by_entitlement(
         ContinuityFlag.objects.select_related("store", "sale"), user, "store_id"
-    )
+    , section="sell", minimum="operate")
     return rows
 
 

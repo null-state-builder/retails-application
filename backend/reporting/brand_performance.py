@@ -277,7 +277,7 @@ def _brand_labels() -> dict[str, str]:
 
 def build(scope: ReportScope, group_by: str) -> dict[str, Any]:
     """The brand performance report for ``scope``, as the viewer may see it."""
-    show_cost = sees_cost(scope.user)
+    show_cost = sees_cost(scope.user, scope.stores)
     missing = Missing()
     as_of = freshness(SALES_KEY, missing)
     note_freshness(INVENTORY_KEY, "Stock", missing)

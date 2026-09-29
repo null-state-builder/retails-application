@@ -36,8 +36,8 @@ from accounts.goods_api import (
     parse_meta,
     parse_uuid,
 )
-from accounts.permissions import user_can
-from accounts.role_lists import SOR_AGEING_EDITOR_ROLES
+from accounts.permissions import user_can, user_can_at
+from accounts.principal import access_for_user
 from accounts.sections import CAP_MANAGE
 from core.commands import CommandResult, CommandRun
 from core.refusals import Refusal, issue
@@ -52,22 +52,22 @@ from stockledger.sor_ageing import GROUPS, months_setting, store_sor_ageing
 
 def may_read(user: Any) -> bool:
     """Owner and Accounts: ``money: manage``. Store roles never read brand terms."""
-    if getattr(user, "is_superuser", False):
-        return True
     return user_can(user, "money", CAP_MANAGE)
 
 
-def may_record(user: Any) -> bool:
+def may_record(user: Any, site_id: int, brand_id: int) -> bool:
     """Accounts (``money: manage`` narrowed to the declared editors)."""
-    if getattr(user, "is_superuser", False):
-        return True
-    role = str(getattr(getattr(user, "role", None), "code", "") or "")
-    return may_read(user) and role in SOR_AGEING_EDITOR_ROLES
+    return access_for_user(user).covers_all({'sor.settlement.manage'}, [(site_id, brand_id)], ['financial'])
 
 
 def sor_sites(user: Any) -> list[Store]:
-    """The active sites in this person's scope where the switch is on."""
-    sites = list(actionable_stores(user).filter(is_active=True).order_by("code"))
+    """Active sites where one assignment covers every brand in the report."""
+    sites = [
+        site for site in actionable_stores(
+            user, section="money", minimum=CAP_MANAGE
+        ).filter(is_active=True).order_by("code")
+        if user_can_at(user, "money", CAP_MANAGE, site_id=site.pk, brand_id=None)
+    ]
     states = switch_states(sites, [feature(SOR_AGEING)])
     return [site for site, state in zip(sites, states, strict=True) if state.enabled]
 
@@ -179,6 +179,14 @@ class GoodsSorAgeingView(GoodsAPIView):
         today = timezone.localdate()
         report = store_sor_ageing(chosen, today) if chosen is not None else None
         alert, invoice = months_setting()
+        can_record = False
+        if chosen is not None:
+            site_id = chosen.pk
+            can_record = any(
+                may_record(request.user, site_id, brand_id)
+                for brand_id in Arrival.objects.filter(site_id=site_id)
+                .values_list("brand_id", flat=True).distinct()
+            )
         body = {
             "stores": [{"id": s.pk, "code": s.code, "name": s.name} for s in sites],
             "site_id": chosen.pk if chosen is not None else None,
@@ -189,7 +197,7 @@ class GoodsSorAgeingView(GoodsAPIView):
             "groups": [total.as_json() for total in report.totals()] if report else [],
             "rows": [row.as_json() for row in report.rows] if report else [],
             "unknown_models": [u.as_json() for u in report.unknown_models] if report else [],
-            "can_record": bool(sites) and may_record(request.user),
+            "can_record": can_record,
         }
         return Response(SorAgeingSerializer(body).data)
 
@@ -284,8 +292,6 @@ class _SorWriteView(GoodsAPIView):
     def write(self, request: Request) -> Response:
         access = self.access(request)
         _require_reader(request.user)
-        if not may_record(request.user):
-            raise Refusal("ACTION_DENIED", "Only Accounts records a delivery's SOR details.")
         meta = parse_meta(request.data, revision_bound=False)
         body = business_body(
             request.data, {"site_id", "arrival_id", *self.FIELDS}, required=self.REQUIRED
@@ -294,6 +300,8 @@ class _SorWriteView(GoodsAPIView):
         arrival = Arrival.objects.filter(pk=parse_uuid(body["arrival_id"], "arrival_id")).first()
         if arrival is None:
             raise _not_on_list()
+        if not may_record(request.user, site_id, arrival.brand_id):
+            raise Refusal("ACTION_DENIED", "Only Accounts records a delivery's SOR details.")
 
         def handler(run: CommandRun) -> CommandResult:
             # Checked inside the command: a save pressed again after its answer

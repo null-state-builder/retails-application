@@ -106,7 +106,7 @@ def running_offers(store: Store, day: date) -> list[dict[str, Any]]:
     rows = working_set_items(store, day)
     lines = [_line(index, row) for index, row in enumerate(rows)]
     offers = (
-        Offer.objects.live_on(day)
+        Offer.objects.for_tenant(store.tenant_id).live_on(day)
         .for_store(store.code)
         .select_related("brand")
         .order_by("priority", "id")

@@ -243,7 +243,7 @@ def _recheck_bills(store: Store, day: date, report: Report) -> None:
     )
     # The rulebook is one query for the whole store-day rather than one per bill:
     # this walks every bill a shop rang up, and a busy Saturday is a thousand.
-    rules = rulebook_for(store.code, day)
+    rules = rulebook_for(store.code, day, tenant_id=store.tenant_id)
     # Each bill's tax is judged by the version it recorded (ticket 03), so a
     # switch flipped or a version saved after the bill never re-judges it. A
     # version this server does not know falls back to the one in force; the

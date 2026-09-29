@@ -25,7 +25,8 @@ from stockledger.models import (
     QuarantineStock,
     StockLedgerEntry,
     StockOnHand,
-    merch_dims,
+    identity_dims,
+    retain_projection_identity,
 )
 
 
@@ -56,7 +57,7 @@ def _append_leg(
     store: Any,
     gstin: Any,
     sku_code: str,
-    dims: dict[str, str],
+    dims: dict[str, Any],
     qty: int,
     unit_cost_paise: int,
     kind: str,
@@ -110,7 +111,7 @@ def post_on_hand_movement(
     allowed on purpose: a store whose local count is wrong still sells the piece
     in its hand, and the next stocktake reconciles (grill Q5).
     """
-    dims = merch_dims(source)
+    dims = identity_dims(source, store.tenant_id)
     entry = _append_leg(
         store=store,
         gstin=gstin,
@@ -129,6 +130,7 @@ def post_on_hand_movement(
         defaults={"gstin": gstin, **dims, "net_qty": 0, "net_value_paise": 0},
     )
     row = StockOnHand.objects.select_for_update().get(store=store, sku_code=sku_code)
+    retain_projection_identity(row, dims)
     row.net_qty += entry.qty
     row.net_value_paise = int(row.net_value_paise or 0) + int(entry.amount or 0)
     if entry.qty > 0:  # an inward is the freshest description of the piece
@@ -159,7 +161,7 @@ def post_quarantine_movement(
     sellable shelf. A bucket that reaches zero leaves no row, matching what the
     rebuild command would produce from the same legs.
     """
-    dims = merch_dims(source)
+    dims = identity_dims(source, store.tenant_id)
     entry = _append_leg(
         store=store,
         gstin=gstin,
@@ -178,6 +180,7 @@ def post_quarantine_movement(
         defaults={"gstin": gstin, **dims, "qty": 0, "value_paise": 0},
     )
     bucket = QuarantineStock.objects.select_for_update().get(store=store, sku_code=sku_code)
+    retain_projection_identity(bucket, dims)
     bucket.qty += entry.qty
     bucket.value_paise = int(bucket.value_paise or 0) + int(entry.amount or 0)
     if entry.qty > 0:

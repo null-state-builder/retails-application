@@ -177,7 +177,7 @@ class DiscountReportView(APIView):
             sale__billed_at__date__gte=start,
             sale__billed_at__date__lte=end,
         )
-        store_ids = active_store_ids(request.user)
+        store_ids = active_store_ids(request.user, section="offers_price", minimum="view")
         if store_ids is not None:
             lines = lines.filter(sale__store_id__in=store_ids)
             flags = flags.filter(sale__store_id__in=store_ids)

@@ -14,9 +14,8 @@ Acting on an alert is the store's work: it needs ``transfer: operate`` or higher
 at a store the person may read. An alert is acted on once; the first action
 recorded is the one the 7-day measure counts. A closed alert is not acted on.
 
-A category's rule is master data for the whole company, so it is written by the
-master-data stewards (``masters.writes``: Owner, IT Admin, data steward), and
-only while the switch is on at a store they can see. Every write runs as one
+A category's rule is master data for the whole tenant, so changing it requires
+tenant-wide master authority and an enabled store. Every write runs as one
 command, so its ``AuditEvent`` records who, when, and the values before and after.
 """
 
@@ -30,7 +29,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from accounts.actor_policies import user_may_act
+from accounts.role_assignments import effective_assignments
 from accounts.goods_api import (
     GoodsAPIView,
     business_body,
@@ -39,11 +38,11 @@ from accounts.goods_api import (
     parse_meta,
 )
 from accounts.permissions import user_can
-from accounts.sections import CAP_OPERATE, CAP_VIEW
+from accounts.sections import CAP_OPERATE, CAP_VIEW, meets
+from accounts.unified_policy import role_capability
 from core.commands import CommandResult, CommandRun, LockRank
 from core.refusals import Refusal, issue
 from masters.models import Store
-from masters.permissions import MASTER_WRITES
 from masters.scoping import actionable_stores
 from masters.store_feature_registry import BROKEN_SIZE
 from masters.store_features import feature, switch_states
@@ -165,13 +164,20 @@ class SizeRuleRequestSerializer(serializers.Serializer[Any]):
 
 def broken_size_stores(user: Any) -> list[Store]:
     """The selling stores in this person's scope where the switch is on."""
-    stores = list(actionable_stores(user).filter(store_type=Store.StoreType.STORE))
+    stores = list(actionable_stores(user, section="stock").filter(store_type=Store.StoreType.STORE))
     states = switch_states(stores, [feature(BROKEN_SIZE)])
     return [store for store, state in zip(stores, states, strict=True) if state.enabled]
 
 
-def may_act(user: Any) -> bool:
-    return user_can(user, "stock", CAP_VIEW) and user_can(user, "transfer", CAP_OPERATE)
+def may_act(user: Any, site_id: int | None = None) -> bool:
+    """Both rungs and the store must come from one complete assignment."""
+    return bool(user.human_id) and any(
+        row.all_brands
+        and (site_id is None or row.all_sites or site_id in row.site_ids)
+        and meets(role_capability(row.role, "stock"), CAP_VIEW)
+        and meets(role_capability(row.role, "transfer"), CAP_OPERATE)
+        for row in effective_assignments(user.human_id)
+    )
 
 
 def alert_json(alert: BrokenSizeAlert, names: dict[Any, str], now: Any) -> dict[str, Any]:
@@ -224,7 +230,7 @@ class GoodsBrokenSizesView(GoodsAPIView):
         responses=BrokenSizesSerializer,
     )
     def get(self, request: Request) -> Response:
-        self.access(request)
+        access = self.access(request)
         params = check_query(request, allowed=("site_id",))
         if not user_can(request.user, "stock", CAP_VIEW):
             raise Refusal("ACTION_DENIED", "You do not have access to Stock.")
@@ -269,15 +275,18 @@ class GoodsBrokenSizesView(GoodsAPIView):
                 open=[alert_json(a, names, now) for a in opened],
                 closed=[alert_json(a, names, now) for a in closed],
                 measure=measure(alerts, now).as_json(),
-                rules=[rule_json(rule) for rule in SizeRule.objects.order_by("category")],
+                rules=[
+                    rule_json(rule)
+                    for rule in SizeRule.objects.filter(tenant_id=access.tenant_id).order_by("category")
+                ],
                 unruled_categories=sizes.unruled_categories,
                 mixed=[
                     " ".join(filter(None, [row.brand, row.style_code, row.colour]))
                     + f" ({row.category})"
                     for row in sizes.mixed
                 ],
-                can_act=may_act(request.user),
-                can_set_rules=user_may_act(request.user, MASTER_WRITES),
+                can_act=may_act(request.user, chosen.pk),
+                can_set_rules=access.can("org.tenant.manage"),
             )
         return Response(BrokenSizesSerializer(body).data)
 
@@ -331,6 +340,9 @@ class GoodsBrokenSizeActView(GoodsAPIView):
                 issues=[issue("REQUIRED", "a note is required for 'other'", field="note")],
             )
         alert = _alert_in_scope(request.user, body["alert_id"])
+        access.require_all_actions(
+            {"stock.view", "transfer.move"}, site_id=alert.site_id
+        )
 
         def handler(run: CommandRun) -> CommandResult:
             run.advisory_lock(LockRank.DOCUMENT, [f"broken-size:{alert.pk}"])
@@ -380,8 +392,10 @@ def _alert_in_scope(user: Any, raw_id: Any) -> BrokenSizeAlert:
             issues=[issue("INVALID", "not an id", field="alert_id")],
         ) from exc
     stores = {store.pk for store in broken_size_stores(user)}
-    alert = BrokenSizeAlert.objects.filter(pk=alert_id, site_id__in=sorted(stores)).first()
-    if alert is None:
+    alert = BrokenSizeAlert.objects.filter(
+        tenant_id=user.tenant_id, pk=alert_id, site_id__in=sorted(stores)
+    ).first()
+    if alert is None or not may_act(user, alert.site_id):
         raise Refusal("NOT_FOUND", "That broken-size alert was not found.", status=404)
     return alert
 
@@ -467,13 +481,14 @@ def _rule_audit(rule: SizeRule | None) -> dict[str, Any] | None:
 
 
 class GoodsSizeRuleView(GoodsAPIView):
-    """Set one category's core sizes and share (master-data stewards; audited)."""
+    """Set one tenant's category rule with tenant-wide authority (audited)."""
 
     @extend_schema(request=SizeRuleRequestSerializer, responses=SizeRuleSerializer)
     def post(self, request: Request) -> Response:
         access = self.access(request)
-        if not user_may_act(request.user, MASTER_WRITES):
-            raise Refusal("ACTION_DENIED", "Only a master-data steward sets core sizes.")
+        # One rule changes stock interpretation throughout the tenant. It
+        # therefore needs a tenant-wide assignment carrying master authority.
+        access.require("org.tenant.manage")
         if not broken_size_stores(request.user):
             raise Refusal(
                 "FEATURE_OFF",
@@ -506,10 +521,12 @@ class GoodsSizeRuleView(GoodsAPIView):
         key = size_key(category)
 
         def handler(run: CommandRun) -> CommandResult:
-            run.advisory_lock(LockRank.DOCUMENT, [f"size-rule:{key}"])
+            run.advisory_lock(LockRank.DOCUMENT, [f"size-rule:{run.tenant_id}:{key}"])
             # "Shirt" and "SHIRT" are one category: the rule already kept for it,
             # whatever its spelling, is the one changed.
-            row = SizeRule.objects.select_for_update().filter(category_key=key).first()
+            row = SizeRule.objects.select_for_update().filter(
+                tenant_id=run.tenant_id, category_key=key
+            ).first()
             run.audit_before = _rule_audit(row)
             if row is None:
                 row = SizeRule.objects.create(
@@ -558,5 +575,5 @@ class GoodsSizeRuleView(GoodsAPIView):
             resource_ids=[f"size_rule:{key or NO_CATEGORY}"],
             subject_key=f"size_rule:{key}",
         )
-        saved = SizeRule.objects.get(category_key=key)
+        saved = SizeRule.objects.get(tenant_id=access.tenant_id, category_key=key)
         return Response(SizeRuleSerializer(rule_json(saved)).data, status=result.status_code)

@@ -158,14 +158,12 @@ class Term:
     def covers(self, site_id: int | None, sku_id: uuid.UUID | None) -> bool:
         if site_id is None or site_id not in self.sites:
             return False
-        return self.skus is None or sku_id is None or sku_id in self.skus
+        return self.skus is None or (sku_id is not None and sku_id in self.skus)
 
     def leg_q(self) -> Q:
         where = Q(position__site_id__in=sorted(self.sites))
         if self.skus is not None:
-            where &= Q(position__sku_id__in=sorted(str(s) for s in self.skus)) | Q(
-                position__sku_id__isnull=True
-            )
+            where &= Q(position__sku_id__in=sorted(str(s) for s in self.skus))
         return where
 
 
@@ -254,15 +252,16 @@ def _grant_terms(access: AccessContext, sites: frozenset[int]) -> tuple[Term, ..
         reach = frozenset(s for s in sites if access.reaches_site(grant, s))
         if not reach:
             continue
-        brand_id = grant.brand_id if grant.scope_kind == "brand" else None
-        if grant.scope_kind == "sbu":
-            brand_id = grant.sbu_brand_id
-        skus: frozenset[uuid.UUID] | None = None
-        if brand_id is not None:
+        # One term represents one complete assignment cell. A selected-brand
+        # assignment must never turn into a brand-unrestricted stock term merely
+        # because it contains more than one brand.
+        if grant.all_brands:
+            terms.append(Term(reach, None, None))
+            continue
+        for brand_id in sorted(grant.brand_ids):
             if brand_id not in brand_skus:
                 brand_skus[brand_id] = _skus_of_brand(access.tenant_id, brand_id)
-            skus = brand_skus[brand_id]
-        terms.append(Term(reach, skus, brand_id))
+            terms.append(Term(reach, brand_skus[brand_id], brand_id))
     return tuple(terms)
 
 
@@ -368,10 +367,7 @@ def _scope(access: AccessContext, given: _Input) -> tuple[frozenset[int], str, i
     if given.brand_id is not None:
         if (
             not Brand.objects.filter(pk=given.brand_id).exists()
-            or not any(
-                READ in grant.actions and access.reaches_brand(grant, given.brand_id)
-                for grant in access.grants
-            )
+            or not any(access.can(READ, site_id=site, brand_id=given.brand_id) for site in sites)
             or brand not in (None, given.brand_id)
         ):
             raise Refusal("NOT_FOUND", "That brand was not found.")
@@ -420,8 +416,8 @@ def _origin_visible(tenant_id: uuid.UUID, origin_id: uuid.UUID, terms: tuple[Ter
 
 
 def _brand_limited(grant: Any) -> bool:
-    """A brand grant, or an SBU grant for one brand, reaches only that brand's goods."""
-    return bool(grant.scope_kind == "brand" or (grant.scope_kind == "sbu" and grant.sbu_brand_id))
+    """Any selected-brand assignment reaches only its own brands' goods."""
+    return not grant.all_brands
 
 
 def _cost_granted(access: AccessContext, site_id: int, brand_id: int | None) -> bool:

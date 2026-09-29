@@ -31,6 +31,7 @@ from masters.models import StaffTarget, Store
 from masters.store_features import is_feature_on, require_feature
 from reporting.base import principal_for, viewer_stores
 from reporting.staff_report import FEATURE_KEY
+from reporting.staff_report import may_set_targets
 from sell.services.salespeople import ever_placed_at, staff_list
 
 TARGET_ACTION = "reports.staff_target.set"
@@ -102,6 +103,8 @@ def people(user: Any, params: Any) -> dict[str, Any]:
     ``switched_on`` says whether a change would be taken.
     """
     store = _store(user, params.get("store"))
+    if not may_set_targets(user, [store]):
+        raise Refusal("SCOPE_DENIED", "Those targets are outside your scope.", status=403)
     month = parse_month(params.get("month") or timezone.localdate().strftime("%Y-%m"))
     set_for = {
         row.staff_id: row
@@ -156,6 +159,8 @@ def parse(user: Any, data: Any) -> SetTarget:
     target = _whole(data.get("target_paise"), "target_paise", maximum=MAX_TARGET_PAISE)
     revision = _whole(data.get("revision"), "revision")
     store = _store(user, data.get("store"))
+    if not may_set_targets(user, [store]):
+        raise Refusal("SCOPE_DENIED", "Those targets are outside your scope.", status=403)
     return SetTarget(
         command_id=command_id,
         store=store,
@@ -188,6 +193,8 @@ def set_target(user: Any, asked: SetTarget) -> dict[str, Any]:
     }
 
     def handler(run: CommandRun) -> CommandResult:
+        if not may_set_targets(user, [asked.store]):
+            raise Refusal("SCOPE_DENIED", "Those targets are outside your scope.", status=403)
         # Inside the command, so a resend of a change already made answers what it
         # made even if the switch has gone off since.
         require_feature(asked.store, FEATURE_KEY)

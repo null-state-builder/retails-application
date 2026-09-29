@@ -32,8 +32,10 @@ from django.conf import settings
 from django.http import HttpResponse
 from django.utils import timezone
 
-from accounts.permissions import user_can
+from accounts.role_assignments import effective_assignments
+from accounts.principal import AccessContext
 from accounts.sections import CAP_MANAGE, CAP_VIEW
+from accounts.unified_policy import role_actions, role_fields
 from core.commands import CommandResult, CommandRun, CommandSpec, Principal, execute_command
 from core.outbox import ANCHOR_INTERVAL
 from core.refusals import Refusal
@@ -55,20 +57,52 @@ EXPORT_ACTION = "reports.export"
 # -- who sees what ---------------------------------------------------------------
 
 
-def sees_cost(user: Any) -> bool:
-    """May ``user`` receive cost and margin? The books' own gate, ``money: manage``.
+def _covers_report_fields(
+    user: Any, stores: Iterable[Store] | None, fields: set[str],
+    *, section: str | None = None, minimum: str = CAP_VIEW,
+) -> bool:
+    """Every store in an aggregate must have its own qualifying assignment.
 
-    The narrowest existing check (baseline B6): Owner and Accounts hold it; no
-    store role does, and neither do Admin, operations or the brand manager. The
-    same rung the Home screen already asks before it shows stock at cost.
+    A report may group several sites into one row or total. If one site lacks a
+    protected field, the entire aggregate loses that field; projecting after
+    aggregation would reveal the unauthorised site's contribution.
     """
-    return user_can(user, "money", CAP_MANAGE)
+    if stores is None or not getattr(user, "is_active", False):
+        return False
+    sites = list(stores)
+    if not sites or any(site.tenant_id != getattr(user, "tenant_id", None) for site in sites):
+        return False
+    human_id = getattr(user, "human_id", None)
+    if human_id is None:
+        return False
+    rows = [
+        row for row in effective_assignments(human_id)
+        if row.all_brands
+        and "section.reports.view" in role_actions(row.role)
+        and (section is None or f"section.{section}.{minimum}" in role_actions(row.role))
+        and fields <= role_fields(row.role)
+    ]
+    return all(
+        any(row.all_sites or site.pk in row.site_ids for row in rows)
+        for site in sites
+    )
 
 
-def sees_targets(user: Any) -> bool:
-    """May ``user`` read store targets? ``StoreTarget`` is Money data, served at
-    ``money: view`` (the store dashboard asks the same question)."""
-    return user_can(user, "money", CAP_VIEW)
+def sees_cost(user: Any, stores: Iterable[Store] | None = None) -> bool:
+    """Cost and margin leave only when every reported store permits both fields."""
+    return _covers_report_fields(user, stores, {"cost", "margin"})
+
+
+def sees_targets(user: Any, stores: Iterable[Store] | None = None) -> bool:
+    """Store targets are financial data, scoped to every store in the report."""
+    return _covers_report_fields(user, stores, {"financial"}, section="money")
+
+
+def sees_financial_report(user: Any, stores: Iterable[Store] | None = None) -> bool:
+    """A full Money report needs manage and financial access at every store."""
+    return _covers_report_fields(
+        user, stores, {"financial"}, section="money", minimum=CAP_MANAGE
+    )
 
 
 def strip_cost(row: dict[str, Any]) -> dict[str, Any]:
@@ -119,8 +153,8 @@ def _date(params: Any, key: str, default: date) -> date:
 def viewer_stores(user: Any) -> list[Store]:
     """The viewer's active stores, narrowed by the top-bar unit (which may only
     narrow). A brand-scoped person has none."""
-    stores = list(actionable_stores(user))
-    narrowed = active_store_ids(user)
+    stores = list(actionable_stores(user, section="reports", minimum=CAP_VIEW))
+    narrowed = active_store_ids(user, section="reports", minimum="view")
     if narrowed is not None:
         allowed = set(narrowed)
         stores = [store for store in stores if store.pk in allowed]
@@ -390,10 +424,59 @@ def principal_for(user: Any, fallback_tenant_id: Any) -> Principal:
     return Principal(tenant_id=tenant_id, service_code="reports", user_id=user_id)
 
 
-def record_export(user: Any, *, report: str, scope: ReportScope, detail: dict[str, Any]) -> None:
+def record_export(
+    user: Any, *, report: str, scope: ReportScope, detail: dict[str, Any],
+    contains_cost: bool = False, contains_targets: bool = False,
+    contains_financial: bool = False, contains_team: bool = False,
+    access: AccessContext | None = None,
+) -> None:
     """Who took a copy of which report, with which filters. Failing to record it
-    fails the export, as the audit log's own export does (ticket 02)."""
-    principal = principal_for(user, scope.stores[0].tenant_id)
+    fails the export, as the audit log's own export does (ticket 02).
+
+    This is called after rendering but before returning bytes. Recheck the
+    current assignments against the *whole* report and its protected columns,
+    so a revocation during a long workbook build cannot ship the old answer.
+    """
+    from accounts.models import User
+
+    still_active = User.objects.filter(
+        pk=getattr(user, "pk", None), tenant_id=getattr(user, "tenant_id", None),
+        human__active=True, is_active=True,
+    ).exists()
+    if not still_active:
+        raise Refusal("NOT_FOUND", "That report is no longer in your scope.", status=404)
+    current = {site.pk for site in viewer_stores(user)} if getattr(user, "is_active", False) else set()
+    if not scope.stores or any(site.pk not in current for site in scope.stores):
+        raise Refusal("NOT_FOUND", "That report is no longer in your scope.", status=404)
+    if contains_cost and not sees_cost(user, scope.stores):
+        raise Refusal("ACTION_DENIED", "Cost access changed while the report was made.", status=403)
+    if contains_targets and not sees_targets(user, scope.stores):
+        raise Refusal("ACTION_DENIED", "Target access changed while the report was made.", status=403)
+    if contains_financial and not sees_financial_report(user, scope.stores):
+        raise Refusal("ACTION_DENIED", "Financial access changed while the report was made.", status=403)
+    if contains_team:
+        from reporting.staff_report import sees_team
+
+        if not sees_team(user, scope.stores):
+            raise Refusal("ACTION_DENIED", "Team access changed while the report was made.", status=403)
+    if access is None or access.user.pk != user.pk or access.tenant_id != scope.stores[0].tenant_id:
+        raise Refusal("AUTH_REQUIRED", "A live session is required to deliver a report.", status=401)
+    actions = {"section.reports.view"}
+    fields = set()
+    if contains_cost:
+        fields.update({"cost", "margin"})
+    if contains_targets or contains_financial:
+        fields.add("financial")
+        actions.add("section.money.manage" if contains_financial else "section.money.view")
+    if contains_team:
+        fields.add("personal")
+    with access.guard_legacy_write(lambda current: current.covers_all_actions(
+        actions, [(site.pk, None) for site in scope.stores], fields,
+    )):
+        _record_export(access.principal(), report, scope, detail)
+
+
+def _record_export(principal: Principal, report: str, scope: ReportScope, detail: dict[str, Any]) -> None:
     after = {"report": report, **scope.filters(), **detail, "format": "xlsx"}
 
     def handler(run: CommandRun) -> CommandResult:

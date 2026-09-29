@@ -207,7 +207,7 @@ def tag_gifts(
     if not candidates or not gifts_on(store):
         return []
     offer_ids = {oid for c in candidates for oid in map(_offer_id, c.offer_ids) if oid}
-    offers = Offer.objects.in_bulk(offer_ids) if offer_ids else {}
+    offers = Offer.objects.for_tenant(store.tenant_id).in_bulk(offer_ids) if offer_ids else {}
     given = [
         c
         for c in candidates

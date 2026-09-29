@@ -44,13 +44,15 @@ from __future__ import annotations
 from typing import Any
 
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import NotFound
 from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 
-from accounts.actor_policies import user_may_act
 from accounts.permissions import require_section
+from accounts.principal import resolve_access
 from accounts.sections import CAP_APPROVE, CAP_MANAGE, CAP_OPERATE, CAP_VIEW
-from masters.scoping import actionable_store_ids
+from core.tenancy import require_tenant_id
+from masters.models import Store
 
 #: Moving stock between locations — the transfer section's daily work.
 CanWriteTransfer = require_section("transfer", CAP_OPERATE)
@@ -80,6 +82,8 @@ CanWriteReturnToBrand = require_section("return_to_brand", CAP_OPERATE)
 #: rather than to any authenticated caller, the same reasoning as the transfer PT.
 CanReadReturnToBrand = require_section("return_to_brand", CAP_VIEW)
 
+CanReadStock = require_section("stock", CAP_VIEW)
+
 #: Adjustments and write-offs are both corrections that a count produces.
 CanWriteStockCount = require_section("stock_count", CAP_OPERATE)
 
@@ -94,23 +98,13 @@ CanFlipOwnership = require_section("stock", CAP_MANAGE)
 #: ``money: view`` (mirrors ``sell.CanReadOrManagePolicy``, #271's pattern).
 CanManageBillingPolicy = require_section("money", CAP_VIEW, write_minimum=CAP_MANAGE)
 
-#: What each partner store owes, summed off `partner_billing_value_paise`. A
-#: read-only report, same rung as reading the billing dial itself.
-CanViewPartnerDues = require_section("money", CAP_VIEW)
-
-#: Recording (and reversing) a payment against what a partner store owes —
-#: the same money-manage rung as changing the billing dial itself. Reading the
-#: settlement history sits at `money: view`, same as the dues report it offsets.
-CanManagePartnerSettlements = require_section("money", CAP_VIEW, write_minimum=CAP_MANAGE)
-
-
 class CanExecuteVFlip(BasePermission):
     """Live policy above the immutable Accounts/Owner value-posting floor."""
 
     message = "Only an allowed Accounts or Owner user may execute a V-flip."
 
     def has_permission(self, request: Request, view: Any) -> bool:
-        return user_may_act(request.user, "outbound.execute_vflip")
+        return resolve_access(request).holds("stock.view")
 
 
 class CanCreateReturnToBrand(BasePermission):
@@ -133,18 +127,33 @@ class CanCreateReturnToBrand(BasePermission):
     message = "A store may only mark damage; the warehouse creates and executes returns."
 
     def has_permission(self, request: Request, view: Any) -> bool:
-        return user_may_act(request.user, "outbound.create_return_to_brand")
+        return resolve_access(request).holds("rtv.execute")
 
 
-def enforce_store_scope(user: Any, store_id: int) -> None:
+def enforce_store_scope(user: Any, store_id: int, *, section: str, minimum: str = "operate") -> None:
     """Raise 403 if the user's store scope excludes ``store_id``.
 
     Network roles (actionable_store_ids → None) pass unconditionally; a
     brand-scoped user resolves to no stores and is refused.
     Store-scoped users must have ``store_id`` in their assigned set.
     """
-    allowed = actionable_store_ids(user)
-    if allowed is None:
-        return  # unrestricted
-    if store_id not in allowed:
+    # Legacy documents do not carry tenant_id.  A network-wide assignment is
+    # represented by None below, so validate the destination against the
+    # trusted tenant before interpreting that sentinel as all sites.
+    if not Store.objects.filter(pk=store_id, tenant_id=require_tenant_id()).exists():
+        raise NotFound("Not found")
+    from accounts.principal import access_for_user
+
+    if not access_for_user(user).can_section(section, minimum, site_id=store_id):
         raise PermissionDenied("You do not have permission to operate on this store.")
+
+
+def require_vflip_scope(request: Request, store_id: int, brand_id: int) -> None:
+    """Keep the fixed financial executor floor inside one scoped assignment."""
+    access = resolve_access(request)
+    access.require("stock.view", site_id=store_id, brand_id=brand_id)
+    if not access.covers_all_actions(
+        {"stock.view", "section.money.manage"}, [(store_id, brand_id)],
+        {"financial", "cost"}, roles={"owner", "accounts"},
+    ):
+        raise NotFound("Not found")

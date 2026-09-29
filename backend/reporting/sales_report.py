@@ -232,8 +232,8 @@ def _key_text(key: Any) -> str:
 def build(scope: ReportScope, group_by: str) -> dict[str, Any]:
     """The sales report for ``scope``, grouped by ``group_by``, as the viewer may see it."""
     user = scope.user
-    show_cost = sees_cost(user)
-    show_target = sees_targets(user)
+    show_cost = sees_cost(user, scope.stores)
+    show_target = sees_targets(user, scope.stores)
     missing = Missing()
     as_of = freshness(FRESHNESS_KEY, missing)
     note_scope(scope, TITLE, missing)

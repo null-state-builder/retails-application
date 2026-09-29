@@ -134,10 +134,11 @@ def _originals(ids: set[int]) -> dict[int, dict[str, Any]]:
 
 
 def _dims(line: dict[str, Any]) -> dict[str, Any]:
-    out = {dim: str(line.get(dim) or "")[:120] for dim in DIMS}
+    out: dict[str, Any] = {dim: str(line.get(dim) or "")[:120] for dim in DIMS}
     out["size"] = out["size"][:24]
     out["color"] = out["color"][:60]
     out["barcode"] = out["barcode"][:64]
+    out["brand_ref_id"] = line.get("brand_ref_id")
     out["brand_key"] = normalise(out["brand"])[:120]
     return out
 
@@ -162,6 +163,7 @@ def _sale_facts(ids: list[int]) -> list[BrandSaleLineFact]:
             "line_no",
             "direction",
             *DIMS,
+            "brand_ref_id",
             "qty",
             "mrp_paise",
             "disc_paise",
@@ -224,6 +226,7 @@ def _old_return_facts(ids: list[int]) -> list[BrandSaleLineFact]:
             "line_no",
             "original_line_id",
             *DIMS,
+            "brand_ref_id",
             "qty",
             "refund_paise",
             "gst_paise",

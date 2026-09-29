@@ -533,7 +533,7 @@ def read(user: Any, offer: Offer, params: Mapping[str, Any]) -> dict[str, Any]:
     store_ids = [store.pk for store in found.stores]
     _check_size(offer, store_ids, [ran, base])
 
-    show_cost = sees_cost(user)
+    show_cost = sees_cost(user, found.stores)
     missing = Missing()
     as_of = _note_copies(missing, show_cost)
     if as_of is None:
@@ -594,7 +594,7 @@ SHEET_ROWS: tuple[tuple[str, str, str, bool], ...] = (
 )
 
 
-def export(user: Any, offer: Offer, params: Mapping[str, Any]) -> bytes:
+def export(user: Any, offer: Offer, params: Mapping[str, Any], *, access: Any = None) -> bytes:
     """The return as one sheet, built from ``read`` so it carries exactly what this
     viewer may see. The export is recorded in the audit log, as every report's is."""
     body = read(user, offer, params)
@@ -625,7 +625,7 @@ def export(user: Any, offer: Offer, params: Mapping[str, Any]) -> bytes:
     shown = {s["id"] for s in body["stores"]}
     stores = [store for store in viewer_stores(user) if store.pk in shown]
     record_export(
-        user,
+        user, access=access,
         report=REPORT,
         scope=ReportScope(
             user=user,
@@ -641,6 +641,7 @@ def export(user: Any, offer: Offer, params: Mapping[str, Any]) -> bytes:
             "baseline_from": base["date_from"],
             "baseline_to": base["date_to"],
         },
+        contains_cost=body["shows_cost"],
     )
     return content
 

@@ -280,7 +280,7 @@ class Missed:
 
 def build(scope: ReportScope, group_by: str, span: str = "period") -> dict[str, Any]:
     """The inventory report for ``scope``, grouped by ``group_by``, as the viewer may see it."""
-    show_cost = sees_cost(scope.user)
+    show_cost = sees_cost(scope.user, scope.stores)
     missing = Missing()
     as_of = freshness(FRESHNESS_KEY, missing)
     note_freshness(SALES_KEY, "Sales", missing)

@@ -94,6 +94,26 @@ class MasterVersion(EvidenceRow):
         indexes = [models.Index(fields=["kind", "target_key", "effective_from"])]
 
 
+class BrandIdentityBinding(EvidenceRow):
+    """Reviewed identity for a legacy row; never an action or field grant.
+
+    Immutable business snapshots remain untouched. Mutable records receive the
+    same protected reference, and this evidence records how it was established.
+    """
+
+    resource_model = models.CharField(max_length=100)
+    resource_id = models.BigIntegerField()
+    brand = models.ForeignKey("masters.Brand", on_delete=models.PROTECT, related_name="+")
+    source_fingerprint = models.CharField(max_length=64)
+    basis = models.JSONField()
+
+    class Meta(EvidenceRow.Meta):
+        constraints = [
+            *EvidenceRow.Meta.constraints,
+            models.UniqueConstraint(fields=["tenant", "resource_model", "resource_id"], name="uq_brand_identity_resource"),
+        ]
+
+
 class Sbu(TenantOwned):
     site = models.ForeignKey("masters.Store", on_delete=models.PROTECT, related_name="+")
     brand = models.ForeignKey(

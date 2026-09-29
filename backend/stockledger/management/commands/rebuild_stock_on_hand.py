@@ -36,7 +36,7 @@ from stockledger.models import (
     QuarantineStock,
     StockLedgerEntry,
     StockOnHand,
-    merch_dims,
+    identity_dims,
 )
 
 
@@ -69,7 +69,7 @@ class Command(BaseCommand):
                     transit_desc[tkey] = {
                         "source_store_id": e.store_id,
                         "gstin_id": e.gstin_id,
-                        **merch_dims(e),
+                        **identity_dims(e, e.store.tenant_id),
                     }
                 continue
 
@@ -87,7 +87,7 @@ class Command(BaseCommand):
                             "gstin_id": e.gstin_id,
                             "marked_by_id": e.posted_by_id,
                             "marked_at": e.created_at,
-                            **merch_dims(e),
+                            **identity_dims(e, e.store.tenant_id),
                         }
                 continue
 
@@ -108,6 +108,7 @@ class Command(BaseCommand):
                         "season": e.season,
                         "item": e.item,
                         "hsn": e.hsn,
+                        **identity_dims(e, e.store.tenant_id),
                     }
 
         StockOnHand.objects.all().delete()

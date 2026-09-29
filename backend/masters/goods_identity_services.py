@@ -875,7 +875,7 @@ def candidates_for(tenant_id: uuid.UUID, sku_ids: Iterable[Any]) -> list[dict[st
         str(sku.pk): sku
         for sku in ProductSku.objects.select_related(
             "style", "style__brand", "identity_profile"
-        ).filter(tenant_id=tenant_id, pk__in=ids)
+        ).filter(tenant_id=tenant_id, style__tenant_id=tenant_id, style__brand__tenant_id=tenant_id, pk__in=ids)
     }
     out: list[dict[str, Any]] = []
     for sku_id in ids:
@@ -897,6 +897,7 @@ def candidates_for(tenant_id: uuid.UUID, sku_ids: Iterable[Any]) -> list[dict[st
         item: dict[str, Any] = {
             "sku_id": sku_id,
             "brand": sku.style.brand.name,
+            "brand_id": sku.style.brand_id,
             "style": sku.style.style_code,
             "size": (label_of(profile.size_dimension) if profile else None) or "unknown",
         }

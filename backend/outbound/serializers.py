@@ -12,6 +12,9 @@ from rest_framework import serializers
 from approvals.models import ApprovalStatus
 from approvals.serializers import ApprovalReadSerializer
 from approvals.services import display_name
+from accounts.principal import resolve_access
+from masters.brand_identity import identity_id
+from core.tenancy import require_tenant_id
 from core.documents import DocStatus
 from masters.models import Brand, Store
 from outbound.maker_checker import request_document_approval
@@ -58,6 +61,89 @@ from vendors.models import Vendor
 #: which document each subclass serialises.
 _ApprovedT = TypeVar("_ApprovedT", bound=Model)
 
+PT_PROTECTED_COLUMNS = frozenset({"BASIC", "P RATE", "INPUT TAX", "OUTPUT TAX", "MARGIN"})
+
+_COST_KEYS = frozenset({"unit_cost_paise", "value_paise", "partner_billing_value_paise"})
+_FINANCIAL_KEYS = frozenset({"cap_allowance_paise", "cap_used_before_paise", "cap_exceeded_by_paise"})
+
+
+def _document_cells(obj: Any) -> list[tuple[int, int | None]]:
+    """Use every site and brand represented by a legacy outbound document."""
+    transfer = getattr(obj, "transfer", None)
+    document = transfer or obj
+    site_ids = [int(site_id) for site_id in (
+        getattr(document, "store_id", None),
+        getattr(document, "source_store_id", None),
+        getattr(document, "destination_store_id", None),
+    ) if site_id is not None]
+    if not site_ids:
+        return []
+    brand_ids: list[int | None] = [int(brand_id) for brand_id in (
+        getattr(document, "brand_id", None),
+        getattr(document, "original_brand_id", None),
+    ) if brand_id is not None]
+    if not brand_ids and hasattr(document, "lines"):
+        for line in document.lines.all():
+            brand_id = identity_id(line, require_tenant_id())
+            if brand_id is None:
+                return []
+            brand_ids.append(brand_id)
+    return [(site_id, brand_id) for site_id in site_ids for brand_id in (brand_ids or [None])]
+
+
+def _project_cost_data(data: dict[str, Any], grants: set[str]) -> dict[str, Any]:
+    """Remove protected values recursively, including nested line payloads."""
+    for key in list(data):
+        if (key in _COST_KEYS and "cost" not in grants) or (
+            key in _FINANCIAL_KEYS and "financial" not in grants
+        ):
+            data.pop(key)
+            continue
+        value = data[key]
+        if isinstance(value, dict):
+            _project_cost_data(value, grants)
+        elif isinstance(value, list):
+            for item in value:
+                if isinstance(item, dict):
+                    _project_cost_data(item, grants)
+    return data
+
+
+class RejectProtectedWriteMixin:
+    """DRF otherwise discards unknown derived money fields in write payloads."""
+
+    def to_internal_value(self, data: Any) -> Any:
+        def protected(value: Any) -> bool:
+            if isinstance(value, dict):
+                return any(
+                    key in _COST_KEYS | _FINANCIAL_KEYS | PT_PROTECTED_COLUMNS or protected(child)
+                    for key, child in value.items()
+                )
+            return isinstance(value, list) and any(protected(child) for child in value)
+
+        if protected(data):
+            raise serializers.ValidationError({"protected_fields": "Protected money values cannot be supplied."})
+        return super().to_internal_value(data)  # type: ignore[misc]
+
+
+def _protected_at(serializer: serializers.BaseSerializer[Any], *cells: tuple[int, int | None]) -> set[str]:
+    """Fields visible over every cell of a legacy document, from this request's grants."""
+    request = serializer.context.get("request")
+    if request is None or not cells:
+        return set()
+    access = resolve_access(request)
+    model = getattr(getattr(serializer, "Meta", None), "model", None)
+    section = {
+        "returntovendor": "return_to_brand", "markdamaged": "return_to_brand",
+        "stockadjustment": "stock_count", "writeoff": "stock_count",
+        "stocktake": "stock_count", "countsession": "stock_count",
+        "vflip": "stock",
+    }.get(model._meta.model_name if model is not None else "", "transfer")
+    return {field for field in {"cost", "margin", "financial"} if all(
+        access.can_section(section, "view", site_id=site, brand_id=brand, fields={field})
+        for site, brand in cells
+    )}
+
 
 class ApprovedDocumentSerializer(serializers.ModelSerializer[_ApprovedT]):
     """Base read shape for a document that needs a second person.
@@ -75,6 +161,11 @@ class ApprovedDocumentSerializer(serializers.ModelSerializer[_ApprovedT]):
     approved_by_name = serializers.SerializerMethodField()
     approval = serializers.SerializerMethodField()
     approval_history = serializers.SerializerMethodField()
+
+    def to_representation(self, instance: _ApprovedT) -> dict[str, Any]:
+        data = super().to_representation(instance)
+        grants = _protected_at(self, *_document_cells(instance))
+        return _project_cost_data(data, grants)
 
     def _approval(self, obj: Any) -> Any:
         """The live one. A document that was rejected and asked again holds
@@ -324,6 +415,21 @@ class TransferPTSerializer(serializers.ModelSerializer[TransferPT]):
     dispatch_date = serializers.DateTimeField(source="transfer.dispatch_date", read_only=True)
     generated_by_name = serializers.SerializerMethodField()
 
+    def to_representation(self, instance: TransferPT) -> dict[str, Any]:
+        data = super().to_representation(instance)
+        grants = _protected_at(self, *_document_cells(instance))
+        hidden = set()
+        if "cost" not in grants:
+            hidden.update({"BASIC", "P RATE", "INPUT TAX", "OUTPUT TAX"})
+        if "margin" not in grants:
+            hidden.add("MARGIN")
+        data["columns"] = [column for column in data["columns"] if column not in hidden]
+        data["rows"] = [
+            {key: value for key, value in row.items() if key not in hidden}
+            for row in data["rows"]
+        ]
+        return data
+
     def get_columns(self, obj: TransferPT) -> list[str]:
         return list(KDPS_COLUMNS)
 
@@ -484,7 +590,7 @@ class BillingPolicySerializer(serializers.ModelSerializer[BillingPolicy]):
         fields = ["mode", "mode_label", "set_by_name", "updated_at"]
 
 
-class StoreTransferWriteSerializer(serializers.ModelSerializer[StoreTransfer]):
+class StoreTransferWriteSerializer(RejectProtectedWriteMixin, serializers.ModelSerializer[StoreTransfer]):
     """Creates a draft transfer. ``lines`` (the plan) is optional — a
     store→store transfer builds its lines by scanning at dispatch."""
 
@@ -809,7 +915,7 @@ class ReturnToVendorReadSerializer(ApprovedDocumentSerializer[ReturnToVendor]):
         ]
 
 
-class ReturnToBrandCreateSerializer(serializers.Serializer[dict[str, Any]]):
+class ReturnToBrandCreateSerializer(RejectProtectedWriteMixin, serializers.Serializer[dict[str, Any]]):
     """The scan payload behind a new return (#75).
 
     Barcodes and quantities, and nothing else that decides money. Which bucket
@@ -922,7 +1028,7 @@ class StockAdjustmentReadSerializer(ApprovedDocumentSerializer[StockAdjustment])
         ]
 
 
-class StockAdjustmentWriteSerializer(serializers.ModelSerializer[StockAdjustment]):
+class StockAdjustmentWriteSerializer(RejectProtectedWriteMixin, serializers.ModelSerializer[StockAdjustment]):
     """``approved_by`` is not accepted: the approver is stamped by whoever
     clears the approvals inbox, and can never be the maker (#70)."""
 
@@ -1025,7 +1131,7 @@ class WriteOffReadSerializer(ApprovedDocumentSerializer[WriteOff]):
         ]
 
 
-class WriteOffWriteSerializer(serializers.ModelSerializer[WriteOff]):
+class WriteOffWriteSerializer(RejectProtectedWriteMixin, serializers.ModelSerializer[WriteOff]):
     """``approved_by`` is not accepted: the approver is stamped by whoever
     clears the approvals inbox, and can never be the maker (#70)."""
 
@@ -1107,7 +1213,7 @@ class VFlipReadSerializer(ApprovedDocumentSerializer[VFlip]):
         ]
 
 
-class VFlipWriteSerializer(serializers.ModelSerializer[VFlip]):
+class VFlipWriteSerializer(RejectProtectedWriteMixin, serializers.ModelSerializer[VFlip]):
     """``authorized_by`` is not accepted: the authoriser is stamped by whoever
     clears the approvals inbox, and can never be the maker (#70)."""
 

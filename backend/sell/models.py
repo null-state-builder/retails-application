@@ -629,6 +629,11 @@ class SaleLine(TimeStampedModel):
     color = models.CharField(max_length=60, blank=True, default="")
     size = models.CharField(max_length=24, blank=True, default="")
     brand = models.CharField(max_length=120, blank=True, default="")
+    # Stable scope identity; historical brand text is display evidence only.
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     item = models.CharField(max_length=120, blank=True, default="")
     hsn = models.CharField(max_length=24, blank=True, default="")
     qty = models.IntegerField()
@@ -1463,6 +1468,11 @@ class ReturnLine(TimeStampedModel):
     color = models.CharField(max_length=60, blank=True, default="")
     size = models.CharField(max_length=24, blank=True, default="")
     brand = models.CharField(max_length=120, blank=True, default="")
+    # Stable scope identity; historical brand text is display evidence only.
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     item = models.CharField(max_length=120, blank=True, default="")
     hsn = models.CharField(max_length=24, blank=True, default="")
     qty = models.IntegerField()
@@ -2361,6 +2371,11 @@ class SavedSize(models.Model):
     store = models.ForeignKey("masters.Store", on_delete=models.PROTECT, related_name="+")
     #: As spelled on the bill (or as the correction named it).
     brand = models.CharField(max_length=120)
+    # Stable scope identity; historical brand text is display evidence only.
+    brand_ref = models.ForeignKey(
+        "masters.Brand", null=True, blank=True, editable=False,
+        on_delete=models.PROTECT, related_name="+",
+    )
     category = models.CharField(max_length=120)
     #: Upper case, spaces collapsed: "Mufti " and "MUFTI" are one brand.
     brand_key = models.CharField(max_length=120)

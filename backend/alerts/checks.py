@@ -14,8 +14,11 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 
 from django.utils import timezone
+from django.db import transaction
 
 from core.documents import DocStatus
+from core.refusals import Refusal
+from core.tenancy import require_tenant_id
 from masters.models import Brand
 from outbound import size_balancing
 from outbound.models import ReturnSource, StoreTransfer
@@ -35,6 +38,7 @@ class AlertHit:
     object_id: int | None
     due_date: date | None
     threshold_days: int | None
+    brand_id: int | None = None
 
 
 def _thresholds(kind: str) -> list[int]:
@@ -60,7 +64,10 @@ def check_in_transit_aging(today: date) -> list[AlertHit]:
 
     hits: list[AlertHit] = []
     qs = (
-        StoreTransfer.objects.filter(docstatus=DocStatus.SUBMITTED, receipt__isnull=True)
+        StoreTransfer.objects.filter(
+            docstatus=DocStatus.SUBMITTED, receipt__isnull=True,
+            source_store__tenant_id=require_tenant_id(), destination_store__tenant_id=require_tenant_id(),
+        )
         .exclude(dispatch_date__isnull=True)
         .filter(dispatch_date__date__lte=cutoff)
         .select_related("destination_store")
@@ -113,7 +120,7 @@ def check_return_window(today: date) -> list[AlertHit]:
     hits: list[AlertHit] = []
     # `takes_returns` is derived from the two commercial-model axes, not a
     # column — filtered in Python, the same as `returnable_pool_all` does it.
-    for brand in Brand.objects.filter(is_active=True):
+    for brand in Brand.objects.filter(tenant_id=require_tenant_id(), is_active=True):
         if not brand.takes_returns:
             continue
         for row in returnable_pool_all(brand, today=today):
@@ -133,6 +140,7 @@ def check_return_window(today: date) -> list[AlertHit]:
                     ),
                     store_id=row.store_id,
                     brand=brand.name,
+                    brand_id=brand.pk,
                     object_id=None,
                     due_date=row.window_date,
                     threshold_days=tightest,
@@ -161,7 +169,7 @@ def check_stock_ageing(today: date) -> list[AlertHit]:
     if not thresholds:
         return []
     idle = min(thresholds)
-    stores = list(Store.objects.filter(is_active=True, store_type=Store.StoreType.STORE))
+    stores = list(Store.objects.filter(tenant_id=require_tenant_id(), is_active=True, store_type=Store.StoreType.STORE))
     states = switch_states(stores, [feature(SEASON_AGEING)])
     hits: list[AlertHit] = []
     for store, state in zip(stores, states, strict=True):
@@ -237,6 +245,7 @@ def check_reservation_expiry(today: date) -> list[AlertHit]:
         return []
     window = max(thresholds)
     due = CustomerReservation.objects.filter(
+        store__tenant_id=require_tenant_id(),
         status=CustomerReservation.Status.ACTIVE,
         collect_by__lte=today + timedelta(days=window),
     ).select_related("store")
@@ -278,11 +287,12 @@ def check_broken_sizes(now: datetime) -> list[AlertHit]:
     from stockledger.broken_size import refresh_store, rules_in_force
     from stockledger.broken_size_models import BrokenSizeAlert
 
-    stores = list(Store.objects.filter(is_active=True, store_type=Store.StoreType.STORE))
+    stores = list(Store.objects.filter(tenant_id=require_tenant_id(), is_active=True, store_type=Store.StoreType.STORE))
     states = switch_states(stores, [feature(BROKEN_SIZE)])
     # A store closed, or no longer a selling store, since its alerts opened: they
     # close too, so nothing is left open for ever.
     gone = Store.objects.filter(
+        tenant_id=require_tenant_id(),
         pk__in=BrokenSizeAlert.objects.filter(closed_at__isnull=True).values("site_id")
     ).exclude(pk__in=[store.pk for store in stores])
     for store in gone:
@@ -328,7 +338,7 @@ def check_sor_ageing(today: date) -> list[AlertHit]:
     from masters.store_features import feature, switch_states
     from stockledger.sor_ageing import DUE, NO_DISPATCH_DATE, OVERDUE, store_sor_ageing
 
-    stores = list(Store.objects.filter(is_active=True).order_by("code"))
+    stores = list(Store.objects.filter(tenant_id=require_tenant_id(), is_active=True).order_by("code"))
     states = switch_states(stores, [feature(SOR_AGEING)])
     hits: list[AlertHit] = []
     for store, state in zip(stores, states, strict=True):
@@ -393,31 +403,50 @@ def sync_reservation_alerts(today: date | None = None) -> int:
     return len(hits)
 
 
+@transaction.atomic
 def sync_kind(kind: str, kind_label: str, hits: list[AlertHit]) -> None:
     """Open what's new, resolve what stopped being true, and refresh what's
     still open — a holding's countdown moves even while its alert stays open,
     so the title/threshold on an existing row must track it, not freeze at
     whatever it said the day the row was born."""
+    from masters.models import Store
+
+    tenant_id = require_tenant_id()
+    sites = set(Store.objects.filter(tenant_id=tenant_id).values_list("pk", flat=True))
+    brands = set(Brand.objects.filter(tenant_id=tenant_id).values_list("pk", flat=True))
+    for hit in hits:
+        if hit.store_id not in sites or (hit.brand_id is not None and hit.brand_id not in brands):
+            raise Refusal("NOT_FOUND", "An alert source belongs to another tenant or has unresolved ownership.")
+        row = Alert.objects.select_for_update().filter(
+            store__tenant_id=tenant_id, kind=kind, dedupe_key=hit.dedupe_key, status=AlertStatus.OPEN,
+        ).first()
+        if row is not None and hit.brand_id is not None:
+            from masters.brand_identity import identity_id
+
+            established = identity_id(row, tenant_id)
+            if (row.brand_ref_id is not None and row.brand_ref_id != hit.brand_id) or (
+                established is not None and established != hit.brand_id
+            ):
+                raise Refusal("IDENTITY_CONFLICT", "An alert's established brand differs from its source.")
     current_keys = {hit.dedupe_key for hit in hits}
     (
-        Alert.objects.filter(kind=kind, status=AlertStatus.OPEN)
+        Alert.objects.filter(store__tenant_id=tenant_id, kind=kind, status=AlertStatus.OPEN)
         .exclude(dedupe_key__in=current_keys)
         .update(status=AlertStatus.RESOLVED, resolved_at=timezone.now())
     )
     for hit in hits:
-        Alert.objects.update_or_create(
+        defaults = {
+            "kind_label": kind_label, "title": hit.title,
+            "store_id": hit.store_id, "brand": hit.brand, "object_id": hit.object_id,
+            "due_date": hit.due_date, "threshold_days": hit.threshold_days,
+        }
+        if hit.brand_id is not None:
+            defaults["brand_ref_id"] = hit.brand_id
+        Alert.objects.filter(store__tenant_id=tenant_id).update_or_create(
             kind=kind,
             dedupe_key=hit.dedupe_key,
             status=AlertStatus.OPEN,
-            defaults={
-                "kind_label": kind_label,
-                "title": hit.title,
-                "store_id": hit.store_id,
-                "brand": hit.brand,
-                "object_id": hit.object_id,
-                "due_date": hit.due_date,
-                "threshold_days": hit.threshold_days,
-            },
+            defaults=defaults,
         )
 
 

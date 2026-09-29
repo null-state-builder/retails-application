@@ -307,7 +307,7 @@ class Books:
     def brand(self, name: str) -> Brand | None:
         if self._brands is None:
             self._brands = defaultdict(list)
-            for brand in Brand.objects.all():
+            for brand in Brand.objects.filter(tenant_id=self.tenant_id):
                 self._brands[normalise(brand.name)].append(brand)
         found = self._brands.get(normalise(name), []) if normalise(name) else []
         return found[0] if len(found) == 1 else None
@@ -328,7 +328,7 @@ class Books:
         if offer_id is None:
             return None
         if offer_id not in self._offers:
-            self._offers[offer_id] = Offer.objects.filter(pk=offer_id).first()
+            self._offers[offer_id] = Offer.objects.for_tenant(self.tenant_id).filter(pk=offer_id).first()
         return self._offers[offer_id]
 
     def place(self, line: SaleLine) -> Place:

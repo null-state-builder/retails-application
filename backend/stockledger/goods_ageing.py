@@ -120,6 +120,7 @@ class AgeingRow:
     sku_id: uuid.UUID
     barcode: str
     brand: str
+    brand_id: int | None
     item: str
     design: str
     size: str
@@ -149,6 +150,7 @@ class AgeingRow:
             "sku_id": str(self.sku_id),
             "barcode": self.barcode,
             "brand": self.brand,
+            "brand_id": self.brand_id,
             "item": self.item,
             "design": self.design,
             "size": self.size,
@@ -390,6 +392,7 @@ def store_ageing(
                 sku_id=origin.sku_id,
                 barcode=barcodes.shown.get(origin.sku_id, ""),
                 brand=str(described.get("brand") or ""),
+                brand_id=described.get("brand_id"),
                 item=str(described.get("grade") or ""),
                 design=str(described.get("style") or ""),
                 size=str(described.get("size") or ""),

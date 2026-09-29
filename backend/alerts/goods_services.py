@@ -175,7 +175,7 @@ EXCEPTION_DEFAULTS: dict[str, ExceptionDefault] = {
     # closes only through that review. One working day, ruled by Anand
     # (19 September 2026), the same as other approvals waiting here.
     "privileged_change_review": ExceptionDefault(
-        "C-OWN", 1, "working_days", "reviewed by a different authorised person"
+        "owner", 1, "working_days", "reviewed by a different authorised person"
     ),
     # GSA-T10: opening manifest exceptions, registered with this shared centre
     # per ticket 08's own rule (docs/features/goods-to-store-acceptance/

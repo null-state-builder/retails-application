@@ -50,6 +50,7 @@ from django.db.models import F, Min, Sum
 from django.utils import timezone
 
 from masters.models import Brand
+from masters.brand_identity import with_brand_identity
 from masters.scoping import scope_by_entitlement_or_brand, scope_by_store_and_brand
 from outbound.costing import book_unit_costs
 from outbound.models import ReturnSource
@@ -207,11 +208,10 @@ class CapReading:
 def _brand_ledger_total(brand: Brand, kinds: tuple[str, ...]) -> int:
     """Signed value of one family of legs for this brand, network-wide.
 
-    Ledger rows carry the brand as the name printed on the PT rather than a key,
-    so the match is case-insensitive against the master name — the same rule
-    ``masters.scoping.scope_by_brand`` uses on stock.
+    Only reviewed stable brand identity can contribute to this allowance.
+    Historical labels do not establish ownership.
     """
-    total = StockLedgerEntry.objects.filter(brand__iexact=brand.name, kind__in=kinds).aggregate(
+    total = with_brand_identity(StockLedgerEntry.objects.filter(kind__in=kinds), brand.tenant_id).filter(_access_brand_id=brand.pk).aggregate(
         total=Sum("amount")
     )["total"]
     return int(total or 0)
@@ -262,7 +262,7 @@ def _arrival_dates(brand: Brand, store_ids: list[int] | None) -> dict[tuple[int,
     One grouped query rather than one per row: a brand at season end is thousands
     of barcodes, and the screen wants a countdown on every one of them.
     """
-    qs = StockLedgerEntry.objects.filter(brand__iexact=brand.name, kind__in=ARRIVAL_KINDS)
+    qs = with_brand_identity(StockLedgerEntry.objects.filter(kind__in=ARRIVAL_KINDS), brand.tenant_id).filter(_access_brand_id=brand.pk)
     if store_ids is not None:
         qs = qs.filter(store_id__in=store_ids)
     grouped = qs.values("store_id", "sku_code").annotate(first_in=Min("created_at"))
@@ -392,11 +392,11 @@ def _pool(
 
     today = today or timezone.localdate()
     quarantine = gate(
-        QuarantineStock.objects.filter(qty__gt=0, brand__iexact=brand.name).select_related("store"),
+        with_brand_identity(QuarantineStock.objects.filter(qty__gt=0), brand.tenant_id).filter(_access_brand_id=brand.pk).select_related("store"),
         "store_id",
     )
     season_end = gate(
-        StockOnHand.objects.filter(net_qty__gt=0, brand__iexact=brand.name).select_related("store"),
+        with_brand_identity(StockOnHand.objects.filter(net_qty__gt=0), brand.tenant_id).filter(_access_brand_id=brand.pk).select_related("store"),
         "store_id",
     )
     if store_id is not None:
@@ -432,7 +432,7 @@ def returnable_pool(
     it is always asked about one.
     """
     gate = scope_by_entitlement_or_brand if acting else scope_by_store_and_brand
-    return _pool(brand, store_id, lambda qs, field: gate(qs, user, field))
+    return _pool(brand, store_id, lambda qs, field: gate(qs, user, field, section="return_to_brand", minimum="operate" if acting else "view"))
 
 
 def returnable_pool_all(

@@ -21,6 +21,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any, cast
 
+from django.db.models import Q
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import generics, status
@@ -30,13 +31,16 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.models import User
-from accounts.permissions import require_section, user_can
+from accounts.actions import SECTION_ACTIONS
+from accounts.permissions import require_section
+from accounts.principal import access_for_user, resolve_access
 from accounts.sections import CAP_MANAGE, CAP_VIEW
 from core.dates import bad_since, parse_day
 from masters.scoping import scope_by_store_or_brand
 
 from .models import Alert, AlertKind, AlertSeen, AlertStatus
 from .serializers import AlertReadSerializer, AlertSeenSerializer
+from .scope_contract import WHOLE_SITE_KINDS
 
 #: How far History looks back when the caller names no window. It matches the
 #: popup's own default range, which the client computes for itself - the two are
@@ -54,13 +58,46 @@ KIND_NEEDS: dict[str, tuple[str, str]] = {
     AlertKind.SOR_AGEING: ("money", CAP_MANAGE),
 }
 
+# These writers deliberately snapshot a whole-site condition with no brand.
+# Branded stock/document alerts with missing identity remain unresolved.
+KIND_FIELDS: dict[str, frozenset[str]] = {
+    AlertKind.CASH_VARIANCE: frozenset({"financial"}),
+    AlertKind.BRAND_CLAIM_FLAGGED: frozenset({"financial"}),
+    AlertKind.SOR_AGEING: frozenset({"financial"}),
+    AlertKind.RESERVATION_EXPIRY: frozenset({"customer"}),
+    # Existing snapshots can contain either customer or staff return history.
+    # Their single shape cannot establish a narrower field classification.
+    AlertKind.NO_BILL_RETURN_CAP: frozenset({"customer", "employee_private"}),
+}
+
+
+def scoped_alerts(qs: Any, user: Any) -> Any:
+    return scope_by_store_or_brand(
+        qs, user, section="home", minimum="view",
+        brandless=Q(kind__in=WHOLE_SITE_KINDS, brand=""),
+    )
+
 
 def readable_kinds(qs: Any, user: Any) -> Any:
-    """``qs`` without the kinds this person's sections do not reach."""
-    if getattr(user, "is_superuser", False):
-        return qs
-    hidden = [kind for kind, (code, cap) in KIND_NEEDS.items() if not user_can(user, code, cap)]
-    return qs.exclude(kind__in=hidden) if hidden else qs
+    """Keep financial alerts only within one qualifying assignment's scope.
+
+    Their title and object ID can reveal business terms, so a Money section on
+    one assignment must never combine with a Home/site grant on another.
+    """
+    allowed = Q(pk__in=[])
+    for row in access_for_user(user).section_grants("home", CAP_VIEW):
+        cell = Q()
+        if not row.all_sites:
+            cell &= Q(store_id__in=row.site_ids)
+        if not row.all_brands:
+            cell &= Q(_access_brand_id__in=row.brand_ids)
+        for kind, fields in KIND_FIELDS.items():
+            need = KIND_NEEDS.get(kind)
+            if fields <= row.fields and (
+                need is None or SECTION_ACTIONS[need] in row.actions
+            ):
+                allowed |= Q(kind=kind) & cell
+    return qs.filter(~Q(kind__in=KIND_FIELDS) | allowed)
 
 
 class AlertInboxView(generics.ListAPIView[Alert]):
@@ -75,7 +112,7 @@ class AlertInboxView(generics.ListAPIView[Alert]):
 
     def get_queryset(self) -> Any:
         qs = Alert.objects.filter(status=AlertStatus.OPEN).select_related("store")
-        return readable_kinds(scope_by_store_or_brand(qs, self.request.user), self.request.user)
+        return readable_kinds(scoped_alerts(qs, self.request.user), self.request.user)
 
 
 class AlertHistoryView(APIView):
@@ -104,7 +141,7 @@ class AlertHistoryView(APIView):
         rows = Alert.objects.filter(
             status=AlertStatus.RESOLVED, resolved_at__date__gte=since
         ).select_related("store")
-        rows = readable_kinds(scope_by_store_or_brand(rows, request.user), request.user)
+        rows = readable_kinds(scoped_alerts(rows, request.user), request.user)
         rows = rows.order_by("-resolved_at")
         return Response(AlertReadSerializer(rows, many=True).data)
 
@@ -132,5 +169,9 @@ class AlertSeenView(APIView):
         # opening simply moves the one row forward.
         # IsAuthenticated above guarantees a real user, never AnonymousUser.
         user = cast(User, request.user)
-        row, _ = AlertSeen.objects.update_or_create(user=user, defaults={"seen_at": timezone.now()})
+        access = resolve_access(request)
+        # The cursor belongs to this person, rather than a site or brand. Keep
+        # the same Home requirement live through the write and its commit.
+        with access.guard_legacy_write(lambda current: bool(current.section_grants("home", CAP_VIEW))):
+            row, _ = AlertSeen.objects.update_or_create(user=user, defaults={"seen_at": timezone.now()})
         return Response({"seen_at": row.seen_at})

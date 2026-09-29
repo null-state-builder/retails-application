@@ -39,7 +39,6 @@ from django.utils import timezone
 
 from core.documents import DocStatus
 from masters.models import Customer, Sku, Store
-from masters.scoping import actionable_store_ids
 from masters.store_feature_registry import ALTERATIONS
 from masters.store_features import is_feature_on, is_real_store
 from masters.tax_settings import LEGACY_VERSION
@@ -229,9 +228,15 @@ class _PreparedLine:
 
 def accept_sale(data: dict[str, Any], actor: Any) -> AcceptResult:
     """Take one bill, exactly once. See the module docstring for the shape."""
+    # The replay response still reveals the bill's identifiers. Authorise the
+    # requested store before looking up a previously accepted UUID, including
+    # the concurrent replay branch below.
+    requested_store = _resolve_store(data["store"], actor)
     uuid = data["idempotency_uuid"]
     existing = _find_by_uuid(uuid)
     if existing is not None:
+        if existing.store_id != requested_store.pk:
+            raise AcceptError("SCOPE_DENIED", "That bill is outside this counter.", 403)
         return _replay_or_refuse(existing, data)
     try:
         with transaction.atomic():
@@ -243,6 +248,9 @@ def accept_sale(data: dict[str, Any], actor: Any) -> AcceptResult:
         # out here: the transaction above is aborted and cannot be queried.
         existing = _find_by_uuid(uuid)
         if existing is not None:
+            requested_store = _resolve_store(data["store"], actor)
+            if existing.store_id != requested_store.pk:
+                raise AcceptError("SCOPE_DENIED", "That bill is outside this counter.", 403) from None
             return _replay_or_refuse(existing, data)
         raise _translate_integrity(exc, data) from exc
 
@@ -393,6 +401,9 @@ def _accept_new(data: dict[str, Any], actor: Any) -> AcceptResult:
     # a bill's own twin as a second writer.
     replayed = _find_by_uuid(data["idempotency_uuid"])
     if replayed is not None:
+        requested_store = _resolve_store(data["store"], actor)
+        if replayed.store_id != requested_store.pk:
+            raise AcceptError("SCOPE_DENIED", "That bill is outside this counter.", 403)
         return _replay(replayed)
     store = _resolve_store(data["store"], actor)  # step 1
     _check_alteration_lines(data, store)  # ticket 22
@@ -541,6 +552,7 @@ def _tag_gifts(
                 list(rulebook.lines.values()),
                 line_no,
                 after_discount=rulebook.after_discount,
+                tenant_id=store.tenant_id,
             )
             > 0
         )
@@ -575,14 +587,16 @@ def _upsert_customer(sale: Sale) -> None:
 
 def _resolve_store(code: str, actor: Any) -> Store:
     """Step 1 - the bill's store, and the caller's right to bill at it."""
-    store = Store.objects.select_related("gstin").filter(code__iexact=code.strip()).first()
-    if store is None:
-        raise AcceptError("VALIDATION", f"No store with code '{code}'.", 400)
-    allowed = actionable_store_ids(actor)
-    if allowed is not None and store.id not in allowed:
+    from sell.services.dataset import TillScopeError, resolve_till_store
+
+    try:
+        store = resolve_till_store(actor)
+    except TillScopeError as exc:
+        raise AcceptError("SCOPE_DENIED", str(exc), 403) from None
+    if store.code.lower() != code.strip().lower():
         raise AcceptError(
             "SCOPE_DENIED",
-            f"You cannot bill at {store.code}; a till bills for its own store only.",
+            "A till bills for its own store only.",
             403,
         )
     return store
@@ -1251,6 +1265,7 @@ class _Rulebook:
             list(self.lines.values()),
             line_no,
             after_discount=self.after_discount,
+            tenant_id=self.store.tenant_id,
         )
         return max(today, cited), cited > today
 
@@ -1284,7 +1299,10 @@ def _server_resolution(data: dict[str, Any], store: Store, lines: list[_Prepared
     }
     after_discount = bool(data.get("gst_after_discount"))
     resolution = (
-        resolve_bill(store.code, day, list(bill_lines.values()), after_discount=after_discount)
+        resolve_bill(
+            store.code, day, list(bill_lines.values()),
+            after_discount=after_discount, tenant_id=store.tenant_id,
+        )
         if bill_lines
         else Resolution(lines=(), entitlements=(), after_discount=after_discount)
     )
@@ -1618,9 +1636,30 @@ def _write_line(
 ) -> SaleLine:
     payload = line.payload
     alteration = line.is_alteration
+    brand_id: int | None = None
+    if not alteration:
+        from masters.brand_identity import identity_id, with_brand_identity
+        from stockledger.models import StockOnHand
+
+        if line.original is not None:
+            brand_id = identity_id(line.original, sale.store.tenant_id)
+        elif line.goods_piece is not None:
+            brand_id = line.goods_piece.brand_id
+        else:
+            brands = set(with_brand_identity(
+                StockOnHand.objects.filter(store=sale.store, sku_code=payload["barcode"].strip()),
+                sale.store.tenant_id,
+            ).values_list("_access_brand_id", flat=True))
+            if len(brands) == 1:
+                brand_id = brands.pop()
+        # A bill may have been printed while the till was offline. Preserve it
+        # with unresolved identity rather than inventing a brand or rejecting
+        # the customer's completed sale. Brand-scoped readers require a reviewed
+        # identity and the reconciliation screen lists rows left unbound.
     return SaleLine.objects.create(
         **tax_record,
         sale=sale,
+        brand_ref_id=brand_id,
         line_no=payload["line_no"],
         direction=payload["direction"],
         kind=SaleLine.Kind.ALTERATION if alteration else SaleLine.Kind.GOODS,
@@ -1638,7 +1677,7 @@ def _write_line(
         salesperson_match=line.seller.match if line.seller else None,
         salesperson_code=line.seller.code if line.seller else "",
         salesperson_name=line.seller.name if line.seller else "",
-        offer=_offer_cited(payload),
+        offer=_offer_cited(payload, sale.store.tenant_id),
         offer_evidence=payload["offer_evidence"],
         manual_disc_paise=line.manual_disc_paise,
         manual_desc=ALTERATION_DESCRIPTION if alteration else payload["manual_desc"].strip(),
@@ -1665,7 +1704,7 @@ def _write_line(
     )
 
 
-def _offer_cited(payload: dict[str, Any]) -> Offer | None:
+def _offer_cited(payload: dict[str, Any], tenant_id: Any) -> Offer | None:
     """The rule the till says won this line, if it names one that exists.
 
     Recorded, not trusted. What the bill was *worth* is settled by the server's
@@ -1678,7 +1717,7 @@ def _offer_cited(payload: dict[str, Any]) -> Offer | None:
     offer_id = payload.get("offer_id")
     if not offer_id:
         return None
-    return Offer.objects.filter(pk=offer_id).first()
+    return Offer.objects.for_tenant(tenant_id).filter(pk=offer_id).first()
 
 
 def _line_description(line: _PreparedLine) -> tuple[dict[str, str], str]:
@@ -1902,7 +1941,9 @@ def _apply_tenders(
     vouchers = vouchers or {}
     bank_ids = {int(p["offer_id"]) for p in plans if p.get("offer_id")}
     known = set(
-        Offer.objects.filter(pk__in=bank_ids, layer=Offer.Layer.BANK).values_list("pk", flat=True)
+        Offer.objects.for_tenant(sale.store.tenant_id)
+        .filter(pk__in=bank_ids, layer=Offer.Layer.BANK)
+        .values_list("pk", flat=True)
     )
     for payload in plans:
         SaleTender.objects.create(

@@ -20,9 +20,7 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
-from accounts.permissions import user_can
-from accounts.role_lists import BRAND_LAYOUT_EDITOR_ROLES
-from accounts.sections import CAP_VIEW
+from accounts.principal import access_for_user
 from core.commands import CommandRun, LockRank
 from core.refusals import Refusal
 from masters.models import Brand
@@ -373,12 +371,9 @@ def effective(brand: Brand, kind: str) -> BrandReportLayout:
 # -- saving ----------------------------------------------------------------------------
 
 
-def may_edit(user: Any) -> bool:
+def may_edit(user: Any, brand_id: int | None = None) -> bool:
     """Accounts saves layouts (baseline B314): the brand's reports are settlement work."""
-    if getattr(user, "is_superuser", False):
-        return True
-    role = str(getattr(getattr(user, "role", None), "code", "") or "")
-    return user_can(user, "reports", CAP_VIEW) and role in BRAND_LAYOUT_EDITOR_ROLES
+    return access_for_user(user).covers_all({'brand_report.layout.manage'}, [(None, brand_id)], ['financial'])
 
 
 def snapshot(row: BrandReportLayout | None) -> dict[str, Any] | None:

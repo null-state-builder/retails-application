@@ -94,6 +94,7 @@ class Rule:
 
 def rules_in_force() -> dict[str, Rule]:
     """Each category's rule, keyed by its size key (so "Shirt" and "SHIRT" are one)."""
+    from core.tenancy import require_tenant_id
     from stockledger.broken_size_models import SizeRule
 
     return {
@@ -102,7 +103,7 @@ def rules_in_force() -> dict[str, Rule]:
             core_sizes=tuple(row.core_sizes),
             missing_percent=row.missing_percent,
         )
-        for row in SizeRule.objects.filter(active=True)
+        for row in SizeRule.objects.filter(tenant_id=require_tenant_id(), active=True)
     }
 
 

@@ -222,7 +222,7 @@ def _store(user: Any, code: str) -> Store:
     code = (code or "").strip().upper()
     if not code:
         raise Refusal("VALIDATION", "Name the store.", status=400)
-    store: Store | None = actionable_stores(user).select_related("gstin").filter(code=code).first()
+    store: Store | None = actionable_stores(user, section="sell", minimum="operate").select_related("gstin").filter(code=code).first()
     if store is None:
         raise Refusal("SCOPE_DENIED", f"You cannot work at {code}.", status=403)
     return store
@@ -380,6 +380,7 @@ class SpecialOrderOrderView(APIView):
                 pk,
                 source_code=data["source_site"],
                 barcode=data["barcode"],
+                session=request.auth,
                 command_id=data.get("command_id"),
             )
         else:

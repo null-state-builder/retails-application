@@ -63,7 +63,7 @@ class MissingHsnSerializer(serializers.Serializer[Any]):
 
 def missing_hsn_stores(user: Any) -> list[Store]:
     """The selling stores in this person's scope where the switch is on."""
-    stores = list(actionable_stores(user).filter(store_type=Store.StoreType.STORE))
+    stores = list(actionable_stores(user, section="stock").filter(store_type=Store.StoreType.STORE))
     states = switch_states(stores, [feature(FEATURE_KEY)])
     return [store for store, state in zip(stores, states, strict=True) if state.enabled]
 

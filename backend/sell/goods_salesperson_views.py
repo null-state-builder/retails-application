@@ -48,12 +48,12 @@ from accounts.goods_api import (
     parse_uuid,
 )
 from accounts.permissions import user_can
-from accounts.role_lists import SALESPERSON_MATCH_RESOLVERS
-from accounts.sections import CAP_VIEW
+from accounts.principal import access_for_user
+from accounts.sections import CAP_MANAGE, CAP_VIEW
 from core.commands import CommandResult, CommandRun
 from core.refusals import Refusal
 from masters.models import Store
-from masters.scoping import actionable_store_ids, actionable_stores
+from masters.scoping import actionable_stores
 from masters.store_feature_registry import STAFF_LIST
 from masters.store_features import feature, switch_states
 from sell.models import SalespersonMatch
@@ -95,7 +95,7 @@ class StaffListSerializer(serializers.Serializer[Any]):
 
 def staff_list_stores(user: Any) -> list[Store]:
     """The selling stores in this person's scope where the staff list is switched on."""
-    stores = list(actionable_stores(user).filter(store_type=Store.StoreType.STORE))
+    stores = list(actionable_stores(user, section="hrms", minimum=CAP_VIEW).filter(store_type=Store.StoreType.STORE))
     states = switch_states(stores, [feature(STAFF_LIST)])
     return [store for store, state in zip(stores, states, strict=True) if state.enabled]
 
@@ -138,14 +138,8 @@ class GoodsStaffListView(GoodsAPIView):
 
 
 def may_resolve(user: Any, store_id: int | None = None) -> bool:
-    """Admin only, with the row's store in scope (or break-glass)."""
-    if getattr(user, "is_superuser", False):
-        return True
-    code = getattr(getattr(user, "role", None), "code", "")
-    if code not in SALESPERSON_MATCH_RESOLVERS:
-        return False
-    ids = actionable_store_ids(user)
-    return ids is None or (store_id is not None and store_id in ids)
+    """Admin authority over the row's store on one current assignment."""
+    return access_for_user(user).covers_all({'staff.salesperson.resolve'}, [(store_id, None)], [])
 
 
 class MatchedStaffSerializer(serializers.Serializer[Any]):
@@ -233,7 +227,7 @@ class GoodsSalespersonMatchesView(GoodsAPIView):
         params = check_query(request, allowed=("state",))
         if not user_can(request.user, "setup", CAP_VIEW):
             raise Refusal("ACTION_DENIED", "You do not have access to Setup.")
-        stores = list(actionable_stores(request.user))
+        stores = list(actionable_stores(request.user, section="setup", minimum=CAP_VIEW))
         rows = SalespersonMatch.objects.select_related("store", "staff__human").filter(
             store__in=stores
         )
@@ -286,7 +280,7 @@ class GoodsSalespersonMatchResolveView(GoodsAPIView):
     @extend_schema(request=ResolveRequestSerializer, responses=MatchRowSerializer)
     def post(self, request: Request, pk: int) -> Response:
         access = self.access(request)
-        in_scope = actionable_stores(request.user)
+        in_scope = actionable_stores(request.user, section="setup", minimum=CAP_MANAGE)
         row = (
             SalespersonMatch.objects.select_related("store")
             .filter(pk=pk, store__in=in_scope)

@@ -224,15 +224,16 @@ def _snapshots(
         costs = {pk: cost for pk, (cost, _mrp) in priced.items()}
         # One row per brand, category and season: all a report reads, and a day's
         # snapshot of a store stays a few hundred rows however many items it holds.
-        grouped: dict[tuple[str, str, str], InventoryStockFact] = {}
+        grouped: dict[tuple[int | None, str, str, str], InventoryStockFact] = {}
         for row in ageing.rows:
-            key = (row.brand[:120], row.item[:120], row.season_code[:120])
+            key = (row.brand_id, row.brand[:120], row.item[:120], row.season_code[:120])
             fact = grouped.get(key)
             if fact is None:
                 fact = grouped[key] = InventoryStockFact(
                     store=store,
                     day=today,
                     brand=row.brand[:120],
+                    brand_ref_id=row.brand_id,
                     category=row.item[:120],
                     season_id=season_ids.get(row.season_code) if row.season_code else None,
                     season=row.season_code[:120],
@@ -262,13 +263,14 @@ def _items(
     grouped: dict[tuple[str, ...], InventoryItemFact] = {}
     for row in rows:
         mrp = int(mrps[row.origin_id]) if mrps.get(row.origin_id) else None
-        key = (row.barcode, row.brand, row.item, row.design, row.size, row.colour, row.season_code)
+        key = (str(row.brand_id), row.barcode, row.brand, row.item, row.design, row.size, row.colour, row.season_code)
         fact = grouped.get((*key, str(mrp)))
         if fact is None:
             fact = grouped[(*key, str(mrp))] = InventoryItemFact(
                 store=store,
                 day=today,
                 brand=row.brand[:120],
+                    brand_ref_id=row.brand_id,
                 brand_key=normalise(row.brand)[:120],
                 item=row.item[:120],
                 design=row.design[:120],
@@ -343,6 +345,7 @@ def _receipts(
                     source=RECEIVED_FROM[purpose],
                     sku_id=sku_id,
                     brand=str(identity.get("brand") or "")[:120],
+                    brand_ref_id=identity.get("brand_id"),
                     category=str(identity.get("grade") or "")[:120],
                     season_id=int(season["season_id"]) if season.get("season_id") else None,
                     season=str(season.get("code") or "")[:120],

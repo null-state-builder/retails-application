@@ -52,12 +52,14 @@ from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
 from accounts.models import User
-from accounts.till_pin import STORE_BOUND_SCOPES, may_hold_till_pin
+from accounts.role_assignments import effective_assignments
+from accounts.till_pin import may_hold_till_pin
+from accounts.unified_policy import role_actions
+from core.tenancy import require_tenant_id
 from core.documents import DocStatus
 from masters.consent_wording import current_wording
 from masters.hsn import hsn_digits
 from masters.models import Cohort, Customer, GstSlab, Season, Sku, Store
-from masters.scoping import actionable_store_ids
 from masters.store_feature_registry import (
     ALTERATIONS,
     CUSTOMER_CONSENT,
@@ -112,19 +114,34 @@ def resolve_till_store(user: Any) -> Store:
     two stores has no honest dataset - and letting the switcher pick would hand
     any multi-store login a store's PIN hashes by choosing a unit in a dropdown.
     """
-    ids = actionable_store_ids(user)
-    if ids is None:
+    if (
+        not getattr(user, "is_authenticated", False)
+        or not getattr(user, "is_active", False)
+        or getattr(user, "human_id", None) is None
+        or getattr(user, "tenant_id", None) != require_tenant_id()
+    ):
+        raise TillScopeError("This login has no active counter assignment.")
+    rows = [
+        row for row in effective_assignments(user.human_id)
+        if row.role.code == "store_person"
+        and row.all_brands
+        and "section.sell.operate" in role_actions(row.role)
+    ]
+    if any(row.all_sites for row in rows):
         raise TillScopeError(
-            "This login can see every store, so it cannot be a till. A counter "
-            "signs in as its own store."
+            "This login can operate every store, so it cannot be a till. A counter "
+            "signs in for its own store."
         )
+    ids = sorted({int(site_id) for row in rows for site_id in row.site_ids})
     if len(ids) != 1:
         where = "no store" if not ids else f"{len(ids)} stores"
         raise TillScopeError(
             f"This login is scoped to {where}, and a till is one store. Ask an "
             "administrator for a counter login at this store."
         )
-    store = Store.objects.filter(id=ids[0], is_active=True).select_related("gstin").first()
+    store = Store.objects.filter(
+        tenant_id=user.tenant_id, id=ids[0], is_active=True
+    ).select_related("gstin").first()
     if store is None:
         raise TillScopeError("This login's store is closed. A closed store has no counter.")
     return store
@@ -775,7 +792,7 @@ def _offers(sync: Sync) -> tuple[list[dict[str, Any]], list[int]]:
     omits what it will not send.
     """
     code = sync.store.code.upper()
-    rows = Offer.objects.select_related("brand")
+    rows = Offer.objects.for_tenant(sync.store.tenant_id).select_related("brand")
     if sync.is_bootstrap:
         live = [
             offer
@@ -863,13 +880,9 @@ def _customers_whole(sync: Sync) -> bool:
 def _managers(store: Store) -> list[dict[str, Any]]:
     """Who may authorise an over-cap discount at this counter with the line cut.
 
-    The narrowest list this can honestly be, because it is a set of credentials
-    that leaves the building: somebody explicitly assigned to *this* store who
-    `may_hold_till_pin` (their boundary is stores at all, they hold `sell >=
-    approve` on the **stored** matrix - whatever an administrator has made it,
-    #173 - and they are not the break-glass superuser), and who has actually set
-    one. A blank hash is not a credential, and a row carrying one would let the
-    till compare against nothing.
+    Only a current Store Person assignment at this site, covering every brand
+    and holding `sell >= approve`, may put a PIN hash on this till. A blank hash
+    is not a credential and cannot be sent.
 
     That sentence lives in `accounts.till_pin` rather than here, because the
     endpoint a manager sets their PIN through has to refuse exactly the people
@@ -887,14 +900,8 @@ def _managers(store: Store) -> list[dict[str, Any]]:
     code.
     """
     candidates = (
-        User.objects.filter(
-            is_active=True,
-            is_superuser=False,
-            stores=store,
-            scope_type__in=STORE_BOUND_SCOPES,
-        )
+        User.objects.filter(tenant_id=store.tenant_id, is_active=True)
         .exclude(till_pin_hash="")
-        .select_related("role")
         .order_by("id")
     )
     return [
@@ -904,5 +911,5 @@ def _managers(store: Store) -> list[dict[str, Any]]:
             "till_pin_hash": user.till_pin_hash,
         }
         for user in candidates
-        if may_hold_till_pin(user)
+        if may_hold_till_pin(user, site_id=store.pk)
     ]

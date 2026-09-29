@@ -61,7 +61,7 @@ from outbound.models import (
     Stocktake,
 )
 from outbound.posting import post_adjustment, resolve_line_identity
-from stockledger.models import MERCH_DIM_FIELDS, StockOnHand, merch_dims
+from stockledger.models import MERCH_DIM_FIELDS, StockOnHand, identity_dims as stable_identity_dims
 
 if TYPE_CHECKING:
     from accounts.models import User
@@ -181,9 +181,10 @@ def identity_dims(store_id: int, barcode: str) -> dict[str, str]:
 
     on_hand = StockOnHand.objects.filter(store_id=store_id, sku_code=barcode).first()
     if on_hand is not None:
-        return merch_dims(on_hand)
+        return stable_identity_dims(on_hand, on_hand.store.tenant_id)
     sku = Sku.objects.filter(barcode=barcode).first()
-    return merch_dims(sku) if sku is not None else dict.fromkeys(MERCH_DIM_FIELDS, "")
+    # A shared SKU carries display dimensions, but no tenant brand authority.
+    return stable_identity_dims(sku, None) if sku is not None else dict.fromkeys(MERCH_DIM_FIELDS, "")
 
 
 def book_quantities(store_id: int, sku_codes: Iterable[str]) -> dict[str, int]:
@@ -234,7 +235,7 @@ def submit_session(session: CountSession) -> CountSession:
         line = scanned.get(on_hand.sku_code)
         if line is None:
             line = CountSessionLine(session=session, sku_code=on_hand.sku_code, counted_qty=0)
-            for field_name, value in merch_dims(on_hand).items():
+            for field_name, value in stable_identity_dims(on_hand, on_hand.store.tenant_id).items():
                 setattr(line, field_name, value)
         line.book_qty = on_hand.net_qty
         line.save()

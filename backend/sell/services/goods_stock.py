@@ -75,6 +75,7 @@ class Piece:
     #: The newest accepted origin the HSN and MRP were read from (ticket 12 names
     #: its PT when the HSN is missing, so the PT can be corrected).
     origin_id: uuid.UUID | None = None
+    brand_id: int | None = None
 
 
 def barcode_aliases(store: Store, at: datetime) -> dict[uuid.UUID, str]:
@@ -222,6 +223,7 @@ def _pieces(
             Piece(
                 barcode=barcode,
                 sku_id=newest.sku_id,
+                brand_id=identity.get("brand_id"),
                 season=season,
                 season_unknown_historical=unknown_season[(barcode, season)],
                 dims={
