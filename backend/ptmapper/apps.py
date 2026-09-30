@@ -15,3 +15,7 @@ class PtmapperConfig(AppConfig):
         from ptmapper.goods_manifest_services import install as install_goods_manifest
 
         install_goods_manifest()
+
+        from ptmapper.soh_services import install as install_soh
+
+        install_soh()

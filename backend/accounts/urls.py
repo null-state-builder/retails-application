@@ -14,9 +14,16 @@ from accounts.views import (
     StepUpView,
     TillPinView,
 )
+from accounts.registration_views import RegistrationConfirmView, RegistrationView
 
 # Session lifecycle and one canonical People & Access administration surface.
 urlpatterns = [
+    path("registration", RegistrationView.as_view(), name="installation-registration"),
+    path(
+        "registration/confirm",
+        RegistrationConfirmView.as_view(),
+        name="installation-registration-confirm",
+    ),
     path("csrf", CsrfView.as_view(), name="csrf"),
     path("login", LoginView.as_view(), name="login"),
     path("refresh", CookieRefreshView.as_view(), name="token-refresh"),

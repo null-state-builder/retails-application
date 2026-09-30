@@ -77,6 +77,9 @@ export interface MetaRow {
 export const META = {
   /** The dataset cursor to ask the next delta from. */
   cursor: "cursor",
+  sellingMode: "sellingMode",
+  commercialRevision: "commercialRevision",
+  deviceToken: "deviceToken",
   /** The tax settings versions and this store's switch (ticket 03). Held here
    *  so a counter with no network taxes by the version it last received. */
   taxSettings: "taxSettings",
@@ -174,7 +177,15 @@ export const META = {
   paperEntered: "paperEntered",
 } as const;
 
+export interface PendingOnlineBill {
+  idempotency_uuid: string;
+  bill: QueuedBill;
+  state: "pending" | "rejected" | "accepted" | "revised";
+  error?: string;
+}
+
 export class TillDb extends Dexie {
+  onlineSubmissions!: Table<PendingOnlineBill, string>;
   items!: Table<TillItem, [string, string]>;
   stock!: Table<TillStock, string>;
   offers!: Table<TillOffer, number>;
@@ -270,12 +281,26 @@ export class TillDb extends Dexie {
     // Ticket 15: consent answers waiting to reach head office. A version of its
     // own for the same reason as every version above; only the new table.
     this.version(8).stores({ consents: "id, mobile" });
+    this.version(9).stores({ onlineSubmissions: "idempotency_uuid, state" });
   }
 }
 
 /** The IndexedDB name for a store's till. */
 export function databaseName(storeCode: string): string {
   return `kdps-till-${storeCode}`;
+}
+
+/** Locate an old label-only database without opening or reading its contents.
+ * Its tenant/device ownership cannot be inferred, so automatic delivery must
+ * leave it preserved for an authorised reconciliation. */
+export async function hasUnscopedDatabase(storeCode: string): Promise<boolean> {
+  if (typeof indexedDB === "undefined" || typeof indexedDB.databases !== "function") return false;
+  try {
+    const databases = await indexedDB.databases();
+    return databases.some((entry) => entry.name === databaseName(storeCode));
+  } catch {
+    return false;
+  }
 }
 
 // One database object per store for the life of the tab. Dexie connections are

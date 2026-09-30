@@ -152,7 +152,12 @@ def till_numbering(
         return answer
     try:
         with transaction.atomic():
+            from sell.services.till_authority import TillError, live_pause, lock_site_for_till
+
+            guard = lock_site_for_till(store)
             RegisteredTill.objects.select_for_update().filter(pk=till.pk).first()
+            if guard is not None and guard.selling_mode == "online_alpha" and live_pause(till) is not None:
+                raise TillError("TILL_PAUSED", "Resume this counter after its inventory review before requesting new invoice numbers.", 409)
             kept: list[TillNumberBlock] = []
             for month in months:
                 live = list(

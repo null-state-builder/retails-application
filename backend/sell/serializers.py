@@ -319,6 +319,8 @@ class SaleWriteSerializer(serializers.Serializer[dict[str, Any]]):
     """One bill, as the till's queue replays it."""
 
     idempotency_uuid = serializers.UUIDField()
+    commercial_revision = serializers.CharField(max_length=64, required=False)
+
     store = serializers.CharField(max_length=16)
     fy = serializers.CharField(max_length=7)
     till_seq = serializers.IntegerField(min_value=1)
@@ -1056,6 +1058,8 @@ class TillNumberingSerializer(serializers.Serializer[dict[str, Any]]):
 
 
 class CustomerDisplayPermitSerializer(serializers.Serializer[dict[str, Any]]):
+    channel_scope = serializers.CharField()
+    online_alpha = serializers.BooleanField()
     """The customer display's permit (ticket 09): the store it may show, nothing else.
 
     The bill itself never comes from the server; the till beside the display

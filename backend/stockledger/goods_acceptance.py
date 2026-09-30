@@ -236,15 +236,16 @@ def _guard(locked: list[Any]) -> SiteGuard:
 def _check_ready(guard: SiteGuard, purpose: str) -> None:
     """Only opening-source acceptance may run on an opening-setup site.
 
-    GSA-T10: opening acceptance also stays blocked by OQ-54 on a real tenant,
-    defence in depth alongside manifest creation, opening PT creation and
-    opening PT approval - never a route a real tenant's site setup could open.
+    Opening acceptance retains the same independently approved OQ-29 migration
+    source gate as manifest and PT creation and approval.
     """
     if purpose == "opening":
         tenant = Tenant.objects.filter(pk=guard.tenant_id).first()
-        if tenant is None or not tenant.synthetic:
+        from ptmapper.soh_services import approved_source_for_opening
+
+        if tenant is None or (not tenant.synthetic and approved_source_for_opening(guard.tenant_id, guard.site_id) is None):
             raise Refusal(
-                "OPENING_NOT_READY", "Real opening stock stays blocked until OQ-54 is resolved."
+                "OPENING_NOT_READY", "Real opening acceptance requires approved migration sources and reconciliation (OQ-29)."
             )
     if not (guard.goods_ready or (purpose == "opening" and guard.opening_setup_ready)):
         raise Refusal("SITE_NOT_READY", "This site is not approved for goods acceptance.")

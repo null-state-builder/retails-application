@@ -302,27 +302,37 @@ export function BookingNewPage() {
   const [warn, setWarn] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [bookingFields, setBookingFields] = useState<{ readable_fields: string[]; writable_fields: string[] }>({ readable_fields: [], writable_fields: [] });
+  const [bookingFields, setBookingFields] = useState<{
+    readable_fields: string[];
+    writable_fields: string[];
+  }>({ readable_fields: [], writable_fields: [] });
 
   const store = stores.find((s) => s.id === storeId);
   // The store decides the engine. Before one is chosen, a person who books in
   // only one engine is already in it.
   const engine: BookingEngine | null =
     store?.engine ?? (canGoods && !canLegacy ? "goods" : canLegacy && !canGoods ? "legacy" : null);
-  const costScopeSites = [...new Set([storeId, ...lines.map((line) => line.store || storeId)].filter(Boolean))].sort();
+  const costScopeSites = [
+    ...new Set([storeId, ...lines.map((line) => line.store || storeId)].filter(Boolean)),
+  ].sort();
   useEffect(() => {
     let current = true;
     setBookingFields({ readable_fields: [], writable_fields: [] });
     if (engine === "goods" && storeId && picked.brand_id) {
-      api.get<{ readable_fields: string[]; writable_fields: string[] }>(
-        `/goods-v1/bookings/access-preview?site_id=${encodeURIComponent(storeId)}&brand_id=${encodeURIComponent(picked.brand_id)}&line_site_ids=${encodeURIComponent(costScopeSites.join(","))}`,
-      ).then((response) => {
-        if (current) setBookingFields(response.data);
-      }).catch(() => {
-        if (current) setBookingFields({ readable_fields: [], writable_fields: [] });
-      });
+      api
+        .get<{ readable_fields: string[]; writable_fields: string[] }>(
+          `/goods-v1/bookings/access-preview?site_id=${encodeURIComponent(storeId)}&brand_id=${encodeURIComponent(picked.brand_id)}&line_site_ids=${encodeURIComponent(costScopeSites.join(","))}`,
+        )
+        .then((response) => {
+          if (current) setBookingFields(response.data);
+        })
+        .catch(() => {
+          if (current) setBookingFields({ readable_fields: [], writable_fields: [] });
+        });
     }
-    return () => { current = false; };
+    return () => {
+      current = false;
+    };
   }, [engine, storeId, picked.brand_id, costScopeSites.join(",")]);
   const showCost = engine === "goods" && bookingFields.writable_fields.includes("cost");
   const lineStores = stores.filter((s) => s.engine === (store?.engine ?? engine));

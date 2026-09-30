@@ -24,7 +24,7 @@ import "./CustomerDisplay.css";
 type Opening =
   | { state: "checking" }
   | { state: "refused"; reason: string }
-  | { state: "open"; storeCode: string };
+  | { state: "open"; storeCode: string; channelScope: string; onlineAlpha: boolean };
 
 export default function CustomerDisplayPage() {
   const [params] = useSearchParams();
@@ -54,7 +54,20 @@ export default function CustomerDisplayPage() {
           setOpening({ state: "refused", reason: "Open the customer display from the till." });
           return;
         }
-        setOpening({ state: "open", storeCode: data.store_code });
+        const permit = data as typeof data & { channel_scope?: string; online_alpha?: boolean };
+        if (!permit.channel_scope) {
+          setOpening({
+            state: "refused",
+            reason: "Refresh the counter application before opening its display.",
+          });
+          return;
+        }
+        setOpening({
+          state: "open",
+          storeCode: data.store_code,
+          channelScope: permit.channel_scope,
+          onlineAlpha: permit.online_alpha === true,
+        });
       })
       .catch((error) => {
         if (!live) return;
@@ -75,6 +88,35 @@ export default function CustomerDisplayPage() {
     };
   }, [store]);
 
+  useEffect(() => {
+    if (opening.state !== "open" || !opening.onlineAlpha) return;
+    let live = true;
+    const scope = opening.channelScope;
+    const timer = window.setInterval(() => {
+      void typedApi
+        .get("/sell/customer-display", { params: { store } })
+        .then(({ data }) => {
+          const permit = data as typeof data & { channel_scope?: string };
+          if (live && permit.channel_scope !== scope)
+            setOpening({
+              state: "refused",
+              reason: "The counter assignment changed. Reopen the display.",
+            });
+        })
+        .catch(() => {
+          if (live)
+            setOpening({
+              state: "refused",
+              reason: "The display session ended. Sign in and reopen it from the counter.",
+            });
+        });
+    }, 15_000);
+    return () => {
+      live = false;
+      window.clearInterval(timer);
+    };
+  }, [opening, store]);
+
   if (opening.state === "checking") {
     return <main className="cdisplay" data-testid="display-checking" />;
   }
@@ -87,7 +129,7 @@ export default function CustomerDisplayPage() {
       </main>
     );
   }
-  return <Following storeCode={opening.storeCode} />;
+  return <Following storeCode={opening.channelScope} />;
 }
 
 function Following({ storeCode }: { storeCode: string }) {

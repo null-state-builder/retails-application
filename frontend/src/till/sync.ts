@@ -229,6 +229,10 @@ export async function applyDataset(db: TillDb, payload: DatasetPayload): Promise
           ? [{ key: META.alterationCharge, value: payload.alteration_charge }]
           : []),
         { key: META.store, value: payload.store },
+        ...(payload.selling_mode ? [{ key: META.sellingMode, value: payload.selling_mode }] : []),
+        ...(payload.commercial_revision
+          ? [{ key: META.commercialRevision, value: payload.commercial_revision }]
+          : []),
         {
           key: META.policy,
           // The new stacking dial is absent during a rolling deploy. An absent

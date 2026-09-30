@@ -66,6 +66,7 @@ interface SkuData {
   style_id: string;
   profile_version_id: string | null;
   attrs: AttrValue[];
+  no_discount: boolean;
 }
 
 interface AliasData {
@@ -868,12 +869,13 @@ function StyleDetail({
               <th>Attributes</th>
               <th>Pinned profile</th>
               <th>Status</th>
+              <th>Discount rule</th>
             </tr>
           </thead>
           <tbody>
             {state ? (
               <tr data-testid="style-skus-state">
-                <td colSpan={3}>{state}</td>
+                <td colSpan={4}>{state}</td>
               </tr>
             ) : (
               skus.items.map((row) => (
@@ -887,6 +889,9 @@ function StyleDetail({
                       : "Unknown"}
                   </td>
                   <td>{stateChip(row.state)}</td>
+                  <td>
+                    <SkuDiscountRule row={row} onChanged={skus.reload} />
+                  </td>
                 </tr>
               ))
             )}
@@ -894,6 +899,37 @@ function StyleDetail({
         </table>
       </div>
     </div>
+  );
+}
+
+function SkuDiscountRule({ row, onChanged }: { row: ResourceDTO<SkuData>; onChanged: () => void }) {
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const stepUp = useStepUp();
+  async function change() {
+    setBusy(true);
+    setError("");
+    const command = { ...goodsMeta(row.revision), no_discount: !row.data.no_discount };
+    try {
+      await stepUp.guarded(() => api.patch(`/goods-v1/masters/skus/${row.id}`, command));
+      onChanged();
+    } catch (e) {
+      setError(apiErrorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <>
+      <span>{row.data.no_discount ? "No discounts" : "Policy discounts allowed"}</span>
+      {row.allowed_actions.includes("update") && (
+        <button className="btn btn-sm" disabled={busy} onClick={change}>
+          {row.data.no_discount ? "Allow policy discounts" : "Refuse discounts"}
+        </button>
+      )}
+      {error && <p className="warn-note">{error}</p>}
+      {stepUp.dialog}
+    </>
   );
 }
 

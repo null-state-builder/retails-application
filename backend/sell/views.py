@@ -43,7 +43,7 @@ from masters.store_feature_registry import (
     SAVED_SIZES,
 )
 from masters.store_features import require_feature
-from sell.models import ContinuityFlag, HeldBill, IrnQueueItem, Sale, SaleLine, SellPolicy
+from sell.models import ContinuityFlag, HeldBill, IrnQueueItem, Sale, SaleLine
 from sell.permissions import (
     CanHandOverTill,
     CanReadOrBill,
@@ -63,6 +63,8 @@ from sell.schema_serializers import (
     StoreFlagsReadSerializer,
     TillAllocationReleasedReadSerializer,
     TillRegisteredReadSerializer,
+    TillPairReadSerializer,
+    TillPairWriteSerializer,
     TillResumedReadSerializer,
     TillStateReadSerializer,
 )
@@ -105,6 +107,7 @@ from sell.services.till_authority import (
     active_till,
     issue_allocation,
     live_pause,
+    lock_site_for_till,
     register_till,
     release_allocation,
     renew_authority,
@@ -135,20 +138,21 @@ class SellPolicyView(APIView):
 
     @extend_schema(responses=SellPolicyReadSerializer)
     def get(self, request: Request) -> Response:
-        return Response(SellPolicy.current().as_till_policy())
+        from sell.services.online import selling_policy
+        from core.tenancy import require_tenant_id
+        from types import SimpleNamespace
+        access = resolve_access(request)
+        body = selling_policy(SimpleNamespace(tenant_id=require_tenant_id(), pk=None)).as_till_policy()
+        access.revalidate_delivery()
+        return Response(body)
 
     @extend_schema(request=SellPolicyWriteSerializer, responses=SellPolicyReadSerializer)
     def put(self, request: Request) -> Response:
         form = SellPolicyWriteSerializer(data=request.data)
         if not form.is_valid():
             return Response(refusal_body("VALIDATION", first_message(form.errors)), status=400)
-        policy = SellPolicy.current()
-        policy.manual_discount_cap_percent = form.validated_data["manual_discount_cap_percent"]
-        policy.manual_discount_on_offer_lines = form.validated_data[
-            "manual_discount_on_offer_lines"
-        ]
-        policy.save(update_fields=["manual_discount_cap_percent", "manual_discount_on_offer_lines"])
-        return Response(policy.as_till_policy())
+        raise Refusal("CONFIG_VERSION_REQUIRED", "Publish and independently approve a sell_policy version in Configuration. Direct global policy editing is closed.", status=409)
+
 
 
 def _sales(user: Any) -> QuerySet[Sale]:
@@ -184,6 +188,43 @@ def _sales(user: Any) -> QuerySet[Sale]:
     return rows
 
 
+
+def _sale_cells(sale: Sale) -> list[tuple[int, int | None]]:
+    return sorted({(sale.store_id, line.brand_ref_id) for line in sale.lines.all()}, key=lambda cell: (cell[0], cell[1] or 0)) or [(sale.store_id, None)]
+
+
+def _sale_visible(access: Any, sale: Sale) -> bool:
+    # Stable stored brand links establish authority, never historical labels.
+    lines = list(sale.lines.all())
+    if any(line.kind == SaleLine.Kind.GOODS and line.brand_ref_id is None for line in lines):
+        return False
+    return bool(access.covers_all_actions({"section.sell.view"}, _sale_cells(sale), {"customer"}))
+
+
+def _sale_projection(access: Any, sale: Sale, *, detail: bool) -> dict[str, Any]:
+    body = (SaleReadSerializer(sale) if detail else SaleRowSerializer(sale)).data
+    if not access.covers_all_actions({"section.sell.view"}, _sale_cells(sale), {"personal"}):
+        body["billed_by"] = ""
+        body["authorised_by"] = ""
+        if "salespeople" in body:
+            body["salespeople"] = []
+        for line in body.get("lines", []):
+            line["salesman_name"] = ""
+            line["salesman_code"] = ""
+            for share in line.get("shares", []):
+                for key in ("name", "salesperson_name", "salesman_name", "salesperson_code"):
+                    if key in share:
+                        share[key] = ""
+    return body
+
+
+def _sale_rows(request: Request, rows: Any) -> Response:
+    access = resolve_access(request)
+    body = [_sale_projection(access, sale, detail=False) for sale in rows if _sale_visible(access, sale)]
+    access.revalidate_delivery()
+    return Response(body)
+
+
 def till_store(request: Request) -> tuple[Store | None, Response]:
     """The one store this caller is a counter for, or the refusal to send back.
 
@@ -212,6 +253,33 @@ def _can_accept_bill(access: Any, store_code: str) -> bool:
     )
 
 
+
+class OnlineFinaliseView(APIView):
+    """Issue only after current authority, device, price, stock and tax agree."""
+    permission_classes = [IsAuthenticated, CanReadOrBill]
+
+    @extend_schema(request=SaleWriteSerializer, responses={200: SaleAcceptedSerializer, 201: SaleAcceptedSerializer})
+    def post(self, request: Request) -> Response:
+        form = SaleWriteSerializer(data=request.data)
+        if not form.is_valid():
+            return Response(refusal_body("VALIDATION", first_message(form.errors)), status=400)
+        access = resolve_access(request)
+        try:
+            with access.guard_legacy_write(lambda current: _can_accept_bill(current, form.validated_data["store"])):
+                from sell.services.online import finalise_submission
+                result, rejected = finalise_submission(dict(form.validated_data), request.user, access,
+                                                       str(request.headers.get("X-KDPS-Device") or ""))
+        except AcceptError as exc:
+            return Response(refusal_body(exc.code, exc.message), status=exc.status)
+        if rejected is not None:
+            response_status = rejected.pop("status")
+            return Response(rejected, status=response_status)
+        # Delivery remains session-bound even on an exact replay.
+        access.revalidate_delivery()
+        return Response({"doc_number": result.sale.doc_number, "tax_invoice_number": result.sale.tax_invoice_number,
+                         "id": result.sale.pk, "flags": result.flags}, status=201 if result.created else 200)
+
+
 class SaleListCreateView(APIView):
     """`POST` - the till syncing a bill. `GET` - customer search / reprint (E1, E2).
 
@@ -234,6 +302,10 @@ class SaleListCreateView(APIView):
         try:
             access = resolve_access(request)
             with access.guard_legacy_write(lambda current: _can_accept_bill(current, form.validated_data["store"])):
+                from sell.services.online import online_alpha
+                store = resolve_till_store(request.user)
+                if online_alpha(store) and not Sale.objects.filter(store=store, idempotency_uuid=form.validated_data["idempotency_uuid"]).exists():
+                    raise AcceptError("ONLINE_FINALISATION_REQUIRED", "New bills for this store must be finalised online before issue.", 409)
                 result = accept_sale(dict(form.validated_data), request.user)
         except AcceptError as exc:
             return Response(refusal_body(exc.code, exc.message), status=exc.status)
@@ -312,7 +384,7 @@ class SaleListCreateView(APIView):
                 status=400,
             )
         rows = _sales(request.user).order_by("-billed_at")[:n]
-        return Response(SaleRowSerializer(rows, many=True).data)
+        return _sale_rows(request, rows)
 
     def _search(self, request: Request, *, mobile: str, name: str, doc: str) -> Response:
         """The customer-search doors (E1): who bought it, or what it was numbered."""
@@ -336,7 +408,7 @@ class SaleListCreateView(APIView):
             if doc.isdigit():
                 match |= Q(till_seq=int(doc))
             rows = rows.filter(match)
-        return Response(SaleRowSerializer(rows[:SEARCH_LIMIT], many=True).data)
+        return _sale_rows(request, rows[:SEARCH_LIMIT])
 
     def _bills(self, request: Request, listing: dict[str, str]) -> Response:
         """`GET ?store=&from=&to=&q=` - the Bills screen's day (OPS-08).
@@ -380,9 +452,7 @@ class SaleListCreateView(APIView):
             if term.isdigit():
                 match |= Q(till_seq=int(term))
             rows = rows.filter(match)
-        return Response(
-            SaleRowSerializer(rows.order_by("-billed_at")[:SEARCH_LIMIT], many=True).data
-        )
+        return _sale_rows(request, rows.order_by("-billed_at")[:SEARCH_LIMIT])
 
 
 class DatasetView(APIView):
@@ -414,6 +484,9 @@ class DatasetView(APIView):
         store, refusal = till_store(request)
         if store is None:
             return refusal
+        access = resolve_access(request)
+        if not _can_accept_bill(access, store.code):
+            raise Refusal("FIELD_DENIED", "This dataset requires its scoped customer-field access.", status=403)
         payload = build_dataset(store, request.query_params.get("since") or "")
         payload = _with_till_allocation(store, payload)
         # Building a large dataset can outlast a session or assignment. No
@@ -431,6 +504,25 @@ class DatasetView(APIView):
             {"section.sell.operate"}, [(store.pk, None)], {"customer"}, roles={"store_person"},
         ):
             raise Refusal("FIELD_DENIED", "This dataset requires customer access at the counter.", status=403)
+        if not access.covers_all_actions({"section.sell.operate"}, [(store.pk, None)], {"personal"}):
+            # The operational picker needs stable IDs to attribute a sale. A
+            # personal-field denial removes other people's names, not the
+            # cashier's ability to use its scoped counter. PIN hashes remain
+            # protected and cannot be borrowed from another assignment.
+            from accounts.goods_models import Staff
+            own_staff = set(str(pk) for pk in Staff.objects.filter(
+                tenant_id=access.tenant_id, human_id=access.human_id
+            ).values_list("pk", flat=True))
+            payload["salespeople"] = [
+                {"id": row["id"], "name": "You" if row["id"] in own_staff else "Restricted staff"}
+                for row in payload["salespeople"]
+            ]
+            payload["managers"] = []
+        from sell.services.online import online_alpha
+        if online_alpha(store):
+            from masters.goods_services import require_sell_ready
+            require_sell_ready(store)
+        access.revalidate_delivery()
         return Response(payload)
 
 
@@ -464,7 +556,16 @@ class CustomerDisplayView(APIView):
                 "customer display. Open it from the till at the store.",
             )
         require_feature(store, CUSTOMER_DISPLAY)
-        return Response(CustomerDisplayPermitSerializer({"store_code": store.code}).data)
+        till = active_till(store)
+        if till is None:
+            raise Refusal("TILL_NOT_REGISTERED", "Register the counter before opening its display.", status=409)
+        access = resolve_access(request)
+        if not access.covers_all_actions({"section.sell.operate"}, [(store.pk, None)], {"customer"}, roles={"store_person"}):
+            raise Refusal("FIELD_DENIED", "This display requires scoped counter access.", status=403)
+        access.revalidate_delivery()
+        from sell.services.online import online_alpha
+        return Response(CustomerDisplayPermitSerializer({"store_code": store.code,
+            "channel_scope": f"{store.tenant_id}:{store.pk}:{till.pk}", "online_alpha": online_alpha(store)}).data)
 
 
 class ConsentView(APIView):
@@ -595,6 +696,7 @@ class ReturnWhereView(APIView):
         return Response(ReturnWhereSerializer(answer).data)
 
 
+@transaction.atomic
 def _with_till_allocation(store: Store, payload: dict[str, Any]) -> dict[str, Any]:
     """Protect what this answer hands the counter, and tell it what it is holding.
 
@@ -606,7 +708,16 @@ def _with_till_allocation(store: Store, payload: dict[str, Any]) -> dict[str, An
     the legacy ledger's, which this ticket does not touch; a store with no
     registered till has no device to protect anything for.
     """
+    try:
+        lock_site_for_till(store)
+    except TillError as error:
+        raise Refusal(error.code, error.message, status=error.status) from error
+    from sell.models import RegisteredTill
+
     version = payload.get("working_set_version")
+    # A concurrent pause/replacement is judged again under the same device
+    # lock; a dataset can never reacquire a released snapshot behind the pause.
+    list(RegisteredTill.objects.select_for_update().filter(store=store).order_by("pk"))
     till = active_till(store)
     if till is None or version is None:
         payload["till"] = till_state(store, till).as_payload()
@@ -644,10 +755,19 @@ class TillView(APIView):
 
     @extend_schema(responses=TillStateReadSerializer)
     def get(self, request: Request) -> Response:
+        from sell.services.online import online_alpha
         store, refusal = till_store(request)
         if store is None:
             return refusal
-        return Response(till_state(store).as_payload())
+        payload = till_state(store).as_payload()
+        till = active_till(store)
+        payload.update({"tenant_id": str(store.tenant_id), "site_id": str(store.pk), "device_id": str(till.pk) if till else "unpaired",
+                        "selling_mode": "online_alpha" if online_alpha(store) else "historical"})
+        access = resolve_access(request)
+        if not _can_accept_bill(access, store.code):
+            raise Refusal("FIELD_DENIED", "This counter requires its scoped customer-field access.", status=403)
+        access.revalidate_delivery()
+        return Response(payload)
 
 
 class TillRegisterView(APIView):
@@ -689,6 +809,30 @@ class TillRegisterView(APIView):
         # authenticates every call the device makes.
         body["device_token"] = token
         return Response(body, status=status.HTTP_201_CREATED)
+
+
+class TillPairView(APIView):
+    """Verify possession of the one-time pairing code against the active device."""
+    permission_classes = [IsAuthenticated, CanRunTill]
+
+    @extend_schema(request=TillPairWriteSerializer, responses=TillPairReadSerializer)
+    def post(self, request: Request) -> Response:
+        import secrets
+        store, refusal = till_store(request)
+        if store is None:
+            return refusal
+        access = resolve_access(request)
+        if not _can_accept_bill(access, store.code):
+            raise Refusal("FIELD_DENIED", "This counter requires its scoped customer-field access.", status=403)
+        form = TillPairWriteSerializer(data=request.data)
+        if not form.is_valid():
+            return Response(refusal_body("PAIRING_INVALID", "Enter the pairing code supplied for this store's counter."), status=400)
+        till = active_till(store)
+        token = str(form.validated_data["pairing_code"])
+        if till is None or not token or not secrets.compare_digest(token, till.device_token):
+            return Response(refusal_body("PAIRING_INVALID", "That pairing code does not belong to this store's active counter."), status=403)
+        access.revalidate_delivery()
+        return Response({"paired": True, "device_id": str(till.pk)})
 
 
 class TillRenewView(APIView):
@@ -743,7 +887,10 @@ class TillNumberBlocksView(APIView):
             return Response(
                 refusal_body("VALIDATION", "held names blocks by their id."), status=400
             )
-        answer = till_numbering(store, active_till(store), held)
+        try:
+            answer = till_numbering(store, active_till(store), held)
+        except TillError as error:
+            return Response(refusal_body(error.code, error.message), status=error.status)
         return Response(TillNumberingSerializer(answer.as_payload()).data)
 
 
@@ -1125,7 +1272,12 @@ class SaleDetailView(APIView):
             return Response(
                 refusal_body("NOT_FOUND", f"No bill '{doc_number}' at your stores."), status=404
             )
-        return Response(SaleReadSerializer(sale).data)
+        access = resolve_access(request)
+        if not _sale_visible(access, sale):
+            raise Refusal("NOT_FOUND", "That bill was not found.", status=404)
+        body = _sale_projection(access, sale, detail=True)
+        access.revalidate_delivery()
+        return Response(body)
 
 
 def _flags(user: Any) -> QuerySet[ContinuityFlag]:

@@ -17,7 +17,7 @@ from masters.brand_reconciliation_views import BrandReconciliationView
 from masters.goods_models import BrandIdentityBinding
 from masters.scoping import scope_by_store_and_brand
 from stockledger.models import StockOnHand
-from test_so03_denials import TenantWorld, _assign, _person, _tenant_world
+from tests.test_so03_denials import TenantWorld, _assign, _person, _tenant_world
 
 
 @pytest.fixture

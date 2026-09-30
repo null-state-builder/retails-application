@@ -936,6 +936,7 @@ export function toDraft(bill: PricedBill, identity: BillIdentity): BillDraft {
     : undefined;
   return {
     billed_at: identity.billedAt,
+    cash_received_paise: bill.split.cash_received_paise,
     customer: {
       name: identity.customer?.name ?? "",
       mobile: identity.customer?.mobile ?? "",

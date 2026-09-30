@@ -93,6 +93,7 @@ from sell.services.postings import (
     plan_from_original,
     post_sale_value,
     resolve_cost_plan,
+    resolve_goods_cost_plan,
 )
 from sell.services.recompute import (
     BillLine,
@@ -226,7 +227,7 @@ class _PreparedLine:
 # --- entry point -----------------------------------------------------------
 
 
-def accept_sale(data: dict[str, Any], actor: Any) -> AcceptResult:
+def accept_sale(data: dict[str, Any], actor: Any, *, strict_online: bool = False, access: Any = None, device_token: str = "") -> AcceptResult:
     """Take one bill, exactly once. See the module docstring for the shape."""
     # The replay response still reveals the bill's identifiers. Authorise the
     # requested store before looking up a previously accepted UUID, including
@@ -240,7 +241,7 @@ def accept_sale(data: dict[str, Any], actor: Any) -> AcceptResult:
         return _replay_or_refuse(existing, data)
     try:
         with transaction.atomic():
-            return _accept_new(data, actor)
+            return _accept_new(data, actor, strict_online=strict_online, access=access, device_token=device_token)
     except IntegrityError as exc:
         # Somebody got there first. If it was this same bill - a concurrent replay
         # from the till's queue - the honest answer is the answer they got, so we
@@ -393,7 +394,7 @@ def _bill_number_taken(data: dict[str, Any]) -> AcceptError:
 # --- the pipeline ----------------------------------------------------------
 
 
-def _accept_new(data: dict[str, Any], actor: Any) -> AcceptResult:
+def _accept_new(data: dict[str, Any], actor: Any, *, strict_online: bool = False, access: Any = None, device_token: str = "") -> AcceptResult:
     # Ask again, now that we are inside the transaction. The check in
     # `accept_sale` ran before it, and a concurrent copy of this same bill can
     # commit in between - at which point this is a replay that merely started
@@ -406,6 +407,9 @@ def _accept_new(data: dict[str, Any], actor: Any) -> AcceptResult:
             raise AcceptError("SCOPE_DENIED", "That bill is outside this counter.", 403)
         return _replay(replayed)
     store = _resolve_store(data["store"], actor)  # step 1
+    if strict_online:
+        from sell.services.online import check_before_issue
+        check_before_issue(data, store, access, device_token)
     _check_alteration_lines(data, store)  # ticket 22
     # Which stock contract this store keeps is asked before the legacy fence, not
     # after it: a goods-v1 store's bill is not a legacy write that has to be
@@ -447,6 +451,12 @@ def _accept_new(data: dict[str, Any], actor: Any) -> AcceptResult:
     original_bill = _resolve_original_bill(data, store)  # step 8
     lines = _prepare_lines(data, store, original_bill, goods)  # steps 5, 8
     late_return = _mark_late_returns(lines, original_bill, data["billed_at"])
+    if strict_online and late_return:
+        raise AcceptError(
+            "INDEPENDENT_APPROVAL_REQUIRED",
+            "This late return needs a recorded approval by another independently authorised person. A browser PIN or manager ID cannot approve an online return. Ask Owner or Admin to arrange review; this bill has not been issued.",
+            409,
+        )
     _check_line_arithmetic(lines, return_tax=return_tax)  # step 3
     _check_totals(data, lines)  # step 3
     _check_cash_received(data)  # step 3, the drawer's half
@@ -474,12 +484,17 @@ def _accept_new(data: dict[str, Any], actor: Any) -> AcceptResult:
             "this bill could not be recorded.",
             403,
         )
-    _check_discount_policy(lines, rulebook)  # step 6
+    _check_discount_policy(lines, rulebook, strict_online=strict_online)  # step 6
+    if strict_online:
+        from sell.services.online import check_lines_before_issue
+        check_lines_before_issue(data, store, lines, rulebook, access)
     _guard_bill_number(data, store)  # step 4
     _check_till_number(data, store)  # step 4, the device's own series (R-POS-005)
     # Step 4, the new invoice series (ticket 04): checked before the bill is
     # written, because a posted bill cannot be changed. Never refused.
     invoice = resolve_invoice_number(data, store)
+    if strict_online and invoice.flag is not None:
+        raise AcceptError("NUMBERING_NOT_READY", invoice.flag[1].get("message", "This invoice number is not authorised."), 422)
     on_job_cards = _open_job_card_returns(lines)  # ticket 22, read before writing
 
     sale = _write_sale(
@@ -519,6 +534,14 @@ def _accept_new(data: dict[str, Any], actor: Any) -> AcceptResult:
     flags += _advisory_after_discount_check(sale, store, lines, rulebook, data)  # ticket 11
     flags += _record_return_tax(sale, store, lines, original_bill, data, actor)  # ticket 13
     _tag_gifts(sale, store, actor, lines, rulebook)  # ticket 14
+    if strict_online:
+        # Every advisory condition is a pre-issue refusal for this endpoint. All
+        # stock/value/number writes and deferred callbacks roll back together.
+        if flags:
+            raise AcceptError("ONLINE_VALIDATION", "The bill was not issued: " + ", ".join(sorted(set(flags))), 422)
+        from sell.services.online import check_before_issue, check_lines_before_issue
+        check_before_issue(data, store, access, device_token)
+        check_lines_before_issue(data, store, lines, rulebook, access)
     transaction.on_commit(lambda: _upsert_customer(sale))  # step 6 (api-contract)
     # Ticket 18: after the customer row exists; never blocks the bill.
     transaction.on_commit(lambda: learn_from_bill(sale))
@@ -680,6 +703,8 @@ def _prepare_lines(
         line.cost = (
             plan_from_original(line.original)
             if line.original is not None
+            else resolve_goods_cost_plan(brand_id=line.goods_piece.brand_id, unit_cost_paise=line.unit_cost_paise)
+            if line.goods_piece is not None
             else resolve_cost_plan(
                 brand=line.dims.get("brand", ""),
                 barcode=payload["barcode"].strip(),
@@ -779,7 +804,9 @@ def _mark_late_returns(
     # reaches head office. Crossing midnight while offline must not turn a valid,
     # already-printed bill into a refusal.
     days_old = (timezone.localdate(exchanged_at) - timezone.localdate(original_bill.billed_at)).days
-    late = days_old > SellPolicy.current().return_window_days
+    from sell.services.online import online_alpha, selling_policy
+    window = selling_policy(original_bill.store).return_window_days if online_alpha(original_bill.store) else SellPolicy.current().return_window_days
+    late = days_old > window
     if late:
         for line in lines:
             if line.is_return:
@@ -1293,7 +1320,7 @@ def _server_resolution(data: dict[str, Any], store: Store, lines: list[_Prepared
             qty=line.qty,
             mrp_paise=int(line.payload["mrp_paise"]),
             dims=line.dims,
-            no_discount=line.payload["barcode"].strip() in never_discounted,
+            no_discount=(line.goods_piece.no_discount if line.goods_piece is not None else line.payload["barcode"].strip() in never_discounted),
         )
         for line in sold
     }
@@ -1320,7 +1347,7 @@ def _billed_on(data: dict[str, Any]) -> date:
     return timezone.localdate(data["billed_at"])
 
 
-def _check_discount_policy(lines: list[_PreparedLine], rulebook: _Rulebook) -> None:
+def _check_discount_policy(lines: list[_PreparedLine], rulebook: _Rulebook, *, strict_online: bool = False) -> None:
     """Step 6 - the manual discount dials are absolute.
 
     Whatever the rulebook is answerable for is the rulebook's; the remainder is a
@@ -1341,12 +1368,20 @@ def _check_discount_policy(lines: list[_PreparedLine], rulebook: _Rulebook) -> N
     store's queue is not stopped by head office editing master data, not so a
     discount can pass unseen.
     """
-    policy = SellPolicy.current()
+    policy: Any
+    if strict_online:
+        from sell.services.online import selling_policy
+        policy = selling_policy(rulebook.store)
+    else:
+        policy = SellPolicy.current()
     cap_percent = policy.manual_discount_cap_percent
     for line in lines:
         if line.is_return or line.is_alteration:
             continue
-        credit, drifted = rulebook.credit_for(line)
+        if strict_online:
+            credit, drifted = rulebook.saving_for(line.payload["line_no"]), False
+        else:
+            credit, drifted = rulebook.credit_for(line)
         given = int(line.payload["disc_paise"])
         # Never more than was actually given, so a rulebook more generous than the
         # counter cannot manufacture headroom for a manual discount on top.

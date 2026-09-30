@@ -307,6 +307,8 @@ READINESS_DATA = {
         "opening_setup_ready": {"type": "boolean"},
         "goods_ready": {"type": "boolean"},
         "sell_ready": {"type": "boolean"},
+        "selling_mode": {"type": "string", "enum": ["historical", "online_alpha"]},
+        "selling_checks": {"type": "array", "items": {"type": "object", "additionalProperties": True}},
         "non_trading_confirmed": {"type": "boolean"},
         "checks": {
             "type": "array",
@@ -1507,7 +1509,7 @@ class GoodsSiteDetailView(GoodsAPIView):
     def get(self, request: Request, pk: int) -> Response:
         access = self.access(request)
         access.require("org.site.manage", site_id=pk)
-        store = Store.objects.select_related("gstin").filter(pk=pk).first()
+        store = Store.objects.select_related("gstin").filter(pk=pk, tenant_id=access.tenant_id).first()
         if store is None:
             raise Refusal("NOT_FOUND", "That record was not found.")
         return Response(_site_dto_body(access, store))
@@ -1545,6 +1547,9 @@ class GoodsSiteDetailView(GoodsAPIView):
             merged = {**(latest.payload if latest else _site_fallback(store)), **body}
             entity, _registration = _validate_site_payload(merged)
             _require_entity(access, "org.site.manage", entity.pk)
+            brand_ids = [parse_int_id(b, "brand_ids") for b in (merged.get("brand_ids") or [])]
+            # Add only missing units; never retire or reactivate historical SBUs.
+            ensure_site_sbus(run.tenant_id, store, brand_ids)
             store.code = str(merged["code"])
             store.name = str(merged["name"])
             store.store_type = str(merged["type"])[:12]
@@ -2053,6 +2058,8 @@ READINESS_ACTIONS = frozenset(
         "revoke_opening_setup",
         "approve_goods",
         "revoke_goods",
+        "approve_sell",
+        "revoke_sell",
         "confirm_non_trading",
         "start_closing",
         "approve_closed",
@@ -2061,7 +2068,7 @@ READINESS_ACTIONS = frozenset(
 READINESS_REQUEST = _mutation_request(
     {
         "action": {"type": "string", "enum": sorted(READINESS_ACTIONS)},
-        "reason_code": {"type": "string"},
+        "reason_code": {"type": "string", "maxLength": 60},
         "evidence_id": {"type": "string", "format": "uuid"},
         "checks": {"type": "array", "items": {"type": "object"}},
         "closure_date": {"type": "string", "format": "date"},
@@ -2091,6 +2098,8 @@ _STEP_UP_ACTIONS = frozenset(
         "revoke_opening_setup",
         "approve_goods",
         "revoke_goods",
+        "approve_sell",
+        "revoke_sell",
         "confirm_non_trading",
         "start_closing",
         "approve_closed",
@@ -2114,23 +2123,23 @@ class GoodsSiteReadinessView(GoodsAPIView):
         itself defines only the mutating POST; this GET adds no write path and
         computes checks the same way `action=check` does, just without one."""
         access = self.access(request)
-        store = Store.objects.select_related("gstin").filter(pk=pk).first()
+        store = Store.objects.select_related("gstin").filter(pk=pk, tenant_id=access.tenant_id).first()
         if store is None:
             raise Refusal("NOT_FOUND", "That record was not found.")
         # Reading readiness needs either authority the POST actions split
         # between: C-STO's plain check or C-OWN's approve (E069's own access
         # note). A reader with neither gets the same NOT_FOUND a wrong site
         # would, matching every other masters read in this module.
-        if not any(
-            access.can_at_store(action, pk)
-            for action in ("org.site.lifecycle.run", "org.site.lifecycle.approve")
-        ):
+        action = next((action for action in ("org.site.lifecycle.run", "org.site.lifecycle.approve")
+                       if access.can_at_store(action, pk)), None)
+        if action is None:
             raise Refusal("NOT_FOUND", "That record was not found.")
+        access.require(action, site_id=pk)
         guard = site_guard_for(store)
         if guard is None:
             raise Refusal("NOT_FOUND", "That record was not found.")
         checks = compute_readiness_checks(store, database_now())
-        return Response(
+        response = Response(
             resource_dto(
                 id=pk,
                 data=readiness_dto(store, guard, checks),
@@ -2139,6 +2148,9 @@ class GoodsSiteReadinessView(GoodsAPIView):
                 context={"site_id": pk},
             )
         )
+        access.revalidate_delivery()
+        response["Cache-Control"] = "no-store, private"
+        return response
 
     @extend_schema(
         request={"application/json": READINESS_REQUEST},
@@ -2169,6 +2181,12 @@ class GoodsSiteReadinessView(GoodsAPIView):
         action = body["action"]
         if action not in READINESS_ACTIONS:
             raise Refusal("INVALID_REQUEST", f"action must be one of {sorted(READINESS_ACTIONS)}.")
+        reason_code = body.get("reason_code", "")
+        if not isinstance(reason_code, str) or len(reason_code.strip()) > 60:
+            raise Refusal(
+                "INVALID_REQUEST", "Readiness decision reference must be at most 60 characters."
+            )
+        body["reason_code"] = reason_code.strip()
         store = Store.objects.select_related("gstin").filter(pk=pk).first()
         if store is None:
             raise Refusal("NOT_FOUND", "That record was not found.")
@@ -2208,6 +2226,12 @@ class GoodsSiteReadinessView(GoodsAPIView):
                     resource_type="readiness", resource_id=str(pk), status_code=200
                 )
             if action in APPROVAL_ACTIONS:
+                if action == "approve_sell":
+                    from masters.first_store_readiness import selling_checks
+
+                    if guard.selling_mode != SiteGuard.SellingMode.ONLINE_ALPHA:
+                        raise Refusal("ONLINE_STORE_REQUIRED", "This store retains its existing counter contract.")
+                    checks = selling_checks(store, run.now)
                 # Opening a capability is the one thing the development seed
                 # does too, so it lives in one place both go through.
                 apply_readiness_approval(
@@ -2229,6 +2253,9 @@ class GoodsSiteReadinessView(GoodsAPIView):
                 guard.opening_setup_ready = False
             elif action == "revoke_goods":
                 guard.goods_ready = False
+                guard.sell_ready = False
+            elif action == "revoke_sell":
+                guard.sell_ready = False
             elif action == "confirm_non_trading":
                 _confirm_non_trading(store, guard, evidence_id)
                 guard.non_trading_confirmed = True
@@ -2250,10 +2277,12 @@ class GoodsSiteReadinessView(GoodsAPIView):
                 ]
                 if action == "start_closing":
                     guard.lifecycle = SiteGuard.Lifecycle.CLOSING
+                    guard.sell_ready = False
                     guard.closure_date = parse_day(body.get("closure_date"), "closure_date")
                 else:
                     guard.lifecycle = SiteGuard.Lifecycle.CLOSED
                     guard.goods_ready = False
+                    guard.sell_ready = False
             event = run.record(
                 SiteCapabilityEvent(
                     site=store,
@@ -2336,6 +2365,8 @@ def _operation_for(action: str) -> str:
         "revoke_opening_setup": "opening_setup",
         "approve_goods": "goods",
         "revoke_goods": "goods",
+        "approve_sell": "sell",
+        "revoke_sell": "sell",
         "confirm_non_trading": "non_trading",
         "start_closing": "closing",
         "approve_closed": "closed",
@@ -3814,6 +3845,23 @@ class GoodsTenantView(GoodsAPIView):
                     "TENANT_BINDING_IMMUTABLE", "The tenant/deployment code cannot be changed."
                 )
             run.audit_before = _tenant_audit_values(tenant)
+            if "business_profile_version_id" in body:
+                from masters.goods_config import in_force
+
+                profile_id = body["business_profile_version_id"]
+                profile = None
+                if profile_id is not None:
+                    profile = ConfigVersion.objects.filter(
+                        tenant_id=run.tenant_id, pk=parse_uuid(profile_id, "business_profile_version_id"),
+                        kind="business_profile",
+                    ).first()
+                    if profile is None or profile.scope.get("scope_kind") != "tenant" or not in_force(profile, run.now):
+                        raise Refusal("CONFIG_INVALID", "Choose an approved company business profile currently in force.")
+                    validate_config_payload(
+                        "business_profile", profile.payload, tenant_id=run.tenant_id,
+                        scope_key=profile.scope_key, as_of=run.now, scope=profile.scope,
+                    )
+                tenant.business_profile_version = profile
             tenant.name = str(body["name"])
             tenant.timezone = str(body["timezone"])
             tenant.currency = str(body["currency"])

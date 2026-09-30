@@ -58,6 +58,7 @@ EXCLUSIVE_BY: dict[str, tuple[str, ...]] = {
     # GSA-T08: one calendar in force at a time, tenant-wide — never several
     # candidate calendars a caller would have to pick between.
     "working_calendar": (),
+    "sell_policy": (),
 }
 
 #: Kinds read tenant-wide by every caller (no site, brand or purpose context), so their

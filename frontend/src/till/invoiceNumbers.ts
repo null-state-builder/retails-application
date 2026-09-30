@@ -112,7 +112,11 @@ export function numbersLeft(state: TillNumbering | null, month: string): number 
  * at all, so a rolled-back bill gives its number back and no number is printed
  * on two bills.
  */
-export async function takeInvoiceNumber(db: TillDb, billedAt: Date): Promise<string | null> {
+export async function takeInvoiceNumber(
+  db: TillDb,
+  billedAt: Date,
+  consume = true,
+): Promise<string | null> {
   const state = await readMeta<TillNumbering | null>(db, META.numbering, null);
   const day = localDay(billedAt);
   if (!newFormatApplies(state, day)) return null;
@@ -130,16 +134,42 @@ export async function takeInvoiceNumber(db: TillDb, billedAt: Date): Promise<str
   const number = renderInvoiceNumber(block.prefix, block.fy, block.next);
   const problem = invoiceNumberProblem(number);
   if (problem) throw new InvoiceNumbersOutError(`${problem} The bill was not saved.`);
+  if (consume)
+    await db.meta.put({
+      key: META.numbering,
+      value: {
+        ...state,
+        blocks: state.blocks.map((row) =>
+          row.id === block.id ? { ...row, next: row.next + 1 } : row,
+        ),
+      } satisfies TillNumbering,
+    });
+  return number;
+}
+
+/** Consume the exact number whose sale the server accepted. Recovery can occur
+ * after a month has closed, when the old block is no longer on this browser.
+ * Never take a new month's number to account for an older accepted invoice. */
+export async function recordAcceptedInvoiceNumber(db: TillDb, number: string): Promise<void> {
+  const state = await readMeta<TillNumbering | null>(db, META.numbering, null);
+  if (!state) return;
+  const block = state.blocks.find((row) => {
+    const prefix = `${row.prefix}/${row.fy}/`;
+    if (!number.startsWith(prefix)) return false;
+    const n = Number(number.slice(prefix.length));
+    return Number.isSafeInteger(n) && n >= row.first && n <= row.last;
+  });
+  if (!block) return;
+  const n = Number(number.slice(`${block.prefix}/${block.fy}/`.length));
   await db.meta.put({
     key: META.numbering,
     value: {
       ...state,
       blocks: state.blocks.map((row) =>
-        row.id === block.id ? { ...row, next: row.next + 1 } : row,
+        row.id === block.id ? { ...row, next: Math.max(row.next, n + 1) } : row,
       ),
     } satisfies TillNumbering,
   });
-  return number;
 }
 
 /**

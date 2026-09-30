@@ -257,6 +257,10 @@ export interface TillPauseState {
  *  change - so the till anchors "how much is left" to this moment rather than to
  *  its own idea of now. See `authority.ts`. */
 export interface TillIdentity {
+  tenant_id?: string;
+  site_id?: string;
+  device_id?: string;
+  selling_mode?: "historical" | "online_alpha";
   registered: boolean;
   counter_id: string;
   series_prefix: string;
@@ -330,6 +334,8 @@ export interface CachedBill {
 
 /** `GET /api/sell/dataset`. */
 export interface DatasetPayload {
+  selling_mode?: "historical" | "online_alpha";
+  commercial_revision?: string;
   cursor: string;
   full: boolean;
   /** Which reading of this store's shelf the `stock` section is (OPS-07). It goes
@@ -573,6 +579,7 @@ export interface TillCustomer {
  *  The number, the financial year and the idempotency key are the till layer's
  *  to assign, and assigning them is the commit (see `numbering.ts`). */
 export interface BillDraft {
+  cash_received_paise?: number | null;
   billed_at: string;
   origin?: "offline" | "online" | "paper";
   customer?: TillCustomer;
@@ -611,6 +618,7 @@ export interface BillDraft {
 /** A bill after the commit: numbered, keyed, and in the queue. This is the exact
  *  body `POST /api/sell/sales` takes, plus the queue's own bookkeeping. */
 export interface QueuedBill extends BillDraft {
+  commercial_revision?: string;
   /** Dexie's insertion order, and therefore the FIFO the queue drains in. */
   id?: number;
   idempotency_uuid: string;

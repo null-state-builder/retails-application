@@ -435,13 +435,14 @@ def identity_key(style_id: uuid.UUID, attrs: list[dict[str, Any]]) -> str:
 
 
 def check_vocabulary_refs(
-    tenant_id: uuid.UUID, attrs: list[dict[str, Any]], as_of: datetime
+    tenant_id: uuid.UUID, attrs: list[dict[str, Any]], as_of: datetime,
+    *, current_vocabulary: dict[str, list[VocabularyValue]] | None = None,
 ) -> list[dict[str, Any]]:
     """Issues for vocabulary references that are not selectable effective values."""
     wanted = {e["field_id"] for e in attrs if e.get("vocabulary_value_id")}
     if not wanted:
         return []
-    current = vocabulary(tenant_id, as_of)
+    current = vocabulary(tenant_id, as_of) if current_vocabulary is None else current_vocabulary
     problems: list[dict[str, Any]] = []
     for entry in attrs:
         value_id = entry.get("vocabulary_value_id")
@@ -466,6 +467,7 @@ def sku_identity(
     profile: IdentityProfile,
     attrs: list[dict[str, Any]],
     as_of: datetime,
+    *, current_vocabulary: dict[str, list[VocabularyValue]] | None = None,
 ) -> tuple[str, list[dict[str, Any]]]:
     """Validate SKU attributes under the profile: (identity_key, stored attributes)."""
     if style.profile_family != profile.family:
@@ -474,7 +476,7 @@ def sku_identity(
             field="profile_version_id",
         )
     by_field = {entry["field_id"]: dict(entry) for entry in attrs}
-    problems = check_vocabulary_refs(tenant_id, attrs, as_of)
+    problems = check_vocabulary_refs(tenant_id, attrs, as_of, current_vocabulary=current_vocabulary)
     for entry in attrs:
         allowed = profile.allowed.get(entry["field_id"])
         value_id = entry.get("vocabulary_value_id")
@@ -538,6 +540,7 @@ def sku_data(row: ProductSku) -> dict[str, Any]:
         "style_id": str(row.style_id),
         "profile_version_id": opt_id(row.identity_profile_id),
         "attrs": list(row.attrs or []),
+        "no_discount": row.no_discount,
     }
 
 

@@ -20,8 +20,10 @@ device, so it belongs only to a Store Person with a selected-site assignment
 covering every brand at that site and ``sell >= approve`` in that role policy.
 The dataset and server-side approval checks use this same rule at the exact site.
 
-**Who sets one.** A manager sets or changes their own from Till & Sync, with
-their own password. A tenant Admin assignment may also *set* a manager's PIN, and it works at once
+**Who sets one.** A selected-store Store Person with operating authority may
+set or change their own personal credential from Till & Sync after password
+confirmation. This does not grant exception approval: those consumers retain
+the separate selected-store approval eligibility above. A tenant Admin assignment may also *set* an eligible approval manager's PIN, and it works at once
 (store operations baseline B76, which departs from overall PRD §10.2 by Anand's
 ruling), or *clear* one (`GoodsUserTillPinSetView`, `GoodsUserTillPinResetView`).
 Either way every till picks the change up on its next sync. Nobody else may do
@@ -32,11 +34,12 @@ record says "set" / "not set".
 from __future__ import annotations
 
 import uuid
+from dataclasses import replace
 from typing import Any
 
 from django.contrib.auth.hashers import PBKDF2PasswordHasher
 
-from accounts.sections import CAP_APPROVE
+from accounts.sections import CAP_APPROVE, CAP_OPERATE
 from core.commands import CommandResult, CommandRun, CommandSpec, execute_command
 
 #: Four to six digits, the length a person can type on a counter keypad with a
@@ -116,6 +119,31 @@ def may_hold_till_pin(user: Any, *, site_id: int | None = None) -> bool:
     )
 
 
+def _personal_pin_sites(access: Any) -> set[int]:
+    """Credential setup needs one selected-store operating assignment.
+
+    Holding a credential is separate from authority to decide an exception.
+    This helper never contributes to the approval manager list or a business
+    action. A network or brand-limited assignment cannot supply its scope.
+    """
+    return {
+        site_id
+        for row in access.section_grants("sell", CAP_OPERATE)
+        if row.role_code == "store_person" and not row.all_sites and row.all_brands
+        for site_id in row.site_ids
+        if access.grant_covers(row, site_id, None)
+    }
+
+
+def may_set_personal_till_pin(user: Any, *, site_id: int | None = None) -> bool:
+    if not _active_person(user):
+        return False
+    from accounts.principal import access_for_user
+
+    sites = _personal_pin_sites(access_for_user(user))
+    return bool(sites) if site_id is None else site_id in sites
+
+
 # -- changing a PIN (store operations ticket 06) -----------------------------------
 #
 # Every change is one command, so its audit record says who changed whose PIN and
@@ -143,12 +171,10 @@ def write_pin(run: CommandRun, user_pk: int, new_hash: str, *, by: str) -> None:
 
 
 def set_own_pin(user: Any, pin: str, session: Any = None) -> None:
-    """A manager sets or changes their own PIN. The caller has checked the rest.
+    """Set only this authenticated person's credential, never their authority.
 
-    A login that is not a person cannot sign in (goods-v1 sessions refuse it),
-    so the no-person branch is only ever a fixture login from before persons
-    existed (`tests/_sell.build_manager`); it writes the hash with nothing to sign
-    an audit record with.
+    The live session, selected-store operating assignment and password step-up
+    are rechecked by the command boundary. Every change leaves an audit record.
     """
     from accounts.principal import AccessContext, effective_grants
     from core.refusals import Refusal
@@ -160,22 +186,25 @@ def set_own_pin(user: Any, pin: str, session: Any = None) -> None:
         raise Refusal("AUTH_REQUIRED", "A live session is required to change a PIN.")
     access = AccessContext(user=user, human_id=human_id, tenant_id=tenant_id,
                            session=session, grants=effective_grants(human_id))
-    eligible_sites = {site_id for row in access.section_grants("sell", CAP_APPROVE)
-                      if row.role_code == "store_person" and not row.all_sites and row.all_brands
-                      for site_id in row.site_ids}
+    eligible_sites = _personal_pin_sites(access)
     if not eligible_sites:
-        raise Refusal("ACTION_DENIED", "A counter PIN requires current store approval authority.")
+        raise Refusal("ACTION_DENIED", "A personal counter PIN requires a selected-store operating assignment.")
     for site_id in eligible_sites:
-        if not access.can_section("sell", CAP_APPROVE, site_id=site_id):
-            raise Refusal("ACTION_DENIED", "Your store approval authority changed.")
+        if not access.grants_with_roles("section.sell.operate", [(site_id, None)], ["store_person"]):
+            raise Refusal("ACTION_DENIED", "Your store operating authority changed.")
     access.require_step_up()
+
+    def guard(run: CommandRun, final: bool) -> None:
+        access.revalidate(run, final)
+        if not _personal_pin_sites(access):
+            raise Refusal("ACTION_DENIED", "Your selected-store PIN eligibility changed.")
 
     def handler(run: CommandRun) -> CommandResult:
         write_pin(run, user.pk, new_hash, by="self")
         return CommandResult(resource_type="user", resource_id=str(user.pk))
 
     execute_command(
-        access.principal(),
+        replace(access.principal(), guard=guard),
         CommandSpec(action=SET_ACTION, command_id=uuid.uuid4(), business_input={"user": user.pk}),
         handler,
     )

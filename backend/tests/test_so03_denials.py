@@ -830,7 +830,7 @@ def test_online_sale_replay_refuses_foreign_store_before_revealing_bill(
 
         results = iter((None, existing))
         monkeypatch.setattr(accept, "_find_by_uuid", lambda _uuid: next(results))
-        monkeypatch.setattr(accept, "_accept_new", lambda *_: (_ for _ in ()).throw(IntegrityError()))
+        monkeypatch.setattr(accept, "_accept_new", lambda *_, **_kwargs: (_ for _ in ()).throw(IntegrityError()))
         with pytest.raises(accept.AcceptError) as concurrent:
             accept.accept_sale(data, actor)
         assert concurrent.value.code == "SCOPE_DENIED"

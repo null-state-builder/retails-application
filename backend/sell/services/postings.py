@@ -42,9 +42,9 @@ do with its tax is the CA's ruling and is not encoded here.
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from core.gl import GLAccount
 from core.posting import Leg, cr, dr, post_entries
@@ -54,6 +54,9 @@ from sell.models import DeferredCosting, Return, Sale, SaleLine, SaleTender
 from sell.services.movements import SellDocument, SellLine
 from stockledger.models import StockLedgerEntry
 from vendors.models import Vendor
+
+if TYPE_CHECKING:
+    from masters.models import Brand
 
 #: `core.posting.dr` or `core.posting.cr` - which side of a pair a leg goes on.
 LegWriter = Callable[..., Leg]
@@ -213,6 +216,31 @@ def resolve_cost_plan(*, brand: str, barcode: str, season: str, unit_cost_paise:
     if vendor is None:
         return CostPlan(deferral=DeferredCosting.Reason.VENDOR_UNKNOWN)
     return CostPlan(book=SaleLine.CostBook.BRAND, vendor=vendor)
+
+
+def resolve_goods_cost_plan(*, brand_id: int | None, unit_cost_paise: int,
+                            brands: Mapping[int, Brand] | None = None) -> CostPlan:
+    """Goods ownership is established by its stable tenant-owned brand.
+
+    Opening sources do not yet pin a supplier for brand-owned merchandise.
+    Such a source cannot acquire a payable recipient from a display label or
+    from a legacy inward; it stays unresolved until its owner links the source.
+    """
+    from core.tenancy import require_tenant_id
+    from masters.models import Brand
+
+    if unit_cost_paise <= 0:
+        return CostPlan(deferral=DeferredCosting.Reason.UNPRICED)
+    if brand_id is None:
+        return CostPlan(deferral=DeferredCosting.Reason.MODEL_UNKNOWN)
+    tenant_id = require_tenant_id()
+    brand = (brands.get(brand_id) if brands is not None
+             else Brand.objects.filter(tenant_id=tenant_id, pk=brand_id).first())
+    if brand is None or brand.pk != brand_id or brand.tenant_id != tenant_id:
+        return CostPlan(deferral=DeferredCosting.Reason.MODEL_UNKNOWN)
+    if brand.ownership == Brand.Ownership.OWNED:
+        return CostPlan(book=SaleLine.CostBook.OWN)
+    return CostPlan(deferral=DeferredCosting.Reason.VENDOR_UNKNOWN)
 
 
 def supplier_of(*, barcode: str, season: str, brand: str) -> Vendor | None:

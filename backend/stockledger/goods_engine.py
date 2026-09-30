@@ -966,6 +966,13 @@ def eligible_portions(
     site_id: int, sku_id: uuid.UUID, *, purpose: str = "transfer"
 ) -> list[Portion]:
     """Portions of one SKU at one site that may be reserved (transfer) or sold (sell)."""
+    return eligible_portions_for_skus(site_id, [sku_id], purpose=purpose)
+
+
+def eligible_portions_for_skus(
+    site_id: int, sku_ids: Iterable[uuid.UUID], *, purpose: str = "transfer"
+) -> list[Portion]:
+    """The same eligibility decision in bulk for a till/report resource slice."""
     from masters.goods_models import SiteGuard
 
     guard = SiteGuard.objects.filter(site_id=site_id).first()
@@ -974,7 +981,7 @@ def eligible_portions(
     kinds = SELLING_KINDS if purpose == "sell" else TRANSFERABLE_KINDS
     candidates = [
         p
-        for p in physical_portions(site_id, sku_ids=[sku_id])
+        for p in physical_portions(site_id, sku_ids=sku_ids)
         if p.address.condition == "good"
         and p.address.accepted_event_id is not None
         and (p.address.origin_id is not None or p.address.value_basis_origin_id is not None)

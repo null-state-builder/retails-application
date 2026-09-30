@@ -64,6 +64,7 @@ ACTIONS: dict[str, str] = {
     "pt.reversal.request": "Request PT reversal or reissue",
     "pt.reversal.approve": "Approve PT reversal or reissue",
     "opening.manifest.approve": "Approve opening manifests",
+    "opening.import.stage": "Upload and reconcile an opening source without authoring valuation",
     "opening.variance.approve": "Approve opening variances",
     "label.print": "Print and reprint labels",
     "stock.view": "View stock",

@@ -281,14 +281,23 @@ def _principal(store: Store, actor: Any) -> Principal:
     tenant_id = getattr(actor, "tenant_id", None)
     user_id = getattr(actor, "pk", None)
     if human_id is not None and tenant_id is not None:
+        from accounts.principal import access_for_user
+        access = access_for_user(actor)
+        if access.session is not None:
+            return access.principal()
         return Principal(tenant_id=tenant_id, human_id=human_id, user_id=user_id)
-    return Principal(tenant_id=store.tenant_id, service_code="till-sync", user_id=user_id)
+    raise Refusal("AUTH_REQUIRED", "A cash close requires the authenticated person at the counter.")
 
 
 def _check_approver(
     run: CommandRun, store: Store, actor: Any, approved_by: int | None, pin: str
 ) -> None:
     """A variance needs a manager of this store, not the cashier, and their own PIN."""
+    from sell.services.online import online_alpha
+    if online_alpha(store):
+        raise Refusal("INDEPENDENT_APPROVAL_REQUIRED",
+                      "A cash variance requires a recorded independent approval before this online store can close it. Keep the count draft and arrange an authorised review.",
+                      status=409)
     if approved_by is None or not pin:
         raise Refusal(
             "MANAGER_PIN_NEEDED",

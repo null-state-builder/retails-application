@@ -76,6 +76,7 @@ class Piece:
     #: its PT when the HSN is missing, so the PT can be corrected).
     origin_id: uuid.UUID | None = None
     brand_id: int | None = None
+    no_discount: bool = False
 
 
 def barcode_aliases(store: Store, at: datetime) -> dict[uuid.UUID, str]:
@@ -146,20 +147,25 @@ def read_shelf(store: Store, at: datetime | None = None) -> Shelf:
     if not aliases:
         return Shelf(pieces=[], quantities={})
 
-    sellable = [
-        item
-        for sku_id in sorted(aliases, key=str)
-        for item in engine.eligible_portions(store.pk, sku_id, purpose="sell")
-    ]
+    sellable = engine.eligible_portions_for_skus(store.pk, sorted(aliases, key=str), purpose="sell")
     origin_ids = {
         str(origin_id)
         for origin_id in Position.objects.filter(
-            site_id=store.pk, boundary="physical", sku_id__in=list(aliases)
+            tenant_id=store.tenant_id, site_id=store.pk, boundary="physical", sku_id__in=list(aliases)
         ).values_list("origin_id", flat=True)
         if origin_id
     } | {str(item.address.origin_id) for item in sellable if item.address.origin_id}
+    # An exhausted opening origin remains part of this store's item book. The
+    # last sale removes its physical position, but may neither erase scan/return
+    # identity nor change the commercial revision during that sale's commit.
+    origin_ids.update(str(pk) for pk in Origin.objects.filter(
+        tenant_id=store.tenant_id, site=store, sku_id__in=list(aliases)
+    ).values_list("pk", flat=True))
+    from sell.models import SaleLine
+    for allocated in SaleLine.objects.filter(sale__store=store).values_list("goods_allocations", flat=True):
+        origin_ids.update(str(row["origin_id"]) for row in (allocated or []) if isinstance(row, dict) and row.get("origin_id"))
     origins = {
-        str(row.pk): row for row in Origin.objects.filter(pk__in=sorted(origin_ids)).order_by("pk")
+        str(row.pk): row for row in Origin.objects.filter(tenant_id=store.tenant_id, pk__in=sorted(origin_ids)).order_by("pk")
     }
     seasons = origin_seasons(origins)
 
@@ -215,6 +221,10 @@ def _pieces(
             require_tenant_id(), {str(o.sku_id) for group in grouped.values() for o in group}
         )
     }
+    from masters.goods_identity_models import ProductSku
+    from stockledger.goods_descriptions import origin_item_names
+    no_discount = set(ProductSku.objects.filter(tenant_id=require_tenant_id(), pk__in=[o.sku_id for group in grouped.values() for o in group], no_discount=True).values_list("pk", flat=True))
+    item_names = origin_item_names(require_tenant_id(), origins)
     out: list[Piece] = []
     for (barcode, season), group in sorted(grouped.items()):
         newest = max(group, key=lambda o: (o.source_time, str(o.pk)))
@@ -229,7 +239,7 @@ def _pieces(
                 dims={
                     "design": str(identity.get("style") or ""),
                     "brand": str(identity.get("brand") or ""),
-                    "item": str(identity.get("grade") or ""),
+                    "item": item_names.get(str(newest.pk)) or str(identity.get("grade") or ""),
                     "size": str(identity.get("size") or ""),
                     "color": str(identity.get("colour") or ""),
                 },
@@ -238,6 +248,7 @@ def _pieces(
                 # price, and a zero here would bill a garment at nothing.
                 mrp_paise=int(newest.mrp) or None,
                 origin_id=newest.pk,
+                no_discount=newest.sku_id in no_discount,
             )
         )
     return out

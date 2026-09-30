@@ -452,6 +452,7 @@ export const SECTIONS: NavSectionDef[] = [
         label: "Opening stock",
         to: "/goods/opening",
         goodsActions: [
+          "opening.import.stage",
           "pt.prepare.opening",
           "opening.manifest.approve",
           "opening.variance.approve",
@@ -877,6 +878,7 @@ export const SECTIONS: NavSectionDef[] = [
     layer: "master",
     items: [
       { label: "Products", to: "/setup/products", planned: true },
+      { label: "First store setup", to: "/setup/first-store", goodsActions: ["access.manage"] },
       // Goods-v1 organisation setup (ticket 02): legal entities, registrations,
       // sites, SBUs, location trees, and a site's readiness/closure — separate
       // from the legacy "Stores" screen below, which speaks the pre-goods-v1
@@ -1342,7 +1344,7 @@ export const SELL_STRIP: NavStripDef = {
 // OPS-17 and the manifest in OPS-18, with its screen.
 export const RECEIVE_INBOX_STRIP: NavStripDef = {
   section: "receive_goods",
-  tabs: ["/goods/receive", "/goods/receive/history"],
+  tabs: ["/goods/receive", "/goods/receive/history", "/goods/opening"],
   goodsTabs: [],
 };
 

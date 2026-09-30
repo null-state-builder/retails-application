@@ -22,6 +22,7 @@ import {
   VendorsPage,
 } from "./pages/MasterPages";
 import { OrganisationPage } from "./pages/Organisation";
+import { FirstStoreSetupPage } from "./pages/FirstStoreSetup";
 import { PeopleAccessPage } from "./pages/PeopleAccess";
 import { ProductsPartiesPage } from "./pages/ProductsParties";
 import { ConfigurationPage } from "./pages/Configuration";
@@ -363,6 +364,7 @@ const BUILT: Screen[] = [
   { id: "orders-alterations", path: "/orders/alterations", element: <AlterationsPage /> },
   // Setup
   { id: "setup-organisation", path: "/setup/organisation", element: <OrganisationPage /> },
+  { id: "setup-first-store", path: "/setup/first-store", element: <FirstStoreSetupPage /> },
   { id: "setup-people-access", path: "/setup/people-access", element: <PeopleAccessPage /> },
   {
     id: "setup-products-parties",

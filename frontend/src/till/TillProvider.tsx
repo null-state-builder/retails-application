@@ -10,22 +10,38 @@
 // while nobody is looking at it, and a screen that mounts halfway through has to
 // see where things actually are, not where they were when it rendered.
 
-import { createContext, useContext, useEffect, useMemo, useSyncExternalStore } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useSyncExternalStore,
+  useState,
+} from "react";
 import type { ReactNode } from "react";
 
 import { useAuth } from "../auth/AuthContext";
 
 import { TillEngine } from "./engine";
 import type { TillSnapshot } from "./engine";
+import { httpTransport } from "./transport";
 import type { TillTransport } from "./transport";
+import type { TillIdentity } from "./types";
 
 interface TillContextValue {
   /** Null when the signed-in person is not a single store - see `tillStore`. */
   engine: TillEngine | null;
   till: TillSnapshot | null;
+  accessError: string;
+  recoverPending: (() => Promise<string>) | null;
 }
 
-const TillContext = createContext<TillContextValue>({ engine: null, till: null });
+const TillContext = createContext<TillContextValue>({
+  engine: null,
+  till: null,
+  accessError: "",
+  recoverPending: null,
+});
 
 /** The engine and the current snapshot, or nulls for a login with no counter. */
 export function useTill(): TillContextValue {
@@ -57,10 +73,47 @@ export function TillProvider({
   const { user } = useAuth();
   const storeCode = tillStoreCode(user);
 
-  const engine = useMemo(
-    () => (storeCode ? new TillEngine(storeCode, transport) : null),
-    [storeCode, transport],
-  );
+  const [identity, setIdentity] = useState<{
+    user: typeof user;
+    store: string;
+    value: TillIdentity;
+  } | null>(null);
+  useEffect(() => {
+    let current = true;
+    setIdentity(null);
+    if (storeCode && user) {
+      void (transport ?? httpTransport)
+        .till()
+        .then((value) => {
+          if (current) setIdentity({ user, store: storeCode, value });
+        })
+        .catch(() => {
+          /* no trustworthy namespace: no cached business data */
+        });
+    }
+    return () => {
+      current = false;
+    };
+  }, [user, storeCode, transport]);
+  const engine = useMemo(() => {
+    if (!user || !identity || identity.user !== user || identity.store !== storeCode) return null;
+    const { tenant_id, site_id, device_id } = identity.value;
+    const scope =
+      tenant_id && site_id && device_id
+        ? `${tenant_id}:${site_id}:${device_id}`
+        : transport
+          ? storeCode
+          : "";
+    return scope
+      ? new TillEngine(
+          storeCode,
+          transport,
+          undefined,
+          scope,
+          identity.value.selling_mode === "online_alpha",
+        )
+      : null;
+  }, [user, identity, storeCode, transport]);
 
   useEffect(() => {
     if (!engine) return;
@@ -74,7 +127,27 @@ export function TillProvider({
     engine ? engine.getSnapshot : noSnapshot,
   );
 
-  const value = useMemo(() => ({ engine, till }), [engine, till]);
+  const value = useMemo(() => {
+    // Preserve this device's durable bills, but never let another session see
+    // previously cached protected fields before its own server projection lands.
+    const waiting = till?.onlineAlpha && !till.liveAccessVerified;
+    return {
+      engine: waiting ? null : engine,
+      till: waiting ? null : till,
+      accessError: waiting
+        ? till.lastError || "Refreshing this session's authorised counter data…"
+        : "",
+      // An accepted timeout recovery may be authorised even after readiness is
+      // withdrawn. Expose only its server-checked number, never cached payload.
+      recoverPending:
+        waiting && engine && till.onlinePending?.state === "pending"
+          ? async () => {
+              const accepted = await engine.retryOnline();
+              return `Sale ${accepted.doc_number} was accepted. Do not collect payment again.`;
+            }
+          : null,
+    };
+  }, [engine, till]);
   return <TillContext.Provider value={value}>{children}</TillContext.Provider>;
 }
 

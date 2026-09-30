@@ -670,14 +670,16 @@ export function GoodsBookingDetail({ bookingId }: { bookingId: string }) {
         toComeTestId="gb-outstanding-total"
       />
 
-      {canManage && booking.state === "draft" && booking.field_access?.writable_fields.includes("cost") && (
-        <OpenToBuyPanel
-          bookingId={booking.id}
-          revision={booking.revision}
-          reviewedHash={booking.content_hash}
-          nonce={otbNonce}
-        />
-      )}
+      {canManage &&
+        booking.state === "draft" &&
+        booking.field_access?.writable_fields.includes("cost") && (
+          <OpenToBuyPanel
+            bookingId={booking.id}
+            revision={booking.revision}
+            reviewedHash={booking.content_hash}
+            nonce={otbNonce}
+          />
+        )}
 
       {canManage && allowed.length > 0 && (
         <div className="bk-actions" data-testid="gb-actions">

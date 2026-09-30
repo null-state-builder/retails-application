@@ -229,12 +229,19 @@ class SiteGuard(TenantOwned):
         LEGACY = "legacy"
         GOODS_V1 = "goods_v1"
 
+    class SellingMode(models.TextChoices):
+        HISTORICAL = "historical", "Retained counter contract"
+        ONLINE_ALPHA = "online_alpha", "Server-confirmed online trading"
+
     site = models.OneToOneField(
         "masters.Store", on_delete=models.PROTECT, related_name="goods_guard"
     )
     opening_setup_ready = models.BooleanField(default=False)
     goods_ready = models.BooleanField(default=False)
     sell_ready = models.BooleanField(default=False)
+    selling_mode = models.CharField(
+        max_length=20, choices=SellingMode.choices, default=SellingMode.HISTORICAL
+    )
     non_trading_confirmed = models.BooleanField(default=False)
     lifecycle = models.CharField(
         max_length=10, choices=Lifecycle.choices, default=Lifecycle.PLANNED

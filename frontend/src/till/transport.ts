@@ -33,10 +33,12 @@ import type {
 export class TillHttpError extends Error {
   readonly status: number;
   readonly code: string;
-  constructor(status: number, code: string, message: string) {
+  readonly notIssued: boolean;
+  constructor(status: number, code: string, message: string, notIssued = false) {
     super(message);
     this.status = status;
     this.code = code;
+    this.notIssued = notIssued;
     this.name = "TillHttpError";
   }
 
@@ -68,6 +70,7 @@ export interface TillTransport {
   /** `POST /api/sell/till/renew` - another 24 hours of offline billing. Only ever
    *  succeeds online, which is the whole evidence the window rests on. */
   renewTill(): Promise<TillIdentity>;
+  pairTill?(pairingCode: string): Promise<unknown>;
   /** `POST /api/sell/till/register` - a manager making this device the store's
    *  counter. `replace` retires the machine that held the series and starts a
    *  fresh one; without it, a store that already has a counter answers
@@ -90,6 +93,7 @@ export interface TillTransport {
    *  with the original bill and writes nothing; a first arrival answers 201. The
    *  queue drops the bill either way, so the two are not distinguished here. */
   postSale(bill: QueuedBill): Promise<AcceptedBill>;
+  finaliseOnline?(bill: QueuedBill, deviceToken: string): Promise<AcceptedBill>;
   /** `PUT /api/sell/held-bills` - the counter's parked carts, whole list, so the
    *  Dashboard can count them (#185). Best effort by construction: a hold that
    *  never reaches the server is still a hold, and nothing about billing waits
@@ -122,6 +126,9 @@ export const httpTransport: TillTransport = {
   async till() {
     return unwrap(api.get("/sell/till"));
   },
+  async pairTill(pairingCode: string) {
+    return unwrap(api.post("/sell/till/pair", { pairing_code: pairingCode }));
+  },
   async renewTill() {
     return unwrap(api.post("/sell/till/renew", {}));
   },
@@ -138,6 +145,13 @@ export const httpTransport: TillTransport = {
   },
   async resumeTill(fy: string, nextSeq: number) {
     return unwrap(api.post("/sell/till/resume", { fy, next_seq: nextSeq }));
+  },
+  async finaliseOnline(bill: QueuedBill, deviceToken: string) {
+    return unwrap(
+      api.post("/sell/sales/finalise-online", billBody(bill), {
+        headers: { "X-KDPS-Device": deviceToken },
+      }),
+    );
   },
   async postSale(bill: QueuedBill) {
     return unwrap(api.post("/sell/sales", billBody(bill)));
@@ -181,8 +195,9 @@ async function unwrap<T>(request: Promise<{ data: T }>): Promise<T> {
 
 /** Flatten whatever axios threw into the two facts the queue reasons about. */
 export function asTillError(error: unknown): TillHttpError {
-  const response = (error as { response?: { status?: number; data?: { code?: string } } })
-    ?.response;
+  const response = (
+    error as { response?: { status?: number; data?: { code?: string; not_issued?: boolean } } }
+  )?.response;
   if (!response?.status) {
     // No response at all: aeroplane mode, a dead access point, DNS. Status 0 is
     // the till's own word for "we never got as far as the server", and it is
@@ -193,5 +208,6 @@ export function asTillError(error: unknown): TillHttpError {
     response.status,
     response.data?.code || `HTTP_${response.status}`,
     apiErrorMessage(error),
+    response.data?.not_issued === true,
   );
 }

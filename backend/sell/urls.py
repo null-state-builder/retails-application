@@ -54,6 +54,7 @@ from sell.views import (
     ReturnWhereView,
     SaleDetailView,
     SaleListCreateView,
+    OnlineFinaliseView,
     SavedSizeView,
     SellPolicyView,
     StoreFlagsView,
@@ -62,11 +63,14 @@ from sell.views import (
     TillNumberBlocksView,
     TillRegisterView,
     TillRenewView,
+    TillPairView,
     TillResumeView,
     TillView,
 )
 
 urlpatterns = [
+    path("sales/finalise-online", OnlineFinaliseView.as_view(), name="sell-finalise-online"),
+    path("till/pair", TillPairView.as_view(), name="sell-till-pair"),
     path("policy", SellPolicyView.as_view(), name="sell-policy"),
     path("dataset", DatasetView.as_view(), name="sell-dataset"),
     path("customer-display", CustomerDisplayView.as_view(), name="sell-customer-display"),

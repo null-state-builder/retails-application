@@ -29,11 +29,9 @@ export const CONFIG_KINDS = [
   "workflow",
   "non_trading",
   "business_profile",
-  // GSA-T08: the approved working calendar every working-day deadline and every
-  // working-days notification policy needs. Listed here so its versions and
-  // their effective periods are readable on the Configuration screen; like the
-  // other policy kinds it has no bespoke payload editor yet.
+  // The approved calendar governs working-day deadlines and independent reviews.
   "working_calendar",
+  "sell_policy",
 ] as const;
 
 export type ConfigKind = (typeof CONFIG_KINDS)[number];
@@ -54,6 +52,7 @@ export const CONFIG_KIND_LABEL: Record<string, string> = {
   non_trading: "Non-trading declaration",
   business_profile: "Business profile",
   working_calendar: "Working calendar",
+  sell_policy: "Selling policy",
 };
 
 export interface ConfigScope {

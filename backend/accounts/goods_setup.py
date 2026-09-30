@@ -126,7 +126,7 @@ def ensure_goods_roles() -> dict[str, Any]:
     """Ensure only the six initial tenant roles, retaining old role history."""
     from accounts.models import Role
     from accounts.rbac_matrix import section_access_for
-    from accounts.unified_policy import OWNER_APPROVAL_STEPS
+    from accounts.unified_policy import initial_step_actions
     from core.tenancy import require_tenant_id
 
     tenant_id = require_tenant_id()
@@ -140,7 +140,7 @@ def ensure_goods_roles() -> dict[str, Any]:
                 "section_access": section_access_for(code),
                 "field_access": INITIAL_FIELD_ACCESS[code],
                 "permissions_map": {
-                    "step_actions": sorted(OWNER_APPROVAL_STEPS) if code == "owner" else []
+                    "step_actions": initial_step_actions(code)
                 },
                 "is_system": True,
             },
@@ -405,6 +405,7 @@ def create_person(
     legacy_role_code: str | None = None,
     must_change_password: bool = False,
     tenant_staff: bool = True,
+    username: str | None = None,
 ) -> tuple[Any, Any]:
     """A person with a login (email + password) inside a running command.
 
@@ -433,7 +434,7 @@ def create_person(
         if legacy_role_code else None
     )
     user = User(
-        username=email.lower()[:60],
+        username=username or email.lower()[:60],
         full_name=display_name[:120],
         email=email.lower(),
         tenant_id=run.tenant_id,
@@ -478,6 +479,11 @@ def bootstrap_deployment(
             return existing
         if Tenant.objects.exists():
             raise Refusal("STATE_CONFLICT", "This database already serves a different deployment.")
+        if not synthetic:
+            raise Refusal(
+                "ACTION_DENIED",
+                "Real companies require the one-time joint Owner and separate Admin signup.",
+            )
         tenant = Tenant.objects.create(
             code=code,
             name=name,

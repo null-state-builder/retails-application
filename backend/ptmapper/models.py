@@ -17,3 +17,4 @@ from ptmapper.goods_models import (  # noqa: F401
     PrintEvent,
     PrintJob,
 )
+from ptmapper.soh_models import SohImport, SohImportBatch, SohImportReview, SohImportRow  # noqa: F401

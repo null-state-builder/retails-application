@@ -24,7 +24,7 @@ def session_payload(user: Any, session: Any, *, csrf_token: str | None = None) -
     from masters.store_features import features_on_by_site
     from accounts.unified_policy import WORKFLOW_TARGET_KEY
     from accounts.sessions import IDLE_LIFE
-    from accounts.till_pin import may_hold_till_pin
+    from accounts.till_pin import may_hold_till_pin, may_set_personal_till_pin
 
     assignments = effective_assignments(user.human_id) if user.human_id else []
     grants = effective_grants(user.human_id) if user.human_id else []
@@ -81,6 +81,7 @@ def session_payload(user: Any, session: Any, *, csrf_token: str | None = None) -
             "must_change_password": bool(getattr(user, "must_change_password", False)),
             "has_till_pin": bool(user.till_pin_hash),
             "may_hold_till_pin": may_hold_till_pin(user),
+            "may_set_till_pin": may_set_personal_till_pin(user),
         },
         "assignments": [
             {

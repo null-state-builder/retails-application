@@ -630,6 +630,12 @@ class AccessContext:
         self.grants = [g for g in self.grants if g.ends_at is None or g.ends_at > now]
         return now
 
+    def revalidate_delivery(self) -> None:
+        """Reload live read authority and replay resource/field demands before delivery."""
+        now = self._reload(lock=False)
+        for demand in sorted(self._demands, key=repr):
+            self._replay(demand, now)
+
     def refresh(self) -> bool:
         """Reload session and grants by database time for a long-lived read (the SSE stream).
 

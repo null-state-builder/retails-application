@@ -604,11 +604,11 @@ def _writable_booking(access: AccessContext, pk: uuid.UUID) -> GoodsBooking:
 
 def _shows_cost(access: AccessContext, booking: GoodsBooking) -> bool:
     """Cost requires one read assignment covering every stable line cell."""
-    _head, header, lines, _root = booking_lines(booking, booking_head(booking))
+    header, lines, _root = booking_lines(booking, booking_head(booking))
     sites = {booking.document.site_id}
     sites.update(
         int(line["destination_site_id"])
-        for line in lines
+        for line in [header, *lines]
         if line.get("destination_site_id") is not None
     )
     cells = {(site_id, booking.brand_id) for site_id in sites}
@@ -751,6 +751,19 @@ BOOKING_STATES = frozenset({"draft", "confirmed", "short_closed", "cancelled"})
 class GoodsBookingAccessPreviewView(GoodsAPIView):
     """Return field decisions for an unsaved booking's selected stable scope."""
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter("site_id", int, required=False),
+            OpenApiParameter("brand_id", int, required=True),
+            OpenApiParameter("line_site_ids", str, required=False),
+        ],
+        responses={200: {"type": "object", "required": ["readable_fields", "writable_fields"],
+                         "properties": {key: {"type": "array", "items": {"type": "string", "enum": ["cost"]}}
+                                        for key in ("readable_fields", "writable_fields")},
+                         "additionalProperties": False},
+                   400: REFUSAL_RESPONSE, 401: REFUSAL_RESPONSE,
+                   403: REFUSAL_RESPONSE, 404: REFUSAL_RESPONSE},
+    )
     def get(self, request: Request) -> Response:
         access = self.access(request)
         params = check_query(request, {"site_id", "brand_id", "line_site_ids"})
@@ -766,7 +779,11 @@ class GoodsBookingAccessPreviewView(GoodsAPIView):
             tenant_id=access.tenant_id, pk=site, is_active=True
         ).exists() for site in site_ids):
             raise Refusal("NOT_FOUND", "That site was not found.")
-        return Response(_booking_field_access(access, site_ids, brand_id))
+        body = _booking_field_access(access, site_ids, brand_id)
+        access.revalidate_delivery()
+        response = Response(body)
+        response["Cache-Control"] = "no-store, private"
+        return response
 
 
 class GoodsBookingListCreateView(GoodsAPIView):
@@ -964,7 +981,11 @@ class GoodsBookingDetailView(GoodsAPIView):
                     "VERSION_NOT_FOUND", "That booking version does not exist.", status=404
                 )
         inp.text(params.get("line_cursor"), "line_cursor", 200)
-        return Response(_booking_resource(access, booking, progress=True, params=params))
+        body = _booking_resource(access, booking, progress=True, params=params)
+        access.revalidate_delivery()
+        response = Response(body)
+        response["Cache-Control"] = "no-store, private"
+        return response
 
     @extend_schema(request={"application/json": BOOKING_UPDATE_REQUEST}, responses=_responses(200, BOOKING_DOCUMENT_RESOURCE, _WRITE_REFUSALS))
     def patch(self, request: Request, pk: uuid.UUID) -> Response:

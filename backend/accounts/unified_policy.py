@@ -36,6 +36,7 @@ _register("setup", CAP_MANAGE, "org.tenant.manage org.entity.manage org.site.man
 _register("setup", CAP_OPERATE, "config.draft product.master.manage product.master.propose crosswalk.manage crosswalk.propose identity.resolve vendor.manage")
 _register("booking", CAP_OPERATE, "booking.manage arrival.no_booking.confirm")
 _register("receive_goods", CAP_VIEW, "pt.view")
+_register("receive_goods", CAP_OPERATE, "opening.import.stage")
 _register("receive_goods", CAP_OPERATE, "receive.arrival label.print stock.accept pt.reversal.request")
 _register("receive_goods", CAP_APPROVE, "receipt.counter_grn.approve receipt.disposition.decide pt.prepare pt.prepare.opening pt.approve.receipt pt.approve.opening pt.approve.transfer pt.reversal.approve opening.manifest.approve opening.variance.approve")
 _register("stock", CAP_VIEW, "stock.view")
@@ -141,6 +142,7 @@ def serialise_workflow_levels(levels: Mapping[str, tuple[str, str]]) -> dict[str
 # approved six-role baseline assigns.  A broader section rung cannot turn a
 # central administrator into the receiver at a store or a PT preparer.
 INITIAL_STEP_ROLES: dict[str, frozenset[str]] = {
+    "opening.import.stage": frozenset({"owner", "store_person", "warehouse"}),
     "receive.arrival": frozenset({"store_person", "warehouse"}),
     "stock.accept": frozenset({"store_person", "warehouse"}),
     "pt.prepare": frozenset({"warehouse"}),

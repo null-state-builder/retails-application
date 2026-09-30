@@ -22,6 +22,9 @@
 // the one event it exists to detect. It has to sit outside, and `localStorage` is
 // the only other durable place a browser offers. See `guard.ts`.
 
+import { prepareOnline, submitOnline, unfinishedSubmission, reviseRejected } from "./online";
+import type { PendingOnlineBill } from "./db";
+
 import { financialYear } from "../lib/fiscal";
 
 import {
@@ -33,7 +36,7 @@ import {
   unsentFor,
 } from "./consent";
 import type { ConsentState, QueuedConsent, TillConsentWording } from "./consent";
-import { META, readMeta, tillDb, writeMeta } from "./db";
+import { META, hasUnscopedDatabase, readMeta, tillDb, writeMeta } from "./db";
 import type { TillNumbering } from "./invoiceNumbers";
 import { alterationChargeFrom } from "./alteration";
 import type { HeldBill, TillDb } from "./db";
@@ -66,7 +69,7 @@ import {
   syncDown,
 } from "./sync";
 import type { TillDeviceState } from "./sync";
-import { httpTransport } from "./transport";
+import { httpTransport, TillHttpError } from "./transport";
 import type { TillTransport } from "./transport";
 import { beginPause, isRefusal, movePause, positionNow, readPause } from "./pause";
 import type {
@@ -98,6 +101,12 @@ export interface TillCounts {
 
 export interface TillSnapshot {
   storeCode: string;
+  onlineAlpha: boolean;
+  /** Alpha cached data is exposed only after this session receives its projection. */
+  liveAccessVerified: boolean;
+  onlinePending: PendingOnlineBill | null;
+  devicePaired: boolean;
+  legacyStorageQuarantined: boolean;
   /** The engine has read the local database at least once. Until then a screen
    *  knows nothing, which is not the same as knowing the till is empty. */
   ready: boolean;
@@ -214,6 +223,11 @@ const EMPTY_COUNTS: TillCounts = {
 function initialSnapshot(storeCode: string): TillSnapshot {
   return {
     storeCode,
+    onlineAlpha: false,
+    liveAccessVerified: false,
+    onlinePending: null,
+    devicePaired: false,
+    legacyStorageQuarantined: false,
     ready: false,
     status: { colour: "amber", label: "Starting", reason: "Opening the counter…" },
     pending: 0,
@@ -270,14 +284,26 @@ export class TillEngine {
    *  interrupted half way through stops touching the engine it no longer owns. */
   private generation = 0;
   readonly storeCode: string;
+  readonly storageScope: string;
   private readonly transport: TillTransport;
+  private readonly initialOnlineAlpha: boolean;
+  private liveAccessVerified = false;
 
-  constructor(storeCode: string, transport: TillTransport = httpTransport, lock?: CounterLock) {
+  constructor(
+    storeCode: string,
+    transport: TillTransport = httpTransport,
+    lock?: CounterLock,
+    storageScope = storeCode,
+    onlineAlpha = false,
+  ) {
     this.storeCode = storeCode;
+    this.storageScope = storageScope;
     this.transport = transport;
-    this.db = tillDb(storeCode);
-    this.lock = lock ?? new CounterLock(storeCode);
+    this.initialOnlineAlpha = onlineAlpha;
+    this.db = tillDb(storageScope);
+    this.lock = lock ?? new CounterLock(storageScope);
     this.snapshot = initialSnapshot(storeCode);
+    this.snapshot.onlineAlpha = onlineAlpha;
   }
 
   // -- what React reads ------------------------------------------------------
@@ -337,9 +363,14 @@ export class TillEngine {
 
     await askForPersistentStorage();
     if (generation !== this.generation) return;
+    if (this.storageScope !== this.storeCode) {
+      const legacyStorageQuarantined = await hasUnscopedDatabase(this.storeCode);
+      if (generation !== this.generation) return;
+      this.publish({ legacyStorageQuarantined });
+    }
     await this.lock.acquire();
     if (generation !== this.generation) return;
-    this.storageLost = await detectStorageLoss(this.db, this.storeCode);
+    this.storageLost = await detectStorageLoss(this.db, this.storageScope);
     if (generation !== this.generation) return;
     await this.refresh();
     if (generation !== this.generation) return;
@@ -444,6 +475,23 @@ export class TillEngine {
     this.refuseIfBlocked();
     await this.refuseIfOnlineOnly(draft, context.originalBuyerGstin ?? "");
     await this.refuseIfSplitOff(draft);
+    if ((await readMeta(this.db, META.sellingMode, "historical")) === "online_alpha") {
+      if (!navigator.onLine) throw new Error("Connect to the network before issuing a bill.");
+      const pending = await prepareOnline(this.db, this.storeCode, draft);
+      try {
+        const bill = await submitOnline(this.db, this.transport, pending);
+        // Accepted stock is authoritative; a failed refresh cannot undo issue.
+        const refreshError = await this.pullDataset();
+        if (refreshError) this.publish({ lastError: refreshError });
+        await this.refresh();
+        return bill;
+      } catch (error) {
+        this.closeOnAccessDenial(error);
+        throw error;
+      } finally {
+        await this.refresh();
+      }
+    }
     const bill = await commitBill(this.db, this.storeCode, draft);
     await this.refresh();
     void this.pushAndRefresh();
@@ -464,6 +512,11 @@ export class TillEngine {
    */
   async reenterFromPaper(draft: BillDraft, seq: number): Promise<QueuedBill> {
     this.refuseIfBlocked();
+    if ((await readMeta(this.db, META.sellingMode, "historical")) === "online_alpha") {
+      throw new Error(
+        "This online store cannot issue or upload a new paper bill. Owner or Admin must review any historical recovery.",
+      );
+    }
     const bill = await reenterPaperBill(this.db, this.storeCode, draft, seq);
     await this.refresh();
     void this.pushAndRefresh();
@@ -540,9 +593,10 @@ export class TillEngine {
     try {
       await forceBootstrap(this.db);
       await syncDown(this.db, this.transport);
+      this.liveAccessVerified = true;
       await reconcileRegister(this.db, this.transport);
       this.storageLost = false;
-      markTillSeen(this.storeCode);
+      markTillSeen(this.storageScope);
       await writeMeta(this.db, META.bootstrapDay, new Date().toISOString().slice(0, 10));
       await this.refresh();
     } finally {
@@ -710,6 +764,7 @@ export class TillEngine {
     try {
       const identity = await this.transport.registerTill(options);
       await writeMeta(this.db, META.till, deviceStateFrom(identity));
+      if (identity.device_token) await writeMeta(this.db, META.deviceToken, identity.device_token);
       // A brand-new counter starts with no window at all, so the registration is
       // followed straight away by the renewal that opens one. Two calls rather
       // than one because they answer two different questions - "which device is
@@ -839,6 +894,7 @@ export class TillEngine {
   private async pullDataset(): Promise<string> {
     return this.attempt(async () => {
       await syncDown(this.db, this.transport);
+      this.liveAccessVerified = true;
       // A dataset that landed is proof the database is alive, and the marker is
       // what a later session compares against to notice it was thrown away.
       //
@@ -846,7 +902,7 @@ export class TillEngine {
       // purpose. A sync lifting the block on its own would move the counter
       // behind somebody's back, and the whole point of the red light is that a
       // person is told which number this till has jumped to.
-      if (!this.storageLost) markTillSeen(this.storeCode);
+      if (!this.storageLost) markTillSeen(this.storageScope);
     });
   }
 
@@ -898,8 +954,60 @@ export class TillEngine {
       await work();
       return "";
     } catch (error) {
+      this.closeOnAccessDenial(error);
       return messageOf(error);
     }
+  }
+
+  private closeOnAccessDenial(error: unknown): void {
+    if (
+      error instanceof TillHttpError &&
+      (error.status === 401 ||
+        (error.status === 403 &&
+          [
+            "AUTH_REQUIRED",
+            "FIELD_DENIED",
+            "ACTION_DENIED",
+            "SCOPE_DENIED",
+            "TILL_SCOPE",
+            "HTTP_403",
+          ].includes(error.code)))
+    ) {
+      this.liveAccessVerified = false;
+      this.publish({ liveAccessVerified: false, lastError: messageOf(error) });
+    }
+  }
+
+  async pairDevice(token: string): Promise<void> {
+    if (!/^[a-f0-9]{32,64}$/.test(token.trim()))
+      throw new Error("Enter the pairing code supplied by your administrator.");
+    if (!this.transport.pairTill) throw new Error("Counter pairing is unavailable.");
+    await this.transport.pairTill(token.trim());
+    await writeMeta(this.db, META.deviceToken, token.trim());
+    await this.refresh();
+  }
+
+  async retryOnline(): Promise<QueuedBill> {
+    const pending = await unfinishedSubmission(this.db);
+    if (!pending) throw new Error("No unresolved submission remains.");
+    try {
+      const bill = await submitOnline(this.db, this.transport, pending);
+      const refreshError = await this.pullDataset();
+      if (refreshError) this.publish({ lastError: refreshError });
+      return bill;
+    } catch (error) {
+      this.closeOnAccessDenial(error);
+      throw error;
+    } finally {
+      await this.refresh();
+    }
+  }
+
+  async reviseOnline(): Promise<void> {
+    await reviseRejected(this.db);
+    const refusal = await this.pullDataset();
+    await this.refresh();
+    if (refusal) throw new Error(refusal);
   }
 
   /** Re-read everything a screen shows from the local database. Cheap - these
@@ -959,6 +1067,11 @@ export class TillEngine {
     const paperEntered = await paperEntries(this.db, financialYear());
     const nextNumber = await previewNextNumber(this.db, this.storeCode);
     const online = navigator.onLine;
+    const onlineAlpha =
+      this.initialOnlineAlpha ||
+      (await readMeta(this.db, META.sellingMode, "historical")) === "online_alpha";
+    const onlinePending = (await unfinishedSubmission(this.db)) ?? null;
+    const devicePaired = Boolean(await readMeta(this.db, META.deviceToken, ""));
     const datasetReady = Boolean(syncedAt);
     // Re-read rather than remembered: a second tab closing frees the counter, and
     // the ask is cheap. `acquire` is a no-op once this tab holds it.
@@ -997,6 +1110,10 @@ export class TillEngine {
       syncedAt,
       nextNumber,
       online,
+      onlineAlpha,
+      liveAccessVerified: this.liveAccessVerified,
+      onlinePending,
+      devicePaired,
       datasetReady,
       storageLost: this.storageLost,
       lockHeld,

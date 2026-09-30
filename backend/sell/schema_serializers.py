@@ -14,11 +14,16 @@ from sell.serializers import ContinuityFlagRowSerializer, IrnQueueRowSerializer
 
 
 class SellPolicyReadSerializer(serializers.Serializer[dict[str, Any]]):
+    version = serializers.CharField(required=False)
     manual_discount_cap_percent = serializers.CharField()
     manual_discount_on_offer_lines = serializers.BooleanField()
 
 
 class TillStateReadSerializer(serializers.Serializer[dict[str, Any]]):
+    tenant_id = serializers.CharField(required=False)
+    site_id = serializers.CharField(required=False)
+    device_id = serializers.CharField(required=False)
+    selling_mode = serializers.ChoiceField(choices=["historical", "online_alpha"], required=False)
     registered = serializers.BooleanField()
     counter_id = serializers.CharField(allow_blank=True)
     series_prefix = serializers.CharField(allow_blank=True)
@@ -36,6 +41,15 @@ class TillStateReadSerializer(serializers.Serializer[dict[str, Any]]):
 
 class TillRegisteredReadSerializer(TillStateReadSerializer):
     device_token = serializers.CharField()
+
+
+class TillPairWriteSerializer(serializers.Serializer[dict[str, Any]]):
+    pairing_code = serializers.RegexField(r"^[a-f0-9]{32,64}$")
+
+
+class TillPairReadSerializer(serializers.Serializer[dict[str, Any]]):
+    paired = serializers.BooleanField()
+    device_id = serializers.CharField()
 
 
 class TillAllocationReleasedReadSerializer(serializers.Serializer[dict[str, Any]]):
@@ -85,12 +99,16 @@ class StoreFlagsReadSerializer(serializers.Serializer[dict[str, Any]]):
 
 
 class DatasetStoreReadSerializer(serializers.Serializer[dict[str, Any]]):
+    tenant_id = serializers.CharField()
+    site_id = serializers.CharField()
     code = serializers.CharField()
     gstin = serializers.CharField()
     state_code = serializers.CharField()
 
 
 class DatasetItemReadSerializer(serializers.Serializer[dict[str, Any]]):
+    sku_id = serializers.CharField(required=False)
+    brand_id = serializers.IntegerField(allow_null=True, required=False)
     barcode = serializers.CharField()
     season = serializers.CharField()
     design = serializers.CharField()
@@ -262,6 +280,8 @@ class DatasetDeletedReadSerializer(serializers.Serializer[dict[str, Any]]):
 
 
 class DatasetReadSerializer(serializers.Serializer[dict[str, Any]]):
+    commercial_revision = serializers.CharField()
+    selling_mode = serializers.ChoiceField(choices=["historical", "online_alpha"])
     """Current full/delta till dataset, including typed nested money-free rows."""
 
     cursor = serializers.DateTimeField()

@@ -70,6 +70,8 @@ export interface User {
    *  and nowhere else. */
   has_till_pin?: boolean;
   may_hold_till_pin?: boolean;
+  /** Setting your own credential never supplies exception approval authority. */
+  may_set_till_pin?: boolean;
 }
 
 /** The sole session contract. Display hints shape the UI; the API still checks
@@ -86,6 +88,7 @@ export interface GoodsSession {
     must_change_password: boolean;
     has_till_pin?: boolean;
     may_hold_till_pin?: boolean;
+    may_set_till_pin?: boolean;
   };
   assignments: {
     id: string;
@@ -136,6 +139,10 @@ export function readSession(value: unknown): SessionPayload {
     session.contract_version !== "access-v2" ||
     typeof session.policy_version !== "string" ||
     !session.user ||
+    (session.user.may_set_till_pin !== undefined &&
+      typeof session.user.may_set_till_pin !== "boolean") ||
+    (session.user.may_hold_till_pin !== undefined &&
+      typeof session.user.may_hold_till_pin !== "boolean") ||
     !Array.isArray(session.assignments) ||
     !Array.isArray(session.sections) ||
     !session.capabilities ||
@@ -299,6 +306,7 @@ export function shellUser(session: GoodsSession): User {
     assigned_brands: choices.brands,
     has_till_pin: Boolean(session.user.has_till_pin),
     may_hold_till_pin: Boolean(session.user.may_hold_till_pin),
+    may_set_till_pin: Boolean(session.user.may_set_till_pin),
   };
 }
 

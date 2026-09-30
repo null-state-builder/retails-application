@@ -444,7 +444,10 @@ const GOODS_APPROVAL_GUIDE: Record<string, GoodsApprovalGuide> = {
 
 /** The actions a goods approval can ask for. Holding one of them is what makes
  *  the goods inbox worth asking for at all, so nobody else sends the request. */
-export const GOODS_APPROVAL_ACTIONS: readonly string[] = Object.keys(GOODS_APPROVAL_GUIDE);
+export const GOODS_APPROVAL_ACTIONS: readonly string[] = [
+  ...Object.keys(GOODS_APPROVAL_GUIDE),
+  "count.review",
+];
 
 export function holdsGoodsApprovals(session: { display_actions: string[] } | null): boolean {
   return GOODS_APPROVAL_ACTIONS.some((action) => session?.display_actions?.includes(action));
@@ -470,11 +473,14 @@ function isNewItemProposal(a: Pick<ApprovalDTO, "subject_kind" | "subject_id">):
 export function goodsApprovalView(
   a: Pick<ApprovalDTO, "requested_action" | "subject_kind" | "subject_id" | "parent_document">,
 ): GoodsApprovalView {
-  const guide = GOODS_APPROVAL_GUIDE[a.requested_action] ?? {
-    topic: "stock" as const,
-    label: "Approval",
-    screen: "/action-needed?show=approvals",
-  };
+  const guide =
+    a.requested_action === "count.review" && a.subject_kind === "soh_reconciliation"
+      ? { topic: "stock" as const, label: "SOH inventory difference", screen: "/goods/opening" }
+      : (GOODS_APPROVAL_GUIDE[a.requested_action] ?? {
+          topic: "stock" as const,
+          label: "Approval",
+          screen: "/action-needed?show=approvals",
+        });
   // The movements screen opens one movement by id; its release request names
   // that movement document as its subject. A new item a PT proposed (its style
   // or its SKU) is confirmed or rejected under PT Work -> Mapping rules, the

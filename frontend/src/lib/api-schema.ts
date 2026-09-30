@@ -212,6 +212,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/admin/registration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        get: operations["auth_admin_registration_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/admin/roles": {
         parameters: {
             query?: never;
@@ -582,24 +599,12 @@ export interface paths {
         };
         get?: never;
         /**
-         * @description Set your own counter PIN (#182). This endpoint writes only your own.
+         * @description Set only your own personal counter credential after password confirmation.
          *
-         *     Self-service: the caller proves who they are with their own password and the
-         *     row written is their own. Admin may also set or clear a manager's PIN, and it
-         *     works at once, but on its own endpoints (`GoodsUserTillPinSetView`,
-         *     `GoodsUserTillPinResetView`, store operations baseline B76) - see "Who sets
-         *     one" in `accounts/till_pin.py`.
-         *
-         *     Not a `PATCH` on the user admin endpoint either: that surface is the
-         *     two-administrator access-change path (`PendingAccessChangeMixin`), and a
-         *     person changing their own credential is not an access change waiting on
-         *     somebody else's approval - it is the same shape as changing a password.
-         *
-         *     Gated on the rung the PIN actually authorises - `sell: approve`, the second
-         *     eye on selling - so the access table decides who may hold one (#94's one
-         *     write gate). `may_hold_till_pin` then asks the half a section gate cannot:
-         *     whether this person's boundary is stores at all. A network administrator
-         *     whose matrix cell happens to reach the rung is not one of a counter's people.
+         *     One selected-store/all-brand Store Person operating assignment is required.
+         *     Setting a PIN grants no exception authority: decision consumers retain the
+         *     separate ``may_hold_till_pin`` approval eligibility and live decision gates.
+         *     Administrator-assisted PIN changes retain their separately governed route.
          */
         put: operations["auth_me_till_pin_update"];
         post?: never;
@@ -620,6 +625,39 @@ export interface paths {
         put?: never;
         /** @description E003: rotate the session token; the 12-hour absolute life never moves. */
         post: operations["auth_refresh_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/registration": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["auth_registration_retrieve"];
+        put?: never;
+        post: operations["auth_registration_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["auth_registration_partial_update"];
+        trace?: never;
+    };
+    "/api/auth/registration/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Without a hash, authenticate to inspect; with a hash, confirm that exact summary. */
+        post: operations["auth_registration_confirm_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1270,6 +1308,23 @@ export interface paths {
         put?: never;
         /** @description E110: the C-BUY confirmation - numbered BKG, frozen lines, no stock or GL effect. */
         post: operations["goods_v1_bookings_request_approval_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goods-v1/bookings/access-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Return field decisions for an unsaved booking's selected stable scope. */
+        get: operations["goods_v1_bookings_access_preview_retrieve"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2865,6 +2920,24 @@ export interface paths {
         patch: operations["goods_v1_masters_stores_partial_update"];
         trace?: never;
     };
+    "/api/goods-v1/masters/stores/{id}/counter": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        get: operations["goods_v1_masters_stores_counter_retrieve"];
+        put?: never;
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        post: operations["goods_v1_masters_stores_counter_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/goods-v1/masters/stores/{id}/readiness": {
         parameters: {
             query?: never;
@@ -3716,6 +3789,57 @@ export interface paths {
         put?: never;
         /** @description Reject one suggestion, saying why (audited). Nothing is requested. */
         post: operations["goods_v1_outbound_size_balancing_reject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goods-v1/outbound/soh-reconciliations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        post: operations["goods_v1_soh_reconciliation_start"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goods-v1/outbound/soh-reconciliations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        get: operations["goods_v1_soh_reconciliation_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goods-v1/outbound/soh-reconciliations/{id}/{operation}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        post: operations["goods_v1_soh_reconciliation_mutate"];
         delete?: never;
         options?: never;
         head?: never;
@@ -4720,6 +4844,91 @@ export interface paths {
         put?: never;
         /** @description E230. */
         post: operations["goods_v1_ptmapper_review_resolve_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goods-v1/ptmapper/soh-imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        get: operations["goods_v1_soh_import_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goods-v1/ptmapper/soh-imports/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        get: operations["goods_v1_soh_import_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goods-v1/ptmapper/soh-imports/{id}/{operation}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        post: operations["goods_v1_soh_import_mutate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goods-v1/ptmapper/soh-imports/{id}/rows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        get: operations["goods_v1_soh_import_rows"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goods-v1/ptmapper/soh-imports/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        post: operations["goods_v1_soh_import_upload"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5999,6 +6208,23 @@ export interface paths {
          *     who want one store ask for it by name with `?store=`.
          */
         put: operations["masters_store_targets_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/masters/store-targets/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Money-scoped location captions, without borrowing Setup authority. */
+        get: operations["masters_store_targets_locations_list"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -8792,6 +9018,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sell/sales/finalise-online": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Issue only after current authority, device, price, stock and tax agree. */
+        post: operations["sell_sales_finalise_online_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sell/saved-sizes": {
         parameters: {
             query?: never;
@@ -9045,6 +9288,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sell/till/pair": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Verify possession of the one-time pairing code against the active device. */
+        post: operations["sell_till_pair_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sell/till/register": {
         parameters: {
             query?: never;
@@ -9220,9 +9480,10 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * @description Net stock on hand (Σqty > 0) grouped by SKU / brand / store, served from the
-         *     **materialised** `StockOnHand` projection (maintained inside each post/reverse,
-         *     rebuildable via `manage.py rebuild_stock_on_hand`).
+         * @description Current scoped physical stock, grouped by stable SKU / brand / store.
+         *
+         *     Online GOODS_V1 stores read their canonical journal projection; other stores
+         *     retain the materialised StockOnHand source maintained by their own writer.
          *
          *     Large result sets are capped to `MAX_LINES` for payload safety, but the true
          *     line count and a `truncated` flag are ALWAYS reported — the previous silent
@@ -10952,6 +11213,31 @@ export interface components {
          * @enum {string}
          */
         ClosedReasonEnum: "fixed" | "rule_changed" | "sold_out" | "no_rule" | "switched_off" | "not_checked";
+        CompanyInput: {
+            code: string;
+            name: string;
+            legal_name: string;
+            pan: string;
+            gstin: string;
+            state_code: string;
+            state_name: string;
+            billing_address: string;
+            /** @default Asia/Kolkata */
+            timezone: string;
+            /** @default INR */
+            currency: string;
+            /** @default en-IN */
+            locale: string;
+            /** @default IN */
+            country: string;
+        };
+        ConfirmationInput: {
+            /** Format: email */
+            email: string;
+            temporary_password: string;
+            summary_hash?: string;
+            acknowledged?: boolean;
+        };
         /**
          * @description * `manual` - manual
          *     * `connected` - connected
@@ -11218,6 +11504,25 @@ export interface components {
          * @enum {string}
          */
         CountWorkflowStatusEnum: "open" | "submitted" | "closed";
+        CounterSetupRead: {
+            site_id: number;
+            revision: number;
+            registered: boolean;
+            device_id: string | null;
+            counter_id: string | null;
+            device_token?: string;
+            token_issued?: boolean;
+        };
+        CounterSetupWrite: {
+            /** Format: uuid */
+            command_id: string;
+            contract_version: components["schemas"]["ContractVersionEnum"];
+            expected_revision: number;
+            /** @default false */
+            replace: boolean;
+            /** @default  */
+            reason: string;
+        };
         /**
          * @description Recording the brand's acknowledgement against a posted return.
          *
@@ -11282,13 +11587,9 @@ export interface components {
             /** @description The GSTIN it was built from. */
             was_gstin: string;
         };
-        /**
-         * @description The customer display's permit (ticket 09): the store it may show, nothing else.
-         *
-         *     The bill itself never comes from the server; the till beside the display
-         *     sends it through the browser.
-         */
         CustomerDisplayPermit: {
+            channel_scope: string;
+            online_alpha: boolean;
             store_code: string;
         };
         CustomerEraseRequest: {
@@ -11477,6 +11778,8 @@ export interface components {
             effective_from: string;
         };
         DatasetItemRead: {
+            sku_id?: string;
+            brand_id?: number | null;
             barcode: string;
             season: string;
             design: string;
@@ -11518,13 +11821,15 @@ export interface components {
             priority: number;
         };
         DatasetPolicyRead: {
+            version?: string;
             manual_discount_cap_percent: string;
             manual_discount_on_offer_lines: boolean;
             return_window_days: number;
             cached_bill_days: number;
         };
-        /** @description Current full/delta till dataset, including typed nested money-free rows. */
         DatasetRead: {
+            commercial_revision: string;
+            selling_mode: components["schemas"]["SellingModeEnum"];
             /** Format: date-time */
             cursor: string;
             full: boolean;
@@ -11575,6 +11880,8 @@ export interface components {
             qty: number;
         };
         DatasetStoreRead: {
+            tenant_id: string;
+            site_id: string;
             code: string;
             gstin: string;
             state_code: string;
@@ -12042,6 +12349,17 @@ export interface components {
          * @enum {string}
          */
         FileTypeEnum: "xlsx" | "csv";
+        FirstStoreInput: {
+            code: string;
+            name: string;
+            city: string;
+            address: string;
+            setup_kind: components["schemas"]["SetupKindEnum"];
+            /** @default  */
+            source_system: string;
+            /** @default 1 */
+            counter_count: number;
+        };
         /**
          * @description * `reissue_pt` - reissue_pt
          *     * `no_audited_path` - no_audited_path
@@ -12394,6 +12712,13 @@ export interface components {
         HeldSize: {
             size: string;
             qty: number;
+        };
+        InitialPersonInput: {
+            name: string;
+            /** Format: email */
+            email: string;
+            staff_code: string;
+            temporary_password: string;
         };
         InventoryReport: {
             report: string;
@@ -13257,6 +13582,16 @@ export interface components {
             readonly legal_entity_name?: string;
             is_active?: boolean;
         };
+        PatchedRegistrationEditInput: {
+            /** Format: uuid */
+            command_id?: string;
+            company?: components["schemas"]["CompanyInput"];
+            store?: components["schemas"]["FirstStoreInput"];
+            owner?: components["schemas"]["InitialPersonInput"];
+            admin?: components["schemas"]["InitialPersonInput"];
+            proposed_team?: components["schemas"]["ProposedPersonInput"][];
+            current_owner_password?: string;
+        };
         PatchedSeason: {
             readonly id?: number;
             code?: string;
@@ -13673,6 +14008,13 @@ export interface components {
             payment_days?: number | null;
             note: string;
         };
+        ProposedPersonInput: {
+            name: string;
+            /** Format: email */
+            email: string;
+            staff_code: string;
+            role_code: components["schemas"]["RoleCodeEnum"];
+        };
         /**
          * @description * `bill` - bill
          *     * `offers` - offers
@@ -13756,6 +14098,40 @@ export interface components {
             holes: number[];
             hole_count: number;
             series_open: boolean;
+        };
+        RegistrationInput: {
+            /** Format: uuid */
+            command_id: string;
+            company: components["schemas"]["CompanyInput"];
+            store: components["schemas"]["FirstStoreInput"];
+            owner: components["schemas"]["InitialPersonInput"];
+            admin: components["schemas"]["InitialPersonInput"];
+            proposed_team?: components["schemas"]["ProposedPersonInput"][];
+        };
+        RegistrationResult: {
+            state: components["schemas"]["RegistrationResultStateEnum"];
+            summary?: unknown;
+            summary_hash?: string;
+            revision?: number;
+            confirmed?: {
+                [key: string]: boolean;
+            };
+            confirming_role?: string;
+            first_store_id?: number | null;
+            login_url: string;
+            setup_complete?: boolean;
+        };
+        /**
+         * @description * `awaiting_confirmation` - awaiting_confirmation
+         *     * `registered` - registered
+         * @enum {string}
+         */
+        RegistrationResultStateEnum: "awaiting_confirmation" | "registered";
+        RegistrationState: {
+            available: boolean;
+            pending_confirmation: boolean;
+            message: string;
+            synthetic: boolean;
         };
         ReportGrouping: {
             key: string;
@@ -14065,6 +14441,16 @@ export interface components {
          */
         RewardTypeEnum: "pct_off" | "amt_off" | "item_free" | "fixed_price" | "gift";
         /**
+         * @description * `accounts` - accounts
+         *     * `brand_manager` - brand_manager
+         *     * `it_admin` - it_admin
+         *     * `owner` - owner
+         *     * `store_person` - store_person
+         *     * `warehouse` - warehouse
+         * @enum {string}
+         */
+        RoleCodeEnum: "accounts" | "brand_manager" | "it_admin" | "owner" | "store_person" | "warehouse";
+        /**
          * @description * `transfer` - Transfer request
          *     * `booking` - Booking line
          * @enum {string}
@@ -14287,6 +14673,7 @@ export interface components {
         SaleWrite: {
             /** Format: uuid */
             idempotency_uuid: string;
+            commercial_revision?: string;
             store: string;
             fy: string;
             till_seq: number;
@@ -14530,6 +14917,7 @@ export interface components {
          */
         SeasonStatusEnum: "open" | "eoss" | "closed";
         SellPolicyRead: {
+            version?: string;
             manual_discount_cap_percent: string;
             manual_discount_on_offer_lines: boolean;
         };
@@ -14546,6 +14934,12 @@ export interface components {
             /** Format: decimal */
             target_pct: string;
         };
+        /**
+         * @description * `historical` - historical
+         *     * `online_alpha` - online_alpha
+         * @enum {string}
+         */
+        SellingModeEnum: "historical" | "online_alpha";
         Series: {
             code: string;
             name: string;
@@ -14561,6 +14955,12 @@ export interface components {
             new_format_from: string;
             till_block_size: number;
         };
+        /**
+         * @description * `new` - new
+         *     * `existing` - existing
+         * @enum {string}
+         */
+        SetupKindEnum: "new" | "existing";
         ShrinkageColumn: {
             key: string;
             label: string;
@@ -15547,6 +15947,12 @@ export interface components {
              */
             target_paise: number;
         };
+        /** @description Only the location identity needed to caption a scoped target grid. */
+        StoreTargetLocation: {
+            readonly id: number;
+            code: string;
+            name: string;
+        };
         /**
          * @description What a PUT is allowed to say. Deliberately not a `ModelSerializer`:
          *
@@ -15901,6 +16307,13 @@ export interface components {
             blocks: components["schemas"]["TillNumberBlock"][];
             problem: string;
         };
+        TillPairRead: {
+            paired: boolean;
+            device_id: string;
+        };
+        TillPairWrite: {
+            pairing_code: string;
+        };
         /**
          * @description Registering the device this store bills from (OPS-09, PRD §10.1).
          *
@@ -15917,6 +16330,10 @@ export interface components {
             reason: string;
         };
         TillRegisteredRead: {
+            tenant_id?: string;
+            site_id?: string;
+            device_id?: string;
+            selling_mode?: components["schemas"]["SellingModeEnum"];
             registered: boolean;
             counter_id: string;
             series_prefix: string;
@@ -15946,6 +16363,10 @@ export interface components {
             resumed_at: string | null;
         };
         TillStateRead: {
+            tenant_id?: string;
+            site_id?: string;
+            device_id?: string;
+            selling_mode?: components["schemas"]["SellingModeEnum"];
             registered: boolean;
             counter_id: string;
             series_prefix: string;
@@ -16919,6 +17340,25 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    auth_admin_registration_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistrationResult"];
                 };
             };
         };
@@ -19505,6 +19945,10 @@ export interface operations {
                             display_name: string;
                             email: string | null;
                             has_till_pin?: boolean;
+                            /** @description May set this person's own credential; does not grant approval authority. */
+                            may_set_till_pin?: boolean;
+                            /** @description Separately eligible to decide counter exceptions under current scoped approval policy. */
+                            may_hold_till_pin?: boolean;
                             /** @description GSA-T03/ticket 03A: true while this login holds an administrator-issued temporary password. Until E239 replaces it, every route but this session's own lifecycle and E239 answers 403 PASSWORD_CHANGE_REQUIRED. */
                             must_change_password: boolean;
                         };
@@ -19672,6 +20116,10 @@ export interface operations {
                             display_name: string;
                             email: string | null;
                             has_till_pin?: boolean;
+                            /** @description May set this person's own credential; does not grant approval authority. */
+                            may_set_till_pin?: boolean;
+                            /** @description Separately eligible to decide counter exceptions under current scoped approval policy. */
+                            may_hold_till_pin?: boolean;
                             /** @description GSA-T03/ticket 03A: true while this login holds an administrator-issued temporary password. Until E239 replaces it, every route but this session's own lifecycle and E239 answers 403 PASSWORD_CHANGE_REQUIRED. */
                             must_change_password: boolean;
                         };
@@ -19831,6 +20279,10 @@ export interface operations {
                             display_name: string;
                             email: string | null;
                             has_till_pin?: boolean;
+                            /** @description May set this person's own credential; does not grant approval authority. */
+                            may_set_till_pin?: boolean;
+                            /** @description Separately eligible to decide counter exceptions under current scoped approval policy. */
+                            may_hold_till_pin?: boolean;
                             /** @description GSA-T03/ticket 03A: true while this login holds an administrator-issued temporary password. Until E239 replaces it, every route but this session's own lifecycle and E239 answers 403 PASSWORD_CHANGE_REQUIRED. */
                             must_change_password: boolean;
                         };
@@ -19918,6 +20370,108 @@ export interface operations {
                         };
                         retryable?: boolean;
                     };
+                };
+            };
+        };
+    };
+    auth_registration_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistrationState"];
+                };
+            };
+        };
+    };
+    auth_registration_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegistrationInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["RegistrationInput"];
+                "multipart/form-data": components["schemas"]["RegistrationInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistrationResult"];
+                };
+            };
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistrationResult"];
+                };
+            };
+        };
+    };
+    auth_registration_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedRegistrationEditInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedRegistrationEditInput"];
+                "multipart/form-data": components["schemas"]["PatchedRegistrationEditInput"];
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistrationResult"];
+                };
+            };
+        };
+    };
+    auth_registration_confirm_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmationInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["ConfirmationInput"];
+                "multipart/form-data": components["schemas"]["ConfirmationInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistrationResult"];
                 };
             };
         };
@@ -21922,6 +22476,10 @@ export interface operations {
                             [key: string]: unknown;
                         };
                         allowed_actions?: string[];
+                        field_access?: {
+                            readable_fields: string[];
+                            writable_fields: string[];
+                        };
                     };
                 };
             };
@@ -22099,6 +22657,10 @@ export interface operations {
                             };
                         };
                         allowed_actions?: string[];
+                        field_access?: {
+                            readable_fields: string[];
+                            writable_fields: string[];
+                        };
                     };
                 };
             };
@@ -22239,6 +22801,10 @@ export interface operations {
                             [key: string]: unknown;
                         };
                         allowed_actions?: string[];
+                        field_access?: {
+                            readable_fields: string[];
+                            writable_fields: string[];
+                        };
                     };
                 };
             };
@@ -22399,6 +22965,10 @@ export interface operations {
                             [key: string]: unknown;
                         };
                         allowed_actions?: string[];
+                        field_access?: {
+                            readable_fields: string[];
+                            writable_fields: string[];
+                        };
                     };
                 };
             };
@@ -22610,6 +23180,10 @@ export interface operations {
                             };
                         };
                         allowed_actions?: string[];
+                        field_access?: {
+                            readable_fields: string[];
+                            writable_fields: string[];
+                        };
                     };
                 };
             };
@@ -22828,6 +23402,10 @@ export interface operations {
                             [key: string]: unknown;
                         };
                         allowed_actions?: string[];
+                        field_access?: {
+                            readable_fields: string[];
+                            writable_fields: string[];
+                        };
                     };
                 };
             };
@@ -22985,6 +23563,10 @@ export interface operations {
                             [key: string]: unknown;
                         };
                         allowed_actions?: string[];
+                        field_access?: {
+                            readable_fields: string[];
+                            writable_fields: string[];
+                        };
                     };
                 };
             };
@@ -23079,6 +23661,92 @@ export interface operations {
                 };
             };
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_bookings_access_preview_retrieve: {
+        parameters: {
+            query: {
+                brand_id: number;
+                line_site_ids?: string;
+                site_id?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        readable_fields: "cost"[];
+                        writable_fields: "cost"[];
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -33708,6 +34376,7 @@ export interface operations {
                                     supplied_text?: string | null;
                                     unknown?: boolean;
                                 }[];
+                                no_discount?: boolean;
                             };
                             allowed_actions?: string[];
                         }[];
@@ -33803,6 +34472,7 @@ export interface operations {
                         supplied_text?: string | null;
                         unknown?: boolean;
                     }[];
+                    no_discount?: boolean;
                     /** Format: uuid */
                     originating_revision_id?: string;
                 };
@@ -33841,6 +34511,7 @@ export interface operations {
                                     supplied_text?: string | null;
                                     unknown?: boolean;
                                 }[];
+                                no_discount?: boolean;
                             };
                             allowed_actions?: string[];
                         };
@@ -33999,6 +34670,7 @@ export interface operations {
                                 supplied_text?: string | null;
                                 unknown?: boolean;
                             }[];
+                            no_discount?: boolean;
                         };
                         allowed_actions?: string[];
                     };
@@ -34094,6 +34766,7 @@ export interface operations {
                         supplied_text?: string | null;
                         unknown?: boolean;
                     }[];
+                    no_discount?: boolean;
                 };
             };
         };
@@ -34128,6 +34801,7 @@ export interface operations {
                                 supplied_text?: string | null;
                                 unknown?: boolean;
                             }[];
+                            no_discount?: boolean;
                         };
                         allowed_actions?: string[];
                     };
@@ -34294,6 +34968,7 @@ export interface operations {
                                 supplied_text?: string | null;
                                 unknown?: boolean;
                             }[];
+                            no_discount?: boolean;
                         };
                         allowed_actions?: string[];
                     };
@@ -35121,6 +35796,54 @@ export interface operations {
             };
         };
     };
+    goods_v1_masters_stores_counter_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CounterSetupRead"];
+                };
+            };
+        };
+    };
+    goods_v1_masters_stores_counter_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CounterSetupWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["CounterSetupWrite"];
+                "multipart/form-data": components["schemas"]["CounterSetupWrite"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CounterSetupRead"];
+                };
+            };
+        };
+    };
     goods_v1_masters_stores_readiness_retrieve: {
         parameters: {
             query?: never;
@@ -35158,6 +35881,11 @@ export interface operations {
                             opening_setup_ready?: boolean;
                             goods_ready?: boolean;
                             sell_ready?: boolean;
+                            /** @enum {string} */
+                            selling_mode?: "historical" | "online_alpha";
+                            selling_checks?: {
+                                [key: string]: unknown;
+                            }[];
                             non_trading_confirmed?: boolean;
                             checks?: {
                                 key?: string;
@@ -35250,7 +35978,7 @@ export interface operations {
                     contract_version: "goods-v1";
                     expected_revision: number;
                     /** @enum {string} */
-                    action: "approve_closed" | "approve_goods" | "approve_opening_setup" | "check" | "confirm_non_trading" | "revoke_goods" | "revoke_opening_setup" | "start_closing";
+                    action: "approve_closed" | "approve_goods" | "approve_opening_setup" | "approve_sell" | "check" | "confirm_non_trading" | "revoke_goods" | "revoke_opening_setup" | "revoke_sell" | "start_closing";
                     reason_code?: string;
                     /** Format: uuid */
                     evidence_id?: string;
@@ -35293,6 +36021,11 @@ export interface operations {
                             opening_setup_ready?: boolean;
                             goods_ready?: boolean;
                             sell_ready?: boolean;
+                            /** @enum {string} */
+                            selling_mode?: "historical" | "online_alpha";
+                            selling_checks?: {
+                                [key: string]: unknown;
+                            }[];
                             non_trading_confirmed?: boolean;
                             checks?: {
                                 key?: string;
@@ -47149,6 +47882,207 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SizeBalanceSuggestion"];
+                };
+            };
+        };
+    };
+    goods_v1_soh_reconciliation_start: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    /** Format: uuid */
+                    source_import_id: string;
+                    /** @enum {boolean} */
+                    full_store_export: true;
+                    /** @enum {boolean} */
+                    whole_store_physically_counted: true;
+                    /** @enum {boolean} */
+                    omissions_are_zero: true;
+                    reason_code: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        record_contract: "goods-v1";
+                        revision: number;
+                        /** @enum {string} */
+                        state: "frozen" | "submitted" | "closed" | "cancelled";
+                        content_hash: string;
+                        allowed_actions: string[];
+                        data: {
+                            /** Format: uuid */
+                            source_import_id?: string;
+                            site_id?: string;
+                            /** Format: date-time */
+                            cutoff_at?: string;
+                            /** Format: date-time */
+                            frozen_at?: string;
+                            number?: string | null;
+                            freeze_active?: boolean;
+                            /** Format: uuid */
+                            approval_request_id?: string | null;
+                            /** Format: uuid */
+                            journal_batch_id?: string | null;
+                            pending_owned_differences?: boolean;
+                            review?: {
+                                [key: string]: unknown;
+                            } | null;
+                            field_access?: {
+                                readable_fields?: string[];
+                                writable_fields?: string[];
+                            };
+                            history?: {
+                                [key: string]: unknown;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_soh_reconciliation_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        record_contract: "goods-v1";
+                        revision: number;
+                        /** @enum {string} */
+                        state: "frozen" | "submitted" | "closed" | "cancelled";
+                        content_hash: string;
+                        allowed_actions: string[];
+                        data: {
+                            /** Format: uuid */
+                            source_import_id?: string;
+                            site_id?: string;
+                            /** Format: date-time */
+                            cutoff_at?: string;
+                            /** Format: date-time */
+                            frozen_at?: string;
+                            number?: string | null;
+                            freeze_active?: boolean;
+                            /** Format: uuid */
+                            approval_request_id?: string | null;
+                            /** Format: uuid */
+                            journal_batch_id?: string | null;
+                            pending_owned_differences?: boolean;
+                            review?: {
+                                [key: string]: unknown;
+                            } | null;
+                            field_access?: {
+                                readable_fields?: string[];
+                                writable_fields?: string[];
+                            };
+                            history?: {
+                                [key: string]: unknown;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_soh_reconciliation_mutate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                operation: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    reviewed_hash?: string;
+                    reason?: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        record_contract: "goods-v1";
+                        revision: number;
+                        /** @enum {string} */
+                        state: "frozen" | "submitted" | "closed" | "cancelled";
+                        content_hash: string;
+                        allowed_actions: string[];
+                        data: {
+                            /** Format: uuid */
+                            source_import_id?: string;
+                            site_id?: string;
+                            /** Format: date-time */
+                            cutoff_at?: string;
+                            /** Format: date-time */
+                            frozen_at?: string;
+                            number?: string | null;
+                            freeze_active?: boolean;
+                            /** Format: uuid */
+                            approval_request_id?: string | null;
+                            /** Format: uuid */
+                            journal_batch_id?: string | null;
+                            pending_owned_differences?: boolean;
+                            review?: {
+                                [key: string]: unknown;
+                            } | null;
+                            field_access?: {
+                                readable_fields?: string[];
+                                writable_fields?: string[];
+                            };
+                            history?: {
+                                [key: string]: unknown;
+                            };
+                        };
+                    };
                 };
             };
         };
@@ -62646,6 +63580,9 @@ export interface operations {
                         next_cursor?: string | null;
                         /** Format: date-time */
                         as_of?: string;
+                        capabilities?: {
+                            manual_manifest?: boolean;
+                        };
                     };
                 };
             };
@@ -64665,6 +65602,329 @@ export interface operations {
                             [key: string]: unknown;
                         };
                         retryable?: boolean;
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_soh_import_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items?: {
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            record_contract: "goods-v1";
+                            revision: number;
+                            state: string;
+                            content_hash?: string;
+                            site_id: string;
+                            source_name: string;
+                            source_hash: string;
+                            /** Format: uuid */
+                            source_evidence_id?: string | null;
+                            allowed_actions: string[];
+                            data: {
+                                metadata?: {
+                                    [key: string]: unknown;
+                                };
+                                configuration?: {
+                                    [key: string]: unknown;
+                                };
+                                included_rows?: number;
+                                included_quantity?: number;
+                                excluded_stocked_rows?: number;
+                                verified_rows?: number;
+                                batch_count?: number;
+                                /** Format: uuid */
+                                approval_request_id?: string | null;
+                                requires_inventory_reconciliation?: boolean;
+                                /** Format: uuid */
+                                stock_reconciliation_id?: string | null;
+                                field_access?: {
+                                    readable_fields: string[];
+                                    writable_fields: string[];
+                                };
+                                batches?: {
+                                    index?: number;
+                                    /** Format: uuid */
+                                    manifest_id?: string;
+                                    row_count?: number;
+                                    quantity?: number;
+                                    manifest_state?: string;
+                                }[];
+                            };
+                        }[];
+                        next_cursor?: string | null;
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_soh_import_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        record_contract: "goods-v1";
+                        revision: number;
+                        state: string;
+                        content_hash?: string;
+                        site_id: string;
+                        source_name: string;
+                        source_hash: string;
+                        /** Format: uuid */
+                        source_evidence_id?: string | null;
+                        allowed_actions: string[];
+                        data: {
+                            metadata?: {
+                                [key: string]: unknown;
+                            };
+                            configuration?: {
+                                [key: string]: unknown;
+                            };
+                            included_rows?: number;
+                            included_quantity?: number;
+                            excluded_stocked_rows?: number;
+                            verified_rows?: number;
+                            batch_count?: number;
+                            /** Format: uuid */
+                            approval_request_id?: string | null;
+                            requires_inventory_reconciliation?: boolean;
+                            /** Format: uuid */
+                            stock_reconciliation_id?: string | null;
+                            field_access?: {
+                                readable_fields: string[];
+                                writable_fields: string[];
+                            };
+                            batches?: {
+                                index?: number;
+                                /** Format: uuid */
+                                manifest_id?: string;
+                                row_count?: number;
+                                quantity?: number;
+                                manifest_state?: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_soh_import_mutate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                operation: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    configuration?: {
+                        [key: string]: unknown;
+                    };
+                    batch_index?: number;
+                    reason?: string;
+                    observations?: {
+                        barcode: string;
+                        observed_qty: number;
+                        /** @enum {string} */
+                        observed_condition: "good" | "damaged" | "wrong" | "unidentified";
+                        reason: string;
+                    }[];
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        record_contract: "goods-v1";
+                        revision: number;
+                        state: string;
+                        content_hash?: string;
+                        site_id: string;
+                        source_name: string;
+                        source_hash: string;
+                        /** Format: uuid */
+                        source_evidence_id?: string | null;
+                        allowed_actions: string[];
+                        data: {
+                            metadata?: {
+                                [key: string]: unknown;
+                            };
+                            configuration?: {
+                                [key: string]: unknown;
+                            };
+                            included_rows?: number;
+                            included_quantity?: number;
+                            excluded_stocked_rows?: number;
+                            verified_rows?: number;
+                            batch_count?: number;
+                            /** Format: uuid */
+                            approval_request_id?: string | null;
+                            requires_inventory_reconciliation?: boolean;
+                            /** Format: uuid */
+                            stock_reconciliation_id?: string | null;
+                            field_access?: {
+                                readable_fields: string[];
+                                writable_fields: string[];
+                            };
+                            batches?: {
+                                index?: number;
+                                /** Format: uuid */
+                                manifest_id?: string;
+                                row_count?: number;
+                                quantity?: number;
+                                manifest_state?: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_soh_import_rows: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items?: {
+                            [key: string]: unknown;
+                        }[];
+                        next_cursor?: string | null;
+                        total?: number;
+                        revision?: number;
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_soh_import_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                    site_id: number;
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_sha256: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        record_contract: "goods-v1";
+                        revision: number;
+                        state: string;
+                        content_hash?: string;
+                        site_id: string;
+                        source_name: string;
+                        source_hash: string;
+                        /** Format: uuid */
+                        source_evidence_id?: string | null;
+                        allowed_actions: string[];
+                        data: {
+                            metadata?: {
+                                [key: string]: unknown;
+                            };
+                            configuration?: {
+                                [key: string]: unknown;
+                            };
+                            included_rows?: number;
+                            included_quantity?: number;
+                            excluded_stocked_rows?: number;
+                            verified_rows?: number;
+                            batch_count?: number;
+                            /** Format: uuid */
+                            approval_request_id?: string | null;
+                            requires_inventory_reconciliation?: boolean;
+                            /** Format: uuid */
+                            stock_reconciliation_id?: string | null;
+                            field_access?: {
+                                readable_fields: string[];
+                                writable_fields: string[];
+                            };
+                            batches?: {
+                                index?: number;
+                                /** Format: uuid */
+                                manifest_id?: string;
+                                row_count?: number;
+                                quantity?: number;
+                                manifest_state?: string;
+                            }[];
+                        };
                     };
                 };
             };
@@ -67683,6 +68943,10 @@ export interface operations {
                                 agent_ref?: string | null;
                             };
                             allowed_actions?: string[];
+                            field_access?: {
+                                readable_fields: string[];
+                                writable_fields: string[];
+                            };
                         }[];
                         next_cursor?: string | null;
                         /** Format: date-time */
@@ -67803,6 +69067,10 @@ export interface operations {
                             agent_ref?: string | null;
                         };
                         allowed_actions?: string[];
+                        field_access?: {
+                            readable_fields: string[];
+                            writable_fields: string[];
+                        };
                     };
                 };
             };
@@ -67952,6 +69220,10 @@ export interface operations {
                             agent_ref?: string | null;
                         };
                         allowed_actions?: string[];
+                        field_access?: {
+                            readable_fields: string[];
+                            writable_fields: string[];
+                        };
                     };
                 };
             };
@@ -68070,6 +69342,10 @@ export interface operations {
                             agent_ref?: string | null;
                         };
                         allowed_actions?: string[];
+                        field_access?: {
+                            readable_fields: string[];
+                            writable_fields: string[];
+                        };
                     };
                 };
             };
@@ -68232,6 +69508,10 @@ export interface operations {
                             agent_ref?: string | null;
                         };
                         allowed_actions?: string[];
+                        field_access?: {
+                            readable_fields: string[];
+                            writable_fields: string[];
+                        };
                     };
                 };
             };
@@ -69221,6 +70501,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StoreTarget"];
+                };
+            };
+        };
+    };
+    masters_store_targets_locations_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoreTargetLocation"][];
                 };
             };
         };
@@ -73895,6 +75194,39 @@ export interface operations {
             };
         };
     };
+    sell_sales_finalise_online_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaleWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["SaleWrite"];
+                "multipart/form-data": components["schemas"]["SaleWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaleAccepted"];
+                };
+            };
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SaleAccepted"];
+                };
+            };
+        };
+    };
     sell_saved_sizes_retrieve: {
         parameters: {
             query: {
@@ -74233,6 +75565,31 @@ export interface operations {
             };
         };
     };
+    sell_till_pair_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TillPairWrite"];
+                "application/x-www-form-urlencoded": components["schemas"]["TillPairWrite"];
+                "multipart/form-data": components["schemas"]["TillPairWrite"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TillPairRead"];
+                };
+            };
+        };
+    };
     sell_till_register_create: {
         parameters: {
             query?: never;
@@ -74308,6 +75665,8 @@ export interface operations {
                 brand?: string;
                 q: string;
                 size?: string;
+                sku?: string;
+                store?: string;
             };
             header?: never;
             path?: never;
@@ -74428,6 +75787,7 @@ export interface operations {
     stockledger_on_hand_retrieve: {
         parameters: {
             query?: {
+                basis?: "cost" | "quantity";
                 brand?: string;
                 group_by?: "brand" | "sku" | "store";
                 q?: string;
@@ -74455,6 +75815,10 @@ export interface operations {
                             lines: number;
                             displayed: number;
                             truncated: boolean;
+                            /** @enum {string} */
+                            scope?: "current_access";
+                            identity_complete?: boolean;
+                            value_complete?: boolean;
                         };
                         rows: {
                             /** @description Present only when group_by=sku. */
@@ -74472,6 +75836,12 @@ export interface operations {
                             skus: number;
                             net_value_paise?: number;
                             net_value_rupees?: string;
+                            brand_id?: number | null;
+                            /** Format: uuid */
+                            sku_id?: string | null;
+                            /** @enum {string} */
+                            record_contract?: "goods-v1" | "legacy";
+                            identity_complete?: boolean;
                         }[];
                     };
                 };

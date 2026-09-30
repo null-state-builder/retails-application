@@ -9,6 +9,8 @@ from __future__ import annotations
 
 from django.urls import path
 
+from outbound.goods_soh_views import SohReconciliationDetailView, SohReconciliationMutationView, SohReconciliationStartView
+
 from outbound.count_schedule_views import (
     CountScheduleChangeView,
     CountScheduleListView,
@@ -79,6 +81,9 @@ from outbound.goods_views import (
 )
 
 urlpatterns = [
+    path("soh-reconciliations", SohReconciliationStartView.as_view(), name="goods-soh-reconciliation-start"),
+    path("soh-reconciliations/<uuid:pk>", SohReconciliationDetailView.as_view(), name="goods-soh-reconciliation-detail"),
+    path("soh-reconciliations/<uuid:pk>/<str:operation>", SohReconciliationMutationView.as_view(), name="goods-soh-reconciliation-mutate"),
     # Store operations ticket 34 (ST-TRF-1): transfers suggested to fill broken sizes.
     path("size-balancing", GoodsSizeBalancingView.as_view(), name="goods-size-balancing"),
     path(

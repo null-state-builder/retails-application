@@ -513,12 +513,28 @@ class GoodsStaffListCreateView(GoodsAPIView):
         access = self.access(request)
         params = check_query(request)
         window, cursor = paginate(svc.list_staff(access, params), params)
-        body = page([svc.staff_dto(access, s, p) for s, p in window], cursor)
+        items = []
+        for staff, placement in window:
+            access.require_at_store("staff.manage", placement.site_id)
+            item = svc.staff_dto(access, staff, placement)
+            # Record the exact field demand, including retired staff whose
+            # response has no action hints. field_grants alone is a projection
+            # hint and does not record a demand for delivery replay.
+            if "mobile" in item["data"] and not access.covers_store(
+                {"staff.manage"}, placement.site_id, {"personal"}
+            ):
+                raise Refusal("ACTION_DENIED", "You do not have permission to see personal data.")
+            items.append(item)
+        body = page(items, cursor)
         # Same check E062 (POST, below) makes of the site-less branch - so the
         # screen that lists staff also knows, without guessing from
         # `session.sites`, whether "Add person" may offer a head-office choice.
         body["can_create_unplaced"] = access.can_at_store("staff.manage", None)
-        return Response(body)
+        access.revalidate_delivery()
+        response = Response(body)
+        response["Cache-Control"] = "no-store, private"
+        response["Pragma"] = "no-cache"
+        return response
 
     @extend_schema(
         request={"application/json": STAFF_CREATE_REQUEST},
@@ -1301,7 +1317,14 @@ class GoodsPrivilegedChangeListView(GoodsAPIView):
         access = self.access(request)
         params = check_query(request, svc.PRIVILEGED_QUERY_KEYS)
         events, cursor = svc.privileged_page(access, params)
-        return Response(page(svc.privileged_dtos(access, events), cursor))
+        for event in events:
+            access.require("access.review", site_id=event.site_id)
+        body = page(svc.privileged_dtos(access, events), cursor)
+        access.revalidate_delivery()
+        response = Response(body)
+        response["Cache-Control"] = "no-store, private"
+        response["Pragma"] = "no-cache"
+        return response
 
 
 class GoodsPrivilegedChangeReviewView(GoodsAPIView):

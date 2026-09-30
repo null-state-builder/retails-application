@@ -1,7 +1,8 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
-import { apiErrorMessage } from "../lib/api";
+import { api, apiErrorMessage } from "../lib/api";
+import type { RegistrationState } from "./Signup";
 import { useAuth } from "../auth/AuthContext";
 import { KdpsLogo } from "../components/KdpsLogo";
 import { ThemeToggle } from "../theme/ThemeToggle";
@@ -27,6 +28,21 @@ export function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [registration, setRegistration] = useState<RegistrationState | null>(null);
+  useEffect(() => {
+    let live = true;
+    api
+      .get<RegistrationState>("/auth/registration")
+      .then(({ data }) => {
+        if (live) setRegistration(data);
+      })
+      .catch(() => {
+        if (live) setRegistration(null);
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
 
   async function doLogin(u: string, p: string) {
     setError("");
@@ -124,27 +140,34 @@ export function Login() {
             {busy ? "Signing in…" : "Sign in"}
           </button>
 
-          <div className="login-demo">
-            <span>Demo logins</span>
-            <div className="login-demo-chips">
-              {DEMO.map((d) => (
-                <button
-                  key={d.email}
-                  type="button"
-                  className="chip chip-navy"
-                  disabled={busy}
-                  onClick={() => {
-                    setEmail(d.email);
-                    setPassword(d.password);
-                    void doLogin(d.email, d.password);
-                  }}
-                  data-testid={`demo-${d.email.split("@")[0]}`}
-                >
-                  {d.label}
-                </button>
-              ))}
+          {registration?.available && (
+            <p>
+              <Link to="/signup">Register this company and first store</Link>
+            </p>
+          )}
+          {registration?.synthetic && (
+            <div className="login-demo">
+              <span>Demo logins</span>
+              <div className="login-demo-chips">
+                {DEMO.map((d) => (
+                  <button
+                    key={d.email}
+                    type="button"
+                    className="chip chip-navy"
+                    disabled={busy}
+                    onClick={() => {
+                      setEmail(d.email);
+                      setPassword(d.password);
+                      void doLogin(d.email, d.password);
+                    }}
+                    data-testid={`demo-${d.email.split("@")[0]}`}
+                  >
+                    {d.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </form>
       </main>
     </div>

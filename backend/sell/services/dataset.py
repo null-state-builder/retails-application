@@ -189,15 +189,20 @@ def build_dataset(store: Store, since_raw: str) -> dict[str, Any]:
 
     An unreadable `since` is a bootstrap, not a refusal - see `_read_cursor`.
     """
+    from sell.services.online import online_alpha, selling_policy, commercial_revision
+    if online_alpha(store):
+        from masters.goods_services import require_sell_ready
+        require_sell_ready(store)
     started = timezone.now()
-    sync = Sync(store=store, since=_read_cursor(since_raw), today=timezone.localdate(started))
+    sync = Sync(store=store, since=_read_cursor("" if online_alpha(store) else since_raw), today=timezone.localdate(started))
     shelf = read_shelf(store, started) if is_goods_site(store) else None
 
     offers_live, offers_withdrawn = _offers(sync)
     # Asked once: the flag and the rows sent under it must agree, or a till would
     # replace its whole list with a delta.
     customers_whole = _customers_whole(sync)
-    return {
+    payload = {
+        "selling_mode": "online_alpha" if online_alpha(store) else "historical",
         "cursor": _stamp(started - CURSOR_LAP),
         "full": sync.is_bootstrap,
         # The number this shelf was read at, for a goods-v1 store. A till quoting
@@ -205,6 +210,8 @@ def build_dataset(store: Store, since_raw: str) -> dict[str, Any]:
         # working_set`); a legacy store has no such number and says so with a null.
         "working_set_version": (current_version(store.pk) if shelf is not None else None),
         "store": {
+            "tenant_id": str(store.tenant_id),
+            "site_id": str(store.pk),
             "code": store.code,
             "gstin": store.gstin.gstin,
             "state_code": store.gstin.state_code,
@@ -282,7 +289,7 @@ def build_dataset(store: Store, since_raw: str) -> dict[str, Any]:
         "salesmen": [],
         "managers": _managers(store),
         "seasons": _seasons(),
-        "policy": _policy(),
+        "policy": selling_policy(store).as_till_policy() if online_alpha(store) else _policy(),
         "customers": _customers(sync, whole=customers_whole),
         # Ticket 16: an erasure since the cursor sends the customer list whole,
         # and the till replaces its copy - the one way a row leaves it.
@@ -292,6 +299,9 @@ def build_dataset(store: Store, since_raw: str) -> dict[str, Any]:
             "offers": offers_withdrawn,
         },
     }
+
+    payload["commercial_revision"] = commercial_revision(payload)
+    return payload
 
 
 def _stamp(moment: datetime) -> str:
@@ -476,14 +486,14 @@ def _goods_items(shelf: Shelf) -> list[dict[str, Any]]:
     scans a barcode, resolves it to a season, prices it off the ticket and taxes it
     off the HSN. What changed underneath is only where those four facts come from.
 
-    `no_discount` is false here and says so plainly rather than being omitted: the
-    goods masters carry no "never discount this" flag yet, and a missing key would
-    read at the till as an undefined that silently allows a discount. Offer rules
-    still apply; this is the per-piece veto the legacy SKU registry carries and the
-    goods one does not (named in the ticket's report).
+    The SKU's governed `no_discount` veto travels with its stable identity.
+    Approved origin MRP and HSN remain frozen business inputs; labels do not
+    establish either identity or price.
     """
     return [
         {
+            "sku_id": str(piece.sku_id),
+            "brand_id": piece.brand_id,
             "barcode": piece.barcode,
             "season": piece.season,
             "design": piece.dims["design"],
@@ -493,7 +503,7 @@ def _goods_items(shelf: Shelf) -> list[dict[str, Any]]:
             "color": piece.dims["color"],
             "hsn": piece.hsn,
             "mrp_paise": piece.mrp_paise,
-            "no_discount": False,
+            "no_discount": piece.no_discount,
             # OPS-03's explicit unknown historical season, carried so the counter
             # can label it rather than showing a customer-facing cashier a code.
             "season_unknown_historical": piece.season_unknown_historical,
@@ -652,10 +662,12 @@ def _bills(store: Store, today: date) -> list[dict[str, Any]]:
     # The window opens at midnight of the store's business day (IST, §9.2), as
     # one aware instant: `today` is a local date, so the edge must be too, never
     # a date the database works out in whatever zone its session happens to use.
-    since = today - timedelta(days=max(0, SellPolicy.current().cached_bill_days))
+    from sell.services.online import online_alpha
+    since = today - timedelta(days=30 if online_alpha(store) else max(0, SellPolicy.current().cached_bill_days))
     opens_at = timezone.make_aware(datetime.combine(since, time.min))
     sales = (
         Sale.objects.filter(store=store, billed_at__gte=opens_at)
+        .exclude(lines__kind=SaleLine.Kind.GOODS, lines__brand_ref_id__isnull=True)
         .exclude(docstatus=DocStatus.CANCELLED)
         .order_by("-billed_at", "-id")
     )

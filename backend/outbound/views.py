@@ -947,6 +947,28 @@ class CrossLocationStockSearchView(APIView):
     def get(self, request: Request) -> Response:
         from masters.models import Sku
         from stockledger.models import StockOnHand, merch_dims
+        from stockledger.on_hand_projection import canonical_sites, filtered_rows, projected_rows
+
+        access = resolve_access(request)
+        if canonical_sites(access.tenant_id):
+            visible = filtered_rows(projected_rows(request), request.query_params)
+            data = []
+            for row in visible:
+                cells = [(row["store_id"], row["brand_id"])]
+                actions = {"stock.view", "section.transfer.view"}
+                if not access.covers_all_actions(actions, cells, []):
+                    continue
+                entry = {"store_code": row["store_code"], "store_name": row["store_name"],
+                         "sku_code": row["sku_code"], "qty": row["net_qty"], "is_own": True,
+                         **{field: row.get(field, "") for field in MERCH_DIM_SCHEMA}}
+                if "net_value_paise" in row and access.covers_all_actions(actions, cells, {"cost"}):
+                    entry.update(unit_cost_paise=row["net_value_paise"] // row["net_qty"],
+                                 landed_value_paise=row["net_value_paise"])
+                data.append(entry)
+            access.revalidate_delivery()
+            response = Response({"rows": data[:self.MAX_LINES], "truncated": len(data) > self.MAX_LINES})
+            response["Cache-Control"] = "no-store, private"
+            return response
 
         qs = StockOnHand.objects.filter(net_qty__gt=0, store__is_active=True).select_related(
             "store"

@@ -39,7 +39,6 @@ from approvals.names import display_name as display_name
 from core.tenancy import require_tenant_id
 from masters.models import Brand
 from masters.brand_identity import identity_id
-from masters.scoping import scope_by_store_or_brand
 
 
 class ApprovalError(Exception):

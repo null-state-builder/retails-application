@@ -1,4 +1,4 @@
-"""Opening manifest, variance and opening PT services for synthetic tenants.
+"""Opening manifest, variance and opening PT services for governed sources.
 
 GSA-T10 (design §5.2-§5.8, §7 P05/P06, §8.3 flow 2; change PRD §5.5, §14.1, §14.5
 F1/R20). A synthetic-tenant preparer loads an opening manifest and its physical
@@ -13,9 +13,8 @@ separate postings. A reissue after reversal reuses the retained lot rather than
 opening a second one. No GRN, booking, invoice claim or GL/vendor/cash entry is
 ever created.
 
-Every route here refuses on a non-synthetic tenant or a site not
-``opening_setup_ready`` with ``OPENING_NOT_READY`` (OQ-54): the block is a code
-gate, not a configuration a real tenant could opt into.
+Real sources require the independently approved migration-source controls
+owned by SO-04/OQ-29, plus the site's opening capability.
 """
 
 from __future__ import annotations
@@ -108,17 +107,14 @@ MONEY_FIELDS = frozenset({"basic_paise", "mrp_paise"})
 
 
 def require_opening_ready(tenant_id: uuid.UUID, site_id: int) -> SiteGuard:
-    """Every opening route's own fence: a synthetic tenant, an opening-ready site.
-
-    Real opening stock stays blocked while OQ-54 is open (change PRD §14.1, F1):
-    a non-synthetic tenant is refused here regardless of what any site guard or
-    approval elsewhere would otherwise allow.
-    """
+    """A real site's migration source must have explicit OQ-29 approval."""
     tenant = Tenant.objects.filter(pk=tenant_id).first()
-    if tenant is None or not tenant.synthetic:
+    from ptmapper.soh_services import approved_source_for_opening
+
+    if tenant is None or (not tenant.synthetic and approved_source_for_opening(tenant_id, site_id) is None):
         raise Refusal(
             "OPENING_NOT_READY",
-            "Real opening stock stays blocked until OQ-54 is resolved.",
+            "Record and independently approve this site's migration source and reconciliation before real opening stock (OQ-29).",
         )
     guard = SiteGuard.objects.filter(site_id=site_id).first()
     if guard is None or guard.stock_contract != SiteGuard.StockContract.GOODS_V1:
@@ -136,6 +132,15 @@ def manifest_target(
     return ConfigTarget.of(
         cutoff_at, site_id=site_id, brand_ids={None, *brand_ids}, purpose=OPENING
     )
+
+
+def manifest_cells(manifest: OpeningManifest) -> frozenset[tuple[int | None, int | None]]:
+    from masters.goods_identity_models import ProductSku
+
+    rows = list(OpeningManifestRow.objects.filter(manifest_version=manifest.current_version))
+    ids = {row.payload.get("identity", {}).get("sku_id") for row in rows} - {None}
+    brands = {str(key): value for key, value in ProductSku.objects.filter(pk__in=ids).values_list("pk", "style__brand_id")}
+    return frozenset((manifest.site_id, brands.get(str(row.payload.get("identity", {}).get("sku_id")))) for row in rows) or frozenset({(manifest.site_id, None)})
 
 
 # ---------------------------------------------------------------------------
@@ -508,6 +513,13 @@ def create_manifest(run: CommandRun, *, body: dict[str, Any]) -> OpeningManifest
     the owner's approval of this exact revision."""
     site_id = body["site_id"]
     require_opening_ready(run.tenant_id, site_id)
+    tenant = Tenant.objects.get(pk=run.tenant_id)
+    if not tenant.synthetic:
+        from ptmapper.soh_services import approved_source_for_opening
+
+        approved = approved_source_for_opening(run.tenant_id, site_id, body.get("source_evidence_id"))
+        if approved is None or str(approved.pk) != body.get("_soh_import_id"):
+            raise Refusal("OPENING_NOT_READY", "Create real opening manifests from the exact approved SOH import.")
     batch_key = str(body["batch_key"])[:100]
     if OpeningManifest.objects.filter(
         tenant_id=run.tenant_id, site_id=site_id, batch_key=batch_key
@@ -576,7 +588,9 @@ def _append_version(
     assert run.principal.human_id is not None
     payloads = [{**_row_payload(row), "dataset_key": dataset_key} for row in parsed]
     digest = content_hash(
-        {"header": {"site_id": manifest.site_id, "batch_key": manifest.batch_key}, "rows": payloads}
+        {"header": {"site_id": manifest.site_id, "batch_key": manifest.batch_key,
+                    "cutoff_at": body["cutoff_at"], "source_evidence_id": str(body["source_evidence_id"]),
+                    "profile_version_id": str(body.get("profile_version_id") or ""), "dataset_key": dataset_key}, "rows": payloads}
     )
     profile_version_id = _uuid_or_none(body.get("profile_version_id"))
     version = run.record(
@@ -702,6 +716,8 @@ def _decide_manifest(run: CommandRun, context: DecisionContext) -> dict[str, Any
     if manifest is None:
         raise Refusal("NOT_FOUND", "That opening manifest was not found.")
     context.access.require(MANIFEST_ACTION, site_id=manifest.site_id)
+    if not context.access.covers_all({MANIFEST_ACTION}, manifest_cells(manifest), {"cost"}):
+        raise Refusal("FIELD_DENIED", "Manifest approval requires protected valuation authority over its complete resource scope.", status=403)
     version = manifest.current_version
     if version is None or version.content_hash != context.request.reviewed_hash:
         raise Refusal(

@@ -34,6 +34,7 @@ import {
   CONFIG_KIND_LABEL,
   TENANT_SCOPE,
   type ConfigData,
+  type ConfigScope,
   type VersionState,
 } from "../lib/goodsConfig";
 import {
@@ -49,6 +50,7 @@ import {
 } from "./configurationPayloads";
 import { ProfileWizard } from "./ProfileWizard";
 import { IdentityProfileEditor, PtProfileEditor } from "./ProfileWizard";
+import { FirstStoreConfigScope, FirstStorePolicyEditor } from "./firstStoreConfiguration";
 import { useAuth } from "../auth/AuthContext";
 import { PageHeader } from "../components/PageHeader";
 import { formatDateTime } from "../lib/format";
@@ -84,9 +86,54 @@ const EDITABLE_KINDS = new Set([
   "series",
   "label",
   "barcode_range",
+  "business_profile",
+  "working_calendar",
+  "approval",
+  "workflow",
+  "notifications",
+  "sell_policy",
 ]);
 
 const BLANK_PAYLOAD: Record<string, Payload> = {
+  business_profile: {
+    categories: [],
+    identity_profile_id: "",
+    expected_skus: 0,
+    brands: 0,
+    sites: 1,
+    sbus: 0,
+    staff: 0,
+    documents_per_day: 0,
+    evidence_bytes_per_year: 0,
+    commercial_labels: [],
+    workforce_scope: "",
+    tills_per_site: [],
+    accounting_interface: "",
+  },
+  working_calendar: { timezone: "Asia/Kolkata", working_weekdays: [], excluded_dates: [] },
+  sell_policy: {
+    manual_discount_cap_percent: "0.00",
+    manual_discount_on_offer_lines: false,
+    return_window_days: 0,
+  },
+  approval: {
+    action: "",
+    roles: [],
+    site_ids: [],
+    brand_ids: [],
+    require_distinct: true,
+    step_up: true,
+    unknown_value: "refuse",
+  },
+  workflow: { operation: "", enabled: false, prerequisites: [] },
+  notifications: {
+    event: "",
+    roles: [],
+    email: false,
+    sla_value: 1,
+    sla_unit: "working_days",
+    calendar_version_id: "",
+  },
   rates: { transport_pct: "0.00", pricing_margin_pct: "0.00" },
   tax_rates: { currency: "INR", hsn_rules: [] },
   vocabulary: { dimension: "", values: [], effective_from: new Date().toISOString() },
@@ -138,6 +185,21 @@ function toLocalInput(iso: string): string {
   const at = new Date(iso);
   const offset = at.getTimezoneOffset() * 60000;
   return new Date(at.getTime() - offset).toISOString().slice(0, 16);
+}
+
+export function configurationPeriod(from: string, until: string) {
+  const start = new Date(from);
+  if (!from.trim() || !Number.isFinite(start.getTime())) {
+    throw new RangeError("Choose a valid In force from date and time.");
+  }
+  const end = until ? new Date(until) : null;
+  if (end && !Number.isFinite(end.getTime())) {
+    throw new RangeError("Choose a valid Until date and time, or leave it empty.");
+  }
+  if (end && end <= start) {
+    throw new RangeError("Until must be later than In force from.");
+  }
+  return { effective_from: start.toISOString(), effective_to: end?.toISOString() ?? null };
 }
 
 // --------------------------------------------------------------------------
@@ -266,6 +328,13 @@ function PayloadForm({
       return <LabelEditor value={value} onChange={onChange} />;
     case "barcode_range":
       return <BarcodeRangeEditor value={value} onChange={onChange} />;
+    case "business_profile":
+    case "working_calendar":
+    case "approval":
+    case "workflow":
+    case "notifications":
+    case "sell_policy":
+      return <FirstStorePolicyEditor kind={kind} value={value} onChange={onChange} />;
     default:
       return <ReadOnlyPayload value={value} kind={CONFIG_KIND_LABEL[kind] ?? kind} />;
   }
@@ -294,6 +363,7 @@ function DraftPanel({
     kind === "series" ? "/goods-v1/masters/entities" : null,
   );
   const [payload, setPayload] = useState<Payload>(BLANK_PAYLOAD[kind] ?? {});
+  const [scope, setScope] = useState<ConfigScope>({ ...TENANT_SCOPE });
   const [from, setFrom] = useState(toLocalInput(new Date().toISOString()));
   const [until, setUntil] = useState("");
   const [reviewed, setReviewed] = useState<Set<string>>(new Set());
@@ -307,6 +377,7 @@ function DraftPanel({
   useEffect(() => {
     if (!loaded) return;
     setPayload(loaded.data.payload);
+    setScope(loaded.data.scope);
     setFrom(toLocalInput(loaded.data.effective_from));
     setUntil(loaded.data.effective_to ? toLocalInput(loaded.data.effective_to) : "");
   }, [loaded]);
@@ -334,15 +405,32 @@ function DraftPanel({
     setDateError("");
     setOk("");
     setBusy(true);
-    const dates = {
-      effective_from: new Date(from).toISOString(),
-      effective_to: until ? new Date(until).toISOString() : null,
-    };
     try {
+      const dates = configurationPeriod(from, until);
+      const cleanPayload = { ...payload };
+      const listFields =
+        kind === "working_calendar"
+          ? ["excluded_dates"]
+          : kind === "workflow"
+            ? ["prerequisites"]
+            : kind === "business_profile"
+              ? ["categories", "commercial_labels"]
+              : [];
+      for (const field of listFields) {
+        if (Array.isArray(cleanPayload[field])) {
+          cleanPayload[field] = (cleanPayload[field] as unknown[])
+            .map((entry) => String(entry).trim())
+            .filter(Boolean);
+        }
+      }
+      const scopedPayload =
+        kind === "approval"
+          ? { ...cleanPayload, site_ids: scope.site_ids, brand_ids: scope.brand_ids }
+          : cleanPayload;
       if (loaded) {
         await stepUp.guarded(() =>
           api.patch(`/goods-v1/masters/configurations/${loaded.id}`, {
-            payload,
+            payload: scopedPayload,
             ...dates,
             ...goodsMeta(loaded.revision),
           }),
@@ -353,8 +441,8 @@ function DraftPanel({
         const { data } = await stepUp.guarded(() =>
           api.post<{ id: string }>("/goods-v1/masters/configurations", {
             kind,
-            scope: TENANT_SCOPE,
-            payload,
+            scope,
+            payload: scopedPayload,
             ...dates,
             ...goodsMeta(),
           }),
@@ -363,7 +451,8 @@ function DraftPanel({
         onSaved(data.id);
       }
     } catch (e) {
-      applyRefusal(e);
+      if (e instanceof RangeError) setDateError(e.message);
+      else applyRefusal(e);
     } finally {
       setBusy(false);
     }
@@ -452,6 +541,9 @@ function DraftPanel({
         )}
       </div>
       <div className="card section-card">
+        {["approval", "sell_policy", "workflow", "notifications"].includes(kind) && (
+          <FirstStoreConfigScope value={scope} onChange={setScope} locked={Boolean(loaded)} />
+        )}
         <PayloadForm
           kind={kind}
           value={payload}
@@ -675,7 +767,7 @@ export function ConfigurationPage() {
   const kind = params.get("kind") ?? "profile";
   const draftId = params.get("draft");
   const isNew = params.get("draft") === "new";
-  const kinds = useMemo(() => CONFIG_KINDS.filter((k) => k !== "business_profile"), []);
+  const kinds = useMemo(() => [...CONFIG_KINDS], []);
 
   return (
     <div className="page-pad">

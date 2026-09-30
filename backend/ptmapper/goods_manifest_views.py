@@ -37,6 +37,7 @@ from ptmapper.goods_pt_services import _uuid_or_none
 #: Any of these lets a person see an opening manifest: preparing it, or deciding
 #: its manifest/variance/PT approvals.
 READ_ACTIONS = (
+    "opening.import.stage",
     "pt.prepare.opening",
     services.MANIFEST_ACTION,
     services.VARIANCE_ACTION,
@@ -161,6 +162,7 @@ MANIFEST_LIST_RESPONSE: dict[str, Any] = {
         "items": {"type": "array", "items": MANIFEST_LIST_ITEM},
         "next_cursor": {"type": "string", "nullable": True},
         "as_of": {"type": "string", "format": "date-time"},
+        "capabilities": {"type": "object", "properties": {"manual_manifest": {"type": "boolean"}}},
     },
 }
 
@@ -308,9 +310,13 @@ def _load(access: AccessContext, pk: uuid.UUID) -> OpeningManifest:
         .filter(tenant_id=access.tenant_id, pk=pk)
         .first()
     )
-    if manifest is None or not _can_read(access, manifest.site_id):
+    if manifest is None or not access.covers_all(READ_ACTIONS, _manifest_cells(manifest)):
         raise Refusal("NOT_FOUND", "That opening manifest was not found.")
     return manifest
+
+
+def _manifest_cells(manifest: OpeningManifest) -> frozenset[tuple[int | None, int | None]]:
+    return services.manifest_cells(manifest)
 
 
 def _manifest_summary(manifest: OpeningManifest) -> dict[str, Any]:
@@ -333,6 +339,7 @@ def _row_dto(
     variances: dict[uuid.UUID, OpeningVariance],
     pending_variances: dict[uuid.UUID, uuid.UUID],
     corrections: dict[uuid.UUID, OpeningSeasonCorrection],
+    shows_cost: bool,
 ) -> dict[str, Any]:
     verification = row.verification
     matches = services.matches_verification(row)
@@ -344,7 +351,7 @@ def _row_dto(
         "source_row_key": row.source_row_key,
         # `row.payload` stays exactly as the loader wrote it, correction or not:
         # the original season is part of the evidence (OPS-03).
-        "row": row.payload,
+        "row": row.payload if shows_cost else {key: value for key, value in row.payload.items() if key not in {"basic_paise"}},
         "verification": verification,
         "matches_verification": matches,
         "variance": variance.decision if variance else None,
@@ -403,6 +410,9 @@ def _manifest_resource(
     access: AccessContext, manifest: OpeningManifest, *, row_cursor: str | None = None
 ) -> dict[str, Any]:
     version = manifest.current_version
+    shows_cost = access.covers_all(READ_ACTIONS, _manifest_cells(manifest), {"cost"})
+    if version is not None and version.maker_id == access.human_id:
+        shows_cost = shows_cost or access.covers_all(READ_ACTIONS, _manifest_cells(manifest), {"cost_own_pt"})
     # E106/E107 step 6: row arrays are paged, with a total and a next cursor - a
     # manifest may carry up to MAX_ROWS rows and must never be silently truncated.
     #
@@ -454,12 +464,13 @@ def _manifest_resource(
             else None
         ),
         "rows": {
-            "items": [_row_dto(row, variances, pending_variances, corrections) for row in rows],
+            "items": [_row_dto(row, variances, pending_variances, corrections, shows_cost) for row in rows],
             "next_cursor": (
                 encode_cursor(offset + ROW_PAGE) if offset + ROW_PAGE < total else None
             ),
             "total": total,
         },
+        "field_access": {"readable_fields": ["cost"] if shows_cost else [], "writable_fields": []},
     }
     return resource_dto(
         id=manifest.pk,
@@ -485,9 +496,13 @@ class GoodsOpeningManifestListView(GoodsAPIView):
         )
         if params.get("site_id"):
             queryset = queryset.filter(site_id=parse_int_id(params["site_id"], "site_id"))
-        rows = [m for m in queryset.order_by("-created_at", "pk") if _can_read(access, m.site_id)]
+        rows = [m for m in queryset.order_by("-created_at", "pk") if access.covers_all(READ_ACTIONS, _manifest_cells(m))]
         window, cursor = paginate(rows, params)
-        return Response(page([_manifest_summary(m) for m in window], cursor))
+        from masters.goods_models import Tenant
+        result = page([_manifest_summary(m) for m in window], cursor)
+        result["capabilities"] = {"manual_manifest": Tenant.objects.filter(pk=access.tenant_id, synthetic=True).exists()}
+        access.revalidate_delivery()
+        return Response(result)
 
     @extend_schema(request={"application/json": MANIFEST_CREATE_REQUEST}, responses=_responses(201, MANIFEST_RESOURCE, _WRITE_REFUSALS))
     def post(self, request: Request) -> Response:

@@ -52,6 +52,7 @@ class ProductSku(TenantOwned):
         "masters.ConfigVersion", null=True, blank=True, on_delete=models.PROTECT, related_name="+"
     )
     attrs = models.JSONField(default=list)
+    no_discount = models.BooleanField(default=False)
     governance_state = models.CharField(max_length=10, choices=GovernanceState.choices)
     originating_revision = models.ForeignKey(
         "core.DraftRevision", null=True, blank=True, on_delete=models.PROTECT, related_name="+"

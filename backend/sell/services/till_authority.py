@@ -32,12 +32,13 @@ from __future__ import annotations
 import secrets
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any
+from typing import Any, NoReturn
 
 from django.db import models, transaction
 from django.utils import timezone
 
 from core.fiscal import financial_year, previous_financial_year
+from masters.goods_models import SiteGuard
 from masters.models import Store
 from sell.models import RegisteredTill, Sale, TillAllocation, TillPause
 from sell.services.register import register_state
@@ -55,6 +56,21 @@ class TillError(Exception):
         self.code = code
         self.message = message
         self.status = status
+
+
+def lock_site_for_till(store: Store, *, allow_frozen: bool = False) -> SiteGuard | None:
+    """The shared site boundary precedes device, bill and allocation locks.
+
+    A missing guard remains a legacy site's existing condition. A goods freeze
+    cannot be escaped by renewing or replacing its registered device.
+    Call only inside the operation's transaction; the lock lasts through commit.
+    """
+    guard = SiteGuard.objects.select_for_update().filter(
+        tenant_id=store.tenant_id, site=store,
+    ).first()
+    if guard is not None and guard.freeze_id and not allow_frozen:
+        raise TillError("UNDER_COUNT", "This store's inventory review freezes new counter work.", 409)
+    return guard
 
 
 # --- which device ----------------------------------------------------------
@@ -166,6 +182,9 @@ def register_till(
     counter id - which is what "a fresh series" means for a device that shares the
     store's gap-free `till_seq` with the machine before it.
     """
+    lock_site_for_till(store)
+    from sell.services.online import prepare_online_sale_series
+    prepare_online_sale_series(store)
     existing = RegisteredTill.objects.select_for_update().filter(store=store, active=True).first()
     if existing is not None and not replace:
         raise TillError(
@@ -217,6 +236,9 @@ def renew_authority(store: Store) -> TillState:
     on. Nothing else about the till changes: a renewal is not a re-registration,
     and it neither moves the series nor touches what the device is holding.
     """
+    lock_site_for_till(store)
+    from sell.services.online import prepare_online_sale_series
+    prepare_online_sale_series(store)
     till = RegisteredTill.objects.select_for_update().filter(store=store, active=True).first()
     if till is None:
         raise TillError(
@@ -260,6 +282,12 @@ def issue_allocation(till: RegisteredTill, version: int, summary: dict[str, Any]
     row rather than releasing it, so there is no instant at which the store's
     stock is unprotected while the counter is still holding it.
     """
+    lock_site_for_till(till.store)
+    current = RegisteredTill.objects.select_for_update().filter(pk=till.pk, active=True).first()
+    if current is None:
+        raise TillError("TILL_CHANGED", "This counter was replaced. Refresh its current identity.", 409)
+    if live_pause(current) is not None:
+        raise TillError("TILL_PAUSED", "This counter is paused; its released stock remains free.", 409)
     live = (
         TillAllocation.objects.select_for_update()
         .filter(till=till, released_at__isnull=True)
@@ -301,6 +329,7 @@ def release_allocation(
     in its year or any later one - has lost its place and cannot vouch for
     anything (`TILL_OUT_OF_STEP`).
     """
+    lock_site_for_till(store)
     till = RegisteredTill.objects.select_for_update().filter(store=store, active=True).first()
     if till is None:
         raise TillError("TILL_NOT_REGISTERED", f"No counter is registered for {store.code}.", 404)
@@ -391,6 +420,109 @@ def live_pause(till: RegisteredTill | None) -> TillPause | None:
     return TillPause.objects.filter(till=till, resumed_at__isnull=True).first()
 
 
+def snapshot_pause_evidence(run: Any, site: Store) -> dict[str, Any]:
+    """Pin a reconciled sole online counter for a trading stock snapshot.
+
+    The caller first holds SiteGuard at rank SITE. This contract is deliberately
+    narrower than offline cutover: historical/unknown devices, allocations and
+    unresolved numbered work cannot be called synced by a boolean. Unused
+    current online invoice reservations stay reserved and are pinned; none is
+    silently cancelled or reissued by counting stock.
+    """
+    from core.canonical import content_hash, normalise
+    from core.commands import LockRank
+    from core.refusals import Refusal
+    from masters.document_series import render
+    from masters.document_series_models import DocumentSeries, DocumentSeriesCounter, IssuedDocumentNumber
+    from sell.models import HeldBill, OnlineSaleSubmission, TillNumberBlock
+    from sell.services.invoice_numbers import month_of, next_month
+
+    def refuse(code: str, message: str) -> NoReturn:
+        raise Refusal(code, message, status=409)
+
+    if run.tenant_id != site.tenant_id:
+        refuse("SCOPE_DENIED", "That inventory pause belongs to another tenant.")
+    guard = SiteGuard.objects.filter(tenant_id=run.tenant_id, site=site).first()
+    if guard is None or guard.selling_mode != SiteGuard.SellingMode.ONLINE_ALPHA:
+        refuse("ONLINE_STORE_REQUIRED", "Trading snapshot reconciliation supports a proven online counter only.")
+    tills = run.lock(LockRank.DOCUMENT, RegisteredTill.objects.filter(store=site))
+    active = [till for till in tills if till.active]
+    if len(active) != 1:
+        refuse("TILL_RECONCILIATION_REQUIRED", "Reconcile the store's exact registered counter before this snapshot.")
+    till = active[0]
+    if TillAllocation.objects.filter(till__in=tills, released_at__isnull=True).exists():
+        refuse("TILL_RECONCILIATION_REQUIRED", "An active or retired counter still holds unreleased stock.")
+    pauses = run.lock(LockRank.DOCUMENT, TillPause.objects.filter(till=till, resumed_at__isnull=True))
+    if len(pauses) != 1:
+        refuse("TILL_PAUSE_REQUIRED", "Pause and reconcile the registered counter before reviewing this snapshot.")
+    pause = pauses[0]
+    if pause.allocation.released_at is None or pause.next_seq < 1 or pause.fy != financial_year():
+        refuse("TILL_RECONCILIATION_REQUIRED", "The persisted pause has no exact current-year released frontier.")
+    if HeldBill.objects.filter(store=site).exists() or Sale.objects.filter(store=site, doc_number__isnull=True).exists():
+        refuse("TILL_RECONCILIATION_REQUIRED", "Resolve the store's held or unissued bills before this snapshot.")
+    submissions = list(OnlineSaleSubmission.objects.filter(tenant_id=run.tenant_id, store=site).values(
+        "id", "idempotency_uuid", "status", "sale_id", "payload_fingerprint",
+    ).order_by("pk"))
+    if any(row["status"] not in {"accepted", "rejected"} or (row["status"] == "accepted" and row["sale_id"] is None)
+           or (row["status"] == "rejected" and row["sale_id"] is not None) for row in submissions):
+        refuse("SALE_OUTCOME_REQUIRED", "Resolve every pending online sale outcome before this snapshot.")
+    sales = list(Sale.objects.filter(store=site).values("id", "idempotency_uuid", "origin", "tax_invoice_number", "fy").order_by("pk"))
+    known_sales = {(row["id"], str(row["idempotency_uuid"])) for row in sales}
+    accepted_intents = {(row["sale_id"], str(row["idempotency_uuid"])) for row in submissions if row["status"] == "accepted"}
+    if accepted_intents != known_sales or any(row["origin"] != "online" for row in sales):
+        refuse("TILL_RECONCILIATION_REQUIRED", "This store has earlier offline or manual selling history requiring separate reconciliation.")
+    accepted_numbers = {(str(row["id"]), row["tax_invoice_number"]) for row in sales}
+    frontiers: list[dict[str, Any]] = []
+    years = sorted(set(Sale.objects.filter(store=site).values_list("fy", flat=True)) | {previous_financial_year(pause.fy), pause.fy})
+    for year in years:
+        state = register_state(site, year)
+        if state.hole_count or (year == pause.fy and state.last_accepted_seq + 1 != pause.next_seq) or year > pause.fy:
+            refuse("UNSYNCED_BILLS", "The persisted pause does not match every arrived bill number.")
+        frontiers.append({"fy": year, "last_accepted_seq": state.last_accepted_seq, "hole_count": state.hole_count})
+    blocks = run.lock(LockRank.DOCUMENT, TillNumberBlock.objects.filter(till__in=tills, closed_at__isnull=True))
+    permitted_months = {month_of(timezone.localdate(run.now)), next_month(month_of(timezone.localdate(run.now)))}
+    block_evidence: list[dict[str, Any]] = []
+    ranges_by_series: dict[tuple[int, str], list[tuple[int, int]]] = {}
+    for block in blocks:
+        prefix = block.prefix
+        if (block.till_id != till.pk or prefix.tenant_id != run.tenant_id or prefix.site_id != site.pk
+                or block.prefix_code != prefix.code or block.month not in permitted_months
+                or block.fy != financial_year(block.month) or block.cancelled_count):
+            refuse("NUMBER_RECONCILIATION_REQUIRED", "A retired or unresolved invoice-number block prevents this snapshot.")
+        key = (prefix.pk, block.fy)
+        previous = ranges_by_series.setdefault(key, [])
+        if any(block.first_n <= upper and lower <= block.last_n for lower, upper in previous):
+            refuse("NUMBER_RECONCILIATION_REQUIRED", "Invoice-number reservations overlap and require reconciliation.")
+        previous.append((block.first_n, block.last_n))
+        counter = DocumentSeriesCounter.objects.filter(tenant_id=run.tenant_id, prefix=prefix,
+            series=DocumentSeries.TAX_INVOICE, fy=block.fy).first()
+        if counter is None or counter.next_n <= block.last_n:
+            refuse("NUMBER_RECONCILIATION_REQUIRED", "The retained invoice series does not own this block's complete range.")
+        used = run.lock(LockRank.DOCUMENT, IssuedDocumentNumber.objects.filter(tenant_id=run.tenant_id,
+            prefix=prefix, series=DocumentSeries.TAX_INVOICE, fy=block.fy, n__gte=block.first_n, n__lte=block.last_n))
+        rows: list[dict[str, Any]] = []
+        for number in used:
+            if (number.status != IssuedDocumentNumber.Status.ISSUED or number.document_type != "sale"
+                    or number.number != render(DocumentSeries.TAX_INVOICE, prefix.code, block.fy, number.n)
+                    or (number.document_ref, number.number) not in accepted_numbers):
+                refuse("NUMBER_RECONCILIATION_REQUIRED", "An invoice number lacks its exact accepted online bill.")
+            rows.append({"id": str(number.pk), "number": number.number, "sale_id": number.document_ref})
+        block_evidence.append({"id": block.pk, "till_id": till.pk, "prefix_id": prefix.pk,
+            "prefix": prefix.code, "fy": block.fy, "month": block.month.isoformat(),
+            "first": block.first_n, "last": block.last_n, "reserved_next_n": counter.next_n, "used": rows})
+    result: dict[str, Any] = {"till_id": till.pk, "pause_id": pause.pk, "paused_by_id": pause.paused_by_id,
+        "paused_at": pause.paused_at.isoformat(), "fy": pause.fy, "next_seq": pause.next_seq,
+        "allocation_id": pause.allocation_id, "allocation_version": pause.allocation.version,
+        "frontiers": frontiers, "open_number_blocks": block_evidence,
+        # New definitive refusals while frozen consume no bill/stock frontier.
+        # Keep those durable receipts, but do not stale a physical snapshot for
+        # an attempted sale that this very freeze refused. Every recheck above
+        # still independently refuses any pending or unknown outcome.
+        "online_outcomes_hash": content_hash([row for row in submissions if row["status"] == "accepted"])}
+    result["hash"] = content_hash(result)
+    return dict(normalise(result))
+
+
 @transaction.atomic
 def resume_till(
     store: Store, actor: Any, fy: str | None = None, next_seq: int | None = None
@@ -407,6 +539,7 @@ def resume_till(
     window ends there, and never before where it began. Resuming a counter that
     is not paused changes nothing, so a retry after a lost answer is harmless.
     """
+    lock_site_for_till(store)
     till = RegisteredTill.objects.select_for_update().filter(store=store, active=True).first()
     if till is None:
         raise TillError("TILL_NOT_REGISTERED", f"No counter is registered for {store.code}.", 404)

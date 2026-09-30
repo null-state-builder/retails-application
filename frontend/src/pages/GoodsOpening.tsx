@@ -13,6 +13,7 @@ import { PageHeader } from "../components/PageHeader";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import { rupeesToPaiseString, uploadEvidence } from "../lib/goodsPt";
 import { ptWorkPath } from "../lib/ptWork";
+import { SohImportPanel } from "./SohImport";
 import {
   Denied,
   Feedback,
@@ -1137,6 +1138,11 @@ export function GoodsOpeningPage() {
   const manifestId = params.get("manifest");
   const [showForm, setShowForm] = useState(false);
   const canPrepare = hold(session, "pt.prepare.opening");
+  const mayInspectManifest =
+    canPrepare ||
+    ["opening.manifest.approve", "opening.variance.approve", "pt.approve.opening"].some((action) =>
+      hold(session, action),
+    );
 
   useEffect(() => {
     if (!siteId && sites[0]) setSiteId(sites[0].id);
@@ -1144,22 +1150,26 @@ export function GoodsOpeningPage() {
 
   // E106's list answers flat OpeningManifestSummaryDTO items, not ResourceDTO-wrapped.
   const {
-    value: manifests,
+    value: manifestPage,
     loading: manifestsLoading,
     failure: manifestsFailure,
-  } = useGoodsFetch<Page<ManifestListItem>, ManifestListItem[]>(
+  } = useGoodsFetch<
+    Page<ManifestListItem> & { capabilities?: { manual_manifest: boolean } },
+    { items: ManifestListItem[]; manual: boolean }
+  >(
     siteId ? `/goods-v1/ptmapper/opening-manifests?site_id=${siteId}&limit=100` : null,
-    (r) => r.items ?? [],
-    [],
+    (r) => ({ items: r.items ?? [], manual: r.capabilities?.manual_manifest === true }),
+    { items: [], manual: false },
   );
+  const manifests = manifestPage.items;
 
   return (
     <div className="page-pad">
       <PageHeader
         title="Opening stock"
-        lead="Synthetic-tenant opening manifests, variances and opening PTs."
+        lead="Reviewed source stock, opening manifests, variances and physical acceptance."
       />
-      {manifestId ? (
+      {manifestId && mayInspectManifest ? (
         // Keyed, so opening a second manifest starts clean rather than
         // carrying the first one's typed variance drafts across to it.
         <ManifestDetailView key={manifestId} manifestId={manifestId} onBack={() => setParams({})} />
@@ -1182,7 +1192,8 @@ export function GoodsOpeningPage() {
               </select>
             </Field>
           </div>
-          {canPrepare && !showForm && (
+          {siteId && <SohImportPanel key={siteId} siteId={siteId} />}
+          {canPrepare && manifestPage.manual && !showForm && (
             <button
               className="btn btn-cta"
               onClick={() => setShowForm(true)}
@@ -1191,7 +1202,7 @@ export function GoodsOpeningPage() {
               + New opening manifest
             </button>
           )}
-          {showForm && siteId && (
+          {showForm && manifestPage.manual && siteId && (
             <NewManifestForm
               siteId={siteId}
               onCreated={(id) => {
@@ -1228,8 +1239,10 @@ export function GoodsOpeningPage() {
               {manifests.map((row) => (
                 <tr
                   key={row.id}
-                  className="row-clickable"
-                  onClick={() => setParams({ manifest: row.id })}
+                  className={mayInspectManifest ? "row-clickable" : ""}
+                  onClick={() => {
+                    if (mayInspectManifest) setParams({ manifest: row.id });
+                  }}
                   data-testid={`opening-manifest-row-${row.batch_key}`}
                 >
                   <td>{row.batch_key}</td>

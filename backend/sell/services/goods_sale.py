@@ -363,6 +363,10 @@ def _principal(actor: Any) -> Principal:
             "This login is not a person in the goods records, so it cannot bill goods stock.",
             status=403,
         )
+    from accounts.principal import access_for_user
+    access = access_for_user(actor)
+    if access.session is not None:
+        return access.principal()
     return Principal(tenant_id=tenant_id, human_id=human_id, user_id=getattr(actor, "pk", None))
 
 

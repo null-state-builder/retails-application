@@ -260,3 +260,5 @@ from accounts.goods_models import (  # noqa: E402, F401
     Staff,
     StaffAssignment,
 )
+
+from accounts.registration_models import InstallationRegistration  # noqa: E402, F401

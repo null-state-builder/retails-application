@@ -202,11 +202,16 @@ class UserAssignmentsView(GoodsAPIView):
         assert user.human_id is not None
         target_human_id = user.human_id
         key = f"assignments:{target_human_id}"
-        return Response({"revision": _revision(access.tenant_id, "user", key),
-                         "items": [_assignment_data(row) for row in _open_assignments(
-                             access.tenant_id, target_human_id, timezone.now()
-                         )],
-                         "choices": _choices(access.tenant_id)})
+        body = {"revision": _revision(access.tenant_id, "user", key),
+                "items": [_assignment_data(row) for row in _open_assignments(
+                    access.tenant_id, target_human_id, timezone.now()
+                )],
+                "choices": _choices(access.tenant_id)}
+        access.revalidate_delivery()
+        response = Response(body)
+        response["Cache-Control"] = "no-store, private"
+        response["Pragma"] = "no-cache"
+        return response
 
     @extend_schema(request={"application/json": ASSIGNMENT_REPLACE_REQUEST},
                    responses={200: {"type": "object", "additionalProperties": True}})

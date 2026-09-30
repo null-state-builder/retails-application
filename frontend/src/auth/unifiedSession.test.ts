@@ -39,6 +39,19 @@ const session = {
 } as const;
 
 describe("unified session", () => {
+  it("keeps personal PIN setup separate from counter exception approval", () => {
+    const user = shellUser(
+      readSession({
+        ...session,
+        user: { ...session.user, may_set_till_pin: true, may_hold_till_pin: false },
+      }),
+    );
+    expect(user.may_set_till_pin).toBe(true);
+    expect(user.may_hold_till_pin).toBe(false);
+    expect(() =>
+      readSession({ ...session, user: { ...session.user, may_set_till_pin: "yes" } }),
+    ).toThrow("Unsupported session response");
+  });
   it("rejects the old nested-profile contract", () => {
     expect(() => readSession({ profile: {}, actions: ["access.manage"] })).toThrow(
       "Unsupported session response",

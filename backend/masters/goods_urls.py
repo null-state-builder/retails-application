@@ -11,6 +11,7 @@ from __future__ import annotations
 from django.urls import include, path
 
 from masters.brand_reconciliation_views import BrandReconciliationView
+from masters.first_store_views import FirstStoreCounterView
 
 from masters.goods_audit_log_views import GoodsAuditLogExportView, GoodsAuditLogView
 from masters.goods_brand_terms_views import (
@@ -72,6 +73,7 @@ from masters.goods_views import (
 )
 
 urlpatterns = [
+    path("stores/<int:pk>/counter", FirstStoreCounterView.as_view(), name="first-store-counter"),
     path("brand-reconciliation", BrandReconciliationView.as_view(), name="brand-reconciliation"),
     # Setup > Feature Switches (store operations PRD ST-OPS-6).
     path("store-features", GoodsStoreFeatureListView.as_view(), name="goods-store-feature-list"),

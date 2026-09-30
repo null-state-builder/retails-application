@@ -32,6 +32,7 @@ import { AdministrativeHistory } from "../components/AdministrativeHistory";
 import {
   Denied,
   Feedback,
+  Field,
   hold,
   PickerField,
   usePagedPicker,
@@ -131,6 +132,8 @@ interface ReadinessData {
   opening_setup_ready: boolean;
   goods_ready: boolean;
   sell_ready: boolean;
+  selling_mode: "historical" | "online_alpha";
+  selling_checks: CheckItem[];
   non_trading_confirmed: boolean;
   checks: CheckItem[];
   residuals: Residuals;
@@ -1695,27 +1698,126 @@ function ReadinessCard({ title, children }: { title: string; children: ReactNode
   );
 }
 
+function CounterSetupCard({
+  siteId,
+  revision,
+  onSaved,
+}: {
+  siteId: string;
+  revision: number;
+  onSaved: () => void;
+}) {
+  const [token, setToken] = useState("");
+  const [replace, setReplace] = useState(false);
+  const [reason, setReason] = useState("");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const stepUp = useStepUp();
+  async function register() {
+    setError("");
+    setToken("");
+    setBusy(true);
+    const command = { ...goodsMeta(revision), replace, reason };
+    try {
+      const { data } = await stepUp.guarded(() =>
+        api.post<{ device_token?: string; token_issued: boolean }>(
+          `/goods-v1/masters/stores/${siteId}/counter`,
+          command,
+        ),
+      );
+      if (data.device_token) setToken(data.device_token);
+      else
+        setError(
+          "This registration was already completed. The pairing code is issued once. Replace the device with a reason if it was lost.",
+        );
+      onSaved();
+    } catch (e) {
+      setError(apiErrorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <ReadinessCard title="Counter setup">
+      <Feedback error={error} ok="" />
+      {stepUp.dialog}
+      <p className="lead">
+        Register the store's counter here. The Store Person pairs that browser in Till & Sync using
+        the one-time code.
+      </p>
+      <label>
+        <input type="checkbox" checked={replace} onChange={(e) => setReplace(e.target.checked)} />{" "}
+        Replace an existing device
+      </label>
+      {replace && (
+        <Field id="counter-reason" label="Why is the device being replaced?">
+          <input
+            id="counter-reason"
+            className="input"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
+        </Field>
+      )}
+      <button
+        className="btn btn-sm"
+        disabled={busy || (replace && !reason.trim())}
+        onClick={register}
+        data-testid="counter-register"
+      >
+        {replace ? "Replace counter device" : "Register first counter"}
+      </button>
+      {token && (
+        <Field
+          id="counter-pairing-code"
+          label="One-time pairing code"
+          hint="Share this only with the manager pairing this store's browser. It is cleared when you leave this page."
+        >
+          <input
+            id="counter-pairing-code"
+            type="password"
+            readOnly
+            className="input"
+            value={token}
+            autoComplete="off"
+          />
+          <button className="btn btn-sm" onClick={() => navigator.clipboard.writeText(token)}>
+            Copy pairing code
+          </button>
+        </Field>
+      )}
+    </ReadinessCard>
+  );
+}
+
 function SiteReadinessTab({ siteId }: { siteId: string }) {
   const { session } = useAuth();
   const canRun = hold(session, "org.site.lifecycle.run");
   const canApprove = hold(session, "org.site.lifecycle.approve");
+  const canManage = hold(session, "org.site.manage");
   const { doc, loading, denied, failure, reload } = useResourceDoc<ReadinessData>(
     `/goods-v1/masters/stores/${siteId}/readiness`,
   );
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
   const [busy, setBusy] = useState(false);
+  const [decisionReason, setDecisionReason] = useState("");
   const stepUp = useStepUp();
 
   async function act(action: string) {
     if (!doc) return;
     setError("");
     setOk("");
+    if (action.startsWith("approve_") && !decisionReason.trim()) {
+      setError("Record the reason for this readiness approval.");
+      return;
+    }
     setBusy(true);
     try {
       await stepUp.guarded(() =>
         api.post(`/goods-v1/masters/stores/${siteId}/readiness`, {
           action,
+          ...(decisionReason.trim() ? { reason_code: decisionReason.trim() } : {}),
           ...goodsMeta(doc.revision),
         }),
       );
@@ -1735,11 +1837,25 @@ function SiteReadinessTab({ siteId }: { siteId: string }) {
 
   const checks = doc.data.checks;
   const failing = checks.filter((c) => !c.passed);
+  const sellingChecks = doc.data.selling_checks ?? [];
+  const sellingGaps = sellingChecks.filter((c) => !c.passed);
 
   return (
     <div data-testid="site-readiness-tab">
       <Feedback error={error} ok={ok} />
       {stepUp.dialog}
+      {canApprove && (
+        <Field id="readiness-decision-reason" label="Readiness decision reference">
+          <input
+            id="readiness-decision-reason"
+            className="input"
+            maxLength={60}
+            value={decisionReason}
+            onChange={(e) => setDecisionReason(e.target.value)}
+            placeholder="Reason or evidence reference (up to 60 characters)"
+          />
+        </Field>
+      )}
       <div className="toolbar" style={{ marginBottom: 12 }}>
         <span className="chip chip-navy" data-testid="site-lifecycle">
           {doc.data.lifecycle}
@@ -1777,6 +1893,34 @@ function SiteReadinessTab({ siteId }: { siteId: string }) {
         )}
       </div>
       <div className="org-readiness-grid">
+        {doc.data.selling_mode === "online_alpha" && (
+          <ReadinessCard title="Opening stock setup">
+            <p className="lead">
+              {doc.data.opening_setup_ready
+                ? "Approved for preparing reviewed opening stock."
+                : "Approve the store setup before creating its opening batches."}
+            </p>
+            {canApprove && !doc.data.opening_setup_ready && (
+              <button
+                className="btn btn-cta"
+                onClick={() => act("approve_opening_setup")}
+                disabled={busy || failing.length > 0}
+                data-testid="readiness-approve-opening-button"
+              >
+                Approve opening setup
+              </button>
+            )}
+            {canApprove && doc.data.opening_setup_ready && (
+              <button
+                className="btn btn-sm"
+                onClick={() => act("revoke_opening_setup")}
+                disabled={busy}
+              >
+                Suspend opening preparation
+              </button>
+            )}
+          </ReadinessCard>
+        )}
         <ReadinessCard title="Goods readiness">
           <p className="lead" data-testid="goods-ready-summary">
             {doc.data.goods_ready ? "Ready to receive, hold and transfer stock." : "Not ready yet."}
@@ -1797,14 +1941,53 @@ function SiteReadinessTab({ siteId }: { siteId: string }) {
           <p className="lead" data-testid="selling-ready-summary">
             {doc.data.sell_ready
               ? "Sell-ready."
-              : "Not ready—selling activation is not available in this stage."}
+              : "Complete the checks below before approving online selling."}
           </p>
-          <p className="muted-cell">
-            This checklist is read-only in stage 1: there is no approve-sell action yet, whatever
-            else this site satisfies.
-          </p>
+          {doc.data.selling_mode === "online_alpha" ? (
+            <>
+              {sellingChecks.map((c) => (
+                <div className="org-check-row" key={c.key} data-testid={`selling-check-${c.key}`}>
+                  <span className={`chip chip-${c.passed ? "green" : "red"}`}>
+                    {c.passed ? "OK" : "Missing"}
+                  </span>
+                  <span>
+                    <b>{c.key.replace(/_/g, " ")}</b>
+                    {!c.passed && c.reason && <div className="muted-cell">{c.reason}</div>}
+                  </span>
+                </div>
+              ))}
+              {canApprove && !doc.data.sell_ready && (
+                <button
+                  className="btn btn-cta"
+                  onClick={() => act("approve_sell")}
+                  disabled={busy || sellingGaps.length > 0}
+                  data-testid="readiness-approve-sell-button"
+                >
+                  Approve online selling
+                </button>
+              )}
+              {canApprove && doc.data.sell_ready && (
+                <button
+                  className="btn btn-sm"
+                  onClick={() => act("revoke_sell")}
+                  disabled={busy}
+                  data-testid="readiness-revoke-sell-button"
+                >
+                  Suspend new sales
+                </button>
+              )}
+              <p className="muted-cell">
+                These conditions are checked again when a bill is issued.
+              </p>
+            </>
+          ) : (
+            <p className="muted-cell">This store retains its current counter contract.</p>
+          )}
         </ReadinessCard>
       </div>
+      {canManage && doc.data.selling_mode === "online_alpha" && (
+        <CounterSetupCard siteId={siteId} revision={doc.revision} onSaved={reload} />
+      )}
     </div>
   );
 }

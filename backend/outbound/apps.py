@@ -43,6 +43,10 @@ class OutboundConfig(AppConfig):
         goods_counts.install()
         register_scheduled("count_staleness", goods_counts.sweep_stale)
 
+        from outbound import goods_soh_reconciliation
+
+        goods_soh_reconciliation.install()
+
         # Store operations ticket 35 (ST-INV-3): a scheduled count whose day has
         # passed is found by time passing, on the same clock.
         from outbound import count_schedules

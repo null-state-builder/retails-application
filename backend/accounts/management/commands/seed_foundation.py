@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from django.conf import settings
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
 
 from accounts.floors import clamp_to_floors, describe_floors
@@ -164,6 +164,8 @@ class Command(BaseCommand):
         # tenant (change PRD §14.2), so the deployment's tenant exists and is
         # bound before any of them is written.
         tenant = deployment_tenant()
+        if not tenant.synthetic:
+            raise CommandError("Foundation fixture seeding is refused on a registered real company.")
         with tenant_context(tenant.pk):
             self._seed_rows()
         if SEED_DEMO:

@@ -138,6 +138,18 @@ export default function BillsPage() {
   /** The same bill again, with the same number. Nothing is written, so a failed
    *  print leaves exactly one bill and offers another go. */
   async function reprint(bill: OpenBill) {
+    if (bill.posted) {
+      try {
+        const fresh = await api.get(`/sell/sales/${encodeURIComponent(bill.posted.doc_number)}`);
+        bill = { ...bill, posted: fresh.data };
+      } catch (error) {
+        setPrintProblem(apiErrorMessage(error));
+        return;
+      }
+    } else if (till?.onlineAlpha) {
+      setPrintProblem("Only a server-accepted bill can be printed.");
+      return;
+    }
     const html = bill.posted
       ? postedReceiptHtml(bill.posted)
       : receiptHtml(bill.queued!, world.store ?? { code: "", gstin: "", state_code: "" });
@@ -244,58 +256,60 @@ export default function BillsPage() {
       {rows !== null && rows.length > 0 && (
         <div className="card section-card" data-testid="bills-results">
           <p className="eyebrow">{rows.length === 1 ? "1 bill" : `${rows.length} bills`}</p>
-          <table className="lines-table" data-testid="bills-rows">
-            <thead>
-              <tr>
-                <th>Bill</th>
-                <th>When</th>
-                <th>Customer</th>
-                <th>Paid with</th>
-                <th className="num">Total</th>
-                <th>Sync</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.doc_number} data-testid={`bills-row-${row.doc_number}`}>
-                  <td className="mono">{row.doc_number || "not numbered"}</td>
-                  <td>{formatDateTime(row.billed_at)}</td>
-                  <td>
-                    {row.customer_name || "—"}
-                    {row.customer_mobile ? (
-                      <span className="lead"> · {row.customer_mobile}</span>
-                    ) : null}
-                  </td>
-                  <td>{tenderSummary(row)}</td>
-                  <td className="num">
-                    <Money paise={row.net_paise} />
-                  </td>
-                  <td>
-                    {row.synced ? (
-                      <span className="chip" data-testid="bills-synced">
-                        Synced
-                      </span>
-                    ) : (
-                      <span className="chip chip-amber" data-testid="bills-unsynced">
-                        Not yet synced
-                      </span>
-                    )}
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="btn"
-                      data-testid={`bills-open-${row.doc_number}`}
-                      onClick={() => void openBill(row)}
-                    >
-                      {open?.row.doc_number === row.doc_number ? "Close" : "Open"}
-                    </button>
-                  </td>
+          <div className="table-wrap">
+            <table className="lines-table" data-testid="bills-rows">
+              <thead>
+                <tr>
+                  <th>Bill</th>
+                  <th>When</th>
+                  <th>Customer</th>
+                  <th>Paid with</th>
+                  <th className="num">Total</th>
+                  <th>Sync</th>
+                  <th />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.doc_number} data-testid={`bills-row-${row.doc_number}`}>
+                    <td className="mono">{row.doc_number || "not numbered"}</td>
+                    <td>{formatDateTime(row.billed_at)}</td>
+                    <td>
+                      {row.customer_name || "—"}
+                      {row.customer_mobile ? (
+                        <span className="lead"> · {row.customer_mobile}</span>
+                      ) : null}
+                    </td>
+                    <td>{tenderSummary(row)}</td>
+                    <td className="num">
+                      <Money paise={row.net_paise} />
+                    </td>
+                    <td>
+                      {row.synced ? (
+                        <span className="chip" data-testid="bills-synced">
+                          Synced
+                        </span>
+                      ) : (
+                        <span className="chip chip-amber" data-testid="bills-unsynced">
+                          Not yet synced
+                        </span>
+                      )}
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="btn"
+                        data-testid={`bills-open-${row.doc_number}`}
+                        onClick={() => void openBill(row)}
+                      >
+                        {open?.row.doc_number === row.doc_number ? "Close" : "Open"}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -419,31 +433,33 @@ function BillDetail({
         </p>
       ) : null}
 
-      <table className="lines-table" data-testid="bills-detail-lines">
-        <thead>
-          <tr>
-            <th>Item</th>
-            <th>Barcode</th>
-            <th className="num">Qty</th>
-            <th className="num">Net</th>
-          </tr>
-        </thead>
-        <tbody>
-          {lines.map((line) => (
-            <tr key={line.line_no} data-testid={`bills-detail-line-${line.line_no}`}>
-              <td>
-                {line.what}
-                {line.returned ? <span className="chip chip-navy">Returned</span> : null}
-              </td>
-              <td className="mono">{line.barcode}</td>
-              <td className="num">{line.qty}</td>
-              <td className="num">
-                <Money paise={line.net_paise} />
-              </td>
+      <div className="table-wrap">
+        <table className="lines-table" data-testid="bills-detail-lines">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Barcode</th>
+              <th className="num">Qty</th>
+              <th className="num">Net</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {lines.map((line) => (
+              <tr key={line.line_no} data-testid={`bills-detail-line-${line.line_no}`}>
+                <td>
+                  {line.what}
+                  {line.returned ? <span className="chip chip-navy">Returned</span> : null}
+                </td>
+                <td className="mono">{line.barcode}</td>
+                <td className="num">{line.qty}</td>
+                <td className="num">
+                  <Money paise={line.net_paise} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <div className="bills-tenders" data-testid="bills-detail-tenders">
         {tenders.map((tender, index) => (

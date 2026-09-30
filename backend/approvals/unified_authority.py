@@ -10,15 +10,16 @@ from typing import Any
 
 from django.db import models
 
-from accounts.principal import AccessContext, database_now
+from accounts.principal import AccessContext
 from approvals.goods_policy import Amounts, band_failure
 from core.canonical import content_hash
+from core.commands import database_now
 from core.refusals import Refusal
 from core.tenancy import require_tenant_id
 from masters.brand_identity import identity_id
 from masters.goods_config import ConfigTarget, resolve
 from masters.goods_models import EffectiveVersionPeriod
-from masters.models import Brand, Store
+from masters.models import Brand, Season, Store
 
 ACTION = "approval.decide"
 # Explicit adapters, not guesses from a model's fields or presentation label.
@@ -63,6 +64,8 @@ def source(subject: Any, *, lock: bool = False) -> Source:
     query = type(subject).objects.filter(pk=subject.pk)
     subject = (query.select_for_update() if lock else query).get()
     kind, fields, amount_field = FAMILIES[label]
+    booking_digest = None
+    booking_qty = 0
     sites: set[int | None] = set()
     for name in ("store", "site", "source_store", "destination_store", "requesting_store", "fulfilling_store", "destination_store"):
         site = getattr(subject, name, None)
@@ -75,11 +78,30 @@ def source(subject: Any, *, lock: bool = False) -> Source:
         raise Refusal("NOT_FOUND", "That approval source was not found.")
     if label == "vendors.opentobuyask":
         # The header alone does not cover a multi-site booking or a changed draft.
-        from vendors.goods_bookings import booking_hash
+        from vendors.goods_services import booking_content_hash, booking_head, booking_lines
         booking = subject.booking
-        if booking_hash(booking) != subject.draft_hash:
+        if (booking.tenant_id != tenant or booking.brand_id != subject.brand_id
+                or booking.document.tenant_id != tenant):
+            raise Refusal("APPROVAL_SOURCE_INACTIVE", "The booking's stable ownership conflicts with this request.", status=409)
+        head = booking_head(booking)
+        booking_digest = booking_content_hash(booking, head)
+        if booking_digest != subject.draft_hash:
             raise Refusal("APPROVAL_STALE", "The booking changed; submit its current inputs again.", status=409)
         sites.add(booking.document.site_id)
+        header, booked_lines, _roots = booking_lines(booking, head)
+        if (str(header.get("brand_id")) != str(subject.brand_id)
+                or str(header.get("season_id")) != str(subject.season_id)
+                or not Season.objects.filter(pk=subject.season_id).exists()):
+            raise Refusal("APPROVAL_SOURCE_INACTIVE", "The booking's stable brand or season conflicts with this request.", status=409)
+        destinations = {int(row["destination_site_id"]) for row in [header, *booked_lines]
+                        if row.get("destination_site_id") is not None}
+        if Store.objects.filter(tenant_id=tenant, pk__in=destinations).count() != len(destinations):
+            raise Refusal("APPROVAL_SOURCE_INACTIVE", "The booking's complete site ownership is unresolved.", status=409)
+        sites.update(destinations)
+        owned_sites = {site for site in sites if site is not None}
+        if Store.objects.filter(tenant_id=tenant, pk__in=owned_sites).count() != len(owned_sites):
+            raise Refusal("APPROVAL_SOURCE_INACTIVE", "The booking's complete site ownership is unresolved.", status=409)
+        booking_qty = sum(int(row.get("qty") or 0) for row in booked_lines)
     if not sites:
         if getattr(subject, "tenant_id", None) != tenant:
             raise Refusal("APPROVAL_SOURCE_INACTIVE", "The source's tenant and scope are unresolved.", status=409)
@@ -87,7 +109,7 @@ def source(subject: Any, *, lock: bool = False) -> Source:
     lines_query = getattr(subject, "lines", None)
     lines = list((lines_query.select_for_update() if lock else lines_query).all()) if lines_query is not None else []
     brands: set[int | None] = set()
-    qty, value = 0, 0
+    qty, value = booking_qty, 0
     unknown = False
     for line in lines:
         linked = getattr(line, "brand_ref_id", None)
@@ -119,9 +141,12 @@ def source(subject: Any, *, lock: bool = False) -> Source:
     else:
         amount = None if unknown or not lines else value
     cells = tuple(sorted(((site, b) for site in sites for b in brands), key=repr))
-    digest = content_hash({"source": label, "id": str(subject.pk), "header": _values(subject),
-                           "lines": [_values(line) for line in sorted(lines, key=lambda row: str(row.pk))],
-                           "cells": cells, "qty": qty, "value": str(amount) if amount is not None else None})
+    digest_input = {"source": label, "id": str(subject.pk), "header": _values(subject),
+                    "lines": [_values(line) for line in sorted(lines, key=lambda row: str(row.pk))],
+                    "cells": cells, "qty": qty, "value": str(amount) if amount is not None else None}
+    if booking_digest is not None:
+        digest_input["booking_hash"] = booking_digest
+    digest = content_hash(digest_input)
     return Source(kind, cells, fields, qty, amount, digest)
 
 

@@ -116,6 +116,59 @@ REPRICE_REQUEST = {
 }
 
 
+
+def _goods_price_rows(request: Request, day: date, barcode: str | None = None) -> list[dict[str, Any]]:
+    """Canonical price projection from approved origins, with resource fields."""
+    from masters.models import Store
+    from masters.goods_models import SiteGuard
+    from sell.services.goods_stock import read_shelf
+    from stockledger.goods_models import Origin
+    access = resolve_access(request)
+    grouped: dict[str, list[Any]] = {}
+    stores = Store.objects.filter(tenant_id=access.tenant_id, goods_guard__stock_contract=SiteGuard.StockContract.GOODS_V1)
+    for store in stores:
+        if not access.can_reach_site("section.offers_price.view", store.pk):
+            continue
+        for piece in read_shelf(store).pieces:
+            if barcode is not None and piece.barcode != barcode:
+                continue
+            if piece.brand_id is None or not access.covers_all_actions({"section.offers_price.view"}, [(store.pk, piece.brand_id)]):
+                continue
+            grouped.setdefault(piece.barcode, []).append((store, piece))
+    origins = {row.pk: row for row in Origin.objects.filter(pk__in=[piece.origin_id for group in grouped.values() for _, piece in group])}
+    out = []
+    term = str(request.query_params.get("q") or "").strip().casefold()
+    brand = str(request.query_params.get("brand") or "").strip().casefold()
+    for code, group in sorted(grouped.items()):
+        # The legacy price-book DTO has one row per barcode. Ambiguous identity
+        # or differing store tickets cannot be collapsed into a made-up ticket.
+        if len({(piece.sku_id, piece.brand_id, piece.mrp_paise) for _, piece in group}) != 1:
+            continue
+        cells = [(store.pk, piece.brand_id) for store, piece in group]
+        store, piece = group[0]
+        if brand and piece.dims["brand"].casefold() != brand:
+            continue
+        if term and not any(term in str(value).casefold() for value in (code, *piece.dims.values())):
+            continue
+        if request.query_params.get("no_discount") == "true" and not piece.no_discount:
+            continue
+        costs = [int(origins[p.origin_id].unit_cost) for _, p in group if p.origin_id in origins]
+        can_cost = access.covers_all_actions({"section.offers_price.view"}, cells, {"cost"})
+        can_margin = access.covers_all_actions({"section.offers_price.view"}, cells, {"cost", "margin"})
+        cost = costs[0] if costs and len(set(costs)) == 1 and can_cost else None
+        margin = (str(round((piece.mrp_paise - cost) * 100 / piece.mrp_paise, 2))
+                  if can_margin and cost is not None and piece.mrp_paise else None)
+        body = {"barcode": code, **piece.dims, "hsn": piece.hsn, "season": piece.season,
+                "mrp_paise": piece.mrp_paise, "mrp_then_paise": piece.mrp_paise,
+                "moved_since": False, "cost_paise": cost, "margin_pct": margin,
+                "no_discount": piece.no_discount, "price_source": "approved_origin",
+                "cohorts": [{"season": p.season, "unit_cost_paise": int(origins[p.origin_id].unit_cost) if can_cost and p.origin_id in origins else None,
+                             "mrp_paise": p.mrp_paise, "last_doc_number": str(origins[p.origin_id].official_line_id or origins[p.origin_id].pk) if p.origin_id in origins else None}
+                            for _, p in group], "history": []}
+        out.append(body)
+    return out
+
+
 def _as_of(request: Request) -> date:
     raw = (request.query_params.get("as_of") or "").strip()
     if raw:
@@ -129,7 +182,7 @@ def _as_of(request: Request) -> date:
 def _sources(request: Request) -> list[Any]:
     """Only tenant-owned stock with proven identity establishes a price-book row."""
     query = scope_by_store_and_brand(
-        StockOnHand.objects.all(), request.user, section="offers_price", minimum="view",
+        StockOnHand.objects.exclude(store__goods_guard__stock_contract="goods_v1"), request.user, section="offers_price", minimum="view",
     )
     return list(query.order_by("sku_code", "store_id"))
 
@@ -232,12 +285,18 @@ class PriceListView(APIView):
         if request.query_params.get("no_discount") == "true":
             skus = skus.filter(no_discount=True)
         page = list(skus.order_by("barcode")[:PAGE + 1])
+        goods = _goods_price_rows(request, day)
         bodies = [_price_body(request, sku, by_code[sku.barcode], day) for sku in page[:PAGE]]
+        bodies.extend(goods)
+        bodies.sort(key=lambda row: row["barcode"])
+        truncated = len(bodies) > PAGE or len(page) > PAGE
+        bodies = bodies[:PAGE]
         for body in bodies:
             body.pop("cohorts")
             body.pop("history")
-        return Response({"as_of": day.isoformat(), "count": len(bodies), "truncated": len(page) > PAGE,
-                         "brands": sorted({row.brand for rows in by_code.values() for row in rows}), "rows": bodies})
+        resolve_access(request).revalidate_delivery()
+        return Response({"as_of": day.isoformat(), "count": len(bodies), "truncated": truncated,
+                         "brands": sorted({row["brand"] for row in bodies}), "rows": bodies})
 
 
 class PriceDetailView(APIView):
@@ -250,11 +309,17 @@ class PriceDetailView(APIView):
         responses={200: PRICE_DETAIL_RESPONSE, 404: REFUSAL_RESPONSE},
     )
     def get(self, request: Request, barcode: str) -> Response:
+        goods = _goods_price_rows(request, _as_of(request), barcode)
+        if goods:
+            resolve_access(request).revalidate_delivery()
+            return Response(goods[0])
         sources = [row for row in _sources(request) if row.sku_code == barcode]
         sku = Sku.objects.filter(barcode=barcode).first() if sources else None
         if sku is None:
             raise Refusal("NOT_FOUND", "That price-book row was not found.", status=404)
-        return Response(_price_body(request, sku, sources, _as_of(request)))
+        body = _price_body(request, sku, sources, _as_of(request))
+        resolve_access(request).revalidate_delivery()
+        return Response(body)
 
 
 class PriceRepriceView(APIView):

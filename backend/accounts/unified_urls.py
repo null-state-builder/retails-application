@@ -21,8 +21,10 @@ from accounts.goods_admin_views import (
 )
 from accounts.unified_admin import RolePolicyView, UserAssignmentsView, WorkflowPolicyView
 from accounts.reconciliation_views import AssignmentReconciliationView
+from accounts.registration_views import RegistrationSetupView
 
 urlpatterns = [
+    path("registration", RegistrationSetupView.as_view(), name="company-registration-setup"),
     path("reconciliation", AssignmentReconciliationView.as_view(), name="access-reconciliation"),
     path("meta", GoodsAdminMetaView.as_view(), name="access-admin-meta"),
     path("staff", GoodsStaffListCreateView.as_view(), name="access-staff-list"),

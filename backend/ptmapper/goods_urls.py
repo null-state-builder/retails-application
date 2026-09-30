@@ -11,6 +11,7 @@ from __future__ import annotations
 from django.urls import include, path
 
 urlpatterns = [
+    path("", include("ptmapper.soh_urls")),
     path("", include("ptmapper.goods_vocab_urls")),
     path("", include("ptmapper.goods_pt_urls")),
     path("", include("ptmapper.goods_print_urls")),

@@ -15,6 +15,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.permissions import require_section
+from accounts.principal import resolve_access
 from accounts.sections import CAP_VIEW
 from core.dates import parse_day
 from core.refusals import refusal_body
@@ -176,4 +177,13 @@ class CashSummaryView(APIView):
         pick = resolve_store(request.user, (request.query_params.get("store") or "").strip())
         if pick.store is None:
             return Response(refusal_body("SCOPE_DENIED", pick.refusal), status=403)
-        return Response(build_cash_summary(pick.store, day))
+        access = resolve_access(request)
+        # A drawer total belongs to the whole store. Brand-limited Money access
+        # cannot be combined with a different assignment's store navigation.
+        access.require("section.money.view", site_id=pick.store.pk)
+        body = build_cash_summary(pick.store, day)
+        access.revalidate_delivery()
+        response = Response(body)
+        response["Cache-Control"] = "no-store, private"
+        response["Pragma"] = "no-cache"
+        return response

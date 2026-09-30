@@ -16,7 +16,7 @@ from accounts.sessions import issue_session, resolve_session
 from accounts.unified_admin import UserAssignmentsView
 from core.refusals import Refusal
 from core.tenancy import tenant_context
-from test_so03_denials import TenantWorld, _assign, _person, _tenant_world
+from tests.test_so03_denials import TenantWorld, _assign, _person, _tenant_world
 
 
 @pytest.fixture

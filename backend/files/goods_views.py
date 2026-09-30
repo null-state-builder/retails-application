@@ -39,7 +39,7 @@ UPLOAD_ACTIONS = (
     "config.draft",
     "org.site.manage",
 )
-FIELD_SET = frozenset({"cost", "margin", "layer_value", "personal"})
+FIELD_SET = frozenset({"cost", "margin", "layer_value", "personal", "financial"})
 
 
 def _scope(raw: Any) -> dict[str, Any]:

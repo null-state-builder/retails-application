@@ -7,7 +7,7 @@ import { AlertTriangle, Gift, MonitorSmartphone, Undo2, X } from "lucide-react";
 import { useAuth } from "../../auth/AuthContext";
 import { PlusRail } from "./billing/plus/PlusRail";
 import { PageHeader } from "../../components/PageHeader";
-import { apiErrorMessage, typedApi } from "../../lib/api";
+import { api, apiErrorMessage, typedApi } from "../../lib/api";
 import { Money } from "../../lib/format";
 import { useTill } from "../../till/TillProvider";
 import { useCounterRoom } from "../../till/useCounterRoom";
@@ -67,7 +67,7 @@ import { mockPaymentAdapter } from "../../till/payment";
 import type { PaymentAdapter, UpiCharged } from "../../till/payment";
 import { browserPrintAdapter } from "../../till/print";
 import { playTone, toneForScan } from "../../till/sounds";
-import { receiptHtml } from "../../till/receipt";
+import { postedReceiptHtml, receiptHtml } from "../../till/receipt";
 import { toTenders } from "../../till/tender";
 import type { Payment } from "../../till/tender";
 import { covers } from "../../till/pin";
@@ -681,7 +681,7 @@ function Counter({
   // this counter is blocked from billing, and its empty screen must not wipe
   // the live bill off the customer's display.
   const display = useTillDisplay(
-    till?.customerDisplay && till.lockHeld && engine ? engine.storeCode : null,
+    till?.customerDisplay && till.lockHeld && engine ? engine.storageScope : null,
   );
   const billOnCounter = cart.lines.length > 0 || Boolean(cart.exchange?.lines.length);
   useEffect(() => {
@@ -704,7 +704,7 @@ function Counter({
   // read once inside `save`, and a line arriving after that read would be a
   // piece the customer paid for and the queue never heard of. Parking one is the
   // same read and the same hazard, one table down.
-  const locked = saving || holding;
+  const locked = saving || holding || Boolean(till?.onlinePending);
 
   // Quiet, and only once there is a bill on screen worth saving - an empty
   // counter has nothing autosave is protecting yet.
@@ -764,6 +764,7 @@ function Counter({
 
   const takePiece = useCallback(
     (piece: TillItem, alternatives: TillItem[], stock: number) => {
+      if (locked) return;
       // `useCart`'s `take`, not a bare `setCart`: it chains through the
       // functional updater's own `current` rather than the outer `cart`
       // closure (#257, the #168 fix's own pattern - PR #314's
@@ -800,7 +801,7 @@ function Counter({
       // Picking a real piece answers the "was that tag mistyped?" ask - it was.
       clearScan();
     },
-    [cart, clearScan, muted, pushCartUndo, soldBy, startingANewBill, takeScanned],
+    [cart, clearScan, locked, muted, pushCartUndo, soldBy, startingANewBill, takeScanned],
   );
 
   /**
@@ -813,6 +814,7 @@ function Counter({
    */
   const takeUnknown = useCallback(
     (code: string) => {
+      if (locked) return;
       pushCartUndo(cart);
       // `addManualPiece` mints a key by default - computed once and reused
       // below for the same reason `takePiece` does: a second call would mint
@@ -827,10 +829,11 @@ function Counter({
       clearScan();
       scan.focus();
     },
-    [cart, clearScan, pushCartUndo, scan, soldBy, startingANewBill],
+    [cart, clearScan, locked, pushCartUndo, scan, soldBy, startingANewBill],
   );
 
   function changeMode(nextMode: CounterMode) {
+    if (locked) return;
     returnRequests.current.invalidate();
     setMode(nextMode);
     setReturnLooking(false);
@@ -1222,6 +1225,7 @@ function Counter({
   );
 
   function editLine(key: string, patch: Partial<CartLine>) {
+    if (locked) return;
     // One line's one field is one undo step, however many keystrokes it took:
     // the grid's cells fire this on every character (round-2 finding).
     //
@@ -1254,6 +1258,7 @@ function Counter({
   }
 
   function pickBillSalesperson(salesperson: string | null) {
+    if (locked) return;
     setBillSalesperson(salesperson);
     setLastPicked(salesperson);
     if (salesperson !== null) void engine?.rememberSalesperson(salesperson);
@@ -1261,6 +1266,7 @@ function Counter({
   }
 
   function applyBillSalesperson() {
+    if (locked) return;
     if (soldBy === null) return;
     runSeq.current += 1;
     setCart((current) => ({
@@ -1446,6 +1452,7 @@ function Counter({
   /** The customer strip, typed into directly - the third source (with a scan
    *  and return picking) that can race the mount-time draft read. */
   function editCustomer(next: TillCustomer) {
+    if (locked) return;
     runSeq.current += 1;
     onScreenRef.current = { ...onScreenRef.current, customer: next };
     setCustomer(next);
@@ -1523,6 +1530,7 @@ function Counter({
   }
 
   function newBill() {
+    if (till?.onlinePending) return;
     setThanking(false);
     freshCounter();
     startingANewBill();
@@ -1665,8 +1673,19 @@ function Counter({
     }
   }
 
-  async function print(receipt: string): Promise<void> {
+  async function print(receipt: string, documentNumber?: string): Promise<void> {
     const run = ++printRun.current;
+    if (till?.onlineAlpha && documentNumber) {
+      // Re-authorise the exact issued document at delivery, including reprints.
+      try {
+        const { data } = await api.get(`/sell/sales/${encodeURIComponent(documentNumber)}`);
+        receipt = postedReceiptHtml(data);
+      } catch (error) {
+        setPrintProblem(apiErrorMessage(error));
+        return;
+      }
+    }
+    if (run !== printRun.current) return;
     const outcome = await browserPrintAdapter.print(receipt);
     if (run !== printRun.current) return;
     setPrintProblem(
@@ -1690,7 +1709,7 @@ function Counter({
    * ends up looking like two on a shop floor.
    */
   async function save(authorisation: Authorisation | null = cart.authorisation) {
-    if (!engine || blocked || saving) return;
+    if (!engine || blocked || saving || till?.onlinePending) return;
     let refocusScan = true;
     setSaving(true);
     setPrintProblem("");
@@ -1728,7 +1747,7 @@ function Counter({
         setNote(`Bill ${queued.doc_number} saved.`);
         setFinishOpen(true);
         refocusScan = false;
-        await print(receipt);
+        await print(receipt, queued.doc_number);
       } else {
         leavePaperMode();
         setNote(
@@ -1744,8 +1763,36 @@ function Counter({
     }
   }
 
+  async function recoverOnlineBill() {
+    if (!engine || saving) return;
+    setSaving(true);
+    try {
+      const queued = await engine.retryOnline();
+      const receipt = receiptHtml(queued, world.store ?? FALLBACK_STORE, {
+        ...(storeName ? { storeName } : {}),
+      });
+      setLastBill({ bill: queued, receipt, cashReceivedPaise: queued.cash_received_paise ?? null });
+      freshCounter();
+      await clearDraft(engine.db);
+      setThanking(true);
+      setNote(`Bill ${queued.doc_number} accepted.`);
+      setFinishOpen(true);
+      await print(receipt, queued.doc_number);
+    } catch (error) {
+      setNote(messageOf(error));
+    } finally {
+      setSaving(false);
+    }
+  }
+
   function trySave() {
-    if (blocked || saving) return;
+    if (blocked || saving || till?.onlinePending) return;
+    if (till?.onlineAlpha && lateAsks.length) {
+      setNote(
+        "This late return needs recorded review by another independently authorised person. Ask Owner or Admin to arrange approval before taking payment.",
+      );
+      return;
+    }
     if (lateAsks.length && !covers(cart.authorisation, lateAsks)) {
       setReturnAsking(lateAsks);
       return;
@@ -1810,7 +1857,7 @@ function Counter({
   }
 
   useCounterKeys({
-    disabled: Boolean(charging || showHolds || counterBlocked || saving || holding || returnAsking),
+    disabled: Boolean(charging || showHolds || counterBlocked || locked || returnAsking),
     finishOpen,
     onHold: () => void holdBill(),
     onLookup: openLookup,
@@ -1984,6 +2031,41 @@ function Counter({
             <p className="warn-note" data-testid="bill-no-price-list">
               This counter has no local price list yet. Sync from Till &amp; Sync before billing.
             </p>
+          )}
+          {till?.onlinePending && (
+            <section className="card" role="status" data-testid="online-sale-pending">
+              <strong>
+                {till.onlinePending.state === "rejected"
+                  ? "Bill not issued"
+                  : "Checking whether the sale completed"}
+              </strong>
+              <p>
+                {till.onlinePending.error || "Keep this submission. Do not collect payment again."}
+              </p>
+              {till.onlinePending.state === "rejected" ? (
+                <button
+                  className="btn"
+                  onClick={() =>
+                    void engine!
+                      .reviseOnline()
+                      .then(() =>
+                        setNote("Prices refreshed. Review the bill before submitting again."),
+                      )
+                      .catch((error) => setNote(messageOf(error)))
+                  }
+                >
+                  Review and revise bill
+                </button>
+              ) : (
+                <button
+                  className="btn btn-primary"
+                  disabled={saving || !till.online}
+                  onClick={() => void recoverOnlineBill()}
+                >
+                  Retry same submission
+                </button>
+              )}
+            </section>
           )}
           {alert === "print-problem" && (
             <p className="bill-alert" data-testid="bill-print-problem">
@@ -2203,12 +2285,16 @@ function Counter({
         </div>
         <RailFoot
           duePaise={returnReady ? bill.payable_paise : null}
-          blocked={blocked}
+          blocked={
+            till?.onlinePending
+              ? "Resolve the previous submission before issuing another bill."
+              : blocked
+          }
           saving={saving}
           mode={mode}
           paper={paper}
           lastBillNumber={lastBill?.bill.doc_number ?? null}
-          onReprint={() => lastBill && void print(lastBill.receipt)}
+          onReprint={() => lastBill && void print(lastBill.receipt, lastBill.bill.doc_number)}
           onSave={trySave}
         />
       </aside>
@@ -2219,7 +2305,7 @@ function Counter({
           cashReceivedPaise={lastBill.cashReceivedPaise}
           printProblem={printProblem}
           busy={saving}
-          onPrint={() => void print(lastBill.receipt)}
+          onPrint={() => void print(lastBill.receipt, lastBill.bill.doc_number)}
           onNext={nextBill}
         />
       )}
@@ -2232,6 +2318,7 @@ function Counter({
           `counterBlocked` itself - otherwise it can append lines to a cart
           nobody can see. */}
       {!counterBlocked &&
+        !locked &&
         scanFloat.at &&
         createPortal(
           <div
@@ -2266,6 +2353,7 @@ function Counter({
         )}
 
       {!counterBlocked &&
+        !locked &&
         returnSearchFloat.at &&
         createPortal(
           <div

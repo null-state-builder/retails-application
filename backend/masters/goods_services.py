@@ -40,7 +40,7 @@ from masters.goods_models import (
     Sbu,
     SiteGuard,
 )
-from masters.models import LegalEntity, Store
+from masters.models import Brand, LegalEntity, Store
 
 # --------------------------------------------------------------------------
 # MasterPayload field sets (design §5.3)
@@ -254,6 +254,10 @@ def ensure_system_locations(tenant_id: uuid.UUID, site: Store) -> list[Location]
 
 
 def ensure_site_sbus(tenant_id: uuid.UUID, site: Store, brand_ids: list[int]) -> list[Sbu]:
+    if site.tenant_id != tenant_id or Brand.objects.filter(
+        tenant_id=tenant_id, pk__in=brand_ids, is_active=True,
+    ).count() != len(set(brand_ids)):
+        raise Refusal("MASTER_INVALID", "Each site brand must be an active identity in this company.")
     created = []
     fallback, made = Sbu.objects.get_or_create(
         site=site, brand=None, defaults={"tenant_id": tenant_id, "code": f"{site.code}-ALL"[:40]}
@@ -668,7 +672,7 @@ def enforce_checks_for_approval(
 
 
 #: The two readiness actions that open a capability rather than close one.
-APPROVAL_ACTIONS = frozenset({"approve_opening_setup", "approve_goods"})
+APPROVAL_ACTIONS = frozenset({"approve_opening_setup", "approve_goods", "approve_sell"})
 
 
 def apply_readiness_approval(
@@ -700,12 +704,27 @@ def apply_readiness_approval(
 
     if action not in APPROVAL_ACTIONS:
         raise Refusal("INVALID_REQUEST", f"{action} is not a readiness approval.")
+    finishing_opening = (
+        action == "approve_goods"
+        and guard.lifecycle == SiteGuard.Lifecycle.OPENING
+        and guard.selling_mode == SiteGuard.SellingMode.ONLINE_ALPHA
+    )
+    if finishing_opening:
+        from ptmapper.soh_services import is_reconciled
+
+        checks = [*checks, _check(
+            "opening_reconciled", is_reconciled(store),
+            "Approve and physically accept every opening batch before activating this store.",
+            overridable=False,
+        )]
     recorded = enforce_checks_for_approval(checks, residual_decisions)
     if action == "approve_opening_setup":
         guard.opening_setup_ready = True
+    elif action == "approve_sell":
+        guard.sell_ready = True
     else:
         guard.goods_ready = True
-        if guard.lifecycle == SiteGuard.Lifecycle.PLANNED:
+        if guard.lifecycle == SiteGuard.Lifecycle.PLANNED or finishing_opening:
             guard.lifecycle = SiteGuard.Lifecycle.ACTIVE
     event = run.record(
         SiteCapabilityEvent(
@@ -713,6 +732,8 @@ def apply_readiness_approval(
             operation=(
                 SiteCapabilityEvent.Operation.OPENING_SETUP
                 if action == "approve_opening_setup"
+                else SiteCapabilityEvent.Operation.SELL
+                if action == "approve_sell"
                 else SiteCapabilityEvent.Operation.GOODS
             ),
             outcome=SiteCapabilityEvent.Outcome.APPROVED,
@@ -934,16 +955,27 @@ def trading_not_excluded(site: Store) -> list[dict[str, Any]]:
 
 
 def readiness_dto(site: Store, guard: SiteGuard, checks: list[dict[str, Any]]) -> dict[str, Any]:
+    from masters.first_store_readiness import selling_checks
+
     return {
         "site_id": str(site.pk),
         "lifecycle": guard.lifecycle,
         "opening_setup_ready": guard.opening_setup_ready,
         "goods_ready": guard.goods_ready,
         "sell_ready": guard.sell_ready,
+        "selling_mode": guard.selling_mode,
+        "selling_checks": selling_checks(site, timezone.now())
+        if guard.selling_mode == SiteGuard.SellingMode.ONLINE_ALPHA else [],
         "non_trading_confirmed": guard.non_trading_confirmed,
         "checks": checks,
         "residuals": readiness_residuals(site),
     }
+
+
+def require_sell_ready(site: Store) -> None:
+    from masters.first_store_readiness import require_ready
+
+    require_ready(site, timezone.now())
 
 
 def location_holds_stock(location: Location) -> bool:
@@ -973,6 +1005,7 @@ CONFIG_KINDS = frozenset(
         "workflow",
         "non_trading",
         "working_calendar",
+        "sell_policy",
     }
 )
 
@@ -1092,6 +1125,12 @@ def _percent(value: Any, path: str) -> None:
         raise config_invalid(path, "must have at most two decimal places")
 
 
+def _discount_percent(value: Any, path: str) -> None:
+    if value in ("100", "100.0", "100.00", 100):
+        return
+    _percent(value, path)
+
+
 def _items(item: Checker, *, maximum: int = 1000) -> Checker:
     def check(value: Any, path: str) -> None:
         if not isinstance(value, list) or len(value) > maximum:
@@ -1156,6 +1195,13 @@ _PROFILE_COLUMN = _object(
 )
 
 CONFIG_SCHEMAS: dict[str, Checker] = {
+    "sell_policy": _object(
+        {
+            "manual_discount_cap_percent": _required(_discount_percent),
+            "manual_discount_on_offer_lines": _required(_boolean),
+            "return_window_days": _required(_integer(0, 365)),
+        }
+    ),
     "business_profile": _object(
         {
             "categories": _required(_TEXTS),

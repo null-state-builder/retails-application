@@ -413,78 +413,84 @@ export function NewTransferPanel({
       ) : null}
       {!heldPool && (
         <label className="check-row" data-testid="transfer-show-values">
-          <input type="checkbox" checked={valued} onChange={(event) => setValued(event.target.checked)} />
+          <input
+            type="checkbox"
+            checked={valued}
+            onChange={(event) => setValued(event.target.checked)}
+          />
           Show cost and MRP for this site
         </label>
       )}
       {listing ?? (
-        <table data-testid="transfer-new-lines">
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th className="num">{heldPool ? "Held here" : "Can be sent"}</th>
-              <th className="num">Send</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row, index) => (
-              <tr key={row.key} data-testid="transfer-new-line">
-                <td>
-                  {row.description}
-                  {row.held ? (
-                    <div className="muted" data-testid={`transfer-new-held-${row.key}`}>
-                      {row.held}
-                    </div>
-                  ) : null}
-                  {row.origins.length > 0 && (
-                    <details data-testid={`transfer-new-origins-${row.key}`}>
-                      <summary>
-                        {row.chosen.length === 0
-                          ? `From the oldest first (${row.origins.length} origin${
-                              row.origins.length === 1 ? "" : "s"
-                            })`
-                          : `From ${row.chosen.length} chosen origin${
-                              row.chosen.length === 1 ? "" : "s"
-                            }`}
-                      </summary>
-                      {row.origins.map((share) => (
-                        <label key={share.origin_id} className="origin-choice">
-                          <input
-                            type="checkbox"
-                            checked={row.chosen.includes(share.origin_id ?? "")}
-                            onChange={() => toggleOrigin(index, share.origin_id ?? "")}
-                            data-testid={`transfer-new-origin-${share.origin_id}`}
-                          />{" "}
-                          {originLabel(share.origin_id)} — {share.qty} can be sent
-                          <OriginValue share={share} />
-                        </label>
-                      ))}
-                    </details>
-                  )}
-                </td>
-                <td className="num" data-testid={`transfer-new-available-${row.key}`}>
-                  {sendable(row)}
-                </td>
-                <td className="num">
-                  <input
-                    className="input"
-                    type="number"
-                    min={0}
-                    max={sendable(row)}
-                    value={row.qty}
-                    aria-label={`Send how many of ${row.description}`}
-                    onChange={(e) =>
-                      setRows((current) =>
-                        current.map((r, i) => (i === index ? { ...r, qty: e.target.value } : r)),
-                      )
-                    }
-                    data-testid={`transfer-new-qty-${row.key}`}
-                  />
-                </td>
+        <div className="table-wrap">
+          <table data-testid="transfer-new-lines">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th className="num">{heldPool ? "Held here" : "Can be sent"}</th>
+                <th className="num">Send</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((row, index) => (
+                <tr key={row.key} data-testid="transfer-new-line">
+                  <td>
+                    {row.description}
+                    {row.held ? (
+                      <div className="muted" data-testid={`transfer-new-held-${row.key}`}>
+                        {row.held}
+                      </div>
+                    ) : null}
+                    {row.origins.length > 0 && (
+                      <details data-testid={`transfer-new-origins-${row.key}`}>
+                        <summary>
+                          {row.chosen.length === 0
+                            ? `From the oldest first (${row.origins.length} origin${
+                                row.origins.length === 1 ? "" : "s"
+                              })`
+                            : `From ${row.chosen.length} chosen origin${
+                                row.chosen.length === 1 ? "" : "s"
+                              }`}
+                        </summary>
+                        {row.origins.map((share) => (
+                          <label key={share.origin_id} className="origin-choice">
+                            <input
+                              type="checkbox"
+                              checked={row.chosen.includes(share.origin_id ?? "")}
+                              onChange={() => toggleOrigin(index, share.origin_id ?? "")}
+                              data-testid={`transfer-new-origin-${share.origin_id}`}
+                            />{" "}
+                            {originLabel(share.origin_id)} — {share.qty} can be sent
+                            <OriginValue share={share} />
+                          </label>
+                        ))}
+                      </details>
+                    )}
+                  </td>
+                  <td className="num" data-testid={`transfer-new-available-${row.key}`}>
+                    {sendable(row)}
+                  </td>
+                  <td className="num">
+                    <input
+                      className="input"
+                      type="number"
+                      min={0}
+                      max={sendable(row)}
+                      value={row.qty}
+                      aria-label={`Send how many of ${row.description}`}
+                      onChange={(e) =>
+                        setRows((current) =>
+                          current.map((r, i) => (i === index ? { ...r, qty: e.target.value } : r)),
+                        )
+                      }
+                      data-testid={`transfer-new-qty-${row.key}`}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
       <div className="toolbar">
         <button
@@ -645,39 +651,41 @@ export function TransferDetailPage() {
 
       <section className="card section-card" data-testid="transfer-lines">
         <h3 className="h3">What is being sent</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th>From</th>
-              <th className="num">Approved</th>
-              <th className="num">Still reserved</th>
-            </tr>
-          </thead>
-          <tbody>
-            {detail.lines.map((line) => (
-              <tr key={line.line_key} data-testid="transfer-line">
-                <td>{line.description || line.sku_id || "Not identified"}</td>
-                <td>
-                  {line.grn_id ? (
-                    <Link
-                      to={`/goods/receive/grn/${line.grn_id}?step=discrepancies`}
-                      data-testid="transfer-line-grn"
-                    >
-                      {prePtSource(line)}
-                    </Link>
-                  ) : (
-                    <LineOrigins line={line} />
-                  )}
-                </td>
-                <td className="num">{line.qty}</td>
-                <td className="num" data-testid={`transfer-outstanding-${line.line_key}`}>
-                  {outstandingOf(detail, line.line_key)}
-                </td>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th>From</th>
+                <th className="num">Approved</th>
+                <th className="num">Still reserved</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {detail.lines.map((line) => (
+                <tr key={line.line_key} data-testid="transfer-line">
+                  <td>{line.description || line.sku_id || "Not identified"}</td>
+                  <td>
+                    {line.grn_id ? (
+                      <Link
+                        to={`/goods/receive/grn/${line.grn_id}?step=discrepancies`}
+                        data-testid="transfer-line-grn"
+                      >
+                        {prePtSource(line)}
+                      </Link>
+                    ) : (
+                      <LineOrigins line={line} />
+                    )}
+                  </td>
+                  <td className="num">{line.qty}</td>
+                  <td className="num" data-testid={`transfer-outstanding-${line.line_key}`}>
+                    {outstandingOf(detail, line.line_key)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         {may("dispatch") && (
           <PreparationPanel detail={detail} onDone={done} onFail={failed} onRun={command} />
         )}
@@ -706,24 +714,26 @@ export function TransferDetailPage() {
 
       <section className="card section-card" data-testid="transfer-history">
         <h3 className="h3">History</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>What happened</th>
-              <th>Where</th>
-              <th>When</th>
-            </tr>
-          </thead>
-          <tbody>
-            {detail.events.map((event) => (
-              <tr key={event.id} data-testid="transfer-event" data-kind={event.kind}>
-                <td>{transferEventWords(event)}</td>
-                <td>{siteLabel(sites, event.site_id)}</td>
-                <td>{formatDateTime(event.actual_at)}</td>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>What happened</th>
+                <th>Where</th>
+                <th>When</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {detail.events.map((event) => (
+                <tr key={event.id} data-testid="transfer-event" data-kind={event.kind}>
+                  <td>{transferEventWords(event)}</td>
+                  <td>{siteLabel(sites, event.site_id)}</td>
+                  <td>{formatDateTime(event.actual_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
     </div>
   );
@@ -1035,28 +1045,30 @@ function PreparationPanel({
         {preparation.opened_by.name || preparation.opened_by.id}). The scans are kept, so anyone
         here can carry on from another device. Nothing moves until you dispatch.
       </p>
-      <table data-testid="prep-lines">
-        <thead>
-          <tr>
-            <th>Item</th>
-            <th>Tag</th>
-            <th className="num">Still reserved</th>
-            <th className="num">Scanned</th>
-          </tr>
-        </thead>
-        <tbody>
-          {preparation.lines.map((line) => (
-            <tr key={line.line_key} data-testid="prep-line">
-              <td>{line.description || line.sku_id}</td>
-              <td data-testid="prep-tags">{line.alias_values.join(", ") || "—"}</td>
-              <td className="num">{line.reserved_qty}</td>
-              <td className="num" data-testid={`prep-scanned-${line.line_key}`}>
-                {line.scanned_qty}
-              </td>
+      <div className="table-wrap">
+        <table data-testid="prep-lines">
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th>Tag</th>
+              <th className="num">Still reserved</th>
+              <th className="num">Scanned</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {preparation.lines.map((line) => (
+              <tr key={line.line_key} data-testid="prep-line">
+                <td>{line.description || line.sku_id}</td>
+                <td data-testid="prep-tags">{line.alias_values.join(", ") || "—"}</td>
+                <td className="num">{line.reserved_qty}</td>
+                <td className="num" data-testid={`prep-scanned-${line.line_key}`}>
+                  {line.scanned_qty}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <div className="form-grid" data-testid="prep-scan-form">
         <Field id="prep-scan-line" label="Line">
@@ -1130,29 +1142,31 @@ function PreparationPanel({
       </div>
 
       {preparation.scans.length > 0 && (
-        <table data-testid="prep-scans">
-          <thead>
-            <tr>
-              <th>Scanned</th>
-              <th className="num">Pieces</th>
-              <th>By</th>
-              <th>When</th>
-            </tr>
-          </thead>
-          <tbody>
-            {preparation.scans.map((row) => (
-              <tr key={row.scan_key} data-testid="prep-scan-row">
-                <td>
-                  {row.alias_value}
-                  {row.origin_id ? ` · ${originLabel(row.origin_id)}` : ""}
-                </td>
-                <td className="num">{row.qty}</td>
-                <td>{row.scanned_by.name || row.scanned_by.id}</td>
-                <td>{formatDateTime(row.actual_at)}</td>
+        <div className="table-wrap">
+          <table data-testid="prep-scans">
+            <thead>
+              <tr>
+                <th>Scanned</th>
+                <th className="num">Pieces</th>
+                <th>By</th>
+                <th>When</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {preparation.scans.map((row) => (
+                <tr key={row.scan_key} data-testid="prep-scan-row">
+                  <td>
+                    {row.alias_value}
+                    {row.origin_id ? ` · ${originLabel(row.origin_id)}` : ""}
+                  </td>
+                  <td className="num">{row.qty}</td>
+                  <td>{row.scanned_by.name || row.scanned_by.id}</td>
+                  <td>{formatDateTime(row.actual_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <Field id="transfer-dispatch-ref" label="Transport reference">
@@ -1304,29 +1318,31 @@ function ShipmentCard({
         ) : null}
       </dl>
       {record.returns.length > 0 ? (
-        <table data-testid={`shipment-returns-${record.sequence_no}`}>
-          <caption>Return receipts at the sender</caption>
-          <thead>
-            <tr>
-              <th>What came back</th>
-              <th>Why</th>
-              <th>Evidence</th>
-              <th>Recorded by</th>
-              <th>Back at</th>
-            </tr>
-          </thead>
-          <tbody>
-            {record.returns.map((receipt) => (
-              <tr key={receipt.id} data-testid="shipment-return-receipt">
-                <td>{returnWords(receipt)}</td>
-                <td>{receipt.reason}</td>
-                <td>{receipt.evidence_reference ?? "—"}</td>
-                <td>{receipt.recorded_by.name || receipt.recorded_by.id}</td>
-                <td>{formatDateTime(receipt.returned_at)}</td>
+        <div className="table-wrap">
+          <table data-testid={`shipment-returns-${record.sequence_no}`}>
+            <caption>Return receipts at the sender</caption>
+            <thead>
+              <tr>
+                <th>What came back</th>
+                <th>Why</th>
+                <th>Evidence</th>
+                <th>Recorded by</th>
+                <th>Back at</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {record.returns.map((receipt) => (
+                <tr key={receipt.id} data-testid="shipment-return-receipt">
+                  <td>{returnWords(receipt)}</td>
+                  <td>{receipt.reason}</td>
+                  <td>{receipt.evidence_reference ?? "—"}</td>
+                  <td>{receipt.recorded_by.name || receipt.recorded_by.id}</td>
+                  <td>{formatDateTime(receipt.returned_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : null}
       <ul className="origin-list" data-testid={`shipment-origins-${record.sequence_no}`}>
         {record.lines.flatMap((line) =>
@@ -1442,47 +1458,49 @@ function CountForm({
           : "A shipment is counted once, whole. Record what actually arrived: anything fewer than was sent is a shortage that stays visible, and damaged or unidentified pieces go to quarantine here and stay held. Wrong goods stay short: say what came instead, and it is held apart with anything else nobody sent."}
       </p>
       {record.lines.map((line) => (
-        <table key={line.line_key} data-testid="count-line">
-          <caption>
-            {detail.lines.find((l) => l.line_key === line.line_key)?.description || line.sku_id} —{" "}
-            {line.qty} sent
-          </caption>
-          <thead>
-            <tr>
-              {COUNT_CONDITIONS.map((name) => (
-                <th key={name} className="num" title={help[name]}>
-                  {label[name]}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              {COUNT_CONDITIONS.map((name) => (
-                <td key={name} className="num">
-                  <input
-                    className="input"
-                    type="number"
-                    min={0}
-                    max={line.qty}
-                    value={found[line.line_key]?.[name] ?? 0}
-                    aria-label={`${label[name]} pieces of ${line.sku_id}`}
-                    onChange={(e) =>
-                      setFound((current) => ({
-                        ...current,
-                        [line.line_key]: {
-                          ...(current[line.line_key] ?? blank),
-                          [name]: Number(e.target.value || 0),
-                        },
-                      }))
-                    }
-                    data-testid={`count-${record.sequence_no}-${name}`}
-                  />
-                </td>
-              ))}
-            </tr>
-          </tbody>
-        </table>
+        <div className="table-wrap" key={line.line_key}>
+          <table key={line.line_key} data-testid="count-line">
+            <caption>
+              {detail.lines.find((l) => l.line_key === line.line_key)?.description || line.sku_id} —{" "}
+              {line.qty} sent
+            </caption>
+            <thead>
+              <tr>
+                {COUNT_CONDITIONS.map((name) => (
+                  <th key={name} className="num" title={help[name]}>
+                    {label[name]}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                {COUNT_CONDITIONS.map((name) => (
+                  <td key={name} className="num">
+                    <input
+                      className="input"
+                      type="number"
+                      min={0}
+                      max={line.qty}
+                      value={found[line.line_key]?.[name] ?? 0}
+                      aria-label={`${label[name]} pieces of ${line.sku_id}`}
+                      onChange={(e) =>
+                        setFound((current) => ({
+                          ...current,
+                          [line.line_key]: {
+                            ...(current[line.line_key] ?? blank),
+                            [name]: Number(e.target.value || 0),
+                          },
+                        }))
+                      }
+                      data-testid={`count-${record.sequence_no}-${name}`}
+                    />
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
       ))}
       {record.lines
         .filter((line) => (found[line.line_key]?.wrong ?? 0) > 0)
@@ -1702,42 +1720,44 @@ function AcceptForm({
           ))}
         </select>
       </Field>
-      <table data-testid={`accept-lines-${record.sequence_no}`}>
-        <thead>
-          <tr>
-            <th>Item</th>
-            <th className="num">Waiting</th>
-            <th className="num">Put away now</th>
-          </tr>
-        </thead>
-        <tbody>
-          {lines.map((row) => (
-            <tr key={row.line.line_key}>
-              <td>
-                {detail.lines.find((l) => l.line_key === row.line.line_key)?.description ||
-                  row.line.sku_id}
-              </td>
-              <td className="num" data-testid={`accept-waiting-${record.sequence_no}`}>
-                {row.good}
-              </td>
-              <td className="num">
-                <input
-                  className="input"
-                  type="number"
-                  min={0}
-                  max={row.good}
-                  value={asked[row.line.line_key] ?? String(row.good)}
-                  aria-label={`Put away how many of ${row.line.sku_id}`}
-                  onChange={(e) =>
-                    setAsked((current) => ({ ...current, [row.line.line_key]: e.target.value }))
-                  }
-                  data-testid={`accept-qty-${record.sequence_no}`}
-                />
-              </td>
+      <div className="table-wrap">
+        <table data-testid={`accept-lines-${record.sequence_no}`}>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th className="num">Waiting</th>
+              <th className="num">Put away now</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {lines.map((row) => (
+              <tr key={row.line.line_key}>
+                <td>
+                  {detail.lines.find((l) => l.line_key === row.line.line_key)?.description ||
+                    row.line.sku_id}
+                </td>
+                <td className="num" data-testid={`accept-waiting-${record.sequence_no}`}>
+                  {row.good}
+                </td>
+                <td className="num">
+                  <input
+                    className="input"
+                    type="number"
+                    min={0}
+                    max={row.good}
+                    value={asked[row.line.line_key] ?? String(row.good)}
+                    aria-label={`Put away how many of ${row.line.sku_id}`}
+                    onChange={(e) =>
+                      setAsked((current) => ({ ...current, [row.line.line_key]: e.target.value }))
+                    }
+                    data-testid={`accept-qty-${record.sequence_no}`}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {problem && <div className="warn-note">{problem}</div>}
       <button
         className="btn btn-cta"
@@ -1921,36 +1941,38 @@ function ReturnForm({
         missing stays open on this shipment. Nothing is recorded as delivered.
       </p>
       {rows.map(({ line, found, unreturned }) => (
-        <table key={line.line_key} data-testid="return-line">
-          <caption>
-            {detail.lines.find((l) => l.line_key === line.line_key)?.description || line.sku_id} —{" "}
-            {unreturned} still unaccounted for
-          </caption>
-          <thead>
-            <tr>
-              <th className="num">Back good</th>
-              <th className="num">Back damaged</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              {(["good", "damaged"] as const).map((name) => (
-                <td key={name} className="num">
-                  <input
-                    className="input"
-                    type="number"
-                    min={0}
-                    max={unreturned}
-                    value={found[name]}
-                    aria-label={`${name === "good" ? "Good" : "Damaged"} pieces back of ${line.sku_id}`}
-                    onChange={(e) => set(line.line_key, name, Number(e.target.value || 0))}
-                    data-testid={`return-${record.sequence_no}-${name}`}
-                  />
-                </td>
-              ))}
-            </tr>
-          </tbody>
-        </table>
+        <div className="table-wrap" key={line.line_key}>
+          <table key={line.line_key} data-testid="return-line">
+            <caption>
+              {detail.lines.find((l) => l.line_key === line.line_key)?.description || line.sku_id} —{" "}
+              {unreturned} still unaccounted for
+            </caption>
+            <thead>
+              <tr>
+                <th className="num">Back good</th>
+                <th className="num">Back damaged</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                {(["good", "damaged"] as const).map((name) => (
+                  <td key={name} className="num">
+                    <input
+                      className="input"
+                      type="number"
+                      min={0}
+                      max={unreturned}
+                      value={found[name]}
+                      aria-label={`${name === "good" ? "Good" : "Damaged"} pieces back of ${line.sku_id}`}
+                      onChange={(e) => set(line.line_key, name, Number(e.target.value || 0))}
+                      data-testid={`return-${record.sequence_no}-${name}`}
+                    />
+                  </td>
+                ))}
+              </tr>
+            </tbody>
+          </table>
+        </div>
       ))}
       <Field id={`return-reason-${record.id}`} label="Why it came back">
         <input
@@ -2161,45 +2183,47 @@ function ShortageForm({
           </select>
         </Field>
       ) : null}
-      <table>
-        <thead>
-          <tr>
-            <th>Item</th>
-            <th className="num">Missing, not yet proposed</th>
-            <th className="num">Propose</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row) => (
-            <tr key={row.line.line_key}>
-              <td>
-                {detail.lines.find((l) => l.line_key === row.line.line_key)?.description ||
-                  row.line.sku_id}
-              </td>
-              <td className="num" data-testid={`shortage-unclaimed-${record.sequence_no}`}>
-                {row.unclaimed}
-              </td>
-              <td className="num">
-                <input
-                  className="input"
-                  type="number"
-                  min={0}
-                  max={row.unclaimed}
-                  value={
-                    pair ? String(row.qty) : (asked[row.line.line_key] ?? String(row.unclaimed))
-                  }
-                  disabled={Boolean(pair)}
-                  aria-label={`Missing pieces of ${row.line.sku_id} to propose`}
-                  onChange={(e) =>
-                    setAsked((current) => ({ ...current, [row.line.line_key]: e.target.value }))
-                  }
-                  data-testid={`shortage-qty-${record.sequence_no}`}
-                />
-              </td>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th className="num">Missing, not yet proposed</th>
+              <th className="num">Propose</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.line.line_key}>
+                <td>
+                  {detail.lines.find((l) => l.line_key === row.line.line_key)?.description ||
+                    row.line.sku_id}
+                </td>
+                <td className="num" data-testid={`shortage-unclaimed-${record.sequence_no}`}>
+                  {row.unclaimed}
+                </td>
+                <td className="num">
+                  <input
+                    className="input"
+                    type="number"
+                    min={0}
+                    max={row.unclaimed}
+                    value={
+                      pair ? String(row.qty) : (asked[row.line.line_key] ?? String(row.unclaimed))
+                    }
+                    disabled={Boolean(pair)}
+                    aria-label={`Missing pieces of ${row.line.sku_id} to propose`}
+                    onChange={(e) =>
+                      setAsked((current) => ({ ...current, [row.line.line_key]: e.target.value }))
+                    }
+                    data-testid={`shortage-qty-${record.sequence_no}`}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       <Field id={`shortage-reason-${record.id}`} label="Why they are missing">
         <input
           id={`shortage-reason-${record.id}`}
@@ -2276,44 +2300,46 @@ function ShortageTable({
   onRun: Runner;
 }) {
   return (
-    <table data-testid={`shortages-${record.sequence_no}`}>
-      <caption>Shortage corrections</caption>
-      <thead>
-        <tr>
-          <th className="num">Pieces</th>
-          <th>State</th>
-          <th>Reason and evidence</th>
-          <th>Follow-up</th>
-          <th>Proposed by</th>
-          <th>Decision</th>
-        </tr>
-      </thead>
-      <tbody>
-        {record.shortage_resolutions.map((gap) => (
-          <tr key={gap.id} data-testid="shortage-row" data-state={gap.state}>
-            <td className="num">{gap.quantity}</td>
-            <td>
-              {SHORTAGE_STATE_LABEL[gap.state] ?? gap.state}
-              {gap.number ? ` · ${gap.number}` : ""}
-            </td>
-            <td>
-              {gap.reason} · {gap.evidence_reference}
-            </td>
-            <td>{gap.followup_note}</td>
-            <td>{gap.proposed_by?.name || gap.proposed_by?.id || "—"}</td>
-            <td>
-              {gap.state === "pending" && may("decide_shortage") ? (
-                <ShortageDecision gap={gap} onRun={onRun} />
-              ) : gap.decided_by ? (
-                `${gap.decided_by.name || gap.decided_by.id}: ${gap.decision_reason ?? ""}`
-              ) : (
-                "Waiting for a different person"
-              )}
-            </td>
+    <div className="table-wrap">
+      <table data-testid={`shortages-${record.sequence_no}`}>
+        <caption>Shortage corrections</caption>
+        <thead>
+          <tr>
+            <th className="num">Pieces</th>
+            <th>State</th>
+            <th>Reason and evidence</th>
+            <th>Follow-up</th>
+            <th>Proposed by</th>
+            <th>Decision</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {record.shortage_resolutions.map((gap) => (
+            <tr key={gap.id} data-testid="shortage-row" data-state={gap.state}>
+              <td className="num">{gap.quantity}</td>
+              <td>
+                {SHORTAGE_STATE_LABEL[gap.state] ?? gap.state}
+                {gap.number ? ` · ${gap.number}` : ""}
+              </td>
+              <td>
+                {gap.reason} · {gap.evidence_reference}
+              </td>
+              <td>{gap.followup_note}</td>
+              <td>{gap.proposed_by?.name || gap.proposed_by?.id || "—"}</td>
+              <td>
+                {gap.state === "pending" && may("decide_shortage") ? (
+                  <ShortageDecision gap={gap} onRun={onRun} />
+                ) : gap.decided_by ? (
+                  `${gap.decided_by.name || gap.decided_by.id}: ${gap.decision_reason ?? ""}`
+                ) : (
+                  "Waiting for a different person"
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

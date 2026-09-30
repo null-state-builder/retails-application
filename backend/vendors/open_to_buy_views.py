@@ -255,12 +255,11 @@ def _booking_for_cost_reader(access: AccessContext, pk: uuid.UUID) -> Any:
         brand_id=booking.brand_id,
         entity_id=booking.document.entity_id,
     )
-    if "cost" not in access.field_grants(
-        site_id=booking.document.site_id,
-        brand_id=booking.brand_id,
-        entity_id=booking.document.entity_id,
-        actions=[BOOKING_ACTION],
-    ):
+    header, lines, _roots = booking_lines(booking, booking_head(booking))
+    sites = {booking.document.site_id}
+    sites.update(int(row["destination_site_id"]) for row in [header, *lines]
+                 if row.get("destination_site_id") is not None)
+    if not access.covers_all_actions([BOOKING_ACTION], {(site, booking.brand_id) for site in sites}, ["cost"]):
         raise Refusal("ACTION_DENIED", "Open-to-buy is money at cost. Your role does not see cost.")
     return booking
 
@@ -423,6 +422,10 @@ class GoodsOpenToBuyAskDetailView(GoodsAPIView):
         )
         if ask is None or not otb.reaches(access, ask.site_id, ask.brand_id):
             raise Refusal("NOT_FOUND", "That request was not found.")
+        _booking_for_cost_reader(access, ask.booking.document_id)
+        if not access.covers_all_actions([BOOKING_ACTION],
+                {(row.get("site_id"), ask.brand_id) for row in ask.figures} or {(ask.site_id, ask.brand_id)}, ["cost"]):
+            raise Refusal("NOT_FOUND", "That request was not found.")
         approval = otb.approvals_of([ask.pk]).get(ask.pk)
         head = booking_head(ask.booking)
         draft_hash = head.draft_revision.content_hash if head.draft_revision else None
@@ -431,7 +434,11 @@ class GoodsOpenToBuyAskDetailView(GoodsAPIView):
             if head.live_version_id is None
             else otb.NOT_ASKED
         )
-        return Response(OtbAskSerializer(ask_json(access, ask, approval, stage)).data)
+        body = OtbAskSerializer(ask_json(access, ask, approval, stage)).data
+        access.revalidate_delivery()
+        response = Response(body)
+        response["Cache-Control"] = "no-store, private"
+        return response
 
 
 class GoodsBookingOpenToBuyView(GoodsAPIView):
@@ -440,7 +447,11 @@ class GoodsBookingOpenToBuyView(GoodsAPIView):
         access = self.access(request)
         check_query(request, allowed=())
         booking = _booking_for_cost_reader(access, pk)
-        return Response(OtbBookingCheckSerializer(booking_check(access, booking)).data)
+        body = OtbBookingCheckSerializer(booking_check(access, booking)).data
+        access.revalidate_delivery()
+        response = Response(body)
+        response["Cache-Control"] = "no-store, private"
+        return response
 
 
 class GoodsBookingOpenToBuyAskView(GoodsAPIView):

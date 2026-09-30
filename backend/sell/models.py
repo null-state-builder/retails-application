@@ -32,6 +32,7 @@ from django.utils import timezone
 
 from core.base import TimeStampedModel
 from core.documents import DocStatus, Document, DocumentEditError, MintedNumber, VoucherSeries
+from core.goods_base import TenantOwned
 from core.money import MoneyField
 from masters.models import Gstin
 
@@ -2439,3 +2440,24 @@ from sell.reservation_models import (  # noqa: E402, F401
 
 # Ticket 21: special orders (their advances are ticket 20's tables).
 from sell.special_order_models import SpecialOrder  # noqa: E402, F401
+
+
+
+
+class OnlineSaleSubmission(TenantOwned):
+    """Durable outcome of a pre-issue submission, without a second bill writer.
+
+    Rejected identities stay rejected even if prices or policy later change. An
+    interrupted pending identity is re-evaluated with exactly the original hash.
+    """
+    idempotency_uuid = models.UUIDField()
+    store = models.ForeignKey("masters.Store", on_delete=models.PROTECT, related_name="+")
+    payload_fingerprint = models.CharField(max_length=64)
+    status = models.CharField(max_length=10, default="pending", choices=[("pending", "Pending"), ("accepted", "Accepted"), ("rejected", "Rejected")])
+    sale = models.ForeignKey("sell.Sale", null=True, blank=True, on_delete=models.PROTECT, related_name="+")
+    rejection_code = models.CharField(max_length=50, blank=True, default="")
+    rejection_message = models.CharField(max_length=500, blank=True, default="")
+    rejection_status = models.IntegerField(default=422)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["tenant", "idempotency_uuid"], name="uq_online_sale_intent")]

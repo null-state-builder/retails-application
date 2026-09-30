@@ -34,8 +34,8 @@ from accounts.models import (
 )
 from accounts.permissions import require_section
 from accounts.sections import (
-    CAP_APPROVE,
     CAP_MANAGE,
+    CAP_OPERATE,
     CAPABILITY_ORDER,
     CAPABILITY_WORDS,
     SECTIONS,
@@ -60,7 +60,7 @@ from accounts.sessions import (
     revoke_session,
     rotate_session,
 )
-from accounts.till_pin import may_hold_till_pin, pin_problem, set_own_pin
+from accounts.till_pin import may_set_personal_till_pin, pin_problem, set_own_pin
 from approvals.models import ApprovalPolicy
 from core.refusals import Refusal
 from core.tenancy import current_tenant_id
@@ -151,6 +151,8 @@ SESSION_RESPONSE: dict[str, Any] = {
                 "display_name": {"type": "string"},
                 "email": {"type": "string", "nullable": True},
                 "has_till_pin": {"type": "boolean"},
+                "may_set_till_pin": {"type": "boolean", "description": "May set this person's own credential; does not grant approval authority."},
+                "may_hold_till_pin": {"type": "boolean", "description": "Separately eligible to decide counter exceptions under current scoped approval policy."},
                 "must_change_password": {
                     "type": "boolean",
                     "description": (
@@ -294,27 +296,15 @@ class MeView(APIView):
 
 
 class TillPinView(APIView):
-    """Set your own counter PIN (#182). This endpoint writes only your own.
+    """Set only your own personal counter credential after password confirmation.
 
-    Self-service: the caller proves who they are with their own password and the
-    row written is their own. Admin may also set or clear a manager's PIN, and it
-    works at once, but on its own endpoints (`GoodsUserTillPinSetView`,
-    `GoodsUserTillPinResetView`, store operations baseline B76) - see "Who sets
-    one" in `accounts/till_pin.py`.
-
-    Not a `PATCH` on the user admin endpoint either: that surface is the
-    two-administrator access-change path (`PendingAccessChangeMixin`), and a
-    person changing their own credential is not an access change waiting on
-    somebody else's approval - it is the same shape as changing a password.
-
-    Gated on the rung the PIN actually authorises - `sell: approve`, the second
-    eye on selling - so the access table decides who may hold one (#94's one
-    write gate). `may_hold_till_pin` then asks the half a section gate cannot:
-    whether this person's boundary is stores at all. A network administrator
-    whose matrix cell happens to reach the rung is not one of a counter's people.
+    One selected-store/all-brand Store Person operating assignment is required.
+    Setting a PIN grants no exception authority: decision consumers retain the
+    separate ``may_hold_till_pin`` approval eligibility and live decision gates.
+    Administrator-assisted PIN changes retain their separately governed route.
     """
 
-    permission_classes = [IsAuthenticated, require_section("sell", CAP_APPROVE)]
+    permission_classes = [IsAuthenticated, require_section("sell", CAP_OPERATE)]
 
     @extend_schema(
         request={"application/json": {
@@ -340,14 +330,15 @@ class TillPinView(APIView):
         # `AnonymousUser` half of DRF's `request.user` union (same pattern as
         # `alerts/views.py`).
         user = cast(User, request.user)
-        if not may_hold_till_pin(user):
+        if not may_set_personal_till_pin(user):
             return _refuse(
-                "A counter PIN authorises an exception at a till, so it belongs to "
-                "somebody who holds the second eye on selling at a store. Ask an "
-                "administrator if that should be you.",
+                "A personal counter PIN requires a selected-store Store Person "
+                "operating assignment covering that store's brands.",
                 "NOT_A_TILL_MANAGER",
                 status.HTTP_403_FORBIDDEN,
             )
+        if not isinstance(request.data, dict) or set(request.data) - {"pin", "current_password"}:
+            raise Refusal("INVALID_REQUEST", "Send only your personal PIN and current password.")
         pin = str(request.data.get("pin") or "")
         problem = pin_problem(pin)
         if problem:
@@ -355,14 +346,20 @@ class TillPinView(APIView):
         # The password check comes second so a bad PIN is answered as a bad PIN.
         # It comes at all because a counter is a shared machine: a screen left
         # signed in is otherwise a way to give yourself somebody else's override.
-        if not user.check_password(str(request.data.get("current_password") or "")):
+        password = request.data.get("current_password")
+        if not isinstance(password, str) or not 1 <= len(password) <= 1024:
+            raise Refusal("INVALID_REQUEST", "Send your current password.")
+        try:
+            grant_step_up(request.auth, password)
+        except Refusal as refusal:
+            if refusal.code != "INVALID_CREDENTIALS":
+                raise
             return _refuse(
                 "That is not your password, so the PIN was not changed.",
                 "PASSWORD_WRONG",
                 status.HTTP_403_FORBIDDEN,
             )
         # One command, so the change is in the audit log - without the PIN.
-        grant_step_up(request.auth, str(request.data.get("current_password") or ""))
         set_own_pin(user, pin, request.auth)
         # The till learns about it on its next sync, like every other fact about
         # this store - there is no push, and there does not need to be.

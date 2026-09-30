@@ -588,6 +588,7 @@ SKU_DATA = {
         "style_id": {"type": "string"},
         "profile_version_id": {"type": "string", "nullable": True},
         "attrs": ATTRS_SCHEMA,
+        "no_discount": {"type": "boolean"},
     },
 }
 
@@ -684,7 +685,12 @@ _STYLE_FIELDS = {
     "profile_family": _TEXT_FIELD,
     "attrs": ATTRS_SCHEMA,
 }
-_SKU_FIELDS = {"style_id": _ID_FIELD, "profile_version_id": _ID_FIELD, "attrs": ATTRS_SCHEMA}
+_SKU_FIELDS = {
+    "style_id": _ID_FIELD,
+    "profile_version_id": _ID_FIELD,
+    "attrs": ATTRS_SCHEMA,
+    "no_discount": {"type": "boolean"},
+}
 _ALIAS_FIELDS = {
     "sku_id": _ID_FIELD,
     "issuer_key": _TEXT_FIELD,
@@ -1088,12 +1094,15 @@ class SkuListCreateView(GoodsAPIView):
         meta = parse_meta(request.data, revision_bound=False)
         body = business_body(
             request.data,
-            {"style_id", "profile_version_id", "attrs", "originating_revision_id"},
+            {"style_id", "profile_version_id", "attrs", "originating_revision_id", "no_discount"},
             required=["style_id", "profile_version_id"],
         )
         style_id = parse_uuid(body["style_id"], "style_id")
         profile_id = parse_uuid(body["profile_version_id"], "profile_version_id")
         attrs = parse_attrs(body.get("attrs"))
+        no_discount = body.get("no_discount", False)
+        if not isinstance(no_discount, bool):
+            raise invalid("no_discount must be a boolean.")
         mode = creation_mode(
             access,
             manage=MANAGE_ACTION,
@@ -1122,6 +1131,7 @@ class SkuListCreateView(GoodsAPIView):
             "profile_version_id": str(profile_id),
             "attrs": attrs,
             "originating_revision_id": opt_id(revision.pk if revision else None),
+            "no_discount": no_discount,
         }
 
         def handler(run: CommandRun) -> CommandResult:
@@ -1145,6 +1155,7 @@ class SkuListCreateView(GoodsAPIView):
                 identity_key=key,
                 identity_profile_id=profile.version_id,
                 attrs=stored,
+                no_discount=no_discount,
                 governance_state=GovernanceState.PENDING if revision else GovernanceState.EFFECTIVE,
                 originating_revision_id=revision.pk if revision else None,
             )
@@ -1192,7 +1203,7 @@ class SkuDetailView(GoodsAPIView):
     def patch(self, request: Request, pk: uuid.UUID) -> Response:  # noqa: C901 - the contract's ordered refusal steps
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=True)
-        body = business_body(request.data, {"style_id", "profile_version_id", "attrs"})
+        body = business_body(request.data, {"style_id", "profile_version_id", "attrs", "no_discount"})
         if not body:
             raise invalid("Send at least one field to change.")
         current = visible_sku(access, pk)
@@ -1212,6 +1223,10 @@ class SkuDetailView(GoodsAPIView):
             )
         if "attrs" in body:
             clean["attrs"] = parse_attrs(body["attrs"])
+        if "no_discount" in body:
+            if not isinstance(body["no_discount"], bool):
+                raise invalid("no_discount must be a boolean.")
+            clean["no_discount"] = body["no_discount"]
 
         def handler(run: CommandRun) -> CommandResult:
             row = run.lock(
@@ -1232,21 +1247,24 @@ class SkuDetailView(GoodsAPIView):
                     "This SKU has no identity profile to validate against.",
                     field="profile_version_id",
                 )
-            profile = identity_profile(run.tenant_id, uuid.UUID(profile_raw), run.now)
-            attrs = clean["attrs"] if "attrs" in clean else parse_attrs(list(row.attrs or []))
-            key, stored = sku_identity(run.tenant_id, row.style, profile, attrs, run.now)
-            if key != row.identity_key:
-                raise master_invalid(
-                    "Identity-defining SKU changes require a new SKU, not an edit.", field="attrs"
-                )
             run.audit_before = sku_data(row)
-            row.attrs = stored
-            row.identity_profile_id = profile.version_id
+            if set(clean) - {"no_discount"}:
+                profile = identity_profile(run.tenant_id, uuid.UUID(profile_raw), run.now)
+                attrs = clean["attrs"] if "attrs" in clean else parse_attrs(list(row.attrs or []))
+                key, stored = sku_identity(run.tenant_id, row.style, profile, attrs, run.now)
+                if key != row.identity_key:
+                    raise master_invalid(
+                        "Identity-defining SKU changes require a new SKU, not an edit.", field="attrs"
+                    )
+                row.attrs = stored
+                row.identity_profile_id = profile.version_id
+            if "no_discount" in clean:
+                row.no_discount = clean["no_discount"]
             row.revision += 1
             save_master(
                 row,
                 conflict="A SKU with exactly these identity attributes already exists.",
-                update_fields=["attrs", "identity_profile_id", "revision"],
+                update_fields=["attrs", "identity_profile_id", "no_discount", "revision"],
             )
             record_master_version(run, "sku", row)
             if row.governance_state == GovernanceState.PENDING:

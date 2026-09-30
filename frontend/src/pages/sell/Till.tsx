@@ -52,9 +52,11 @@ import "./Till.css";
 //     so the store can key them in from the printed copies.
 
 export default function TillPage() {
-  const { engine, till } = useTill();
+  const [pairingCode, setPairingCode] = useState("");
+  const [pairingMessage, setPairingMessage] = useState("");
+  const { engine, till, accessError } = useTill();
 
-  if (!engine || !till) return <NoCounter />;
+  if (!engine || !till) return <NoCounter reason={accessError} />;
 
   return (
     <div className="page-pad">
@@ -92,12 +94,53 @@ export default function TillPage() {
           way in, and no optional chaining over a value that cannot be null. */}
       {till.storageLost && <RecoverCounter engine={engine} busy={till.busy} />}
 
+      {till.legacyStorageQuarantined && (
+        <section className="card" role="status">
+          <h3>Earlier counter data needs review</h3>
+          <p>
+            This browser contains an earlier store-label cache. Its bills and stock are preserved
+            and have not been uploaded or copied into this counter. Ask Owner or Admin to reconcile
+            it against the original tenant and device before recovering any bills.
+          </p>
+        </section>
+      )}
+
       <Registration engine={engine} till={till} />
 
       <Handover engine={engine} till={till} />
 
       <PauseForTransfer engine={engine} till={till} />
 
+      {till.onlineAlpha && (
+        <section className="card">
+          <h3>{till.devicePaired ? "Counter pairing" : "Pair this browser"}</h3>
+          <p>Enter the one-time counter pairing code supplied by Owner or Admin.</p>
+          <label>
+            Pairing code{" "}
+            <input
+              type="password"
+              value={pairingCode}
+              onChange={(event) => setPairingCode(event.target.value)}
+              autoComplete="off"
+            />
+          </label>
+          <button
+            className="btn btn-primary"
+            onClick={() =>
+              void engine
+                .pairDevice(pairingCode)
+                .then(() => {
+                  setPairingCode("");
+                  setPairingMessage("This browser is paired.");
+                })
+                .catch((error) => setPairingMessage(String(error.message)))
+            }
+          >
+            Pair counter
+          </button>
+          <p role="status">{pairingMessage}</p>
+        </section>
+      )}
       {till.halt && (
         <div className="card till-halt" data-testid="till-halt">
           <h2 className="h3">Bill {till.halt.doc_number} was not accepted</h2>
@@ -708,7 +751,7 @@ function PaperReentry({
 }
 
 /**
- * Sending stock out of the store: pause billing, let the stock go, resume.
+ * Transfers and reviewed stock counts: pause billing, release, then resume.
  *
  * Every sync protects the store's stock for this counter, and while it does no
  * transfer out of the store can be approved. Anand, 25 September 2026 (change
@@ -741,7 +784,7 @@ function PauseForTransfer({ engine, till }: { engine: TillEngine; till: TillSnap
 
   return (
     <section className="card till-card" data-testid="till-pause">
-      <h2 className="h3">Send stock out of this store</h2>
+      <h2 className="h3">Pause for a transfer or reviewed stock count</h2>
       {pause && (
         <>
           <p className="till-alert" data-testid="till-pause-state" data-stage={pause.stage}>
@@ -750,12 +793,13 @@ function PauseForTransfer({ engine, till }: { engine: TillEngine; till: TillSnap
               ? "Billing is paused, but head office has not confirmed the release yet."
               : pause.stage === "resuming"
                 ? "Billing stays paused until a fresh stock copy has arrived."
-                : "Billing is paused and the stock is released. A transfer out of this store can be approved now."}
+                : "Billing is paused and the stock is released. A transfer or reviewed stock count can proceed once its other checks pass."}
           </p>
           <p className="muted-cell">Reason: {pause.reason}</p>
           <p className="muted-cell" data-testid="till-pause-warning">
-            Resume once the transfer is approved or you no longer need it. If a transfer is still
-            waiting for approval, resuming stops it being approved until you pause again.
+            Resume once the transfer or stock count is complete, or you no longer need it. A stock
+            count freezes billing until it is approved or cancelled. Resuming before a transfer or
+            count starts requires a new pause before it can proceed.
           </p>
           <div className="till-actions">
             {pause.stage === "pausing" && (
@@ -767,7 +811,7 @@ function PauseForTransfer({ engine, till }: { engine: TillEngine; till: TillSnap
                 onClick={() =>
                   void run(
                     () => engine.pauseForTransfer(pause.reason),
-                    "Released. A transfer out of this store can be approved now.",
+                    "Released. Continue the transfer or reviewed stock count after its other checks pass.",
                   )
                 }
               >
@@ -790,16 +834,17 @@ function PauseForTransfer({ engine, till }: { engine: TillEngine; till: TillSnap
       )}
       {!pause && allocationVersion === null && (
         <p className="muted-cell" data-testid="till-pause-none">
-          This counter is holding no stock. A transfer out of this store can be approved.
+          This counter is holding no stock. A reviewed stock count still requires a recorded pause
+          and a fully reconciled bill frontier.
         </p>
       )}
       {!pause && allocationVersion !== null && (
         <>
           <p className="muted-cell" data-testid="till-pause-held">
-            This counter is holding the store&rsquo;s stock for offline selling (working set{" "}
-            {allocationVersion}), so no transfer out of this store can be approved. To send stock
-            out, pause billing. Every bill must have synced first. Billing stays paused, even if the
-            line drops or the browser restarts, until you resume it here.
+            This counter holds the store&rsquo;s stock (working set {allocationVersion}). Before a
+            transfer or reviewed stock count, pause billing. Every bill must have synced first.
+            Billing stays paused, even if the line drops or the browser restarts, until you resume
+            it here.
           </p>
           <div className="field">
             <label htmlFor="till-pause-reason">Why is billing being paused?</label>
@@ -821,7 +866,7 @@ function PauseForTransfer({ engine, till }: { engine: TillEngine; till: TillSnap
             onClick={() =>
               void run(
                 () => engine.pauseForTransfer(reason),
-                "Paused and released. A transfer out of this store can be approved now.",
+                "Paused and released. Continue the transfer or reviewed stock count after its other checks pass.",
               )
             }
           >
@@ -849,13 +894,12 @@ function messageOf(error: unknown): string {
 }
 
 /**
- * A manager's own counter PIN (#182).
+ * A person's own counter PIN (#182).
  *
  * It lives here rather than on the Billing screen because it is not part of
- * selling: it is the credential that lets this person stand behind a cashier's
- * exception, and it is set once and then left alone. Only somebody the counter
- * could actually be asked to trust sees the card at all - the server decides
- * that (`may_hold_till_pin`), and refuses the write besides.
+ * selling: it is this person's credential, set through the authenticated server
+ * capability (`may_set_till_pin`). Any exception approval separately requires
+ * its independently authorised reviewer; possessing a PIN grants no action.
  *
  * They type it themselves, and prove who they are with their own password.
  * Admin may also set a manager's PIN, and it works at once, or clear one
@@ -874,7 +918,7 @@ function CounterPin() {
   // sentence, and the person who just set a PIN knows they have one.
   const [hasPin, setHasPin] = useState(Boolean(user?.has_till_pin));
 
-  if (!user?.may_hold_till_pin) return null;
+  if (!user?.may_set_till_pin) return null;
 
   async function save() {
     if (saving) return;
@@ -886,7 +930,7 @@ function CounterPin() {
       setPin("");
       setPassword("");
       setHasPin(true);
-      setSaid("Your counter PIN is set. The till picks it up on its next sync.");
+      setSaid("Your counter PIN is set. This does not grant approval authority.");
     } catch (error) {
       setFailed(apiErrorMessage(error));
     } finally {
@@ -900,7 +944,7 @@ function CounterPin() {
       <p className="muted-cell">
         {hasPin
           ? "You have one. Setting a new one replaces it everywhere on the next sync."
-          : "Set one and a cashier here can call you over to approve an exchange past the return window - with the line down."}
+          : "Set your personal counter PIN. Approval actions require their own authorised review."}
       </p>
 
       <div className="field">
@@ -1022,14 +1066,49 @@ function Row({ label, value, testId }: { label: string; value: string; testId?: 
   );
 }
 
-function NoCounter() {
+function NoCounter({ reason }: { reason?: string }) {
+  const { user } = useAuth();
+  const { recoverPending } = useTill();
+  const [recoveryMessage, setRecoveryMessage] = useState("");
+  const [recovering, setRecovering] = useState(false);
+  const singleStore = user?.stores.length === 1;
+  async function checkPending() {
+    if (!recoverPending || recovering) return;
+    setRecovering(true);
+    try {
+      setRecoveryMessage(await recoverPending());
+    } catch (error) {
+      setRecoveryMessage(error instanceof Error ? error.message : String(error));
+    } finally {
+      setRecovering(false);
+    }
+  }
   return (
     <div className="page-pad">
-      <PageHeader lead="The offline counter, its local copy and its bill queue." />
+      <PageHeader lead="Your store's counter and access." />
       <p className="warn-note" data-testid="till-no-counter">
-        This login is not a counter. A till signs in as one store: the local price list and manager
-        authorisations belong to a single shop, so a login that can see several has no till to show.
+        {reason ||
+          (singleStore
+            ? "The counter is unavailable. Complete store setup and confirm this login's store access, then retry."
+            : "A counter signs in to one store. Use the store login for billing; company setup is available from First store setup.")}
       </p>
+      {singleStore && (
+        <button className="btn" type="button" onClick={() => window.location.reload()}>
+          Retry counter access
+        </button>
+      )}
+      {recoverPending && (
+        <button
+          className="btn"
+          type="button"
+          disabled={recovering}
+          onClick={() => void checkPending()}
+        >
+          {recovering ? "Checking sale…" : "Check unresolved sale"}
+        </button>
+      )}
+      {recoveryMessage && <p role="status">{recoveryMessage}</p>}
+      <CounterPin />
     </div>
   );
 }

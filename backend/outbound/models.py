@@ -1802,3 +1802,5 @@ from outbound.size_balancing_models import SizeBalanceSuggestion  # noqa: E402, 
 
 # Store operations ticket 36 (ST-TRF-2): the document each shipment travels with.
 from outbound.transfer_document_models import TransferDocument  # noqa: E402, F401
+
+from outbound.goods_soh_models import SohReconciliation, SohReconciliationEvidence  # noqa: E402, F401

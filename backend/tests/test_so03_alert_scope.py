@@ -12,8 +12,9 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 from accounts.sessions import issue_session
 from alerts.models import Alert, AlertKind, AlertSeen, AlertStatus
 from alerts.views import AlertHistoryView, AlertInboxView, AlertSeenView
+from core.commands import database_now
 from core.tenancy import tenant_context
-from test_so03_denials import TenantWorld, _assign, _person, _tenant_world
+from tests.test_so03_denials import TenantWorld, _assign, _person, _tenant_world
 
 
 @pytest.fixture
@@ -168,7 +169,7 @@ def test_seen_cursor_rolls_back_if_authority_ends_during_write(
             if withdrawal == "session":
                 ServerSession.objects.filter(pk=session.pk).update(expires_at=timezone.now() - timedelta(seconds=1))
             else:
-                RoleAssignment.objects.filter(pk=assignment.pk).update(revoked_at=timezone.now())
+                RoleAssignment.objects.filter(pk=assignment.pk).update(revoked_at=database_now())
             return row
 
         monkeypatch.setattr(AlertSeen.objects, "update_or_create", withdraw)
