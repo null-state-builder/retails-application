@@ -754,6 +754,16 @@ def submit(run: CommandRun, transfer_id: uuid.UUID) -> tuple[GoodsTransfer, Good
     PT is made for goods no PT has registered (overall PRD §15.2.1 rule 10).
     """
     transfer, head = _locked(run, transfer_id)
+    if transfer.state == GoodsTransfer.State.SUBMITTED:
+        from outbound import transfer_authority
+
+        plan = _plan_head(transfer)
+        if plan is None:
+            raise Refusal("APPROVAL_STALE", "The exact frozen transfer plan is missing.", status=409)
+        transfer_authority.submit(run, transfer, head, plan, new_subject=False)
+        _log(run, transfer, TransferEvent.Kind.SUBMITTED, site_id=transfer.source_site_id,
+             details={"resubmitted": True, "plan_document_id": str(plan.document_id)})
+        return transfer, _pt_of(transfer) if transfer.custody != PRE_PT else None
     return submit_locked(run, transfer, head)
 
 
@@ -811,6 +821,10 @@ def submit_locked(
         plan_id = pt_identity.pk
         details = {"pt_id": str(pt_identity.pk), "lines": len(frozen)}
         note = f"transfer_pt:{pt_identity.pk}"
+    from outbound import transfer_authority
+
+    plan_head = head if goods_pt is None else pt_head
+    transfer_authority.submit(run, transfer, head, plan_head)
     transfer.state = GoodsTransfer.State.SUBMITTED
     transfer.save(update_fields=["state"])
     open_exception(
@@ -992,7 +1006,7 @@ def _freeze(site_id: int, line: DraftLine, custody: str = ORDINARY) -> list[Froz
 # ---------------------------------------------------------------------------
 
 
-def approve(run: CommandRun, transfer_id: uuid.UUID, *, reason: str | None) -> GoodsTransfer:
+def decide_approval(run: CommandRun, transfer_id: uuid.UUID, context: Any) -> dict[str, Any]:
     """A distinct second person officialises the transfer PT, which reserves the pieces.
 
     The reservation is the whole point of approving: from here the exact
@@ -1004,7 +1018,8 @@ def approve(run: CommandRun, transfer_id: uuid.UUID, *, reason: str | None) -> G
     document instead - there is no transfer PT to approve - and takes no
     number from the transfer PT series: nothing about it is a PT.
     """
-    transfer, head = _locked(run, transfer_id)
+    transfer, head = _locked(run, transfer_id, site_locked=True)
+    reason = context.reason_code
     if transfer.state != GoodsTransfer.State.SUBMITTED:
         raise _state_conflict("Only a submitted transfer is waiting for approval.")
     pre_pt = transfer.custody == PRE_PT
@@ -1024,6 +1039,22 @@ def approve(run: CommandRun, transfer_id: uuid.UUID, *, reason: str | None) -> G
         from outbound import transfer_excess
 
         correction = transfer_excess.lock_decision(run, transfer)
+    from outbound import transfer_authority
+
+    context.enforce_policy(run)
+    transfer_authority.validate(run, transfer, head, pt_head, context.request)
+    if context.decision == "reject":
+        transfer.state = GoodsTransfer.State.CANCELLED
+        transfer.save(update_fields=["state"])
+        resolve_exceptions(run, kind=APPROVAL_EXCEPTION, subject_key=f"transfer:{transfer.pk}", reason_code="TRANSFER_REJECTED")
+        _log(run, transfer, TransferEvent.Kind.CANCELLED, site_id=transfer.source_site_id,
+             details={"reason": reason, "approval_rejected": True})
+        return {"state": "cancelled"}
+    completed = context.request.decisions.filter(outcome="step_approved").count()
+    steps = context.request.policy_basis["steps"]
+    if completed + 1 < len(steps):
+        return {"_approval_pending": True, "state": "submitted", "completed_steps": completed + 1,
+                "total_steps": len(steps)}
     lines: list[tuple[uuid.UUID, Mapping[str, Any]]] = _official_lines_from_draft(pt_head)
     engine.lock_lots(
         run,
@@ -1119,7 +1150,7 @@ def approve(run: CommandRun, transfer_id: uuid.UUID, *, reason: str | None) -> G
     run.audit_subject_key = f"transfer:{transfer.pk}"
     run.audit_site_id = transfer.source_site_id
     run.audit_after = {"transfer_id": str(transfer.pk), "state": transfer.state}
-    return transfer
+    return {"state": transfer.state, "transfer_id": str(transfer.pk)}
 
 
 def _submitter(transfer: GoodsTransfer) -> uuid.UUID | None:
@@ -1430,6 +1461,12 @@ def dispatch(run: CommandRun, transfer_id: uuid.UUID, parsed: dict[str, Any]) ->
         lines=parsed["lines"],
     )
     outstanding = _outstanding(transfer, version)
+    from outbound import transfer_authority
+
+    transfer_head = DocumentHead.objects.select_related("draft_revision").get(document_id=transfer.document_id)
+    plan_head = _plan_head(transfer)
+    assert plan_head is not None
+    transfer_authority.dispatch_check(run, transfer, transfer_head, plan_head)
     # Every reserved lot is locked before anything is chosen, so a hold placed
     # over a reserved piece cannot slip in between reading it free and moving it.
     engine.lock_lots(
@@ -2587,7 +2624,7 @@ def transfer_of(tenant_id: uuid.UUID, transfer_id: uuid.UUID) -> GoodsTransfer:
 
 
 def _locked(
-    run: CommandRun, transfer_id: uuid.UUID, *, at: str | None = None
+    run: CommandRun, transfer_id: uuid.UUID, *, at: str | None = None, site_locked: bool = False
 ) -> tuple[GoodsTransfer, DocumentHead]:
     """The transfer, its head, and both site guards - locked in the fixed order.
 
@@ -2607,7 +2644,11 @@ def _locked(
         "source": [known.source_site_id],
         "destination": [known.destination_site_id],
     }[at]
-    lock_sites(run, [known.source_site_id, known.destination_site_id], fenced=fenced)
+    if not site_locked:
+        lock_sites(run, [known.source_site_id, known.destination_site_id], fenced=fenced)
+    else:
+        for site_id in (known.source_site_id, known.destination_site_id):
+            _check_site(SiteGuard.objects.filter(site_id=site_id).first())
     rows: list[GoodsTransfer] = run.lock(
         LockRank.DOCUMENT, GoodsTransfer.objects.filter(pk=transfer_id)
     )
@@ -3092,8 +3133,21 @@ def allowed_actions(access: Any, transfer: GoodsTransfer) -> list[str]:
     state = transfer.state
     if state == GoodsTransfer.State.DRAFT and access.can(ALLOCATE_ACTION, site_id=source):
         out.append("submit")
-    if state == GoodsTransfer.State.SUBMITTED and access.can(APPROVE_ACTION, site_id=source):
-        out.append("approve")
+    if state == GoodsTransfer.State.SUBMITTED:
+        from outbound import transfer_authority
+
+        if access.can(ALLOCATE_ACTION, site_id=source):
+            out.append("submit")
+        try:
+            request = transfer_authority.request_for(transfer)
+            prior = list(request.decisions.filter(outcome="step_approved"))
+            steps = request.policy_basis["steps"]
+            people = {str(person) for person in request.policy_basis.get("maker_ids") or []} | {str(row.checker_id) for row in prior}
+            if (request.state == "pending" and len(prior) < len(steps) and str(access.human_id) not in people
+                    and access.covers_all_actions({APPROVE_ACTION}, [tuple(cell) for cell in request.policy_basis["cells"]], {"cost"}, roles=steps[len(prior)]["roles"])):
+                out.append("approve")
+        except Refusal:
+            pass
     if state in (GoodsTransfer.State.APPROVED, GoodsTransfer.State.DISPATCHING) and _has_balance(
         transfer
     ):

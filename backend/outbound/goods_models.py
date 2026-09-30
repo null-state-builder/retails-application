@@ -695,8 +695,9 @@ class GoodsStocktake(TenantOwned):
     site = models.ForeignKey("masters.Store", on_delete=models.PROTECT, related_name="+")
     scope = models.JSONField()
     non_trading_event = models.ForeignKey(
-        "masters.SiteCapabilityEvent", on_delete=models.PROTECT, related_name="+"
+        "masters.SiteCapabilityEvent", null=True, blank=True, on_delete=models.PROTECT, related_name="+"
     )
+    till_pause_evidence = models.JSONField(default=dict)
     frozen_at = models.DateTimeField(null=True, blank=True)
     state = models.CharField(max_length=10, choices=State.choices, default=State.REQUESTED)
     last_activity_at = models.DateTimeField()

@@ -18,6 +18,7 @@ from rest_framework.test import APIRequestFactory, force_authenticate
 from accounts.goods_models import RoleAssignment
 from accounts.sessions import revoke_session
 from approvals.goods_models import ApprovalRequest
+from core.commands import database_now
 from core.kernel_models import DocumentHead, OfficialLine
 from core.numbering import prepare_series
 from core.tenancy import tenant_context
@@ -37,7 +38,7 @@ from sell.services.goods_stock import barcode_aliases, read_shelf, sku_for_barco
 from stockledger import goods_acceptance
 from stockledger.goods_models import ActiveHold, ActiveReservation, JournalBatch, Origin, Position
 from stockledger.goods_views import AcceptanceScanView
-from tests.first_store_goods import actors, approve, command, live_access, reviewed_source
+from tests.first_store_goods import _publish_tenant_config, actors, approve, command, live_access, reviewed_source
 from tests.test_so03_denials import _assign, _person
 from tests.test_so03_denials import worlds as worlds
 from vendors.models import Vendor
@@ -123,6 +124,10 @@ def operational_goods(receiving_goods: Any) -> Iterator[Any]:
     proof.receiver = live_access(receiver)
     for kind in ("HLD", "REL", "TPT", "GRN"):
         prepare_series(proof.world.tenant.pk, destination.gstin.legal_entity, kind)
+    _publish_tenant_config(proof.world.tenant, proof.owner.human_id, kind="approval",
+        payload={"action": "pt.approve.transfer", "roles": ["owner"], "site_ids": [], "brand_ids": [],
+                 "require_distinct": True, "qty_max": 100, "value_max": "10000000", "step_up": True,
+                 "unknown_value": "refuse"}, label="first-store-transfer-policy")
     yield proof
 
 
@@ -202,7 +207,7 @@ def test_damage_reduces_availability_immediately_then_only_independent_decision_
     # reporter; a second assignment cannot turn them into another human.
     RoleAssignment.objects.create(tenant=proof.world.tenant, human_id=proof.manager.human_id,
         role=proof.world.roles["owner"], all_sites=True, all_brands=True,
-        effective_from=timezone.now())
+        effective_from=database_now())
     own = post(DamageReportDecideView, proof.manager, wire(decision=decision, reason="Reviewed physically"), pk=report.pk)
     assert own.status_code == 403 and own.data["code"] == "SELF_APPROVAL", own.data
     assert truth() == marked and shelf(proof) == 2
@@ -251,8 +256,16 @@ def submitted_transfer(proof: Any, qty: int = 2) -> GoodsTransfer:
     return transfer
 
 
+def approval_wire(transfer: GoodsTransfer, **body: Any) -> dict[str, Any]:
+    from outbound.transfer_authority import request_for
+
+    request = request_for(transfer)
+    return wire(reviewed_hash=request.reviewed_hash, approval_revision=request.revision, **body)
+
+
 def dispatch_wire(proof: Any, transfer: GoodsTransfer, qty: int = 2) -> tuple[dict[str, Any], str]:
-    assert post(TransferApproveView, proof.owner, wire(reason="Separate proof review"), pk=transfer.pk).status_code == 200
+    result = post(TransferApproveView, proof.owner, approval_wire(transfer, reason="Separate proof review"), pk=transfer.pk)
+    assert result.status_code == 200, result.data
     response = post(TransferPreparationOpenView, proof.manager, wire(), pk=transfer.pk)
     assert response.status_code == 201, response.data
     preparation = response.data
@@ -308,8 +321,8 @@ def test_transfer_approval_rechecks_physical_stock_after_damage(operational_good
     response = post(MarkDamagedView, proof.manager, damage_wire(proof))
     assert response.status_code == 201, response.data
     before = truth()
-    response = post(TransferApproveView, proof.owner, wire(), pk=transfer.pk)
-    assert response.status_code == 409 and response.data["code"] == "INSUFFICIENT_ELIGIBLE_STOCK", response.data
+    response = post(TransferApproveView, proof.owner, approval_wire(transfer), pk=transfer.pk)
+    assert response.status_code == 422 and response.data["details"]["domain_code"] == "INSUFFICIENT_ELIGIBLE_STOCK", response.data
     assert truth() == before and shelf(proof) == 2 and not ActiveReservation.objects.exists()
 
 
@@ -378,7 +391,7 @@ def test_routine_receiving_records_actual_count_without_replaying_opening_stock(
     before = truth()
     arrived = post(GoodsArrivalListCreateView, proof.manager,
                    wire(site_id=proof.world.sites[0].pk, brand_id=proof.world.brands[0].pk,
-                        vendor_id=vendor.pk, actual_arrival_at=timezone.now().isoformat(), transporter_ref="Proof delivery"))
+                        vendor_id=vendor.pk, actual_arrival_at=database_now().isoformat(), transporter_ref="Proof delivery"))
     assert arrived.status_code == 201, arrived.data
     assert truth() == before and shelf(proof) == 3
     counted = post(GoodsArrivalSessionView, proof.manager,

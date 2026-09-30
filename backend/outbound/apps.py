@@ -46,6 +46,12 @@ class OutboundConfig(AppConfig):
         from outbound import goods_soh_reconciliation
 
         goods_soh_reconciliation.install()
+        from outbound import transfer_authority
+
+        transfer_authority.install()
+        from outbound import count_review
+
+        count_review.install()
 
         # Store operations ticket 35 (ST-INV-3): a scheduled count whose day has
         # passed is found by time passing, on the same clock.

@@ -96,7 +96,9 @@ TRANSFER_REQUEST_CREATE = _command_request({
     },
 }, required=("source_site_id", "destination_site_id", "lines"))
 TRANSFER_SUBMIT_REQUEST = _command_request({})
-TRANSFER_APPROVE_REQUEST = _command_request({"reason": {"type": "string"}})
+TRANSFER_APPROVE_REQUEST = _command_request({"reason": {"type": "string"},
+    "reviewed_hash": {"type": "string", "minLength": 64, "maxLength": 64},
+    "approval_revision": {"type": "integer", "minimum": 1}}, required=("reviewed_hash", "approval_revision"))
 TRANSFER_CANCEL_REQUEST = _command_request({
     "reason": {"type": "string", "minLength": 1, "maxLength": 500},
 }, required=("reason",))
@@ -1008,6 +1010,12 @@ _always_present(DISPATCH)
 # Every top-level key of the transfer read is always sent (a nullable one as
 # null). Not recursively: a frozen portion's cost and MRP are absent, not null,
 # for a reader without the cost grant.
+TRANSFER_DETAIL["properties"]["approval"] = {"type": "object", "nullable": True,
+    "properties": {"id": {"type": "string"}, "revision": {"type": "integer"},
+        "reviewed_hash": {"type": "string"}, "policy_version_id": {"type": "string", "nullable": True},
+        "completed_steps": {"type": "integer"}, "total_steps": {"type": "integer"},
+        "current_label": {"type": "string"}},
+    "required": ["id", "revision", "reviewed_hash", "policy_version_id", "completed_steps", "total_steps", "current_label"]}
 TRANSFER_DETAIL["required"] = list(TRANSFER_DETAIL["properties"])
 
 
@@ -1085,6 +1093,21 @@ def _detail(access: AccessContext, transfer_id: uuid.UUID) -> dict[str, Any]:
         transfer, names=names, allowed=transfers.allowed_actions(access, transfer)
     )
     detail["lines"] = transfers.priced_lines(access, transfer, detail["lines"])
+    from approvals.goods_models import ApprovalRequest
+
+    approval = ApprovalRequest.objects.filter(subject_kind="transfer", subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by("-created_at", "-id").first()
+    detail["approval"] = None
+    if approval is not None:
+        steps = approval.policy_basis.get("steps") or []
+        completed = approval.decisions.filter(outcome="step_approved").count() + (approval.state == "approved")
+        detail["approval"] = {"id": str(approval.pk), "revision": approval.revision,
+            "reviewed_hash": approval.reviewed_hash, "policy_version_id": str(approval.policy_version_id) if approval.policy_version_id else None,
+            "completed_steps": completed, "total_steps": len(steps),
+            "current_label": steps[completed]["label"] if completed < len(steps) else "Route complete"}
+    for key in ("drafted_by", "approved_by"):
+        if detail.get(key) and not access.covers_all(set(transfers.READ_ACTIONS), {(transfer.source_site_id, None), (transfer.destination_site_id, None)}, {"personal"}):
+            detail[key] = {**detail[key], "name": "Restricted person"}
+    access.revalidate_delivery()
     return detail
 
 
@@ -1496,6 +1519,9 @@ class _TransferCommandView(GoodsAPIView):
     def run(self, run: CommandRun, transfer: GoodsTransfer, body: dict[str, Any]) -> CommandResult:
         raise NotImplementedError
 
+    def run_with_access(self, run: CommandRun, transfer: GoodsTransfer, body: dict[str, Any], access: AccessContext) -> CommandResult:
+        return self.run(run, transfer, body)
+
     def post(self, request: Request, pk: uuid.UUID) -> Response:
         access = self.access(request)
         meta = parse_meta(request.data, revision_bound=False)
@@ -1504,7 +1530,7 @@ class _TransferCommandView(GoodsAPIView):
         site_id = self.gate(access, transfer)
 
         def handler(run: CommandRun) -> CommandResult:
-            return self.run(run, transfer, body)
+            return self.run_with_access(run, transfer, body, access)
 
         result = self.run_command(
             request,
@@ -1567,16 +1593,22 @@ class TransferApproveView(_TransferCommandView):
     """
 
     action_name = "stock.transfer.approve"
-    body_fields = frozenset({"reason"})
+    body_fields = frozenset({"reason", "reviewed_hash", "approval_revision"})
+    required_fields = ("reviewed_hash", "approval_revision")
 
     def gate(self, access: AccessContext, transfer: GoodsTransfer) -> int:
         access.require(transfers.APPROVE_ACTION, site_id=transfer.source_site_id)
         access.require_step_up()
         return transfer.source_site_id
 
-    def run(self, run: CommandRun, transfer: GoodsTransfer, body: dict[str, Any]) -> CommandResult:
+    def run_with_access(self, run: CommandRun, transfer: GoodsTransfer, body: dict[str, Any], access: AccessContext) -> CommandResult:
+        from outbound import transfer_authority
+
         reason = body.get("reason")
-        transfers.approve(run, transfer.pk, reason=str(reason) if reason else None)
+        revision = body["approval_revision"]
+        if isinstance(revision, bool) or not isinstance(revision, int) or revision < 1:
+            raise Refusal("INVALID_REQUEST", "approval_revision must be a positive integer.")
+        transfer_authority.approve(run, transfer, access, str(reason) if reason else None, str(body["reviewed_hash"]), revision)
         return CommandResult(resource_type="transfer", resource_id=str(transfer.pk))
 
     @extend_schema(

@@ -31,7 +31,7 @@ from accounts.goods_api import (
     resource_dto,
 )
 from accounts.principal import AccessContext
-from core.commands import CommandResult, CommandRun
+from core.commands import CommandResult, CommandRun, LockRank
 from core.kernel_models import OfficialVersion
 from core.refusals import Refusal
 from masters.models import Store
@@ -870,6 +870,11 @@ RETURNED_PIECES_PAGE: dict[str, Any] = {
     },
 }
 
+RETURNED_PIECES_ACCEPTED: dict[str, Any] = {
+    "type": "object", "required": ["accepted_qty", "lines"],
+    "properties": {"accepted_qty": {"type": "integer"}, "lines": {"type": "integer"}},
+}
+
 
 class ReturnedPiecesView(GoodsAPIView):
     """OPS-09: the pieces customers brought back, and putting them away.
@@ -899,8 +904,10 @@ class ReturnedPiecesView(GoodsAPIView):
         reach = access.site_reach(ACCEPT)
         if wanted is not None:
             reach = {wanted} if reach is None else (reach & {wanted})
-        rows = [row for row in pending_returns(reach) if access.can(ACCEPT, site_id=row.store_id)]
+        rows = [row for row in pending_returns(reach)
+                if row.brand_id is not None and access.can(ACCEPT, site_id=row.store_id, brand_id=row.brand_id)]
         window, cursor = paginate(rows, params, default=50, maximum=100)
+        access.revalidate_delivery()
         return Response(
             page(
                 [
@@ -922,7 +929,7 @@ class ReturnedPiecesView(GoodsAPIView):
 
     @extend_schema(
         request=RETURNED_PIECES_REQUEST,
-        responses=_responses(200, RETURNED_PIECES_PAGE, _WRITE_REFUSALS),
+        responses=_responses(200, RETURNED_PIECES_ACCEPTED, _WRITE_REFUSALS),
     )
     def post(self, request: Request) -> Response:
         from sell.models import SaleLine
@@ -941,7 +948,6 @@ class ReturnedPiecesView(GoodsAPIView):
         if not isinstance(raw, list) or not raw:
             raise Refusal("INVALID_REQUEST", "Name at least one returned line to put away.")
         line_ids = [parse_int_id(value, "sale_line_ids") for value in raw]
-        access.require(ACCEPT, site_id=site_id)
         store = Store.objects.filter(pk=site_id).first()
         if store is None:
             raise Refusal("NOT_FOUND", "That site was not found.")
@@ -954,17 +960,36 @@ class ReturnedPiecesView(GoodsAPIView):
         )
         if len(lines) != len(set(line_ids)):
             raise Refusal("NOT_FOUND", "One of those returned lines is not this store's.")
+        for line in lines:
+            if line.brand_ref_id is None:
+                raise Refusal("IDENTITY_UNRESOLVED", "A returned line requires its reviewed stable brand identity.")
+            access.require(ACCEPT, site_id=site_id, brand_id=line.brand_ref_id)
 
         counted: dict[str, int] = {"qty": 0}
 
         def handler(run: CommandRun) -> CommandResult:
+            from masters.goods_models import Location, SiteGuard
+
+            guards = run.lock(LockRank.SITE, SiteGuard.objects.filter(site_id=site_id))
+            if not guards or not guards[0].goods_ready:
+                raise Refusal("SITE_NOT_READY", "This site is not ready for goods acceptance.")
+            if guards[0].freeze_id:
+                raise Refusal("UNDER_COUNT", "A stock count freezes this site.")
+            run.claim_rank(LockRank.DOCUMENT)
+            destination = Location.objects.select_for_update().filter(
+                pk=location_id, site_id=site_id, retired_at__isnull=True,
+                system=False, kind__in=acceptance.PUTAWAY_KINDS,
+            ).first()
+            if destination is None:
+                raise Refusal("ACCEPTANCE_INVALID", "Put returned goods away in an active ordinary location at this store.")
             for line in lines:
                 counted["qty"] += accept_returned_pieces(
                     run, store=store, sale_line=line, location_id=location_id
                 )
             run.audit_after = {"accepted_qty": counted["qty"]}
             return CommandResult(
-                resource_type="sale_line", resource_id=str(lines[0].pk), status_code=200
+                resource_type="sale_line", resource_id=str(lines[0].pk), status_code=200,
+                event_ids=[str(run.audit_event_id)],
             )
 
         self.run_command(
@@ -978,6 +1003,13 @@ class ReturnedPiecesView(GoodsAPIView):
             site_id=site_id,
             subject_key=f"sale_line:{lines[0].pk}",
         )
+        # The handler's immutable result evidence answers both first delivery and
+        # replay, including outcomes recorded before result event links existed.
+        from core.kernel_models import AuditEvent
+        outcome = AuditEvent.objects.get(action="sell.return.accept", outcome="succeeded",
+            command_key__command_id=meta.command_id, command_key__principal_key=access.principal().key)
+        counted["qty"] = int((outcome.after or {})["accepted_qty"])
+        access.revalidate_delivery()
         return Response({"accepted_qty": counted["qty"], "lines": len(lines)})
 
 

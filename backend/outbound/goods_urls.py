@@ -29,6 +29,7 @@ from outbound.goods_count_views import (
     StocktakePassOpenView,
     StocktakeRecountView,
     StocktakeVarianceView,
+    StocktakeSubmitReviewView,
 )
 from outbound.goods_size_balancing_views import (
     GoodsSizeBalanceApproveView,
@@ -296,6 +297,7 @@ urlpatterns = [
         StocktakeRecountView.as_view(),
         name="goods-stocktake-recount",
     ),
+    path("stocktakes/<uuid:pk>/submit-review", StocktakeSubmitReviewView.as_view(), name="goods-stocktake-submit-review"),
     path("stocktakes/<uuid:pk>/close", StocktakeCloseView.as_view(), name="goods-stocktake-close"),
     path(
         "stocktakes/<uuid:pk>/cancel", StocktakeCancelView.as_view(), name="goods-stocktake-cancel"

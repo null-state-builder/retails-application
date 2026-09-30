@@ -2196,6 +2196,7 @@ class GoodsPendingView(GoodsAPIView):
         access = self.access(request)
         items, params = _work_items(request, access)
         window, cursor = paginate(items, params)
+        access.revalidate_delivery()
         return Response(page(window, cursor))
 
 
@@ -2242,6 +2243,7 @@ class GoodsInboxView(GoodsAPIView):
         else:
             items = [item for item in items if item["next_step"] != "done"]
         window, cursor = paginate(items, params)
+        access.revalidate_delivery()
         return Response(page(window, cursor))
 
 

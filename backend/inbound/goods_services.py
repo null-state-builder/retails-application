@@ -5119,7 +5119,7 @@ def customer_return_items(site_id: int | None, access: AccessContext) -> list[di
         reach = {site_id} if reach is None else (reach & {site_id})
     items: list[dict[str, Any]] = []
     for row in pending_returns(reach):
-        if not access.can(ACCEPT_STOCK_ACTION, site_id=row.store_id):
+        if row.brand_id is None or not access.can(ACCEPT_STOCK_ACTION, site_id=row.store_id, brand_id=row.brand_id):
             continue
         items.append(
             {
@@ -5127,7 +5127,7 @@ def customer_return_items(site_id: int | None, access: AccessContext) -> list[di
                 "record_contract": "goods-v1",
                 "kind": "customer_return",
                 "site_id": str(row.store_id),
-                "brand_id": None,
+                "brand_id": str(row.brand_id),
                 "reference": row.reference,
                 "arrived_at": row.returned_at.isoformat(),
                 "updated_at": row.returned_at.isoformat(),

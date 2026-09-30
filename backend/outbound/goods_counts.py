@@ -1,9 +1,11 @@
-"""Non-trading stock counts: blind capture and the endings that move nothing (goods ticket 17).
+"""Canonical blind counts with reviewed trading closure (goods tickets 17/17A).
 
 Goods PRD §14.9-§14.10 (GSA-R01, GSA-R02), GSA-T17 and design E102/E103,
 E159-E166, E211, P18, as aligned in design §7.3. Four rules hold throughout:
 
-* **Only an affirmatively non-trading site is counted.** A count starts only
+* **Trading requires a verified online pause.** A sole online-alpha counter may
+  start under persisted, reconciled pause evidence; every result then requires
+  independently approved versioned review in count_review. Other sites start only
   where the site carries a current approved non-trading declaration, is not
   sell-ready and still shows no tills or trading history. Absence of a till
   module is not evidence: unknown trading is not "none" (goods PRD §14.1).
@@ -22,7 +24,7 @@ E159-E166, E211, P18, as aligned in design §7.3. Four rules hold throughout:
   reviewed; an unfinished pass stays resumable, a pass idle for 24 hours is
   stale and needs an explicit resume, and a recount is a new pass that never
   inherits an affirmation. Unscanned known stock is zero observed.
-* **This ticket's endings move nothing.** A verified zero variance closes the
+* **Direct closure moves nothing.** Non-trading verified zero variance closes the
   count and releases the freeze in one commit with no quantity or value
   posting; cancellation keeps every observation and releases the freeze. A
   nonzero difference stays pending, frozen and visible for ticket 17A's review
@@ -388,12 +390,13 @@ def start_count(run: CommandRun, site: Any, scope: dict[str, Any]) -> GoodsStock
     if GoodsStocktake.objects.filter(site_id=site.pk, state__in=UNFINISHED).exists():
         raise Refusal("COUNT_ALREADY_OPEN", "Another count is already open at this site.")
     event, problems = current_declaration(site, guard)
+    pause: dict[str, Any] = {}
     if event is None:
-        raise Refusal(
-            "TRADING_NOT_EXCLUDED",
-            "A count can start only at a site affirmatively declared non-trading.",
-            issues=problems,
-        )
+        if guard.selling_mode != SiteGuard.SellingMode.ONLINE_ALPHA:
+            raise Refusal("TRADING_NOT_EXCLUDED", "A non-trading declaration or verified online till pause is required.", issues=problems)
+        from sell.services.till_authority import snapshot_pause_evidence
+
+        pause = snapshot_pause_evidence(run, site)
     locations = _site_locations(site.pk)
     if scope["kind"] == "location" and uuid.UUID(scope["location_id"]) not in locations:
         raise Refusal("NOT_FOUND", "That location was not found at this site.")
@@ -418,6 +421,7 @@ def start_count(run: CommandRun, site: Any, scope: dict[str, Any]) -> GoodsStock
         site_id=site.pk,
         scope=scope,
         non_trading_event=event,
+        till_pause_evidence=pause,
         frozen_at=run.now,
         state=GoodsStocktake.State.OPEN,
         last_activity_at=run.now,
@@ -463,7 +467,8 @@ def start_count(run: CommandRun, site: Any, scope: dict[str, Any]) -> GoodsStock
         payload={
             "to_state": "open",
             "scope": scope,
-            "non_trading_event_id": str(event.pk),
+            "non_trading_event_id": str(event.pk) if event else None,
+            "till_pause_evidence": pause,
             "frozen_at": run.now.isoformat(),
             "details": [],
         },
@@ -1673,6 +1678,16 @@ def close_zero(
                 if line.delta != 0
             ][:50],
         )
+    if stocktake.till_pause_evidence:
+        raise Refusal("APPROVAL_REQUIRED", "Trading counts require a pinned independently approved review, including zero differences.", status=409)
+    return finish_count(run, stocktake, guard, report, passes)
+
+
+def finish_count(
+    run: CommandRun, stocktake: GoodsStocktake, guard: SiteGuard | None,
+    report: Variance, passes: Sequence[GoodsCountPass], *, movement: DocumentIdentity | None = None,
+) -> GoodsStocktake:
+    """One closure writer after the caller verifies the exact report and approval."""
     human_id = run.principal.human_id
     if human_id is None:
         raise Refusal("ACTION_DENIED", "A count is closed by a named person.")
@@ -1689,12 +1704,12 @@ def close_zero(
                     "condition": line.condition,
                     "book_qty": line.book_qty,
                     "observed_qty": line.observed_qty,
-                    "delta": 0,
+                    "delta": line.delta,
                     "pass_id": line.pass_id,
                 }
                 for line in report.lines
             ],
-            movement=None,
+            movement=movement,
             approver_id=human_id,
         )
     )
@@ -1732,7 +1747,7 @@ def close_zero(
     run.audit_after = {
         "stocktake_id": str(stocktake.pk),
         "state": "closed",
-        "zero_variance": True,
+        "zero_variance": report.zero,
         "freeze_released": True,
     }
     return stocktake
@@ -1766,6 +1781,9 @@ def cancel(
     # The passes too, as a scan takes its pass's lock: a scan either commits
     # before the cancellation or finds the count cancelled - never lands after it.
     passes = run.lock(LockRank.DOCUMENT, GoodsCountPass.objects.filter(stocktake=stocktake))
+    from outbound import count_review
+
+    count_review.cancel_pending(run, stocktake)
     unfinished = sum(p.state == GoodsCountPass.State.OPEN for p in passes)
     stocktake.state = GoodsStocktake.State.CANCELLED
     stocktake.save(update_fields=["state"])

@@ -114,7 +114,7 @@ def summary(
         "site": {"id": str(site.pk), "code": site.code, "name": site.name},
         "scope": _scope(stocktake, locations),
         "frozen_at": stocktake.frozen_at.isoformat() if stocktake.frozen_at else None,
-        "freeze_active": stocktake.state == GoodsStocktake.State.OPEN,
+        "freeze_active": stocktake.state in (GoodsStocktake.State.OPEN, GoodsStocktake.State.REVIEW),
         "started_by": _person(stocktake.document.maker_id, names),
         "started_at": stocktake.document.created_at.isoformat(),
         "last_activity_at": stocktake.last_activity_at.isoformat(),
@@ -180,7 +180,12 @@ def list_rows(
         passes[count_pass.stocktake_id].append(count_pass)
     names = _names(row.document.maker_id for row in rows)
     locations = _location_names({row.site_id for row in rows})
-    return [summary(row, passes.get(row.pk, []), names, locations, now) for row in rows]
+    results = []
+    for row in rows:
+        personal = access.covers_all({counts.RUN_ACTION, counts.REVIEW_ACTION}, {(row.site_id, None)}, {"personal"})
+        shown = names if personal else {key: name for key, name in names.items() if key == access.human_id}
+        results.append(summary(row, passes.get(row.pk, []), shown, locations, now))
+    return results
 
 
 def progress(
@@ -196,7 +201,7 @@ def progress(
     Owner's approval, ticket 17A) or ``matches_book`` (ready to close).
     """
     if stocktake.state == GoodsStocktake.State.CLOSED:
-        return "closed_matching", None
+        return ("closed_adjusted" if CountDecision.objects.filter(stocktake=stocktake, movement__isnull=False).exists() else "closed_matching"), None
     if stocktake.state == GoodsStocktake.State.CANCELLED:
         return "cancelled", None
     if any(p.state == GoodsCountPass.State.OPEN for p in passes) or not passes:
@@ -261,9 +266,12 @@ def count_detail(
         allowed.append("lookup")
     if is_open and reviewer and not counting:
         allowed += ["variance", "recount"]
-        if review is not None and review["outcome"] == "matches_book" and stage != "counting":
-            allowed.append("close")
-    if is_open and (
+        if review is not None and stage != "counting":
+            if stocktake.till_pause_evidence or review["outcome"] != "matches_book":
+                allowed.append("submit_review")
+            else:
+                allowed.append("close")
+    if stocktake.state in (GoodsStocktake.State.OPEN, GoodsStocktake.State.REVIEW) and (
         reviewer
         or (
             (stocktake.scope or {}).get("count_kind") == "cycle"
@@ -279,10 +287,38 @@ def count_detail(
         if reviewer
         else []
     )
+    from approvals.goods_models import ApprovalRequest
+    from approvals.goods_policy import eligible_checker
+    from outbound.count_review import ACTION, FIELDS
+
+    request = ApprovalRequest.objects.filter(subject_kind="count", subject_key=str(stocktake.pk), requested_action=ACTION).order_by("-created_at", "-id").first()
+    approval = None
+    if request is not None and reviewer and not counting:
+        cells = frozenset(tuple(cell) for cell in request.policy_basis.get("cells") or [])
+        if cells and access.covers_all_actions({ACTION}, cells, FIELDS):
+            evidence = request.policy_basis.get("snapshot") or {}
+            approval = {"id": str(request.pk), "revision": request.revision, "reviewed_hash": request.reviewed_hash,
+                "state": request.state, "policy_version_id": str(request.policy_version_id) if request.policy_version_id else None,
+                "removed_qty": evidence.get("removed_qty", 0), "removed_value_paise": evidence.get("removed_value_paise", "0"),
+                "reason_code": evidence.get("reason_code", "")}
+            if stocktake.state == GoodsStocktake.State.REVIEW:
+                allowed.append("variance")
+                if request.state == "pending" and eligible_checker(access, request, cells):
+                    allowed += ["approve", "reject"]
     covered = counts.scope_locations(stocktake)
+    if not access.covers_all_actions({counts.REVIEW_ACTION if reviewer else counts.RUN_ACTION}, {(stocktake.site_id, None)}, {"personal"}):
+        names = {key: name for key, name in names.items() if key == access.human_id}
+        for row in rows:
+            if row["counter"]["id"] != str(access.human_id):
+                row["counter"]["name"] = ""
+        for row in counters:
+            if row["id"] != str(access.human_id):
+                row["name"] = ""
     return {
         **summary(stocktake, passes, names, locations, now),
-        "non_trading_event_id": str(stocktake.non_trading_event_id),
+        "non_trading_event_id": str(stocktake.non_trading_event_id) if stocktake.non_trading_event_id else None,
+        "trading_pause_verified": bool(stocktake.till_pause_evidence),
+        "approval": approval,
         # What a counter may be assigned to: the count's own locations, by name
         # (identity only - the directory itself stays its own grant's).
         "locations": [
@@ -318,10 +354,12 @@ def may_read_pass(access: AccessContext, count_pass: GoodsCountPass) -> bool:
     return may_review(access, stocktake) and not counting_now(access, stocktake)
 
 
-def pass_detail(count_pass: GoodsCountPass, now: datetime, tenant_id: uuid.UUID) -> dict[str, Any]:
+def pass_detail(access: AccessContext, count_pass: GoodsCountPass, now: datetime, tenant_id: uuid.UUID) -> dict[str, Any]:
     stocktake = count_pass.stocktake
     rows = counts.pass_observations([count_pass.pk])
     names = _names([count_pass.counter_id, *[r.actor_id for r in rows]])
+    if not access.covers_all({counts.RUN_ACTION, counts.REVIEW_ACTION}, {(stocktake.site_id, None)}, {"personal"}):
+        names = {key: name for key, name in names.items() if key == access.human_id}
     locations = _location_names([stocktake.site_id])
     coverage = counts.pass_coverage(stocktake, count_pass)
     site_locations = {

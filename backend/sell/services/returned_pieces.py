@@ -32,6 +32,7 @@ class PendingReturn:
     sale_line_id: int
     sale_id: int
     store_id: int
+    brand_id: int | None
     doc_number: str
     till_number: str
     barcode: str
@@ -88,6 +89,7 @@ def pending_returns(store_ids: set[int] | None) -> list[PendingReturn]:
                 sale_line_id=line.pk,
                 sale_id=line.sale_id,
                 store_id=store.pk,
+                brand_id=line.brand_ref_id,
                 doc_number=line.sale.doc_number or "",
                 till_number=line.sale.till_number or "",
                 barcode=line.barcode,

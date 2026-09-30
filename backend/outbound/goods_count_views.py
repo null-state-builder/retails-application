@@ -200,8 +200,14 @@ HISTORY_ITEM: dict[str, Any] = {
 
 _DETAIL_PROPERTIES: dict[str, Any] = {
     **_SUMMARY_PROPERTIES,
+    "trading_pause_verified": {"type": "boolean"},
+    "approval": {"type": "object", "nullable": True, "properties": {
+        "id": {"type": "string"}, "revision": {"type": "integer"}, "reviewed_hash": {"type": "string"},
+        "state": {"type": "string"}, "policy_version_id": {"type": "string", "nullable": True},
+        "removed_qty": {"type": "integer"}, "removed_value_paise": {"type": "string"}, "reason_code": {"type": "string"}},
+        "required": ["id", "revision", "reviewed_hash", "state", "policy_version_id", "removed_qty", "removed_value_paise", "reason_code"]},
     "non_trading_event_id": {
-        "type": "string",
+        "type": "string", "nullable": True,
         "description": "The approved non-trading declaration the count started under.",
     },
     "locations": {
@@ -229,6 +235,7 @@ _DETAIL_PROPERTIES: dict[str, Any] = {
             "differences_pending",
             "matches_book",
             "closed_matching",
+            "closed_adjusted",
             "cancelled",
         ],
         "description": (
@@ -284,6 +291,9 @@ _DETAIL_PROPERTIES: dict[str, Any] = {
                 "variance",
                 "recount",
                 "close",
+                "submit_review",
+                "approve",
+                "reject",
                 "cancel",
             ],
         },
@@ -697,12 +707,16 @@ def _require_reviewer(access: AccessContext, stocktake: GoodsStocktake) -> None:
 
 def _detail(access: AccessContext, pk: uuid.UUID, history_cursor: str | None = None) -> Any:
     stocktake = counts.stocktake_of(access.tenant_id, pk)
-    return reads.count_detail(access, stocktake, timezone.now(), history_cursor)
+    body = reads.count_detail(access, stocktake, timezone.now(), history_cursor)
+    access.revalidate_delivery()
+    return body
 
 
 def _pass_body(access: AccessContext, pk: uuid.UUID) -> Any:
     row = counts.pass_of(access.tenant_id, pk)
-    return reads.pass_detail(row, timezone.now(), access.tenant_id)
+    body = reads.pass_detail(access, row, timezone.now(), access.tenant_id)
+    access.revalidate_delivery()
+    return body
 
 
 # ---------------------------------------------------------------------------
@@ -765,7 +779,7 @@ class StocktakeListCreateView(GoodsAPIView):
     @extend_schema(
         operation_id="goods_v1_outbound_stocktakes_start",
         description=(
-            "E159. Start a blind count at an affirmatively non-trading site (`count.run` "
+            "E159. Start a blind count at a declared non-trading site or a verified paused sole-online-alpha store (`count.run` "
             "there). In one commit: numbers it CNT, installs the site's count freeze and "
             "freezes the as-of book of every physical piece in scope. The freeze stops "
             "stock movements, dispatch, arrival and receipt dispositions at the site; it "
@@ -1119,6 +1133,7 @@ class StocktakeVarianceView(GoodsAPIView):
         body = reads.variance_detail(stocktake, report, access.tenant_id)
         window, cursor = paginate(body["lines"], params, default=500, maximum=500)
         body["lines"] = {"items": window, "next_cursor": cursor, "total": len(report.lines)}
+        access.revalidate_delivery()
         return Response(body)
 
 
@@ -1240,6 +1255,43 @@ class StocktakeCloseView(_ReviewCommandView):
             subject_key=f"stocktake:{stocktake.pk}",
             reviewed_hash=reviewed,
         )
+        return Response(_detail(access, pk))
+
+
+class StocktakeSubmitReviewView(GoodsAPIView):
+    """Pin the exact blind-count selection for independent versioned approval."""
+
+    @extend_schema(operation_id="goods_v1_outbound_stocktakes_submit_review",
+        request={"application/json": {
+            "type": "object", "additionalProperties": False,
+            "required": ["command_id", "contract_version", "expected_revision", "reviewed_hash", "selected_pass_ids", "reason_code"],
+            "properties": {"command_id": {"type": "string", "format": "uuid"},
+                "contract_version": {"type": "string", "enum": ["goods-v1"]},
+                "expected_revision": {"type": "integer"}, "reviewed_hash": {"type": "string"},
+                "selected_pass_ids": {"type": "array", "items": {"type": "string", "format": "uuid"}},
+                "reason_code": {"type": "string", "maxLength": 60}}}},
+        responses=_responses(200, COUNT_DETAIL, _WRITE_REFUSALS))
+    def post(self, request: Request, pk: uuid.UUID) -> Response:
+        from outbound import count_review
+
+        access = self.access(request)
+        meta = parse_meta(request.data, revision_bound=True)
+        body = business_body(request.data, counts.CLOSE_FIELDS | {"reason_code"}, required=("reviewed_hash", "selected_pass_ids", "reason_code"))
+        reviewed, selected = counts.parse_close(body)
+        stocktake = _stocktake_for(access, pk)
+        _require_reviewer(access, stocktake)
+        reason = body["reason_code"]
+        if not isinstance(reason, str) or not reason.strip() or len(reason) > 60:
+            raise Refusal("INVALID_REQUEST", "Choose a configured count reason.")
+
+        def handler(run: CommandRun) -> CommandResult:
+            done = count_review.submit(run, access, pk, reviewed_hash=reviewed, selected=selected,
+                expected_revision=meta.expected_revision, reason_code=reason)
+            return CommandResult(resource_type="stocktake", resource_id=str(done.pk), revision=done.revision)
+
+        self.run_command(request, access=access, action="stock.count.submit_review", meta=meta,
+            business_input=body, handler=handler, site_id=stocktake.site_id, subject_key=f"stocktake:{pk}", reviewed_hash=reviewed)
+        access.revalidate_delivery()
         return Response(_detail(access, pk))
 
 
