@@ -35,6 +35,7 @@ import {
   type StockSummary,
 } from "../lib/goodsStock";
 import { useAuth } from "../auth/AuthContext";
+import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { formatDateTime, formatPaiseString } from "../lib/format";
 import "./GoodsAcceptance.css";
@@ -97,21 +98,38 @@ function buildUrl(base: string, params: Record<string, string | undefined>): str
   return `${base}${qs ? `?${qs}` : ""}`;
 }
 
-export function GoodsStockPage() {
-  const { session } = useAuth();
+export function GoodsStockPage({ damageWorkspace = false }: { damageWorkspace?: boolean }) {
+  const { session, activeStore } = useAuth();
   const [params, setParams] = useSearchParams();
-  const siteId = params.get("site_id") ?? "";
+  // The daily entry starts at the active store. Explicit all-site and old
+  // bookmarked scope remain filters; the server still intersects authority.
+  const bookmarkedCode = params.get("store");
+  const defaultSite =
+    params.get("scope") === "all"
+      ? ""
+      : (params.get("site") ??
+        (bookmarkedCode
+          ? (session?.sites.find((s) => s.code === bookmarkedCode)?.id ?? "unavailable")
+          : (activeStore?.id?.toString() ?? "")));
+  const siteId = params.get("site_id") ?? (damageWorkspace ? defaultSite : "");
   const state = (params.get("state") as StockState | "") || "";
   const basis = (params.get("basis") as Basis) || "quantity";
   const asOf = params.get("as_of") ?? "";
   // An unrecognised `?view=` (a stale link, a typo) falls back to "on-hand"
   // rather than building a request against `VIEW_PATH[undefined]`.
   const rawView = params.get("view");
-  const view = (rawView && rawView in VIEW_PATH ? rawView : "on-hand") as ViewKind;
+  const view = (
+    rawView && rawView in VIEW_PATH ? rawView : damageWorkspace ? "quarantine" : "on-hand"
+  ) as ViewKind;
 
   function set(key: string, value: string) {
     const next = new URLSearchParams(params);
-    if (value) next.set(key, value);
+    if (key === "site_id") {
+      next.set(key, value);
+      next.delete("site");
+      next.delete("store");
+      next.delete("scope");
+    } else if (value) next.set(key, value);
     else next.delete(key);
     setParams(next, { replace: true });
   }
@@ -202,12 +220,31 @@ export function GoodsStockPage() {
   const siteKinds = new Map((session?.sites ?? []).map((s) => [s.id, s.type]));
 
   if (!session) return null;
+  const unavailableSite = siteId !== "" && !session.sites.some((site) => site.id === siteId);
 
   return (
-    <div className="stock-layout">
+    <OperationsPage
+      className="stock-layout"
+      data-testid={damageWorkspace ? "canonical-damage-workspace" : undefined}
+    >
       <PageHeader
-        title="Stock"
-        lead="Physical, valued and available quantities, with holds, reservations and reasons."
+        title={damageWorkspace ? "Damage & Quarantine" : "Stock"}
+        lead={
+          damageWorkspace
+            ? "Held and damaged stock from the inventory journal. Report damage from physical stock; a different authorised person reviews it."
+            : "Physical, valued and available quantities, with holds, reservations and reasons."
+        }
+        actions={
+          damageWorkspace &&
+          (hold(session, "movement.draft") || hold(session, "movement.approve")) ? (
+            <Link
+              className="btn btn-sm"
+              to={`/goods/movements${siteId ? `?site_id=${siteId}` : ""}`}
+            >
+              Movements &amp; damage reviews
+            </Link>
+          ) : undefined
+        }
       />
 
       <div className="form-grid">
@@ -220,6 +257,7 @@ export function GoodsStockPage() {
             data-testid="stock-site"
           >
             <option value="">All sites in scope</option>
+            {unavailableSite && <option value={siteId}>Bookmarked site unavailable</option>}
             {session.sites.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name} ({s.code})
@@ -300,19 +338,32 @@ export function GoodsStockPage() {
         </div>
       )}
 
+      {unavailableSite && (
+        <p className="warn-note">
+          This bookmarked site is no longer in your available site choices. Select an authorised
+          site to read its stock.
+        </p>
+      )}
+
       <div className="toolbar">
-        {(Object.keys(VIEW_PATH) as ViewKind[]).map((v) => (
+        {(damageWorkspace
+          ? (["quarantine", "on-hand"] as ViewKind[])
+          : (Object.keys(VIEW_PATH) as ViewKind[])
+        ).map((v) => (
           <button
             key={v}
             className={`btn btn-sm${v === view ? " btn-active" : ""}`}
             onClick={() => set("view", v)}
             data-testid={`stock-view-${v}`}
           >
-            {VIEW_LABEL[v]}
+            {damageWorkspace && v === "on-hand" ? "Find physical stock to report" : VIEW_LABEL[v]}
           </button>
         ))}
       </div>
 
+      {damageWorkspace && (
+        <p className="muted">Summary totals cover all stock in the selected scope.</p>
+      )}
       <SummaryPanel summary={summary} />
 
       <Feedback error={damageError} ok={damageOk} />
@@ -325,12 +376,13 @@ export function GoodsStockPage() {
         reviews={reviews.value}
         onMarkDamaged={canMarkDamaged ? markDamaged : null}
       />
-    </div>
+    </OperationsPage>
   );
 }
 
 function SummaryPanel({ summary }: { summary: ReadState<StockSummary> }) {
   if (summary.loading) return <span className="muted">Loading summary…</span>;
+  if (summary.failure) return <p className="warn-note">{summary.failure}</p>;
   if (summary.deniedField) {
     return (
       <p className="warn-note" data-testid="stock-summary-field-denied">
@@ -634,7 +686,7 @@ export function GoodsOriginJourneyPage() {
   );
 
   return (
-    <div className="stock-layout">
+    <OperationsPage className="stock-layout">
       <PageHeader title="Origin journey" lead="The published events on this origin, in order." />
       {journey.deniedAction && <Denied what="origin" />}
       {journey.failure && <p className="warn-note">{journey.failure}</p>}
@@ -665,6 +717,6 @@ export function GoodsOriginJourneyPage() {
           ))}
         </ol>
       )}
-    </div>
+    </OperationsPage>
   );
 }

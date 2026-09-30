@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { PackageSearch, Store as StoreIcon } from "lucide-react";
 
 import { api, apiErrorMessage } from "../lib/api";
@@ -23,6 +23,9 @@ import {
 } from "../lib/cross-store";
 import { SearchBox } from "../components/SearchBox";
 import { PageHeader } from "../components/PageHeader";
+import { OperationsPage, OperationsTable } from "../components/OperationsPage";
+import { stockParams } from "../lib/stockWorkspace";
+import type { StockWorkspaceFilter } from "./StockWorkspace";
 import "./Booking.css";
 
 // ---------------------------------------------------------------------------
@@ -46,18 +49,26 @@ interface StoreT {
   name: string;
 }
 
-export default function CrossStoreSearch() {
+export default function CrossStoreSearch({ workspace }: { workspace?: StockWorkspaceFilter } = {}) {
   const { user } = useAuth();
-  const [q, setQ] = useState("");
+  const [params, setParams] = useSearchParams();
+  const q = workspace?.query ?? params.get("q") ?? "";
+  const setQ = (value: string) => setParams(stockParams(params, { q: value }), { replace: true });
   const [data, setData] = useState<AvailabilityResponseT | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [picked, setPicked] = useState<PickedRowT | null>(null);
 
-  const term = q.trim();
+  const term = (q || params.get("sku") || params.get("brand") || "").trim();
   const searchable = term.length >= MIN_TERM;
+  const storeCode = workspace?.storeCode ?? "";
+  const storeId = workspace?.storeId;
+  const brand = params.get("brand") ?? "";
+  const sku = params.get("sku") ?? "";
 
   useEffect(() => {
+    setPicked(null);
+    setData(null);
     if (!searchable) {
       setData(null);
       setError("");
@@ -67,14 +78,17 @@ export default function CrossStoreSearch() {
     setLoading(true);
     setError("");
     api
-      .get(withQuery("/stock/availability", { q: term }))
+      .get(
+        withQuery("/stock/availability", { q: term, store: storeCode, brand, sku }),
+        storeId === undefined ? undefined : { headers: { "X-KDPS-Unit": storeId } },
+      )
       .then((r) => live && setData(r.data))
       .catch((e) => live && setError(apiErrorMessage(e)))
       .finally(() => live && setLoading(false));
     return () => {
       live = false;
     };
-  }, [term, searchable]);
+  }, [term, searchable, storeCode, storeId, brand, sku]);
 
   // Picking a new row closes whatever panel was open, so the form on screen
   // always belongs to the row above it.
@@ -85,20 +99,25 @@ export default function CrossStoreSearch() {
         : { design, row },
     );
   }
+  const Frame = workspace ? "div" : OperationsPage;
 
   return (
-    <div className="page-pad">
-      <PageHeader lead="Every store's stock, size by size. Quantities only — another store's cost stays theirs." />
+    <Frame>
+      {!workspace && (
+        <PageHeader lead="Stock you may read, size by size. This view carries quantities only." />
+      )}
 
-      <div className="filter-bar" data-testid="availability-search-bar">
-        <SearchBox
-          value={q}
-          onChange={setQ}
-          placeholder="Scan the tag, or type a design number or item name"
-          label="Search stock across every store"
-          testId="availability-search"
-        />
-      </div>
+      {!workspace && (
+        <div className="filter-bar" data-testid="availability-search-bar">
+          <SearchBox
+            value={q}
+            onChange={setQ}
+            placeholder="Scan the tag, or type a design number or item name"
+            label="Search stock across every store"
+            testId="availability-search"
+          />
+        </div>
+      )}
 
       {!searchable && (
         <div className="card section-card" data-testid="availability-hint">
@@ -108,7 +127,12 @@ export default function CrossStoreSearch() {
         </div>
       )}
 
-      {searchable && loading && <p className="lead">Searching every store…</p>}
+      {searchable && loading && <p className="lead">Searching selected stock…</p>}
+
+      <p className="muted" data-testid="availability-scope-note">
+        Quantities cover only the selected stock you may access. Costs, margins and values are
+        unavailable in this view. A request reserves nothing.
+      </p>
 
       {searchable && !loading && error && (
         <div className="warn-note" data-testid="availability-error">
@@ -127,7 +151,7 @@ export default function CrossStoreSearch() {
 
           {data.results.length === 0 ? (
             <div className="card section-card" data-testid="availability-empty">
-              <p className="lead">Nobody in the network is holding anything matching “{term}”.</p>
+              <p className="lead">No accessible stock in this selection matches “{term}”.</p>
             </div>
           ) : (
             data.results.map((design) => (
@@ -143,7 +167,7 @@ export default function CrossStoreSearch() {
           )}
         </>
       )}
-    </div>
+    </Frame>
   );
 }
 
@@ -177,59 +201,61 @@ function DesignCard({
         </div>
         <div className="spacer" />
         <span className="chip chip-navy" data-testid={`${testId}-total`}>
-          {totalQty(design)} pcs in the network
+          {totalQty(design)} pcs in this selection
         </span>
       </div>
 
-      <table className="lines-table" data-testid={`${testId}-rows`}>
-        <thead>
-          <tr>
-            <th>Size</th>
-            <th>Where</th>
-            <th>Colour</th>
-            <th className="num">Qty</th>
-            <th />
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, i) => {
-            const isPicked =
-              picked?.row.sku_code === row.sku_code && picked.row.store === row.store;
-            return [
-              <tr key={`${row.store}-${row.sku_code}`} data-testid={`${testId}-row-${i}`}>
-                <td>
-                  <b>{row.size || "—"}</b>
-                </td>
-                <td>
-                  <StoreIcon size={13} /> <b className="mono">{row.store}</b>{" "}
-                  <span className="lead">{row.store_name}</span>
-                </td>
-                <td>{row.color || "—"}</td>
-                <td className="num">{row.qty}</td>
-                <td>
-                  {canRequest && (
-                    <button
-                      type="button"
-                      className="btn"
-                      onClick={() => onPick(design, row)}
-                      data-testid={`${testId}-request-${i}`}
-                    >
-                      <PackageSearch size={14} /> {isPicked ? "Cancel" : "Request this"}
-                    </button>
-                  )}
-                </td>
-              </tr>,
-              isPicked ? (
-                <tr key="request-panel">
-                  <td colSpan={5}>
-                    <RequestPanel design={design} row={row} onDone={onDone} />
+      <OperationsTable label={`Available sizes for ${design.item || design.design}`}>
+        <table className="lines-table" data-testid={`${testId}-rows`}>
+          <thead>
+            <tr>
+              <th>Size</th>
+              <th>Where</th>
+              <th>Colour</th>
+              <th className="num">Qty</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row, i) => {
+              const isPicked =
+                picked?.row.sku_code === row.sku_code && picked.row.store === row.store;
+              return [
+                <tr key={`${row.store}-${row.sku_code}`} data-testid={`${testId}-row-${i}`}>
+                  <td>
+                    <b>{row.size || "—"}</b>
                   </td>
-                </tr>
-              ) : null,
-            ];
-          })}
-        </tbody>
-      </table>
+                  <td>
+                    <StoreIcon size={13} /> <b className="mono">{row.store}</b>{" "}
+                    <span className="lead">{row.store_name}</span>
+                  </td>
+                  <td>{row.color || "—"}</td>
+                  <td className="num">{row.qty}</td>
+                  <td>
+                    {canRequest && (
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() => onPick(design, row)}
+                        data-testid={`${testId}-request-${i}`}
+                      >
+                        <PackageSearch size={14} /> {isPicked ? "Cancel" : "Request this"}
+                      </button>
+                    )}
+                  </td>
+                </tr>,
+                isPicked ? (
+                  <tr key="request-panel">
+                    <td colSpan={5}>
+                      <RequestPanel design={design} row={row} onDone={onDone} />
+                    </td>
+                  </tr>
+                ) : null,
+              ];
+            })}
+          </tbody>
+        </table>
+      </OperationsTable>
     </div>
   );
 }

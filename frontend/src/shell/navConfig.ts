@@ -229,6 +229,7 @@ export const SECTIONS: NavSectionDef[] = [
     layer: "home",
     items: [
       { label: "Dashboard", to: "/" },
+      { label: "Application roadmap", to: "/roadmap", hidden: true },
       // Home is split by one question, "do I have to do something?" (Anand,
       // 23 Sep 2026). Action Needed is yes: the approvals inbox beside the
       // goods exceptions, each block keeping its own gate. Everyone has the
@@ -485,7 +486,7 @@ export const SECTIONS: NavSectionDef[] = [
         to: "/goods/transfers/requests",
         goodsActions: ["transfer.allocate"],
       },
-      { label: "Stock Transfers", to: "/transfer" },
+      { label: "Earlier transfer records", to: "/transfer" },
       { label: "Send Stock", to: "/transfer/new" },
       // Bulk-splits one arrived warehouse batch into a draft per destination
       // store — the grid Ops Head fills in once instead of raising the same
@@ -530,8 +531,8 @@ export const SECTIONS: NavSectionDef[] = [
     items: [
       { label: "Returns", to: "/return-to-brand" },
       { label: "New Return", to: "/return-to-brand/new" },
-      // Quarantine is built — it is a tab on Stock, reached here by deep link.
-      { label: "Damage / Quarantine", to: "/stock?view=quarantine", deepLink: true },
+      // Retained evidence uses its earlier projection and original section gate.
+      { label: "Earlier damage records", to: "/inventory?tab=damage-history", deepLink: true },
     ],
   },
   {
@@ -550,6 +551,12 @@ export const SECTIONS: NavSectionDef[] = [
         to: "/goods/stock",
         goodsActions: ["stock.view", "stock.accept"],
       },
+      {
+        label: "Damage & Quarantine",
+        to: "/goods/stock?view=quarantine",
+        deepLink: true,
+        goodsActions: ["stock.view"],
+      },
       // Goods-v1 movements (ticket 12): bin moves, holds and releases at one
       // site. A goods-v1 line, for the reason given on "Vendor bookings".
       // Approvers are listed too: a release they decided is read here.
@@ -562,7 +569,7 @@ export const SECTIONS: NavSectionDef[] = [
       // (#175). It reads every store deliberately — a registered scoping
       // exception — and carries quantities only, so it sits at the same `view`
       // rung a store person already holds on this section.
-      { label: "Search Across Stores", to: "/stock/search" },
+      { label: "Search Across Stores", to: "/stock/search", hidden: true },
       { label: "Movement History", to: "/stock/history" },
       // Store operations ticket 12 (ST-CMP-3): the pieces here with no HSN, for
       // fixing; drawn only where the hsn-on-every-item switch is on.
@@ -1222,9 +1229,9 @@ export interface FoldTab {
    *  entry rather than restating a section code is what keeps the tab's gate
    *  and the screen's standalone URL in one place. */
   entry: string;
-  /** A goods-v1 line of a folded section (GSA-T02), drawn as a tab that opens
-   *  its own standalone screen rather than a panel on the folded page. Set only
-   *  by `foldTabs`, never in a fold's own definition. */
+  /** A governed destination opening its standalone screen rather than a
+   * panel. Named canonical workflow entries can use this explicitly; other
+   * goods lines are appended by `foldTabs`. */
   link?: true;
 }
 
@@ -1297,9 +1304,8 @@ export function isFoldRow(row: LayoutRow): row is NavFoldDef {
 export type PersonaLayout = LayoutRow[];
 
 // Inventory (D10 §1): Stock, Stock Count and Return to Brand fold into one
-// page. Four tabs over three section codes - Damage & Quarantine and Return to
-// Brand are both Return to Brand's, which is where a store's "mark damage only"
-// right already lives.
+// page. Daily damage reads canonical goods stock; earlier quarantine records
+// retain their original gate in Review & history.
 export const INVENTORY_FOLD: NavFoldDef = {
   heading: "Stock",
   icon: Warehouse,
@@ -1307,11 +1313,13 @@ export const INVENTORY_FOLD: NavFoldDef = {
   to: "/inventory",
   sections: ["stock", "stock_count", "return_to_brand"],
   tabs: [
-    { slug: "stock", label: "Stock on Hand", entry: "/stock" },
-    // The store persona's only way to this screen until the Dashboard's
-    // quick-actions row lands (#174): the fold *is* their Stock section, so a
-    // tab left off it is unreachable for exactly the people it was built for.
-    { slug: "search", label: "Search Across Stores", entry: "/stock/search" },
+    { slug: "stock", label: "Stock", entry: "/stock" },
+    {
+      slug: "assigned-counts",
+      label: "Blind count records (non-trading)",
+      entry: "/goods/counts",
+      link: true,
+    },
     // Ticket 12: drawn only where the hsn-on-every-item switch is on (its entry's gate).
     { slug: "hsn", label: "Items with no HSN", entry: "/stock/missing-hsn" },
     // Ticket 33: drawn only where the season-ageing switch is on (its entry's gate).
@@ -1320,11 +1328,17 @@ export const INVENTORY_FOLD: NavFoldDef = {
     { slug: "broken", label: "Broken Sizes", entry: "/stock/broken-sizes" },
     // Ticket 34: drawn only where the size-balancing switch is on (its entry's gate).
     { slug: "balance", label: "Size Balancing", entry: "/stock/size-balancing" },
-    { slug: "damage", label: "Damage & Quarantine", entry: "/stock?view=quarantine" },
-    { slug: "count", label: "Count & Adjust", entry: "/stock-count" },
+    { slug: "damage", label: "Damage & Quarantine", entry: "/goods/stock?view=quarantine" },
+    {
+      slug: "damage-history",
+      label: "Earlier damage records",
+      entry: "/inventory?tab=damage-history",
+    },
+    { slug: "count", label: "Earlier count records", entry: "/stock-count" },
     // Ticket 35: drawn only where the scheduled-counts switch is on (its entry's gate).
     { slug: "schedule", label: "Count Schedule", entry: "/stock-count/schedule" },
     { slug: "returns", label: "Return to Brand", entry: "/return-to-brand" },
+    { slug: "ledger", label: "Stock history", entry: "/stock/history", link: true },
   ],
 };
 
@@ -1340,7 +1354,7 @@ export const SELL_STRIP: NavStripDef = {
 };
 
 // Receive Goods as the store sees it (store and warehouse operations PRD §12):
-// the inbox's two tabs and nothing else. The legacy Receive line left the row in
+// the inbox plus scoped opening-source upload. The legacy Receive line left the row in
 // OPS-17 and the manifest in OPS-18, with its screen.
 export const RECEIVE_INBOX_STRIP: NavStripDef = {
   section: "receive_goods",
@@ -1382,7 +1396,6 @@ export const STOCK_STRIP: NavStripDef = {
     "/goods/stock",
     "/goods/movements",
     "/stock",
-    "/stock/search",
     "/stock/history",
     "/stock/missing-hsn",
     "/stock/ageing",
@@ -1870,7 +1883,10 @@ export function sectionTabsFor(
   // still lights its parent tab, which is the rule every strip has kept.
   const owner = itemOwning(pathname);
   if (owner?.hidden && !strip.tabs.includes(owner.to)) return null;
-  const sections = visibleSections(user, goodsActions, featuresOn);
+  const sections = dailySections(
+    visibleSections(user, goodsActions, featuresOn),
+    user.role?.code ?? "",
+  );
   const tabs = stripTabs(strip, sections);
   if (tabs.length < 2) return null;
   const active = activeStripTab(tabs, pathname);
@@ -1892,6 +1908,7 @@ export function resolveFoldTab(tabs: FoldTab[], slug: string | null): FoldTab | 
  *  drops what is already in it - so no arrangement can put a section in front
  *  of somebody the server did not send it to. */
 export function applyLayout(sections: VisibleSection[], roleCode: string): NavRow[] {
+  sections = dailySections(sections, roleCode);
   const layout = layoutFor(roleCode);
 
   const byCode = new Map(sections.map((s) => [s.def.code, s]));
@@ -1956,6 +1973,15 @@ export function applyLayout(sections: VisibleSection[], roleCode: string): NavRo
     rows.push({ kind: "section", key: s.def.code, section: drawn });
   }
   return rows;
+}
+
+/** Planned pages keep their own guarded URLs and roadmap entries. They do not
+ * occupy daily manager navigation or appear as usable operational tabs. */
+export function dailySections(sections: VisibleSection[], roleCode: string): VisibleSection[] {
+  if (!["store_person", "store_manager", "manager"].includes(roleCode)) return sections;
+  return sections
+    .map((section) => ({ ...section, items: section.items.filter((item) => !item.planned) }))
+    .filter((section) => section.items.length > 0);
 }
 
 /** The same section with its `hidden` entries left off - what a sidebar draws.

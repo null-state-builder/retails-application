@@ -14,6 +14,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.permissions import require_section
+from accounts.principal import resolve_access
 from accounts.sections import CAP_VIEW
 from core.money import paise_to_rupees_str
 from core.refusals import refusal_body
@@ -28,6 +29,7 @@ from stockledger.models import (
 )
 from stockledger.serializers import StockLedgerEntrySerializer
 from stockledger.access import project_stock
+from stockledger.on_hand_projection import filtered_rows, on_hand_response, projected_rows, require_value_request
 
 
 class StockLedgerPagination(PageNumberPagination):
@@ -102,6 +104,10 @@ ON_HAND_ROW = {
         )},
         "net_qty": {"type": "integer"}, "skus": {"type": "integer"},
         "net_value_paise": {"type": "integer"}, "net_value_rupees": {"type": "string"},
+        "brand_id": {"type": "integer", "nullable": True},
+        "sku_id": {"type": "string", "format": "uuid", "nullable": True},
+        "record_contract": {"type": "string", "enum": ["goods-v1", "legacy"]},
+        "identity_complete": {"type": "boolean"},
     },
 }
 ON_HAND_RESPONSE = {
@@ -111,6 +117,8 @@ ON_HAND_RESPONSE = {
         "summary": {"type": "object", "required": ['units_on_hand', 'lines', 'displayed', 'truncated'], "properties": MONEY_PROPERTIES | {
             "units_on_hand": {"type": "integer"}, "lines": {"type": "integer"},
             "displayed": {"type": "integer"}, "truncated": {"type": "boolean"},
+            "scope": {"type": "string", "enum": ["current_access"]},
+            "identity_complete": {"type": "boolean"}, "value_complete": {"type": "boolean"},
         }},
         "rows": {"type": "array", "items": ON_HAND_ROW},
     },
@@ -322,9 +330,10 @@ def search_on_hand(qs: Any, term: str) -> Any:
 
 
 class StockOnHandView(APIView):
-    """Net stock on hand (Σqty > 0) grouped by SKU / brand / store, served from the
-    **materialised** `StockOnHand` projection (maintained inside each post/reverse,
-    rebuildable via `manage.py rebuild_stock_on_hand`).
+    """Current scoped physical stock, grouped by stable SKU / brand / store.
+
+    Online GOODS_V1 stores read their canonical journal projection; other stores
+    retain the materialised StockOnHand source maintained by their own writer.
 
     Large result sets are capped to `MAX_LINES` for payload safety, but the true
     line count and a `truncated` flag are ALWAYS reported — the previous silent
@@ -339,6 +348,7 @@ class StockOnHandView(APIView):
             OpenApiParameter("group_by", str, enum=["sku", "brand", "store"]),
             OpenApiParameter("store", str), OpenApiParameter("brand", str),
             OpenApiParameter("sku", str), OpenApiParameter("q", str),
+            OpenApiParameter("basis", str, enum=["quantity", "cost"]),
         ],
         responses={200: ON_HAND_RESPONSE},
     )
@@ -346,41 +356,14 @@ class StockOnHandView(APIView):
         group_by = request.query_params.get("group_by", "sku")
         if group_by not in ("sku", "brand", "store"):
             group_by = "sku"
-        qs = scope_by_store_and_brand(
-            StockOnHand.objects.filter(net_qty__gt=0).select_related("store"),
-            request.user,
-            "store_id",
-         section="stock", minimum="view")
-        if store := request.query_params.get("store"):
-            qs = qs.filter(store__code=store)
-        if brand := request.query_params.get("brand"):
-            qs = qs.filter(brand=brand)
-        # Where a global-search item result lands: one barcode, its stock wherever
-        # the caller may see it. Filtered in the DB, not the client, so the answer
-        # survives the MAX_LINES cap.
-        if sku := request.query_params.get("sku"):
-            qs = qs.filter(sku_code=sku)
-        # The screen's own search box (#102). Applied last, on the already-scoped
-        # queryset, so a term can only ever narrow — and it composes with the deep
-        # link above rather than replacing it.
-        qs = search_on_hand(qs, search_term(request))
-
-        totals = qs.aggregate(units=Sum("net_qty"), value=Sum("net_value_paise"))
-        rows, lines = self._rows(qs, group_by)
-        return Response(
-            project_stock(request, qs, {
-                "group_by": group_by,
-                "summary": {
-                    "units_on_hand": totals["units"] or 0,
-                    "value_paise": totals["value"] or 0,
-                    "value_rupees": paise_to_rupees_str(totals["value"] or 0),
-                    "lines": lines,
-                    "displayed": len(rows),
-                    "truncated": len(rows) < lines,
-                },
-                "rows": rows,
-            })
-        )
+        rows = filtered_rows(projected_rows(request), request.query_params)
+        require_value_request(request, rows)
+        body = on_hand_response(rows, group_by, self.MAX_LINES)
+        resolve_access(request).revalidate_delivery()
+        response = Response(body)
+        response["Cache-Control"] = "no-store, private"
+        response["Pragma"] = "no-cache"
+        return response
 
     def _rows(self, qs: Any, group_by: str) -> tuple[list[dict[str, Any]], int]:
         if group_by == "sku":
@@ -488,6 +471,7 @@ class StockAvailabilityView(APIView):
         parameters=[
             OpenApiParameter("q", str, required=True),
             OpenApiParameter("brand", str), OpenApiParameter("size", str),
+            OpenApiParameter("store", str), OpenApiParameter("sku", str),
         ],
         responses={200: AVAILABILITY_RESPONSE, 400: AVAILABILITY_REFUSAL},
     )
@@ -501,12 +485,33 @@ class StockAvailabilityView(APIView):
                 status=400,
             )
 
+        from stockledger.on_hand_projection import canonical_sites
+
+        access = resolve_access(request)
+        if canonical_sites(access.tenant_id):
+            visible = filtered_rows(projected_rows(request, availability=True, values=False), request.query_params)
+            visible.sort(key=lambda row: (row["brand_id"] or 0, row["design"], row["size"], row["store_code"]))
+            canonical_styles = list(dict.fromkeys((row["brand_id"], row["design"]) for row in visible))
+            canonical_shown = set(canonical_styles[:self.MAX_DESIGNS])
+            rows = [{**row, "_access_brand_id": row["brand_id"], "store__code": row["store_code"],
+                     "store__name": row["store_name"], "qty": row["net_qty"]}
+                    for row in visible if (row["brand_id"], row["design"]) in canonical_shown]
+            body = {"results": self._nest(rows), "truncated": len(canonical_styles) > self.MAX_DESIGNS}
+            access.revalidate_delivery()
+            response = Response(body)
+            response["Cache-Control"] = "no-store, private"
+            return response
+
         qs = StockOnHand.objects.filter(net_qty__gt=0, store__is_active=True)
         # The half of the boundary this exception does *not* suspend. No-op for
         # everybody else — `visible_brand_names` answers None unless the caller
         # is brand-scoped.
         qs = scope_by_entitled_brands(qs, request.user, section="stock", minimum="view")
         qs = search_on_hand(qs, term)
+        if store := (request.query_params.get("store") or "").strip():
+            qs = qs.filter(store__code__iexact=store)
+        if sku := (request.query_params.get("sku") or "").strip():
+            qs = qs.filter(sku_code__iexact=sku)
         if brand := (request.query_params.get("brand") or "").strip():
             qs = qs.filter(brand__iexact=brand)
         if size := (request.query_params.get("size") or "").strip():

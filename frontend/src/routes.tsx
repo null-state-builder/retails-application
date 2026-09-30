@@ -123,9 +123,9 @@ import { OfferAuthorPage } from "./pages/OfferAuthor";
 import { PriceListPage } from "./pages/PriceList";
 import { DiscountsPage } from "./pages/Discounts";
 import { InventoryPage } from "./pages/Inventory";
+import { ApplicationRoadmapPage } from "./pages/ApplicationRoadmap";
 import StockLedger from "./pages/StockLedger";
-import StockOnHand from "./pages/StockOnHand";
-import CrossStoreSearch from "./pages/CrossStoreSearch";
+import { StockBookmark } from "./pages/StockWorkspace";
 import VendorLedger from "./pages/VendorLedger";
 import CashLedger from "./pages/CashLedger";
 import DaySummary from "./pages/DaySummary";
@@ -279,6 +279,7 @@ const BUILT: Screen[] = [
   // (#170). It belongs to no section: it is the store persona's arrangement of
   // three of them, and its tabs carry those sections' own gates.
   { id: "inventory", path: "/inventory", element: <InventoryPage /> },
+  { id: "application-roadmap", path: "/roadmap", element: <ApplicationRoadmapPage /> },
   // Sell - the counter (#181) and the till layer's own surface (#180).
   //
   // `TillProvider` wraps each screen rather than the app: opening a counter's
@@ -309,8 +310,8 @@ const BUILT: Screen[] = [
   // open it without a counter's price list being opened on their laptop.
   { id: "sell-customers", path: "/sell/customers", element: <CustomerSearchPage /> },
   // Stock — V-flip is an action inside this section, not a menu item
-  { id: "stock-on-hand", path: "/stock", element: <StockOnHand /> },
-  { id: "stock-search", path: "/stock/search", element: <CrossStoreSearch /> },
+  { id: "stock-on-hand", path: "/stock", element: <StockBookmark /> },
+  { id: "stock-search", path: "/stock/search", element: <StockBookmark /> },
   // Store operations ticket 12: items with no HSN, for fixing.
   { id: "stock-missing-hsn", path: "/stock/missing-hsn", element: <MissingHsnPage /> },
   { id: "stock-ageing", path: "/stock/ageing", element: <StockAgeingPage /> },

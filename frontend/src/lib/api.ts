@@ -60,7 +60,10 @@ api.interceptors.request.use((config) => {
     const token = csrfToken();
     if (token) config.headers["X-CSRF-Token"] = token;
   }
-  if (unitContext.unit) config.headers["X-KDPS-Unit"] = unitContext.unit;
+  // Scoped readers may explicitly choose another authorised unit or their
+  // whole scope. The server still intersects the header with assignments.
+  if (unitContext.unit && !config.headers.has("X-KDPS-Unit"))
+    config.headers["X-KDPS-Unit"] = unitContext.unit;
   if (unitContext.brand) config.headers["X-KDPS-Brand"] = unitContext.brand;
   return config;
 });

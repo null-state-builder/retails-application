@@ -22,6 +22,9 @@ import { withQuery } from "../lib/query";
 import "./Booking.css";
 import "./Shared.css";
 import { PageHeader } from "../components/PageHeader";
+import { OperationsPage } from "../components/OperationsPage";
+import { stockParams } from "../lib/stockWorkspace";
+import type { StockWorkspaceFilter } from "./StockWorkspace";
 
 type Group = "sku" | "brand" | "store" | "quarantine";
 
@@ -38,14 +41,18 @@ interface RowT {
   sku_code: string;
   net_qty: number;
   skus: number;
-  net_value_paise: number;
+  net_value_paise?: number;
+  record_contract?: "goods-v1" | "legacy";
 }
 
 interface OnHandT {
   group_by: Group;
   summary: {
     units_on_hand: number;
-    value_paise: number;
+    value_paise?: number;
+    identity_complete?: boolean;
+    value_complete?: boolean;
+    scope?: "current_access";
     lines: number;
     displayed?: number;
     truncated?: boolean;
@@ -64,13 +71,13 @@ interface QuarRowT {
   season: string;
   brand: string;
   qty: number;
-  value_paise: number;
+  value_paise?: number;
   marked_by: string | null;
   marked_at: string | null;
 }
 
 interface QuarT {
-  summary: { units_quarantined: number; value_paise: number; lines: number };
+  summary: { units_quarantined: number; value_paise?: number; lines: number };
   rows: QuarRowT[];
 }
 
@@ -100,6 +107,18 @@ const TABS: { key: Group; label: string }[] = [
   { key: "quarantine", label: "Quarantine" },
 ];
 
+export function StockValue({ paise }: { paise: number | undefined }) {
+  return typeof paise === "number" ? (
+    <Money paise={paise} />
+  ) : (
+    <span className="muted">Unavailable</span>
+  );
+}
+
+export function stockQuantity(value: number | undefined, loading: boolean): number | string {
+  return value !== undefined ? value : loading ? "Loading…" : "Unavailable";
+}
+
 /** Which half of this screen to draw when it is hosted on the Inventory page
  *  (#170), where Stock on Hand and Damage & Quarantine are two separate tabs -
  *  so the panel must not also offer the other one as a fourth grouping. */
@@ -113,7 +132,10 @@ function groupingsFor(view: StockView | undefined): typeof TABS {
   return TABS.filter((t) => (t.key === "quarantine") === (view === "quarantine"));
 }
 
-export default function StockOnHand({ view }: { view?: StockView } = {}) {
+export default function StockOnHand({
+  view,
+  workspace,
+}: { view?: StockView; workspace?: StockWorkspaceFilter } = {}) {
   // Where a global-search result lands (#86): one barcode, or one brand, with
   // its stock wherever the caller may see it. Both filters are the server's, so
   // the answer survives the on-hand line cap.
@@ -125,9 +147,15 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
   // `?view=quarantine` is the deep link the Return to Brand section uses for
   // Damage / Quarantine — the screen lives here, the menu entry lives there.
   // Hosted, the host has already chosen which half this is.
-  const [group, setGroup] = useState<Group>(
-    view === "quarantine" || (!view && params.get("view") === "quarantine") ? "quarantine" : "sku",
-  );
+  const wantedGroup = params.get("group") ?? params.get("group_by");
+  const group: Group =
+    view === "quarantine" || (!view && params.get("view") === "quarantine")
+      ? "quarantine"
+      : wantedGroup === "brand" || wantedGroup === "store"
+        ? wantedGroup
+        : "sku";
+  const setGroup = (value: Group) =>
+    setParams(stockParams(params, { group: value === "sku" ? "" : value }));
   const [data, setData] = useState<OnHandT | null>(null);
   const [quar, setQuar] = useState<QuarT | null>(null);
   const [loading, setLoading] = useState(true);
@@ -136,7 +164,10 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
   const [reloadKey, setReloadKey] = useState(0);
   // The screen's own search (#102) — style, barcode or brand. A wedge scan lands
   // here too, so a store person can check a tag without going up to the top bar.
-  const [q, setQ] = useState("");
+  const q = workspace?.query ?? params.get("q") ?? "";
+  const setQ = (value: string) => setParams(stockParams(params, { q: value }), { replace: true });
+  const storeCode = workspace?.storeCode ?? "";
+  const storeId = workspace?.storeId;
 
   // Quarantine filters (the backend accepts ?store=&brand=; this exposes them).
   const [qStore, setQStore] = useState("");
@@ -160,14 +191,17 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
   const [dmgBusy, setDmgBusy] = useState(false);
 
   useEffect(() => {
+    let live = true;
     setLoading(true);
     setError("");
+    setData(null);
+    setQuar(null);
     if (group === "quarantine") {
       api
         .get(withQuery("/stockledger/quarantine", { store: qStore, brand: qBrand }))
-        .then((r) => setQuar(r.data))
-        .catch((e) => setError(apiErrorMessage(e)))
-        .finally(() => setLoading(false));
+        .then((r) => live && setQuar(r.data))
+        .catch((e) => live && setError(apiErrorMessage(e)))
+        .finally(() => live && setLoading(false));
     } else {
       // Deep link (from a global-search result) and typed term compose: the term
       // narrows inside the link, it does not replace it.
@@ -178,13 +212,18 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
             sku: skuFilter,
             brand: brandFilter,
             q,
+            store: storeCode,
           }),
+          storeId === undefined ? undefined : { headers: { "X-KDPS-Unit": storeId } },
         )
-        .then((r) => setData(r.data))
-        .catch((e) => setError(apiErrorMessage(e)))
-        .finally(() => setLoading(false));
+        .then((r) => live && setData(r.data))
+        .catch((e) => live && setError(apiErrorMessage(e)))
+        .finally(() => live && setLoading(false));
     }
-  }, [group, qStore, qBrand, reloadKey, skuFilter, brandFilter, q]);
+    return () => {
+      live = false;
+    };
+  }, [group, qStore, qBrand, reloadKey, skuFilter, brandFilter, q, storeCode, storeId]);
 
   // The reports still waiting on someone — drafts, which is flagged and
   // rejected both; a confirmed one has posted and shows up as quarantine
@@ -290,26 +329,34 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
         {
           icon: ShieldAlert,
           label: "Units quarantined",
-          value: quar?.summary.units_quarantined ?? 0,
+          value: stockQuantity(quar?.summary.units_quarantined, loading),
         },
         {
           icon: IndianRupee,
           label: "Quarantine value",
-          value: <Money paise={quar?.summary.value_paise ?? 0} />,
+          value: <StockValue paise={quar?.summary.value_paise} />,
         },
-        { icon: Layers, label: "Quarantine lines", value: quar?.summary.lines ?? 0 },
+        {
+          icon: Layers,
+          label: "Quarantine lines",
+          value: stockQuantity(quar?.summary.lines, loading),
+        },
       ]
     : [
-        { icon: Boxes, label: "Units on hand", value: data?.summary.units_on_hand ?? 0 },
+        {
+          icon: Boxes,
+          label: "Units on hand",
+          value: stockQuantity(data?.summary.units_on_hand, loading),
+        },
         {
           icon: IndianRupee,
           label: "Stock value",
-          value: <Money paise={data?.summary.value_paise ?? 0} />,
+          value: <StockValue paise={data?.summary.value_paise} />,
         },
         {
           icon: Layers,
           label: group === "store" ? "Stores" : group === "brand" ? "Brands" : "SKU lines",
-          value: data?.summary.lines ?? 0,
+          value: stockQuantity(data?.summary.lines, loading),
         },
       ];
 
@@ -319,30 +366,33 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
     if (!dmgRow) return null;
     return dmgQty === dmgRow.net_qty ? "all remaining" : `${dmgQty} of ${dmgRow.net_qty}`;
   }, [dmgRow, dmgQty]);
+  const Frame = workspace ? "div" : OperationsPage;
 
   return (
-    <div className="page-pad">
-      <PageHeader
-        lead={
-          hostedQuar
-            ? "Pieces held back from sale, and the damage reports still waiting on somebody."
-            : "The live net position, from the stock ledger."
-        }
-        actions={
-          !hostedQuar && (
-            <>
-              {/* V-flip is an ownership correction, not a daily job - so it is an
+    <Frame>
+      {!workspace && (
+        <PageHeader
+          lead={
+            hostedQuar
+              ? "Pieces held back from sale, and the damage reports still waiting on somebody."
+              : "The live net position, from the stock ledger."
+          }
+          actions={
+            !hostedQuar && (
+              <>
+                {/* V-flip is an ownership correction, not a daily job - so it is an
                   action here inside Stock rather than a line in the sidebar (#87). */}
-              <Link className="btn" to="/stock/vflips" data-testid="vflip-link">
-                <Repeat size={16} /> V-Flip
-              </Link>
-              <Link className="btn" to="/stock/history" data-testid="stock-ledger-link">
-                <ScrollText size={16} /> Movement History
-              </Link>
-            </>
-          )
-        }
-      />
+                <Link className="btn" to="/stock/vflips" data-testid="vflip-link">
+                  <Repeat size={16} /> V-Flip
+                </Link>
+                <Link className="btn" to="/stock/history" data-testid="stock-ledger-link">
+                  <ScrollText size={16} /> Movement History
+                </Link>
+              </>
+            )
+          }
+        />
+      )}
 
       {/* Hosted on Inventory, Quarantine is a tab of its own and the strip is
           only the three groupings - or nothing at all, on the damage tab. */}
@@ -381,7 +431,17 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
         ))}
       </div>
 
-      {!isQuar && (
+      {!isQuar && data?.summary.scope === "current_access" && (
+        <p className="muted" data-testid="onhand-scope-note">
+          Totals cover the stock you may currently access.
+          {data.summary.identity_complete === false &&
+            " Some stock has unresolved item identities."}
+          {data.summary.value_complete === false &&
+            " A complete valuation is unavailable for this selection."}
+        </p>
+      )}
+
+      {!isQuar && !workspace && (
         <div className="filter-bar" data-testid="onhand-search-bar">
           <SearchBox
             value={q}
@@ -477,7 +537,12 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
             These pieces are still sellable — either waiting for a warehouse or HO person to confirm
             the report, or looked at and sent back as sellable.
           </p>
-          <div className="table-wrap kdps-scroll">
+          <div
+            className="table-wrap kdps-scroll"
+            role="region"
+            aria-label="Earlier damage reports"
+            tabIndex={0}
+          >
             <table className="data kdps-table" data-testid="damage-flags-table">
               <thead>
                 <tr>
@@ -536,7 +601,13 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
               : "Nothing in quarantine. “Mark damaged” on any SKU reports a piece; a warehouse or HO person's confirmation moves it here."}
           </div>
         ) : (
-          <div className="table-wrap kdps-scroll" style={{ marginTop: 16 }}>
+          <div
+            className="table-wrap kdps-scroll"
+            style={{ marginTop: 16 }}
+            role="region"
+            aria-label="Earlier quarantined stock"
+            tabIndex={0}
+          >
             <table className="data kdps-table" data-testid="quarantine-table">
               <thead>
                 <tr>
@@ -567,7 +638,7 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
                       {r.qty}
                     </td>
                     <td className="num mono">
-                      <Money paise={r.value_paise} />
+                      <StockValue paise={r.value_paise} />
                     </td>
                     <td>{r.marked_by ?? "—"}</td>
                     <td>{r.marked_at ? new Date(r.marked_at).toLocaleString("en-IN") : "—"}</td>
@@ -583,10 +654,16 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
             ? `Nothing matching “${q}” in any location you can see.`
             : deepFilter
               ? `No stock of ${deepFilter} in any location you can see.`
-              : "No stock on hand yet. Post a PT file from Patna (PT Mapper → Push into system) to build inventory."}
+              : "No stock on hand in your current scope. Reviewed receipts become inventory after physical acceptance."}
         </div>
       ) : (
-        <div className="table-wrap kdps-scroll" style={{ marginTop: 16 }}>
+        <div
+          className="table-wrap kdps-scroll"
+          style={{ marginTop: 16 }}
+          role="region"
+          aria-label="Stock on hand"
+          tabIndex={0}
+        >
           {data!.summary.truncated && (
             <div
               className="warn-note"
@@ -666,18 +743,28 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
                     {r.net_qty}
                   </td>
                   <td className="num mono">
-                    <Money paise={r.net_value_paise} />
+                    <StockValue paise={r.net_value_paise} />
                   </td>
                   {group === "sku" && (
                     <td>
-                      <button
-                        className="btn btn-sm"
-                        onClick={() => openDamage(r)}
-                        data-testid={`mark-damaged-${i}`}
-                        title="Report a piece as damaged"
-                      >
-                        <ShieldAlert size={14} /> Mark damaged
-                      </button>
+                      {r.record_contract === "goods-v1" ? (
+                        <Link
+                          className="btn btn-sm"
+                          to={withQuery("/goods/stock", { site_id: r.store_id })}
+                          data-testid={`canonical-stock-${i}`}
+                        >
+                          Review stock
+                        </Link>
+                      ) : (
+                        <button
+                          className="btn btn-sm"
+                          onClick={() => openDamage(r)}
+                          data-testid={`mark-damaged-${i}`}
+                          title="Report a piece as damaged"
+                        >
+                          <ShieldAlert size={14} /> Mark damaged
+                        </button>
+                      )}
                     </td>
                   )}
                 </tr>
@@ -781,6 +868,6 @@ export default function StockOnHand({ view }: { view?: StockView } = {}) {
           </div>
         </div>
       )}
-    </div>
+    </Frame>
   );
 }

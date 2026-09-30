@@ -38,7 +38,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.permissions import user_can
-from accounts.principal import access_for_user
+from accounts.principal import access_for_user, resolve_access
 from accounts.sections import CAP_VIEW
 from core.documents import DocStatus
 from core.textsearch import search_term
@@ -331,7 +331,7 @@ def _stock_meta(context: dict[tuple[str, str], tuple[int, set[str]]], key: tuple
     return f"{qty} pcs across {len(stores)} locations"
 
 
-def _search_items(user: Any, q: str) -> tuple[list[dict[str, Any]], bool]:
+def _search_items(user: Any, q: str, *, request: Request | None = None) -> tuple[list[dict[str, Any]], bool]:
     """Items by scanned barcode or free text, each cohort carrying its own stock.
 
     A barcode is a scan-alias, not a unique key for stock. Until SO-04 moves
@@ -341,6 +341,29 @@ def _search_items(user: Any, q: str) -> tuple[list[dict[str, Any]], bool]:
     """
     if not user_can(user, "stock"):
         return [], False
+    if request is not None:
+        from stockledger.on_hand_projection import canonical_sites, filtered_rows, projected_rows
+
+        access = resolve_access(request)
+        if canonical_sites(access.tenant_id):
+            visible = filtered_rows(projected_rows(request, values=False), {"q": q})
+            grouped: dict[tuple[Any, ...], list[dict[str, Any]]] = defaultdict(list)
+            for stock_row in visible:
+                grouped[(stock_row["sku_id"] or stock_row["sku_code"], stock_row["brand_id"], stock_row["season"])].append(stock_row)
+            found = []
+            for parts in grouped.values():
+                preview = parts[0]
+                barcode = preview["sku_code"]
+                if not barcode:
+                    continue
+                context = {(barcode, preview["season"]): (sum(row["net_qty"] for row in parts),
+                                                        {row["store_code"] for row in parts})}
+                subtitle = " · ".join(str(preview[field]) for field in ("brand", "design", "color", "size", "season") if preview[field])
+                found.append({"kind": "item", "title": barcode, "subtitle": subtitle,
+                              "meta": _stock_meta(context, (barcode, preview["season"])),
+                              "to": f"/stock?sku={quote(barcode)}", "exact": barcode.casefold() == q.casefold(),
+                              "mrp_paise": None})
+            return found[:MAX_PER_GROUP], len(found) > MAX_PER_GROUP
     stock = scope_by_store_and_brand(StockOnHand.objects.all(), user, section="stock")
     exact = list(stock.filter(sku_code__iexact=q).order_by("sku_code").values_list(
         "sku_code", flat=True
@@ -499,7 +522,7 @@ class GlobalSearchView(APIView):
 
         groups: list[dict[str, Any]] = []
         for key, label, finder in (
-            ("items", "Items & barcodes", _search_items),
+            ("items", "Items & barcodes", lambda user, term: _search_items(user, term, request=request)),
             ("brands", "Brands", _search_brands),
             ("documents", "Documents & vouchers", _search_documents),
         ):
@@ -513,4 +536,7 @@ class GlobalSearchView(APIView):
         # An empty answer says what it means, and why the one thing we cannot
         # search yet is missing — never a silent blank panel.
         notes = [] if total else ["Nothing found for this search.", _NO_CUSTOMERS_NOTE]
-        return Response({"query": query, "groups": groups, "total": total, "notes": notes})
+        resolve_access(request).revalidate_delivery()
+        response = Response({"query": query, "groups": groups, "total": total, "notes": notes})
+        response["Cache-Control"] = "no-store, private"
+        return response
