@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "../auth/AuthContext";
+import { OperationsPage, OperationsTable } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import { formatDateTime, formatPaiseString } from "../lib/format";
@@ -422,7 +423,7 @@ export function NewTransferPanel({
         </label>
       )}
       {listing ?? (
-        <div className="table-wrap">
+        <OperationsTable label="Transfer draft lines">
           <table data-testid="transfer-new-lines">
             <thead>
               <tr>
@@ -490,7 +491,7 @@ export function NewTransferPanel({
               ))}
             </tbody>
           </table>
-        </div>
+        </OperationsTable>
       )}
       <div className="toolbar">
         <button
@@ -558,17 +559,17 @@ export function TransferDetailPage() {
   if (read.denied) return <Denied what="transfer" />;
   if (read.loading || !detail) {
     return (
-      <div className="page-pad">
+      <OperationsPage>
         <PageHeader title="Transfer" />
         <p className="muted">{read.failure || "Loading…"}</p>
-      </div>
+      </OperationsPage>
     );
   }
 
   const may = (action: string) => detail.allowed_actions.includes(action);
 
   return (
-    <div className="page-pad">
+    <OperationsPage>
       <PageHeader
         title={detail.number ?? "Transfer"}
         lead={`${siteLabel(sites, detail.source_site_id)} → ${siteLabel(
@@ -651,7 +652,7 @@ export function TransferDetailPage() {
 
       <section className="card section-card" data-testid="transfer-lines">
         <h3 className="h3">What is being sent</h3>
-        <div className="table-wrap">
+        <OperationsTable label="Transfer lines">
           <table>
             <thead>
               <tr>
@@ -685,7 +686,7 @@ export function TransferDetailPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </OperationsTable>
         {may("dispatch") && (
           <PreparationPanel detail={detail} onDone={done} onFail={failed} onRun={command} />
         )}
@@ -714,7 +715,7 @@ export function TransferDetailPage() {
 
       <section className="card section-card" data-testid="transfer-history">
         <h3 className="h3">History</h3>
-        <div className="table-wrap">
+        <OperationsTable label="Transfer history">
           <table>
             <thead>
               <tr>
@@ -733,9 +734,9 @@ export function TransferDetailPage() {
               ))}
             </tbody>
           </table>
-        </div>
+        </OperationsTable>
       </section>
-    </div>
+    </OperationsPage>
   );
 }
 
@@ -1045,7 +1046,7 @@ function PreparationPanel({
         {preparation.opened_by.name || preparation.opened_by.id}). The scans are kept, so anyone
         here can carry on from another device. Nothing moves until you dispatch.
       </p>
-      <div className="table-wrap">
+      <OperationsTable label="Dispatch preparation">
         <table data-testid="prep-lines">
           <thead>
             <tr>
@@ -1068,7 +1069,7 @@ function PreparationPanel({
             ))}
           </tbody>
         </table>
-      </div>
+      </OperationsTable>
 
       <div className="form-grid" data-testid="prep-scan-form">
         <Field id="prep-scan-line" label="Line">
@@ -1142,7 +1143,7 @@ function PreparationPanel({
       </div>
 
       {preparation.scans.length > 0 && (
-        <div className="table-wrap">
+        <OperationsTable label="Scanned transfer pieces">
           <table data-testid="prep-scans">
             <thead>
               <tr>
@@ -1166,7 +1167,7 @@ function PreparationPanel({
               ))}
             </tbody>
           </table>
-        </div>
+        </OperationsTable>
       )}
 
       <Field id="transfer-dispatch-ref" label="Transport reference">
@@ -1318,7 +1319,7 @@ function ShipmentCard({
         ) : null}
       </dl>
       {record.returns.length > 0 ? (
-        <div className="table-wrap">
+        <OperationsTable label="Return receipts at the sender">
           <table data-testid={`shipment-returns-${record.sequence_no}`}>
             <caption>Return receipts at the sender</caption>
             <thead>
@@ -1342,7 +1343,7 @@ function ShipmentCard({
               ))}
             </tbody>
           </table>
-        </div>
+        </OperationsTable>
       ) : null}
       <ul className="origin-list" data-testid={`shipment-origins-${record.sequence_no}`}>
         {record.lines.flatMap((line) =>
@@ -1458,7 +1459,7 @@ function CountForm({
           : "A shipment is counted once, whole. Record what actually arrived: anything fewer than was sent is a shortage that stays visible, and damaged or unidentified pieces go to quarantine here and stay held. Wrong goods stay short: say what came instead, and it is held apart with anything else nobody sent."}
       </p>
       {record.lines.map((line) => (
-        <div className="table-wrap" key={line.line_key}>
+        <OperationsTable label="Received transfer pieces" key={line.line_key}>
           <table key={line.line_key} data-testid="count-line">
             <caption>
               {detail.lines.find((l) => l.line_key === line.line_key)?.description || line.sku_id} —{" "}
@@ -1500,7 +1501,7 @@ function CountForm({
               </tr>
             </tbody>
           </table>
-        </div>
+        </OperationsTable>
       ))}
       {record.lines
         .filter((line) => (found[line.line_key]?.wrong ?? 0) > 0)
@@ -1720,7 +1721,7 @@ function AcceptForm({
           ))}
         </select>
       </Field>
-      <div className="table-wrap">
+      <OperationsTable label="Pieces to put away">
         <table data-testid={`accept-lines-${record.sequence_no}`}>
           <thead>
             <tr>
@@ -1757,7 +1758,7 @@ function AcceptForm({
             ))}
           </tbody>
         </table>
-      </div>
+      </OperationsTable>
       {problem && <div className="warn-note">{problem}</div>}
       <button
         className="btn btn-cta"
@@ -1941,7 +1942,7 @@ function ReturnForm({
         missing stays open on this shipment. Nothing is recorded as delivered.
       </p>
       {rows.map(({ line, found, unreturned }) => (
-        <div className="table-wrap" key={line.line_key}>
+        <OperationsTable label="Transfer return pieces" key={line.line_key}>
           <table key={line.line_key} data-testid="return-line">
             <caption>
               {detail.lines.find((l) => l.line_key === line.line_key)?.description || line.sku_id} —{" "}
@@ -1972,7 +1973,7 @@ function ReturnForm({
               </tr>
             </tbody>
           </table>
-        </div>
+        </OperationsTable>
       ))}
       <Field id={`return-reason-${record.id}`} label="Why it came back">
         <input
@@ -2183,7 +2184,7 @@ function ShortageForm({
           </select>
         </Field>
       ) : null}
-      <div className="table-wrap">
+      <OperationsTable label="Missing pieces to propose">
         <table>
           <thead>
             <tr>
@@ -2223,7 +2224,7 @@ function ShortageForm({
             ))}
           </tbody>
         </table>
-      </div>
+      </OperationsTable>
       <Field id={`shortage-reason-${record.id}`} label="Why they are missing">
         <input
           id={`shortage-reason-${record.id}`}
@@ -2300,7 +2301,7 @@ function ShortageTable({
   onRun: Runner;
 }) {
   return (
-    <div className="table-wrap">
+    <OperationsTable label="Shortage corrections">
       <table data-testid={`shortages-${record.sequence_no}`}>
         <caption>Shortage corrections</caption>
         <thead>
@@ -2339,7 +2340,7 @@ function ShortageTable({
           ))}
         </tbody>
       </table>
-    </div>
+    </OperationsTable>
   );
 }
 

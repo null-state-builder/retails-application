@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { api, apiErrorMessage } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
@@ -141,7 +142,7 @@ export function InventoryReportPage() {
 
   if (!data) {
     return (
-      <div className="page-pad">
+      <OperationsPage>
         <PageHeader title="Inventory" lead={lead} />
         {offlineNote}
         {error ? (
@@ -151,7 +152,7 @@ export function InventoryReportPage() {
         ) : (
           online && !lost && <p>Loading the inventory report…</p>
         )}
-      </div>
+      </OperationsPage>
     );
   }
 
@@ -160,7 +161,7 @@ export function InventoryReportPage() {
   const total = data.total as unknown as GstRow;
 
   return (
-    <div className="page-pad">
+    <OperationsPage>
       <PageHeader title="Inventory" lead={lead} />
       {offlineNote}
       <section className="card section-card">
@@ -324,7 +325,7 @@ export function InventoryReportPage() {
           </ul>
         </details>
       </section>
-    </div>
+    </OperationsPage>
   );
 }
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { api, apiErrorMessage } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
@@ -148,7 +149,7 @@ export function GstReportPage() {
 
   if (!data) {
     return (
-      <div className="page-pad">
+      <OperationsPage>
         <PageHeader title="GST" lead={lead} />
         {notAFiling}
         {offlineNote}
@@ -159,7 +160,7 @@ export function GstReportPage() {
         ) : (
           online && !lost && <p>Loading the GST report…</p>
         )}
-      </div>
+      </OperationsPage>
     );
   }
 
@@ -168,7 +169,7 @@ export function GstReportPage() {
   const total = data.total as GstRow;
 
   return (
-    <div className="page-pad">
+    <OperationsPage>
       <PageHeader title="GST" lead={lead} />
       {notAFiling}
       {offlineNote}
@@ -308,7 +309,7 @@ export function GstReportPage() {
           </ul>
         </details>
       </section>
-    </div>
+    </OperationsPage>
   );
 }
 

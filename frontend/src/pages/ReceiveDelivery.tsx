@@ -22,6 +22,7 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { ArrowLeft, Check, RefreshCw } from "lucide-react";
 
 import { useAuth } from "../auth/AuthContext";
+import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { formatDateTime } from "../lib/format";
 import { Denied, hold, useGoodsFetch, type Page } from "../lib/goodsScreen";
@@ -218,10 +219,31 @@ function DeliveryPage() {
   );
   const item = found.value ?? history.value;
 
-  if (found.denied) return <Denied what="delivery" />;
+  if (found.denied)
+    return (
+      <OperationsPage>
+        <PageHeader title="Receive goods" />
+        <Denied what="delivery" />
+      </OperationsPage>
+    );
   if ((found.loading || history.loading) && !item)
-    return <p className="page-pad muted">Loading…</p>;
-  if (found.failure) return <div className="page-pad warn-note">{found.failure}</div>;
+    return (
+      <OperationsPage>
+        <PageHeader title="Receive goods" />
+        <p className="muted" role="status">
+          Loading…
+        </p>
+      </OperationsPage>
+    );
+  if (found.failure)
+    return (
+      <OperationsPage>
+        <PageHeader title="Receive goods" />
+        <p className="warn-note" role="status">
+          {found.failure}
+        </p>
+      </OperationsPage>
+    );
   if (!item) {
     // An official PT that belongs to no delivery - opening stock - is still put
     // away from Receive Goods: its acceptance link opens its acceptance alone.
@@ -229,7 +251,7 @@ function DeliveryPage() {
     // acceptance-remaining work links here the same way.
     if (kind === "pt" && asked === "accept") {
       return (
-        <div className="page-pad">
+        <OperationsPage>
           <PageHeader
             title="Put away"
             lead="This record belongs to no delivery in the inbox - opening stock, or found stock recorded by an adjustment - so only its acceptance is shown."
@@ -242,7 +264,7 @@ function DeliveryPage() {
           <div className="card section-card" data-testid="delivery-panel-pt">
             <AcceptPanel onlyPts={[id]} />
           </div>
-        </div>
+        </OperationsPage>
       );
     }
     return <Denied what="delivery" />;
@@ -257,7 +279,7 @@ function DeliveryPage() {
   const recordKind = item.kind === "transfer_dispatch" ? "transfer" : "delivery";
 
   return (
-    <div className="page-pad">
+    <OperationsPage>
       <PageHeader
         title={item.reference}
         lead={
@@ -302,7 +324,7 @@ function DeliveryPage() {
       <div className="card section-card" data-testid={`delivery-panel-${recordKind}`}>
         <StepPanel item={item} step={panelStep} />
       </div>
-    </div>
+    </OperationsPage>
   );
 }
 
@@ -317,7 +339,7 @@ export function ReceiveNewPage() {
   const { session } = useAuth();
   if (!hold(session, "receive.arrival")) return <Denied what="way to record an arrival" />;
   return (
-    <div className="page-pad">
+    <OperationsPage>
       <PageHeader
         title="Goods arrived"
         lead="Record what turned up. The delivery then walks its steps from the inbox."
@@ -335,7 +357,7 @@ export function ReceiveNewPage() {
           onClose={() => navigate("/goods/receive")}
         />
       </div>
-    </div>
+    </OperationsPage>
   );
 }
 

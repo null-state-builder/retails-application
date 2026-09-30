@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { AlertTriangle, CheckCircle2, HelpCircle, Link2, Upload, XCircle } from "lucide-react";
 
+import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { api, apiErrorMessage } from "../lib/api";
 import { Money } from "../lib/format";
@@ -117,7 +118,7 @@ export function BankReconciliationPage() {
   }
 
   return (
-    <div className="page-pad" data-testid="bank-reconciliation-page">
+    <OperationsPage data-testid="bank-reconciliation-page">
       <PageHeader lead="Upload a bank statement (CSV or Excel) and it's matched against the books automatically — what's left is what needs a look." />
 
       <div className="warn-note" style={{ marginBottom: 18 }} data-testid="bank-api-roadmap-note">
@@ -330,7 +331,7 @@ export function BankReconciliationPage() {
           </div>
         </>
       )}
-    </div>
+    </OperationsPage>
   );
 }
 

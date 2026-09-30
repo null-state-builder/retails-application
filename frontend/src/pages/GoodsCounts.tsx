@@ -58,6 +58,7 @@ import {
   type CountSummary,
   type CountVariance,
 } from "../lib/goodsCounts";
+import { OperationsPage, OperationsTable } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 
 const STOCKTAKES = "/goods-v1/outbound/stocktakes";
@@ -129,14 +130,20 @@ export function GoodsCountsPage() {
     }
   }
 
-  if (list.denied) return <Denied what="stock count" />;
+  if (list.denied)
+    return (
+      <OperationsPage>
+        <PageHeader title="Stock counts" />
+        <Denied what="stock count" />
+      </OperationsPage>
+    );
   const state = listState(
     { loading: list.loading, failure: list.failure, empty: list.value.length === 0 },
     "No count has been started at your sites.",
   );
 
   return (
-    <div className="stock-layout">
+    <OperationsPage className="stock-layout">
       <PageHeader
         title="Stock counts"
         lead="Blind counts at sites that do not trade. Starting one freezes the site until it ends; only a count that matches the book, or a cancelled one, ends here."
@@ -184,46 +191,48 @@ export function GoodsCountsPage() {
       <section className="card section-card">
         <h3 className="h3">Counts</h3>
         {state ?? (
-          <table data-testid="cnt-list">
-            <thead>
-              <tr>
-                <th>Count</th>
-                <th>Site</th>
-                <th>What</th>
-                <th>State</th>
-                <th>Frozen since</th>
-                <th className="num">Passes</th>
-              </tr>
-            </thead>
-            <tbody>
-              {list.value.map((row) => (
-                <tr key={row.id} data-testid="cnt-row" data-count={row.id} data-state={row.state}>
-                  <td>
-                    <Link to={`/goods/counts/${row.id}`} data-testid="cnt-open-link">
-                      <code className="mono">{row.number ?? row.id}</code>
-                    </Link>
-                  </td>
-                  <td>
-                    {row.site.name} ({row.site.code})
-                  </td>
-                  <td>{scopeWords(row.scope)}</td>
-                  <td>
-                    {STATE_LABEL[row.state] ?? row.state}
-                    {row.stale_passes > 0 && (
-                      <span className="warn-note"> · {row.stale_passes} pass(es) left idle</span>
-                    )}
-                  </td>
-                  <td>{row.frozen_at ? formatDateTime(row.frozen_at) : "-"}</td>
-                  <td className="num">
-                    {row.submitted_passes} submitted · {row.open_passes} counting
-                  </td>
+          <OperationsTable label="Stock counts">
+            <table data-testid="cnt-list">
+              <thead>
+                <tr>
+                  <th>Count</th>
+                  <th>Site</th>
+                  <th>What</th>
+                  <th>State</th>
+                  <th>Frozen since</th>
+                  <th className="num">Passes</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {list.value.map((row) => (
+                  <tr key={row.id} data-testid="cnt-row" data-count={row.id} data-state={row.state}>
+                    <td>
+                      <Link to={`/goods/counts/${row.id}`} data-testid="cnt-open-link">
+                        <code className="mono">{row.number ?? row.id}</code>
+                      </Link>
+                    </td>
+                    <td>
+                      {row.site.name} ({row.site.code})
+                    </td>
+                    <td>{scopeWords(row.scope)}</td>
+                    <td>
+                      {STATE_LABEL[row.state] ?? row.state}
+                      {row.stale_passes > 0 && (
+                        <span className="warn-note"> · {row.stale_passes} pass(es) left idle</span>
+                      )}
+                    </td>
+                    <td>{row.frozen_at ? formatDateTime(row.frozen_at) : "-"}</td>
+                    <td className="num">
+                      {row.submitted_passes} submitted · {row.open_passes} counting
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </OperationsTable>
         )}
       </section>
-    </div>
+    </OperationsPage>
   );
 }
 
@@ -243,9 +252,23 @@ export function GoodsCountDetailPage() {
   );
 
   if (!session) return null;
-  if (detail.denied) return <Denied what="stock count" />;
+  if (detail.denied)
+    return (
+      <OperationsPage>
+        <PageHeader title="Stock count" />
+        <Denied what="stock count" />
+      </OperationsPage>
+    );
   const count = detail.value;
-  if (!count) return <p className="muted">{detail.failure || "Loading…"}</p>;
+  if (!count)
+    return (
+      <OperationsPage>
+        <PageHeader title="Stock count" />
+        <p className={detail.failure ? "warn-note" : "muted"} role="status">
+          {detail.failure || "Loading…"}
+        </p>
+      </OperationsPage>
+    );
   const words = progressWords(count.progress);
 
   function done(message: string) {
@@ -259,7 +282,7 @@ export function GoodsCountDetailPage() {
   }
 
   return (
-    <div className="stock-layout" data-testid="cnt-detail" data-state={count.state}>
+    <OperationsPage className="stock-layout" data-testid="cnt-detail" data-state={count.state}>
       <PageHeader
         title={`Stock count ${count.number ?? ""}`.trim()}
         lead={`${count.site.name} (${count.site.code}) · ${scopeWords(count.scope)}`}
@@ -327,7 +350,7 @@ export function GoodsCountDetailPage() {
           ))}
         </ol>
       </section>
-    </div>
+    </OperationsPage>
   );
 }
 
@@ -338,38 +361,45 @@ function PassesTable({ count }: { count: CountDetail }) {
       {count.passes.length === 0 ? (
         <p className="muted">Nobody has started counting yet.</p>
       ) : (
-        <table data-testid="cnt-passes">
-          <thead>
-            <tr>
-              <th>Counter</th>
-              <th>Covers</th>
-              <th>State</th>
-              <th>Last activity</th>
-              <th className="num">Counted</th>
-            </tr>
-          </thead>
-          <tbody>
-            {count.passes.map((row) => (
-              <tr key={row.id} data-testid="cnt-pass-row" data-pass={row.id} data-state={row.state}>
-                <td>
-                  {row.counter.name || "-"} · pass {row.pass_no}
-                </td>
-                <td>
-                  {row.scope_label}
-                  {row.reason_code ? ` (${row.reason_code})` : ""}
-                </td>
-                <td>
-                  {PASS_STATE_LABEL[row.state] ?? row.state}
-                  {row.stale && (
-                    <span className="warn-note"> · left idle - resume to continue</span>
-                  )}
-                </td>
-                <td>{row.last_activity_at ? formatDateTime(row.last_activity_at) : "-"}</td>
-                <td className="num">{row.observed_qty ?? "-"}</td>
+        <OperationsTable label="Count passes">
+          <table data-testid="cnt-passes">
+            <thead>
+              <tr>
+                <th>Counter</th>
+                <th>Covers</th>
+                <th>State</th>
+                <th>Last activity</th>
+                <th className="num">Counted</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {count.passes.map((row) => (
+                <tr
+                  key={row.id}
+                  data-testid="cnt-pass-row"
+                  data-pass={row.id}
+                  data-state={row.state}
+                >
+                  <td>
+                    {row.counter.name || "-"} · pass {row.pass_no}
+                  </td>
+                  <td>
+                    {row.scope_label}
+                    {row.reason_code ? ` (${row.reason_code})` : ""}
+                  </td>
+                  <td>
+                    {PASS_STATE_LABEL[row.state] ?? row.state}
+                    {row.stale && (
+                      <span className="warn-note"> · left idle - resume to continue</span>
+                    )}
+                  </td>
+                  <td>{row.last_activity_at ? formatDateTime(row.last_activity_at) : "-"}</td>
+                  <td className="num">{row.observed_qty ?? "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </OperationsTable>
       )}
     </section>
   );
@@ -720,28 +750,30 @@ function PassPanel({
 
       <h4 className="h4">Counted so far: {pass.observed_qty}</h4>
       {pass.observations.length > 0 && (
-        <table data-testid="cnt-observations">
-          <thead>
-            <tr>
-              <th>Where</th>
-              <th>Item</th>
-              <th>Condition</th>
-              <th className="num">Pieces</th>
-              <th>When</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pass.observations.map((row) => (
-              <tr key={row.scan_key} data-testid="cnt-observation">
-                <td>{row.location_name}</td>
-                <td>{itemWords(row)}</td>
-                <td>{CONDITION_LABEL[row.condition as CountCondition] ?? row.condition}</td>
-                <td className="num">{row.qty}</td>
-                <td>{formatDateTime(row.actual_at)}</td>
+        <OperationsTable label="Recorded observations">
+          <table data-testid="cnt-observations">
+            <thead>
+              <tr>
+                <th>Where</th>
+                <th>Item</th>
+                <th>Condition</th>
+                <th className="num">Pieces</th>
+                <th>When</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {pass.observations.map((row) => (
+                <tr key={row.scan_key} data-testid="cnt-observation">
+                  <td>{row.location_name}</td>
+                  <td>{itemWords(row)}</td>
+                  <td>{CONDITION_LABEL[row.condition as CountCondition] ?? row.condition}</td>
+                  <td className="num">{row.qty}</td>
+                  <td>{formatDateTime(row.actual_at)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </OperationsTable>
       )}
 
       <div className="form-grid">
@@ -865,53 +897,55 @@ function ReviewPanel({
         </p>
       )}
       <Issues issues={report.issues as unknown as Issue[]} testId="cnt-review-issues" />
-      <table data-testid="cnt-variance">
-        <thead>
-          <tr>
-            <th>Recount</th>
-            <th>Where</th>
-            <th>Item</th>
-            <th>Condition</th>
-            <th className="num">Book</th>
-            <th className="num">Counted</th>
-            <th className="num">Difference</th>
-          </tr>
-        </thead>
-        <tbody>
-          {lines.map((line, index) => (
-            <tr
-              key={line.line_key}
-              data-testid="cnt-line"
-              data-line={line.line_key}
-              data-delta={line.delta ?? ""}
-            >
-              <td>
-                <input
-                  type="checkbox"
-                  aria-label={`Recount ${itemWords(line)} at ${line.location_name}`}
-                  checked={ticked.has(line.line_key)}
-                  disabled={line.pass_id === null}
-                  onChange={(e) => {
-                    const next = new Set(ticked);
-                    if (e.target.checked) next.add(line.line_key);
-                    else next.delete(line.line_key);
-                    setTicked(next);
-                  }}
-                  data-testid={`cnt-line-pick-${index}`}
-                />
-              </td>
-              <td>{line.location_name}</td>
-              <td>{itemWords(line)}</td>
-              <td>{CONDITION_LABEL[line.condition as CountCondition] ?? line.condition}</td>
-              <td className="num">{line.book_qty}</td>
-              <td className="num">{line.observed_qty ?? "-"}</td>
-              <td className="num" data-testid="cnt-line-delta">
-                {deltaWords(line.delta)}
-              </td>
+      <OperationsTable label="Count variance">
+        <table data-testid="cnt-variance">
+          <thead>
+            <tr>
+              <th>Recount</th>
+              <th>Where</th>
+              <th>Item</th>
+              <th>Condition</th>
+              <th className="num">Book</th>
+              <th className="num">Counted</th>
+              <th className="num">Difference</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {lines.map((line, index) => (
+              <tr
+                key={line.line_key}
+                data-testid="cnt-line"
+                data-line={line.line_key}
+                data-delta={line.delta ?? ""}
+              >
+                <td>
+                  <input
+                    type="checkbox"
+                    aria-label={`Recount ${itemWords(line)} at ${line.location_name}`}
+                    checked={ticked.has(line.line_key)}
+                    disabled={line.pass_id === null}
+                    onChange={(e) => {
+                      const next = new Set(ticked);
+                      if (e.target.checked) next.add(line.line_key);
+                      else next.delete(line.line_key);
+                      setTicked(next);
+                    }}
+                    data-testid={`cnt-line-pick-${index}`}
+                  />
+                </td>
+                <td>{line.location_name}</td>
+                <td>{itemWords(line)}</td>
+                <td>{CONDITION_LABEL[line.condition as CountCondition] ?? line.condition}</td>
+                <td className="num">{line.book_qty}</td>
+                <td className="num">{line.observed_qty ?? "-"}</td>
+                <td className="num" data-testid="cnt-line-delta">
+                  {deltaWords(line.delta)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </OperationsTable>
 
       <h4 className="h4">Ask for a recount</h4>
       <p className="muted">

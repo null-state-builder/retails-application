@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 
 import { api, apiErrorMessage } from "../lib/api";
+import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { useList } from "../lib/hooks";
 import "./OffersEoss.css";
@@ -149,7 +150,7 @@ export function OffersEossPage() {
   }
 
   return (
-    <div className="page-pad">
+    <OperationsPage>
       <PageHeader
         title="EOSS Planning"
         lead="Styles falling behind their season's sell-through target, with a suggested markdown depth - never applied until you say so. Approving turns a row into the exact rulebook offer your counter already knows how to price with."
@@ -341,7 +342,7 @@ export function OffersEossPage() {
           </table>
         </div>
       )}
-    </div>
+    </OperationsPage>
   );
 }
 

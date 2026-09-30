@@ -24,6 +24,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { CalendarClock, Check, CircleSlash, Send, Tag } from "lucide-react";
 
+import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { api, apiErrorMessage } from "../lib/api";
 import { OfferReturnCard } from "./OfferReturnCard";
@@ -377,7 +378,7 @@ export function OfferAuthorPage() {
   }
 
   return (
-    <div className="page-pad">
+    <OperationsPage>
       <PageHeader
         title={isNew ? "New offer" : "Edit offer"}
         lead={
@@ -881,7 +882,7 @@ export function OfferAuthorPage() {
         // baseline. Hidden where the switch is off or it has not started.
         <OfferReturnCard offerId={offer.id} />
       )}
-    </div>
+    </OperationsPage>
   );
 }
 

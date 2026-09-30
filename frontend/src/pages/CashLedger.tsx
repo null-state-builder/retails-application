@@ -9,6 +9,7 @@ import { Money } from "../lib/format";
 import { ListSearchBar } from "../components/SearchBox";
 import "./Booking.css";
 import "./Shared.css";
+import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 
 interface AccountT {
@@ -104,7 +105,7 @@ export default function CashLedger() {
   }
 
   return (
-    <div className="page-pad" data-testid="cash-ledger-page">
+    <OperationsPage data-testid="cash-ledger-page">
       <PageHeader
         lead="Cash and bank movements. Append-only: a correction is a reversing entry."
         actions={
@@ -307,6 +308,6 @@ export default function CashLedger() {
       <Link to="/money/vendor" className="btn" style={{ marginTop: 18 }}>
         ← Vendor Ledger
       </Link>
-    </div>
+    </OperationsPage>
   );
 }

@@ -17,6 +17,7 @@
 import { useState } from "react";
 import { History, IndianRupee, Printer, Search, Tag } from "lucide-react";
 
+import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { api, apiErrorMessage } from "../lib/api";
 import { useDoc } from "../lib/hooks";
@@ -92,7 +93,7 @@ export function PriceListPage() {
   }
 
   return (
-    <div className="page-pad">
+    <OperationsPage>
       <PageHeader lead="What every piece is ticketed at, what it cost to land, and what the margin between them is. Pick a date to read the list as it stood then - a bill from last month can only be explained by last month's ticket." />
 
       <div className="toolbar">
@@ -237,7 +238,7 @@ export function PriceListPage() {
         />
       )}
       {printingRows && <TagPrintModal rows={printingRows} onClose={() => setPrintingRows(null)} />}
-    </div>
+    </OperationsPage>
   );
 }
 

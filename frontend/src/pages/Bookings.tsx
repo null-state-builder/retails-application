@@ -53,6 +53,7 @@ import {
   useGoodsBookingSummaries,
   type GoodsPickerValue,
 } from "./GoodsBookings";
+import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import "./Booking.css";
 
@@ -125,7 +126,7 @@ export function BookingsPage() {
   const canPlace = userCan(user, "booking", "operate") || managesGoodsBookings(session);
 
   return (
-    <div className="page-pad" data-testid="bookings-list">
+    <OperationsPage data-testid="bookings-list">
       <PageHeader
         actions={
           canPlace && (
@@ -181,7 +182,7 @@ export function BookingsPage() {
           ))}
         </div>
       )}
-    </div>
+    </OperationsPage>
   );
 }
 
@@ -541,7 +542,7 @@ export function BookingNewPage() {
   }
 
   return (
-    <div className="page-pad" data-testid="gb-draft">
+    <OperationsPage data-testid="gb-draft">
       <PageHeader title="New booking" />
 
       {canLegacy && (
@@ -935,7 +936,7 @@ export function BookingNewPage() {
           Saved as a draft. You confirm it on the next page.
         </p>
       )}
-    </div>
+    </OperationsPage>
   );
 }
 
@@ -1096,18 +1097,18 @@ function LegacyBookingDetail({ id }: { id: string }) {
   const canSend = userCan(user, "booking", "operate");
   if (error) {
     return (
-      <div className="page-pad">
+      <OperationsPage>
         <div className="card section-card" data-testid="booking-missing">
           That booking was not found.
         </div>
-      </div>
+      </OperationsPage>
     );
   }
   if (loading || !b)
     return (
-      <div className="page-pad">
+      <OperationsPage>
         <p className="lead">Loading…</p>
-      </div>
+      </OperationsPage>
     );
 
   const ended = b.status === "closed" || b.status === "cancelled";
@@ -1127,7 +1128,7 @@ function LegacyBookingDetail({ id }: { id: string }) {
     toCome: ended ? 0 : Math.max(0, l.booked_qty - l.received_qty),
   }));
   return (
-    <div className="page-pad" data-testid="booking-detail">
+    <OperationsPage data-testid="booking-detail">
       <BookingPageHeader
         brand={b.brand_name}
         number={b.number}
@@ -1186,7 +1187,7 @@ function LegacyBookingDetail({ id }: { id: string }) {
       />
 
       <BookingLinesTable lines={lines} showCost={showCost} testId="booking-detail-lines" />
-    </div>
+    </OperationsPage>
   );
 }
 
@@ -1195,9 +1196,9 @@ export function BookingDetailPage() {
   const { id = "" } = useParams();
   if (engineOfId(id) === "goods") {
     return (
-      <div className="page-pad">
+      <OperationsPage>
         <GoodsBookingDetail bookingId={id} />
-      </div>
+      </OperationsPage>
     );
   }
   return <LegacyBookingDetail id={id} />;

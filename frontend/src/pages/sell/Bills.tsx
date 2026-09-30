@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Printer, RefreshCw, Replace, Search } from "lucide-react";
 
 import { PageHeader } from "../../components/PageHeader";
+import { OperationsPage, OperationsTable } from "../../components/OperationsPage";
 import { api, apiErrorMessage } from "../../lib/api";
 import type { ApiRead, ApiSchemas } from "../../lib/api";
 import { Money, formatDateTime } from "../../lib/format";
@@ -165,7 +166,7 @@ export default function BillsPage() {
   }
 
   return (
-    <div className="page-pad">
+    <OperationsPage>
       <PageHeader lead="Today's bills at this counter, including any that have not gone in yet. A bill is never edited - print it again, or start an exchange from it." />
 
       <div className="card section-card bills-bar" data-testid="bills-bar">
@@ -256,7 +257,7 @@ export default function BillsPage() {
       {rows !== null && rows.length > 0 && (
         <div className="card section-card" data-testid="bills-results">
           <p className="eyebrow">{rows.length === 1 ? "1 bill" : `${rows.length} bills`}</p>
-          <div className="table-wrap">
+          <OperationsTable label="Bill history">
             <table className="lines-table" data-testid="bills-rows">
               <thead>
                 <tr>
@@ -309,7 +310,7 @@ export default function BillsPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </OperationsTable>
         </div>
       )}
 
@@ -320,7 +321,7 @@ export default function BillsPage() {
           onExchange={() => exchange(open.row)}
         />
       )}
-    </div>
+    </OperationsPage>
   );
 }
 
@@ -433,7 +434,7 @@ function BillDetail({
         </p>
       ) : null}
 
-      <div className="table-wrap">
+      <OperationsTable label="Bill lines">
         <table className="lines-table" data-testid="bills-detail-lines">
           <thead>
             <tr>
@@ -459,7 +460,7 @@ function BillDetail({
             ))}
           </tbody>
         </table>
-      </div>
+      </OperationsTable>
 
       <div className="bills-tenders" data-testid="bills-detail-tenders">
         {tenders.map((tender, index) => (

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { apiErrorMessage, typedApi } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
@@ -37,7 +38,7 @@ export function MissingHsnPage() {
   }, [load, siteId]);
 
   return (
-    <div className="page-pad">
+    <OperationsPage>
       <PageHeader
         title="Items with no HSN"
         lead="Pieces at the store whose HSN is missing or is not an HSN. Where tax settings are on, the till still bills them, at the rate set for an HSN no rule covers, and flags the bill. Fix the HSN on the PT they came in on."
@@ -119,6 +120,6 @@ export function MissingHsnPage() {
           )}
         </section>
       )}
-    </div>
+    </OperationsPage>
   );
 }

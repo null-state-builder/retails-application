@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { api, apiErrorMessage } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
@@ -139,7 +140,7 @@ export function ExceptionsReportPage() {
 
   if (!data) {
     return (
-      <div className="page-pad">
+      <OperationsPage>
         <PageHeader title="Exceptions" lead={lead} />
         {offlineNote}
         {error ? (
@@ -149,7 +150,7 @@ export function ExceptionsReportPage() {
         ) : (
           online && !lost && <p>Loading the exceptions report…</p>
         )}
-      </div>
+      </OperationsPage>
     );
   }
 
@@ -158,7 +159,7 @@ export function ExceptionsReportPage() {
   const total = data.total as unknown as GstRow;
 
   return (
-    <div className="page-pad">
+    <OperationsPage>
       <PageHeader title="Exceptions" lead={lead} />
       {offlineNote}
       <section className="card section-card">
@@ -297,7 +298,7 @@ export function ExceptionsReportPage() {
           </ul>
         </details>
       </section>
-    </div>
+    </OperationsPage>
   );
 }
 

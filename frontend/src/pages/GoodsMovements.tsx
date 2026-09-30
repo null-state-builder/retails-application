@@ -90,6 +90,7 @@ import { hold } from "../lib/goodsScreen";
 import { DamageReviewsPanel } from "./DamageReviews";
 import { RtvPanel, type PutawayLocation } from "./RtvPanel";
 import { useAuth } from "../auth/AuthContext";
+import { OperationsPage, OperationsTable } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { formatDateTime, formatPaiseString } from "../lib/format";
 import { causeLabel, kindLabel, resolutionFor } from "../lib/goodsExceptions";
@@ -225,7 +226,7 @@ export function GoodsMovementsPage() {
   const locationKinds = new Map(locations.value.map((row) => [row.id, row.data.kind]));
 
   return (
-    <div className="stock-layout">
+    <OperationsPage className="stock-layout">
       <PageHeader
         title="Movements"
         lead="Move exact quantities between locations at one site, put goods on hold, release a hold, and record evidenced adjustments for someone else to approve."
@@ -350,7 +351,7 @@ export function GoodsMovementsPage() {
           onError={report}
         />
       )}
-    </div>
+    </OperationsPage>
   );
 }
 
@@ -1190,40 +1191,42 @@ function MovementList({
     <section className="card section-card">
       <h3 className="h3">Movements</h3>
       {state ?? (
-        <table data-testid="mv-list">
-          <thead>
-            <tr>
-              <th>Number</th>
-              <th>What happened</th>
-              <th>State</th>
-              <th>When</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {list.value.map((row) => (
-              <tr key={row.id} data-testid="mv-list-row">
-                <td>{row.number ?? "Draft"}</td>
-                <td>{movementLabel(row.purpose, row.kind)}</td>
-                <td data-testid="mv-list-state">
-                  {row.purpose === "rtv"
-                    ? rtvStateWords(row.rtv_state, row.state)
-                    : (MOVEMENT_STATE_LABEL[row.state] ?? row.state)}
-                </td>
-                <td>{formatDateTime(row.updated_at)}</td>
-                <td>
-                  <button
-                    className={`btn btn-sm${row.id === openId ? " btn-active" : ""}`}
-                    onClick={() => onOpen(row.id)}
-                    data-testid="mv-open"
-                  >
-                    Open
-                  </button>
-                </td>
+        <OperationsTable label="Movement history">
+          <table data-testid="mv-list">
+            <thead>
+              <tr>
+                <th>Number</th>
+                <th>What happened</th>
+                <th>State</th>
+                <th>When</th>
+                <th />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {list.value.map((row) => (
+                <tr key={row.id} data-testid="mv-list-row">
+                  <td>{row.number ?? "Draft"}</td>
+                  <td>{movementLabel(row.purpose, row.kind)}</td>
+                  <td data-testid="mv-list-state">
+                    {row.purpose === "rtv"
+                      ? rtvStateWords(row.rtv_state, row.state)
+                      : (MOVEMENT_STATE_LABEL[row.state] ?? row.state)}
+                  </td>
+                  <td>{formatDateTime(row.updated_at)}</td>
+                  <td>
+                    <button
+                      className={`btn btn-sm${row.id === openId ? " btn-active" : ""}`}
+                      onClick={() => onOpen(row.id)}
+                      data-testid="mv-open"
+                    >
+                      Open
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </OperationsTable>
       )}
     </section>
   );
@@ -1444,68 +1447,70 @@ function MovementDetail({
         </p>
       )}
 
-      <table data-testid="mv-detail-lines">
-        <thead>
-          <tr>
-            <th>Source portions</th>
-            <th>From</th>
-            <th>To</th>
-            <th>Condition</th>
-            {(isAdjustment(header.kind) ||
-              header.kind === "rtv" ||
-              header.kind === "writeoff" ||
-              header.kind === "disposal") && <th>Value</th>}
-            <th className="num">Quantity</th>
-          </tr>
-        </thead>
-        <tbody>
-          {lines.items.map((line) => (
-            <tr key={line.line_key} data-testid="mv-detail-line">
-              <td>
-                {line.portions.length > 0 ? (
-                  <ul className="stock-reasons">
-                    {line.portions.map((portion, index) => (
-                      <li key={index}>{portionWords(portion)}</li>
-                    ))}
-                  </ul>
-                ) : (
-                  <span data-testid="mv-detail-found">
-                    Found: {line.description || line.sku_id}
-                    {line.found_lot_id ? ` · new lot ${line.found_lot_id.slice(0, 8)}…` : ""}
-                  </span>
-                )}
-              </td>
-              <td>
-                {line.source_location_id
-                  ? (locationNames.get(line.source_location_id) ?? line.source_location_id)
-                  : "—"}
-              </td>
-              <td data-testid="mv-detail-destination">
-                {line.destination_location_id
-                  ? (locationNames.get(line.destination_location_id) ??
-                    line.destination_location_id)
-                  : header.kind === "rtv"
-                    ? "To the vendor, when collected"
-                    : header.kind === "writeoff"
-                      ? "Stays here, in quarantine"
-                      : header.kind === "disposal"
-                        ? "Destroyed or handed over for scrap"
-                        : "Leaves the site"}
-              </td>
-              <td>{line.condition}</td>
+      <OperationsTable label="Movement lines">
+        <table data-testid="mv-detail-lines">
+          <thead>
+            <tr>
+              <th>Source portions</th>
+              <th>From</th>
+              <th>To</th>
+              <th>Condition</th>
               {(isAdjustment(header.kind) ||
                 header.kind === "rtv" ||
                 header.kind === "writeoff" ||
-                header.kind === "disposal") && (
-                <td data-testid="mv-detail-value-basis">
-                  {line.value_basis ? VALUE_BASIS_LABEL[line.value_basis] : "—"}
-                </td>
-              )}
-              <td className="num">{line.qty}</td>
+                header.kind === "disposal") && <th>Value</th>}
+              <th className="num">Quantity</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {lines.items.map((line) => (
+              <tr key={line.line_key} data-testid="mv-detail-line">
+                <td>
+                  {line.portions.length > 0 ? (
+                    <ul className="stock-reasons">
+                      {line.portions.map((portion, index) => (
+                        <li key={index}>{portionWords(portion)}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <span data-testid="mv-detail-found">
+                      Found: {line.description || line.sku_id}
+                      {line.found_lot_id ? ` · new lot ${line.found_lot_id.slice(0, 8)}…` : ""}
+                    </span>
+                  )}
+                </td>
+                <td>
+                  {line.source_location_id
+                    ? (locationNames.get(line.source_location_id) ?? line.source_location_id)
+                    : "—"}
+                </td>
+                <td data-testid="mv-detail-destination">
+                  {line.destination_location_id
+                    ? (locationNames.get(line.destination_location_id) ??
+                      line.destination_location_id)
+                    : header.kind === "rtv"
+                      ? "To the vendor, when collected"
+                      : header.kind === "writeoff"
+                        ? "Stays here, in quarantine"
+                        : header.kind === "disposal"
+                          ? "Destroyed or handed over for scrap"
+                          : "Leaves the site"}
+                </td>
+                <td>{line.condition}</td>
+                {(isAdjustment(header.kind) ||
+                  header.kind === "rtv" ||
+                  header.kind === "writeoff" ||
+                  header.kind === "disposal") && (
+                  <td data-testid="mv-detail-value-basis">
+                    {line.value_basis ? VALUE_BASIS_LABEL[line.value_basis] : "—"}
+                  </td>
+                )}
+                <td className="num">{line.qty}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </OperationsTable>
 
       {doc.allowed_actions.includes("submit") && (
         <button

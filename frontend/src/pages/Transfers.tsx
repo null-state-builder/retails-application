@@ -14,6 +14,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowDownLeft, ArrowUpRight, Plus } from "lucide-react";
 
 import { useAuth } from "../auth/AuthContext";
+import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { SearchBox } from "../components/SearchBox";
 import { formatDateTime } from "../lib/format";
@@ -78,7 +79,7 @@ export function TransfersPage() {
   );
 
   return (
-    <div className="page-pad">
+    <OperationsPage>
       <PageHeader
         title="Transfers"
         lead="Stock moving between this site and another, in both directions, with the stage each movement has reached."
@@ -262,7 +263,7 @@ export function TransfersPage() {
           </div>
         ))
       )}
-    </div>
+    </OperationsPage>
   );
 }
 

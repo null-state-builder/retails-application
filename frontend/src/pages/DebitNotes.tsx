@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
+import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
@@ -167,7 +168,7 @@ export function DebitNotesPage() {
   const dirty = review.lines.length > 0 || noteChanged;
 
   return (
-    <div className="page-pad">
+    <OperationsPage>
       <PageHeader
         title="Debit Notes"
         lead="Debit notes to vendors for pieces invoiced but never received. Accounts reviews and issues them; the Owner approves them in the approvals inbox."
@@ -593,6 +594,6 @@ export function DebitNotesPage() {
           </div>
         )}
       </section>
-    </div>
+    </OperationsPage>
   );
 }

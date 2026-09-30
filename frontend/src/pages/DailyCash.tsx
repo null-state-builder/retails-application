@@ -7,6 +7,7 @@
 import { useState } from "react";
 import { ArrowDownRight, ArrowUpRight, Scale } from "lucide-react";
 
+import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { Money } from "../lib/format";
 import { useDoc } from "../lib/hooks";
@@ -60,7 +61,7 @@ export function DailyCashPage() {
   const { data, loading } = useDoc<DailyCashResponse>(`/finledger/cash/daily?date=${day}`);
 
   return (
-    <div className="page-pad" data-testid="daily-cash-page">
+    <OperationsPage data-testid="daily-cash-page">
       <PageHeader lead="What moved today, by account — money in and money out kept apart, not netted into one balance." />
       <div className="toolbar" style={{ marginBottom: 18 }}>
         <input
@@ -174,7 +175,7 @@ export function DailyCashPage() {
           )}
         </>
       )}
-    </div>
+    </OperationsPage>
   );
 }
 

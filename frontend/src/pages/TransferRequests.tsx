@@ -9,6 +9,7 @@
 import { useMemo, useState } from "react";
 
 import { useAuth } from "../auth/AuthContext";
+import { OperationsPage, OperationsTable } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import { formatDateTime } from "../lib/format";
@@ -100,7 +101,7 @@ export function TransferRequestsPage() {
   );
 
   return (
-    <div className="page-pad">
+    <OperationsPage>
       <PageHeader
         title="Requests"
         lead="Ask another site for stock. Asking reserves nothing — the sending site drafts a transfer, and its approval is what reserves the pieces."
@@ -156,36 +157,38 @@ export function TransferRequestsPage() {
           { loading: stock.loading, failure: stock.failure, empty: stock.value.length === 0 },
           "That site has nothing it can send right now.",
         ) ?? (
-          <table data-testid="request-lines">
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th className="num">They can send</th>
-                <th className="num">Ask for</th>
-              </tr>
-            </thead>
-            <tbody>
-              {stock.value.map((row) => (
-                <tr key={row.sku_id}>
-                  <td>{row.description}</td>
-                  <td className="num">{row.available}</td>
-                  <td className="num">
-                    <input
-                      className="input"
-                      type="number"
-                      min={0}
-                      value={asks[row.sku_id] ?? ""}
-                      aria-label={`Ask for how many of ${row.description}`}
-                      onChange={(e) =>
-                        setAsks((current) => ({ ...current, [row.sku_id]: e.target.value }))
-                      }
-                      data-testid={`request-qty-${row.sku_id}`}
-                    />
-                  </td>
+          <OperationsTable label="Available stock to request">
+            <table data-testid="request-lines">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th className="num">They can send</th>
+                  <th className="num">Ask for</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {stock.value.map((row) => (
+                  <tr key={row.sku_id}>
+                    <td>{row.description}</td>
+                    <td className="num">{row.available}</td>
+                    <td className="num">
+                      <input
+                        className="input"
+                        type="number"
+                        min={0}
+                        value={asks[row.sku_id] ?? ""}
+                        aria-label={`Ask for how many of ${row.description}`}
+                        onChange={(e) =>
+                          setAsks((current) => ({ ...current, [row.sku_id]: e.target.value }))
+                        }
+                        data-testid={`request-qty-${row.sku_id}`}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </OperationsTable>
         )}
         <button
           className="btn btn-cta"
@@ -240,7 +243,7 @@ export function TransferRequestsPage() {
           </div>
         ))
       )}
-    </div>
+    </OperationsPage>
   );
 }
 

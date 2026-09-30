@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
+import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { api, apiErrorCode, apiErrorMessage, goodsMeta } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
@@ -185,29 +186,29 @@ export function SizeBalancingPage() {
 
   if (!data) {
     return (
-      <div className="page-pad">
+      <OperationsPage>
         {header}
         {offlineNote}
         {errorNote || (online && !lost && <p>Loading…</p>)}
-      </div>
+      </OperationsPage>
     );
   }
 
   if (data.stores.length === 0) {
     return (
-      <div className="page-pad">
+      <OperationsPage>
         {header}
         {offlineNote}
         {errorNote}
         <p className="muted-cell" data-testid="balance-none">
           Size balancing is not switched on at any store you work at.
         </p>
-      </div>
+      </OperationsPage>
     );
   }
 
   return (
-    <div className="page-pad">
+    <OperationsPage>
       {header}
       {offlineNote}
       {errorNote}
@@ -274,7 +275,7 @@ export function SizeBalancingPage() {
         )}
       </section>
       {data.decided.length > 0 && <Decided rows={data.decided} />}
-    </div>
+    </OperationsPage>
   );
 }
 

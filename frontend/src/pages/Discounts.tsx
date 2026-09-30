@@ -23,6 +23,7 @@
 import { useState } from "react";
 import { AlertTriangle, BadgePercent, HandCoins, Receipt } from "lucide-react";
 
+import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { useDoc } from "../lib/hooks";
 import "./Booking.css";
@@ -112,7 +113,7 @@ export function DiscountsPage() {
   );
 
   return (
-    <div className="page-pad">
+    <OperationsPage>
       <PageHeader lead="Every rupee that came off a ticket, and every rupee that should have. The rules did most of it; where a person decided instead, they are named - and where the till missed an offer a piece was entitled to, it is listed on its own bill, on its own date." />
 
       <div className="filter-bar">
@@ -328,7 +329,7 @@ export function DiscountsPage() {
           </div>
         </>
       )}
-    </div>
+    </OperationsPage>
   );
 }
 

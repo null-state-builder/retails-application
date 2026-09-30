@@ -36,6 +36,7 @@ import { canWriteStockCount } from "../lib/outbound-rbac";
 import { ADJUSTMENT_REASONS } from "../lib/adjustment-reasons";
 import { ScanScreen, type ScanResult, type ScanTarget } from "../components/ScanScreen";
 import "./Booking.css";
+import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 
 // ---------------------------------------------------------------------------
@@ -233,7 +234,7 @@ export function StockCountListPage() {
   }
 
   return (
-    <div className="page-pad">
+    <OperationsPage>
       <PageHeader
         lead="Counters scan blind; the book appears when the count is submitted."
         actions={
@@ -259,13 +260,14 @@ export function StockCountListPage() {
           <p className="eyebrow">Start a count</p>
           <div className="form-row" style={{ marginTop: 10 }}>
             <div className="field">
-              <label>Location</label>
+              <label htmlFor={storeLocked ? undefined : "count-store"}>Location</label>
               {storeLocked && lockedStore ? (
                 <div className="store-lock" data-testid="count-store-locked">
                   {lockedStore.code} · {lockedStore.name}
                 </div>
               ) : (
                 <select
+                  id="count-store"
                   className="select"
                   value={storeId}
                   onChange={(e) => setStoreId(e.target.value)}
@@ -281,8 +283,9 @@ export function StockCountListPage() {
               )}
             </div>
             <div className="field">
-              <label>Note (optional)</label>
+              <label htmlFor="count-note">Note (optional)</label>
               <input
+                id="count-note"
                 className="input"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
@@ -363,7 +366,7 @@ export function StockCountListPage() {
           </table>
         </div>
       )}
-    </div>
+    </OperationsPage>
   );
 }
 
@@ -394,9 +397,9 @@ export function StockCountDetailPage() {
 
   if (loading)
     return (
-      <div className="page-pad">
+      <OperationsPage>
         <p className="lead">Loading…</p>
-      </div>
+      </OperationsPage>
     );
 
   // A count at somebody else's store answers 404 by design — knowing the id is
@@ -406,7 +409,7 @@ export function StockCountDetailPage() {
   // waits for something that is never coming.
   if (loadError || !take) {
     return (
-      <div className="page-pad" data-testid="count-not-found">
+      <OperationsPage data-testid="count-not-found">
         <Link to="/stock-count" className="btn" style={{ marginBottom: 16 }}>
           <ArrowLeft size={15} /> Stock counts
         </Link>
@@ -417,7 +420,7 @@ export function StockCountDetailPage() {
             Either this count does not exist, or it belongs to a location you do not cover.
           </p>
         </div>
-      </div>
+      </OperationsPage>
     );
   }
 
@@ -545,7 +548,7 @@ export function StockCountDetailPage() {
   }
 
   return (
-    <div className="page-pad">
+    <OperationsPage>
       <Link
         to="/stock-count"
         className="btn"
@@ -584,8 +587,9 @@ export function StockCountDetailPage() {
           <h3 className="h3">New session</h3>
           <div className="form-row" style={{ marginTop: 10 }}>
             <div className="field">
-              <label>Scope</label>
+              <label htmlFor="count-session-scope">Scope</label>
               <select
+                id="count-session-scope"
                 className="select"
                 value={scope}
                 onChange={(e) => setScope(e.target.value)}
@@ -600,8 +604,11 @@ export function StockCountDetailPage() {
             </div>
             {scope !== "store" && (
               <div className="field">
-                <label>{scope === "brand" ? "Brand" : "Section"}</label>
+                <label htmlFor="count-session-area">
+                  {scope === "brand" ? "Brand" : "Section"}
+                </label>
                 <input
+                  id="count-session-area"
                   className="input"
                   value={scopeValue}
                   onChange={(e) => setScopeValue(e.target.value)}
@@ -887,8 +894,9 @@ export function StockCountDetailPage() {
           </p>
           <div className="form-row" style={{ marginTop: 10 }}>
             <div className="field">
-              <label>How many are actually there</label>
+              <label htmlFor="count-recount-qty">How many are actually there</label>
               <input
+                id="count-recount-qty"
                 className="input"
                 type="number"
                 min={0}
@@ -899,8 +907,9 @@ export function StockCountDetailPage() {
               />
             </div>
             <div className="field">
-              <label>Why is it out?</label>
+              <label htmlFor="count-recount-reason">Why is it out?</label>
               <select
+                id="count-recount-reason"
                 className="select"
                 value={recountReason}
                 onChange={(e) => setRecountReason(e.target.value)}
@@ -1023,6 +1032,6 @@ export function StockCountDetailPage() {
           onClose={() => setScanning(null)}
         />
       )}
-    </div>
+    </OperationsPage>
   );
 }

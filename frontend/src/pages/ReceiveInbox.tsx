@@ -17,6 +17,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { PackagePlus, Truck } from "lucide-react";
 
 import { useAuth } from "../auth/AuthContext";
+import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { SearchBox } from "../components/SearchBox";
 import { formatDateTime } from "../lib/format";
@@ -78,7 +79,7 @@ export function ReceiveInboxPage({ view = "pending" }: { view?: "pending" | "his
   );
 
   return (
-    <div className="page-pad">
+    <OperationsPage>
       <PageHeader
         title={view === "history" ? "History" : "Pending"}
         lead={
@@ -227,7 +228,7 @@ export function ReceiveInboxPage({ view = "pending" }: { view?: "pending" | "his
           quietWhenEmpty
         />
       )}
-    </div>
+    </OperationsPage>
   );
 }
 

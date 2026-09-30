@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 
 import { allowedUnits, useAuth } from "../auth/AuthContext";
+import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { api, apiErrorMessage, apiUrl } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
@@ -142,7 +143,7 @@ export function PettyCashPage() {
   // A dropped answer does not lock the page: saving again is how it recovers.
   const live = online;
   return (
-    <div className="page-pad">
+    <OperationsPage>
       <PageHeader lead="The store's petty cash box: who holds it, what went in, and every spend with its bill." />
       {!online && (
         <p className="warn-note" data-testid="petty-offline">
@@ -209,7 +210,7 @@ export function PettyCashPage() {
           <TopUpList position={position} />
         </>
       )}
-    </div>
+    </OperationsPage>
   );
 }
 

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { api, apiErrorMessage } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
@@ -143,7 +144,7 @@ export function BrandPerformanceReportPage() {
 
   if (!data) {
     return (
-      <div className="page-pad">
+      <OperationsPage>
         <PageHeader title="Brand Performance" lead={lead} />
         {offlineNote}
         {error ? (
@@ -153,7 +154,7 @@ export function BrandPerformanceReportPage() {
         ) : (
           online && !lost && <p>Loading the brand performance report…</p>
         )}
-      </div>
+      </OperationsPage>
     );
   }
 
@@ -163,7 +164,7 @@ export function BrandPerformanceReportPage() {
   const estimates = data.estimate_fields;
 
   return (
-    <div className="page-pad">
+    <OperationsPage>
       <PageHeader title="Brand Performance" lead={lead} />
       {offlineNote}
       <section className="card section-card">
@@ -310,7 +311,7 @@ export function BrandPerformanceReportPage() {
           </ul>
         </details>
       </section>
-    </div>
+    </OperationsPage>
   );
 }
 

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
@@ -177,7 +178,7 @@ export function OpenToBuyPage() {
   const offline = !online || lost;
 
   return (
-    <div className="page-pad">
+    <OperationsPage>
       <PageHeader
         title="Open-to-Buy"
         lead="Buying budgets at cost for each brand and season. Open-to-buy is the budget less open bookings and goods received. A booking over it needs the Owner's approval."
@@ -396,7 +397,7 @@ export function OpenToBuyPage() {
           </div>
         )}
       </section>
-    </div>
+    </OperationsPage>
   );
 }
 

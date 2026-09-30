@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
@@ -225,7 +226,7 @@ export function PayablesPage() {
   const noun = group === "brand" ? "Brand" : "Vendor";
 
   return (
-    <div className="page-pad">
+    <OperationsPage>
       <PageHeader
         title="Payables"
         lead="What is owed to each outright brand or vendor, what is paid, what is due and how long past due."
@@ -929,6 +930,6 @@ export function PayablesPage() {
           )}
         </section>
       )}
-    </div>
+    </OperationsPage>
   );
 }

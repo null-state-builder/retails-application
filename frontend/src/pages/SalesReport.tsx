@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { api, apiErrorMessage } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
@@ -139,7 +140,7 @@ export function SalesReportPage() {
 
   if (!data) {
     return (
-      <div className="page-pad">
+      <OperationsPage>
         <PageHeader title="Sales" lead={lead} />
         {offlineNote}
         {error ? (
@@ -149,7 +150,7 @@ export function SalesReportPage() {
         ) : (
           online && !lost && <p>Loading the sales report…</p>
         )}
-      </div>
+      </OperationsPage>
     );
   }
 
@@ -157,7 +158,7 @@ export function SalesReportPage() {
   const grouping = GROUPINGS.find((g) => g.key === data.group_by)?.label ?? "Group";
 
   return (
-    <div className="page-pad">
+    <OperationsPage>
       <PageHeader title="Sales" lead={lead} />
       {offlineNote}
       <section className="card section-card">
@@ -293,7 +294,7 @@ export function SalesReportPage() {
           </ul>
         </details>
       </section>
-    </div>
+    </OperationsPage>
   );
 }
 

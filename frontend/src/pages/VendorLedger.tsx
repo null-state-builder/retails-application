@@ -19,6 +19,7 @@ import { Money } from "../lib/format";
 import { ListSearchBar } from "../components/SearchBox";
 import "./Booking.css";
 import "./Shared.css";
+import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 
 interface BalanceT {
@@ -154,7 +155,7 @@ export default function VendorLedger() {
   }
 
   return (
-    <div className="page-pad" data-testid="vendor-ledger-page">
+    <OperationsPage data-testid="vendor-ledger-page">
       <PageHeader
         lead="Accounts payable, brand by brand. Append-only: a correction is a reversing entry."
         actions={
@@ -495,6 +496,6 @@ export default function VendorLedger() {
       <Link to="/money/cash" className="btn" style={{ marginTop: 18 }}>
         Cash Ledger →
       </Link>
-    </div>
+    </OperationsPage>
   );
 }
