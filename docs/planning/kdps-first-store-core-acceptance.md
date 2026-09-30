@@ -6,6 +6,13 @@ The mapped boundaries remain C05/SO-07 receiving and C06–C08/SO-08 stock,
 transfers and controlled corrections. SBU retirement and full offline cutover
 remain with SO-04 and SO-09.
 
+Current follow-up: [full-alpha progress](kdps-full-alpha-acceptance-progress.md)
+implements the pinned transfer-family route and paused trading-count contracts
+and records current proof evidence. The observations and earlier file hashes
+below remain historical; their transfer-family gap is superseded by that
+checkpoint. Real responsibility configuration, browser coverage and activation
+retain the explicit acceptance gates.
+
 ## Revision and proof environment
 
 HEAD was `e6cfc9734e5c20b779d9849473394b66c412b973`, with existing uncommitted

@@ -3,7 +3,10 @@ import { fileURLToPath } from "node:url";
 import { expect, type Page } from "@playwright/test";
 
 /** Generated local proof identities only. Passwords never enter traces or logs. */
-export async function loginProof(page: Page, role: "manager" | "owner" | "admin") {
+export async function loginProof(
+  page: Page,
+  role: "manager" | "owner" | "admin" | "count_checker",
+) {
   const path = fileURLToPath(
     new URL("../../.local/first-store-browser-credentials.json", import.meta.url),
   );
@@ -52,5 +55,26 @@ export async function pairProof(page: Page) {
     throw new Error("The fictional counter could not be paired normally.");
   } finally {
     await input.fill("").catch(() => undefined);
+  }
+}
+
+/** Confirm a privileged action through the normal same-session password dialog. */
+export async function stepUpProof(page: Page, role: "owner" | "count_checker") {
+  const path = fileURLToPath(
+    new URL("../../.local/first-store-browser-credentials.json", import.meta.url),
+  );
+  const record = JSON.parse(readFileSync(path, "utf8")) as Record<
+    string,
+    { email: string; password: string }
+  >;
+  if ((statSync(path).mode & 0o777) !== 0o600 || !record[role]?.email.endsWith(".example.test"))
+    throw new Error("Only private generated proof credentials may confirm.");
+  await expect(page.getByTestId("org-stepup")).toBeVisible();
+  try {
+    await page.getByTestId("org-stepup-password").fill(record[role].password);
+    await page.getByTestId("org-stepup-confirm").click();
+    await expect(page.getByTestId("org-stepup")).toHaveCount(0);
+  } catch {
+    throw new Error("The separate proof reviewer could not confirm normally.");
   }
 }

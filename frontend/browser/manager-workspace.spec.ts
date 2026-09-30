@@ -108,8 +108,9 @@ for (const width of WIDTHS) {
       const status = await openRead(page, "/goods/counts", "/goods-v1/outbound/stocktakes");
       await expectFrame(page, width);
       if (status === 200) {
-        await expect(page.getByText("No count has been started at your sites.")).toBeVisible();
-        await expect(page.getByText(/Blind counts at sites that do not trade/)).toBeVisible();
+        await expect(
+          page.getByText(/Trading stores require an online, synced and paused counter/),
+        ).toBeVisible();
       } else {
         await expect(page.getByTestId("org-denied")).toBeVisible();
       }

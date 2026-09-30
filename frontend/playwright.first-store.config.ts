@@ -5,7 +5,11 @@ import { fileURLToPath } from "node:url";
 // fixture and any application already open in the in-app browser.
 export default defineConfig({
   testDir: "./browser",
-  testMatch: ["manager-workspace.spec.ts", "first-store-pos.spec.ts"],
+  testMatch: [
+    "manager-workspace.spec.ts",
+    "first-store-pos.spec.ts",
+    "first-store-stock-review.spec.ts",
+  ],
   fullyParallel: false,
   workers: 1,
   retries: 0,
