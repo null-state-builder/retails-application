@@ -82,15 +82,16 @@ class Piece:
 def barcode_aliases(store: Store, at: datetime) -> dict[uuid.UUID, str]:
     """The scannable code for each SKU at this store, where exactly one code answers.
 
-    Site-scoped aliases and unscoped ones together, which is the same reach the
-    receiving scanner resolves under. A SKU under two live codes, or a code over
-    two SKUs, is left out rather than guessed at: the counter has no way to settle
-    that at a customer, and a wrong pick prices the wrong piece.
+    Site-scoped aliases and unscoped ones together, plus exact labels of goods
+    this store physically accepted. A transfer does not rewrite the source
+    origin or turn a source-only alias into a global alias: the immutable origin
+    line binds that accepted piece's label to its SKU. Its source alias must
+    still be governed and effective. A SKU under two live codes, or a code over
+    two SKUs, is left out rather than guessed at.
     """
-    rows = (
-        SkuAlias.objects.filter(alias_type=BARCODE, effective_from__lte=at)
+    governed = (
+        SkuAlias.objects.filter(tenant_id=store.tenant_id, sku__tenant_id=store.tenant_id, sku__style__tenant_id=store.tenant_id, sku__style__brand__tenant_id=store.tenant_id, alias_type=BARCODE, effective_from__lte=at)
         .filter(Q(effective_to__isnull=True) | Q(effective_to__gt=at))
-        .filter(Q(site__isnull=True) | Q(site_id=store.pk))
         # Generally effective identity only: a proposal still waiting for its
         # approver, and a code somebody has retired, are both things a counter
         # must not be billing under.
@@ -99,8 +100,17 @@ def barcode_aliases(store: Store, at: datetime) -> dict[uuid.UUID, str]:
             sku__governance_state=EFFECTIVE,
             sku__style__governance_state=EFFECTIVE,
         )
-        .values_list("sku_id", "value")
     )
+    rows = list(governed.filter(Q(site__isnull=True) | Q(site_id=store.pk)).values_list("sku_id", "value"))
+    received = _received_label_bindings(store)
+    if received:
+        # An origin cannot revive an expired/retired alias or borrow an unrelated
+        # label from another site. Compare all three exact source cells.
+        trusted: set[tuple[uuid.UUID, str, int | None]] = set(
+            governed.filter(sku_id__in={sku for sku, _value, _site in received})
+            .values_list("sku_id", "value", "site_id"))
+        rows.extend((sku, value) for sku, value, site in received
+                    if (sku, value, site) in trusted or (sku, value, None) in trusted)
     by_sku: dict[uuid.UUID, set[str]] = defaultdict(set)
     by_value: dict[str, set[uuid.UUID]] = defaultdict(set)
     for sku_id, value in rows:
@@ -111,6 +121,51 @@ def barcode_aliases(store: Store, at: datetime) -> dict[uuid.UUID, str]:
         for sku_id, values in by_sku.items()
         if len(values) == 1 and len(by_value[next(iter(values))]) == 1
     }
+
+
+def _received_label_bindings(store: Store) -> set[tuple[uuid.UUID, str, int]]:
+    """Labels of exact valued goods accepted here; no tenant-wide alias search.
+
+    Current positions require the destination's own acceptance. Exhausted sold
+    pieces retain their originating identity for a later exchange, using only
+    this store's immutable sale allocations. Values never leave this reader.
+    """
+    from sell.models import SaleLine
+
+    origins = set(Position.objects.filter(
+        tenant_id=store.tenant_id, site=store, site__tenant_id=store.tenant_id,
+        boundary="physical", origin__tenant_id=store.tenant_id,
+        accepted_event__tenant_id=store.tenant_id, accepted_event__site=store,
+        accepted_event__outcome="accepted_good",
+    ).values_list("origin_id", flat=True))
+    for allocations in SaleLine.objects.filter(
+        sale__store__tenant_id=store.tenant_id, sale__store=store,
+    ).values_list("goods_allocations", flat=True):
+        for allocated in allocations or []:
+            if not isinstance(allocated, dict) or not allocated.get("origin_id"):
+                continue
+            try:
+                origins.add(uuid.UUID(str(allocated["origin_id"])))
+            except (TypeError, ValueError):
+                continue
+    if not origins:
+        return set()
+    received: set[tuple[uuid.UUID, str, int]] = set()
+    for sku_id, source_site, payload in Origin.objects.filter(
+        tenant_id=store.tenant_id, pk__in=origins, site__tenant_id=store.tenant_id,
+        official_line__tenant_id=store.tenant_id,
+        official_line__version__tenant_id=store.tenant_id,
+        official_line__version__document__tenant_id=store.tenant_id,
+        sku__tenant_id=store.tenant_id,
+        sku__style__tenant_id=store.tenant_id,
+        sku__style__brand__tenant_id=store.tenant_id,
+    ).values_list("sku_id", "site_id", "official_line__payload"):
+        body = payload if isinstance(payload, dict) else {}
+        label = body.get("alias_as_used")
+        if (str(body.get("sku_id")) == str(sku_id) and isinstance(label, str)
+                and 1 <= len(label) <= 128):
+            received.add((sku_id, label, source_site))
+    return received
 
 
 def sku_for_barcode(store: Store, barcode: str, at: datetime | None = None) -> uuid.UUID | None:

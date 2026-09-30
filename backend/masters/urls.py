@@ -14,6 +14,7 @@ from masters.views import (
     SkuLookupView,
     StoreDetailView,
     StoreListView,
+    StoreTargetLocationView,
     StoreTargetView,
     SummaryView,
 )
@@ -29,6 +30,7 @@ urlpatterns = [
     # Before `stores/<int:pk>` would ever be consulted, and its own path anyway -
     # the monthly target grid is keyed by store *code*, not by a store row id.
     path("store-targets", StoreTargetView.as_view(), name="store-target-grid"),
+    path("store-targets/locations", StoreTargetLocationView.as_view(), name="store-target-locations"),
     path("brands", BrandListView.as_view(), name="brand-list"),
     path("brands/<int:pk>", BrandDetailView.as_view(), name="brand-detail"),
     path("seasons", SeasonListView.as_view(), name="season-list"),

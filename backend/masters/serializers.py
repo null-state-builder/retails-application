@@ -47,6 +47,14 @@ class GstinSerializer(serializers.ModelSerializer[Gstin]):
         return value
 
 
+class StoreTargetLocationSerializer(serializers.ModelSerializer[Store]):
+    """Only the location identity needed to caption a scoped target grid."""
+
+    class Meta:
+        model = Store
+        fields = ["id", "code", "name"]
+
+
 class StoreSerializer(serializers.ModelSerializer[Store]):
     state_name = serializers.CharField(source="gstin.state_name", read_only=True)
     state_code = serializers.CharField(source="gstin.state_code", read_only=True)

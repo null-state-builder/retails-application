@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { AlertTriangle, Check, RefreshCw } from "lucide-react";
 
 import { PageHeader } from "../../components/PageHeader";
+import { OperationsPage } from "../../components/OperationsPage";
 import { useAuth } from "../../auth/AuthContext";
 import { api, apiErrorCode, apiErrorMessage } from "../../lib/api";
 import type { ApiSchemas } from "../../lib/api";
@@ -55,11 +56,12 @@ interface Draft {
 
 const EMPTY_DRAFT: Draft = { notes: {}, coins: 0, opening: null };
 
-function draftKey(store: string, day: string, userId: number | null): string {
-  return `kdps-cash-count:${store}:${day}:${userId ?? "nobody"}`;
+function draftKey(scope: string | null, day: string, userId: number | null): string | null {
+  return scope && userId !== null ? `kdps-cash-count:v2:${scope}:${day}:${userId}` : null;
 }
 
-function readDraft(key: string): Draft {
+function readDraft(key: string | null): Draft {
+  if (!key) return EMPTY_DRAFT;
   try {
     const raw = sessionStorage.getItem(key);
     return raw ? { ...EMPTY_DRAFT, ...(JSON.parse(raw) as Draft) } : EMPTY_DRAFT;
@@ -68,7 +70,8 @@ function readDraft(key: string): Draft {
   }
 }
 
-function writeDraft(key: string, draft: Draft | null): void {
+function writeDraft(key: string | null, draft: Draft | null): void {
+  if (!key) return;
   try {
     if (draft) sessionStorage.setItem(key, JSON.stringify(draft));
     else sessionStorage.removeItem(key);
@@ -112,7 +115,7 @@ export default function CashCountPage() {
   }, [load, online]);
 
   return (
-    <div className="page-pad">
+    <OperationsPage>
       <PageHeader
         lead="Count the drawer by note and coin at day close, against the cash the system expects."
         actions={
@@ -170,7 +173,7 @@ export default function CashCountPage() {
           <RecentCounts counts={position.recent} />
         </>
       )}
-    </div>
+    </OperationsPage>
   );
 }
 
@@ -195,9 +198,11 @@ function CountForm({
   onSaved: () => void;
   onStale: () => void;
 }) {
-  const { engine } = useTill();
+  const { engine, till } = useTill();
   const denominations = position.denominations;
-  const key = draftKey(position.store, position.business_day, cashierId);
+  // The engine opens only a server-derived tenant/site/device namespace.
+  // Preserve unidentified old drafts without reading or copying them here.
+  const key = draftKey(engine?.db.name ?? null, position.business_day, cashierId);
   const [draft, setDraft] = useState<Draft>(() => readDraft(key));
   const [draftFor, setDraftFor] = useState(key);
   if (draftFor !== key) {
@@ -274,10 +279,25 @@ function CountForm({
   function save() {
     if (variance === null || badNote) return;
     if (variance !== 0) {
+      if (till?.onlineAlpha) {
+        setMessage(
+          "This variance needs a recorded independent approval. Your count draft is retained; arrange an authorised review before closing it.",
+        );
+        return;
+      }
       setAsking(true);
       return;
     }
     void submit(null);
+  }
+
+  if (!key || !hasCounter) {
+    return (
+      <p className="warn-note" role="status" data-testid="cash-counter-required">
+        Waiting for this store's authorised counter. Open Till &amp; Sync to pair it before entering
+        a cash count.
+      </p>
+    );
   }
 
   return (
@@ -388,9 +408,11 @@ function CountForm({
                 </>
               ) : (
                 <>
-                  Cash {varianceWords(variance)} by <Money paise={Math.abs(variance)} />. A manager
-                  of this store confirms it with their own PIN, and it goes to the store manager as
-                  an exception to explain. Nothing is booked to balance it.
+                  Cash {varianceWords(variance)} by <Money paise={Math.abs(variance)} />.
+                  {till?.onlineAlpha
+                    ? " Keep this draft for recorded independent approval before closing it."
+                    : " A manager of this store confirms it with their own PIN, and it goes to the store manager as an exception to explain."}{" "}
+                  Nothing is booked to balance it.
                 </>
               )}
             </p>
@@ -416,7 +438,13 @@ function CountForm({
         disabled={Boolean(blocked) || saving || variance === null || badNote}
         onClick={save}
       >
-        {saving ? "Saving…" : variance ? "Confirm with manager PIN and save" : "Save the count"}
+        {saving
+          ? "Saving…"
+          : variance
+            ? till?.onlineAlpha
+              ? "Arrange independent review"
+              : "Confirm with manager PIN and save"
+            : "Save the count"}
       </button>
 
       {asking && variance !== null && (

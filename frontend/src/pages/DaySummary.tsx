@@ -10,13 +10,15 @@
 // The single write on this screen is against an *exception*, and clearing one is
 // a statement about somebody's attention, never a correction to a bill (A7).
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { AlertTriangle, Check, EyeOff, Receipt } from "lucide-react";
+import { AlertTriangle, Check, EyeOff, Receipt, RefreshCw } from "lucide-react";
 
 import { api, apiErrorMessage } from "../lib/api";
 import { Money } from "../lib/format";
 import { PageHeader } from "../components/PageHeader";
+import { OperationsPage } from "../components/OperationsPage";
+import { useAuth } from "../auth/AuthContext";
 import { tillToday } from "../till/pricing";
 import "./DaySummary.css";
 
@@ -263,6 +265,7 @@ function ClearPanel({ flag, onDone }: { flag: FlagT; onDone: () => void }) {
 }
 
 export default function DaySummary() {
+  const { activeStore } = useAuth();
   const [params, setParams] = useSearchParams();
   // The store's own day, not the browser's UTC one - the same helper the till
   // prices its offers by, because "today" flipping at 18:30 IST is the defect
@@ -273,6 +276,7 @@ export default function DaySummary() {
   const [settled, setSettled] = useState<FlagT[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const requestVersion = useRef(0);
 
   // **Open exceptions are never narrowed to the picked day; settled ones are.**
   // They are the work, and this is the rule the IRN queue already holds to: a
@@ -282,27 +286,44 @@ export default function DaySummary() {
   // defaulted to this morning would be the card lying about itself. The picker
   // still governs the money above and the history behind.
   const load = useCallback(() => {
+    const version = ++requestVersion.current;
+    const headers = { "X-KDPS-Unit": activeStore?.id == null ? "" : String(activeStore.id) };
     setLoading(true);
     setError("");
+    setSummary(undefined);
+    setOpen([]);
+    setSettled([]);
     Promise.all([
-      api.get("/store/cash-summary", { params: { date: day } }),
-      api.get("/sell/flags", { params: { status: "open" } }),
-      api.get("/sell/flags", { params: { date: day, status: "all" } }),
+      api.get("/store/cash-summary", { params: { date: day }, headers }),
+      api.get("/sell/flags", { params: { status: "open" }, headers }),
+      api.get("/sell/flags", { params: { date: day, status: "all" }, headers }),
     ])
       .then(([s, live, ofDay]) => {
+        if (version !== requestVersion.current) return;
         setSummary(s.data);
         setOpen(live.data.rows as FlagT[]);
         setSettled((ofDay.data.rows as FlagT[]).filter((row) => row.status !== "open"));
       })
-      .catch((e) => setError(apiErrorMessage(e)))
-      .finally(() => setLoading(false));
-  }, [day]);
+      .catch((e) => {
+        if (version === requestVersion.current) setError(apiErrorMessage(e));
+      })
+      .finally(() => {
+        if (version === requestVersion.current) setLoading(false);
+      });
+  }, [day, activeStore?.id]);
 
   useEffect(load, [load]);
 
   return (
-    <div className="page-pad">
-      <PageHeader lead="What the counter took, and what the day left open. Read-only - the day is agreed at store close." />
+    <OperationsPage>
+      <PageHeader
+        lead="What the counter took, and what the day left open. Read-only - the day is agreed at store close."
+        actions={
+          <button className="btn" data-testid="day-retry" disabled={loading} onClick={load}>
+            <RefreshCw size={15} /> Read again
+          </button>
+        }
+      />
 
       <div className="day-picker">
         <label className="day-picker-label" htmlFor="day-summary-date">
@@ -460,6 +481,6 @@ export default function DaySummary() {
           </div>
         </>
       )}
-    </div>
+    </OperationsPage>
   );
 }

@@ -11,7 +11,7 @@ from core.refusals import Refusal
 
 
 def changes_authority(action: str) -> bool:
-    return action.startswith("access.") or action == "staff.retire"
+    return action.startswith("access.") or action in {"staff.retire", "masters.store_feature.switch"}
 
 
 def independent_reviewers(tenant_id: Any, site_id: int | None, changer: Any) -> list[str]:

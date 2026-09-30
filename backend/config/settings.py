@@ -140,7 +140,9 @@ WSGI_APPLICATION = "config.wsgi.application"
 DATABASES = {
     "default": dj_database_url.config(
         default=os.environ["DATABASE_URL"],
-        conn_max_age=600,
+        # ASGI serves concurrent requests on short-lived worker threads. Do not
+        # retain a connection per thread after the request has finished.
+        conn_max_age=0,
     )
 }
 # A throwaway rehearsal database beside this one (`rehearse_salesperson_move`,

@@ -13,6 +13,7 @@ import {
   rupeesToPaise,
 } from "../lib/format";
 import { PageHeader } from "../components/PageHeader";
+import { OperationsPage } from "../components/OperationsPage";
 import { SearchBox } from "../components/SearchBox";
 import { financialYear, financialYearChoices, financialYearMonths } from "../lib/fiscal";
 import type { FiscalMonth } from "../lib/fiscal";
@@ -391,7 +392,9 @@ export function StoreTargetsPage() {
   const { user } = useAuth();
   const canEdit = userCan(user, "money", "manage");
   const [fy, setFy] = useState(() => financialYear());
-  const storeList = useList<Store>("/masters/stores");
+  const storeList = useList<Pick<Store, "id" | "code" | "name">>(
+    "/masters/store-targets/locations",
+  );
   const { data: stores, loading: storesLoading, failure: storesFailure } = storeList;
   const { data, loading, failure, reload } = useList<StoreTarget>("/masters/store-targets", { fy });
   const [edit, setEdit] = useState<TargetEdit | null>(null);
@@ -477,7 +480,7 @@ export function StoreTargetsPage() {
   // says nothing true about a grid. What a reader wants off the top of this one is
   // the year's committed total.
   return (
-    <div className="page-pad">
+    <OperationsPage>
       <PageHeader
         lead={
           <span data-testid="target-fy-total">
@@ -552,7 +555,7 @@ export function StoreTargetsPage() {
           </div>
         </div>
       )}
-      <div className="table-wrap">
+      <div className="table-wrap" role="region" aria-label="Store targets" tabIndex={0}>
         <table className="data" data-testid="store-targets-table">
           <thead>
             <tr>
@@ -573,7 +576,9 @@ export function StoreTargetsPage() {
             ) : stores.length === 0 ? (
               <tr data-testid="store-targets-empty">
                 <td colSpan={months.length + 2}>
-                  No stores yet - add one in Setup before setting targets.
+                  {stale
+                    ? "Store targets could not be loaded. Refresh or check your access."
+                    : "No active stores are available in your target scope."}
                 </td>
               </tr>
             ) : (
@@ -618,7 +623,7 @@ export function StoreTargetsPage() {
           </tbody>
         </table>
       </div>
-    </div>
+    </OperationsPage>
   );
 }
 

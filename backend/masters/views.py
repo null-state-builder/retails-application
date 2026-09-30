@@ -46,6 +46,7 @@ from masters.serializers import (
     LocationSerializer,
     SeasonSerializer,
     StoreSerializer,
+    StoreTargetLocationSerializer,
     StoreTargetSerializer,
     StoreTargetWriteSerializer,
 )
@@ -307,6 +308,22 @@ class SkuLookupView(APIView):
 CanReadOrSetStoreTarget = require_section("money", CAP_VIEW, write_minimum=CAP_MANAGE)
 
 
+class StoreTargetLocationView(APIView):
+    """Money-scoped location captions, without borrowing Setup authority."""
+
+    permission_classes = [IsAuthenticated, CanReadOrSetStoreTarget]
+
+    @extend_schema(responses={200: StoreTargetLocationSerializer(many=True)})
+    def get(self, request: Request) -> Response:
+        access = resolve_access(request)
+        access.require_action("section.money.view")
+        stores = [store for store in scoped_stores(request.user, section="money", minimum="view")
+                  if access.can("section.money.view", site_id=store.pk)]
+        body = StoreTargetLocationSerializer(stores, many=True).data
+        access.revalidate_delivery()
+        return Response(body, headers={"Cache-Control": "no-store, private"})
+
+
 class StoreTargetView(APIView):
     """`GET | PUT /api/masters/store-targets` - the store x month target grid.
 
@@ -338,6 +355,8 @@ class StoreTargetView(APIView):
 
     @extend_schema(responses={200: StoreTargetSerializer(many=True)})
     def get(self, request: Request) -> Response:
+        access = resolve_access(request)
+        access.require_action("section.money.view")
         rows = scope_by_entitlement(
             StoreTarget.objects.select_related("store"), request.user, "store_id"
         , section="money", minimum="view")
@@ -354,7 +373,10 @@ class StoreTargetView(APIView):
             except ValueError as exc:
                 return Response(refusal_body("VALIDATION", str(exc)), status=400)
             rows = rows.filter(month__in=months)
-        return Response(StoreTargetSerializer(rows, many=True).data)
+        permitted = [row for row in rows if access.can("section.money.view", site_id=row.store_id)]
+        body = StoreTargetSerializer(permitted, many=True).data
+        access.revalidate_delivery()
+        return Response(body, headers={"Cache-Control": "no-store, private"})
 
     @extend_schema(request=StoreTargetWriteSerializer, responses={200: StoreTargetSerializer})
     def put(self, request: Request) -> Response:
@@ -381,16 +403,17 @@ class StoreTargetView(APIView):
                 refusal_body("SCOPE_DENIED", f"{store.code} is not one of your locations."),
                 status=403,
             )
-        target, _ = StoreTarget.objects.update_or_create(
-            store=store,
-            month=form.validated_data["month"],
-            defaults={
-                "target_paise": form.validated_data["target_paise"],
-                # `IsAuthenticated` in `permission_classes` guarantees a real
-                # user by the time this line runs - never `AnonymousUser`.
-                "set_by": cast(User, request.user),
-            },
-        )
+        access = resolve_access(request)
+        access.require("section.money.manage", site_id=store.pk)
+        with access.guard_legacy_write(lambda fresh: fresh.can("section.money.manage", site_id=store.pk)):
+            target, _ = StoreTarget.objects.update_or_create(
+                store=store,
+                month=form.validated_data["month"],
+                defaults={
+                    "target_paise": form.validated_data["target_paise"],
+                    "set_by": cast(User, request.user),
+                },
+            )
         return Response(StoreTargetSerializer(target).data)
 
 

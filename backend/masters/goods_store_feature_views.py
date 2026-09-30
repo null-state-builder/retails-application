@@ -33,6 +33,7 @@ from accounts.goods_api import (
     parse_meta,
 )
 from accounts.goods_models import HumanIdentity
+from accounts.sessions import bump_security_epoch
 from accounts.permissions import user_can
 from accounts.principal import access_for_user
 from accounts.sections import CAP_MANAGE, CAP_VIEW
@@ -275,11 +276,20 @@ class GoodsStoreFeatureSwitchView(GoodsAPIView):
         store = store_in_scope(request.user, body["store_id"])
         if not may_change_switches(request.user, store.pk):
             raise Refusal("ACTION_DENIED", "Only Admin can change a feature switch.")
+        access.require("store.feature.manage", site_id=store.pk)
+        access.require_step_up()
         lock = gate_lock(target, real=is_real_store(store))
         if enabled and lock is not None:
             raise Refusal("FEATURE_GATED", lock, status=409)
 
         def handler(run: CommandRun) -> CommandResult:
+            if not run.authority.get("independent_reviewers"):
+                raise Refusal("REVIEW_REQUIRED", "An independently authorised person must be available to review this feature change.")
+            # A feature change affects current delivery and navigation decisions.
+            # Conservatively invalidate the tenant before taking document locks;
+            # the command rechecks its own password-confirmed session at commit.
+            for human_id in HumanIdentity.objects.filter(tenant_id=run.tenant_id).order_by("pk").values_list("pk", flat=True):
+                bump_security_epoch(human_id, run.tenant_id)
             run.advisory_lock(LockRank.DOCUMENT, [f"store-feature:{store.pk}:{target.key}"])
             row = StoreFeatureSwitch.objects.filter(
                 tenant_id=run.tenant_id, site=store, feature_key=target.key

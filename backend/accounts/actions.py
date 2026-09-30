@@ -336,6 +336,7 @@ ROLE_TEMPLATES: dict[str, RoleTemplate] = {
 #: ticket 03D). The access kinds are mirrored for history links in the frontend's
 #: ``lib/administrativeHistory.ts``, checked by ``tests/test_goods_access_history.py``.
 PRIVILEGED_COMMAND_ACTIONS: dict[str, str] = {
+    "masters.store_feature.switch": "A store's operating feature policy was changed",
     "access.brand_identity.bind": "Legacy brand ownership was reconciled",
     "staff.retire": "A staff member was retired",
     "staff.assign": "A staff placement was changed",
