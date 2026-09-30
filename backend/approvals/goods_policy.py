@@ -98,7 +98,7 @@ def _record(run: CommandRun, version: Any, basis: dict[str, Any]) -> None:
         thresholds(version.payload) if version is not None else {"qty": None, "value_paise": None}
     )
     run.authority["scope"] = {
-        "site_ids": [str(basis["site_id"])] if basis.get("site_id") is not None else [],
+        "site_ids": [str(site) for site in basis.get("site_ids") or ([basis["site_id"]] if basis.get("site_id") is not None else [])],
         "brand_ids": [str(b) for b in basis.get("brand_ids") or []],
         "purpose": basis.get("purpose"),
         "policy_scope": version.scope if version is not None else None,
@@ -150,6 +150,12 @@ def pin(
     basis["thresholds"] = thresholds(payload)
     basis["unknown_value"] = payload.get("unknown_value") or "refuse"
     basis["step_up"] = bool(payload.get("step_up"))
+    steps = payload.get("steps") or [{"label": "Approval", "roles": payload.get("roles") or []}]
+    if not steps or any(not step.get("roles") for step in steps):
+        raise Refusal(BLOCKED, "Every route step requires authorised roles.", status=422)
+    if len(steps) > 1 and action != "pt.approve.transfer":
+        raise Refusal(BLOCKED, "This family's multi-step deciding contract is not active.", status=422)
+    basis["steps"] = steps
     return PolicyPin(
         version_id=version.pk,
         roles=sorted({str(r) for r in payload.get("roles") or []}),
@@ -167,6 +173,21 @@ def _stale(reason: str, message: str) -> Refusal:
     return Refusal(STALE, message, status=409, issues=[issue(reason, message, field="policy")])
 
 
+def eligible_checker(access: Any, request: Any, cells: Any) -> bool:
+    """Projection hint only; the deciding command rechecks the pinned policy."""
+    basis = request.policy_basis or {}
+    prior = list(request.decisions.filter(outcome="step_approved"))
+    steps = basis.get("steps") or [{"roles": request.required_roles or []}]
+    if len(prior) >= len(steps):
+        return False
+    people = {str(request.maker_id), *(str(person) for person in basis.get("maker_ids") or []),
+              *(str(row.checker_id) for row in prior)}
+    if request.require_distinct and str(access.human_id) in people:
+        return False
+    roles = set(steps[len(prior)].get("roles") or [])
+    return bool(access.covers_all_actions({request.requested_action}, cells, basis.get("fields") or (), roles=roles or None))
+
+
 def _check_approver(
     run: CommandRun,
     request: Any,
@@ -180,8 +201,14 @@ def _check_approver(
     if access is None:
         raise Refusal("ACTION_DENIED", "An approval is decided by a signed-in person.")
     brands = basis.get("brand_ids") or [None]
-    cells = {(basis.get("site_id"), brand) for brand in brands}
-    roles = {str(r) for r in payload.get("roles") or []}
+    cells = {tuple(cell) for cell in basis.get("cells") or [(basis.get("site_id"), brand) for brand in brands]}
+    steps = basis.get("steps") or [{"roles": payload.get("roles") or []}]
+    prior = list(request.decisions.filter(outcome="step_approved").order_by("recorded_at", "id"))
+    if len(prior) >= len(steps):
+        raise _stale("ROUTE_INVALID", "This approval route has inconsistent decisions.")
+    roles = {str(r) for r in steps[len(prior)]["roles"]}
+    if not access.covers_all_actions({request.requested_action}, cells, basis.get("fields") or (), roles=roles):
+        raise Refusal("ACTION_DENIED", "Route role, action, fields and complete scope must be covered together.", status=403)
     grants = access.grants_with_roles(request.requested_action, cells, roles)
     if not grants:
         raise Refusal(
@@ -191,7 +218,9 @@ def _check_approver(
         )
     run.authority["role_grant_ids"] = grants
     distinct = payload.get("require_distinct", True) or request.require_distinct
-    if distinct and str(checker_id) == str(request.maker_id):
+    people = {str(request.maker_id), *(str(person) for person in basis.get("maker_ids") or []),
+              *(str(row.checker_id) for row in prior)}
+    if distinct and str(checker_id) in people:
         raise Refusal("SELF_APPROVAL", "The person who prepared this cannot also approve it.")
 
 
@@ -199,7 +228,8 @@ def _check_in_force(run: CommandRun, request: Any, version: Any, basis: dict[str
     """The pinned version is still the one policy in force, with the amounts inside it."""
     from masters.goods_config import candidate, resolve
 
-    target = _target(basis, run.now)
+    targets = [_target({**basis, "site_id": site}, run.now) for site in basis.get("site_ids") or [basis.get("site_id")]]
+    target = targets[0]
     lapsed = candidate(version).failure(target)
     if lapsed == "CONFIG_WITHDRAWN":
         raise _stale(
@@ -233,6 +263,12 @@ def _check_in_force(run: CommandRun, request: Any, version: Any, basis: dict[str
             "POLICY_EXPIRED" if lapsed in (None, "CONFIG_EXPIRED") else "POLICY_OUT_OF_SCOPE",
             "The approval policy this was submitted under is no longer in force; submit again.",
         )
+    for other in targets[1:]:
+        if candidate(version).failure(other) is not None:
+            raise _stale("POLICY_OUT_OF_SCOPE", "The pinned policy no longer covers every site.")
+        other_version = resolve(run.tenant_id, "approval", other, match={"action": request.requested_action}, code=STALE, path="policy", status=409)
+        if other_version.pk != version.pk:
+            raise _stale("POLICY_SUPERSEDED", "Every site must retain the same pinned policy.")
     payload = version.payload if isinstance(version.payload, dict) else {}
     value = basis.get("value_paise")
     amounts = Amounts(int(basis.get("qty") or 0), int(value) if value is not None else None)

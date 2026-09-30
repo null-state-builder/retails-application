@@ -37,6 +37,7 @@ class ActionDraft(TenantOwned):
 class ApprovalRequest(TenantOwned):
     class SubjectKind(models.TextChoices):
         DOCUMENT = "document"
+        TRANSFER = "transfer"
         CONFIGURATION = "configuration"
         MANIFEST = "manifest"
         OPENING_VARIANCE = "opening_variance"
@@ -92,6 +93,7 @@ class ApprovalRequest(TenantOwned):
 
 class ApprovalDecision(EvidenceRow):
     class Outcome(models.TextChoices):
+        STEP_APPROVED = "step_approved"
         APPROVED = "approved"
         REJECTED = "rejected"
         REFUSED = "refused"
@@ -101,7 +103,7 @@ class ApprovalDecision(EvidenceRow):
     checker = models.ForeignKey(
         "accounts.HumanIdentity", null=True, blank=True, on_delete=models.PROTECT, related_name="+"
     )
-    outcome = models.CharField(max_length=12, choices=Outcome.choices)
+    outcome = models.CharField(max_length=16, choices=Outcome.choices)
     reviewed_hash = models.CharField(max_length=64)
     reason_code = models.CharField(max_length=60, null=True, blank=True)
     result = models.JSONField(null=True, blank=True)

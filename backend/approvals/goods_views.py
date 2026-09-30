@@ -154,8 +154,11 @@ def _dto(
 ) -> dict[str, Any]:
     # Amounts come only from a grant that also lets this person see or decide the approval.
     actions = {request.requested_action, "approvals.view"}
-    show = any(access.covers_all(actions, cells, {field}) for field in ("cost", "layer_value"))
-    return approval_dto(request, show_amounts=show, parents=parents)
+    show = access.covers_all(actions, cells, request.policy_basis.get("fields") or {"cost", "layer_value"})
+    body = approval_dto(request, show_amounts=show, parents=parents)
+    if not access.covers_all(actions, cells, {"personal"}):
+        body["maker"]["name"] = ""
+    return body
 
 
 class GoodsApprovalInboxView(GoodsAPIView):
@@ -171,15 +174,14 @@ class GoodsApprovalInboxView(GoodsAPIView):
             .order_by("created_at", "id")
         )
         cells = subject_cells_many(rows)
-        visible = [
-            r
-            for r in rows
-            if not (r.require_distinct and r.maker_id == access.human_id)
-            and access.covers_all({r.requested_action}, cells[r.pk])
-        ]
+        from approvals.goods_policy import eligible_checker
+
+        visible = [r for r in rows if eligible_checker(access, r, cells[r.pk])]
         window, cursor = paginate(_filtered(access, visible, params), params)
         parents = parent_documents(window)
-        return Response(page([_dto(access, r, cells[r.pk], parents) for r in window], cursor))
+        body = page([_dto(access, r, cells[r.pk], parents) for r in window], cursor)
+        access.revalidate_delivery()
+        return Response(body)
 
 
 class GoodsApprovalListView(GoodsAPIView):
@@ -203,7 +205,9 @@ class GoodsApprovalListView(GoodsAPIView):
         ]
         window, cursor = paginate(_filtered(access, visible, params), params)
         parents = parent_documents(window)
-        return Response(page([_dto(access, r, cells[r.pk], parents) for r in window], cursor))
+        body = page([_dto(access, r, cells[r.pk], parents) for r in window], cursor)
+        access.revalidate_delivery()
+        return Response(body)
 
 
 class GoodsApprovalDecideView(GoodsAPIView):
@@ -280,6 +284,7 @@ class GoodsApprovalDecideView(GoodsAPIView):
         )
         decided = ApprovalRequest.objects.select_related("maker").get(pk=pk)
         dto = _dto(access, decided, subject_cells(decided))
+        access.revalidate_delivery()
         return Response(
             resource_dto(
                 id=decided.pk,

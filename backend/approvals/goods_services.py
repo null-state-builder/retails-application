@@ -207,13 +207,12 @@ def decide(
         raise Refusal("INVALID_REQUEST", "decision must be approve or reject.")
     # The subject's site guard ranks below documents in the fixed lock order, so
     # it is taken first: domain handlers check capability and count freezes under it.
-    site_id = (
-        ApprovalRequest.objects.filter(pk=request_id).values_list("site_id", flat=True).first()
-    )
-    if site_id is not None:
+    target = ApprovalRequest.objects.filter(tenant_id=run.tenant_id, pk=request_id).first()
+    site_ids = {site for site, _brand in subject_cells(target) if site is not None} if target else set()
+    if site_ids:
         from masters.goods_models import SiteGuard
 
-        run.lock(LockRank.SITE, SiteGuard.objects.filter(site_id=site_id))
+        run.lock(LockRank.SITE, SiteGuard.objects.filter(site_id__in=sorted(site_ids)).order_by("site_id"))
     locked = run.lock(LockRank.DOCUMENT, ApprovalRequest.objects.filter(pk=request_id))
     if not locked:
         raise Refusal("NOT_FOUND", "That approval was not found.")
@@ -267,6 +266,17 @@ def decide(
             issues=refusal.issues,
             domain_code=refusal.code,
         ) from refusal
+    if result is not None and result.pop("_approval_pending", False):
+        if decision != "approve" or not governed:
+            raise RuntimeError("Only a governed approval step may defer final effects.")
+        run.record(ApprovalDecision(request_id=request.pk, checker_id=checker,
+            outcome=ApprovalDecision.Outcome.STEP_APPROVED, reviewed_hash=reviewed_hash,
+            reason_code=reason_code, result=result))
+        request.revision += 1
+        request.save(update_fields=["revision"])
+        run.audit_subject_key = request.subject_key
+        run.audit_site_id = request.site_id
+        return request, result
     request.state = (
         ApprovalRequest.State.APPROVED if decision == "approve" else ApprovalRequest.State.REJECTED
     )
@@ -290,10 +300,11 @@ def decide(
 
 
 def _document_key(request: ApprovalRequest) -> uuid.UUID | None:
-    if request.subject_kind != ApprovalRequest.SubjectKind.DOCUMENT:
+    if request.subject_kind not in {ApprovalRequest.SubjectKind.DOCUMENT, ApprovalRequest.SubjectKind.TRANSFER, ApprovalRequest.SubjectKind.COUNT}:
         return None
     try:
-        return uuid.UUID(request.subject_key)
+        key = request.subject_key if request.subject_kind == ApprovalRequest.SubjectKind.DOCUMENT else (request.policy_basis.get("snapshot") or {}).get("document_id")
+        return uuid.UUID(key)
     except (ValueError, AttributeError, TypeError):
         return None
 

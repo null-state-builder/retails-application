@@ -1320,6 +1320,9 @@ CONFIG_SCHEMAS: dict[str, Checker] = {
             "steps": _optional(_items(_object({
                 "label": _required(_text(64)),
                 "roles": _required(_items(_text(40))),
+                "qty_max": _optional(_integer(0)),
+                "value_max": _optional(_money),
+                "unknown_value": _optional(_choice("refuse", "quantity_only")),
             }))),
             "purpose": _optional(_text(60)),
             "site_ids": _required(_IDS),
@@ -1608,6 +1611,9 @@ def _check_rules(  # noqa: C901 - one branch per configuration kind with cross-f
         raise config_invalid(
             "payload.require_distinct", "cannot relax the fixed two-person rule for this action"
         )
+    if kind == "approval":
+        if not payload["roles"] or any(not step["roles"] for step in payload.get("steps") or []):
+            raise config_invalid("payload.roles", "every approval route needs explicit roles")
     if kind == "reasons":
         codes = [code["code"] for code in payload["codes"]]
         if len(set(codes)) != len(codes):
