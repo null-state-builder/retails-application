@@ -3873,7 +3873,7 @@ export interface paths {
         /** @description E102. Counts at sites where the caller holds `count.run` or `count.review`, newest first. Query: `site_id`, `state`, `cursor`, `limit` (1-100). */
         get: operations["goods_v1_outbound_stocktakes_list"];
         put?: never;
-        /** @description E159. Start a blind count at an affirmatively non-trading site (`count.run` there). In one commit: numbers it CNT, installs the site's count freeze and freezes the as-of book of every physical piece in scope. The freeze stops stock movements, dispatch, arrival and receipt dispositions at the site; it does not stop damage reporting (GSA-R02). Refusals: INVALID_REQUEST, ACTION_DENIED, NOT_FOUND (site, location or brand), CONTRACT_DISABLED, SITE_NOT_READY, UNDER_COUNT (another count already freezes the site), COUNT_ALREADY_OPEN, TRADING_NOT_EXCLUDED (no current approved non-trading declaration, sell-ready, tills declared or unknown, or trading history), SERIES_NOT_READY (no CNT numbering), COMMAND_CONFLICT. */
+        /** @description E159. Start a blind count at a declared non-trading site or a verified paused sole-online-alpha store (`count.run` there). In one commit: numbers it CNT, installs the site's count freeze and freezes the as-of book of every physical piece in scope. The freeze stops stock movements, dispatch, arrival and receipt dispositions at the site; it does not stop damage reporting (GSA-R02). Refusals: INVALID_REQUEST, ACTION_DENIED, NOT_FOUND (site, location or brand), CONTRACT_DISABLED, SITE_NOT_READY, UNDER_COUNT (another count already freezes the site), COUNT_ALREADY_OPEN, TRADING_NOT_EXCLUDED (no current approved non-trading declaration, sell-ready, tills declared or unknown, or trading history), SERIES_NOT_READY (no CNT numbering), COMMAND_CONFLICT. */
         post: operations["goods_v1_outbound_stocktakes_start"];
         delete?: never;
         options?: never;
@@ -3960,6 +3960,23 @@ export interface paths {
         put?: never;
         /** @description E160. The caller's unfinished pass of this count (200) or a new blind pass (201) assigned the whole count or one location in it. `count.run` at the site. Refusals: INVALID_REQUEST, ACTION_DENIED, NOT_FOUND (count, or a location outside it), COUNT_NOT_OPEN, COMMAND_CONFLICT. */
         post: operations["goods_v1_outbound_stocktakes_passes_open"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goods-v1/outbound/stocktakes/{id}/submit-review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Pin the exact blind-count selection for independent versioned approval. */
+        post: operations["goods_v1_outbound_stocktakes_submit_review"];
         delete?: never;
         options?: never;
         head?: never;
@@ -48427,8 +48444,19 @@ export interface operations {
                         open_passes: number;
                         submitted_passes: number;
                         stale_passes: number;
+                        trading_pause_verified: boolean;
+                        approval: {
+                            id: string;
+                            revision: number;
+                            reviewed_hash: string;
+                            state: string;
+                            policy_version_id: string | null;
+                            removed_qty: number;
+                            removed_value_paise: string;
+                            reason_code: string;
+                        } | null;
                         /** @description The approved non-trading declaration the count started under. */
-                        non_trading_event_id: string;
+                        non_trading_event_id: string | null;
                         /** @description The locations this count covers, by name - what a pass may be assigned. Identity only; the site's location directory keeps its own grant. */
                         locations: {
                             id: string;
@@ -48439,7 +48467,7 @@ export interface operations {
                          * @description Where the count stands. `differences_pending`: counted differs from the frozen book - it waits, frozen, for the difference review and the Owner's approval (ticket 17A) and is not a completed count. `matches_book`: ready to close with no posting. Only a reviewer not counting here is told `incomplete`, `differences_pending` or `matches_book`; a counter sees `awaiting_review`.
                          * @enum {string}
                          */
-                        progress: "counting" | "awaiting_review" | "incomplete" | "differences_pending" | "matches_book" | "closed_matching" | "cancelled";
+                        progress: "counting" | "awaiting_review" | "incomplete" | "differences_pending" | "matches_book" | "closed_matching" | "closed_adjusted" | "cancelled";
                         /** @description The reviewer's summary of the submitted passes; null for counters. */
                         review: {
                             /** @enum {string} */
@@ -48488,7 +48516,7 @@ export interface operations {
                             variance_hash: string;
                             lines: number;
                         } | null;
-                        allowed_actions: ("open_pass" | "continue_pass" | "lookup" | "variance" | "recount" | "close" | "cancel")[];
+                        allowed_actions: ("open_pass" | "continue_pass" | "lookup" | "variance" | "recount" | "close" | "submit_review" | "approve" | "reject" | "cancel")[];
                         history: {
                             id: string;
                             kind: string;
@@ -48669,8 +48697,19 @@ export interface operations {
                         open_passes: number;
                         submitted_passes: number;
                         stale_passes: number;
+                        trading_pause_verified: boolean;
+                        approval: {
+                            id: string;
+                            revision: number;
+                            reviewed_hash: string;
+                            state: string;
+                            policy_version_id: string | null;
+                            removed_qty: number;
+                            removed_value_paise: string;
+                            reason_code: string;
+                        } | null;
                         /** @description The approved non-trading declaration the count started under. */
-                        non_trading_event_id: string;
+                        non_trading_event_id: string | null;
                         /** @description The locations this count covers, by name - what a pass may be assigned. Identity only; the site's location directory keeps its own grant. */
                         locations: {
                             id: string;
@@ -48681,7 +48720,7 @@ export interface operations {
                          * @description Where the count stands. `differences_pending`: counted differs from the frozen book - it waits, frozen, for the difference review and the Owner's approval (ticket 17A) and is not a completed count. `matches_book`: ready to close with no posting. Only a reviewer not counting here is told `incomplete`, `differences_pending` or `matches_book`; a counter sees `awaiting_review`.
                          * @enum {string}
                          */
-                        progress: "counting" | "awaiting_review" | "incomplete" | "differences_pending" | "matches_book" | "closed_matching" | "cancelled";
+                        progress: "counting" | "awaiting_review" | "incomplete" | "differences_pending" | "matches_book" | "closed_matching" | "closed_adjusted" | "cancelled";
                         /** @description The reviewer's summary of the submitted passes; null for counters. */
                         review: {
                             /** @enum {string} */
@@ -48730,7 +48769,7 @@ export interface operations {
                             variance_hash: string;
                             lines: number;
                         } | null;
-                        allowed_actions: ("open_pass" | "continue_pass" | "lookup" | "variance" | "recount" | "close" | "cancel")[];
+                        allowed_actions: ("open_pass" | "continue_pass" | "lookup" | "variance" | "recount" | "close" | "submit_review" | "approve" | "reject" | "cancel")[];
                         history: {
                             id: string;
                             kind: string;
@@ -48891,8 +48930,19 @@ export interface operations {
                         open_passes: number;
                         submitted_passes: number;
                         stale_passes: number;
+                        trading_pause_verified: boolean;
+                        approval: {
+                            id: string;
+                            revision: number;
+                            reviewed_hash: string;
+                            state: string;
+                            policy_version_id: string | null;
+                            removed_qty: number;
+                            removed_value_paise: string;
+                            reason_code: string;
+                        } | null;
                         /** @description The approved non-trading declaration the count started under. */
-                        non_trading_event_id: string;
+                        non_trading_event_id: string | null;
                         /** @description The locations this count covers, by name - what a pass may be assigned. Identity only; the site's location directory keeps its own grant. */
                         locations: {
                             id: string;
@@ -48903,7 +48953,7 @@ export interface operations {
                          * @description Where the count stands. `differences_pending`: counted differs from the frozen book - it waits, frozen, for the difference review and the Owner's approval (ticket 17A) and is not a completed count. `matches_book`: ready to close with no posting. Only a reviewer not counting here is told `incomplete`, `differences_pending` or `matches_book`; a counter sees `awaiting_review`.
                          * @enum {string}
                          */
-                        progress: "counting" | "awaiting_review" | "incomplete" | "differences_pending" | "matches_book" | "closed_matching" | "cancelled";
+                        progress: "counting" | "awaiting_review" | "incomplete" | "differences_pending" | "matches_book" | "closed_matching" | "closed_adjusted" | "cancelled";
                         /** @description The reviewer's summary of the submitted passes; null for counters. */
                         review: {
                             /** @enum {string} */
@@ -48952,7 +49002,7 @@ export interface operations {
                             variance_hash: string;
                             lines: number;
                         } | null;
-                        allowed_actions: ("open_pass" | "continue_pass" | "lookup" | "variance" | "recount" | "close" | "cancel")[];
+                        allowed_actions: ("open_pass" | "continue_pass" | "lookup" | "variance" | "recount" | "close" | "submit_review" | "approve" | "reject" | "cancel")[];
                         history: {
                             id: string;
                             kind: string;
@@ -49143,8 +49193,19 @@ export interface operations {
                         open_passes: number;
                         submitted_passes: number;
                         stale_passes: number;
+                        trading_pause_verified: boolean;
+                        approval: {
+                            id: string;
+                            revision: number;
+                            reviewed_hash: string;
+                            state: string;
+                            policy_version_id: string | null;
+                            removed_qty: number;
+                            removed_value_paise: string;
+                            reason_code: string;
+                        } | null;
                         /** @description The approved non-trading declaration the count started under. */
-                        non_trading_event_id: string;
+                        non_trading_event_id: string | null;
                         /** @description The locations this count covers, by name - what a pass may be assigned. Identity only; the site's location directory keeps its own grant. */
                         locations: {
                             id: string;
@@ -49155,7 +49216,7 @@ export interface operations {
                          * @description Where the count stands. `differences_pending`: counted differs from the frozen book - it waits, frozen, for the difference review and the Owner's approval (ticket 17A) and is not a completed count. `matches_book`: ready to close with no posting. Only a reviewer not counting here is told `incomplete`, `differences_pending` or `matches_book`; a counter sees `awaiting_review`.
                          * @enum {string}
                          */
-                        progress: "counting" | "awaiting_review" | "incomplete" | "differences_pending" | "matches_book" | "closed_matching" | "cancelled";
+                        progress: "counting" | "awaiting_review" | "incomplete" | "differences_pending" | "matches_book" | "closed_matching" | "closed_adjusted" | "cancelled";
                         /** @description The reviewer's summary of the submitted passes; null for counters. */
                         review: {
                             /** @enum {string} */
@@ -49204,7 +49265,7 @@ export interface operations {
                             variance_hash: string;
                             lines: number;
                         } | null;
-                        allowed_actions: ("open_pass" | "continue_pass" | "lookup" | "variance" | "recount" | "close" | "cancel")[];
+                        allowed_actions: ("open_pass" | "continue_pass" | "lookup" | "variance" | "recount" | "close" | "submit_review" | "approve" | "reject" | "cancel")[];
                         history: {
                             id: string;
                             kind: string;
@@ -49761,6 +49822,270 @@ export interface operations {
                                 name: string;
                             };
                         }[];
+                    };
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_outbound_stocktakes_submit_review: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    reviewed_hash: string;
+                    selected_pass_ids: string[];
+                    reason_code: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        record_contract: "goods-v1";
+                        number: string | null;
+                        /** @enum {string} */
+                        state: "requested" | "open" | "review" | "closed" | "cancelled";
+                        revision: number;
+                        site: {
+                            id: string;
+                            code: string;
+                            name: string;
+                        };
+                        /** @description CountScope (design §5.3): the whole site, one location and everything under it, or one brand's goods at the site. `count_kind` is `full` or `cycle`. */
+                        scope: {
+                            /** @enum {string} */
+                            kind: "site" | "location" | "brand";
+                            /** @enum {string} */
+                            count_kind: "cycle" | "full";
+                            location_id: string | null;
+                            location_name: string | null;
+                            brand_id: string | null;
+                            brand_name: string | null;
+                        };
+                        frozen_at: string | null;
+                        /** @description True while the count holds the site's freeze (it is open). */
+                        freeze_active: boolean;
+                        started_by: {
+                            id: string | null;
+                            name: string;
+                        };
+                        /** Format: date-time */
+                        started_at: string;
+                        /** Format: date-time */
+                        last_activity_at: string;
+                        open_passes: number;
+                        submitted_passes: number;
+                        stale_passes: number;
+                        trading_pause_verified: boolean;
+                        approval: {
+                            id: string;
+                            revision: number;
+                            reviewed_hash: string;
+                            state: string;
+                            policy_version_id: string | null;
+                            removed_qty: number;
+                            removed_value_paise: string;
+                            reason_code: string;
+                        } | null;
+                        /** @description The approved non-trading declaration the count started under. */
+                        non_trading_event_id: string | null;
+                        /** @description The locations this count covers, by name - what a pass may be assigned. Identity only; the site's location directory keeps its own grant. */
+                        locations: {
+                            id: string;
+                            name: string;
+                            kind: string;
+                        }[];
+                        /**
+                         * @description Where the count stands. `differences_pending`: counted differs from the frozen book - it waits, frozen, for the difference review and the Owner's approval (ticket 17A) and is not a completed count. `matches_book`: ready to close with no posting. Only a reviewer not counting here is told `incomplete`, `differences_pending` or `matches_book`; a counter sees `awaiting_review`.
+                         * @enum {string}
+                         */
+                        progress: "counting" | "awaiting_review" | "incomplete" | "differences_pending" | "matches_book" | "closed_matching" | "closed_adjusted" | "cancelled";
+                        /** @description The reviewer's summary of the submitted passes; null for counters. */
+                        review: {
+                            /** @enum {string} */
+                            outcome: "incomplete" | "differences_pending" | "matches_book";
+                            variance_hash: string;
+                            differing_lines: number;
+                        } | null;
+                        passes: {
+                            /** Format: uuid */
+                            id: string;
+                            pass_no: number;
+                            counter: {
+                                id: string | null;
+                                name: string;
+                            };
+                            /** @enum {string} */
+                            kind: "count" | "location" | "recount";
+                            scope_label: string;
+                            location_id: string | null;
+                            /** @enum {string} */
+                            state: "open" | "submitted" | "selected" | "superseded";
+                            stale: boolean;
+                            /** Format: date-time */
+                            opened_at: string;
+                            last_activity_at: string | null;
+                            submitted_at: string | null;
+                            replaces_pass_id: string | null;
+                            reason_code: string | null;
+                            /** @description Pieces this pass observed. Only its own counter, or a reviewer who is not counting in this count, reads it; null for everyone else. */
+                            observed_qty: number | null;
+                        }[];
+                        my_open_pass_id: string | null;
+                        /** @description For a reviewer: the people counting in this count, for a recount. */
+                        counters: {
+                            id: string | null;
+                            name: string;
+                        }[];
+                        decision: {
+                            id: string;
+                            decided_by: {
+                                id: string | null;
+                                name: string;
+                            };
+                            /** Format: date-time */
+                            decided_at: string;
+                            variance_hash: string;
+                            lines: number;
+                        } | null;
+                        allowed_actions: ("open_pass" | "continue_pass" | "lookup" | "variance" | "recount" | "close" | "submit_review" | "approve" | "reject" | "cancel")[];
+                        history: {
+                            id: string;
+                            kind: string;
+                            actor_id: string | null;
+                            /** Format: date-time */
+                            recorded_at: string;
+                            revision: number | null;
+                            outcome: string | null;
+                            reason_code: string | null;
+                            evidence_ids: string[];
+                            related_document_id: string | null;
+                        }[];
+                        next_history_cursor: string | null;
                     };
                 };
             };
@@ -50925,6 +51250,15 @@ export interface operations {
                             };
                         }[];
                         allowed_actions: string[];
+                        approval: {
+                            id: string;
+                            revision: number;
+                            reviewed_hash: string;
+                            policy_version_id: string | null;
+                            completed_steps: number;
+                            total_steps: number;
+                            current_label: string;
+                        } | null;
                     };
                 };
             };
@@ -51486,6 +51820,15 @@ export interface operations {
                             };
                         }[];
                         allowed_actions: string[];
+                        approval: {
+                            id: string;
+                            revision: number;
+                            reviewed_hash: string;
+                            policy_version_id: string | null;
+                            completed_steps: number;
+                            total_steps: number;
+                            current_label: string;
+                        } | null;
                     };
                 };
             };
@@ -51584,6 +51927,8 @@ export interface operations {
                     contract_version: "goods-v1";
                     expected_revision?: number;
                     reason?: string;
+                    reviewed_hash: string;
+                    approval_revision: number;
                 };
             };
         };
@@ -52028,6 +52373,15 @@ export interface operations {
                             };
                         }[];
                         allowed_actions: string[];
+                        approval: {
+                            id: string;
+                            revision: number;
+                            reviewed_hash: string;
+                            policy_version_id: string | null;
+                            completed_steps: number;
+                            total_steps: number;
+                            current_label: string;
+                        } | null;
                     };
                 };
             };
@@ -52600,6 +52954,15 @@ export interface operations {
                             };
                         }[];
                         allowed_actions: string[];
+                        approval: {
+                            id: string;
+                            revision: number;
+                            reviewed_hash: string;
+                            policy_version_id: string | null;
+                            completed_steps: number;
+                            total_steps: number;
+                            current_label: string;
+                        } | null;
                     };
                 };
             };
@@ -53178,6 +53541,15 @@ export interface operations {
                             };
                         }[];
                         allowed_actions: string[];
+                        approval: {
+                            id: string;
+                            revision: number;
+                            reviewed_hash: string;
+                            policy_version_id: string | null;
+                            completed_steps: number;
+                            total_steps: number;
+                            current_label: string;
+                        } | null;
                     };
                 };
             };
@@ -54027,6 +54399,15 @@ export interface operations {
                             };
                         }[];
                         allowed_actions: string[];
+                        approval: {
+                            id: string;
+                            revision: number;
+                            reviewed_hash: string;
+                            policy_version_id: string | null;
+                            completed_steps: number;
+                            total_steps: number;
+                            current_label: string;
+                        } | null;
                     };
                 };
             };
@@ -54605,6 +54986,15 @@ export interface operations {
                             };
                         }[];
                         allowed_actions: string[];
+                        approval: {
+                            id: string;
+                            revision: number;
+                            reviewed_hash: string;
+                            policy_version_id: string | null;
+                            completed_steps: number;
+                            total_steps: number;
+                            current_label: string;
+                        } | null;
                     };
                 };
             };
@@ -55183,6 +55573,15 @@ export interface operations {
                             };
                         }[];
                         allowed_actions: string[];
+                        approval: {
+                            id: string;
+                            revision: number;
+                            reviewed_hash: string;
+                            policy_version_id: string | null;
+                            completed_steps: number;
+                            total_steps: number;
+                            current_label: string;
+                        } | null;
                     };
                 };
             };
@@ -55761,6 +56160,15 @@ export interface operations {
                             };
                         }[];
                         allowed_actions: string[];
+                        approval: {
+                            id: string;
+                            revision: number;
+                            reviewed_hash: string;
+                            policy_version_id: string | null;
+                            completed_steps: number;
+                            total_steps: number;
+                            current_label: string;
+                        } | null;
                     };
                 };
             };
@@ -56364,6 +56772,15 @@ export interface operations {
                             };
                         }[];
                         allowed_actions: string[];
+                        approval: {
+                            id: string;
+                            revision: number;
+                            reviewed_hash: string;
+                            policy_version_id: string | null;
+                            completed_steps: number;
+                            total_steps: number;
+                            current_label: string;
+                        } | null;
                     };
                 };
             };
@@ -57099,6 +57516,15 @@ export interface operations {
                             };
                         }[];
                         allowed_actions: string[];
+                        approval: {
+                            id: string;
+                            revision: number;
+                            reviewed_hash: string;
+                            policy_version_id: string | null;
+                            completed_steps: number;
+                            total_steps: number;
+                            current_label: string;
+                        } | null;
                     };
                 };
             };
@@ -57693,6 +58119,15 @@ export interface operations {
                             };
                         }[];
                         allowed_actions: string[];
+                        approval: {
+                            id: string;
+                            revision: number;
+                            reviewed_hash: string;
+                            policy_version_id: string | null;
+                            completed_steps: number;
+                            total_steps: number;
+                            current_label: string;
+                        } | null;
                     };
                 };
             };
@@ -58281,6 +58716,15 @@ export interface operations {
                             };
                         }[];
                         allowed_actions: string[];
+                        approval: {
+                            id: string;
+                            revision: number;
+                            reviewed_hash: string;
+                            policy_version_id: string | null;
+                            completed_steps: number;
+                            total_steps: number;
+                            current_label: string;
+                        } | null;
                     };
                 };
             };
@@ -58859,6 +59303,15 @@ export interface operations {
                             };
                         }[];
                         allowed_actions: string[];
+                        approval: {
+                            id: string;
+                            revision: number;
+                            reviewed_hash: string;
+                            policy_version_id: string | null;
+                            completed_steps: number;
+                            total_steps: number;
+                            current_label: string;
+                        } | null;
                     };
                 };
             };
@@ -59433,6 +59886,15 @@ export interface operations {
                             };
                         }[];
                         allowed_actions: string[];
+                        approval: {
+                            id: string;
+                            revision: number;
+                            reviewed_hash: string;
+                            policy_version_id: string | null;
+                            completed_steps: number;
+                            total_steps: number;
+                            current_label: string;
+                        } | null;
                     };
                 };
             };
@@ -60004,6 +60466,15 @@ export interface operations {
                             };
                         }[];
                         allowed_actions: string[];
+                        approval: {
+                            id: string;
+                            revision: number;
+                            reviewed_hash: string;
+                            policy_version_id: string | null;
+                            completed_steps: number;
+                            total_steps: number;
+                            current_label: string;
+                        } | null;
                     };
                 };
             };
@@ -68426,18 +68897,8 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        items?: {
-                            sale_line_id: string;
-                            site_id: string;
-                            doc_number: string;
-                            till_number: string;
-                            barcode: string;
-                            description: string;
-                            qty: number;
-                            /** Format: date-time */
-                            returned_at: string;
-                        }[];
-                        next_cursor?: string | null;
+                        accepted_qty: number;
+                        lines: number;
                     };
                 };
             };
@@ -68669,18 +69130,8 @@ export interface operations {
                 };
                 content: {
                     "application/json": {
-                        items?: {
-                            sale_line_id: string;
-                            site_id: string;
-                            doc_number: string;
-                            till_number: string;
-                            barcode: string;
-                            description: string;
-                            qty: number;
-                            /** Format: date-time */
-                            returned_at: string;
-                        }[];
-                        next_cursor?: string | null;
+                        accepted_qty: number;
+                        lines: number;
                     };
                 };
             };

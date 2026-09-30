@@ -154,7 +154,21 @@ export default function CashCountPage() {
             </p>
           )}
           {!position.switched_on ? null : position.counted ? (
-            <SavedCount count={position.counted} />
+            <>
+              <SavedCount count={position.counted} />
+              {(position.bills > 0 ||
+                Number(position.movements_paise) !== 0 ||
+                Number(position.petty_cash_paise) !== 0 ||
+                Number(position.petty_top_ups_paise) !== 0) && (
+                <p className="warn-note" role="status" data-testid="cash-after-close">
+                  New activity arrived after this saved count: {position.bills} uncounted bill(s).
+                  It belongs to the next count; the saved count and its evidence stay unchanged. The
+                  drawer expected for the next count is{" "}
+                  <Money paise={expectedPaise(position, null) ?? 0} />. Today’s saved count does not
+                  settle this later activity.
+                </p>
+              )}
+            </>
           ) : (
             <CountForm
               position={position}

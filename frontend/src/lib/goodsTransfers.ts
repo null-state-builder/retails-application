@@ -526,6 +526,15 @@ export interface TransferEventRow {
 }
 
 export interface TransferDetail extends TransferSummary {
+  approval?: {
+    id: string;
+    revision: number;
+    reviewed_hash: string;
+    policy_version_id: string | null;
+    completed_steps: number;
+    total_steps: number;
+    current_label: string;
+  } | null;
   pt_id: string | null;
   pt_number: string | null;
   pt_state: string | null;

@@ -406,6 +406,12 @@ const PT_APPROVALS = ptWorkPath({ tab: "approve" });
  *  the checker reviews the exact submitted revision there, with step-up. */
 const GOODS_APPROVAL_GUIDE: Record<string, GoodsApprovalGuide> = {
   // PT Work's To approve tab (OPS-17): the PT approvals screen is that tab now.
+  "pt.approve.transfer": {
+    topic: "transfers",
+    label: "Transfer review",
+    screen: "/goods/transfers",
+  },
+  "count.review": { topic: "stock", label: "Blind count review", screen: "/goods/counts" },
   "pt.approve.receipt": { topic: "receiving", label: "Receipt PT", screen: PT_APPROVALS },
   "pt.reversal.approve": { topic: "receiving", label: "PT reversal", screen: PT_APPROVALS },
   "pt.approve.opening": { topic: "opening", label: "Opening PT", screen: PT_APPROVALS },
@@ -444,10 +450,7 @@ const GOODS_APPROVAL_GUIDE: Record<string, GoodsApprovalGuide> = {
 
 /** The actions a goods approval can ask for. Holding one of them is what makes
  *  the goods inbox worth asking for at all, so nobody else sends the request. */
-export const GOODS_APPROVAL_ACTIONS: readonly string[] = [
-  ...Object.keys(GOODS_APPROVAL_GUIDE),
-  "count.review",
-];
+export const GOODS_APPROVAL_ACTIONS: readonly string[] = [...Object.keys(GOODS_APPROVAL_GUIDE)];
 
 export function holdsGoodsApprovals(session: { display_actions: string[] } | null): boolean {
   return GOODS_APPROVAL_ACTIONS.some((action) => session?.display_actions?.includes(action));
@@ -490,7 +493,9 @@ export function goodsApprovalView(
       ? `${guide.screen}?movement=${encodeURIComponent(a.subject_id)}`
       : isNewItemProposal(a)
         ? ptWorkPath({ tab: "rules" })
-        : guide.screen;
+        : a.subject_kind === "transfer" || a.subject_kind === "count"
+          ? `${guide.screen}/${encodeURIComponent(a.subject_id)}`
+          : guide.screen;
   const label = isNewItemProposal(a) ? "New item to confirm" : guide.label;
   return { topic: guide.topic, label, to, number: a.parent_document?.number ?? null };
 }

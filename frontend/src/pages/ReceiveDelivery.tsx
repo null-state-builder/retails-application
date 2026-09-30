@@ -45,6 +45,7 @@ import { GrnStart, PtEditor } from "./PtPrepare";
 import { PtApprovePanel } from "./PtApprovals";
 import { LabelsPanel } from "./GoodsLabels";
 import { AcceptPanel } from "./GoodsAccept";
+import { ReturnedGoodsAcceptance } from "./ReturnedGoodsAcceptance";
 
 /** The rail never shows "done" as a step of its own: it is the end, not a
  *  thing anybody opens. */
@@ -92,6 +93,10 @@ function StepPanel({ item, step }: { item: InboxItem; step: ReceivingStep }) {
   const [freshPt, setFreshPt] = useState<string | null>(null);
   const ptId = freshPt ?? item.pt_id;
   const canPrepare = hold(session, "pt.prepare");
+
+  if (item.kind === "customer_return") {
+    return <ReturnedGoodsAcceptance item={item} />;
+  }
 
   if (item.kind === "transfer_dispatch") {
     // OPS-06 builds the dispatch records and their own steps. Until it does,
@@ -276,7 +281,12 @@ function DeliveryPage() {
   const step = wanted && stepIsReachable(item, wanted) ? wanted : item.next_step;
   const panelStep: ReceivingStep = step === "done" ? "accept" : step;
   const booking = bookingProgress(item);
-  const recordKind = item.kind === "transfer_dispatch" ? "transfer" : "delivery";
+  const recordKind =
+    item.kind === "transfer_dispatch"
+      ? "transfer"
+      : item.kind === "customer_return"
+        ? "return"
+        : "delivery";
 
   return (
     <OperationsPage>
@@ -315,7 +325,9 @@ function DeliveryPage() {
           </>
         }
       />
-      <StepRail item={item} showing={panelStep} onShow={setShowing} />
+      {item.kind !== "customer_return" && (
+        <StepRail item={item} showing={panelStep} onShow={setShowing} />
+      )}
       <p className="lead" data-testid="delivery-step-help">
         {STEP_HELP[step]}
       </p>

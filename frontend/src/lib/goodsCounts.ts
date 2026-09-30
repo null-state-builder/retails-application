@@ -95,6 +95,11 @@ export function progressWords(progress: CountDetail["progress"]): { title: strin
         title: "Counted matches the book",
         body: "It can be closed. Closing changes no stock and lifts the freeze.",
       };
+    case "closed_adjusted":
+      return {
+        title: "Closed after independent review",
+        body: "The approved original-cost shortages were posted once. The store freeze is lifted; resume the counter when ready.",
+      };
     case "closed_matching":
       return {
         title: "Closed - counted matched the book",

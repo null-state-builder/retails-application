@@ -87,9 +87,9 @@ export function InventoryPage() {
         <div className="page-tabs">{tabs.filter((tab) => daily.has(tab.slug)).map(tabLink)}</div>
         {tabs.some((tab) => tab.slug === "assigned-counts") && (
           <p className="muted" data-testid="inventory-assigned-counts-inactive">
-            Assigned blind counts for trading stores are not active. Existing blind counts require
-            an independently approved non-trading site; their records and count schedules are in
-            Review &amp; history. Reviewed SOH inventory reconciliation is a separate workflow.
+            Blind counts freeze sales and stock movements. Trading stores must sync and pause their
+            online counter before starting; a different authorised person approves the reviewed
+            result before closure. Count schedules and earlier evidence are in Review &amp; history.
           </p>
         )}
       </nav>

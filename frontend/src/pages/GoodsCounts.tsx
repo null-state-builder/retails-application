@@ -1,23 +1,5 @@
-// Stock counts at non-trading sites (goods ticket 17).
-//
-// Two screens: the counts at your sites (and starting one), and one count.
-//
-// What the screen has to make plain rather than merely obey:
-//   * a count is only for a site declared non-trading. A site with tills, or
-//     with no declaration, is refused - the server says why and the screen
-//     shows it;
-//   * starting a count freezes the whole site: no stock moves, is sent,
-//     received or put away until the count ends. Damage can still be reported,
-//     and goes to quarantine at once;
-//   * counting is blind. Nothing a counter sees says how many there should be;
-//     a scanned tag answers what the item is, never how many;
-//   * a pass is submitted only with the counter's word that the whole assigned
-//     area was counted, empty places included. An unfinished pass stays open to
-//     continue; one left idle for a day has to be resumed on purpose;
-//   * the only endings here move nothing: a count that matches the book closes,
-//     and a count can be cancelled with everything counted kept. A count that
-//     differs from the book is *not complete* - it stays frozen, waiting for
-//     review and the Owner's approval - and the screen never says otherwise.
+// Canonical blind count capture, exact variance preparation and independent review.
+// Trading stores require verified online pause; unresolved gains remain inactive.
 import { useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ClipboardCheck, Play, RotateCcw, ScanLine, Search, Send, XCircle } from "lucide-react";
@@ -32,6 +14,7 @@ import {
   hold,
   listState,
   useGoodsFetch,
+  useStepUp,
   type Page,
 } from "../lib/goodsScreen";
 import {
@@ -146,15 +129,16 @@ export function GoodsCountsPage() {
     <OperationsPage className="stock-layout">
       <PageHeader
         title="Stock counts"
-        lead="Blind counts at sites that do not trade. Starting one freezes the site until it ends; only a count that matches the book, or a cancelled one, ends here."
+        lead="Blind counts freeze the store until closure. Trading stores require an online, synced and paused counter; every trading result needs independent approval."
       />
 
       {canCount && (
         <section className="card section-card" data-testid="cnt-start">
           <h3 className="h3">Start a count</h3>
           <p className="lead">
-            Only a site declared non-trading - no tills, no bills - can be counted. Starting freezes
-            the whole site: no stock moves, is sent, received or put away until the count ends.
+            A non-trading site needs its approved declaration. A trading store must first sync and
+            pause its online counter in Sell. Starting freezes sales and stock movements until
+            closure; unsupported found stock stays pending and cannot silently increase inventory.
             Damage can still be reported.
           </p>
           <div className="form-grid">
@@ -315,7 +299,7 @@ export function GoodsCountDetailPage() {
           <p className="muted" data-testid="cnt-decision">
             Closed by {count.decision.decided_by.name || "-"} on{" "}
             {formatDateTime(count.decision.decided_at)} over {count.decision.lines} line(s), all
-            matching.
+            reviewed.
           </p>
         )}
       </section>
@@ -819,6 +803,7 @@ function ReviewPanel({
     (r) => r,
     null,
   );
+  const stepUp = useStepUp();
   const [ticked, setTicked] = useState<Set<string>>(new Set());
   const [counter, setCounter] = useState("");
   const [reason, setReason] = useState("");
@@ -858,6 +843,52 @@ function ReviewPanel({
     }
   }
 
+  async function submitReview() {
+    if (!report) return;
+    setBusy(true);
+    try {
+      await api.post(`${STOCKTAKES}/${count.id}/submit-review`, {
+        ...goodsMeta(),
+        expected_revision: count.revision,
+        reviewed_hash: report.variance_hash,
+        selected_pass_ids: report.selected_pass_ids,
+        reason_code: reason.trim(),
+      });
+      onDone(
+        "Exact count submitted for independent approval. The store remains frozen and the till paused.",
+      );
+    } catch (e) {
+      onError(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function decide(decision: "approve" | "reject") {
+    const approval = count.approval;
+    if (!approval) return;
+    setBusy(true);
+    try {
+      await stepUp.guarded(() =>
+        api.post(`/goods-v1/approvals/${approval.id}/decide`, {
+          ...goodsMeta(approval.revision),
+          reviewed_hash: approval.reviewed_hash,
+          decision,
+          reason_code: decision === "reject" ? reason.trim() : undefined,
+        }),
+      );
+      onDone(
+        decision === "approve"
+          ? "Count approved and closed. Exact shortages were applied once; resume the counter when ready."
+          : "Review rejected. The count stays frozen for correction or cancellation.",
+      );
+    } catch (e) {
+      onError(e);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function close() {
     if (!report) return;
     setBusy(true);
@@ -879,6 +910,7 @@ function ReviewPanel({
 
   return (
     <section className="card section-card" data-testid="cnt-review">
+      {stepUp.dialog}
       <h3 className="h3">Review against the book</h3>
       <p className="lead">
         The book is the site's stock at the moment the count froze it. Unscanned stock counts as
@@ -957,42 +989,106 @@ function ReviewPanel({
           The ticked lines were counted in different passes. Ask for one recount per pass.
         </p>
       )}
-      <div className="form-grid">
-        <Field id="cnt-recount-counter" label="Who recounts">
-          <select
-            id="cnt-recount-counter"
-            className="select"
-            value={counter}
-            onChange={(e) => setCounter(e.target.value)}
-            data-testid="cnt-recount-counter"
+      {count.allowed_actions.includes("recount") && (
+        <div className="form-grid">
+          <Field id="cnt-recount-counter" label="Who recounts">
+            <select
+              id="cnt-recount-counter"
+              className="select"
+              value={counter}
+              onChange={(e) => setCounter(e.target.value)}
+              data-testid="cnt-recount-counter"
+            >
+              <option value="">Choose</option>
+              {count.counters.map((person) => (
+                <option key={person.id ?? ""} value={person.id ?? ""}>
+                  {person.name || person.id}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field id="cnt-recount-reason" label="Why">
+            <input
+              id="cnt-recount-reason"
+              className="input"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              data-testid="cnt-recount-reason"
+            />
+          </Field>
+          <button
+            className="btn btn-sm"
+            disabled={busy || ticked.size === 0 || source.mixed || !counter || !reason.trim()}
+            onClick={recount}
+            data-testid="cnt-recount"
           >
-            <option value="">Choose</option>
-            {count.counters.map((person) => (
-              <option key={person.id ?? ""} value={person.id ?? ""}>
-                {person.name || person.id}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field id="cnt-recount-reason" label="Why">
-          <input
-            id="cnt-recount-reason"
-            className="input"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            data-testid="cnt-recount-reason"
-          />
-        </Field>
-        <button
-          className="btn btn-sm"
-          disabled={busy || ticked.size === 0 || source.mixed || !counter || !reason.trim()}
-          onClick={recount}
-          data-testid="cnt-recount"
-        >
-          <RotateCcw size={14} /> Assign the recount
-        </button>
-      </div>
+            <RotateCcw size={14} /> Assign the recount
+          </button>
+        </div>
+      )}
 
+      {count.approval && (
+        <div className="card section-card" data-testid="cnt-approval">
+          <p>
+            Review {count.approval.state}: remove {count.approval.removed_qty} unit(s) at recorded
+            purchase cost ₹{(Number(count.approval.removed_value_paise) / 100).toFixed(2)}. Reason:{" "}
+            {count.approval.reason_code}.
+          </p>
+          <p className="muted">
+            This decision binds the displayed passes, frozen stock, pause evidence and policy
+            version. The maker, counters and preparer cannot approve it.
+          </p>
+          {count.allowed_actions.includes("approve") && (
+            <div className="form-actions">
+              <button
+                className="btn btn-cta"
+                disabled={busy}
+                onClick={() => decide("approve")}
+                data-testid="cnt-approve"
+              >
+                Approve exact count and close
+              </button>
+              <Field id="cnt-reject-reason" label="Rejection reason code">
+                <input
+                  className="input"
+                  id="cnt-reject-reason"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                />
+              </Field>
+              <button
+                className="btn"
+                disabled={busy || !reason.trim()}
+                onClick={() => decide("reject")}
+                data-testid="cnt-reject"
+              >
+                Reject for correction
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+      {count.allowed_actions.includes("submit_review") && report.complete && (
+        <div className="form-grid">
+          <Field id="cnt-review-reason" label="Configured count-correction reason code">
+            <input
+              id="cnt-review-reason"
+              className="input"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              data-testid="cnt-review-reason"
+            />
+          </Field>
+          <button
+            className="btn btn-cta"
+            disabled={busy || !reason.trim()}
+            onClick={submitReview}
+            data-testid="cnt-submit-review"
+          >
+            <ClipboardCheck size={14} /> Submit exact count for independent approval
+          </button>
+        </div>
+      )}
       {count.allowed_actions.includes("close") && report.matches_book && (
         <div className="toolbar">
           <button className="btn btn-cta" disabled={busy} onClick={close} data-testid="cnt-close">

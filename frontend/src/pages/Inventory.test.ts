@@ -24,7 +24,7 @@ describe("daily stock and retained review destinations", () => {
     expect(allowed.find((tab) => tab.slug === "assigned-counts")).toMatchObject({
       entry: "/goods/counts",
       link: true,
-      label: "Blind count records (non-trading)",
+      label: "Blind counts",
     });
     expect(allowed.find((tab) => tab.slug === "count")?.label).toBe("Earlier count records");
     expect(allowed.find((tab) => tab.slug === "ledger")?.entry).toBe("/stock/history");

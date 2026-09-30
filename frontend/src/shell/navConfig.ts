@@ -1316,7 +1316,7 @@ export const INVENTORY_FOLD: NavFoldDef = {
     { slug: "stock", label: "Stock", entry: "/stock" },
     {
       slug: "assigned-counts",
-      label: "Blind count records (non-trading)",
+      label: "Blind counts",
       entry: "/goods/counts",
       link: true,
     },

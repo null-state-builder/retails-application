@@ -549,7 +549,16 @@ export function TransferDetailPage() {
 
   async function command(path: string, body: Record<string, unknown>, message: string) {
     try {
-      await guarded(() => api.post(`${TRANSFERS}/${id}${path}`, { ...body, ...goodsMeta() }));
+      const approval = path === "/approve" ? detail?.approval : null;
+      await guarded(() =>
+        api.post(`${TRANSFERS}/${id}${path}`, {
+          ...body,
+          ...goodsMeta(),
+          ...(approval
+            ? { reviewed_hash: approval.reviewed_hash, approval_revision: approval.revision }
+            : {}),
+        }),
+      );
       done(message);
     } catch (e) {
       failed(e);
@@ -644,6 +653,12 @@ export function TransferDetailPage() {
             >
               <Send size={14} /> Send for approval
             </button>
+          )}
+          {detail.approval && (
+            <p className="muted" data-testid="transfer-approval-route">
+              Review {detail.approval.completed_steps} of {detail.approval.total_steps} complete ·{" "}
+              {detail.approval.current_label}
+            </p>
           )}
           {may("approve") && <ApproveForm onRun={command} />}
           {may("cancel_outstanding") && <CancelForm onRun={command} />}
@@ -865,7 +880,11 @@ function ApproveForm({ onRun }: { onRun: Runner }) {
       <button
         className="btn btn-cta"
         onClick={() =>
-          onRun("/approve", { reason }, "Approved. The pieces are reserved at the sending site.")
+          onRun(
+            "/approve",
+            { reason },
+            "Review recorded. Stock is reserved only after every independent route step approves.",
+          )
         }
         data-testid="transfer-approve"
       >

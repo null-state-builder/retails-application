@@ -171,7 +171,8 @@ export function ReceiveInboxPage({ view = "pending" }: { view?: "pending" | "his
                           </>
                         ) : (
                           <>
-                            <PackagePlus size={13} /> Vendor
+                            <PackagePlus size={13} />
+                            {item.kind === "customer_return" ? "Customer return" : "Vendor"}
                           </>
                         )}
                       </span>
