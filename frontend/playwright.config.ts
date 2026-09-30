@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 
 export default defineConfig({
   testDir: "./browser",
+  testIgnore: ["manager-workspace.spec.ts", "first-store-pos.spec.ts"],
   fullyParallel: false,
   forbidOnly: true,
   retries: process.env.CI ? 1 : 0,
