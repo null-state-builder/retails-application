@@ -15,6 +15,7 @@ class MastersConfig(AppConfig):
         from approvals.goods_services import register_subject_handler
         from masters.goods_identity_services import install
         from masters.goods_services import handle_configuration_approval
+        from masters.master_sheet_services import install as install_master_sheet
 
         register_subject_handler(
             "configuration", "config.approve", handle_configuration_approval, policy_governed=False
@@ -22,3 +23,5 @@ class MastersConfig(AppConfig):
         # Goods-v1 master proposals are decided through the one approvals command
         # (E234); their conflict constraints refuse as MASTER_CONFLICT.
         install()
+        # A master sheet import package is approved as one configuration decision.
+        install_master_sheet()

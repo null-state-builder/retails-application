@@ -26,6 +26,7 @@ import { FirstStoreSetupPage } from "./pages/FirstStoreSetup";
 import { PeopleAccessPage } from "./pages/PeopleAccess";
 import { ProductsPartiesPage } from "./pages/ProductsParties";
 import { ConfigurationPage } from "./pages/Configuration";
+import { ProductListsPage } from "./pages/ProductLists";
 import { SellPolicySettingsPage } from "./pages/SellPolicySettings";
 import { AuditLogPage } from "./pages/AuditLog";
 import { SalesReportPage } from "./pages/SalesReport";
@@ -372,6 +373,7 @@ const BUILT: Screen[] = [
     path: "/setup/products-parties",
     element: <ProductsPartiesPage />,
   },
+  { id: "setup-products", path: "/setup/products", element: <ProductListsPage /> },
   { id: "setup-configuration", path: "/setup/configuration", element: <ConfigurationPage /> },
   { id: "setup-stores", path: "/setup/stores", element: <StoresPage /> },
   { id: "setup-brands", path: "/setup/brands", element: <BrandsPage /> },

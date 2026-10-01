@@ -56,6 +56,7 @@ from masters.goods_services import (
     backdate_impact,
     bump_revision,
     closure_items,
+    create_brand_like,
     compute_readiness_checks,
     config_draft_data,
     config_draft_hash,
@@ -2518,23 +2519,12 @@ class _BrandLikeListCreateView(GoodsAPIView):
         body = business_body(request.data, self.fields, required=["code", "name"])
         access.require("vendor.manage")
 
+        if body.get("parent_id"):
+            parse_int_id(body["parent_id"], "parent_id")
+
         def handler(run: CommandRun) -> CommandResult:
-            if self.model.objects.filter(code=body["code"]).exists():
-                raise Refusal(
-                    "MASTER_CONFLICT", f"A {self.kind} with code {body['code']} already exists."
-                )
-            if body.get("parent_id"):
-                if not Brand.objects.filter(
-                    pk=parse_int_id(body["parent_id"], "parent_id")
-                ).exists():
-                    raise Refusal("MASTER_INVALID", "parent_id does not name a known brand.")
-            try:
-                row = self.model.objects.create(code=str(body["code"]), name=str(body["name"]))
-            except IntegrityError as exc:
-                raise Refusal("MASTER_CONFLICT", "That code is already in use.") from exc
-            start_revision(run.tenant_id, self.family, str(row.pk))
-            append_master_version(
-                run, kind=self.kind, target_key=str(row.pk), revision=1, payload=body
+            row = create_brand_like(
+                run, kind=self.kind, family=self.family, model=self.model, body=body
             )
             return CommandResult(resource_type=self.kind, resource_id=str(row.pk), status_code=201)
 

@@ -324,8 +324,19 @@ def stage_registration(data: dict[str, Any], *, edit: bool = False) -> dict[str,
         row.request_fingerprint = fingerprint
         row.summary = summary
         row.summary_hash = content_hash(summary)
-        row.owner_password_hash = make_password(data["owner"]["temporary_password"])
-        row.admin_password_hash = make_password(data["admin"]["temporary_password"])
+        # An edit may omit a person's temporary password to keep the saved one.
+        for role, other in (("owner", "admin"), ("admin", "owner")):
+            password = data[role].get("temporary_password")
+            if not password:
+                continue
+            if "temporary_password" not in data[other] and check_password(
+                password, getattr(row, f"{other}_password_hash")
+            ):
+                raise Refusal(
+                    "INVALID_REQUEST",
+                    "Owner and Admin must use separate temporary passwords.",
+                )
+            setattr(row, f"{role}_password_hash", make_password(password))
         row.save()
         return _safe_result(row)
 

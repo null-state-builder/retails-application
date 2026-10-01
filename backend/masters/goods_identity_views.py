@@ -50,12 +50,14 @@ from masters.goods_identity_models import (
 from masters.goods_identity_services import (
     ALIAS_TYPES,
     BRAND_ISSUER_PREFIX,
+    CROSSWALK_CONFLICT,
     CROSSWALK_KINDS,
     MANAGE_ACTION,
     PROPOSE_ACTION,
     IdentityProfile,
     alias_data,
     allocate_generated_value,
+    apply_retirement,
     attribute_dimensions,
     attribute_target,
     bounded_text,
@@ -81,6 +83,8 @@ from masters.goods_identity_services import (
     record_master_version,
     record_pick,
     resolve_alias,
+    retire_crosswalk,
+    retirement_target,
     rule_brand,
     save_master,
     sku_data,
@@ -88,6 +92,7 @@ from masters.goods_identity_services import (
     style_data,
     sync_crosswalk_exception,
     ts,
+    write_crosswalk,
 )
 from masters.goods_models import ConfigVersion
 from masters.goods_models import MasterVersion as MasterVersionRow
@@ -420,24 +425,6 @@ def create_result(kind: str, resource: dict[str, Any], row: Any) -> dict[str, An
         "originating_revision_id": opt_id(row.originating_revision_id),
         "approval_request_id": opt_id(request.pk if request is not None else None),
     }
-
-
-def retirement_target(row: Any) -> None:
-    if row.governance_state == GovernanceState.PENDING:
-        raise Refusal(
-            "RETIREMENT_BLOCKED",
-            "A pending proposal is decided through its approval, not retired.",
-        )
-    if row.governance_state == GovernanceState.RETIRED or getattr(row, "retired_at", None):
-        raise Refusal("RETIREMENT_BLOCKED", "This master is already retired.")
-
-
-def apply_retirement(run: CommandRun, row: Any, effective_at: datetime) -> None:
-    row.retired_at = effective_at
-    if effective_at <= run.now:
-        row.governance_state = GovernanceState.RETIRED
-    row.revision += 1
-    row.save(update_fields=["retired_at", "governance_state", "revision"])
 
 
 def retire_body(request: Request) -> tuple[str, datetime, dict[str, Any]]:
@@ -2007,7 +1994,6 @@ def crosswalk_visible(access: AccessContext, row: SourceCrosswalk) -> bool:
     return pending_visible(access, "crosswalk", CROSSWALK_MANAGE, row)
 
 
-CROSSWALK_CONFLICT = "That source key is already mapped for this issuer and configuration."
 
 
 def crosswalk_fields(body: dict[str, Any], *, partial: bool) -> dict[str, Any]:
@@ -2118,17 +2104,9 @@ class CrosswalkListCreateView(GoodsAPIView):
                 raise master_invalid(
                     f"target_key is not a live {clean['kind']}.", field="target_key"
                 )
-            if SourceCrosswalk.objects.filter(
-                tenant_id=run.tenant_id,
-                kind=clean["kind"],
-                issuer_key=clean["issuer_key"],
-                source_key=clean["source_key"],
-                config_version_id=config_id,
-            ).exists():
-                raise Refusal("MASTER_CONFLICT", CROSSWALK_CONFLICT)
             unresolved = clean["target_key"] == ""
-            row = SourceCrosswalk(
-                tenant_id=run.tenant_id,
+            row = write_crosswalk(
+                run,
                 kind=clean["kind"],
                 issuer_key=clean["issuer_key"],
                 source_key=clean["source_key"],
@@ -2138,9 +2116,6 @@ class CrosswalkListCreateView(GoodsAPIView):
                 if proposal or unresolved
                 else GovernanceState.EFFECTIVE,
             )
-            save_master(row, conflict=CROSSWALK_CONFLICT)
-            record_master_version(run, "crosswalk", row)
-            sync_crosswalk_exception(run, row)
             run.audit_after = crosswalk_data(row)
             return CommandResult(
                 resource_type="crosswalk", resource_id=str(row.pk), status_code=201
@@ -2292,12 +2267,8 @@ class CrosswalkRetireView(GoodsAPIView):
                 LockRank.DOCUMENT, SourceCrosswalk.objects.filter(tenant_id=run.tenant_id, pk=pk)
             )[0]
             check_revision(meta.expected_revision, row.revision)
-            retirement_target(row)
             run.audit_before = crosswalk_data(row)
-            apply_retirement(run, row, effective_at)
-            record_master_version(
-                run, "crosswalk", row, retired=True, reason_code=reason, effective_from=effective_at
-            )
+            retire_crosswalk(run, row, reason_code=reason, effective_at=effective_at)
             return CommandResult(resource_type="crosswalk", resource_id=str(row.pk))
 
         result = self.run_command(

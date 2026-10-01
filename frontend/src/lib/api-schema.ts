@@ -2710,6 +2710,108 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/goods-v1/masters/master-sheet-imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        get: operations["goods_v1_master_sheet_import_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goods-v1/masters/master-sheet-imports/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        get: operations["goods_v1_master_sheet_import_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goods-v1/masters/master-sheet-imports/{id}/{operation}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        post: operations["goods_v1_master_sheet_import_mutate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goods-v1/masters/master-sheet-imports/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        get: operations["goods_v1_master_sheet_summary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goods-v1/masters/master-sheet-imports/template.xlsx": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description The KDPS PT file from the lists in force: Master Sheet plus a blank Work Sheet. */
+        get: operations["goods_v1_master_sheet_template"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goods-v1/masters/master-sheet-imports/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        post: operations["goods_v1_master_sheet_import_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/goods-v1/masters/seasons": {
         parameters: {
             query?: never;
@@ -12730,6 +12832,13 @@ export interface components {
             size: string;
             qty: number;
         };
+        InitialPersonEditInput: {
+            name: string;
+            /** Format: email */
+            email: string;
+            staff_code?: string;
+            temporary_password?: string;
+        };
         InitialPersonInput: {
             name: string;
             /** Format: email */
@@ -13604,8 +13713,8 @@ export interface components {
             command_id?: string;
             company?: components["schemas"]["CompanyInput"];
             store?: components["schemas"]["FirstStoreInput"];
-            owner?: components["schemas"]["InitialPersonInput"];
-            admin?: components["schemas"]["InitialPersonInput"];
+            owner?: components["schemas"]["InitialPersonEditInput"];
+            admin?: components["schemas"]["InitialPersonEditInput"];
             proposed_team?: components["schemas"]["ProposedPersonInput"][];
             current_owner_password?: string;
         };
@@ -33728,6 +33837,879 @@ export interface operations {
                         message?: string;
                         details?: {
                             [key: string]: unknown;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_master_sheet_import_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        items: {
+                            /** Format: uuid */
+                            id: string;
+                            /** @enum {string} */
+                            record_contract: "goods-v1";
+                            revision: number;
+                            /** @enum {string} */
+                            state: "review" | "submitted" | "approved" | "withdrawn";
+                            content_hash: string;
+                            source_name: string;
+                            source_hash: string;
+                            /** Format: date-time */
+                            created_at?: string;
+                            allowed_actions: ("select" | "refresh" | "submit" | "withdraw" | "approve")[];
+                            data: {
+                                sheet: string;
+                                rows_read: number;
+                                stale: boolean;
+                                uploaded_by: string;
+                                approved_by: string | null;
+                                /** Format: uuid */
+                                approval_request_id: string | null;
+                                selections: {
+                                    retire?: string[];
+                                    skip_values?: {
+                                        [key: string]: string[];
+                                    };
+                                    skip_brands?: string[];
+                                    skip_seasons?: string[];
+                                    rule_choices?: {
+                                        [key: string]: {
+                                            sub_category?: string;
+                                            type?: string;
+                                        };
+                                    };
+                                    acknowledged?: string[];
+                                };
+                                plan: {
+                                    dimensions: {
+                                        dimension: string;
+                                        column: string;
+                                        current_version_id: string | null;
+                                        changed: boolean;
+                                        added: {
+                                            text: string;
+                                            row: number;
+                                        }[];
+                                        left_out: {
+                                            text: string;
+                                            row: number;
+                                        }[];
+                                        present: {
+                                            value_id: string;
+                                            label: string;
+                                        }[];
+                                        back_in_use: {
+                                            value_id: string;
+                                            label: string;
+                                        }[];
+                                        not_in_sheet: {
+                                            value_id: string;
+                                            label: string;
+                                            retire: boolean;
+                                        }[];
+                                        problems: {
+                                            column: string;
+                                            row: number;
+                                            text: string;
+                                            code: string;
+                                            message: string;
+                                            blocking: boolean;
+                                        }[];
+                                        counts: {
+                                            [key: string]: number;
+                                        };
+                                    }[];
+                                    brands: {
+                                        to_create: {
+                                            name: string;
+                                            code: string;
+                                            include: boolean;
+                                            row?: number;
+                                        }[];
+                                        present_count: number;
+                                        not_in_sheet: {
+                                            id: number;
+                                            name: string;
+                                        }[];
+                                        terms_note: string;
+                                        problems: {
+                                            column: string;
+                                            row: number;
+                                            text: string;
+                                            code: string;
+                                            message: string;
+                                            blocking: boolean;
+                                        }[];
+                                    };
+                                    seasons: {
+                                        to_create: {
+                                            name: string;
+                                            code: string;
+                                            include: boolean;
+                                            row?: number;
+                                        }[];
+                                    };
+                                    item_rules: {
+                                        new: {
+                                            item: string;
+                                            row: number;
+                                            sub_category?: {
+                                                value: string;
+                                                options: string[];
+                                                target_id: string;
+                                                from: string | null;
+                                                rule_id: string | null;
+                                            } | null;
+                                            type?: {
+                                                value: string;
+                                                options: string[];
+                                                target_id: string;
+                                                from: string | null;
+                                                rule_id: string | null;
+                                            } | null;
+                                        }[];
+                                        changed: {
+                                            item: string;
+                                            row: number;
+                                            sub_category?: {
+                                                value: string;
+                                                options: string[];
+                                                target_id: string;
+                                                from: string | null;
+                                                rule_id: string | null;
+                                            } | null;
+                                            type?: {
+                                                value: string;
+                                                options: string[];
+                                                target_id: string;
+                                                from: string | null;
+                                                rule_id: string | null;
+                                            } | null;
+                                        }[];
+                                        same_count: number;
+                                        problems: {
+                                            column: string;
+                                            row: number;
+                                            text: string;
+                                            code: string;
+                                            message: string;
+                                            blocking: boolean;
+                                        }[];
+                                    };
+                                    ignored_columns: {
+                                        column: string;
+                                        values: string[];
+                                        reason: string;
+                                    }[];
+                                    warnings: {
+                                        id: string;
+                                        code: string;
+                                        dimension: string;
+                                        message: string;
+                                        acknowledged: boolean;
+                                    }[];
+                                    change_count: number;
+                                    retires: boolean;
+                                    ready: boolean;
+                                };
+                                result: {
+                                    [key: string]: unknown;
+                                };
+                            };
+                        }[];
+                        next_cursor: string | null;
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_master_sheet_import_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        record_contract: "goods-v1";
+                        revision: number;
+                        /** @enum {string} */
+                        state: "review" | "submitted" | "approved" | "withdrawn";
+                        content_hash: string;
+                        source_name: string;
+                        source_hash: string;
+                        /** Format: date-time */
+                        created_at?: string;
+                        allowed_actions: ("select" | "refresh" | "submit" | "withdraw" | "approve")[];
+                        data: {
+                            sheet: string;
+                            rows_read: number;
+                            stale: boolean;
+                            uploaded_by: string;
+                            approved_by: string | null;
+                            /** Format: uuid */
+                            approval_request_id: string | null;
+                            selections: {
+                                retire?: string[];
+                                skip_values?: {
+                                    [key: string]: string[];
+                                };
+                                skip_brands?: string[];
+                                skip_seasons?: string[];
+                                rule_choices?: {
+                                    [key: string]: {
+                                        sub_category?: string;
+                                        type?: string;
+                                    };
+                                };
+                                acknowledged?: string[];
+                            };
+                            plan: {
+                                dimensions: {
+                                    dimension: string;
+                                    column: string;
+                                    current_version_id: string | null;
+                                    changed: boolean;
+                                    added: {
+                                        text: string;
+                                        row: number;
+                                    }[];
+                                    left_out: {
+                                        text: string;
+                                        row: number;
+                                    }[];
+                                    present: {
+                                        value_id: string;
+                                        label: string;
+                                    }[];
+                                    back_in_use: {
+                                        value_id: string;
+                                        label: string;
+                                    }[];
+                                    not_in_sheet: {
+                                        value_id: string;
+                                        label: string;
+                                        retire: boolean;
+                                    }[];
+                                    problems: {
+                                        column: string;
+                                        row: number;
+                                        text: string;
+                                        code: string;
+                                        message: string;
+                                        blocking: boolean;
+                                    }[];
+                                    counts: {
+                                        [key: string]: number;
+                                    };
+                                }[];
+                                brands: {
+                                    to_create: {
+                                        name: string;
+                                        code: string;
+                                        include: boolean;
+                                        row?: number;
+                                    }[];
+                                    present_count: number;
+                                    not_in_sheet: {
+                                        id: number;
+                                        name: string;
+                                    }[];
+                                    terms_note: string;
+                                    problems: {
+                                        column: string;
+                                        row: number;
+                                        text: string;
+                                        code: string;
+                                        message: string;
+                                        blocking: boolean;
+                                    }[];
+                                };
+                                seasons: {
+                                    to_create: {
+                                        name: string;
+                                        code: string;
+                                        include: boolean;
+                                        row?: number;
+                                    }[];
+                                };
+                                item_rules: {
+                                    new: {
+                                        item: string;
+                                        row: number;
+                                        sub_category?: {
+                                            value: string;
+                                            options: string[];
+                                            target_id: string;
+                                            from: string | null;
+                                            rule_id: string | null;
+                                        } | null;
+                                        type?: {
+                                            value: string;
+                                            options: string[];
+                                            target_id: string;
+                                            from: string | null;
+                                            rule_id: string | null;
+                                        } | null;
+                                    }[];
+                                    changed: {
+                                        item: string;
+                                        row: number;
+                                        sub_category?: {
+                                            value: string;
+                                            options: string[];
+                                            target_id: string;
+                                            from: string | null;
+                                            rule_id: string | null;
+                                        } | null;
+                                        type?: {
+                                            value: string;
+                                            options: string[];
+                                            target_id: string;
+                                            from: string | null;
+                                            rule_id: string | null;
+                                        } | null;
+                                    }[];
+                                    same_count: number;
+                                    problems: {
+                                        column: string;
+                                        row: number;
+                                        text: string;
+                                        code: string;
+                                        message: string;
+                                        blocking: boolean;
+                                    }[];
+                                };
+                                ignored_columns: {
+                                    column: string;
+                                    values: string[];
+                                    reason: string;
+                                }[];
+                                warnings: {
+                                    id: string;
+                                    code: string;
+                                    dimension: string;
+                                    message: string;
+                                    acknowledged: boolean;
+                                }[];
+                                change_count: number;
+                                retires: boolean;
+                                ready: boolean;
+                            };
+                            result: {
+                                [key: string]: unknown;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_master_sheet_import_mutate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                operation: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_revision: number;
+                    selections?: {
+                        retire?: string[];
+                        skip_values?: {
+                            [key: string]: string[];
+                        };
+                        skip_brands?: string[];
+                        skip_seasons?: string[];
+                        rule_choices?: {
+                            [key: string]: {
+                                sub_category?: string;
+                                type?: string;
+                            };
+                        };
+                        acknowledged?: string[];
+                    };
+                    reviewed_hash?: string;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        record_contract: "goods-v1";
+                        revision: number;
+                        /** @enum {string} */
+                        state: "review" | "submitted" | "approved" | "withdrawn";
+                        content_hash: string;
+                        source_name: string;
+                        source_hash: string;
+                        /** Format: date-time */
+                        created_at?: string;
+                        allowed_actions: ("select" | "refresh" | "submit" | "withdraw" | "approve")[];
+                        data: {
+                            sheet: string;
+                            rows_read: number;
+                            stale: boolean;
+                            uploaded_by: string;
+                            approved_by: string | null;
+                            /** Format: uuid */
+                            approval_request_id: string | null;
+                            selections: {
+                                retire?: string[];
+                                skip_values?: {
+                                    [key: string]: string[];
+                                };
+                                skip_brands?: string[];
+                                skip_seasons?: string[];
+                                rule_choices?: {
+                                    [key: string]: {
+                                        sub_category?: string;
+                                        type?: string;
+                                    };
+                                };
+                                acknowledged?: string[];
+                            };
+                            plan: {
+                                dimensions: {
+                                    dimension: string;
+                                    column: string;
+                                    current_version_id: string | null;
+                                    changed: boolean;
+                                    added: {
+                                        text: string;
+                                        row: number;
+                                    }[];
+                                    left_out: {
+                                        text: string;
+                                        row: number;
+                                    }[];
+                                    present: {
+                                        value_id: string;
+                                        label: string;
+                                    }[];
+                                    back_in_use: {
+                                        value_id: string;
+                                        label: string;
+                                    }[];
+                                    not_in_sheet: {
+                                        value_id: string;
+                                        label: string;
+                                        retire: boolean;
+                                    }[];
+                                    problems: {
+                                        column: string;
+                                        row: number;
+                                        text: string;
+                                        code: string;
+                                        message: string;
+                                        blocking: boolean;
+                                    }[];
+                                    counts: {
+                                        [key: string]: number;
+                                    };
+                                }[];
+                                brands: {
+                                    to_create: {
+                                        name: string;
+                                        code: string;
+                                        include: boolean;
+                                        row?: number;
+                                    }[];
+                                    present_count: number;
+                                    not_in_sheet: {
+                                        id: number;
+                                        name: string;
+                                    }[];
+                                    terms_note: string;
+                                    problems: {
+                                        column: string;
+                                        row: number;
+                                        text: string;
+                                        code: string;
+                                        message: string;
+                                        blocking: boolean;
+                                    }[];
+                                };
+                                seasons: {
+                                    to_create: {
+                                        name: string;
+                                        code: string;
+                                        include: boolean;
+                                        row?: number;
+                                    }[];
+                                };
+                                item_rules: {
+                                    new: {
+                                        item: string;
+                                        row: number;
+                                        sub_category?: {
+                                            value: string;
+                                            options: string[];
+                                            target_id: string;
+                                            from: string | null;
+                                            rule_id: string | null;
+                                        } | null;
+                                        type?: {
+                                            value: string;
+                                            options: string[];
+                                            target_id: string;
+                                            from: string | null;
+                                            rule_id: string | null;
+                                        } | null;
+                                    }[];
+                                    changed: {
+                                        item: string;
+                                        row: number;
+                                        sub_category?: {
+                                            value: string;
+                                            options: string[];
+                                            target_id: string;
+                                            from: string | null;
+                                            rule_id: string | null;
+                                        } | null;
+                                        type?: {
+                                            value: string;
+                                            options: string[];
+                                            target_id: string;
+                                            from: string | null;
+                                            rule_id: string | null;
+                                        } | null;
+                                    }[];
+                                    same_count: number;
+                                    problems: {
+                                        column: string;
+                                        row: number;
+                                        text: string;
+                                        code: string;
+                                        message: string;
+                                        blocking: boolean;
+                                    }[];
+                                };
+                                ignored_columns: {
+                                    column: string;
+                                    values: string[];
+                                    reason: string;
+                                }[];
+                                warnings: {
+                                    id: string;
+                                    code: string;
+                                    dimension: string;
+                                    message: string;
+                                    acknowledged: boolean;
+                                }[];
+                                change_count: number;
+                                retires: boolean;
+                                ready: boolean;
+                            };
+                            result: {
+                                [key: string]: unknown;
+                            };
+                        };
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_master_sheet_summary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        lists: {
+                            dimension: string;
+                            column: string;
+                            active: number;
+                            retired: number;
+                        }[];
+                        brands: number;
+                        seasons: number;
+                        item_rules: number;
+                        p_rate: {
+                            expected_factor: string;
+                            in_force: {
+                                rates_version_id: string;
+                                transport_pct: string;
+                                factor: string;
+                                expected: boolean;
+                            }[];
+                        };
+                        /** Format: uuid */
+                        open_import_id: string | null;
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_master_sheet_template: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                };
+            };
+        };
+    };
+    goods_v1_master_sheet_import_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                    expected_sha256: string;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        record_contract: "goods-v1";
+                        revision: number;
+                        /** @enum {string} */
+                        state: "review" | "submitted" | "approved" | "withdrawn";
+                        content_hash: string;
+                        source_name: string;
+                        source_hash: string;
+                        /** Format: date-time */
+                        created_at?: string;
+                        allowed_actions: ("select" | "refresh" | "submit" | "withdraw" | "approve")[];
+                        data: {
+                            sheet: string;
+                            rows_read: number;
+                            stale: boolean;
+                            uploaded_by: string;
+                            approved_by: string | null;
+                            /** Format: uuid */
+                            approval_request_id: string | null;
+                            selections: {
+                                retire?: string[];
+                                skip_values?: {
+                                    [key: string]: string[];
+                                };
+                                skip_brands?: string[];
+                                skip_seasons?: string[];
+                                rule_choices?: {
+                                    [key: string]: {
+                                        sub_category?: string;
+                                        type?: string;
+                                    };
+                                };
+                                acknowledged?: string[];
+                            };
+                            plan: {
+                                dimensions: {
+                                    dimension: string;
+                                    column: string;
+                                    current_version_id: string | null;
+                                    changed: boolean;
+                                    added: {
+                                        text: string;
+                                        row: number;
+                                    }[];
+                                    left_out: {
+                                        text: string;
+                                        row: number;
+                                    }[];
+                                    present: {
+                                        value_id: string;
+                                        label: string;
+                                    }[];
+                                    back_in_use: {
+                                        value_id: string;
+                                        label: string;
+                                    }[];
+                                    not_in_sheet: {
+                                        value_id: string;
+                                        label: string;
+                                        retire: boolean;
+                                    }[];
+                                    problems: {
+                                        column: string;
+                                        row: number;
+                                        text: string;
+                                        code: string;
+                                        message: string;
+                                        blocking: boolean;
+                                    }[];
+                                    counts: {
+                                        [key: string]: number;
+                                    };
+                                }[];
+                                brands: {
+                                    to_create: {
+                                        name: string;
+                                        code: string;
+                                        include: boolean;
+                                        row?: number;
+                                    }[];
+                                    present_count: number;
+                                    not_in_sheet: {
+                                        id: number;
+                                        name: string;
+                                    }[];
+                                    terms_note: string;
+                                    problems: {
+                                        column: string;
+                                        row: number;
+                                        text: string;
+                                        code: string;
+                                        message: string;
+                                        blocking: boolean;
+                                    }[];
+                                };
+                                seasons: {
+                                    to_create: {
+                                        name: string;
+                                        code: string;
+                                        include: boolean;
+                                        row?: number;
+                                    }[];
+                                };
+                                item_rules: {
+                                    new: {
+                                        item: string;
+                                        row: number;
+                                        sub_category?: {
+                                            value: string;
+                                            options: string[];
+                                            target_id: string;
+                                            from: string | null;
+                                            rule_id: string | null;
+                                        } | null;
+                                        type?: {
+                                            value: string;
+                                            options: string[];
+                                            target_id: string;
+                                            from: string | null;
+                                            rule_id: string | null;
+                                        } | null;
+                                    }[];
+                                    changed: {
+                                        item: string;
+                                        row: number;
+                                        sub_category?: {
+                                            value: string;
+                                            options: string[];
+                                            target_id: string;
+                                            from: string | null;
+                                            rule_id: string | null;
+                                        } | null;
+                                        type?: {
+                                            value: string;
+                                            options: string[];
+                                            target_id: string;
+                                            from: string | null;
+                                            rule_id: string | null;
+                                        } | null;
+                                    }[];
+                                    same_count: number;
+                                    problems: {
+                                        column: string;
+                                        row: number;
+                                        text: string;
+                                        code: string;
+                                        message: string;
+                                        blocking: boolean;
+                                    }[];
+                                };
+                                ignored_columns: {
+                                    column: string;
+                                    values: string[];
+                                    reason: string;
+                                }[];
+                                warnings: {
+                                    id: string;
+                                    code: string;
+                                    dimension: string;
+                                    message: string;
+                                    acknowledged: boolean;
+                                }[];
+                                change_count: number;
+                                retires: boolean;
+                                ready: boolean;
+                            };
+                            result: {
+                                [key: string]: unknown;
+                            };
                         };
                     };
                 };

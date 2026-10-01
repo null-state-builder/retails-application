@@ -601,5 +601,9 @@ from masters.goods_models import (  # noqa: E402, F401
     SiteGuard,
     Tenant,
 )
+from masters.master_sheet_models import (  # noqa: E402, F401
+    MasterSheetImport,
+    MasterSheetImportReview,
+)
 from masters.store_feature_models import StoreFeatureSwitch  # noqa: E402, F401
 from masters.tax_setting_models import TaxSettingVersion  # noqa: E402, F401

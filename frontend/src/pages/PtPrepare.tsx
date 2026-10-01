@@ -34,6 +34,7 @@
 // cell by cell, when a barcode is not the row's item, a quantity is more than
 // its counted lot has free, or an amount is not exact.
 import { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import type {
   ClipboardEvent as ReactClipboardEvent,
   KeyboardEvent as ReactKeyboardEvent,
@@ -109,7 +110,9 @@ import {
   reviewMarks,
   setEdit,
   showsCost,
+  sheetChecks,
   sortIssues,
+  suggestionFills,
   submitBlockers,
   visibleColumns,
   withoutEdits,
@@ -387,10 +390,12 @@ export function GrnStart({
           </div>
           <div className="pt-start-path">
             <h4 className="gr-h4">
-              <Upload size={14} /> Upload a canonical file
+              <Upload size={14} /> Upload a KDPS PT file
             </h4>
             <p className="pt-hint">
-              A workbook (.xlsx) already in the KDPS PT layout. Its rows land in the same grid.
+              A filled KDPS work sheet (one staff sheet, with or without its Master Sheet), or a
+              workbook in the canonical PT layout. Its rows land in the same grid.{" "}
+              <Link to="/setup/products?tab=lists">Download a blank PT file</Link>
             </p>
             <input
               type="file"
@@ -863,6 +868,30 @@ export function PtEditor({ ptId, onClose }: { ptId: string; onClose?: () => void
     );
   }
 
+  /** Blank SUB CATEGORY / TYPE cells take the ITEM's suggestion (the sheet's
+   *  SUGGESTED columns), as ordinary edits a person saves and reviews. */
+  function fillFromSuggestions() {
+    const planned = suggestionFills(lines, (line, name) =>
+      cellText(columnByName(name), line, edits[line.line_key], choices, pastes[line.line_key]),
+    );
+    const found = planned
+      .map((p) => ({
+        ...p,
+        choice: findChoice(choicesFor(columnByName(p.column), choices) ?? [], p.value),
+      }))
+      .filter((p) => p.choice);
+    const keys = [...new Set(found.map((p) => p.key))];
+    setEdits((prev) =>
+      found.reduce((next, p) => setEdit(next, p.key, p.column, p.choice!.id), prev),
+    );
+    setPendingReviews((prev) => clearReviewMarks(prev, keys));
+    setOk(
+      found.length === 0
+        ? "No blank SUB CATEGORY or TYPE has a suggestion to take."
+        : `Filled ${found.length} blank cell(s) from the ITEM suggestions. Save to keep them; those rows need a fresh review.`,
+    );
+  }
+
   function applyColumnFill() {
     if (!fillColumn) return;
     const column = columnByName(fillColumn);
@@ -1192,6 +1221,9 @@ export function PtEditor({ ptId, onClose }: { ptId: string; onClose?: () => void
   const freeSize = findChoice(sizes, FREE_SIZE);
   const colourBlank = blankCount(fillRows(columnByName("COLOR")));
   const sizeBlank = blankCount(fillRows(columnByName("SIZE")));
+  const suggestionBlank = suggestionFills(lines, (line, name) =>
+    cellText(columnByName(name), line, edits[line.line_key], choices, pastes[line.line_key]),
+  ).length;
   const source = pt.data.header?.source as string | undefined;
   const allOnPage = pageLines.length > 0 && pageLines.every((line) => selected[line.line_key]);
 
@@ -1365,6 +1397,15 @@ export function PtEditor({ ptId, onClose }: { ptId: string; onClose?: () => void
               </button>
             );
           })}
+          <button
+            className="btn btn-sm"
+            disabled={suggestionBlank === 0}
+            title={`Fill ${suggestionBlank} blank SUB CATEGORY / TYPE cell(s) from the ITEM's suggestion`}
+            onClick={fillFromSuggestions}
+            data-testid="pt-quickfill-suggested"
+          >
+            From suggestions
+          </button>
           <button
             className="btn btn-sm"
             disabled={!freeSize || sizeBlank === 0}
@@ -1684,10 +1725,13 @@ function GridCell({
   });
   const options = isDropdown(column) ? choicesFor(column, choices) : null;
   const slug = columnSlug(column.name);
+  // The KDPS work sheet's own checks: a hint, never a row issue.
+  const check = edited ? undefined : sheetChecks(line)[column.name];
   const title = [
     TONE_WORDS[tone],
     ...problems.map((p) => issueLabel(p)),
     waiting?.source ? `The file says: ${waiting.source}` : "",
+    check ?? "",
   ]
     .filter(Boolean)
     .join(" · ");
@@ -1728,6 +1772,7 @@ function GridCell({
       data-cell={`${pos.row}-${pos.col}`}
       data-tone={tone}
       data-pasted={isPasted ? "true" : undefined}
+      data-check={check ? "true" : undefined}
       data-testid={`pt-cell-${slug}-${line.line_key}`}
       title={title}
       tabIndex={-1}
@@ -1737,6 +1782,11 @@ function GridCell({
       onKeyDownCapture={(e) => onKeyDown(e, pos)}
     >
       {body}
+      {check && (
+        <span className="ptg-check" aria-label={check}>
+          !
+        </span>
+      )}
       {waiting?.source && !edited && origin === "suggestion" && (
         <span className="ptg-file-text">File: {waiting.source}</span>
       )}

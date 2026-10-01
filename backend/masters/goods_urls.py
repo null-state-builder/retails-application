@@ -39,6 +39,14 @@ from masters.goods_tax_settings_views import (
     GoodsTaxSettingsView,
     GoodsTaxSettingVersionCreateView,
 )
+from masters.master_sheet_views import (
+    MasterSheetImportDetailView,
+    MasterSheetImportListView,
+    MasterSheetImportMutationView,
+    MasterSheetImportUploadView,
+    MasterSheetSummaryView,
+    MasterSheetTemplateView,
+)
 from masters.goods_views import (
     GoodsBrandDetailView,
     GoodsBrandListCreateView,
@@ -186,6 +194,36 @@ urlpatterns = [
     ),
     path(
         "gstins/<int:pk>", GoodsRegistrationDetailView.as_view(), name="goods-registration-detail"
+    ),
+    path(
+        "master-sheet-imports",
+        MasterSheetImportListView.as_view(),
+        name="goods-master-sheet-import-list",
+    ),
+    path(
+        "master-sheet-imports/summary",
+        MasterSheetSummaryView.as_view(),
+        name="goods-master-sheet-summary",
+    ),
+    path(
+        "master-sheet-imports/template.xlsx",
+        MasterSheetTemplateView.as_view(),
+        name="goods-master-sheet-template",
+    ),
+    path(
+        "master-sheet-imports/upload",
+        MasterSheetImportUploadView.as_view(),
+        name="goods-master-sheet-import-upload",
+    ),
+    path(
+        "master-sheet-imports/<uuid:pk>",
+        MasterSheetImportDetailView.as_view(),
+        name="goods-master-sheet-import-detail",
+    ),
+    path(
+        "master-sheet-imports/<uuid:pk>/<str:operation>",
+        MasterSheetImportMutationView.as_view(),
+        name="goods-master-sheet-import-mutate",
     ),
     path("brands", GoodsBrandListCreateView.as_view(), name="goods-brand-list"),
     path("brands/<int:pk>/retire", GoodsBrandRetireView.as_view(), name="goods-brand-retire"),

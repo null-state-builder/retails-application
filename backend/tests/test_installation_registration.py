@@ -24,7 +24,7 @@ from accounts.goods_setup import bootstrap_deployment
 from accounts.models import LoginAttempt, Role, User
 from accounts.principal import AccessContext, effective_grants
 from accounts.registration_models import InstallationRegistration
-from accounts.registration_serializers import RegistrationInput
+from accounts.registration_serializers import RegistrationEditInput, RegistrationInput
 from accounts.registration_services import (
     confirm_registration,
     public_state,
@@ -452,6 +452,40 @@ def test_owner_revision_clears_both_signatures_and_stale_summary_cannot_claim(
     row = InstallationRegistration.objects.get()
     assert len([event for event in row.confirmation_history if event["event"] != "staff_codes_reserved"]) == 4
     assert row.summary["store"]["name"] == "Corrected first shop"
+
+
+def test_owner_revision_can_change_one_password_and_keep_the_other(
+    proposal: dict[str, Any],
+) -> None:
+    stage_registration(proposal)
+    edited = copy.deepcopy(proposal)
+    edited["command_id"] = str(uuid.uuid4())
+    edited["current_owner_password"] = proposal["owner"]["temporary_password"]
+    edited["owner"]["temporary_password"] = "new-owner-secret"
+    edited["admin"]["temporary_password"] = ""
+    parsed = RegistrationEditInput(data=edited)
+    assert parsed.is_valid(), parsed.errors
+    assert "temporary_password" not in parsed.validated_data["admin"]
+    stage_registration(dict(parsed.validated_data), edit=True)
+    row = InstallationRegistration.objects.get()
+    assert check_password("new-owner-secret", row.owner_password_hash)
+    assert check_password(proposal["admin"]["temporary_password"], row.admin_password_hash)
+    # The new Owner password is the one that confirms; the old one no longer works.
+    assert confirm_registration(credentials(edited, "owner"))["confirming_role"] == "owner"
+    with pytest.raises(Refusal) as old:
+        confirm_registration(credentials(proposal, "owner"))
+    assert old.value.code == "INVALID_CREDENTIALS"
+    # A kept Admin password still cannot be reused for the Owner.
+    clash = copy.deepcopy(edited)
+    clash["command_id"] = str(uuid.uuid4())
+    clash["current_owner_password"] = "new-owner-secret"
+    clash["owner"]["temporary_password"] = proposal["admin"]["temporary_password"]
+    parsed = RegistrationEditInput(data=clash)
+    assert parsed.is_valid(), parsed.errors
+    with pytest.raises(Refusal) as refusal:
+        stage_registration(dict(parsed.validated_data), edit=True)
+    assert refusal.value.code == "INVALID_REQUEST"
+    assert check_password("new-owner-secret", InstallationRegistration.objects.get().owner_password_hash)
 
 
 def test_wrong_owner_cannot_revise_pending_genesis(proposal: dict[str, Any]) -> None:

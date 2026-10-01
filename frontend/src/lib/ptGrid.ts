@@ -788,3 +788,89 @@ export function pasteUpdates(lines: GridLine[], pastes: Pastes): PtRowEdit[] {
       canonical: { ...pastes[line.line_key] } as CanonicalCells,
     }));
 }
+
+// ---------------------------------------------------------------------------
+// The KDPS work sheet's own checks (advisory)
+// ---------------------------------------------------------------------------
+
+/** The GST rate the KDPS PT work sheet's formula gives, input on BASIC and output
+ *  on MRP. Tax settings (by HSN) decide the real rate; this only flags a row where
+ *  the two disagree, the way the sheet would have shown it. */
+export function sheetTax(cells: Record<string, string | number | null> | undefined): {
+  input: number | null;
+  output: number | null;
+} {
+  const text = (key: string) =>
+    String(cells?.[key] ?? "")
+      .trim()
+      .toUpperCase();
+  const rupees = (key: string) => {
+    const raw = cells?.[key];
+    return raw === null || raw === undefined || raw === "" ? null : Number(raw) / 100;
+  };
+  const rate = (amount: number | null, limit: number): number | null => {
+    if (text("sub_category") === "FABRIC" || text("item") === "SAREE") return 5;
+    if (["BELT", "LADIES PURSE", "WALLET"].includes(text("item"))) return 18;
+    if (!text("item") || amount === null) return null;
+    if (text("type") === "LUGGAGE") return 18;
+    return amount <= limit ? 5 : 18;
+  };
+  return { input: rate(rupees("basic_paise"), 2500), output: rate(rupees("mrp_paise"), 2625) };
+}
+
+/** Notes the KDPS work sheet would have shown for a row, by column. */
+export function sheetChecks(line: GridLine): Partial<Record<ColumnName, string>> {
+  const cells = line.cells ?? {};
+  const out: Partial<Record<ColumnName, string>> = {};
+  const same = (a: unknown, b: unknown) =>
+    String(a ?? "")
+      .trim()
+      .toUpperCase() ===
+    String(b ?? "")
+      .trim()
+      .toUpperCase();
+  if (cells.item && !cells.suggested_sub_category && !cells.suggested_type) {
+    out.ITEM = "No SUB CATEGORY / TYPE suggestion is set for this ITEM (Product lists).";
+  }
+  for (const [column, cell, suggested] of [
+    ["SUB CATEGORY", "sub_category", "suggested_sub_category"],
+    ["TYPE", "type", "suggested_type"],
+  ] as const) {
+    if (cells[cell] && cells[suggested] && !same(cells[cell], cells[suggested])) {
+      out[column] = `The suggestion for this ITEM is ${cells[suggested]}.`;
+    }
+  }
+  const sheet = sheetTax(cells);
+  for (const [column, cell, want] of [
+    ["INPUT TAX", "input_tax_pct", sheet.input],
+    ["OUTPUT TAX", "output_tax_pct", sheet.output],
+  ] as const) {
+    const got = cells[cell];
+    if (want !== null && got !== null && got !== undefined && got !== "" && Number(got) !== want) {
+      out[column] =
+        `The KDPS sheet rule gives ${want}%; Tax settings give ${Number(got)}% for HSN ` +
+        `${line.hsn ?? "—"}. Check the HSN, or add a rule for it in Tax settings.`;
+    }
+  }
+  return out;
+}
+
+/** Rows whose SUB CATEGORY or TYPE is blank but whose ITEM suggests one. */
+export function suggestionFills(
+  lines: GridLine[],
+  label: (line: GridLine, column: ColumnName) => string,
+): { key: string; column: ColumnName; value: string }[] {
+  const out: { key: string; column: ColumnName; value: string }[] = [];
+  for (const line of lines) {
+    for (const [column, suggested] of [
+      ["SUB CATEGORY", "suggested_sub_category"],
+      ["TYPE", "suggested_type"],
+    ] as const) {
+      const value = line.cells?.[suggested];
+      if (value && !label(line, column).trim()) {
+        out.push({ key: line.line_key, column, value: String(value) });
+      }
+    }
+  }
+  return out;
+}

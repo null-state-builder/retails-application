@@ -488,6 +488,15 @@ export function goodsApprovalView(
   // that movement document as its subject. A new item a PT proposed (its style
   // or its SKU) is confirmed or rejected under PT Work -> Mapping rules, the
   // one place that decides it (OPS-17A).
+  // A master sheet upload is reviewed and approved on the Product lists screen.
+  if (a.subject_kind === "master_sheet_import") {
+    return {
+      topic: "setup",
+      label: "Product lists update",
+      to: `/setup/products?import=${encodeURIComponent(a.subject_id)}`,
+      number: null,
+    };
+  }
   const to =
     a.requested_action === "movement.approve" && a.subject_kind === "document"
       ? `${guide.screen}?movement=${encodeURIComponent(a.subject_id)}`

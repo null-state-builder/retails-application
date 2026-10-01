@@ -69,7 +69,9 @@ from ptmapper.profiles import (
     GENERIC_PROFILE,
     HEADER_KEYWORDS,
     KDPS_COLUMNS,
+    MASTER_SHEET_NAME,
     PROFILES,
+    WORK_SHEET_HEADERS,
 )
 
 MAX_ROWS = 8000
@@ -630,7 +632,44 @@ def _has_data(rows: list[list[Any]]) -> bool:
     return any(any(raw_str(c) for c in r) for r in rows[:30])
 
 
+def _work_sheet_rows(rows: list[list[Any]]) -> int:
+    """How many item rows a KDPS work sheet holds (0: not a work sheet, or empty).
+
+    Its formula columns carry values on every row, so only a row with a barcode or
+    a design counts as filled.
+    """
+    header_idx = detect_header(rows)
+    headers = [norm(c) for c in rows[header_idx]] if rows else []
+    if not all(h in headers for h in WORK_SHEET_HEADERS):
+        return 0
+    barcode = headers.index("BARCODE")
+    design = headers.index("DESIGN") if "DESIGN" in headers else -1
+    return sum(
+        1
+        for r in rows[header_idx + 1 :]
+        if (barcode < len(r) and raw_str(r[barcode]))
+        or (0 <= design < len(r) and raw_str(r[design]))
+    )
+
+
 def choose_sheet(sheets: list[tuple[str, list[list[Any]]]]) -> tuple[str, list[list[Any]]]:
+    # The KDPS PT file: one staff work sheet, never its Master Sheet. Two filled work
+    # sheets are two PTs, so the file is refused rather than one picked silently.
+    work = [
+        (name, rows, filled)
+        for name, rows in sheets
+        if norm(name) != MASTER_SHEET_NAME
+        for filled in [_work_sheet_rows(rows)]
+        if filled
+    ]
+    if len(work) > 1:
+        names = ", ".join(name.strip() for name, _rows, _n in work)
+        raise UnsupportedFormat(
+            f"This file has {len(work)} filled work sheets ({names}). "
+            "Upload one work sheet at a time."
+        )
+    if work:
+        return work[0][0], work[0][1]
     # Prefer a sheet whose name matches a profile's sheet_contains token.
     for p in PROFILES:
         sc = p["match"].get("sheet_contains")
@@ -1009,6 +1048,17 @@ def _map_category(row: _Row, dimension: str) -> tuple[MappedCell, MappedCell]:
     return value, helper or empty
 
 
+def _map_explicit(
+    row: _Row, dimension: str, role: str, issuers: Sequence[str]
+) -> MappedCell | None:
+    """A column the file fills itself (a KDPS work sheet): its value, a suggestion for
+    text no rule knows, or None for a blank cell (the caller's fallback applies)."""
+    raw = row.text(role)
+    if not raw:
+        return None
+    return _settle(_attribute(row.rulebook, dimension, raw, [], issuers), raw)
+
+
 def _basic(row: _Row, qty: str) -> MappedCell:
     if row.profile.get("flags", {}).get("basic_from_taxable_per_unit"):
         taxable = number_text(row.rec.get("TAXABLE_AMOUNT"))
@@ -1060,10 +1110,17 @@ def map_row(
         ),
         colour_raw,
     )
-    cells["ITEM"] = _map_item(row, issuers)
+    explicit = bool(profile.get("flags", {}).get("explicit_attributes"))
+    named_item = _map_explicit(row, "item", "ITEM_SRC", issuers) if explicit else None
+    cells["ITEM"] = named_item or _map_item(row, issuers)
     cells["GENDER"] = _map_gender(row, issuers, brand_id)
     sub, suggested_sub = _map_category(row, "sub_category")
     kind, suggested_type = _map_category(row, "type")
+    if explicit:
+        # A work sheet names its SUB CATEGORY and TYPE; the ITEM's suggestion only
+        # fills a blank one (and is still shown in its SUGGESTED column).
+        sub = _map_explicit(row, "sub_category", "SUBCAT_SRC", issuers) or sub
+        kind = _map_explicit(row, "type", "TYPE_SRC", issuers) or kind
     cells["SUB CATEGORY"] = sub
     cells["TYPE"] = kind
     cells["FIT"] = _map_fit(row, issuers)

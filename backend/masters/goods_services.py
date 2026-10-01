@@ -24,6 +24,7 @@ from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any, cast
 
+from django.db import IntegrityError
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
@@ -1897,6 +1898,86 @@ def build_query_terms(params: dict[str, str]) -> str:
 # --------------------------------------------------------------------------
 
 
+def create_brand_like(
+    run: CommandRun, *, kind: str, family: str, model: Any, body: dict[str, Any]
+) -> Any:
+    """Create one brand or season master and its first master version.
+
+    The one writer behind ``POST masters/brands|seasons`` and the master sheet import:
+    a code already in use refuses as ``MASTER_CONFLICT``.
+    """
+    if model.objects.filter(code=body["code"]).exists():
+        raise Refusal("MASTER_CONFLICT", f"A {kind} with code {body['code']} already exists.")
+    if body.get("parent_id"):
+        if not Brand.objects.filter(pk=int(body["parent_id"])).exists():
+            raise Refusal("MASTER_INVALID", "parent_id does not name a known brand.")
+    try:
+        row = model.objects.create(code=str(body["code"]), name=str(body["name"]))
+    except IntegrityError as exc:
+        raise Refusal("MASTER_CONFLICT", "That code is already in use.") from exc
+    start_revision(run.tenant_id, family, str(row.pk))
+    append_master_version(run, kind=kind, target_key=str(row.pk), revision=1, payload=body)
+    return row
+
+
+def freeze_config_version(
+    run: CommandRun,
+    draft: ConfigDraft,
+    *,
+    checker_id: uuid.UUID,
+    source_revision: int,
+    source_hash: str,
+    not_before: datetime | None,
+) -> tuple[ConfigVersion, list[str]]:
+    """Freeze one approved draft as the next ``ConfigVersion`` of its kind and scope.
+
+    The one writer of configuration versions: a Configuration approval, a master sheet
+    import package and the synthetic rulebook seed all freeze through here. Returns the
+    version and the ids of the versions it superseded.
+    """
+    impact = backdate_impact(run.tenant_id, draft, run.now)
+    last_version = (
+        ConfigVersion.objects.filter(
+            tenant_id=run.tenant_id, kind=draft.kind, scope_key=draft.scope_key
+        )
+        .order_by("-version")
+        .first()
+    )
+    # Versions frozen earlier in this command are still waiting to be sealed; one
+    # package may freeze several lists that share a kind and scope.
+    waiting = [
+        row.version
+        for row in run.evidence.pending
+        if isinstance(row, ConfigVersion)
+        and row.kind == draft.kind
+        and row.scope_key == draft.scope_key
+    ]
+    version = run.record(
+        ConfigVersion(
+            draft=draft,
+            kind=draft.kind,
+            version=max([last_version.version if last_version else 0, *waiting]) + 1,
+            scope=draft.scope,
+            scope_key=draft.scope_key,
+            payload=draft.payload,
+            effective_from=draft.effective_from,
+            approved_by_id=checker_id,
+            source_revision=source_revision,
+            source_hash=source_hash,
+            backdate_impact=impact,
+        )
+    )
+    from masters.goods_config import activate
+
+    superseded = activate(
+        run, version, effective_to=draft.effective_to, not_before=not_before
+    )
+    if draft.state != ConfigDraft.State.APPROVED:
+        draft.state = ConfigDraft.State.APPROVED
+        draft.save(update_fields=["state"])
+    return version, superseded
+
+
 def handle_configuration_approval(run: CommandRun, context: Any) -> dict[str, Any] | None:
     """Turn an approved configuration draft into a frozen ``ConfigVersion``.
 
@@ -1940,47 +2021,21 @@ def handle_configuration_approval(run: CommandRun, context: Any) -> dict[str, An
         as_of=draft.effective_from,
         scope=draft.scope,
     )
-    impact = backdate_impact(run.tenant_id, draft, run.now)
-    last_version = (
-        ConfigVersion.objects.filter(
-            tenant_id=run.tenant_id, kind=draft.kind, scope_key=draft.scope_key
-        )
-        .order_by("-version")
-        .first()
-    )
-    next_version = (last_version.version + 1) if last_version else 1
-    version = run.record(
-        ConfigVersion(
-            draft=draft,
-            kind=draft.kind,
-            version=next_version,
-            scope=draft.scope,
-            scope_key=draft.scope_key,
-            payload=draft.payload,
-            effective_from=draft.effective_from,
-            approved_by_id=context.checker_id,
-            source_revision=draft.revision,
-            source_hash=request.reviewed_hash,
-            backdate_impact=impact,
-        )
-    )
-    from masters.goods_config import activate
-
     # A successor takes over no earlier than its approval, unless it is a reviewed backdate
     # (a start before today, with its impact list frozen on the version): approving later
     # than the drafted start must not rewrite what decisions under the predecessor relied on.
     backdated = draft.effective_from < start_of_today(run.tenant_id, run.now)
-    superseded = activate(
+    version, superseded = freeze_config_version(
         run,
-        version,
-        effective_to=draft.effective_to,
+        draft,
+        checker_id=context.checker_id,
+        source_revision=draft.revision,
+        source_hash=request.reviewed_hash,
         not_before=None if backdated else run.now,
     )
     starts = EffectiveVersionPeriod.objects.get(
         target_kind="configuration", target_id=version.pk
     ).effective_from
-    draft.state = ConfigDraft.State.APPROVED
-    draft.save(update_fields=["state"])
     if draft.kind == "series":
         apply_series_configuration(run, version)
     return {

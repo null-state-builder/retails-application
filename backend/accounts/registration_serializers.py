@@ -115,7 +115,8 @@ class RegistrationInput(StrictInput):
                 raise serializers.ValidationError(
                     f"Every initial person needs a separate {key}."
                 )
-        if data["owner"]["temporary_password"] == data["admin"]["temporary_password"]:
+        owner_password = data["owner"].get("temporary_password")
+        if owner_password and owner_password == data["admin"].get("temporary_password"):
             raise serializers.ValidationError(
                 "Owner and Admin must use separate temporary passwords."
             )
@@ -138,7 +139,26 @@ class ConfirmationInput(StrictInput):
         return data
 
 
+class InitialPersonEditInput(InitialPersonInput):
+    # Omitted or blank keeps that person's saved temporary password.
+    temporary_password = serializers.CharField(
+        max_length=128,
+        write_only=True,
+        trim_whitespace=False,
+        required=False,
+        allow_blank=True,
+    )
+
+
 class RegistrationEditInput(RegistrationInput):
+    owner = InitialPersonEditInput()
+    admin = InitialPersonEditInput()
     current_owner_password = serializers.CharField(
         max_length=128, write_only=True, trim_whitespace=False
     )
+
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
+        for key in ("owner", "admin"):
+            if not data[key].get("temporary_password"):
+                data[key].pop("temporary_password", None)
+        return super().validate(data)

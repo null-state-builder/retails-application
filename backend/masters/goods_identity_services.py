@@ -624,6 +624,77 @@ def save_master(
         raise
 
 
+CROSSWALK_CONFLICT = "That source key is already mapped for this issuer and configuration."
+
+
+def write_crosswalk(
+    run: CommandRun,
+    *,
+    kind: str,
+    issuer_key: str,
+    source_key: str,
+    target_key: str,
+    config_version_id: uuid.UUID | None,
+    governance_state: str,
+    reason_code: str | None = None,
+) -> SourceCrosswalk:
+    """Create one source crosswalk and its first master version (the one crosswalk writer).
+
+    Callers check the caller's authority and that ``target_key`` is live first; the same
+    (kind, issuer, source key, configuration) mapped twice refuses as ``MASTER_CONFLICT``.
+    """
+    if SourceCrosswalk.objects.filter(
+        tenant_id=run.tenant_id,
+        kind=kind,
+        issuer_key=issuer_key,
+        source_key=source_key,
+        config_version_id=config_version_id,
+    ).exists():
+        raise Refusal("MASTER_CONFLICT", CROSSWALK_CONFLICT)
+    row = SourceCrosswalk(
+        tenant_id=run.tenant_id,
+        kind=kind,
+        issuer_key=issuer_key,
+        source_key=source_key,
+        target_key=target_key,
+        config_version_id=config_version_id,
+        governance_state=governance_state,
+    )
+    save_master(row, conflict=CROSSWALK_CONFLICT)
+    record_master_version(run, "crosswalk", row, reason_code=reason_code)
+    sync_crosswalk_exception(run, row)
+    return row
+
+
+def retirement_target(row: Any) -> None:
+    if row.governance_state == GovernanceState.PENDING:
+        raise Refusal(
+            "RETIREMENT_BLOCKED",
+            "A pending proposal is decided through its approval, not retired.",
+        )
+    if row.governance_state == GovernanceState.RETIRED or getattr(row, "retired_at", None):
+        raise Refusal("RETIREMENT_BLOCKED", "This master is already retired.")
+
+
+def apply_retirement(run: CommandRun, row: Any, effective_at: datetime) -> None:
+    row.retired_at = effective_at
+    if effective_at <= run.now:
+        row.governance_state = GovernanceState.RETIRED
+    row.revision += 1
+    row.save(update_fields=["retired_at", "governance_state", "revision"])
+
+
+def retire_crosswalk(
+    run: CommandRun, row: SourceCrosswalk, *, reason_code: str, effective_at: datetime
+) -> None:
+    """Retire one locked crosswalk from ``effective_at`` and record its retired version."""
+    retirement_target(row)
+    apply_retirement(run, row, effective_at)
+    record_master_version(
+        run, "crosswalk", row, retired=True, reason_code=reason_code, effective_from=effective_at
+    )
+
+
 # -- draft lineage and selectability -------------------------------------------
 
 

@@ -71,14 +71,27 @@ def _qty(value: Any) -> int | None:
 
 
 def lines_from_evidence(
-    access: Any, evidence_id: uuid.UUID, grn: GoodsGrn, receipt_kind: str = "primary"
+    access: Any,
+    evidence_id: uuid.UUID,
+    grn: GoodsGrn,
+    receipt_kind: str = "primary",
+    profile_version_id: Any = None,
 ) -> list[dict[str, Any]]:
-    """Whole-file validation first; valid rows may still carry row issues."""
+    """Whole-file validation first; valid rows may still carry row issues.
+
+    The KDPS PT file itself (a Master Sheet beside staff work sheets, or one work
+    sheet) carries every KDPS column, so it is read by the work sheet profile of
+    the one brand file mapper rather than as the barcode-only canonical layout.
+    """
     evidence = EvidenceObject.objects.filter(tenant_id=access.tenant_id, pk=evidence_id).first()
     if evidence is None or not readable_by(access, evidence):
         raise Refusal("NOT_FOUND", "That evidence file was not found.")
     if not evidence.media_type.endswith("sheet"):
         raise _file_invalid("A canonical PT upload must be an XLSX workbook.")
+    if _is_work_sheet_file(evidence):
+        from ptmapper.goods_brand_intake import lines_from_brand_file
+
+        return lines_from_brand_file(access, evidence_id, grn, receipt_kind, profile_version_id)
     rows = _rows(evidence)
     first = next(rows, None)
     columns = _columns(first[1] if first is not None else None)
@@ -100,6 +113,33 @@ def lines_from_evidence(
             issues=problems[:1000],
         )
     return lines
+
+
+def _is_work_sheet_file(evidence: EvidenceObject) -> bool:
+    """The workbook is the KDPS PT file: a Master Sheet tab, or work sheet headers
+    (on its first or second row) on any tab."""
+    import io
+
+    import openpyxl
+
+    from ptmapper.profiles import MASTER_SHEET_NAME, WORK_SHEET_HEADERS
+
+    try:
+        data = get_store().get(evidence.object_key)
+        book = openpyxl.load_workbook(io.BytesIO(data), read_only=True, data_only=True)
+    except Exception:  # noqa: BLE001 - the canonical reader refuses an unreadable file
+        return False
+    try:
+        for ws in book.worksheets:
+            if " ".join(str(ws.title).split()).upper() == MASTER_SHEET_NAME:
+                return True
+            for row in ws.iter_rows(max_row=2, values_only=True):
+                names = {_text(c).upper() for c in row}
+                if all(h in names for h in WORK_SHEET_HEADERS):
+                    return True
+        return False
+    finally:
+        book.close()
 
 
 def _rows(evidence: EvidenceObject) -> Iterator[tuple[int, tuple[Any, ...]]]:

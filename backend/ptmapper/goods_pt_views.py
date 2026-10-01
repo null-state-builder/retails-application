@@ -868,7 +868,11 @@ def _source_lines(
         if not body.get("evidence_id"):
             raise Refusal("PT_FILE_INVALID", "A canonical upload needs its workbook.", status=422)
         return lines_from_evidence(
-            access, parse_uuid(body["evidence_id"], "evidence_id"), grn, receipt_kind
+            access,
+            parse_uuid(body["evidence_id"], "evidence_id"),
+            grn,
+            receipt_kind,
+            body.get("profile_version_id"),
         )
     if body.get("source") == "brand_upload":
         from ptmapper.goods_brand_intake import lines_from_brand_file

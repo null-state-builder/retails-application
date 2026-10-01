@@ -4,7 +4,7 @@ import { Link, Navigate, Outlet, useLocation } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
 import { KdpsLogo } from "../components/KdpsLogo";
-import { api, apiErrorMessage } from "../lib/api";
+import { api, apiErrorCode, apiErrorMessage } from "../lib/api";
 import "./Signup.css";
 
 export interface RegistrationState {
@@ -429,14 +429,22 @@ function PersonFields({
   value,
   preview,
   passwordHint,
+  passwordRequired = true,
+  onSavePassword,
+  saving = false,
   onChange,
 }: {
   who: string;
   value: Person;
   preview: string;
   passwordHint: string;
+  passwordRequired?: boolean;
+  /** Present while editing a saved setup: saves now with this person's new password. */
+  onSavePassword?: (() => void) | undefined;
+  saving?: boolean;
   onChange: (p: Person) => void;
 }) {
+  const title = who === "owner" ? "Owner" : "Admin";
   return (
     <div className="signup-grid signup-grid-single">
       <Input
@@ -458,9 +466,23 @@ function PersonFields({
         name={`${who}-password`}
         value={value.temporary_password}
         hint={passwordHint}
-        toggleName={`${who === "owner" ? "Owner" : "Admin"} temporary password`}
+        required={passwordRequired}
+        toggleName={`${title} temporary password`}
         onChange={(temporary_password) => onChange({ ...value, temporary_password })}
       />
+      {onSavePassword && (
+        <div className="field">
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={saving || !value.temporary_password}
+            data-testid={`signup-${who}-save-password`}
+            onClick={onSavePassword}
+          >
+            {saving ? "Saving…" : `Save ${title} password`}
+          </button>
+        </div>
+      )}
       <CodeField
         label="Staff code"
         name={`${who}-staff-code`}
@@ -841,6 +863,8 @@ export function Signup() {
   const [commandId, setCommandId] = useState(() => crypto.randomUUID());
   const [revisionMode, setRevisionMode] = useState(false);
   const [currentOwnerPassword, setCurrentOwnerPassword] = useState("");
+  const [unlocking, setUnlocking] = useState(false);
+  const [unlockPassword, setUnlockPassword] = useState("");
   const [pending, setPending] = useState<RegistrationResult | null>(null);
   const [identity, setIdentity] = useState({ email: "", temporary_password: "" });
   const [acknowledged, setAcknowledged] = useState(false);
@@ -899,19 +923,14 @@ export function Signup() {
     filled(company.country, company.timezone, company.currency, company.locale),
     filled(store.name, store.city, store.address, store.setup_kind) &&
       (store.setup_kind !== "existing" || filled(store.source_system)),
-    filled(
-      owner.name,
-      owner.email,
-      owner.temporary_password,
-      admin.name,
-      admin.email,
-      admin.temporary_password,
-    ) && team.every((p) => filled(p.name, p.email)),
+    filled(owner.name, owner.email, admin.name, admin.email) &&
+      (revisionMode || filled(owner.temporary_password, admin.temporary_password)) &&
+      team.every((p) => filled(p.name, p.email)),
     confirming,
     false,
   ];
   const passwordHint = revisionMode
-    ? "New temporary password required. Different for each person."
+    ? "Leave blank to keep the saved password. Different for each person."
     : "Different for each person. Changed at first sign-in.";
   const options = state?.options;
   useEffect(() => {
@@ -989,10 +1008,7 @@ export function Signup() {
 
   async function stage() {
     if (revisionMode && !currentOwnerPassword) {
-      setError("Enter the saved Owner password to save changes.");
-      requestAnimationFrame(() =>
-        document.getElementById("signup-revision-owner-password")?.focus(),
-      );
+      setError("Editing is locked. Go back to confirmation and enter the current Owner password.");
       return;
     }
     setError("");
@@ -1006,6 +1022,12 @@ export function Signup() {
         const { staff_code, ...rest } = value;
         return { ...rest, ...(staff_code ? { staff_code } : {}) };
       };
+      // While editing, a blank temporary password keeps that person's saved one.
+      const initialPerson = (value: Person) => {
+        const { temporary_password, ...rest } = autoStaff(value);
+        return { ...rest, ...(temporary_password ? { temporary_password } : {}) };
+      };
+      const passwordChanged = Boolean(owner.temporary_password || admin.temporary_password);
       const body = {
         command_id: commandId,
         company: autoCode(company),
@@ -1013,8 +1035,8 @@ export function Signup() {
           ...store,
           source_system: store.setup_kind === "existing" ? store.source_system : "",
         }),
-        owner: autoStaff(owner),
-        admin: autoStaff(admin),
+        owner: initialPerson(owner),
+        admin: initialPerson(admin),
         proposed_team: team.map(autoStaff),
       };
       const { data } = revisionMode
@@ -1030,10 +1052,23 @@ export function Signup() {
       setReviewing(false);
       setCurrentOwnerPassword("");
       setIdentity({ email: "", temporary_password: "" });
-      setNotice("Setup saved. Owner and Admin must each review and confirm.");
+      setNotice(
+        revisionMode && passwordChanged
+          ? "Setup saved with the new temporary password. Owner and Admin must each review and confirm, using the new password where it changed."
+          : "Setup saved. Owner and Admin must each review and confirm.",
+      );
       setOwner((p) => ({ ...p, temporary_password: "" }));
       setAdmin((p) => ({ ...p, temporary_password: "" }));
     } catch (e) {
+      if (revisionMode && apiErrorCode(e) === "INVALID_CREDENTIALS") {
+        setRevisionMode(false);
+        setReviewing(false);
+        setCurrentOwnerPassword("");
+        setError(
+          "The saved Owner password was not accepted, so nothing was changed. Choose Back to setup and enter it again.",
+        );
+        return;
+      }
       const errors = registrationErrors(e);
       setError(Object.keys(errors).length ? "" : apiErrorMessage(e));
       setFieldErrors(errors);
@@ -1113,9 +1148,37 @@ export function Signup() {
     setTeam(summary.proposed_team.map((person) => ({ ...person })));
     setCustomCity(!options?.states.flatMap((s) => s.cities).includes(String(summary.store.city)));
   }
-  function beginRevision() {
-    setDetailsMissing(!company.name && !pending?.summary);
-    if (!company.name && pending?.summary) restoreDetails(pending.summary);
+  async function unlock(event: FormEvent) {
+    event.preventDefault();
+    const email = pending?.summary?.owner.email ?? owner.email;
+    setBusy(true);
+    setError("");
+    try {
+      const { data } = await api.post<RegistrationResult>("/auth/registration/confirm", {
+        email,
+        temporary_password: unlockPassword,
+      });
+      if (data.confirming_role !== "owner") {
+        setError("Only the Owner can edit the saved setup.");
+        return;
+      }
+      setPending(data);
+      beginRevision(unlockPassword, data.summary);
+    } catch (e) {
+      setError(
+        apiErrorCode(e) === "INVALID_CREDENTIALS"
+          ? "That is not the saved Owner password. Use the Owner password from when this setup was last saved."
+          : apiErrorMessage(e),
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+  function beginRevision(ownerPassword: string, summary = pending?.summary) {
+    setUnlocking(false);
+    setUnlockPassword("");
+    setDetailsMissing(!company.name && !summary);
+    if (!company.name && summary) restoreDetails(summary);
     else {
       setOwner((p) => ({ ...p, temporary_password: "" }));
       setAdmin((p) => ({ ...p, temporary_password: "" }));
@@ -1123,9 +1186,7 @@ export function Signup() {
     setCommandId(crypto.randomUUID());
     setReviewing(false);
     setRevisionMode(true);
-    setCurrentOwnerPassword(
-      pending?.confirming_role === "owner" ? identity.temporary_password : "",
-    );
+    setCurrentOwnerPassword(ownerPassword);
     setIdentity({ email: "", temporary_password: "" });
     setFieldErrors({});
     setError("");
@@ -1249,13 +1310,50 @@ export function Signup() {
           <section className="card signup-section">
             <div className="signup-confirm-header">
               <h2>Confirm company setup</h2>
-              <button type="button" className="btn" disabled={busy} onClick={beginRevision}>
+              <button
+                type="button"
+                className="btn"
+                disabled={busy}
+                onClick={() => {
+                  setError("");
+                  // An Owner who already reviewed here has just proved the saved password.
+                  if (pending?.confirming_role === "owner" && identity.temporary_password)
+                    beginRevision(identity.temporary_password);
+                  else setUnlocking(!unlocking);
+                }}
+              >
                 Back to setup
               </button>
             </div>
             <p className="signup-section-lead">
               The setup is saved. Owner and Admin each confirm it separately.
             </p>
+            {unlocking && (
+              <form
+                onSubmit={unlock}
+                className="signup-credentials"
+                data-testid="signup-unlock"
+                aria-labelledby="signup-unlock-title"
+              >
+                <h3 id="signup-unlock-title">Edit the saved setup</h3>
+                <p className="signup-muted">
+                  Only the Owner can edit. Enter the Owner temporary password from when this setup
+                  was last saved. You can set a new password on the next screen.
+                </p>
+                <div className="signup-grid">
+                  <Input
+                    label="Saved Owner password"
+                    type="password"
+                    name="unlock-owner-password"
+                    value={unlockPassword}
+                    onChange={setUnlockPassword}
+                  />
+                </div>
+                <button className="btn btn-primary" disabled={busy || !unlockPassword}>
+                  {busy ? "Checking…" : "Edit setup"}
+                </button>
+              </form>
+            )}
             {pending?.confirmed && pending.summary && (
               <div className="signup-confirmation-status">
                 {(["owner", "admin"] as const).map((role) => (
@@ -1377,19 +1475,13 @@ export function Signup() {
                 />
                 <div className="signup-save">
                   {revisionMode && (
-                    <>
-                      <p className="signup-callout">
-                        Saving replaces the saved setup and clears both confirmations. Owner and
-                        Admin confirm again.
-                      </p>
-                      <Input
-                        label="Saved Owner password"
-                        type="password"
-                        name="revision-owner-password"
-                        value={currentOwnerPassword}
-                        onChange={setCurrentOwnerPassword}
-                      />
-                    </>
+                    <p className="signup-callout">
+                      Saving replaces the saved setup and clears both confirmations. Owner and Admin
+                      confirm again
+                      {owner.temporary_password || admin.temporary_password
+                        ? ", using the new temporary password where you changed it."
+                        : ". Temporary passwords stay as saved."}
+                    </p>
                   )}
                   <button
                     type="button"
@@ -1674,6 +1766,9 @@ export function Signup() {
                           value={value}
                           preview={staffCodes[index]!}
                           passwordHint={passwordHint}
+                          passwordRequired={!revisionMode}
+                          onSavePassword={revisionMode ? () => void stage() : undefined}
+                          saving={busy}
                           onChange={set}
                         />
                       </div>

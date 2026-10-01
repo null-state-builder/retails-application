@@ -23,15 +23,12 @@ PT Work -> Mapping rules, where a person proposes and another approves.
 
 from __future__ import annotations
 
-import re
 import uuid
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 from typing import Any
-
-import openpyxl
 
 from core.canonical import content_hash
 from core.commands import CommandResult, CommandRun, CommandSpec, database_now, execute_command
@@ -47,23 +44,14 @@ from masters.goods_identity_services import (
     save_master,
     vocabulary,
 )
+from masters.master_sheet import (
+    MasterSheet,
+    pick_valid,
+    read_master_sheets,
+    sort_key,
+)
 from ptmapper.goods_mapper import season_label
 from ptmapper.goods_rulebook import Rulebook, compact, match_key
-
-#: Master sheet column -> goods-v1 vocabulary dimension. BRAND (column 1) names
-#: brand masters, not a vocabulary; GST % (column 9) is not a mapped PT column.
-DIM_COLS = {
-    0: "season",
-    2: "colour",
-    3: "gender",
-    4: "sub_category",
-    5: "type",
-    6: "item",
-    7: "fit",
-    8: "size",
-}
-#: Columns 10 and 11 of the master sheet: ITEM's suggested SUB CATEGORY and TYPE.
-HELPER_COLS = {10: "sub_category", 11: "type"}
 
 #: Dimensions whose rules read a column's own cell: a rule that maps a value to
 #: itself adds nothing there, because an approved value already matches exactly.
@@ -637,51 +625,7 @@ SUB_OVERRIDE = {
 }
 
 
-# ----------------------------------------------------------------------------- the sheet
-
-
-def cell_text(val: Any) -> str:
-    if val is None:
-        return ""
-    if isinstance(val, float) and val == int(val):
-        return str(int(val))
-    return str(val).strip()
-
-
-@dataclass
-class MasterSheet:
-    """The KDPS master sheet's vocabularies, ITEM helper and brand names."""
-
-    values: dict[str, set[str]] = field(default_factory=dict)
-    item_helper: dict[str, tuple[str, str]] = field(default_factory=dict)
-    brands: set[str] = field(default_factory=set)
-    read: list[str] = field(default_factory=list)
-    missing: list[str] = field(default_factory=list)
-
-
-def read_master_sheets(paths: Iterable[Path]) -> MasterSheet:
-    """Union every sheet's values; for the ITEM helper the first sheet wins."""
-    sheet = MasterSheet(values={dim: set() for dim in DIM_COLS.values()})
-    for path in paths:
-        if not path.exists():
-            sheet.missing.append(str(path))
-            continue
-        workbook = openpyxl.load_workbook(path, read_only=True, data_only=True)
-        rows = [list(r) for r in workbook["Master Sheet"].iter_rows(values_only=True)]
-        workbook.close()
-        sheet.read.append(str(path))
-        for row in rows[1:]:
-            cells = [cell_text(c) for c in row]
-            for index, dimension in DIM_COLS.items():
-                if index < len(cells) and cells[index]:
-                    sheet.values[dimension].add(cells[index])
-            if len(cells) > 1 and cells[1]:
-                sheet.brands.add(cells[1])
-            item = cells[6] if len(cells) > 6 else ""
-            if item and item not in sheet.item_helper:
-                helper = tuple(cells[i] if i < len(cells) else "" for i in HELPER_COLS)
-                sheet.item_helper[item] = (helper[0], helper[1])
-    return sheet
+# ----------------------------------------------------------------------------- seasons
 
 
 def rolling_season_values(today: date) -> set[str]:
@@ -695,48 +639,6 @@ def rolling_season_values(today: date) -> set[str]:
         out.add(season_label(date(y, m, 1)))
         y, m = (y + 1, 1) if m == 12 else (y, m + 1)
     return out
-
-
-def pick_valid(cell: str, valid: set[str]) -> str:
-    """From a helper cell that may hold several '/'-separated options
-    ('FORMAL / CASUAL/ PARTY WEAR'), the first that is a real value (exact, else a
-    value the token starts: 'CASUAL' -> 'CASUAL WEAR')."""
-    for token in re.split(r"[/,]", cell or ""):
-        token = token.strip()
-        if not token:
-            continue
-        if token in valid:
-            return token
-        for value in sorted(valid):  # sorted: deterministic when a token prefixes several
-            if value.startswith(token):
-                return value
-    return ""
-
-
-_MONTHS = {
-    m: i
-    for i, m in enumerate(
-        ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"], 1
-    )
-}
-_SEASON_RE = re.compile(r"\((\w{3})-(\d{2})\)\s*$")
-
-
-def sort_key(dimension: str, text: str) -> tuple[Any, ...]:
-    """A natural order for new values: seasons by month, numbers by size."""
-    if dimension == "season":
-        found = _SEASON_RE.search(text.upper())
-        if found and found.group(1) in _MONTHS:
-            return (0, int(found.group(2)), _MONTHS[found.group(1)], text)
-    parts = re.split(r"(\d+(?:\.\d+)?)", text.upper())
-    return (
-        1,
-        *[
-            (0, float(p), "") if re.fullmatch(r"\d+(?:\.\d+)?", p) else (1, 0.0, p)
-            for p in parts
-            if p
-        ],
-    )
 
 
 # ----------------------------------------------------------------------------- vocabulary
@@ -809,9 +711,13 @@ def _approve_vocabulary(
     run: CommandRun, approver_id: Any, dimension: str, values: list[dict[str, Any]]
 ) -> str:
     """One approved vocabulary version, validated as the product validates a draft."""
-    from masters.goods_config import activate, normalise_scope
+    from masters.goods_config import normalise_scope
     from masters.goods_models import ConfigDraft, ConfigVersion
-    from masters.goods_services import config_scope_key, validate_config_payload
+    from masters.goods_services import (
+        config_scope_key,
+        freeze_config_version,
+        validate_config_payload,
+    )
 
     owner = (
         ConfigVersion.objects.filter(
@@ -841,28 +747,14 @@ def _approve_vocabulary(
         maker_id=approver_id,
         state=ConfigDraft.State.APPROVED,
     )
-    last = (
-        ConfigVersion.objects.filter(
-            tenant_id=run.tenant_id, kind="vocabulary", scope_key=scope_key
-        )
-        .order_by("-version")
-        .first()
+    version, _superseded = freeze_config_version(
+        run,
+        draft,
+        checker_id=approver_id,
+        source_revision=1,
+        source_hash=content_hash(payload),
+        not_before=None,
     )
-    version = run.record(
-        ConfigVersion(
-            draft_id=draft.pk,
-            kind="vocabulary",
-            version=(last.version + 1) if last else 1,
-            scope=scope,
-            scope_key=scope_key,
-            payload=payload,
-            effective_from=run.now,
-            approved_by_id=approver_id,
-            source_revision=1,
-            source_hash=content_hash(payload),
-        )
-    )
-    activate(run, version, effective_to=None)
     return str(version.pk)
 
 

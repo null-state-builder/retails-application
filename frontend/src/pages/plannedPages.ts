@@ -245,18 +245,4 @@ export const PLANNED_PAGES: Record<string, PlannedScreen> = {
     ],
     module: ANALYTICS,
   },
-
-  // ---- Setup --------------------------------------------------------------
-  "/setup/products": {
-    summary: "The item master — every style, in every size and colour.",
-    contains: [
-      "Style, size, colour, barcode and HSN",
-      "Barcodes as scan aliases, with stock counted under them",
-      "Season and collection tags on every item",
-    ],
-    notes: [
-      "Items already enter the system through brand PT files and PT making, which create them as goods arrive. This screen is where they will be managed directly instead.",
-    ],
-    module: ADMINISTRATION,
-  },
 };

@@ -884,7 +884,13 @@ export const SECTIONS: NavSectionDef[] = [
     icon: Settings,
     layer: "master",
     items: [
-      { label: "Products", to: "/setup/products", planned: true },
+      // The KDPS master sheet configures every product list in one approved upload
+      // (SO-04 C01); single values are still edited under Configuration.
+      {
+        label: "Product lists",
+        to: "/setup/products",
+        goodsActions: ["config.draft", "config.approve"],
+      },
       { label: "First store setup", to: "/setup/first-store", goodsActions: ["access.manage"] },
       // Goods-v1 organisation setup (ticket 02): legal entities, registrations,
       // sites, SBUs, location trees, and a site's readiness/closure — separate

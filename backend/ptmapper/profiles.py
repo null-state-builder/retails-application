@@ -195,7 +195,41 @@ HEADER_KEYWORDS = {
 }
 
 
+#: KDPS's own PT work sheet (the "<name> Work Sheet" tabs of the KDPS PT file): every
+#: KDPS column is already there, so ITEM, SUB CATEGORY and TYPE are read from their own
+#: cells rather than found in a description. The Master Sheet tab beside it is skipped.
+WORK_SHEET_PROFILE = "kdps_work_sheet"
+WORK_SHEET_HEADERS = ["SEASON", "SUB CATEGORY", "ITEM", "BARCODE", "BASIC", "P RATE", "NAG"]
+MASTER_SHEET_NAME = "MASTER SHEET"
+
 PROFILES: list[dict[str, Any]] = [
+    {
+        "code": WORK_SHEET_PROFILE,
+        "name": "KDPS PT work sheet",
+        "archetype": "K",
+        "match": {"header_has": WORK_SHEET_HEADERS},
+        "overrides": {
+            "BARCODE": "BARCODE",
+            "DESIGN": "DESIGN",
+            "BRAND_SRC": "BRAND",
+            "COLOR_SRC": "COLOR",
+            "SIZE_SRC": "SIZE",
+            "QTY": "QTY",
+            "MRP": "MRP",
+            "PRATE_SRC": "P RATE",
+            "BASIC_SRC": "BASIC",
+            "HSN": "HSN",
+            "TAX_SRC": "INPUT TAX",
+            "SEASON_SRC": "SEASON",
+            "GENDER_SRC": "GENDER",
+            "FIT_SRC": "FIT",
+            "ITEM_SRC": "ITEM",
+            "SUBCAT_SRC": "SUB CATEGORY",
+            "TYPE_SRC": "TYPE",
+            "DESC_SRC": ["ITEM", "DESIGN"],
+        },
+        "flags": {"explicit_attributes": True},
+    },
     {
         "code": "ginesys_pt_email",
         "name": "Ginesys PT EMAIL (ABFRL distributor)",
