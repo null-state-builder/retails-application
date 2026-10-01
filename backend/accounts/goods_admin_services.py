@@ -93,7 +93,7 @@ PRIVILEGED_ACTIONS = frozenset(PRIVILEGED_COMMAND_ACTIONS)
 
 SCOPE_KINDS = ("tenant", "entity", "site", "sbu", "brand")
 STAFF_KEYS = frozenset(
-    {"human_id", "staff_code", "display_name", "mobile", "salesperson", "site_id", "effective_from"}
+    {"human_id", "staff_code", "display_name", "mobile", "salesperson", "site_id", "effective_from", "registration_email"}
 )
 USER_KEYS = frozenset(
     {"human_id", "email", "display_name", "active", "password", "identity_email_confirmed"}
@@ -303,6 +303,7 @@ class StaffFields:
     present: frozenset[str]
     human_id: uuid.UUID | None = None
     staff_code: str | None = None
+    registration_email: str | None = None
     display_name: str | None = None
     mobile: str | None = None
     salesperson: bool | None = None
@@ -313,6 +314,7 @@ class StaffFields:
         values: dict[str, Any] = {
             "human_id": ref(self.human_id),
             "staff_code": self.staff_code,
+            "registration_email": self.registration_email,
             "display_name": self.display_name,
             "mobile": self.mobile,
             "salesperson": self.salesperson,
@@ -334,6 +336,7 @@ def parse_staff_fields(body: dict[str, Any]) -> StaffFields:
         if body.get("human_id") is not None
         else None,
         staff_code=text_field(body, "staff_code", 40),
+        registration_email=text_field(body, "registration_email", 120),
         display_name=text_field(body, "display_name", 160),
         mobile=mobile,
         salesperson=bool_field(body, "salesperson"),
@@ -600,6 +603,9 @@ def create_staff(run: CommandRun, *, fields: StaffFields) -> Staff:
         human = HumanIdentity(tenant_id=run.tenant_id)
     if _staff_code_taken(run.tenant_id, fields.staff_code, human.pk if fields.human_id else None):
         raise staff_invalid("Another person already uses that staff code.", "staff_code")
+    from accounts.registration_services import claim_signup_code
+
+    claim_signup_code(run.tenant_id, fields.staff_code, fields.registration_email, human.pk)
     human.staff_code = fields.staff_code
     human.display_name = fields.display_name
     human.save()
@@ -642,6 +648,9 @@ def update_staff(
     if fields.staff_code is not None and fields.staff_code != human.staff_code:
         if _staff_code_taken(run.tenant_id, fields.staff_code, human.pk):
             raise staff_invalid("Another person already uses that staff code.", "staff_code")
+        from accounts.registration_services import claim_signup_code
+
+        claim_signup_code(run.tenant_id, fields.staff_code, fields.registration_email, human.pk)
         human.staff_code = fields.staff_code
     if fields.display_name is not None:
         human.display_name = fields.display_name
@@ -1022,6 +1031,9 @@ def create_user(run: CommandRun, *, login: LoginFields) -> User:
     human = HumanIdentity.objects.filter(tenant_id=run.tenant_id, pk=login.human_id).first()
     if human is None:
         raise not_found("person")
+    from accounts.registration_services import validate_signup_login
+
+    validate_signup_login(run.tenant_id, human.pk, login.email)
     problems: list[dict[str, Any]] = []
     if User.objects.filter(human_id=human.pk).exists():
         problems.append(

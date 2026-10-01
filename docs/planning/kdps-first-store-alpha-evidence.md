@@ -210,3 +210,185 @@ new-format start is already past retain the mid-year format-change restriction;
 this must not be misreported as a blocker for the blank-installation scenario.
 Any explicitly synthetic commercial tax fixture used for the browser sale will
 be recorded separately; it cannot prove real-store tax approval.
+
+
+## Signup UX and progress panel — 1 October 2026
+
+Implemented on HEAD `3a16c616c259376598b293d4e89e9bc9e3899a66` plus the working-tree changes. Runtime source
+fingerprint: `1ae2f6c81177dcadba4ddb84c8b0e371afa62a21e5b9282eedde718ca33ef23a`. Reproduce by sorting the unique tracked and
+untracked non-ignored file paths from `git ls-files -z --cached --others
+--exclude-standard`, retaining `backend/`, `frontend/`, `scripts/`; hash each file
+with SHA-256, encode the ordered `{"path":...,"sha256":...}` records as JSON
+with sorted keys and separators `(',', ':')`, then SHA-256 that UTF-8 JSON.
+The complete working-tree manifest is retained privately at
+`.local/signup-working-tree-fingerprint.json`; neither credentials nor the raw
+SOH workbook are included in the changes for delivery.
+
+Implemented: Company / Regional settings / First store / People form, local
+review and independent confirmation; six-step numbered progress tiles with
+scroll-aware current section; Jharkhand/Bihar state and city suggestions plus
+explicit custom city; India/INR/Kolkata/en-IN dropdowns; new/existing radio cards;
+server-side omitted-code allocation under the existing installation lock;
+explicit proposed-email/stable-human reservation claims during normal staff
+administration; named confirmation status, responsive spacing and theme tokens.
+The staff-link extension adds optional `registration_email` to the existing
+staff command. It grants no login or assignment; the initial login must match
+the explicitly claimed proposal. Existing installations without the new
+reservation event keep their previous staff path. Existing registration
+summaries and hashes are not rewritten; no schema migration was introduced.
+
+Actual affected chain: Signup → registration view/serializer → installation
+lock → resolved codes → summary hash and existing personal confirmations →
+canonical tenant/staff bootstrap. Proposed codes are reserved in registration
+history only at completion. Authorised staff command → code/person locks →
+explicit proposal-email check → stable human claim event and canonical Staff
+creation; login creation validates that link before issuing credentials. No
+additional report/export/print/event delivery surface is introduced. Existing
+registration summaries remain private and scope-projected by their existing
+readers. New error-link navigation is registered under A00; C01/C02 dependencies
+remain with their existing owners.
+
+Proof identity verified before database checks: project
+`kdps-proof-ff7f4a176291`, container `kdps-proof-ff7f4a176291-database-1`,
+host `127.0.0.1:55433`, database/user `kdps_proof`, PostgreSQL 17.11,
+host/container system identifier `7690899938284695588`. Django tests use the
+separate disposable `kdps_proof_test` database.
+
+Current verification:
+
+- `python3 scripts/proof.py run --cwd backend -- .venv/bin/pytest tests/test_installation_registration.py tests/test_so03_admin_delivery.py tests/test_unified_admin_projection.py -q`: **43 passed**, two existing staticfiles warnings. Includes code allocation/replay/revision, code/email reservation, public metadata privacy, initial-person concurrency and scoped administration regressions. Log: `.local/signup-registration-tests.log`.
+- `cd frontend && node_modules/.bin/vitest run`: **51 passed**, 13 files. Log: `.local/signup-frontend-tests.log`.
+- `cd frontend && PLAYWRIGHT_BROWSERS_PATH=../.local/playwright-browsers node_modules/.bin/playwright test --config playwright.signup.config.ts`: **4 passed**, at 1440/1366/768/375px, light/dark screenshots. Empty/populated/review/error/denied/loading/closed states, code previews, state/city reset, radio alternatives, retained fields, named confirmations, reload privacy and progress navigation. Log: `.local/signup-browser-tests.log`; screenshots under `.local/signup-browser/`.
+- Frontend `tsc --noEmit`, ESLint and Prettier checks passed; full ESLint retains 20 pre-existing warnings outside changed signup code. Targeted changed-file ESLint passed without warnings.
+- Ruff on changed Python files and mypy on the four affected registration/admin modules passed.
+- `python3 scripts/api-contract.py check`: **505 paths match**.
+- `backend/.venv/bin/python scripts/check_so03_consolidation.py --write` followed by `--check`: reviewed generated changes; **3036 surfaces match**.
+- `backend/.venv/bin/python scripts/check_so03_boundaries.py` and `backend/.venv/bin/python -m unittest discover -s scripts -p 'test_*so03*.py'`: passed; **20 checker tests**.
+- `python3 scripts/proof.py run --cwd backend -- .venv/bin/python manage.py makemigrations --check --dry-run`: **No changes detected**.
+- `git diff --check`: passed.
+
+Limitations: browser journeys above deliberately stub transport to test UI
+states; they are not a real-backend end-to-end registration acceptance claim.
+The ordinary registration and administration services/API boundaries were
+exercised on PostgreSQL by the backend suite. In-app browser inspection later
+failed with a browser focus timeout; test-generated screenshots were inspected
+instead. `python3 scripts/baseline.py verify` passed proof preparation and seed
+repeatability but stopped at launcher smoke because the user's running app owns
+8000/5173. Log: `.local/signup-baseline.log`. A full baseline green result and
+full first-store alpha acceptance are not claimed. Local app processes were
+restarted with their existing launcher/configuration; no local/real tenant was
+registered, reset or cut over by this work.
+# Temporary-password and validation-feedback follow-up — 1 October 2026
+
+At the user's request, initial signup temporary passwords accept any non-empty
+value up to the existing 128-character limit, without strength checks. Owner
+and Admin still use different credentials and independently confirm the same
+revision. Hashing, private summaries, first-sign-in replacement and permanent
+password validation remain enforced. No global password settings changed.
+
+Signup field errors now use one labelled, linked summary rather than repeating
+the first error in a second banner. All messages for a field are retained,
+corrected field errors clear on editing, and service failures retain their
+separate fallback when no field errors are available. The populated local form
+was revalidated through Review setup; no registration was submitted. The local
+API was restarted with its unchanged command/configuration while preserving the
+frontend and worker. API health returned `ok`.
+
+HEAD: `3a16c616c259376598b293d4e89e9bc9e3899a66`. Tested slice fingerprint:
+`02749cf156e2f3af55b3f445d787b3d5060bf1fd8694ec3d0c0f4621764a5045`.
+Reproduce by sorting the following paths, then feeding each UTF-8 path, a NUL
+byte and its binary SHA-256 content digest into one SHA-256 accumulator:
+`backend/accounts/registration_serializers.py`,
+`backend/tests/test_installation_registration.py`,
+`frontend/src/pages/Signup.tsx`, `frontend/src/pages/Signup.test.tsx`,
+`frontend/browser/signup-ux.spec.ts`,
+`docs/planning/so-03-consolidation-inventory.json`,
+`docs/planning/so-03-consolidation-register.md`,
+`docs/planning/so-03-dependency-map.md`.
+
+Before database tests, `python3 scripts/proof.py up` verified the owned project
+`kdps-proof-ff7f4a176291`, container `kdps-proof-ff7f4a176291-database-1`,
+host port 55433, database/user `kdps_proof`, PostgreSQL 17.11 and matching
+container/host system identifier `7690899938284695588`. Tests used only the
+disposable sibling `kdps_proof_test`.
+
+- `python3 scripts/proof.py run --cwd backend -- .venv/bin/pytest tests/test_installation_registration.py -q --reuse-db`: **30 passed**, two staticfiles warnings. Includes short/common/numeric/whitespace temporary credentials, blank/shared denial, successful joint confirmation and refusal of a weak permanent replacement without changing the credential.
+- `cd frontend && node_modules/.bin/vitest run src/pages/Signup.test.tsx`: **5 passed**; single error summary, labelled field links, complete field messages and service-error fallback.
+- `cd frontend && PLAYWRIGHT_BROWSERS_PATH=../.local/playwright-browsers node_modules/.bin/playwright test --config playwright.signup.config.ts`: **4 passed** at 1440/1366/768/375px. Mocked synthetic transport verifies simple passwords, retained fields, one validation summary, error focus, edit-to-clear and retry alongside existing signup states. This is presentation proof, not a real-tenant acceptance claim.
+- Frontend `node_modules/.bin/tsc --noEmit`, changed-file ESLint and Prettier checks: passed.
+- `python3 scripts/proof.py run --cwd backend -- .venv/bin/mypy accounts/registration_serializers.py`: passed. An initial root-directory invocation did not load the backend configuration and is not valid type-check evidence.
+- `backend/.venv/bin/ruff check backend/accounts/registration_serializers.py backend/tests/test_installation_registration.py`: passed.
+- `python3 scripts/proof.py run -- backend/.venv/bin/python scripts/api-contract.py check`: **505 API paths matched**.
+- Inventory refresh reviewed: removal of the serializer's unused `accounts.models` import and its derived static candidates; classifications and workflow owners unchanged. `backend/.venv/bin/python scripts/check_so03_consolidation.py --check`: **3036 surfaces matched**.
+- `backend/.venv/bin/python scripts/check_so03_boundaries.py` and `git diff --check`: passed.
+
+No migrations or full baseline were run for this follow-up; earlier baseline
+results do not verify this revision. Existing unrelated work and the raw workbook
+were preserved; no commit or tenant cutover was performed.
+
+## Visible pending-setup editing — 1 October 2026
+
+Superseded by the direct-back correction below. This section records the
+intermediate credential-gated editor, which the user rejected.
+
+The confirmation header now always offers `Edit setup` while registration is
+pending. It verifies the saved Owner credentials before restoring the saved
+form through the existing revision path. An Admin cannot enter the editor.
+Verified Owner credentials carry forward to the existing PATCH guard without
+asking for the same password twice. New temporary credentials remain blank;
+saving changes still invalidates both previous confirmations. No recovery or
+unauthenticated overwrite path was added; backend/API contracts are unchanged.
+
+HEAD remains `3a16c616c259376598b293d4e89e9bc9e3899a66`. Frontend slice fingerprint
+`d380b819f207992f399d3f057189f25844c812fc1d49b47324049e00c1d37659`
+uses the preceding SHA-256 algorithm over sorted paths
+`frontend/src/pages/Signup.tsx`, `frontend/src/pages/Signup.css`,
+`frontend/src/pages/Signup.test.tsx` and `frontend/browser/signup-ux.spec.ts`.
+
+Current checks: `cd frontend && node_modules/.bin/vitest run src/pages/Signup.test.tsx`
+**5 passed**; `PLAYWRIGHT_BROWSERS_PATH=../.local/playwright-browsers node_modules/.bin/playwright test --config playwright.signup.config.ts`
+**4 passed** at 1440/1366/768/375px, with mocked synthetic transport. Covers a
+visible edit option on private reload, Admin denial, Owner verification,
+restored fields/codes, blank new passwords and cancellation back to confirmation.
+Frontend `tsc --noEmit`, changed-file ESLint and Prettier passed. Consolidation
+`--check` matched **3036 surfaces**; boundary checks and `git diff --check` passed.
+The live user tab shows the edit option; it was not used to revise or save the
+user's pending registration. No database-dependent checks, migration or full
+baseline were run for this frontend-only follow-up.
+
+## Direct return to the filled setup — 1 October 2026
+
+The confirmation screen now has one `Back to setup` button that immediately
+opens the populated form. Owner authentication remains at saving a revision,
+through the existing PATCH guard; it is no longer a navigation prerequisite.
+Saving still requires new temporary credentials and invalidates both prior
+confirmations. `Back to confirmation` retains the draft without submitting it.
+
+An explicit whitelist retains company, store and proposed-person details in
+the originating tab's session storage across reloads. Passwords are excluded,
+and the draft is removed when registration completes. A private unauthenticated
+reload may display that local draft, labelled `Your entered details`; server
+confirmation statuses and saved identifying details still require credential
+verification. Another browser without a local draft cannot read the private
+server summary. Storage failure leaves the current in-memory form usable.
+
+The previous update had already lost the live tab's in-memory form. Its agreed
+synthetic KDPS/Vaishnavi QA details were restored through the form. A live
+confirmation → setup → confirmation roundtrip preserved names, regional values,
+addresses, codes and proposed team. No credentials were entered, and no saved
+registration was revised or confirmed during this correction.
+
+HEAD remains `3a16c616c259376598b293d4e89e9bc9e3899a66`. Current frontend slice
+fingerprint `4c0c4387d892dc5cc662a65a746ce3d26c5364609e44fcc0b891b477a329fc64`
+uses the preceding sorted-path/NUL/binary-content-SHA256 algorithm over the
+same four frontend paths.
+
+- `cd frontend && node_modules/.bin/vitest run src/pages/Signup.test.tsx`: **5 passed**.
+- `cd frontend && PLAYWRIGHT_BROWSERS_PATH=../.local/playwright-browsers node_modules/.bin/playwright test --config playwright.signup.config.ts`: **4 passed** at 1440/1366/768/375px, mocked synthetic transport. Covers direct back navigation, reload retention, populated fields/codes, blank passwords, no stored password keys, return to confirmation and draft removal after registration, alongside the existing validation/confirmation tests.
+- Frontend `node_modules/.bin/tsc --noEmit`, changed-file ESLint and Prettier: passed.
+- `backend/.venv/bin/python scripts/check_so03_consolidation.py --check`: **3036 surfaces matched**.
+- `backend/.venv/bin/python scripts/check_so03_boundaries.py` and `git diff --check`: passed.
+
+No database-dependent checks, migration or full baseline were run for this
+frontend-only correction. Browser transport tests do not establish real-store
+acceptance. Existing unrelated work was preserved.

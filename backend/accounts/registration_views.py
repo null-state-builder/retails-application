@@ -34,6 +34,7 @@ class RegistrationState(serializers.Serializer[Any]):
     pending_confirmation = serializers.BooleanField()
     message = serializers.CharField()
     synthetic = serializers.BooleanField()
+    options = serializers.JSONField()
 
 
 class RegistrationResult(serializers.Serializer[Any]):

@@ -66,6 +66,57 @@ def deployment_key() -> uuid.UUID:
         ) from None
 
 
+def registration_options() -> dict[str, Any]:
+    """Public presentation metadata only; no pending people or installation secrets."""
+    return {
+        "countries": [{"value": "IN", "label": "India — IN"}],
+        "timezones": [{"value": "Asia/Kolkata", "label": "India Standard Time — Asia/Kolkata"}],
+        "currencies": [{"value": "INR", "label": "Indian Rupee — INR ₹"}],
+        "languages": [{"value": "en-IN", "label": "English — India"}],
+        "formats": [{"value": "en-IN", "label": "Indian — 1,23,456.78"}],
+        "states": [
+            {"value": "20", "label": "Jharkhand", "cities": ["Ranchi", "Jamshedpur", "Dhanbad", "Bokaro", "Deoghar", "Hazaribagh"]},
+            {"value": "10", "label": "Bihar", "cities": ["Patna", "Gaya", "Bhagalpur", "Muzaffarpur", "Darbhanga", "Purnia"]},
+        ],
+        "code_defaults": {"company": "CMP-0001", "store": "STR-0001", "staff_prefix": "EMP-"},
+    }
+
+
+def resolve_registration_codes(data: dict[str, Any], previous: dict[str, Any] | None) -> dict[str, Any]:
+    """Allocate under the installation lock, before hashing the reviewed summary.
+
+    The request fingerprint deliberately remains based on the original request:
+    retrying an automatic allocation returns its previously allocated summary.
+    """
+    from copy import deepcopy
+
+    resolved = deepcopy(data)
+    old = previous or {}
+    for key, default in (("company", "CMP-0001"), ("store", "STR-0001")):
+        resolved[key].setdefault("code", old.get(key, {}).get("code", default))
+    prior_people = [old.get("owner", {}), old.get("admin", {}), *old.get("proposed_team", [])]
+    by_email = {p.get("email", "").casefold(): p.get("staff_code") for p in prior_people}
+    people = [resolved["owner"], resolved["admin"], *resolved.get("proposed_team", [])]
+    for person in people:
+        previous_code = by_email.get(person["email"].casefold())
+        if "staff_code" not in person and previous_code:
+            person["staff_code"] = previous_code
+    used = {p["staff_code"].casefold() for p in people if p.get("staff_code")}
+    # Retired/removed proposals also keep their numbers out of this revision's allocation.
+    used.update(p["staff_code"].casefold() for p in prior_people if p.get("staff_code"))
+    number = 1
+    for person in people:
+        if not person.get("staff_code"):
+            while f"EMP-{number:04d}".casefold() in used:
+                number += 1
+            person["staff_code"] = f"EMP-{number:04d}"
+            used.add(person["staff_code"].casefold())
+    codes = [p["staff_code"].casefold() for p in people]
+    if len(codes) != len(set(codes)):
+        raise Refusal("INVALID_INPUT", "Every person needs a separate staff code.")
+    return resolved
+
+
 def public_state() -> dict[str, Any]:
     closed = Tenant.objects.exists()
     pending = (
@@ -80,6 +131,7 @@ def public_state() -> dict[str, Any]:
         "message": CLOSED_MESSAGE
         if closed
         else "Register this company and its first store.",
+        "options": registration_options(),
         "synthetic": bool(
             Tenant.objects.filter(
                 deployment_key=deployment_key(), synthetic=True
@@ -213,7 +265,6 @@ def _atomic_claim(operation: Callable[[], T]) -> T:
 
 def stage_registration(data: dict[str, Any], *, edit: bool = False) -> dict[str, Any]:
     key = deployment_key()
-    summary = registration_summary(data)
     fingerprint = _private_digest(
         {k: v for k, v in data.items() if k != "current_owner_password"}
     )
@@ -268,6 +319,7 @@ def stage_registration(data: dict[str, Any], *, edit: bool = False) -> dict[str,
             if edit:
                 raise Refusal("NOT_FOUND", "There is no pending registration.")
             row = InstallationRegistration(deployment_key=key)
+        summary = registration_summary(resolve_registration_codes(data, row.summary if row.pk and row.summary else None))
         row.command_id = data["command_id"]
         row.request_fingerprint = fingerprint
         row.summary = summary
@@ -568,7 +620,55 @@ def _complete_registration(row: InstallationRegistration) -> None:
             ),
             handler,
         )
+    row.confirmation_history = [*row.confirmation_history, {
+        "event": "staff_codes_reserved",
+        "codes": [p["staff_code"] for p in summary.get("proposed_team", [])],
+        "at": database_now().isoformat(),
+    }]
     row.tenant = tenant
     row.completed_at = database_now()
     row.owner_password_hash = ""
     row.admin_password_hash = ""
+
+
+def signup_code_reservation(tenant_id: uuid.UUID, code: str) -> tuple[InstallationRegistration | None, dict[str, Any] | None]:
+    """Call only inside an authorised staff command's transaction.
+
+    Older installations without the reservation event retain their existing
+    staff workflow. Names never establish a reservation's identity.
+    """
+    row = InstallationRegistration.objects.select_for_update().filter(tenant_id=tenant_id).first()
+    if row is None:
+        return None, None
+    reserved = {c.casefold() for event in row.confirmation_history if event.get("event") == "staff_codes_reserved" for c in event.get("codes", [])}
+    if code.casefold() not in reserved:
+        return row, None
+    person = next((p for p in row.summary.get("proposed_team", []) if p["staff_code"].casefold() == code.casefold()), None)
+    return row, person
+
+
+def claim_signup_code(tenant_id: uuid.UUID, code: str, email: str | None, human_id: uuid.UUID) -> None:
+    row, person = signup_code_reservation(tenant_id, code)
+    if row is None or person is None:
+        if email:
+            raise Refusal("STAFF_INVALID", "This code has no matching signup reservation.")
+        return
+    claims = [event for event in row.confirmation_history if event.get("event") == "staff_code_claimed" and event.get("code", "").casefold() == code.casefold()]
+    if claims:
+        if claims[-1]["human_id"] != str(human_id):
+            raise Refusal("STAFF_INVALID", "This code is reserved for another signup person.")
+        return
+    if not email or email.casefold() != person["email"].casefold():
+        raise Refusal("STAFF_INVALID", "This code is reserved. Supply the proposed person's signup email.")
+    row.confirmation_history = [*row.confirmation_history, {"event": "staff_code_claimed", "code": code, "human_id": str(human_id), "at": database_now().isoformat()}]
+    row.save(update_fields=["confirmation_history", "updated_at"])
+
+
+def validate_signup_login(tenant_id: uuid.UUID, human_id: uuid.UUID, email: str) -> None:
+    row = InstallationRegistration.objects.filter(tenant_id=tenant_id).first()
+    if row is None:
+        return
+    claims = {e["code"].casefold() for e in row.confirmation_history if e.get("event") == "staff_code_claimed" and e.get("human_id") == str(human_id)}
+    for person in row.summary.get("proposed_team", []):
+        if person["staff_code"].casefold() in claims and person["email"].casefold() != email.casefold():
+            raise Refusal("STAFF_INVALID", "The initial login email must match the explicitly linked signup person.")

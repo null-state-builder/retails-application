@@ -5,11 +5,8 @@ from __future__ import annotations
 from typing import Any, cast
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from django.contrib.auth.password_validation import validate_password
-from django.core.exceptions import ValidationError
 from rest_framework import serializers
 
-from accounts.models import User
 from accounts.role_assignments import INITIAL_ROLE_CODES
 
 
@@ -23,29 +20,22 @@ class StrictInput(serializers.Serializer[Any]):
 class InitialPersonInput(StrictInput):
     name = serializers.CharField(max_length=120)
     email = serializers.EmailField(max_length=120)
-    staff_code = serializers.SlugField(max_length=40)
+    staff_code = serializers.SlugField(max_length=40, required=False)
     temporary_password = serializers.CharField(
         max_length=128, write_only=True, trim_whitespace=False
     )
 
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         data["email"] = data["email"].lower()
-        candidate = User(
-            email=data["email"], username=data["email"][:60], full_name=data["name"]
-        )
-        try:
-            validate_password(data["temporary_password"], candidate)
-        except ValidationError as exc:
-            raise serializers.ValidationError(
-                {"temporary_password": exc.messages}
-            ) from None
+        # Temporary credentials have no strength rules. Permanent password
+        # validation still applies when each initial person changes theirs.
         return data
 
 
 class ProposedPersonInput(StrictInput):
     name = serializers.CharField(max_length=120)
     email = serializers.EmailField(max_length=120)
-    staff_code = serializers.SlugField(max_length=40)
+    staff_code = serializers.SlugField(max_length=40, required=False)
     role_code = serializers.ChoiceField(choices=sorted(INITIAL_ROLE_CODES))
 
     def validate_email(self, value: str) -> str:
@@ -53,7 +43,7 @@ class ProposedPersonInput(StrictInput):
 
 
 class CompanyInput(StrictInput):
-    code = serializers.SlugField(max_length=24)
+    code = serializers.SlugField(max_length=24, required=False)
     name = serializers.CharField(max_length=160)
     legal_name = serializers.CharField(max_length=160)
     pan = serializers.RegexField(r"^[A-Z]{5}[0-9]{4}[A-Z]$")
@@ -89,7 +79,7 @@ class CompanyInput(StrictInput):
 
 
 class FirstStoreInput(StrictInput):
-    code = serializers.SlugField(max_length=16)
+    code = serializers.SlugField(max_length=16, required=False)
     name = serializers.CharField(max_length=120)
     city = serializers.CharField(max_length=80)
     address = serializers.CharField(max_length=1000)
@@ -120,7 +110,7 @@ class RegistrationInput(StrictInput):
     def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         people = [data["owner"], data["admin"], *data["proposed_team"]]
         for key in ("email", "staff_code"):
-            values = [str(person[key]).casefold() for person in people]
+            values = [str(person[key]).casefold() for person in people if key in person]
             if len(values) != len(set(values)):
                 raise serializers.ValidationError(
                     f"Every initial person needs a separate {key}."

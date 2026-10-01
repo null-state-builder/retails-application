@@ -161,6 +161,7 @@ function fmtDate(value: string | null): string {
 
 const blankPerson = {
   staff_code: "",
+  registration_email: "",
   display_name: "",
   mobile: "",
   site_id: "",
@@ -248,6 +249,7 @@ function PeopleListPanel({ onOpen }: { onOpen: (staffId: string) => void }) {
       const body: StaffCreateBody = {
         ...goodsMeta(),
         staff_code: form.staff_code,
+        ...(form.registration_email ? { registration_email: form.registration_email } : {}),
         display_name: form.display_name,
         mobile: form.mobile || null,
         ...(form.site_id
@@ -323,6 +325,17 @@ function PeopleListPanel({ onOpen }: { onOpen: (staffId: string) => void }) {
                 onChange={(e) => setForm({ ...form, display_name: e.target.value })}
                 data-testid="person-name-input"
               />
+            </div>
+            <div className="field">
+              <label htmlFor="person-registration-email">Signup email (reserved codes only)</label>
+              <input
+                id="person-registration-email"
+                type="email"
+                className="input"
+                value={form.registration_email}
+                onChange={(e) => setForm({ ...form, registration_email: e.target.value })}
+              />
+              <small>For a proposed signup person, use their saved code and email.</small>
             </div>
             <div className="field">
               <label htmlFor="person-mobile-input">Mobile (optional)</label>

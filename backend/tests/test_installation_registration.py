@@ -18,6 +18,7 @@ from django.db import close_old_connections, connection
 from rest_framework.test import APIClient
 
 from accounts.authentication import enforce_password_change_restriction
+from accounts.change_password import change_own_password
 from accounts.goods_models import RoleAssignment
 from accounts.goods_setup import bootstrap_deployment
 from accounts.models import LoginAttempt, Role, User
@@ -170,6 +171,53 @@ def test_staging_is_private_and_creates_no_tenant_or_authority(
     with pytest.raises(Refusal, match="different information") as refusal:
         stage_registration(changed)
     assert refusal.value.code == "COMMAND_CONFLICT"
+
+
+@pytest.mark.parametrize("password", ["1", "1234", "password", "owner", " "])
+def test_temporary_password_has_no_strength_requirements(
+    proposal: dict[str, Any], password: str,
+) -> None:
+    proposal["owner"]["temporary_password"] = password
+    serializer = RegistrationInput(data=proposal)
+    assert serializer.is_valid(), serializer.errors
+
+
+def test_empty_and_shared_temporary_passwords_remain_invalid(
+    proposal: dict[str, Any],
+) -> None:
+    proposal["owner"]["temporary_password"] = ""
+    serializer = RegistrationInput(data=proposal)
+    assert not serializer.is_valid()
+    assert "temporary_password" in serializer.errors["owner"]
+    proposal["owner"]["temporary_password"] = "1"
+    proposal["admin"]["temporary_password"] = "1"
+    assert not RegistrationInput(data=proposal).is_valid()
+
+
+def test_basic_temporary_passwords_support_joint_confirmation(
+    proposal: dict[str, Any],
+) -> None:
+    proposal["owner"]["temporary_password"] = "1"
+    proposal["admin"]["temporary_password"] = "2"
+    serializer = RegistrationInput(data=proposal)
+    serializer.is_valid(raise_exception=True)
+    result = register(serializer.validated_data)
+    assert result["state"] == "registered"
+    with tenant_context(Tenant.objects.get().pk):
+        for who in ("owner", "admin"):
+            user = User.objects.get(email=proposal[who]["email"])
+            assert user.check_password(proposal[who]["temporary_password"])
+            assert user.must_change_password
+            with pytest.raises(Refusal) as refusal:
+                change_own_password(
+                    user=user, session=None,
+                    current_password=proposal[who]["temporary_password"],
+                    new_password="password",
+                )
+            assert refusal.value.code == "INVALID_REQUEST"
+            user.refresh_from_db()
+            assert user.must_change_password
+            assert user.check_password(proposal[who]["temporary_password"])
 
 
 def test_joint_confirmation_requires_both_individual_credentials_and_exact_summary(
@@ -402,7 +450,7 @@ def test_owner_revision_clears_both_signatures_and_stale_summary_cannot_claim(
         == "registered"
     )
     row = InstallationRegistration.objects.get()
-    assert len(row.confirmation_history) == 4
+    assert len([event for event in row.confirmation_history if event["event"] != "staff_codes_reserved"]) == 4
     assert row.summary["store"]["name"] == "Corrected first shop"
 
 
@@ -663,3 +711,74 @@ def test_action_upgrade_after_confirmation_requires_revised_joint_baseline(
         baseline = MasterVersion.objects.get(kind="tenant", target_key=WORKFLOW_TARGET_KEY)
         assert baseline.payload["action_levels"] == revised["summary"]["initial_access"]["policy_baseline"]["action_levels"]
         assert baseline.payload["action_levels"]["opening.import.stage"]["minimum"] == "approve"
+
+
+def test_automatic_codes_are_allocated_once_and_preserved_on_revision(proposal: dict[str, Any]) -> None:
+    for key in ("company", "store"):
+        proposal[key].pop("code")
+    for person in [proposal["owner"], proposal["admin"], *proposal["proposed_team"]]:
+        person.pop("staff_code")
+    parsed = RegistrationInput(data=proposal)
+    assert parsed.is_valid(), parsed.errors
+    staged = stage_registration(dict(parsed.validated_data))
+    summary = staged["summary"]
+    assert summary["company"]["code"] == "CMP-0001"
+    assert summary["store"]["code"] == "STR-0001"
+    assert [summary[k]["staff_code"] for k in ("owner", "admin")] == ["EMP-0001", "EMP-0002"]
+    assert summary["proposed_team"][0]["staff_code"] == "EMP-0003"
+    assert stage_registration(dict(parsed.validated_data)) == staged
+    revision = copy.deepcopy(dict(parsed.validated_data))
+    revision.update(command_id=uuid.uuid4(), current_owner_password=proposal["owner"]["temporary_password"])
+    revision["company"]["name"] = "Revised company"
+    revised = stage_registration(revision, edit=True)
+    assert revised["summary"]["owner"]["staff_code"] == "EMP-0001"
+    assert revised["summary"]["proposed_team"][0]["staff_code"] == "EMP-0003"
+    assert revised["summary_hash"] != staged["summary_hash"]
+    assert revised["confirmed"] == {"owner": False, "admin": False}
+
+
+def test_automatic_codes_skip_custom_codes_case_insensitively(proposal: dict[str, Any]) -> None:
+    proposal["owner"].pop("staff_code")
+    proposal["admin"]["staff_code"] = "emp-0001"
+    proposal["proposed_team"][0].pop("staff_code")
+    summary = stage_registration(proposal)["summary"]
+    assert summary["owner"]["staff_code"] == "EMP-0002"
+    assert summary["admin"]["staff_code"] == "emp-0001"
+    assert summary["proposed_team"][0]["staff_code"] == "EMP-0003"
+
+
+def test_public_options_do_not_disclose_pending_people(proposal: dict[str, Any]) -> None:
+    stage_registration(proposal)
+    state = public_state()
+    assert [s["label"] for s in state["options"]["states"]] == ["Jharkhand", "Bihar"]
+    assert state["options"]["languages"][0]["value"] == "en-IN"
+    assert "summary" not in state
+    assert all(p["email"] not in json.dumps(state) for p in [proposal["owner"], proposal["admin"], *proposal["proposed_team"]])
+
+
+def test_proposed_code_requires_explicit_email_and_stable_claim(proposal: dict[str, Any]) -> None:
+    from django.db import transaction
+    from accounts.registration_services import claim_signup_code, validate_signup_login
+
+    register(proposal)
+    row = InstallationRegistration.objects.get()
+    tenant_id = row.tenant_id
+    assert tenant_id is not None
+    person = proposal["proposed_team"][0]
+    human_id = uuid.uuid4()
+    with tenant_context(tenant_id), transaction.atomic():
+        with pytest.raises(Refusal, match="reserved"):
+            claim_signup_code(tenant_id, person["staff_code"], None, human_id)
+        with pytest.raises(Refusal, match="reserved"):
+            claim_signup_code(tenant_id, person["staff_code"], "wrong@example.test", human_id)
+        claim_signup_code(tenant_id, person["staff_code"], person["email"], human_id)
+        claim_signup_code(tenant_id, person["staff_code"], person["email"], human_id)
+        with pytest.raises(Refusal, match="another signup person"):
+            claim_signup_code(tenant_id, person["staff_code"], person["email"], uuid.uuid4())
+        with pytest.raises(Refusal, match="email must match"):
+            validate_signup_login(tenant_id, human_id, "wrong@example.test")
+        validate_signup_login(tenant_id, human_id, person["email"])
+        assert User.objects.count() == 2
+        assert RoleAssignment.objects.count() == 2
+    row.refresh_from_db()
+    assert len([e for e in row.confirmation_history if e.get("event") == "staff_code_claimed"]) == 1

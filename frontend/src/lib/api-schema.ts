@@ -11231,7 +11231,7 @@ export interface components {
          */
         ClosedReasonEnum: "fixed" | "rule_changed" | "sold_out" | "no_rule" | "switched_off" | "not_checked";
         CompanyInput: {
-            code: string;
+            code?: string;
             name: string;
             legal_name: string;
             pan: string;
@@ -12367,7 +12367,7 @@ export interface components {
          */
         FileTypeEnum: "xlsx" | "csv";
         FirstStoreInput: {
-            code: string;
+            code?: string;
             name: string;
             city: string;
             address: string;
@@ -12734,7 +12734,7 @@ export interface components {
             name: string;
             /** Format: email */
             email: string;
-            staff_code: string;
+            staff_code?: string;
             temporary_password: string;
         };
         InventoryReport: {
@@ -14029,7 +14029,7 @@ export interface components {
             name: string;
             /** Format: email */
             email: string;
-            staff_code: string;
+            staff_code?: string;
             role_code: components["schemas"]["RoleCodeEnum"];
         };
         /**
@@ -14149,6 +14149,7 @@ export interface components {
             pending_confirmation: boolean;
             message: string;
             synthetic: boolean;
+            options: unknown;
         };
         ReportGrouping: {
             key: string;
@@ -18082,6 +18083,8 @@ export interface operations {
                     /** Format: uuid */
                     human_id?: string;
                     staff_code: string;
+                    /** Format: email */
+                    registration_email?: string;
                     display_name: string;
                     mobile?: string | null;
                     salesperson?: boolean;
@@ -18357,6 +18360,8 @@ export interface operations {
                     /** Format: uuid */
                     human_id?: string;
                     staff_code?: string;
+                    /** Format: email */
+                    registration_email?: string;
                     display_name?: string;
                     mobile?: string | null;
                     salesperson?: boolean;

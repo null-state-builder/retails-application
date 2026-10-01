@@ -137,6 +137,7 @@ STAFF_CREATE_REQUEST: dict[str, Any] = {
         "contract_version": {"type": "string", "enum": ["goods-v1"]},
         "human_id": {"type": "string", "format": "uuid"},
         "staff_code": {"type": "string", "maxLength": 40},
+        "registration_email": {"type": "string", "format": "email", "maxLength": 120},
         "display_name": {"type": "string", "maxLength": 160},
         "mobile": {"type": "string", "maxLength": 30, "nullable": True},
         "salesperson": {"type": "boolean"},

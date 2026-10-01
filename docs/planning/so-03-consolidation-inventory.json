@@ -23799,10 +23799,23 @@
       ],
       "lifecycle": "canonical",
       "migration_requirements": "ReceiveInbox -> bill-linked returned row -> ReturnedGoodsAcceptance -> ReturnedPiecesView -> same P09 acceptance writer. Stable brand/site together, active ordinary destination, site count guard, request-bound commit and protected delivery rechecks. Retains original bill, origin/cost, acceptance IDs and exact replay; gains no legacy authority."
+    },
+    {
+      "id": "SIGNUP-UX-ANCHORS",
+      "kind": "navigation",
+      "key_regex": "^navigation:frontend/src/pages/Signup\\.tsx:61d0c9cc006a$",
+      "source_regex": "^frontend/src/pages/Signup\\.tsx$",
+      "primary_id": "A00",
+      "related_ids": [
+        "C01"
+      ],
+      "lifecycle": "canonical",
+      "authorization": "In-page signup section/error anchors only; no business authority or new route.",
+      "acceptance_evidence": "Signup UX browser journeys at 1440, 1366, 768 and 375 pixels; registration proof tests preserve confirmation and privacy."
     }
   ],
   "discovered": {
-    "checksum": "41ea3d9f0d36cca99bd411e9a73afec7897f67d7a8fbea95ef094d0912476d7d",
+    "checksum": "1d251f7be83715aaf04e7f0260d01f5ae963207127b400e60adb389ab8e2e458",
     "records": [
       {
         "kind": "api",
@@ -205551,7 +205564,6 @@
             "module:accounts.goods_setup",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.reconciliation_views",
-            "module:accounts.registration_serializers",
             "module:accounts.registration_services",
             "module:accounts.serializers",
             "module:accounts.sessions",
@@ -205692,7 +205704,6 @@
             "module:accounts.goods_setup",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.reconciliation_views",
-            "module:accounts.registration_serializers",
             "module:accounts.registration_services",
             "module:accounts.serializers",
             "module:accounts.sessions",
@@ -206204,7 +206215,6 @@
             "module:accounts.goods_setup",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.reconciliation_views",
-            "module:accounts.registration_serializers",
             "module:accounts.registration_services",
             "module:accounts.serializers",
             "module:accounts.sessions",
@@ -206345,7 +206355,6 @@
             "module:accounts.goods_setup",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.reconciliation_views",
-            "module:accounts.registration_serializers",
             "module:accounts.registration_services",
             "module:accounts.serializers",
             "module:accounts.sessions",
@@ -207489,7 +207498,6 @@
             "module:accounts.goods_setup",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.reconciliation_views",
-            "module:accounts.registration_serializers",
             "module:accounts.registration_services",
             "module:accounts.serializers",
             "module:accounts.sessions",
@@ -250053,6 +250061,7 @@
             "accounts.goods_setup",
             "accounts.models",
             "accounts.principal",
+            "accounts.registration_services",
             "accounts.role_assignments",
             "accounts.sessions",
             "accounts.till_pin",
@@ -250238,6 +250247,7 @@
             "accounts.goods_setup",
             "accounts.models",
             "accounts.principal",
+            "accounts.registration_services",
             "accounts.role_assignments",
             "accounts.sessions",
             "accounts.till_pin",
@@ -250257,6 +250267,7 @@
             "module:accounts.goods_setup",
             "module:accounts.models",
             "module:accounts.principal",
+            "module:accounts.registration_services",
             "module:accounts.role_assignments",
             "module:accounts.sessions",
             "module:accounts.till_pin",
@@ -252224,7 +252235,6 @@
             "module:accounts.goods_setup",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.reconciliation_views",
-            "module:accounts.registration_serializers",
             "module:accounts.registration_services",
             "module:accounts.serializers",
             "module:accounts.sessions",
@@ -252899,7 +252909,6 @@
         "source": "backend/accounts/registration_serializers.py",
         "detail": {
           "imports": [
-            "accounts.models",
             "accounts.role_assignments"
           ],
           "read_candidates": [
@@ -252930,20 +252939,12 @@
           "source_module": "module:accounts.registration_serializers",
           "callback_component": null,
           "static_imports": [
-            "accounts.models",
             "accounts.role_assignments"
           ],
           "local_component_keys": [
-            "module:accounts.models",
             "module:accounts.role_assignments"
           ],
-          "candidate_model_keys": [
-            "model:accounts.AccessChange",
-            "model:accounts.ActorPolicy",
-            "model:accounts.LoginAttempt",
-            "model:accounts.Role",
-            "model:accounts.User"
-          ],
+          "candidate_model_keys": [],
           "frontend_api_callsites": [],
           "api_targets": [],
           "model_relations": [],
@@ -252990,14 +252991,25 @@
           "read_candidates": [
             "InstallationRegistration.objects.filter",
             "InstallationRegistration.objects.filter(deployment_key=deployment_key()).exists",
+            "InstallationRegistration.objects.filter(tenant_id=tenant_id).first",
             "InstallationRegistration.objects.select_for_update",
             "InstallationRegistration.objects.select_for_update().filter",
             "InstallationRegistration.objects.select_for_update().filter(deployment_key=key).first",
+            "InstallationRegistration.objects.select_for_update().filter(tenant_id=tenant_id).first",
             "LoginAttempt.objects.select_for_update",
             "Tenant.objects.exists",
             "Tenant.objects.filter",
             "Tenant.objects.filter(deployment_key=deployment_key(), synthetic=True).exists",
+            "by_email.get",
             "data.get",
+            "e.get",
+            "event.get",
+            "old.get",
+            "old.get(key, {}).get",
+            "p.get",
+            "person.get",
+            "resolved.get",
+            "row.summary.get",
             "summary.get",
             "summary.get('initial_access', {}).get"
           ],
@@ -253010,6 +253022,8 @@
             "Tenant.objects.create",
             "guard.save",
             "row.save",
+            "used.add",
+            "used.update",
             "user.save"
           ],
           "authorization_candidates": [],
@@ -253028,6 +253042,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.goods_admin_services",
             "module:accounts.management.commands.initialise_installation",
             "module:accounts.registration_views"
           ],
@@ -253112,14 +253127,25 @@
           "read_candidates": [
             "InstallationRegistration.objects.filter",
             "InstallationRegistration.objects.filter(deployment_key=deployment_key()).exists",
+            "InstallationRegistration.objects.filter(tenant_id=tenant_id).first",
             "InstallationRegistration.objects.select_for_update",
             "InstallationRegistration.objects.select_for_update().filter",
             "InstallationRegistration.objects.select_for_update().filter(deployment_key=key).first",
+            "InstallationRegistration.objects.select_for_update().filter(tenant_id=tenant_id).first",
             "LoginAttempt.objects.select_for_update",
             "Tenant.objects.exists",
             "Tenant.objects.filter",
             "Tenant.objects.filter(deployment_key=deployment_key(), synthetic=True).exists",
+            "by_email.get",
             "data.get",
+            "e.get",
+            "event.get",
+            "old.get",
+            "old.get(key, {}).get",
+            "p.get",
+            "person.get",
+            "resolved.get",
+            "row.summary.get",
             "summary.get",
             "summary.get('initial_access', {}).get"
           ],
@@ -253132,6 +253158,8 @@
             "Tenant.objects.create",
             "guard.save",
             "row.save",
+            "used.add",
+            "used.update",
             "user.save"
           ],
           "model_fields": [],
@@ -317104,6 +317132,70 @@
         "acceptance_evidence": "Reconcile quantity/value by site, brand and origin, including held/transit stock.",
         "removal_condition": "Retire independent stock mutation/balance authority only after till, reporting and search read the same source.",
         "rule_id": "S2531"
+      },
+      {
+        "kind": "navigation",
+        "key": "navigation:frontend/src/pages/Signup.tsx:61d0c9cc006a",
+        "source": "frontend/src/pages/Signup.tsx",
+        "detail": {
+          "invocation": "href",
+          "method": "GET",
+          "argument": "`#signup-${name}`",
+          "api_reference": null,
+          "resolution": "dynamic",
+          "delivery": "browser_link"
+        },
+        "primary_id": "A00",
+        "owner": "SO-03",
+        "related_ids": [
+          "C01"
+        ],
+        "lifecycle": "canonical",
+        "data_ownership": "Tenant-owned identity and policy with retained legacy authority evidence",
+        "authorization": "In-page signup section/error anchors only; no business authority or new route.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "frontend_declaration",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "unknown",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "access_contract": {
+          "trace_status": "pending",
+          "actor_type": "unreviewed",
+          "required_action": "unreviewed",
+          "scope_source": "unreviewed",
+          "protected_fields": "unreviewed",
+          "delivery_recheck": "unreviewed",
+          "named_tests": [],
+          "reviewed_chain": "Static candidates do not establish runtime access coverage."
+        },
+        "replacement": "One /api/auth/* authority, effective scoped role assignments, AccessContext, People & Access and one policy editor",
+        "migration_requirements": "Link old users, grants and policy evidence to effective-dated tenant assignments and versioned policy.",
+        "acceptance_evidence": "Signup UX browser journeys at 1440, 1366, 768 and 375 pixels; registration proof tests preserve confirmation and privacy.",
+        "removal_condition": "Retire old grant editors, access writes and direct permission bridges after every active access consumer is switched and history remains resolvable.",
+        "rule_id": "SIGNUP-UX-ANCHORS"
       },
       {
         "kind": "navigation",
