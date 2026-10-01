@@ -54,8 +54,8 @@ function filedRows(filed: Record<string, Record<string, string>> | undefined): F
  *  Every version, newest first: version 1 is the tax slab table every bill used
  *  before, and each save adds a new version with the date it applies from. An
  *  old version is never changed. A store is taxed by the saved versions only
- *  where its tax-settings switch is on, which waits for the CA's sign-off at a
- *  real store. Accounts and everyone else holding Setup read the page; only
+ *  where its tax-settings switch is on (its CA sign-off gate closed on
+ *  1 October 2026). Accounts and everyone else holding Setup read the page; only
  *  Admin saves, and the server refuses anybody else regardless. */
 export function TaxSettingsPage() {
   const [data, setData] = useState<Payload | null>(null);

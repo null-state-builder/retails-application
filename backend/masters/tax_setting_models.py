@@ -10,8 +10,8 @@ property of the table rather than a promise of the code.
 every bill was taxed under before this ticket, read exactly as the till and the
 accept pipeline always read it (baseline B5). A store whose tax-settings switch
 is off stays on version 1 whatever is saved here; the rows below apply only where
-the switch is on. That keeps a real store taxed exactly as today until the CA
-signs off (§32).
+the switch is on. The CA sign-off gate on that switch closed on 1 October 2026
+(§32); it stays off until Admin turns it on for a store.
 
 **Room left for later tickets** (do not build them here):
 

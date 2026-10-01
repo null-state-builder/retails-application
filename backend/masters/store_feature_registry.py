@@ -104,11 +104,11 @@ FEATURES: tuple[StoreFeature, ...] = (
     ),
     # Ticket 03 (§6, ST-CMP-1, ST-CMP-3): bills taxed by the saved per-HSN
     # settings. Off, a store keeps version 1 - the slab table - exactly as
-    # before (B5). Gated on the CA's sign-off, so never on at a real store (B1, B2).
+    # before (B5). Its CA sign-off gate was closed on 1 October 2026, when KDPS
+    # approved the per-HSN rates for the first-store pilot.
     StoreFeature(
         key="tax-settings",
         name="Versioned tax settings",
-        gate="CA sign-off",
         description=(
             "Bills here are taxed by the saved tax settings for each HSN. "
             "Off, the store keeps the tax slab table (version 1)."
@@ -217,7 +217,7 @@ FEATURES: tuple[StoreFeature, ...] = (
     StoreFeature(
         key=HSN_ON_EVERY_ITEM,
         name="HSN on every item",
-        gate="CA sign-off",
+        # CA sign-off gate closed with the per-HSN rates on 1 October 2026.
         description=(
             "A PT for this site cannot be approved while any line has no HSN; the "
             "refusal names the lines. Stock, Items with no HSN lists the pieces here "

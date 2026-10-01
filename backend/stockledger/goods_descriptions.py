@@ -18,6 +18,28 @@ from ptmapper.soh_models import SohImportBatch, SohImportReview, SohImportRow
 from stockledger.goods_models import Origin
 
 
+#: Verified review rows by (review id, content hash). A review is append-only
+#: evidence; holding the copy that once matched its own hash means a later read
+#: never trusts different bytes, and a bill no longer re-hashes a whole source.
+_VERIFIED_REVIEWS: dict[tuple[str, str], dict[str, dict[str, Any]]] = {}
+_VERIFIED_LIMIT = 32
+
+
+def _verified_review_rows(review_id: Any, review_hash: str) -> dict[str, dict[str, Any]] | None:
+    key = (str(review_id), review_hash)
+    cached = _VERIFIED_REVIEWS.get(key)
+    if cached is not None:
+        return cached
+    payload = SohImportReview.objects.filter(pk=review_id).values_list("payload", flat=True).first()
+    if payload is None or content_hash(payload) != review_hash:
+        return None
+    rows = {entry["key"]: entry for entry in payload.get("rows", [])}
+    if len(_VERIFIED_REVIEWS) >= _VERIFIED_LIMIT:
+        _VERIFIED_REVIEWS.pop(next(iter(_VERIFIED_REVIEWS)))
+    _VERIFIED_REVIEWS[key] = rows
+    return rows
+
+
 def origin_item_names(tenant_id: Any, origin_ids: Iterable[Any]) -> dict[str, str]:
     origins: list[dict[str, Any]] = [dict(row) for row in Origin.objects.filter(tenant_id=tenant_id, pk__in=list(origin_ids))
                                     .values("id", "sku_id", "frozen_evidence")]
@@ -39,11 +61,14 @@ def origin_item_names(tenant_id: Any, origin_ids: Iterable[Any]) -> dict[str, st
     ).select_related("source_import")}
     sources = {batch.source_import_id: batch.source_import for batch in batches.values()}
     reviews: dict[Any, dict[str, Any]] = {}
-    for review in SohImportReview.objects.filter(tenant_id=tenant_id,
-                                               source_import_id__in={batch.source_import_id for batch in batches.values()}):
-        source = sources[review.source_import_id]
-        if review.content_hash == source.reviewed_hash and content_hash(review.payload) == review.content_hash:
-            reviews[review.source_import_id] = {entry["key"]: entry for entry in review.payload.get("rows", [])}
+    for review_id, source_id, review_hash in SohImportReview.objects.filter(
+            tenant_id=tenant_id, source_import_id__in={batch.source_import_id for batch in batches.values()},
+    ).values_list("pk", "source_import_id", "content_hash"):
+        if review_hash != sources[source_id].reviewed_hash:
+            continue
+        verified = _verified_review_rows(review_id, review_hash)
+        if verified is not None:
+            reviews[source_id] = verified
     source_rows = {(row.source_import_id, row.source_row_key): row for row in SohImportRow.objects.filter(
         tenant_id=tenant_id, source_import_id__in=reviews,
         source_row_key__in={row.source_row_key for row in rows},

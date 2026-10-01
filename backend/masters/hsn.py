@@ -13,8 +13,8 @@ at PT approval, never at the counter:
 only, 4, 6 or 8 of them by default (``settings.KDPS_HSN_DIGITS``, a setting for
 Anand to confirm). The counter uses the same definition: under saved tax
 settings a line with no HSN matches no rule (``SavedTaxVersion.rule_for``).
-The switch waits for the CA's sign-off at a real store; off, approval works
-exactly as before (B5).
+The switch is off by default; off, approval works exactly as before (B5).
+Its CA sign-off gate closed on 1 October 2026.
 """
 
 from __future__ import annotations
@@ -46,7 +46,7 @@ def is_hsn(value: Any) -> bool:
 
 
 def hsn_rules_on(site_id: int | None) -> bool:
-    """Is the switch on at this site (and not held by the CA sign-off gate)?"""
+    """Is the switch on at this site?"""
     return site_id is not None and is_feature_on(site_id, FEATURE_KEY)
 
 

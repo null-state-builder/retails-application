@@ -333,7 +333,9 @@ def test_later_source_upload_requires_review_and_independent_withdrawal_preserve
         _no_business_effects()
 
 
-@pytest.mark.parametrize("gap", ["calendar", "tax", "real_tax_gate", "device_scope"])
+# A real tenant no longer holds tax settings off: KDPS closed that CA sign-off
+# gate on 1 October 2026 (test_installation_registration covers the gate).
+@pytest.mark.parametrize("gap", ["calendar", "tax", "device_scope"])
 def test_empty_start_never_bypasses_current_configuration_or_device_scope(
     proposal: dict[str, Any], gap: str,
 ) -> None:
@@ -350,10 +352,6 @@ def test_empty_start_never_bypasses_current_configuration_or_device_scope(
             expected_key = "current_setup"
         elif gap == "tax":
             StoreFeatureSwitch.objects.filter(site=proof.site, feature_key="tax-settings").update(enabled=False)
-            expected_key = "tax_configuration"
-        elif gap == "real_tax_gate":
-            proof.world.tenant.synthetic = False
-            proof.world.tenant.save(update_fields=["synthetic"])
             expected_key = "tax_configuration"
         else:
             other = Store.objects.create(tenant=proof.world.tenant, gstin=proof.site.gstin,

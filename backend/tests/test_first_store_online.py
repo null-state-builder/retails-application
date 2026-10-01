@@ -396,7 +396,31 @@ def test_live_readiness_refuses_unresolved_source_ownership_before_actual_issue(
     assert gate["passed"] is False and gate["required"] is True and gate["overridable"] is False
     assert "cost" not in gate and "amount" not in gate
     before = JournalBatch.objects.count()
+    # The readiness screen flags the whole store; the issue path refuses the
+    # piece on this bill with the sale writer's own costing decision.
     refused = post(OnlineFinaliseView, proof, wire)
-    assert refused.status_code == 409 and refused.data["code"] == "SELL_NOT_READY", refused.data
+    assert refused.status_code == 409 and refused.data["code"] == "SOURCE_COSTING_REQUIRED", refused.data
     assert not Sale.objects.exists() and not CashLedgerEntry.objects.exists() and not GLEntry.objects.exists()
     assert JournalBatch.objects.count() == before and sum(read_shelf(site).quantities.values()) == 3
+
+
+def test_issue_reads_only_its_pieces_and_reuses_an_unchanged_commercial_revision(online_goods: Any) -> None:
+    from sell.services.online import commercial_marks, current_commercial_revision
+    proof = online_goods
+    site = proof.world.sites[0]
+    full = read_shelf(site)
+    narrow = read_shelf(site, barcodes=[proof.barcode, "NOT-A-CODE"])
+    assert narrow.pieces == [piece for piece in full.pieces if piece.barcode == proof.barcode]
+    assert narrow.quantities == {key: qty for key, qty in full.quantities.items() if key[0] == proof.barcode}
+    assert current_commercial_revision(site) == build_dataset(site, "")["commercial_revision"]
+    marks = commercial_marks(site)
+    wire, _ = bill(proof)
+    assert post(OnlineFinaliseView, proof, wire).status_code == 201
+    # A sale changes no commercial input, so the next bill reuses the revision.
+    assert commercial_marks(site) == marks
+    assert current_commercial_revision(site) == build_dataset(site, "")["commercial_revision"]
+    _publish_tenant_config(proof.world.tenant, proof.owner.human_id, kind="sell_policy",
+        payload={"manual_discount_cap_percent": "5", "manual_discount_on_offer_lines": False,
+                 "return_window_days": 15}, label="online-proof-policy-change")
+    assert commercial_marks(site) != marks
+    assert current_commercial_revision(site) == build_dataset(site, "")["commercial_revision"]

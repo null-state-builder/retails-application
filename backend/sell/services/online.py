@@ -6,6 +6,8 @@ prove its entire commercial, stock, device and access contract before issue.
 from __future__ import annotations
 
 import secrets
+import threading
+import time
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Any
@@ -99,9 +101,91 @@ def commercial_revision(payload: dict[str, Any]) -> str:
                          ("items", "offers", "tax_settings", "gst_slabs", "policy", "store")})
 
 
+#: How long a computed commercial revision may answer for an unchanged store.
+#: The marks below decide freshness; this only bounds a missed input's lifetime.
+REVISION_CACHE_SECONDS = 300
+_revisions: dict[tuple[str, int], tuple[str, float, str]] = {}
+_revisions_lock = threading.Lock()
+
+
+def commercial_marks(store: Any) -> str:
+    """A cheap fingerprint of every input the commercial revision is built from.
+
+    The revision hashes the item book (aliases, origins and their seasons, SKU
+    vetoes, brand/season names), offers, tax settings and slabs, the selling
+    policy and the store's own GSTIN. A sale changes none of them, so issuing a
+    bill never invalidates the fingerprint, while any approval that does change
+    one moves its count, revision total or newest timestamp. The day is part of
+    it because offers and tax versions start and stop on dates.
+    """
+    from django.db.models import Count, Max, Sum
+
+    from masters.goods_identity_models import ProductSku, SkuAlias, Style
+    from masters.goods_models import ConfigVersion, MasterVersion
+    from masters.models import Brand, GstSlab, Season
+    from masters.store_feature_models import StoreFeatureSwitch
+    from masters.tax_setting_models import TaxSettingVersion
+    from offers.models import Offer
+    from ptmapper.goods_models import OpeningSeasonCorrection
+    from stockledger.goods_models import Origin
+
+    def mark(queryset: Any) -> list[Any]:
+        names = {field.name for field in queryset.model._meta.concrete_fields}
+        aggregates: dict[str, Any] = {"n": Count("pk")}
+        for name in ("revision", "version"):
+            if name in names:
+                aggregates[name] = Sum(name)
+        for name in ("updated_at", "created_at", "recorded_at", "effective_from", "effective_to"):
+            if name in names:
+                aggregates[name] = Max(name)
+        return sorted((key, str(value)) for key, value in queryset.aggregate(**aggregates).items())
+
+    tenant = store.tenant_id
+    return content_hash({
+        "day": timezone.localdate().isoformat(),
+        "store": [store.pk, store.code, store.gstin_id, store.gstin.gstin, store.gstin.state_code],
+        "aliases": mark(SkuAlias.objects.filter(tenant_id=tenant)),
+        "skus": mark(ProductSku.objects.filter(tenant_id=tenant)),
+        "styles": mark(Style.objects.filter(tenant_id=tenant)),
+        "origins": mark(Origin.objects.filter(tenant_id=tenant)),
+        "season_corrections": mark(OpeningSeasonCorrection.objects.filter(tenant_id=tenant)),
+        "masters": mark(MasterVersion.objects.filter(tenant_id=tenant, kind__in=["brand", "season", "sku", "style", "alias"])),
+        "brands": mark(Brand.objects.all()),
+        "seasons": mark(Season.objects.all()),
+        "offers": mark(Offer.objects.all()),
+        "tax": mark(TaxSettingVersion.objects.filter(tenant_id=tenant)),
+        "slabs": mark(GstSlab.objects.all()),
+        "configs": mark(ConfigVersion.objects.filter(tenant_id=tenant)),
+        "switches": mark(StoreFeatureSwitch.objects.filter(site=store)),
+    })
+
+
+def remember_commercial_revision(store: Any, marks: str, revision: str) -> None:
+    with _revisions_lock:
+        _revisions[(str(store.tenant_id), store.pk)] = (marks, time.monotonic(), revision)
+
+
+def current_commercial_revision(store: Any) -> str:
+    """The revision a freshly built dataset would carry, without rebuilding it per bill.
+
+    Every bill line is still checked against the server's own item, tax, offer
+    and policy decision (``check_lines_before_issue``); this answers only the
+    whole-dataset "refresh your counter" question.
+    """
+    from sell.services.dataset import build_dataset
+
+    marks = commercial_marks(store)
+    with _revisions_lock:
+        hit = _revisions.get((str(store.tenant_id), store.pk))
+    if hit and hit[0] == marks and time.monotonic() - hit[1] < REVISION_CACHE_SECONDS:
+        return hit[2]
+    revision = str(build_dataset(store, "")["commercial_revision"])
+    remember_commercial_revision(store, marks, revision)
+    return revision
+
+
 def check_before_issue(data: dict[str, Any], store: Any, access: Any, device_token: str) -> None:
     from masters.goods_services import require_sell_ready
-    from sell.services.dataset import build_dataset
     from sell.services.till_authority import render_till_number
 
     _lock_issue_site(store)
@@ -142,8 +226,7 @@ def check_before_issue(data: dict[str, Any], store: Any, access: Any, device_tok
     # change underneath a newly issued online bill.
     list(Staff.objects.select_for_update().filter(
         tenant_id=store.tenant_id, pk__in=staff_ids).order_by("pk"))
-    payload = build_dataset(store, "")
-    if not data.get("commercial_revision") or data["commercial_revision"] != payload["commercial_revision"]:
+    if not data.get("commercial_revision") or data["commercial_revision"] != current_commercial_revision(store):
         raise AcceptError("PRICING_STALE", "Prices, offers or tax settings changed. Refresh and review the bill before taking payment.", 409)
     if access is None:
         raise AcceptError("AUTH_REQUIRED", "A live deciding session is required.", 403)

@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import uuid
 from collections import defaultdict
+from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -79,7 +80,9 @@ class Piece:
     no_discount: bool = False
 
 
-def barcode_aliases(store: Store, at: datetime) -> dict[uuid.UUID, str]:
+def barcode_aliases(
+    store: Store, at: datetime, barcodes: Collection[str] | None = None
+) -> dict[uuid.UUID, str]:
     """The scannable code for each SKU at this store, where exactly one code answers.
 
     Site-scoped aliases and unscoped ones together, plus exact labels of goods
@@ -101,8 +104,20 @@ def barcode_aliases(store: Store, at: datetime) -> dict[uuid.UUID, str]:
             sku__style__governance_state=EFFECTIVE,
         )
     )
-    rows = list(governed.filter(Q(site__isnull=True) | Q(site_id=store.pk)).values_list("sku_id", "value"))
-    received = _received_label_bindings(store)
+    scoped = governed.filter(Q(site__isnull=True) | Q(site_id=store.pk))
+    if barcodes is None:
+        rows = list(scoped.values_list("sku_id", "value"))
+        received = _received_label_bindings(store)
+    else:
+        # Only these codes, but every other code their SKUs carry and every SKU
+        # these codes name, so the one-code-one-SKU rule below decides exactly
+        # as it does over the whole store.
+        wanted = set(barcodes)
+        skus = set(scoped.filter(value__in=wanted).values_list("sku_id", flat=True))
+        labelled = _received_label_bindings(store, values=wanted)
+        skus |= {sku for sku, value, _site in labelled if value in wanted}
+        received = _received_label_bindings(store, values=wanted, skus=skus)
+        rows = list(scoped.filter(Q(value__in=wanted) | Q(sku_id__in=skus)).values_list("sku_id", "value"))
     if received:
         # An origin cannot revive an expired/retired alias or borrow an unrelated
         # label from another site. Compare all three exact source cells.
@@ -123,12 +138,15 @@ def barcode_aliases(store: Store, at: datetime) -> dict[uuid.UUID, str]:
     }
 
 
-def _received_label_bindings(store: Store) -> set[tuple[uuid.UUID, str, int]]:
+def _received_label_bindings(
+    store: Store, *, values: Collection[str] | None = None, skus: Collection[uuid.UUID] = ()
+) -> set[tuple[uuid.UUID, str, int]]:
     """Labels of exact valued goods accepted here; no tenant-wide alias search.
 
     Current positions require the destination's own acceptance. Exhausted sold
     pieces retain their originating identity for a later exchange, using only
     this store's immutable sale allocations. Values never leave this reader.
+    ``values`` narrows the answer to those labels and to the given SKUs.
     """
     from sell.models import SaleLine
 
@@ -138,9 +156,10 @@ def _received_label_bindings(store: Store) -> set[tuple[uuid.UUID, str, int]]:
         accepted_event__tenant_id=store.tenant_id, accepted_event__site=store,
         accepted_event__outcome="accepted_good",
     ).values_list("origin_id", flat=True))
-    for allocations in SaleLine.objects.filter(
-        sale__store__tenant_id=store.tenant_id, sale__store=store,
-    ).values_list("goods_allocations", flat=True):
+    sold = SaleLine.objects.filter(sale__store__tenant_id=store.tenant_id, sale__store=store)
+    if values is not None:
+        sold = sold.filter(barcode__in=set(values))
+    for allocations in sold.values_list("goods_allocations", flat=True):
         for allocated in allocations or []:
             if not isinstance(allocated, dict) or not allocated.get("origin_id"):
                 continue
@@ -151,7 +170,11 @@ def _received_label_bindings(store: Store) -> set[tuple[uuid.UUID, str, int]]:
     if not origins:
         return set()
     received: set[tuple[uuid.UUID, str, int]] = set()
-    for sku_id, source_site, payload in Origin.objects.filter(
+    candidates = Origin.objects.all()
+    if values is not None:
+        candidates = candidates.filter(Q(official_line__payload__alias_as_used__in=sorted(set(values)))
+                                       | Q(sku_id__in=list(skus)))
+    for sku_id, source_site, payload in candidates.filter(
         tenant_id=store.tenant_id, pk__in=origins, site__tenant_id=store.tenant_id,
         official_line__tenant_id=store.tenant_id,
         official_line__version__tenant_id=store.tenant_id,
@@ -188,7 +211,9 @@ class Shelf:
     quantities: dict[tuple[str, str], int]
 
 
-def read_shelf(store: Store, at: datetime | None = None) -> Shelf:
+def read_shelf(
+    store: Store, at: datetime | None = None, *, barcodes: Collection[str] | None = None
+) -> Shelf:
     """Everything the counter may sell here, plus everything it has ever held.
 
     Two passes over the same store for two different questions, and they are
@@ -196,9 +221,12 @@ def read_shelf(store: Store, at: datetime | None = None) -> Shelf:
     is every accepted origin this store holds a position of, at nought as well as
     at ten - a piece at nought can walk back in as an exchange, and the till still
     has to name and price it when it does.
+
+    ``barcodes`` narrows both passes to the SKUs those codes name, so a bill reads
+    its own pieces rather than the whole store.
     """
     moment = at or timezone.now()
-    aliases = barcode_aliases(store, moment)
+    aliases = barcode_aliases(store, moment, barcodes)
     if not aliases:
         return Shelf(pieces=[], quantities={})
 
@@ -217,7 +245,10 @@ def read_shelf(store: Store, at: datetime | None = None) -> Shelf:
         tenant_id=store.tenant_id, site=store, sku_id__in=list(aliases)
     ).values_list("pk", flat=True))
     from sell.models import SaleLine
-    for allocated in SaleLine.objects.filter(sale__store=store).values_list("goods_allocations", flat=True):
+    sold = SaleLine.objects.filter(sale__store=store)
+    if barcodes is not None:
+        sold = sold.filter(barcode__in=set(aliases.values()))
+    for allocated in sold.values_list("goods_allocations", flat=True):
         origin_ids.update(str(row["origin_id"]) for row in (allocated or []) if isinstance(row, dict) and row.get("origin_id"))
     origins = {
         str(row.pk): row for row in Origin.objects.filter(tenant_id=store.tenant_id, pk__in=sorted(origin_ids)).order_by("pk")

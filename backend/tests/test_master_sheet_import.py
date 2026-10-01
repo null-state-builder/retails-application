@@ -437,3 +437,12 @@ def test_one_filled_work_sheet_maps_every_kdps_column_from_its_own_cells() -> No
     with pytest.raises(gm.UnsupportedFormat) as two:
         gm.read_brand_file(_work_book("NARESH", "ANKIT"), "kdps.xlsx")
     assert "2 filled work sheets" in str(two.value)
+
+
+def test_import_view_names_the_uploader(world: TenantWorld) -> None:
+    from masters.master_sheet_views import import_dto
+
+    maker, _checker = _people(world)
+    source = _upload(maker, sheet_bytes())
+    dto = import_dto(maker, source)
+    assert dto["data"]["uploaded_by"] and dto["data"]["approved_by"] is None

@@ -2,7 +2,11 @@
 
 This only reads the existing identities, stock writer and configuration spine.
 It returns setup decisions, never protected financial values or customer data.
-Approval records these decisions; every new online issue checks them again.
+Approval records these decisions over the whole store. Every new online issue
+checks the store-level ones again; the whole-store item scans (physical
+acceptance totals, every piece's inputs and costing) run at approval and on the
+readiness screen, while the issue path checks exactly those inputs for each
+piece on the bill (``sell.services.online.check_lines_before_issue``).
 """
 
 from __future__ import annotations
@@ -22,7 +26,20 @@ def _gate(key: str, passed: bool, reason: str) -> dict[str, Any]:
             "overridable": False, "reason": None if passed else reason}
 
 
-def selling_checks(site: Store, now: datetime) -> list[dict[str, Any]]:
+def _opening_established(site: Store) -> bool:
+    """The issue-time opening gate: an approved source whose every batch posted.
+
+    ``is_reconciled`` also replays every official line's acceptance progress,
+    which approval already required and which acceptance cannot undo. A later
+    staged snapshot still leaves the established opening in force.
+    """
+    from ptmapper.soh_models import SohImport
+
+    return SohImport.objects.filter(tenant_id=site.tenant_id, site_id=site.pk, state="applied",
+                                    approved_by__isnull=False).exists()
+
+
+def selling_checks(site: Store, now: datetime, *, whole_store: bool = True) -> list[dict[str, Any]]:
     from accounts.models import User
     from accounts.principal import access_for_user
     from accounts.registration_models import InstallationRegistration
@@ -58,7 +75,8 @@ def selling_checks(site: Store, now: datetime) -> list[dict[str, Any]]:
         _gate("goods_active", live, "Activate this goods store and resolve its stock freeze."),
         _gate("current_setup", all(row["passed"] for row in setup),
               "Complete the current legal, calendar, receiving and staff setup without unresolved gaps."),
-        _gate("opening_reconciled", empty_start or is_reconciled(site),
+        _gate("opening_reconciled",
+              empty_start or (is_reconciled(site) if whole_store else _opening_established(site)),
               "Approve the source, post every opening batch and reconcile physical acceptance."),
     ]
     policy = None
@@ -82,6 +100,14 @@ def selling_checks(site: Store, now: datetime) -> list[dict[str, Any]]:
     till = active_till(site)
     checks.append(_gate("registered_counter", till is not None,
                         "Register the store counter, then pair its browser in Till & Sync."))
+    if not whole_store:
+        users = User.objects.filter(tenant_id=site.tenant_id, is_active=True,
+                                    human__active=True, must_change_password=False)
+        checks.append(_gate("authorised_cashier",
+                            any(access_for_user(user).covers_all({"section.sell.operate"}, {(site.pk, None)}, [])
+                                for user in users),
+                            "Activate a store-scoped cashier and complete their first password change."))
+        return checks
     shelf = read_shelf(site, now)
     positive = [piece for piece in shelf.pieces
                 if shelf.quantities.get((piece.barcode, piece.season), 0) > 0]
@@ -125,7 +151,7 @@ def require_ready(site: Store, now: datetime) -> None:
     guard = SiteGuard.objects.filter(site=site, tenant_id=site.tenant_id).first()
     if guard is None or guard.selling_mode != SiteGuard.SellingMode.ONLINE_ALPHA or not guard.sell_ready:
         raise Refusal("SELL_NOT_READY", "Approve this store's online selling readiness first.", status=409)
-    failed = [row for row in selling_checks(site, now) if not row["passed"]]
+    failed = [row for row in selling_checks(site, now, whole_store=False) if not row["passed"]]
     if failed:
         raise Refusal("SELL_NOT_READY", "The store no longer meets its approved selling conditions.",
                       status=409, issues=[issue("SETUP_REQUIRED", row["reason"], field=row["key"])

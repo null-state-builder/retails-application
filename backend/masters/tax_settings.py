@@ -3,7 +3,7 @@
 The questions every caller asks, answered in one place:
 
 * ``store_uses_settings(store)`` - is the tax-settings switch on here? Off (the
-  default, and always at a real store while the CA sign-off gate is open) means
+  default) means
   version 1, the slab table, exactly as before this ticket (baseline B5).
 * ``in_force(versions, day, at)`` - which saved version applies to a bill made
   on ``day`` (India) at the moment ``at``. The newest version whose applies-from

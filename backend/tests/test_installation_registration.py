@@ -35,7 +35,7 @@ from core.kernel_models import AuditEvent, CommandOutcome
 from core.refusals import Refusal
 from core.tenancy import tenant_context
 from masters.goods_models import ConfigVersion, MasterVersion, SiteGuard, Tenant
-from masters.models import Store
+from masters.models import Season, Store
 
 pytestmark = pytest.mark.django_db(transaction=True)
 
@@ -816,3 +816,24 @@ def test_proposed_code_requires_explicit_email_and_stable_claim(proposal: dict[s
         assert RoleAssignment.objects.count() == 2
     row.refresh_from_db()
     assert len([e for e in row.confirmation_history if e.get("event") == "staff_code_claimed"]) == 1
+
+
+def test_genesis_adopts_the_unknown_historical_season_and_tax_rules_may_be_switched_on(
+    proposal: dict[str, Any],
+) -> None:
+    from masters.store_feature_registry import GST_AFTER_DISCOUNT, HSN_ON_EVERY_ITEM
+    from masters.store_features import feature, gate_lock
+
+    unknown, _ = Season.objects.get_or_create(
+        historical_unknown=True,
+        defaults={"code": "UNKNOWN-HIST", "name": "Unknown historical season", "status": "closed"},
+    )
+    register(proposal)
+    tenant = Tenant.objects.get()
+    with tenant_context(tenant.pk):
+        version = MasterVersion.objects.get(tenant=tenant, kind="season", target_key=str(unknown.pk))
+        assert version.revision == 1 and version.payload["historical_unknown"] is True
+    # KDPS approved the per-HSN rates (1 October 2026): only those gates closed.
+    assert gate_lock(feature("tax-settings"), real=True) is None
+    assert gate_lock(feature(HSN_ON_EVERY_ITEM), real=True) is None
+    assert gate_lock(feature(GST_AFTER_DISCOUNT), real=True) is not None

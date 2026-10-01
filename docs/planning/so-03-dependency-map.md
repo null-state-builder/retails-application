@@ -16,7 +16,7 @@ Generated from [the SO-03 machine inventory](so-03-consolidation-inventory.json)
 | Authorization | Required boundaries: BOOKING_ACTION plus cost field from one assignment over the selected site/brand cell.; Deployment-bound registration lock; hashed personal credentials; exact independently confirmed initial baseline; no business access before first password replacement.; Explicit AccessContext decisions; tenant source and target IDs; no label-based authority.; In-page signup section/error anchors only; no business authority or new route.; SO-03 unified server evaluator; owner must prove resource and field denials at cutover. Handler-level enforcement requires behaviour and denial proof. |
 | Services | 2 tagged service modules: `module:accounts.goods_admin_services`, `module:accounts.registration_services`. |
 | Offline client modules | 0 till/PWA modules: None discovered. |
-| Data | 13 owned model classes: `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.AuthenticationFailure`, `model:accounts.HumanIdentity`, `model:accounts.InstallationRegistration`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.RoleAssignment`, `model:accounts.RoleGrant`, `model:accounts.SecurityGuard`, `model:accounts.ServerSession`, `model:accounts.User`, `model:masters.BrandIdentityBinding`. 79 direct model-module import edges from owned modules; 561 static read-call candidates in 40 backend/client modules (individual expressions are in the machine inventory). |
+| Data | 13 owned model classes: `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.AuthenticationFailure`, `model:accounts.HumanIdentity`, `model:accounts.InstallationRegistration`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.RoleAssignment`, `model:accounts.RoleGrant`, `model:accounts.SecurityGuard`, `model:accounts.ServerSession`, `model:accounts.User`, `model:masters.BrandIdentityBinding`. 79 direct model-module import edges from owned modules; 563 static read-call candidates in 40 backend/client modules (individual expressions are in the machine inventory). |
 | Downstream readers | 36 frontend API callsites; 28 endpoint/callsite links, 8 dynamic URL references; 297 cross-owner static backend import edges. |
 | Lifecycle | canonical: 127, historical_read_only: 19, retirement_candidate: 12, temporary_supported_legacy: 19, unresolved: 9. |
 
@@ -2163,9 +2163,9 @@ These calls need a data-target and runtime-reachability review before the retire
 | Authorization | Required boundaries: Existing unified org.site.manage and versioned goods readiness; explicit online-alpha mode, current non-overridable gates and registered-till writer; tokens returned once, never retained in audit/history.; Product lists: config.draft or config.approve holders; the master sheet import package (MASTER-SHEET-001) is the server authority.; SO-03 unified server evaluator; owner must prove resource and field denials at cutover.; config.draft (upload, review choices, submit; uploader only) plus vendor.manage when brands/seasons are created and crosswalk.manage when ITEM rules change; one config.approve decision by a different person through /api/goods-v1/approvals/<id>/decide with step-up; tenant-scoped rows; re-plan against the live lists at approval refuses a stale package. Handler-level enforcement requires behaviour and denial proof. |
 | Services | 3 tagged service modules: `module:masters.goods_identity_services`, `module:masters.goods_services`, `module:masters.master_sheet_services`. |
 | Offline client modules | 0 till/PWA modules: None discovered. |
-| Data | 34 owned model classes: `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.DocumentPrefix`, `model:masters.DocumentSeriesCounter`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.IdentityPick`, `model:masters.IssuedDocumentNumber`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterSheetImport`, `model:masters.MasterSheetImportReview`, `model:masters.MasterVersion`, `model:masters.NumberingSetting`, `model:masters.PriceChange`, `model:masters.ProductSku`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.SkuAlias`, `model:masters.SourceCrosswalk`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Style`, `model:masters.Tenant`, `model:vendors.Vendor`, `model:vendors.VendorBrand`. 74 direct model-module import edges from owned modules; 559 static read-call candidates in 21 backend/client modules (individual expressions are in the machine inventory). |
-| Downstream readers | 129 frontend API callsites; 131 endpoint/callsite links, 9 dynamic URL references; 2668 cross-owner static backend import edges. |
-| Lifecycle | canonical: 283, historical_read_only: 24, retirement_candidate: 1, temporary_supported_legacy: 54, unresolved: 10. |
+| Data | 34 owned model classes: `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.DocumentPrefix`, `model:masters.DocumentSeriesCounter`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.IdentityPick`, `model:masters.IssuedDocumentNumber`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterSheetImport`, `model:masters.MasterSheetImportReview`, `model:masters.MasterVersion`, `model:masters.NumberingSetting`, `model:masters.PriceChange`, `model:masters.ProductSku`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.SkuAlias`, `model:masters.SourceCrosswalk`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Style`, `model:masters.Tenant`, `model:vendors.Vendor`, `model:vendors.VendorBrand`. 74 direct model-module import edges from owned modules; 560 static read-call candidates in 21 backend/client modules (individual expressions are in the machine inventory). |
+| Downstream readers | 129 frontend API callsites; 131 endpoint/callsite links, 9 dynamic URL references; 2684 cross-owner static backend import edges. |
+| Lifecycle | canonical: 284, historical_read_only: 24, retirement_candidate: 1, temporary_supported_legacy: 54, unresolved: 10. |
 
 ### Entry-point dependency traces
 
@@ -2591,6 +2591,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Brand` → `module:sell.services.margin_share` (C10)
 - `model:masters.Brand` → `module:sell.services.missing_hsn` (C10)
 - `model:masters.Brand` → `module:sell.services.no_bill_caps` (C10)
+- `model:masters.Brand` → `module:sell.services.online` (C10)
 - `model:masters.Brand` → `module:sell.services.overrides` (C10)
 - `model:masters.Brand` → `module:sell.services.petty_cash` (C13)
 - `model:masters.Brand` → `module:sell.services.postings` (C10)
@@ -2756,6 +2757,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.CategoryMargin` → `module:sell.services.margin_share` (C10)
 - `model:masters.CategoryMargin` → `module:sell.services.missing_hsn` (C10)
 - `model:masters.CategoryMargin` → `module:sell.services.no_bill_caps` (C10)
+- `model:masters.CategoryMargin` → `module:sell.services.online` (C10)
 - `model:masters.CategoryMargin` → `module:sell.services.overrides` (C10)
 - `model:masters.CategoryMargin` → `module:sell.services.petty_cash` (C13)
 - `model:masters.CategoryMargin` → `module:sell.services.postings` (C10)
@@ -2921,6 +2923,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Cohort` → `module:sell.services.margin_share` (C10)
 - `model:masters.Cohort` → `module:sell.services.missing_hsn` (C10)
 - `model:masters.Cohort` → `module:sell.services.no_bill_caps` (C10)
+- `model:masters.Cohort` → `module:sell.services.online` (C10)
 - `model:masters.Cohort` → `module:sell.services.overrides` (C10)
 - `model:masters.Cohort` → `module:sell.services.petty_cash` (C13)
 - `model:masters.Cohort` → `module:sell.services.postings` (C10)
@@ -3276,6 +3279,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.GstSlab` → `module:sell.services.margin_share` (C10)
 - `model:masters.GstSlab` → `module:sell.services.missing_hsn` (C10)
 - `model:masters.GstSlab` → `module:sell.services.no_bill_caps` (C10)
+- `model:masters.GstSlab` → `module:sell.services.online` (C10)
 - `model:masters.GstSlab` → `module:sell.services.overrides` (C10)
 - `model:masters.GstSlab` → `module:sell.services.petty_cash` (C13)
 - `model:masters.GstSlab` → `module:sell.services.postings` (C10)
@@ -3441,6 +3445,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Gstin` → `module:sell.services.margin_share` (C10)
 - `model:masters.Gstin` → `module:sell.services.missing_hsn` (C10)
 - `model:masters.Gstin` → `module:sell.services.no_bill_caps` (C10)
+- `model:masters.Gstin` → `module:sell.services.online` (C10)
 - `model:masters.Gstin` → `module:sell.services.overrides` (C10)
 - `model:masters.Gstin` → `module:sell.services.petty_cash` (C13)
 - `model:masters.Gstin` → `module:sell.services.postings` (C10)
@@ -3509,6 +3514,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.IdentityPick` → `module:ptmapper.goods_vocab_views` (C05)
 - `model:masters.IdentityPick` → `module:ptmapper.soh_services` (C05)
 - `model:masters.IdentityPick` → `module:sell.services.goods_stock` (C10)
+- `model:masters.IdentityPick` → `module:sell.services.online` (C10)
 - `model:masters.IdentityPick` → `module:sell.services.special_orders` (C12)
 - `model:masters.IdentityPick` → `module:stockledger.broken_size` (C06)
 - `model:masters.IdentityPick` → `module:stockledger.goods_acceptance` (C06)
@@ -3639,6 +3645,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.LegalEntity` → `module:sell.services.margin_share` (C10)
 - `model:masters.LegalEntity` → `module:sell.services.missing_hsn` (C10)
 - `model:masters.LegalEntity` → `module:sell.services.no_bill_caps` (C10)
+- `model:masters.LegalEntity` → `module:sell.services.online` (C10)
 - `model:masters.LegalEntity` → `module:sell.services.overrides` (C10)
 - `model:masters.LegalEntity` → `module:sell.services.petty_cash` (C13)
 - `model:masters.LegalEntity` → `module:sell.services.postings` (C10)
@@ -3930,6 +3937,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.PriceChange` → `module:sell.services.margin_share` (C10)
 - `model:masters.PriceChange` → `module:sell.services.missing_hsn` (C10)
 - `model:masters.PriceChange` → `module:sell.services.no_bill_caps` (C10)
+- `model:masters.PriceChange` → `module:sell.services.online` (C10)
 - `model:masters.PriceChange` → `module:sell.services.overrides` (C10)
 - `model:masters.PriceChange` → `module:sell.services.petty_cash` (C13)
 - `model:masters.PriceChange` → `module:sell.services.postings` (C10)
@@ -3998,6 +4006,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.ProductSku` → `module:ptmapper.goods_vocab_views` (C05)
 - `model:masters.ProductSku` → `module:ptmapper.soh_services` (C05)
 - `model:masters.ProductSku` → `module:sell.services.goods_stock` (C10)
+- `model:masters.ProductSku` → `module:sell.services.online` (C10)
 - `model:masters.ProductSku` → `module:sell.services.special_orders` (C12)
 - `model:masters.ProductSku` → `module:stockledger.broken_size` (C06)
 - `model:masters.ProductSku` → `module:stockledger.goods_acceptance` (C06)
@@ -4188,6 +4197,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Season` → `module:sell.services.margin_share` (C10)
 - `model:masters.Season` → `module:sell.services.missing_hsn` (C10)
 - `model:masters.Season` → `module:sell.services.no_bill_caps` (C10)
+- `model:masters.Season` → `module:sell.services.online` (C10)
 - `model:masters.Season` → `module:sell.services.overrides` (C10)
 - `model:masters.Season` → `module:sell.services.petty_cash` (C13)
 - `model:masters.Season` → `module:sell.services.postings` (C10)
@@ -4477,6 +4487,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Sku` → `module:sell.services.margin_share` (C10)
 - `model:masters.Sku` → `module:sell.services.missing_hsn` (C10)
 - `model:masters.Sku` → `module:sell.services.no_bill_caps` (C10)
+- `model:masters.Sku` → `module:sell.services.online` (C10)
 - `model:masters.Sku` → `module:sell.services.overrides` (C10)
 - `model:masters.Sku` → `module:sell.services.petty_cash` (C13)
 - `model:masters.Sku` → `module:sell.services.postings` (C10)
@@ -4545,6 +4556,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.SkuAlias` → `module:ptmapper.goods_vocab_views` (C05)
 - `model:masters.SkuAlias` → `module:ptmapper.soh_services` (C05)
 - `model:masters.SkuAlias` → `module:sell.services.goods_stock` (C10)
+- `model:masters.SkuAlias` → `module:sell.services.online` (C10)
 - `model:masters.SkuAlias` → `module:sell.services.special_orders` (C12)
 - `model:masters.SkuAlias` → `module:stockledger.broken_size` (C06)
 - `model:masters.SkuAlias` → `module:stockledger.goods_acceptance` (C06)
@@ -4576,6 +4588,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.SourceCrosswalk` → `module:ptmapper.goods_vocab_views` (C05)
 - `model:masters.SourceCrosswalk` → `module:ptmapper.soh_services` (C05)
 - `model:masters.SourceCrosswalk` → `module:sell.services.goods_stock` (C10)
+- `model:masters.SourceCrosswalk` → `module:sell.services.online` (C10)
 - `model:masters.SourceCrosswalk` → `module:sell.services.special_orders` (C12)
 - `model:masters.SourceCrosswalk` → `module:stockledger.broken_size` (C06)
 - `model:masters.SourceCrosswalk` → `module:stockledger.goods_acceptance` (C06)
@@ -4704,6 +4717,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Store` → `module:sell.services.margin_share` (C10)
 - `model:masters.Store` → `module:sell.services.missing_hsn` (C10)
 - `model:masters.Store` → `module:sell.services.no_bill_caps` (C10)
+- `model:masters.Store` → `module:sell.services.online` (C10)
 - `model:masters.Store` → `module:sell.services.overrides` (C10)
 - `model:masters.Store` → `module:sell.services.petty_cash` (C13)
 - `model:masters.Store` → `module:sell.services.postings` (C10)
@@ -4869,6 +4883,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.StoreTarget` → `module:sell.services.margin_share` (C10)
 - `model:masters.StoreTarget` → `module:sell.services.missing_hsn` (C10)
 - `model:masters.StoreTarget` → `module:sell.services.no_bill_caps` (C10)
+- `model:masters.StoreTarget` → `module:sell.services.online` (C10)
 - `model:masters.StoreTarget` → `module:sell.services.overrides` (C10)
 - `model:masters.StoreTarget` → `module:sell.services.petty_cash` (C13)
 - `model:masters.StoreTarget` → `module:sell.services.postings` (C10)
@@ -4937,6 +4952,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Style` → `module:ptmapper.goods_vocab_views` (C05)
 - `model:masters.Style` → `module:ptmapper.soh_services` (C05)
 - `model:masters.Style` → `module:sell.services.goods_stock` (C10)
+- `model:masters.Style` → `module:sell.services.online` (C10)
 - `model:masters.Style` → `module:sell.services.special_orders` (C12)
 - `model:masters.Style` → `module:stockledger.broken_size` (C06)
 - `model:masters.Style` → `module:stockledger.goods_acceptance` (C06)
@@ -5125,7 +5141,7 @@ These calls need a data-target and runtime-reachability review before the retire
 | Services | 2 tagged service modules: `module:sell.services.salesperson_move`, `module:sell.services.salesperson_rehearsal`. |
 | Offline client modules | 0 till/PWA modules: None discovered. |
 | Data | 4 owned model classes: `model:accounts.Staff`, `model:accounts.StaffAssignment`, `model:masters.StaffTarget`, `model:sell.SalespersonMatch`. 4 direct model-module import edges from owned modules; 20 static read-call candidates in 3 backend/client modules (individual expressions are in the machine inventory). |
-| Downstream readers | 7 frontend API callsites; 7 endpoint/callsite links, 0 dynamic URL references; 306 cross-owner static backend import edges. |
+| Downstream readers | 7 frontend API callsites; 7 endpoint/callsite links, 0 dynamic URL references; 307 cross-owner static backend import edges. |
 | Lifecycle | canonical: 17, historical_read_only: 7, retirement_candidate: 1, temporary_supported_legacy: 13. |
 
 ### Entry-point dependency traces
@@ -5365,6 +5381,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.StaffTarget` → `module:sell.services.margin_share` (C10)
 - `model:masters.StaffTarget` → `module:sell.services.missing_hsn` (C10)
 - `model:masters.StaffTarget` → `module:sell.services.no_bill_caps` (C10)
+- `model:masters.StaffTarget` → `module:sell.services.online` (C10)
 - `model:masters.StaffTarget` → `module:sell.services.overrides` (C10)
 - `model:masters.StaffTarget` → `module:sell.services.petty_cash` (C13)
 - `model:masters.StaffTarget` → `module:sell.services.postings` (C10)
@@ -5492,7 +5509,7 @@ These calls need a data-target and runtime-reachability review before the retire
 | Services | 3 tagged service modules: `module:sell.services.after_discount_check`, `module:sell.services.discount_funding`, `module:sell.services.running_offers`. |
 | Offline client modules | 0 till/PWA modules: None discovered. |
 | Data | 9 owned model classes: `model:masters.BrandPromotionVersion`, `model:masters.BrandTermsDecision`, `model:masters.BrandTermsVersion`, `model:masters.TaxSettingVersion`, `model:offers.EossLadderStep`, `model:offers.EossRecommendation`, `model:offers.Offer`, `model:offers.SellThroughTarget`, `model:reporting.DiscountFundingFact`. 42 direct model-module import edges from owned modules; 224 static read-call candidates in 21 backend/client modules (individual expressions are in the machine inventory). |
-| Downstream readers | 20 frontend API callsites; 17 endpoint/callsite links, 3 dynamic URL references; 84 cross-owner static backend import edges. |
+| Downstream readers | 20 frontend API callsites; 17 endpoint/callsite links, 3 dynamic URL references; 89 cross-owner static backend import edges. |
 | Lifecycle | canonical: 90, historical_read_only: 11, retirement_candidate: 2, temporary_supported_legacy: 9, unresolved: 11. |
 
 ### Entry-point dependency traces
@@ -5625,6 +5642,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.BrandTermsVersion` → `module:reporting.inventory_report` (C15)
 - `model:masters.BrandTermsVersion` → `module:stockledger.sor_ageing` (C14)
 - `model:masters.TaxSettingVersion` → `module:masters.models` (C01)
+- `model:masters.TaxSettingVersion` → `module:sell.services.online` (C10)
 - `model:offers.EossLadderStep` → `module:outbound.management.commands.seed_demo_data` (C07)
 - `model:offers.EossLadderStep` → `module:reporting.offer_return` (C15)
 - `model:offers.EossLadderStep` → `module:reporting.offer_simulation` (C15)
@@ -5632,6 +5650,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:offers.EossLadderStep` → `module:sell.services.accept` (C10)
 - `model:offers.EossLadderStep` → `module:sell.services.dataset` (C10)
 - `model:offers.EossLadderStep` → `module:sell.services.gift_stock` (C10)
+- `model:offers.EossLadderStep` → `module:sell.services.online` (C10)
 - `model:offers.EossLadderStep` → `module:sell.services.recompute` (C10)
 - `model:offers.EossLadderStep` → `module:sell.services.reservations` (C12)
 - `model:offers.EossLadderStep` → `module:storefront.dashboard` (C10)
@@ -5642,6 +5661,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:offers.EossRecommendation` → `module:sell.services.accept` (C10)
 - `model:offers.EossRecommendation` → `module:sell.services.dataset` (C10)
 - `model:offers.EossRecommendation` → `module:sell.services.gift_stock` (C10)
+- `model:offers.EossRecommendation` → `module:sell.services.online` (C10)
 - `model:offers.EossRecommendation` → `module:sell.services.recompute` (C10)
 - `model:offers.EossRecommendation` → `module:sell.services.reservations` (C12)
 - `model:offers.EossRecommendation` → `module:storefront.dashboard` (C10)
@@ -5652,6 +5672,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:offers.Offer` → `module:sell.services.accept` (C10)
 - `model:offers.Offer` → `module:sell.services.dataset` (C10)
 - `model:offers.Offer` → `module:sell.services.gift_stock` (C10)
+- `model:offers.Offer` → `module:sell.services.online` (C10)
 - `model:offers.Offer` → `module:sell.services.recompute` (C10)
 - `model:offers.Offer` → `module:sell.services.reservations` (C12)
 - `model:offers.Offer` → `module:storefront.dashboard` (C10)
@@ -5662,6 +5683,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:offers.SellThroughTarget` → `module:sell.services.accept` (C10)
 - `model:offers.SellThroughTarget` → `module:sell.services.dataset` (C10)
 - `model:offers.SellThroughTarget` → `module:sell.services.gift_stock` (C10)
+- `model:offers.SellThroughTarget` → `module:sell.services.online` (C10)
 - `model:offers.SellThroughTarget` → `module:sell.services.recompute` (C10)
 - `model:offers.SellThroughTarget` → `module:sell.services.reservations` (C12)
 - `model:offers.SellThroughTarget` → `module:storefront.dashboard` (C10)
@@ -5879,7 +5901,7 @@ These calls need a data-target and runtime-reachability review before the retire
 | Services | 5 tagged service modules: `module:inbound.goods_services`, `module:ptmapper.goods_manifest_services`, `module:ptmapper.goods_print_services`, `module:ptmapper.goods_pt_services`, `module:ptmapper.soh_services`. |
 | Offline client modules | 0 till/PWA modules: None discovered. |
 | Data | 24 owned model classes: `model:inbound.Arrival`, `model:inbound.ArrivalDecision`, `model:inbound.ArrivalHead`, `model:inbound.CountHandover`, `model:inbound.CountSession`, `model:inbound.CounterGrnDraft`, `model:inbound.Disposition`, `model:inbound.DuplicateArrivalAcknowledgement`, `model:inbound.GoodsGrn`, `model:inbound.InvoiceClaimVersion`, `model:inbound.ScanObservation`, `model:ptmapper.GoodsPt`, `model:ptmapper.OpeningClaim`, `model:ptmapper.OpeningManifest`, `model:ptmapper.OpeningManifestRow`, `model:ptmapper.OpeningManifestVersion`, `model:ptmapper.OpeningSeasonCorrection`, `model:ptmapper.OpeningVariance`, `model:ptmapper.PrintEvent`, `model:ptmapper.PrintJob`, `model:ptmapper.SohImport`, `model:ptmapper.SohImportBatch`, `model:ptmapper.SohImportReview`, `model:ptmapper.SohImportRow`. 95 direct model-module import edges from owned modules; 780 static read-call candidates in 23 backend/client modules (individual expressions are in the machine inventory). |
-| Downstream readers | 75 frontend API callsites; 41 endpoint/callsite links, 17 dynamic URL references; 215 cross-owner static backend import edges. |
+| Downstream readers | 75 frontend API callsites; 41 endpoint/callsite links, 17 dynamic URL references; 224 cross-owner static backend import edges. |
 | Lifecycle | canonical: 195, historical_read_only: 31, temporary_supported_legacy: 8, unresolved: 14. |
 
 ### Entry-point dependency traces
@@ -6193,6 +6215,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:ptmapper.GoodsPt` → `module:masters.goods_sbu` (C01)
 - `model:ptmapper.GoodsPt` → `module:outbound.goods_adjustments` (C08)
 - `model:ptmapper.GoodsPt` → `module:outbound.transfers` (C07)
+- `model:ptmapper.GoodsPt` → `module:sell.services.online` (C10)
 - `model:ptmapper.GoodsPt` → `module:stockledger.goods_acceptance` (C06)
 - `model:ptmapper.GoodsPt` → `module:stockledger.goods_descriptions` (C06)
 - `model:ptmapper.GoodsPt` → `module:stockledger.goods_views` (C06)
@@ -6200,6 +6223,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:ptmapper.OpeningClaim` → `module:masters.goods_sbu` (C01)
 - `model:ptmapper.OpeningClaim` → `module:outbound.goods_adjustments` (C08)
 - `model:ptmapper.OpeningClaim` → `module:outbound.transfers` (C07)
+- `model:ptmapper.OpeningClaim` → `module:sell.services.online` (C10)
 - `model:ptmapper.OpeningClaim` → `module:stockledger.goods_acceptance` (C06)
 - `model:ptmapper.OpeningClaim` → `module:stockledger.goods_descriptions` (C06)
 - `model:ptmapper.OpeningClaim` → `module:stockledger.goods_views` (C06)
@@ -6207,6 +6231,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:ptmapper.OpeningManifest` → `module:masters.goods_sbu` (C01)
 - `model:ptmapper.OpeningManifest` → `module:outbound.goods_adjustments` (C08)
 - `model:ptmapper.OpeningManifest` → `module:outbound.transfers` (C07)
+- `model:ptmapper.OpeningManifest` → `module:sell.services.online` (C10)
 - `model:ptmapper.OpeningManifest` → `module:stockledger.goods_acceptance` (C06)
 - `model:ptmapper.OpeningManifest` → `module:stockledger.goods_descriptions` (C06)
 - `model:ptmapper.OpeningManifest` → `module:stockledger.goods_views` (C06)
@@ -6214,6 +6239,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:ptmapper.OpeningManifestRow` → `module:masters.goods_sbu` (C01)
 - `model:ptmapper.OpeningManifestRow` → `module:outbound.goods_adjustments` (C08)
 - `model:ptmapper.OpeningManifestRow` → `module:outbound.transfers` (C07)
+- `model:ptmapper.OpeningManifestRow` → `module:sell.services.online` (C10)
 - `model:ptmapper.OpeningManifestRow` → `module:stockledger.goods_acceptance` (C06)
 - `model:ptmapper.OpeningManifestRow` → `module:stockledger.goods_descriptions` (C06)
 - `model:ptmapper.OpeningManifestRow` → `module:stockledger.goods_views` (C06)
@@ -6221,6 +6247,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:ptmapper.OpeningManifestVersion` → `module:masters.goods_sbu` (C01)
 - `model:ptmapper.OpeningManifestVersion` → `module:outbound.goods_adjustments` (C08)
 - `model:ptmapper.OpeningManifestVersion` → `module:outbound.transfers` (C07)
+- `model:ptmapper.OpeningManifestVersion` → `module:sell.services.online` (C10)
 - `model:ptmapper.OpeningManifestVersion` → `module:stockledger.goods_acceptance` (C06)
 - `model:ptmapper.OpeningManifestVersion` → `module:stockledger.goods_descriptions` (C06)
 - `model:ptmapper.OpeningManifestVersion` → `module:stockledger.goods_views` (C06)
@@ -6228,6 +6255,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:ptmapper.OpeningSeasonCorrection` → `module:masters.goods_sbu` (C01)
 - `model:ptmapper.OpeningSeasonCorrection` → `module:outbound.goods_adjustments` (C08)
 - `model:ptmapper.OpeningSeasonCorrection` → `module:outbound.transfers` (C07)
+- `model:ptmapper.OpeningSeasonCorrection` → `module:sell.services.online` (C10)
 - `model:ptmapper.OpeningSeasonCorrection` → `module:stockledger.goods_acceptance` (C06)
 - `model:ptmapper.OpeningSeasonCorrection` → `module:stockledger.goods_descriptions` (C06)
 - `model:ptmapper.OpeningSeasonCorrection` → `module:stockledger.goods_views` (C06)
@@ -6235,6 +6263,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:ptmapper.OpeningVariance` → `module:masters.goods_sbu` (C01)
 - `model:ptmapper.OpeningVariance` → `module:outbound.goods_adjustments` (C08)
 - `model:ptmapper.OpeningVariance` → `module:outbound.transfers` (C07)
+- `model:ptmapper.OpeningVariance` → `module:sell.services.online` (C10)
 - `model:ptmapper.OpeningVariance` → `module:stockledger.goods_acceptance` (C06)
 - `model:ptmapper.OpeningVariance` → `module:stockledger.goods_descriptions` (C06)
 - `model:ptmapper.OpeningVariance` → `module:stockledger.goods_views` (C06)
@@ -6242,6 +6271,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:ptmapper.PrintEvent` → `module:masters.goods_sbu` (C01)
 - `model:ptmapper.PrintEvent` → `module:outbound.goods_adjustments` (C08)
 - `model:ptmapper.PrintEvent` → `module:outbound.transfers` (C07)
+- `model:ptmapper.PrintEvent` → `module:sell.services.online` (C10)
 - `model:ptmapper.PrintEvent` → `module:stockledger.goods_acceptance` (C06)
 - `model:ptmapper.PrintEvent` → `module:stockledger.goods_descriptions` (C06)
 - `model:ptmapper.PrintEvent` → `module:stockledger.goods_views` (C06)
@@ -6249,6 +6279,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:ptmapper.PrintJob` → `module:masters.goods_sbu` (C01)
 - `model:ptmapper.PrintJob` → `module:outbound.goods_adjustments` (C08)
 - `model:ptmapper.PrintJob` → `module:outbound.transfers` (C07)
+- `model:ptmapper.PrintJob` → `module:sell.services.online` (C10)
 - `model:ptmapper.PrintJob` → `module:stockledger.goods_acceptance` (C06)
 - `model:ptmapper.PrintJob` → `module:stockledger.goods_descriptions` (C06)
 - `model:ptmapper.PrintJob` → `module:stockledger.goods_views` (C06)
@@ -6344,8 +6375,8 @@ These calls need a data-target and runtime-reachability review before the retire
 | Authorization | Required boundaries: SO-03 unified server evaluator; owner must prove resource and field denials at cutover.; Unified stock.view, report and movement actions over stable site/origin/brand; independent review retained. Handler-level enforcement requires behaviour and denial proof. |
 | Services | 0 tagged service modules: None discovered. |
 | Offline client modules | 0 till/PWA modules: None discovered. |
-| Data | 29 owned model classes: `model:outbound.DamageReport`, `model:outbound.GoodsMovement`, `model:outbound.MarkDamaged`, `model:outbound.MarkDamagedLine`, `model:outbound.SizeBalanceSuggestion`, `model:stockledger.AcceptanceEvent`, `model:stockledger.AcceptanceSession`, `model:stockledger.ActiveHold`, `model:stockledger.ActiveReservation`, `model:stockledger.AllocationGuard`, `model:stockledger.BrokenSizeAlert`, `model:stockledger.CoverageEvent`, `model:stockledger.CustodyLot`, `model:stockledger.CustodyMatch`, `model:stockledger.EncumbranceLeg`, `model:stockledger.HoldEvent`, `model:stockledger.InTransitStock`, `model:stockledger.JournalBatch`, `model:stockledger.LiveCoverage`, `model:stockledger.LiveValueBasis`, `model:stockledger.Origin`, `model:stockledger.Position`, `model:stockledger.QuantityLeg`, `model:stockledger.QuarantineStock`, `model:stockledger.ReservationEvent`, `model:stockledger.SizeRule`, `model:stockledger.StockLedgerEntry`, `model:stockledger.StockOnHand`, `model:stockledger.ValueLeg`. 72 direct model-module import edges from owned modules; 471 static read-call candidates in 21 backend/client modules (individual expressions are in the machine inventory). |
-| Downstream readers | 41 frontend API callsites; 35 endpoint/callsite links, 5 dynamic URL references; 745 cross-owner static backend import edges. |
+| Data | 29 owned model classes: `model:outbound.DamageReport`, `model:outbound.GoodsMovement`, `model:outbound.MarkDamaged`, `model:outbound.MarkDamagedLine`, `model:outbound.SizeBalanceSuggestion`, `model:stockledger.AcceptanceEvent`, `model:stockledger.AcceptanceSession`, `model:stockledger.ActiveHold`, `model:stockledger.ActiveReservation`, `model:stockledger.AllocationGuard`, `model:stockledger.BrokenSizeAlert`, `model:stockledger.CoverageEvent`, `model:stockledger.CustodyLot`, `model:stockledger.CustodyMatch`, `model:stockledger.EncumbranceLeg`, `model:stockledger.HoldEvent`, `model:stockledger.InTransitStock`, `model:stockledger.JournalBatch`, `model:stockledger.LiveCoverage`, `model:stockledger.LiveValueBasis`, `model:stockledger.Origin`, `model:stockledger.Position`, `model:stockledger.QuantityLeg`, `model:stockledger.QuarantineStock`, `model:stockledger.ReservationEvent`, `model:stockledger.SizeRule`, `model:stockledger.StockLedgerEntry`, `model:stockledger.StockOnHand`, `model:stockledger.ValueLeg`. 72 direct model-module import edges from owned modules; 475 static read-call candidates in 21 backend/client modules (individual expressions are in the machine inventory). |
+| Downstream readers | 41 frontend API callsites; 35 endpoint/callsite links, 5 dynamic URL references; 763 cross-owner static backend import edges. |
 | Lifecycle | canonical: 146, historical_read_only: 31, temporary_supported_legacy: 26, unresolved: 5. |
 
 ### Entry-point dependency traces
@@ -6631,6 +6662,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.AcceptanceEvent` → `module:sell.services.goods_sale` (C10)
 - `model:stockledger.AcceptanceEvent` → `module:sell.services.goods_stock` (C10)
 - `model:stockledger.AcceptanceEvent` → `module:sell.services.missing_hsn` (C10)
+- `model:stockledger.AcceptanceEvent` → `module:sell.services.online` (C10)
 - `model:stockledger.AcceptanceEvent` → `module:sell.services.reservations` (C12)
 - `model:stockledger.AcceptanceEvent` → `module:stockledger.sor_ageing` (C14)
 - `model:stockledger.AcceptanceSession` → `module:inbound.goods_services` (C05)
@@ -6662,6 +6694,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.AcceptanceSession` → `module:sell.services.goods_sale` (C10)
 - `model:stockledger.AcceptanceSession` → `module:sell.services.goods_stock` (C10)
 - `model:stockledger.AcceptanceSession` → `module:sell.services.missing_hsn` (C10)
+- `model:stockledger.AcceptanceSession` → `module:sell.services.online` (C10)
 - `model:stockledger.AcceptanceSession` → `module:sell.services.reservations` (C12)
 - `model:stockledger.AcceptanceSession` → `module:stockledger.sor_ageing` (C14)
 - `model:stockledger.ActiveHold` → `module:inbound.goods_services` (C05)
@@ -6693,6 +6726,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.ActiveHold` → `module:sell.services.goods_sale` (C10)
 - `model:stockledger.ActiveHold` → `module:sell.services.goods_stock` (C10)
 - `model:stockledger.ActiveHold` → `module:sell.services.missing_hsn` (C10)
+- `model:stockledger.ActiveHold` → `module:sell.services.online` (C10)
 - `model:stockledger.ActiveHold` → `module:sell.services.reservations` (C12)
 - `model:stockledger.ActiveHold` → `module:stockledger.sor_ageing` (C14)
 - `model:stockledger.ActiveReservation` → `module:inbound.goods_services` (C05)
@@ -6724,6 +6758,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.ActiveReservation` → `module:sell.services.goods_sale` (C10)
 - `model:stockledger.ActiveReservation` → `module:sell.services.goods_stock` (C10)
 - `model:stockledger.ActiveReservation` → `module:sell.services.missing_hsn` (C10)
+- `model:stockledger.ActiveReservation` → `module:sell.services.online` (C10)
 - `model:stockledger.ActiveReservation` → `module:sell.services.reservations` (C12)
 - `model:stockledger.ActiveReservation` → `module:stockledger.sor_ageing` (C14)
 - `model:stockledger.AllocationGuard` → `module:inbound.goods_services` (C05)
@@ -6755,6 +6790,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.AllocationGuard` → `module:sell.services.goods_sale` (C10)
 - `model:stockledger.AllocationGuard` → `module:sell.services.goods_stock` (C10)
 - `model:stockledger.AllocationGuard` → `module:sell.services.missing_hsn` (C10)
+- `model:stockledger.AllocationGuard` → `module:sell.services.online` (C10)
 - `model:stockledger.AllocationGuard` → `module:sell.services.reservations` (C12)
 - `model:stockledger.AllocationGuard` → `module:stockledger.sor_ageing` (C14)
 - `model:stockledger.BrokenSizeAlert` → `module:alerts.checks` (C15)
@@ -6787,6 +6823,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.CoverageEvent` → `module:sell.services.goods_sale` (C10)
 - `model:stockledger.CoverageEvent` → `module:sell.services.goods_stock` (C10)
 - `model:stockledger.CoverageEvent` → `module:sell.services.missing_hsn` (C10)
+- `model:stockledger.CoverageEvent` → `module:sell.services.online` (C10)
 - `model:stockledger.CoverageEvent` → `module:sell.services.reservations` (C12)
 - `model:stockledger.CoverageEvent` → `module:stockledger.sor_ageing` (C14)
 - `model:stockledger.CustodyLot` → `module:inbound.goods_services` (C05)
@@ -6818,6 +6855,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.CustodyLot` → `module:sell.services.goods_sale` (C10)
 - `model:stockledger.CustodyLot` → `module:sell.services.goods_stock` (C10)
 - `model:stockledger.CustodyLot` → `module:sell.services.missing_hsn` (C10)
+- `model:stockledger.CustodyLot` → `module:sell.services.online` (C10)
 - `model:stockledger.CustodyLot` → `module:sell.services.reservations` (C12)
 - `model:stockledger.CustodyLot` → `module:stockledger.sor_ageing` (C14)
 - `model:stockledger.CustodyMatch` → `module:inbound.goods_services` (C05)
@@ -6849,6 +6887,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.CustodyMatch` → `module:sell.services.goods_sale` (C10)
 - `model:stockledger.CustodyMatch` → `module:sell.services.goods_stock` (C10)
 - `model:stockledger.CustodyMatch` → `module:sell.services.missing_hsn` (C10)
+- `model:stockledger.CustodyMatch` → `module:sell.services.online` (C10)
 - `model:stockledger.CustodyMatch` → `module:sell.services.reservations` (C12)
 - `model:stockledger.CustodyMatch` → `module:stockledger.sor_ageing` (C14)
 - `model:stockledger.EncumbranceLeg` → `module:inbound.goods_services` (C05)
@@ -6880,6 +6919,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.EncumbranceLeg` → `module:sell.services.goods_sale` (C10)
 - `model:stockledger.EncumbranceLeg` → `module:sell.services.goods_stock` (C10)
 - `model:stockledger.EncumbranceLeg` → `module:sell.services.missing_hsn` (C10)
+- `model:stockledger.EncumbranceLeg` → `module:sell.services.online` (C10)
 - `model:stockledger.EncumbranceLeg` → `module:sell.services.reservations` (C12)
 - `model:stockledger.EncumbranceLeg` → `module:stockledger.sor_ageing` (C14)
 - `model:stockledger.HoldEvent` → `module:inbound.goods_services` (C05)
@@ -6911,6 +6951,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.HoldEvent` → `module:sell.services.goods_sale` (C10)
 - `model:stockledger.HoldEvent` → `module:sell.services.goods_stock` (C10)
 - `model:stockledger.HoldEvent` → `module:sell.services.missing_hsn` (C10)
+- `model:stockledger.HoldEvent` → `module:sell.services.online` (C10)
 - `model:stockledger.HoldEvent` → `module:sell.services.reservations` (C12)
 - `model:stockledger.HoldEvent` → `module:stockledger.sor_ageing` (C14)
 - `model:stockledger.InTransitStock` → `module:accounts.management.commands.load_real_masters` (A00)
@@ -6966,6 +7007,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.JournalBatch` → `module:sell.services.goods_sale` (C10)
 - `model:stockledger.JournalBatch` → `module:sell.services.goods_stock` (C10)
 - `model:stockledger.JournalBatch` → `module:sell.services.missing_hsn` (C10)
+- `model:stockledger.JournalBatch` → `module:sell.services.online` (C10)
 - `model:stockledger.JournalBatch` → `module:sell.services.reservations` (C12)
 - `model:stockledger.JournalBatch` → `module:stockledger.sor_ageing` (C14)
 - `model:stockledger.LiveCoverage` → `module:inbound.goods_services` (C05)
@@ -6997,6 +7039,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.LiveCoverage` → `module:sell.services.goods_sale` (C10)
 - `model:stockledger.LiveCoverage` → `module:sell.services.goods_stock` (C10)
 - `model:stockledger.LiveCoverage` → `module:sell.services.missing_hsn` (C10)
+- `model:stockledger.LiveCoverage` → `module:sell.services.online` (C10)
 - `model:stockledger.LiveCoverage` → `module:sell.services.reservations` (C12)
 - `model:stockledger.LiveCoverage` → `module:stockledger.sor_ageing` (C14)
 - `model:stockledger.LiveValueBasis` → `module:inbound.goods_services` (C05)
@@ -7028,6 +7071,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.LiveValueBasis` → `module:sell.services.goods_sale` (C10)
 - `model:stockledger.LiveValueBasis` → `module:sell.services.goods_stock` (C10)
 - `model:stockledger.LiveValueBasis` → `module:sell.services.missing_hsn` (C10)
+- `model:stockledger.LiveValueBasis` → `module:sell.services.online` (C10)
 - `model:stockledger.LiveValueBasis` → `module:sell.services.reservations` (C12)
 - `model:stockledger.LiveValueBasis` → `module:stockledger.sor_ageing` (C14)
 - `model:stockledger.Origin` → `module:inbound.goods_services` (C05)
@@ -7059,6 +7103,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.Origin` → `module:sell.services.goods_sale` (C10)
 - `model:stockledger.Origin` → `module:sell.services.goods_stock` (C10)
 - `model:stockledger.Origin` → `module:sell.services.missing_hsn` (C10)
+- `model:stockledger.Origin` → `module:sell.services.online` (C10)
 - `model:stockledger.Origin` → `module:sell.services.reservations` (C12)
 - `model:stockledger.Origin` → `module:stockledger.sor_ageing` (C14)
 - `model:stockledger.Position` → `module:inbound.goods_services` (C05)
@@ -7090,6 +7135,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.Position` → `module:sell.services.goods_sale` (C10)
 - `model:stockledger.Position` → `module:sell.services.goods_stock` (C10)
 - `model:stockledger.Position` → `module:sell.services.missing_hsn` (C10)
+- `model:stockledger.Position` → `module:sell.services.online` (C10)
 - `model:stockledger.Position` → `module:sell.services.reservations` (C12)
 - `model:stockledger.Position` → `module:stockledger.sor_ageing` (C14)
 - `model:stockledger.QuantityLeg` → `module:inbound.goods_services` (C05)
@@ -7121,6 +7167,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.QuantityLeg` → `module:sell.services.goods_sale` (C10)
 - `model:stockledger.QuantityLeg` → `module:sell.services.goods_stock` (C10)
 - `model:stockledger.QuantityLeg` → `module:sell.services.missing_hsn` (C10)
+- `model:stockledger.QuantityLeg` → `module:sell.services.online` (C10)
 - `model:stockledger.QuantityLeg` → `module:sell.services.reservations` (C12)
 - `model:stockledger.QuantityLeg` → `module:stockledger.sor_ageing` (C14)
 - `model:stockledger.QuarantineStock` → `module:accounts.management.commands.load_real_masters` (A00)
@@ -7176,6 +7223,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.ReservationEvent` → `module:sell.services.goods_sale` (C10)
 - `model:stockledger.ReservationEvent` → `module:sell.services.goods_stock` (C10)
 - `model:stockledger.ReservationEvent` → `module:sell.services.missing_hsn` (C10)
+- `model:stockledger.ReservationEvent` → `module:sell.services.online` (C10)
 - `model:stockledger.ReservationEvent` → `module:sell.services.reservations` (C12)
 - `model:stockledger.ReservationEvent` → `module:stockledger.sor_ageing` (C14)
 - `model:stockledger.SizeRule` → `module:alerts.checks` (C15)
@@ -7256,6 +7304,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.ValueLeg` → `module:sell.services.goods_sale` (C10)
 - `model:stockledger.ValueLeg` → `module:sell.services.goods_stock` (C10)
 - `model:stockledger.ValueLeg` → `module:sell.services.missing_hsn` (C10)
+- `model:stockledger.ValueLeg` → `module:sell.services.online` (C10)
 - `model:stockledger.ValueLeg` → `module:sell.services.reservations` (C12)
 - `model:stockledger.ValueLeg` → `module:stockledger.sor_ageing` (C14)
 
@@ -8414,7 +8463,7 @@ These calls need a data-target and runtime-reachability review before the retire
 | Authorization | Required boundaries: Request-bound scoped sell authority; current readiness/commercial/tax/device and stock checks; durable exact UUID outcome; existing sale/posting writer; live protected delivery recheck.; SO-03 unified server evaluator; owner must prove resource and field denials at cutover. Handler-level enforcement requires behaviour and denial proof. |
 | Services | 31 tagged service modules: `module:sell.services.accept`, `module:sell.services.advances`, `module:sell.services.cancel`, `module:sell.services.costing_sweep`, `module:sell.services.daily_check`, `module:sell.services.dataset`, `module:sell.services.exchange_tax`, `module:sell.services.gift_stock`, `module:sell.services.gift_vouchers`, `module:sell.services.goods_sale`, `module:sell.services.goods_stock`, `module:sell.services.invoice_numbers`, `module:sell.services.margin_share`, `module:sell.services.missing_hsn`, `module:sell.services.movements`, `module:sell.services.no_bill_caps`, `module:sell.services.online`, `module:sell.services.overrides`, `module:sell.services.postings`, `module:sell.services.recompute`, `module:sell.services.refunds`, `module:sell.services.register`, `module:sell.services.resolve`, `module:sell.services.returned_pieces`, `module:sell.services.returns`, `module:sell.services.salespeople`, `module:sell.services.saved_sizes`, `module:sell.services.split_shares`, `module:sell.services.tax_rulebook`, `module:sell.services.till_authority`, `module:sell.services.working_set`. |
 | Offline client modules | 49 till/PWA modules: `client_module:frontend/src/pwa/config.ts`, `client_module:frontend/src/till/SyncLight.tsx`, `client_module:frontend/src/till/TillProvider.tsx`, `client_module:frontend/src/till/alteration.ts`, `client_module:frontend/src/till/authority.ts`, `client_module:frontend/src/till/barcode.ts`, `client_module:frontend/src/till/bills.ts`, `client_module:frontend/src/till/cart.ts`, `client_module:frontend/src/till/consent.ts`, `client_module:frontend/src/till/customerDisplay.ts`, `client_module:frontend/src/till/db.ts`, `client_module:frontend/src/till/draft.ts`, `client_module:frontend/src/till/engine.ts`, `client_module:frontend/src/till/exchange.ts`, `client_module:frontend/src/till/giftVoucher.ts`, `client_module:frontend/src/till/gstin.ts`, `client_module:frontend/src/till/guard.ts`, `client_module:frontend/src/till/held.ts`, `client_module:frontend/src/till/invoiceNumbers.ts`, `client_module:frontend/src/till/latest.ts`, `client_module:frontend/src/till/lookup.ts`, `client_module:frontend/src/till/numbering.ts`, `client_module:frontend/src/till/offers.ts`, `client_module:frontend/src/till/online.ts`, `client_module:frontend/src/till/onlineOnly.ts`, `client_module:frontend/src/till/original.ts`, `client_module:frontend/src/till/pause.ts`, `client_module:frontend/src/till/payment.ts`, `client_module:frontend/src/till/pin.ts`, `client_module:frontend/src/till/pricing.ts`, `client_module:frontend/src/till/print.ts`, `client_module:frontend/src/till/receipt.ts`, `client_module:frontend/src/till/returnTax.ts`, `client_module:frontend/src/till/sounds.ts`, `client_module:frontend/src/till/split.ts`, `client_module:frontend/src/till/status.ts`, `client_module:frontend/src/till/sync.ts`, `client_module:frontend/src/till/tax.ts`, `client_module:frontend/src/till/tender.ts`, `client_module:frontend/src/till/transport.ts`, `client_module:frontend/src/till/types.ts`, `client_module:frontend/src/till/undo.ts`, `client_module:frontend/src/till/useCart.ts`, `client_module:frontend/src/till/useCounterKeys.ts`, `client_module:frontend/src/till/useCounterRoom.ts`, `client_module:frontend/src/till/useScanBox.ts`, `client_module:frontend/src/till/useTillDisplay.ts`, `client_module:frontend/src/till/useTillWorld.ts`, `client_module:frontend/src/till/uuid.ts`. SO-09 owns retained-bill, dataset and sync cutover proof. |
-| Data | 28 owned model classes: `model:sell.BrandClaim`, `model:sell.BrandClaimPart`, `model:sell.ContinuityFlag`, `model:sell.CreditNote`, `model:sell.CreditNoteRedemption`, `model:sell.DeferredCosting`, `model:sell.ExchangeCreditNote`, `model:sell.GiftPiece`, `model:sell.GiftVoucher`, `model:sell.GiftVoucherMovement`, `model:sell.HeldBill`, `model:sell.OnlineSaleSubmission`, `model:sell.QuarantinedUpload`, `model:sell.RegisterHandover`, `model:sell.RegisteredTill`, `model:sell.Return`, `model:sell.ReturnLine`, `model:sell.Sale`, `model:sell.SaleLine`, `model:sell.SaleLineFunding`, `model:sell.SaleLineMarginShare`, `model:sell.SaleLineShare`, `model:sell.SavedSize`, `model:sell.SellPolicy`, `model:sell.TillAllocation`, `model:sell.TillNumberBlock`, `model:sell.TillPause`, `model:sell.WorkingSetVersion`. 132 direct model-module import edges from owned modules; 615 static read-call candidates in 60 backend/client modules (individual expressions are in the machine inventory). |
+| Data | 28 owned model classes: `model:sell.BrandClaim`, `model:sell.BrandClaimPart`, `model:sell.ContinuityFlag`, `model:sell.CreditNote`, `model:sell.CreditNoteRedemption`, `model:sell.DeferredCosting`, `model:sell.ExchangeCreditNote`, `model:sell.GiftPiece`, `model:sell.GiftVoucher`, `model:sell.GiftVoucherMovement`, `model:sell.HeldBill`, `model:sell.OnlineSaleSubmission`, `model:sell.QuarantinedUpload`, `model:sell.RegisterHandover`, `model:sell.RegisteredTill`, `model:sell.Return`, `model:sell.ReturnLine`, `model:sell.Sale`, `model:sell.SaleLine`, `model:sell.SaleLineFunding`, `model:sell.SaleLineMarginShare`, `model:sell.SaleLineShare`, `model:sell.SavedSize`, `model:sell.SellPolicy`, `model:sell.TillAllocation`, `model:sell.TillNumberBlock`, `model:sell.TillPause`, `model:sell.WorkingSetVersion`. 139 direct model-module import edges from owned modules; 636 static read-call candidates in 60 backend/client modules (individual expressions are in the machine inventory). |
 | Downstream readers | 43 frontend API callsites; 41 endpoint/callsite links, 2 dynamic URL references; 864 cross-owner static backend import edges. |
 | Lifecycle | canonical: 148, historical_read_only: 37, retirement_candidate: 2, temporary_supported_legacy: 36, unresolved: 55. |
 
@@ -8590,8 +8639,15 @@ Direct data-import edges (module → model module):
 - `module:sell.services.online` → `module:core.documents`
 - `module:sell.services.online` → `module:core.gl`
 - `module:sell.services.online` → `module:finledger.models`
+- `module:sell.services.online` → `module:masters.goods_identity_models`
 - `module:sell.services.online` → `module:masters.goods_models`
+- `module:sell.services.online` → `module:masters.models`
+- `module:sell.services.online` → `module:masters.store_feature_models`
+- `module:sell.services.online` → `module:masters.tax_setting_models`
+- `module:sell.services.online` → `module:offers.models`
+- `module:sell.services.online` → `module:ptmapper.goods_models`
 - `module:sell.services.online` → `module:sell.models`
+- `module:sell.services.online` → `module:stockledger.goods_models`
 - `module:sell.services.overrides` → `module:masters.models`
 - `module:sell.services.overrides` → `module:sell.models`
 - `module:sell.services.postings` → `module:core.gl`
@@ -9568,7 +9624,7 @@ These calls need a data-target and runtime-reachability review before the retire
 | Services | 5 tagged service modules: `module:sell.services.consent`, `module:sell.services.customer_numbers`, `module:sell.services.customer_retention`, `module:sell.services.customer_rights`, `module:sell.services.customers`. |
 | Offline client modules | 0 till/PWA modules: None discovered. |
 | Data | 5 owned model classes: `model:masters.ConsentWording`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:sell.ConsentAnswer`, `model:sell.CustomerErasure`. 13 direct model-module import edges from owned modules; 82 static read-call candidates in 8 backend/client modules (individual expressions are in the machine inventory). |
-| Downstream readers | 2 frontend API callsites; 2 endpoint/callsite links, 0 dynamic URL references; 483 cross-owner static backend import edges. |
+| Downstream readers | 2 frontend API callsites; 2 endpoint/callsite links, 0 dynamic URL references; 485 cross-owner static backend import edges. |
 | Lifecycle | canonical: 23, historical_read_only: 8, temporary_supported_legacy: 4. |
 
 ### Entry-point dependency traces
@@ -9744,6 +9800,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Customer` → `module:sell.services.margin_share` (C10)
 - `model:masters.Customer` → `module:sell.services.missing_hsn` (C10)
 - `model:masters.Customer` → `module:sell.services.no_bill_caps` (C10)
+- `model:masters.Customer` → `module:sell.services.online` (C10)
 - `model:masters.Customer` → `module:sell.services.overrides` (C10)
 - `model:masters.Customer` → `module:sell.services.petty_cash` (C13)
 - `model:masters.Customer` → `module:sell.services.postings` (C10)
@@ -9920,6 +9977,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.CustomerNumber` → `module:sell.services.margin_share` (C10)
 - `model:masters.CustomerNumber` → `module:sell.services.missing_hsn` (C10)
 - `model:masters.CustomerNumber` → `module:sell.services.no_bill_caps` (C10)
+- `model:masters.CustomerNumber` → `module:sell.services.online` (C10)
 - `model:masters.CustomerNumber` → `module:sell.services.overrides` (C10)
 - `model:masters.CustomerNumber` → `module:sell.services.petty_cash` (C13)
 - `model:masters.CustomerNumber` → `module:sell.services.postings` (C10)
@@ -10787,7 +10845,7 @@ These calls need a data-target and runtime-reachability review before the retire
 | Services | 4 tagged service modules: `module:alerts.goods_services`, `module:approvals.goods_services`, `module:approvals.services`, `module:files.goods_services`. |
 | Offline client modules | 0 till/PWA modules: None discovered. |
 | Data | 35 owned model classes: `model:alerts.Alert`, `model:alerts.AlertPolicy`, `model:alerts.AlertSeen`, `model:alerts.ExceptionEvent`, `model:alerts.GoodsException`, `model:alerts.GoodsNotification`, `model:alerts.NotificationAcknowledgement`, `model:alerts.OriginInvestigationOutcome`, `model:approvals.ActionDraft`, `model:approvals.Approval`, `model:approvals.ApprovalDecision`, `model:approvals.ApprovalPolicy`, `model:approvals.ApprovalRequest`, `model:approvals.ApprovalRoute`, `model:approvals.ApprovalStepDecision`, `model:files.EvidenceLink`, `model:files.EvidenceObject`, `model:files.StoredFile`, `model:files.UploadIntent`, `model:masters.StoreFeatureSwitch`, `model:reporting.ExceptionFact`, `model:reporting.GiftItcFact`, `model:reporting.InventoryItemFact`, `model:reporting.InventoryReceiptFact`, `model:reporting.InventorySnapshot`, `model:reporting.InventoryStockFact`, `model:reporting.OfferSimLineFact`, `model:reporting.OfferSimulation`, `model:reporting.ReportRefresh`, `model:reporting.SalesLineFact`, `model:reporting.SalesTenderFact`, `model:reporting.ShrinkageLineFact`, `model:storefront.ChecklistMiss`, `model:storefront.ChecklistTemplate`, `model:storefront.ChecklistTick`. 124 direct model-module import edges from owned modules; 653 static read-call candidates in 48 backend/client modules (individual expressions are in the machine inventory). |
-| Downstream readers | 54 frontend API callsites; 59 endpoint/callsite links, 5 dynamic URL references; 445 cross-owner static backend import edges. |
+| Downstream readers | 54 frontend API callsites; 59 endpoint/callsite links, 5 dynamic URL references; 446 cross-owner static backend import edges. |
 | Lifecycle | canonical: 206, historical_read_only: 61, temporary_supported_legacy: 67, unresolved: 14. |
 
 ### Entry-point dependency traces
@@ -11305,6 +11363,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:files.UploadIntent` → `module:ptmapper.soh_views` (C05)
 - `model:files.UploadIntent` → `module:vendors.goods_services` (C04)
 - `model:masters.StoreFeatureSwitch` → `module:masters.models` (C01)
+- `model:masters.StoreFeatureSwitch` → `module:sell.services.online` (C10)
 - `model:reporting.ExceptionFact` → `module:reporting.brand_layouts` (C14)
 - `model:reporting.ExceptionFact` → `module:reporting.brand_performance` (C14)
 - `model:reporting.ExceptionFact` → `module:reporting.brand_report_views` (C14)

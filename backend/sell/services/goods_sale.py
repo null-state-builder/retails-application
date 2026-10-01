@@ -136,7 +136,7 @@ def plan_sale(store: Store, payload_lines: Sequence[dict[str, Any]]) -> Plan:
     separately would hand both lines the same oldest portion, and the second
     posting would fail - or worse, would not.
     """
-    shelf = read_shelf(store)
+    shelf = read_shelf(store, barcodes={str(p["barcode"]).strip() for p in payload_lines if str(p["barcode"]).strip()})
     by_barcode = {(piece.barcode, piece.season): piece for piece in shelf.pieces}
     by_code: dict[str, list[Piece]] = {}
     for piece in shelf.pieces:

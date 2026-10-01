@@ -189,10 +189,20 @@ def build_dataset(store: Store, since_raw: str) -> dict[str, Any]:
 
     An unreadable `since` is a bootstrap, not a refusal - see `_read_cursor`.
     """
-    from sell.services.online import online_alpha, selling_policy, commercial_revision
+    from sell.services.online import (
+        commercial_marks,
+        commercial_revision,
+        online_alpha,
+        remember_commercial_revision,
+        selling_policy,
+    )
+    marks = None
     if online_alpha(store):
         from masters.goods_services import require_sell_ready
         require_sell_ready(store)
+        # Taken before the reads, so a change during the build moves the marks
+        # and the next check rebuilds rather than trusting this revision.
+        marks = commercial_marks(store)
     started = timezone.now()
     sync = Sync(store=store, since=_read_cursor("" if online_alpha(store) else since_raw), today=timezone.localdate(started))
     shelf = read_shelf(store, started) if is_goods_site(store) else None
@@ -301,6 +311,8 @@ def build_dataset(store: Store, since_raw: str) -> dict[str, Any]:
     }
 
     payload["commercial_revision"] = commercial_revision(payload)
+    if online_alpha(store) and marks is not None:
+        remember_commercial_revision(store, marks, payload["commercial_revision"])
     return payload
 
 

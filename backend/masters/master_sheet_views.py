@@ -348,7 +348,7 @@ def _person(human_id: Any) -> str:
     user = User.objects.filter(human_id=human_id).order_by("pk").first()
     if user is None:
         return ""
-    return user.get_full_name() or user.email
+    return user.full_name or user.email
 
 
 def import_dto(access: AccessContext, source: MasterSheetImport) -> dict[str, Any]:

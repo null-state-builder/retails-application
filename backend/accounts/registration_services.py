@@ -49,7 +49,7 @@ from masters.goods_services import (
     ensure_system_locations,
     start_revision,
 )
-from masters.models import Gstin, LegalEntity, Store
+from masters.models import Gstin, LegalEntity, Season, Store
 
 T = TypeVar("T")
 CLOSED_MESSAGE = (
@@ -481,6 +481,19 @@ def _complete_registration(row: InstallationRegistration) -> None:
                         "step_actions": role.permissions_map["step_actions"],
                     }
                 },
+            )
+        # The installation's one unknown historical season (masters 0035) becomes
+        # this company's own reviewed season, so opening stock whose buying
+        # season cannot be established can name it deliberately.
+        unknown = Season.objects.filter(historical_unknown=True).first()
+        if unknown is not None:
+            start_revision(tenant.pk, "master:season", str(unknown.pk))
+            append_master_version(
+                run,
+                kind="season",
+                target_key=str(unknown.pk),
+                revision=1,
+                payload={"code": unknown.code, "name": unknown.name, "historical_unknown": True},
             )
         append_master_version(
             run,
