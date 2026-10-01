@@ -28,7 +28,7 @@ from sell.services.till_authority import issue_allocation, release_allocation
 from sell.services.working_set import current_version
 from stockledger.goods_models import JournalBatch, Origin, QuantityLeg, ValueLeg
 from stockledger import goods_engine as engine
-from tests.first_store_goods import _publish_tenant_config, approve, command, live_access, workbook
+from tests.first_store_goods import _publish_tenant_config, approve, command, live_access, source_cutoff, workbook
 from tests.test_first_store_online import online_goods as online_goods
 from tests.test_so03_denials import worlds as worlds
 from tests.test_so03_denials import _assign, _person
@@ -50,7 +50,7 @@ def repeat_source(proof: Any, *, qty: int = 2, pause: bool = True, barcode: str 
         payload={"action": "count.review", "roles": ["owner"], "site_ids": [], "brand_ids": [], "require_distinct": True,
                  "qty_max": 100, "value_max": "10000000", "step_up": True, "unknown_value": "refuse"}, label="soh-count-policy")
     prepare_series(proof.world.tenant.pk, site.gstin.legal_entity, "CNT")
-    cutoff = timezone.now()
+    cutoff = source_cutoff()
     raw = workbook([["Fresh counted shirt", "Old brand text", "M", barcode, "Shirt", "Legacy season", qty, 1000, 500, qty * 500]])
     evidence = stage_upload(proof.manager.principal(), command_id=uuid.uuid4(), data=raw, filename="fresh-full-store-soh.xlsx", kind="manifest",
         scope={"scope_kind": "sites", "site_ids": [site.pk], "brand_ids": [], "sensitive_fields": ["cost", "financial"]},

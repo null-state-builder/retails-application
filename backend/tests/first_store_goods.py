@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 import io
+import time
 import uuid
-from datetime import timedelta
+from datetime import datetime, timedelta
 from functools import partial
 from types import SimpleNamespace
 from collections.abc import Callable
@@ -19,7 +20,7 @@ from accounts.models import User
 from approvals.goods_models import ApprovalRequest
 from approvals.goods_services import decide
 from core.canonical import sha256_hex
-from core.commands import CommandResult, CommandRun, CommandSpec, execute_command
+from core.commands import CommandResult, CommandRun, CommandSpec, database_now, execute_command
 from core.kernel_models import DocumentHead, OfficialLine
 from core.numbering import prepare_series
 from files.goods_services import stage_upload
@@ -32,6 +33,20 @@ from ptmapper import goods_manifest_services as manifests, soh_services
 from ptmapper.soh_parser import parse_soh
 from stockledger import goods_acceptance
 from tests.test_so03_denials import TenantWorld, _assign, _person
+
+
+def source_cutoff() -> datetime:
+    """A source cutoff after earlier writes, strictly before the next database stamp.
+
+    Till pauses stamp the app clock, while command time, journal events and
+    ``SohImport.created_at`` stamp the database clock; the proof database can lag or
+    lead by more than a fixture step takes. Take the later clock, then let the
+    database pass it.
+    """
+    cutoff = max(timezone.now(), database_now())
+    while database_now() <= cutoff:
+        time.sleep(0.001)
+    return cutoff
 
 
 def _publish_tenant_config(tenant: Tenant, approver_human_id: uuid.UUID | None, *, kind: str, payload: dict[str, Any], label: str) -> ConfigVersion:
@@ -110,7 +125,7 @@ def reviewed_source(world: TenantWorld, owner_user: User, warehouse_user: User, 
     _publish_tenant_config(world.tenant, owner.human_id, kind="approval", payload={"action": "pt.approve.opening", "roles": ["owner"], "site_ids": [], "brand_ids": [], "require_distinct": True, "qty_max": 100, "value_max": "10000000", "step_up": True, "unknown_value": "refuse"}, label="soh-approval")
     season = Season.objects.create(code=f"SOH-{uuid.uuid4().hex[:8]}", name="Reviewed real season")
     command(owner, "proof.season", lambda run: append_master_version(run, kind="season", target_key=str(season.pk), revision=1, payload={"name": season.name, "historical_unknown": False}))
-    cutoff = timezone.now()
+    cutoff = source_cutoff()
     raw = workbook(rows)
     evidence = stage_upload(manager.principal(), command_id=uuid.uuid4(), data=raw, filename="proof-soh.xlsx", kind="manifest",
         scope={"scope_kind": "sites", "site_ids": [site.pk], "brand_ids": [], "sensitive_fields": ["cost", "financial"]}, expected_sha256=sha256_hex(raw), contains_fields=["cost", "financial"])
