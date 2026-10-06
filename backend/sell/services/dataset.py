@@ -310,9 +310,10 @@ def build_dataset(store: Store, since_raw: str) -> dict[str, Any]:
         },
     }
 
-    payload["commercial_revision"] = commercial_revision(payload)
+    revision = commercial_revision(payload)
+    payload["commercial_revision"] = revision
     if online_alpha(store) and marks is not None:
-        remember_commercial_revision(store, marks, payload["commercial_revision"])
+        remember_commercial_revision(store, marks, revision)
     return payload
 
 

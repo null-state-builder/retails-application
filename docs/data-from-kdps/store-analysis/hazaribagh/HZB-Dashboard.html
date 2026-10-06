@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hazaribagh Store — Business Dashboard</title>
+<style>
+  :root{
+    --ink:#16233d; --ink2:#33415c; --muted:#6b7488; --line:#e6e3dc;
+    --paper:#f7f6f2; --card:#ffffff; --gold:#b8860b; --gold-soft:#f3ead2;
+    --red:#b5341f; --red-soft:#fbeae6; --green:#1f7a4d; --green-soft:#e7f3ec;
+    --blue:#2b5b8c; --blue-soft:#e9f0f7; --amber:#b9791a; --amber-soft:#fbf0dd;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 22px}
+  h1,h2,h3{line-height:1.2;margin:0}
+  .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+  header{background:linear-gradient(135deg,#16233d 0%,#243a5e 100%);color:#fff;padding:46px 0 38px}
+  header .kick{letter-spacing:.18em;text-transform:uppercase;font-size:12px;color:#c7d2e2;font-weight:600}
+  header h1{font-size:32px;margin:10px 0 6px;font-weight:700}
+  header .sub{color:#cfd9e8;font-size:15px;max-width:820px}
+  header .meta{margin-top:18px;display:flex;flex-wrap:wrap;gap:10px;font-size:12.5px}
+  header .meta span{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);padding:5px 11px;border-radius:20px;color:#e8eef6}
+  section{padding:34px 0;border-bottom:1px solid var(--line)}
+  .eyebrow{display:inline-block;letter-spacing:.13em;text-transform:uppercase;font-size:11.5px;font-weight:700;color:var(--gold);margin-bottom:8px}
+  h2{font-size:23px;margin-bottom:6px}
+  .lead{color:var(--ink2);font-size:15.5px;max-width:820px}
+  p{color:var(--ink2);font-size:14.5px}
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:8px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 16px 14px;box-shadow:0 1px 2px rgba(20,33,61,.04)}
+  .kpi .lab{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+  .kpi .big{font-size:26px;font-weight:700;margin-top:5px;letter-spacing:-.5px}
+  .kpi .note{font-size:12.5px;color:var(--muted);margin-top:3px}
+  .kpi.good .big{color:var(--green)} .kpi.warn .big{color:var(--red)} .kpi.flag .big{color:var(--amber)}
+  .delta{font-size:12px;font-weight:700;margin-top:2px} .delta.up{color:var(--green)} .delta.down{color:var(--red)} .delta.flat{color:var(--muted)}
+  .call{border-left:4px solid var(--blue);background:var(--blue-soft);border-radius:0 10px 10px 0;padding:14px 18px;margin:16px 0;font-size:14.5px;color:var(--ink)}
+  .call.red{border-color:var(--red);background:var(--red-soft)}
+  .call.green{border-color:var(--green);background:var(--green-soft)}
+  .call.gold{border-color:var(--gold);background:var(--gold-soft)}
+  .call b{color:var(--ink)}
+  .chart{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-top:16px}
+  .chart h3{font-size:15px;margin-bottom:3px}
+  .chart .cap{font-size:12.5px;color:var(--muted);margin-bottom:14px}
+  .hbar{display:grid;grid-template-columns:160px 1fr 92px;align-items:center;gap:10px;margin:7px 0;font-size:13px}
+  .hbar .lbl{color:var(--ink2);font-weight:600;text-align:right;font-size:12.5px}
+  .track{background:#eef0f3;border-radius:6px;height:20px;position:relative;overflow:hidden}
+  .fill{height:100%;border-radius:6px;background:linear-gradient(90deg,#2b5b8c,#3f78b0)}
+  .fill.g{background:linear-gradient(90deg,#1f7a4d,#37a169)}
+  .fill.r{background:linear-gradient(90deg,#b5341f,#d05a44)}
+  .fill.gold{background:linear-gradient(90deg,#a9780a,#cda233)}
+  .val{font-weight:700;text-align:left;font-size:12.5px;color:var(--ink)}
+  .months{display:flex;align-items:flex-end;gap:7px;height:200px;margin-top:8px;padding-top:10px}
+  .mcol{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+  .mcol .b{width:78%;background:linear-gradient(180deg,#37a169,#1f7a4d);border-radius:4px 4px 0 0;min-height:2px}
+  .mcol .b.loss{background:linear-gradient(180deg,#d05a44,#b5341f)}
+  .mcol .b.flat{background:linear-gradient(180deg,#cda233,#a9780a)}
+  .mcol .ml{font-size:10px;color:var(--muted);margin-top:6px;white-space:nowrap}
+  .mcol .mv{font-size:9.5px;color:var(--ink2);font-weight:700;margin-bottom:3px}
+  .mcol .mp{font-size:9px;font-weight:700;margin-top:2px}
+  table{width:100%;border-collapse:collapse;margin-top:14px;font-size:13px;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  th,td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  thead th{background:#f0eee8;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink2);font-weight:700}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:nth-child(even){background:#faf9f6}
+  tfoot td{font-weight:700;background:#f0eee8;border-top:2px solid #d8d3c8}
+  .tag{display:inline-block;padding:2px 8px;border-radius:11px;font-size:11px;font-weight:700}
+  .tag.g{background:var(--green-soft);color:var(--green)} .tag.r{background:var(--red-soft);color:var(--red)} .tag.a{background:var(--amber-soft);color:var(--amber)} .tag.b{background:var(--blue-soft);color:var(--blue)}
+  .pos{color:var(--green);font-weight:700} .neg{color:var(--red);font-weight:700}
+  .act{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--gold);border-radius:0 12px 12px 0;padding:16px 18px;margin:13px 0}
+  .act h3{font-size:16px;display:flex;align-items:center;gap:9px}
+  .act .pr{font-size:11px;font-weight:800;letter-spacing:.04em;color:#fff;background:var(--red);padding:2px 9px;border-radius:5px}
+  .act .pr.med{background:var(--amber)} .act .pr.low{background:var(--blue)}
+  .act p{margin:8px 0 0;font-size:13.5px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  ul.tight{margin:10px 0;padding-left:20px} ul.tight li{font-size:14px;color:var(--ink2);margin:6px 0}
+  .foot{padding:26px 0 60px;color:var(--muted);font-size:12px} .foot b{color:var(--ink2)}
+  .legend{display:flex;gap:16px;font-size:11.5px;color:var(--muted);margin-top:10px;flex-wrap:wrap}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  .cov{display:grid;grid-template-columns:repeat(2,1fr);gap:6px 22px;margin-top:10px;font-size:12.5px;color:var(--ink2)}
+  .cov span{padding:3px 0;border-bottom:1px dotted var(--line)}
+  @media(max-width:720px){.kpis{grid-template-columns:1fr 1fr}.two,.cov{grid-template-columns:1fr}.hbar{grid-template-columns:104px 1fr 76px}.months{height:170px}}
+  @page{size:A4;margin:0}
+  @media print{
+    *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}
+    body{background:#fff}.wrap{padding:0 14mm}
+    .chart,.kpi,table,.act{box-shadow:none}section{padding:22px 0}
+    .kpi,.chart,.act,.call,table,.two>div,.months{break-inside:avoid;page-break-inside:avoid}
+    h2,h3,.eyebrow{break-after:avoid;page-break-after:avoid}header{break-inside:avoid}tr{break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="kick">Monthly Store Dashboard · 16 Measures · AI-Assisted</div>
+    <h1>Hazaribagh Store — Business Dashboard</h1>
+    <div class="sub">A monthly read of sales and stock across all 16 measures — how much the store really earns, where the profit leaks, and what to fix. Jharkhand</div>
+    <div class="meta"><span>📈 Sales: Sep 25 – Jul 26 (11 mo)</span> <span>📦 Stock file: SOH_Hazaribagh.xlsx</span> <span>🧾 7,094 bills · 19,141 pieces · ₹3.16 Cr</span> <span>👤 16 staff · 3,643 known customers</span></div>
+  </div>
+</header>
+<section><div class="wrap">
+      <div class="eyebrow">The headline</div>
+      <h2>A busy store that sells well — but keeps little profit</h2>
+      <p class="lead">Over 11 months the store sold <b>₹3.16 Cr</b>. After the cost of goods and running
+      costs it kept about <b>₹7.2 L — roughly 2%</b>. Every item is bought at about
+      <b>63% of its tag price</b>, so at full price the margin is ~37% —
+      but the average discount of <b>18%</b> pulls the realised margin down to <b>22%</b>.</p>
+      <div class="kpis" style="margin-top:18px"><div class="kpi "><div class="lab">Net sales · 11 mo</div><div class="big num">₹3.16 Cr</div><div class="delta down">▼ 36% vs last month</div><div class="note">7,094 bills · 19141 pieces</div></div><div class="kpi good"><div class="lab">Net profit kept</div><div class="big num">₹7.2 L</div><div class="delta down">▼ 6372% vs last month</div><div class="note">About 2% of sales</div></div><div class="kpi flag"><div class="lab">Average margin</div><div class="big num">22%</div><div class="delta down">▼ 104% vs last month</div><div class="note">Would be ~37% at full price</div></div><div class="kpi "><div class="lab">Average bill</div><div class="big num">₹4,449</div><div class="delta down">▼ 12% vs last month</div><div class="note">2.7 pieces per bill</div></div><div class="kpi warn"><div class="lab">Stock vs sales speed</div><div class="big num">0.7×</div><div class="note">Stock takes ~17 months to sell</div></div><div class="kpi good"><div class="lab">Repeat customers</div><div class="big num">40%</div><div class="note">Drive 66% of tracked sales</div></div></div>
+      <div class="call gold" style="margin-top:20px"><b>The one-line story:</b> the store earns a healthy
+      ~37% at full price, but discounting and running costs leave only
+      2% at the bottom. <b>Profit is given away at the till and tied up in slow stock —
+      not lost at the counter.</b></div>
+      <div class="eyebrow" style="margin-top:24px">What's covered</div>
+      <div class="cov"><span>1 · Staff productivity → §6</span><span>9 · Out-of-stock items → §5</span><span>2 · Average bill value → §6</span><span>10 · Item-wise → §4</span><span>3 · Repeat / new customers → §6</span><span>11 · Gender-wise → §4</span><span>4 · Month-on-month P&amp;L → §2</span><span>12 · Top 20 brands → §3</span><span>5 · Dead stock → §5</span><span>13 · Size analysis → §4</span><span>6 · Fast-moving stock → §5</span><span>14 · Accessories → §4</span><span>7 · Stock turnover → §5</span><span>15 · Discount → §2</span><span>8 · Ageing → §5</span><span>16 · Margin → §2 &amp; §3</span></div>
+    </div></section><section><div class="wrap">
+      <div class="eyebrow">1 · Sales through the period</div>
+      <h2>Which months made money — and which gave it back</h2>
+      <p class="lead">The store runs at roughly <b>₹17.0 L–₹48.3 L a month</b>. The colours below
+      show whether each month actually made or lost money after all costs — the number under each bar is the profit or loss.</p>
+      <div class="chart"><h3>Monthly net sales (₹ lakh) — green = profit month, red = loss month</h3>
+      <div class="cap">Bar height = sales. Colour &amp; number = profit/loss that month after cost of goods and running costs.</div>
+      <div class="months"><div class="mcol"><div class="mv">23.7</div><div class="b " style="height:49%"></div><div class="ml">Sep</div><div class="mp pos">+1.6</div></div><div class="mcol"><div class="mv">22.1</div><div class="b " style="height:46%"></div><div class="ml">Oct</div><div class="mp pos">+2.1</div></div><div class="mcol"><div class="mv">32.6</div><div class="b " style="height:68%"></div><div class="ml">Nov</div><div class="mp pos">+4.2</div></div><div class="mcol"><div class="mv">20.7</div><div class="b loss" style="height:43%"></div><div class="ml">Dec</div><div class="mp neg">−0.5</div></div><div class="mcol"><div class="mv">40.0</div><div class="b loss" style="height:83%"></div><div class="ml">Jan</div><div class="mp neg">−9.1</div></div><div class="mcol"><div class="mv">29.5</div><div class="b loss" style="height:61%"></div><div class="ml">Feb</div><div class="mp neg">−0.8</div></div><div class="mcol"><div class="mv">34.4</div><div class="b " style="height:71%"></div><div class="ml">Mar</div><div class="mp pos">+4.3</div></div><div class="mcol"><div class="mv">48.3</div><div class="b " style="height:100%"></div><div class="ml">Apr</div><div class="mp pos">+8.9</div></div><div class="mcol"><div class="mv">20.6</div><div class="b " style="height:43%"></div><div class="ml">May</div><div class="mp pos">+1.5</div></div><div class="mcol"><div class="mv">26.7</div><div class="b flat" style="height:55%"></div><div class="ml">Jun</div><div class="mp ">+0.1</div></div><div class="mcol"><div class="mv">17.0</div><div class="b loss" style="height:35%"></div><div class="ml">Jul</div><div class="mp neg">−4.9</div></div></div>
+      <div class="legend"><span><i style="background:#1f7a4d"></i>Made money</span>
+      <span><i style="background:#b5341f"></i>Lost money</span><span><i style="background:#a9780a"></i>Around break-even</span></div></div>
+      <div class="call red"><b>Best month Apr 26: +8.9 L.
+      Weakest Jan 26: −9.1 L.</b>
+      The good months carry the weak ones — the biggest swing factor is how deep the discounting goes.</div>
+    </div></section><section><div class="wrap">
+      <div class="eyebrow">2 · The money — profit, discount &amp; margin <span style="color:var(--muted);font-weight:600">(#4, #15, #16)</span></div>
+      <h2>Discount is the biggest lever on profit — past 37% off, the store sells at a loss</h2>
+      <p class="lead">Goods cost about <b>63% of the tag price</b>, so any discount above
+      <b>37%</b> sells the item <b>below cost</b>. Keep 37% as the hard ceiling for normal selling.</p>
+      <div class="chart"><h3>Month-by-month profit &amp; loss (₹ lakh)</h3>
+      <div class="cap">Cost of goods estimated from the stock file (every sold item matched to its cost). Running cost =
+      7% of sales + rent ₹2.2 L + electricity ₹1.0 L + misc ₹0.4 L per month.</div>
+      <table><thead><tr><th>Month</th><th>Net sales</th><th>Discount</th><th>Cost of goods</th><th>Gross profit</th><th>Running cost</th><th>Profit / Loss</th></tr></thead>
+      <tbody><tr><td>Sep 25</td><td class="num">23.7</td><td class="num">8%</td><td class="num">16.8</td><td class="num ">6.9</td><td class="num">5.3</td><td class="num pos">+1.6</td></tr><tr><td>Oct 25</td><td class="num">22.1</td><td class="num">5%</td><td class="num">14.9</td><td class="num ">7.2</td><td class="num">5.1</td><td class="num pos">+2.1</td></tr><tr><td>Nov 25</td><td class="num">32.6</td><td class="num">9%</td><td class="num">22.6</td><td class="num ">10.0</td><td class="num">5.9</td><td class="num pos">+4.2</td></tr><tr><td>Dec 25</td><td class="num">20.7</td><td class="num">19%</td><td class="num">16.1</td><td class="num ">4.5</td><td class="num">5.0</td><td class="num neg">−0.5</td></tr><tr><td>Jan 26</td><td class="num">40.0</td><td class="num">40%</td><td class="num">42.8</td><td class="num neg">-2.7</td><td class="num">6.4</td><td class="num neg">−9.1</td></tr><tr><td>Feb 26</td><td class="num">29.5</td><td class="num">22%</td><td class="num">24.7</td><td class="num ">4.8</td><td class="num">5.7</td><td class="num neg">−0.8</td></tr><tr><td>Mar 26</td><td class="num">34.4</td><td class="num">9%</td><td class="num">24.1</td><td class="num ">10.3</td><td class="num">6.0</td><td class="num pos">+4.3</td></tr><tr><td>Apr 26</td><td class="num">48.3</td><td class="num">6%</td><td class="num">32.4</td><td class="num ">15.9</td><td class="num">7.0</td><td class="num pos">+8.9</td></tr><tr><td>May 26</td><td class="num">20.6</td><td class="num">6%</td><td class="num">14.1</td><td class="num ">6.5</td><td class="num">5.0</td><td class="num pos">+1.5</td></tr><tr><td>Jun 26</td><td class="num">26.7</td><td class="num">18%</td><td class="num">21.1</td><td class="num ">5.5</td><td class="num">5.5</td><td class="num ">+0.1</td></tr><tr><td>Jul 26</td><td class="num">17.0</td><td class="num">34%</td><td class="num">17.1</td><td class="num neg">-0.2</td><td class="num">4.8</td><td class="num neg">−4.9</td></tr></tbody>
+      <tfoot><tr><td>11 months</td><td class="num">316</td><td class="num">18%</td>
+      <td class="num">247</td><td class="num">69</td><td class="num">62</td>
+      <td class="num pos">+7</td></tr></tfoot></table></div>
+      <div class="two"><div class="call red" style="margin-top:8px"><b>The 37% rule.</b> Because goods cost ~63% of the tag,
+      any discount above <b>37%</b> sells below cost. Go beyond it only for stock you have decided to dump.</div>
+      <div class="call gold" style="margin-top:8px"><b>What discount cost:</b> <b>₹69.0 L</b> was given away in discount over
+      11 months — against a gross profit of ₹68.9 L. Cutting average discount by <b>5 points</b> is worth
+      roughly <b>₹17.2 L a year</b>, straight to profit.</div></div>
+    </div></section><section><div class="wrap">
+      <div class="eyebrow">3 · Brands <span style="color:var(--muted);font-weight:600">(#12, #16)</span></div>
+      <h2>Which brands actually make money</h2>
+      <p class="lead">Two questions per brand: how much it sells, and how much it keeps after discount. Watch the
+      <b>margin</b> column — big sales with low margin means cash tied up for little profit.</p>
+      <table><thead><tr><th>Top 20 brands (by sales)</th><th>Pieces</th><th>Sales ₹L</th><th>Discount</th><th>Margin</th><th>Stock ₹L</th><th>Verdict</th></tr></thead>
+      <tbody><tr><td>U.S. Polo</td><td class="num">741</td><td class="num">18.6</td><td class="num">27%</td><td class="num ">10%</td><td class="num">14.4</td><td><span class="tag r">Big, thin profit</span></td></tr><tr><td>Allen Solly</td><td class="num">1,089</td><td class="num">17.8</td><td class="num">34%</td><td class="num ">1%</td><td class="num">22.6</td><td><span class="tag r">Big, thin profit</span></td></tr><tr><td>Van Heusen</td><td class="num">742</td><td class="num">16.6</td><td class="num">29%</td><td class="num ">7%</td><td class="num">31.3</td><td><span class="tag r">Big, thin profit</span></td></tr><tr><td>Louis Philippe</td><td class="num">589</td><td class="num">14.9</td><td class="num">30%</td><td class="num ">4%</td><td class="num">20.2</td><td><span class="tag r">Big, thin profit</span></td></tr><tr><td>Killer</td><td class="num">780</td><td class="num">13.6</td><td class="num">35%</td><td class="num neg">-4%</td><td class="num">13.3</td><td><span class="tag r">Selling at a loss</span></td></tr><tr><td>Levis</td><td class="num">486</td><td class="num">10.6</td><td class="num">36%</td><td class="num neg">-4%</td><td class="num">11.1</td><td><span class="tag r">Selling at a loss</span></td></tr><tr><td>Arrow</td><td class="num">400</td><td class="num">7.7</td><td class="num">31%</td><td class="num neg">-2%</td><td class="num">21.4</td><td><span class="tag r">Selling at a loss</span></td></tr><tr><td><b>Fw</b></td><td class="num">324</td><td class="num">7.1</td><td class="num">6%</td><td class="num ">32%</td><td class="num">0.0</td><td><span class="tag g">Star — grow it</span></td></tr><tr><td>Mufti</td><td class="num">342</td><td class="num">6.9</td><td class="num">38%</td><td class="num neg">-9%</td><td class="num">4.5</td><td><span class="tag r">Selling at a loss</span></td></tr><tr><td><b>Jay Ambey</b></td><td class="num">127</td><td class="num">5.9</td><td class="num">5%</td><td class="num ">41%</td><td class="num">3.7</td><td><span class="tag g">Star — grow it</span></td></tr><tr><td><b>Plazer</b></td><td class="num">202</td><td class="num">5.5</td><td class="num">4%</td><td class="num ">38%</td><td class="num">2.8</td><td><span class="tag g">Star — grow it</span></td></tr><tr><td>Peter England</td><td class="num">317</td><td class="num">5.5</td><td class="num">31%</td><td class="num ">5%</td><td class="num">12.0</td><td><span class="tag a">Thin profit</span></td></tr><tr><td><b>Yes Mam</b></td><td class="num">195</td><td class="num">5.2</td><td class="num">5%</td><td class="num ">35%</td><td class="num">3.8</td><td><span class="tag g">Star — grow it</span></td></tr><tr><td><b>Citrus</b></td><td class="num">318</td><td class="num">4.0</td><td class="num">3%</td><td class="num ">28%</td><td class="num">6.2</td><td><span class="tag g">Star — grow it</span></td></tr><tr><td><b>Ashmita Bq</b></td><td class="num">167</td><td class="num">3.8</td><td class="num">6%</td><td class="num ">35%</td><td class="num">2.7</td><td><span class="tag g">Star — grow it</span></td></tr><tr><td><b>Hyphen</b></td><td class="num">186</td><td class="num">3.4</td><td class="num">2%</td><td class="num ">33%</td><td class="num">3.1</td><td><span class="tag g">Star — grow it</span></td></tr><tr><td>Jockey</td><td class="num">899</td><td class="num">3.4</td><td class="num">9%</td><td class="num ">23%</td><td class="num">3.5</td><td><span class="tag g">Healthy</span></td></tr><tr><td><b>Khushaal</b></td><td class="num">67</td><td class="num">3.3</td><td class="num">3%</td><td class="num ">39%</td><td class="num">2.8</td><td><span class="tag g">Star — grow it</span></td></tr><tr><td>Blackberry</td><td class="num">152</td><td class="num">3.1</td><td class="num">23%</td><td class="num ">7%</td><td class="num">0.0</td><td><span class="tag a">Thin profit</span></td></tr><tr><td>Blackberrys</td><td class="num">97</td><td class="num">3.1</td><td class="num">15%</td><td class="num ">20%</td><td class="num">4.7</td><td><span class="tag g">Healthy</span></td></tr></tbody></table>
+      <p style="font-size:12.5px;color:var(--muted);margin-top:8px">Brand codes merged where the same brand appears under
+      several names. Margin is after discount, using each item's cost from the stock file.</p>
+      <div class='call green'><b>The lesson:</b> the high-margin earners here are <b>Fw, Jay Ambey, Plazer, Yes Mam, Citrus, Ashmita Bq</b>. Give them more space and stock; buy the low-margin, heavily-discounted brands more tightly.</div>
+    </div></section><section><div class="wrap">
+      <div class="eyebrow">4 · What sells <span style="color:var(--muted);font-weight:600">(#10, #11, #13, #14)</span></div>
+      <h2>Where the sales and the margin come from</h2>
+      <div class="chart"><h3>Who the store sells to</h3><div class="cap">Share of money taken, by section.</div><div class="hbar"><div class="lbl">Men</div><div class="track"><div class="fill " style="width:96%"></div></div><div class="val">48%</div></div><div class="hbar"><div class="lbl">Women</div><div class="track"><div class="fill g" style="width:87%"></div></div><div class="val">43%</div></div><div class="hbar"><div class="lbl">Kids Male</div><div class="track"><div class="fill gold" style="width:10%"></div></div><div class="val">5%</div></div><div class="hbar"><div class="lbl">Kids Female</div><div class="track"><div class="fill gold" style="width:7%"></div></div><div class="val">4%</div></div><div class="hbar"><div class="lbl">Kids</div><div class="track"><div class="fill gold" style="width:0%"></div></div><div class="val">0%</div></div></div>
+      <table><thead><tr><th>Top items</th><th>Pieces</th><th>Sales ₹L</th><th>Avg price</th><th>Discount</th><th>Read</th></tr></thead>
+      <tbody><tr><td>Saree</td><td class="num">2,167</td><td class="num">48.6</td><td class="num">₹2,242</td><td class="num">5%</td><td><span class="tag g">Full price</span></td></tr><tr><td>Shirt</td><td class="num">2,314</td><td class="num">39.3</td><td class="num">₹1,697</td><td class="num">27%</td><td><span class="tag r">Heavily discounted</span></td></tr><tr><td>Jeans</td><td class="num">1,795</td><td class="num">36.1</td><td class="num">₹2,014</td><td class="num">30%</td><td><span class="tag r">Heavily discounted</span></td></tr><tr><td>Kurti Set</td><td class="num">1,509</td><td class="num">32.0</td><td class="num">₹2,124</td><td class="num">7%</td><td><span class="tag g">Full price</span></td></tr><tr><td>T-Shirt</td><td class="num">1,697</td><td class="num">18.3</td><td class="num">₹1,081</td><td class="num">24%</td><td><span class="tag r">Heavily discounted</span></td></tr><tr><td>Trouser</td><td class="num">877</td><td class="num">15.7</td><td class="num">₹1,788</td><td class="num">28%</td><td><span class="tag r">Heavily discounted</span></td></tr><tr><td>Suit</td><td class="num">228</td><td class="num">14.1</td><td class="num">₹6,195</td><td class="num">10%</td><td><span class="tag a">Some discount</span></td></tr><tr><td>Jacket</td><td class="num">518</td><td class="num">13.7</td><td class="num">₹2,637</td><td class="num">34%</td><td><span class="tag r">Heavily discounted</span></td></tr><tr><td>Salwar Suit</td><td class="num">386</td><td class="num">9.8</td><td class="num">₹2,533</td><td class="num">5%</td><td><span class="tag g">Full price</span></td></tr><tr><td>Blazer</td><td class="num">228</td><td class="num">9.3</td><td class="num">₹4,092</td><td class="num">26%</td><td><span class="tag r">Heavily discounted</span></td></tr><tr><td>Lehenga</td><td class="num">94</td><td class="num">7.7</td><td class="num">₹8,238</td><td class="num">5%</td><td><span class="tag g">Full price</span></td></tr><tr><td>Sweatshirt</td><td class="num">465</td><td class="num">7.7</td><td class="num">₹1,652</td><td class="num">31%</td><td><span class="tag r">Heavily discounted</span></td></tr></tbody></table>
+      <div class="two" style="margin-top:18px">
+        <div><h3 style="font-size:16px">Sizes — fastest movers <span class="num" style="font-size:12px;color:var(--muted)">(#13)</span></h3>
+        <p class="cap" style="margin:6px 0">Top sizes by pieces sold; % = how much of that size's stock has sold.</p>
+        <ul class="tight"><li><b>Men:</b> M (50%), L (44%), FREE SIZE (44%), XL (41%), 32 (41%), 40 (35%)</li><li><b>Women:</b> FREE SIZE (47%), XL (69%), L (38%), M (42%), XXL (28%), S (41%)</li><li><b>Kids Male:</b> 12 (49%), 14 (52%), 10 (38%), 8 (39%), 6 (40%), FREE SIZE (31%)</li><li><b>Kids Female:</b> FREE SIZE (43%), 36 (41%), 26 (27%), 34 (34%), 24 (22%), 30 (28%)</li></ul></div>
+        <div><h3 style="font-size:16px">Accessories <span class="num" style="font-size:12px;color:var(--muted)">(#14)</span></h3>
+        <p style="margin-top:6px">Accessories sold <b>₹9.1 L</b> over 11 months on <b>₹6.8 L</b>
+        of stock — a healthy add-on business. Push them at the counter to lift the bill with little risk.</p></div>
+      </div>
+    </div></section><section><div class="wrap">
+      <div class="eyebrow">5 · Stock health <span style="color:var(--muted);font-weight:600">(#5, #6, #7, #8, #9)</span></div>
+      <h2>How much stock, how old, and how fast it turns</h2>
+      <p class="lead">The store holds <b>₹3.81 Cr</b> of stock (₹6.01 Cr at tag price). At the current
+      selling speed that is about <b>17 months</b> of stock — a healthy clothes shop carries 3–4 months.
+      Only <b>20%</b> of stock value is in styles that have sold even once.</p>
+      <div class="kpis">
+        <div class="kpi warn"><div class="lab">Stock turnover (#7)</div><div class="big num">0.7×/yr</div><div class="note">~17 months to sell · target 3–4×</div></div>
+        <div class="kpi warn"><div class="lab">Aging stock, 6 mo+ (#5, #8)</div><div class="big num">₹0.40 Cr</div><div class="note">Not sold in 6+ months</div></div>
+        <div class="kpi flag"><div class="lab">Out of stock on fast items (#9)</div><div class="big num">0</div><div class="note">Sold recently, now at zero</div></div>
+      </div>
+      <div class="chart"><h3>Stock by age (at cost) <span class="num" style="font-size:12px;color:var(--muted)">(#8)</span></h3>
+      <div class="cap">Green = fresh, give it time. Red = old, clear it.</div><div class="hbar"><div class="lbl">Under 3 months</div><div class="track"><div class="fill g" style="width:1%"></div></div><div class="val">₹0.05 Cr</div></div><div class="hbar"><div class="lbl">3 to 6 months</div><div class="track"><div class="fill g" style="width:8%"></div></div><div class="val">₹0.27 Cr</div></div><div class="hbar"><div class="lbl">6 to 12 months</div><div class="track"><div class="fill r" style="width:9%"></div></div><div class="val">₹0.31 Cr</div></div><div class="hbar"><div class="lbl">Over a year</div><div class="track"><div class="fill r" style="width:3%"></div></div><div class="val">₹0.09 Cr</div></div><div class="hbar"><div class="lbl">No season tag</div><div class="track"><div class="fill gold" style="width:95%"></div></div><div class="val">₹3.10 Cr</div></div></div>
+      <div class="two" style="margin-top:18px">
+        <div><h3 style="font-size:16px">Where the slow money sits <span class="num" style="font-size:12px;color:var(--muted)">(#5)</span></h3>
+        <p style="margin-top:6px">Stock not sold in the period, by item: <b>Shirt ₹55.1 L · Jeans ₹45.6 L · T-Shirt ₹30.2 L · Trouser ₹25.1 L · Suit ₹23.8 L · Kurti Set ₹20.5 L</b>.</p></div>
+        <div><h3 style="font-size:16px">The real problem: wrong mix <span class="num" style="font-size:12px;color:var(--muted)">(#6, #9)</span></h3>
+        <p style="margin-top:6px">The store is <b>overstocked overall yet out of stock on 0 fast items</b> that sold recently
+        and are now at zero. Money is locked in slow styles while fast ones run dry — a buying &amp; replenishment problem, not a quantity one.</p></div>
+      </div>
+    </div></section><section><div class="wrap">
+      <div class="eyebrow">6 · Customers &amp; staff <span style="color:var(--muted);font-weight:600">(#1, #2, #3)</span></div>
+      <h2>The customer base and the staff scorecard</h2>
+      <div class="kpis">
+        <div class="kpi "><div class="lab">Average bill (#2)</div><div class="big num">₹4,449</div><div class="note">2.7 pieces per bill</div></div>
+        <div class="kpi good"><div class="lab">Repeat customers (#3)</div><div class="big num">40%</div><div class="note">Drive 66% of tracked sales</div></div>
+        <div class="kpi good"><div class="lab">Bills with a phone</div><div class="big num">96%</div><div class="note">4% not captured</div></div>
+      </div>
+      <div class="call gold"><b>Customers:</b> 3,643 customers are known by phone, and the top 5% bring
+      <b>27%</b> of sales. Phone capture is strong — use it for WhatsApp reminders and a VIP perk for the top 5%.</div>
+      <h3 style="font-size:16px;margin-top:22px">Staff — sales and price held <span class="num" style="font-size:12px;color:var(--muted)">(#1)</span></h3>
+      <p>Note the last column: some staff hold 93% of the tag price, others 55%. Part is the section they
+      work, but it is also a coaching gap worth real money.</p>
+      <table><thead><tr><th>Salesperson</th><th>Sales ₹L</th><th>Bills</th><th>Avg bill</th><th>Price held</th></tr></thead><tbody><tr><td>Punam Kumari</td><td class="num">32.9</td><td class="num">794</td><td class="num">₹4,143</td><td class="num pos">93%</td></tr><tr><td>Sunny Sonar</td><td class="num">30.9</td><td class="num">895</td><td class="num">₹3,456</td><td class="num neg">74%</td></tr><tr><td>Niraj Rajak</td><td class="num">27.4</td><td class="num">651</td><td class="num">₹4,209</td><td class="num neg">75%</td></tr><tr><td>Anjali Kumari</td><td class="num">25.5</td><td class="num">826</td><td class="num">₹3,084</td><td class="num pos">90%</td></tr><tr><td>Dilip Rajwar</td><td class="num">25.2</td><td class="num">717</td><td class="num">₹3,512</td><td class="num neg">77%</td></tr><tr><td>Ruby Kumari</td><td class="num">23.2</td><td class="num">754</td><td class="num">₹3,073</td><td class="num pos">92%</td></tr><tr><td>Prity Kumari</td><td class="num">21.6</td><td class="num">868</td><td class="num">₹2,493</td><td class="num pos">90%</td></tr><tr><td>Poonam Rana</td><td class="num">21.3</td><td class="num">700</td><td class="num">₹3,044</td><td class="num pos">90%</td></tr></tbody></table>
+      <p style="font-size:12.5px;color:var(--muted);margin-top:8px">16 staff in total. Measure each on <b>price held</b>,
+      not just sales value. (Sales-per-hour isn't possible — no attendance/targets in the data.)</p>
+    </div></section><section><div class="wrap">
+      <div class="eyebrow">7 · What we could not measure — and why</div>
+      <h2>Being straight about the limits</h2>
+      <ul class="tight">
+      <li><b>True conversion rate — not possible.</b> No footfall / door-counter data exists, so we show repeat vs new customers, not sales ÷ walk-ins.</li>
+      <li><b>Profit is a close estimate.</b> The sales export has no cost column, so cost of goods is taken from the stock file (every sold item matched to its cost). Running cost uses the 7%-of-sales + rent/power/misc figures in the config.</li>
+      <li><b>Only 11 months of sales</b> are in the data, so "dead stock" means not sold in that window; fresh stock is shown separately by age.</li>
+      <li><b>No colour analysis.</b> The "Colour" field in the sales export is a price band, and the stock file has no colour — so we can analyse sizes, not colours.</li>
+      </ul>
+    </div></section>
+    <section><div class="wrap">
+      <div class="eyebrow">8 · What to do — biggest profit first</div>
+      <h2>The priority moves</h2>
+      <div class="act"><h3><span class="pr">1</span> Cap the discount — never sell below cost</h3>
+      <p>Set a firm ceiling of <b>37% off</b> for normal selling. Plan the clearance so it does not repeat Jan 26's loss.</p>
+      <div class="impact">↳ Biggest lever — a 5-point cut in average discount ≈ ₹17.2 L a year.</div></div>
+      <div class="act"><h3><span class="pr">2</span> Fix the brand &amp; product mix</h3>
+      <p>Buy the low-margin, heavily-discounted brands more tightly; give the high-margin stars more space and stock.</p>
+      <div class="impact">↳ Same sales, more profit; less cash tied in slow stock.</div></div>
+      <div class="act"><h3><span class="pr med">3</span> Clear the aging stock</h3>
+      <p>Run a planned exit for the <b>₹0.40 Cr</b> not sold in 6+ months, within the 37% ceiling.</p>
+      <div class="impact">↳ Frees cash and shelf space; lifts stock-turn from 0.7× upward.</div></div>
+      <div class="act"><h3><span class="pr med">4</span> Buy the right mix, not more stock</h3>
+      <p>Reorder the <b>0 fast items now out of stock</b>, and shorten the buy on slow sizes.</p>
+      <div class="impact">↳ Recovers lost sales without adding to the overstock.</div></div>
+      <div class="act"><h3><span class="pr low">5</span> Capture every customer, then use the list</h3>
+      <p>Get the phone number on every bill (now 96%). Send WhatsApp reminders to repeat and lapsed customers.</p>
+      <div class="impact">↳ Near-zero cost; repeat customers drive 66% of sales.</div></div>
+      <div class="act"><h3><span class="pr low">6</span> Manage by this dashboard every month</h3>
+      <p>Track profit, discount, margin, stock-turn, dead stock, out-of-stock, repeat rate and price-held — refresh it monthly.</p>
+      <div class="impact">↳ Turns this study into an everyday habit.</div></div>
+    </div></section>
+<div class="wrap foot"><p><b>How this was prepared.</b> Built by the <i>store-dashboard</i> skill from this store's sales and stock-on-hand exports (Sales_Hazaribagh.xlsx, SOH_Hazaribagh.xlsx). Figures computed directly from the files; bill fields filled down; carry-bags and the stock total row removed; brand codes merged; every sold item matched to its cost in the stock file to estimate margin and profit.</p><p><b>Honest caveats.</b> Cost of goods and profit are estimates (no cost column in sales); running costs use the 7%-of-sales + rent/power/misc figures in the config. Dead stock = not sold in the 11 months of data. A true conversion rate needs footfall data, which does not exist here.</p><p style='margin-top:14px;color:#9aa0ad'>Prepared for KDPS Lifestyle Pvt. Ltd. · Hazaribagh Store · Generated generated from data files.</p></div>
+</body>
+</html>

@@ -108,6 +108,7 @@ export function SohReconciliationPanel({
   if (!source.data.requires_inventory_reconciliation) return null;
   return (
     <section className="panel">
+      {stepUp.dialog}
       <h3>Update this store from a later SOH export</h3>
       <p>
         Pause and reconcile every till online first. Export a fresh full-store SOH with its exact
@@ -210,34 +211,41 @@ export function SohReconciliationPanel({
                 paused at {count.data.review.pause.paused_at}; next number{" "}
                 {count.data.review.pause.fy}/{count.data.review.pause.next_seq}.
               </p>
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Stable item</th>
-                    <th>Frozen book</th>
-                    <th>Counted</th>
-                    <th>Difference</th>
-                    <th>Recorded value removed</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {count.data.review.differences
-                    .slice(pageIndex * 100, (pageIndex + 1) * 100)
-                    .map((line) => (
-                      <tr key={line.sku_id}>
-                        <td>
-                          {line.item_name}
-                          <br />
-                          <small>{line.sku_id}</small>
-                        </td>
-                        <td>{line.book_qty}</td>
-                        <td>{line.observed_qty}</td>
-                        <td>{line.delta}</td>
-                        <td>{formatPaiseString(line.value_removed_paise)}</td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
+              <div
+                className="table-wrap"
+                role="region"
+                aria-label="SOH inventory differences"
+                tabIndex={0}
+              >
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Stable item</th>
+                      <th>Frozen book</th>
+                      <th>Counted</th>
+                      <th>Difference</th>
+                      <th>Recorded value removed</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {count.data.review.differences
+                      .slice(pageIndex * 100, (pageIndex + 1) * 100)
+                      .map((line) => (
+                        <tr key={line.sku_id}>
+                          <td>
+                            {line.item_name}
+                            <br />
+                            <small>{line.sku_id}</small>
+                          </td>
+                          <td>{line.book_qty}</td>
+                          <td>{line.observed_qty}</td>
+                          <td>{line.delta}</td>
+                          <td>{formatPaiseString(line.value_removed_paise)}</td>
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </div>
               <button
                 className="btn btn-sm"
                 disabled={pageIndex === 0}

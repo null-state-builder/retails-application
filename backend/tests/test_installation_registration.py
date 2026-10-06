@@ -349,6 +349,58 @@ def test_atomic_joint_claim_has_complete_versions_and_only_two_restricted_logins
     assert public_state()["available"] is False
 
 
+@pytest.mark.parametrize("host_offset_minutes", [5, -5])
+def test_joint_registration_and_first_password_change_use_database_chronology(
+    proposal: dict[str, Any], monkeypatch: Any, host_offset_minutes: int,
+) -> None:
+    """A skewed web host cannot postpone genesis or expire its first session."""
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from accounts.sessions import ABSOLUTE_LIFE, issue_session, resolve_session
+
+    host_now = timezone.now
+    monkeypatch.setattr(timezone, "now", lambda: host_now() + timedelta(minutes=host_offset_minutes))
+    result = register(proposal)
+    tenant = Tenant.objects.get()
+    with tenant_context(tenant.pk):
+        event = AuditEvent.objects.get(tenant=tenant, action="deployment.register")
+        for who in ("owner", "admin"):
+            user = User.objects.get(email=proposal[who]["email"])
+            assignment = RoleAssignment.objects.get(tenant=tenant, human_id=user.human_id)
+            assert assignment.effective_from == event.event_at
+            access = AccessContext(user=user, tenant_id=tenant.pk, human_id=user.human_id,
+                                   session=None, grants=effective_grants(user.human_id))
+            assert access.can("access.manage")
+
+        owner = User.objects.get(email=proposal["owner"]["email"])
+        initial = issue_session(owner)
+        assert initial.session.expires_at == initial.session.issued_at + ABSOLUTE_LIFE
+        assert resolve_session(initial.token) is not None
+        client = APIClient()
+        client.cookies["kdps_session"] = initial.token
+        client.cookies["kdps_csrf"] = initial.csrf_token
+        client.credentials(HTTP_X_CSRF_TOKEN=initial.csrf_token)
+        denied = client.get("/api/auth/admin/registration")
+        assert denied.status_code == 403 and denied.data["code"] == "PASSWORD_CHANGE_REQUIRED"
+        assert owner.must_change_password and RoleAssignment.objects.filter(tenant=tenant).count() == 2
+        changed = client.post("/api/auth/change-password", {
+            "current_password": proposal["owner"]["temporary_password"], "new_password": uuid.uuid4().hex,
+        }, format="json")
+        assert changed.status_code == 200 and resolve_session(initial.token) is None
+        owner.refresh_from_db()
+        fresh = issue_session(owner)
+        assert fresh.session.expires_at == fresh.session.issued_at + ABSOLUTE_LIFE
+        client.cookies["kdps_session"] = fresh.token
+        client.cookies["kdps_csrf"] = fresh.csrf_token
+        client.credentials(HTTP_X_CSRF_TOKEN=fresh.csrf_token)
+        response = client.get("/api/auth/admin/registration")
+        assert response.status_code == 200 and response.data["setup_complete"] is False
+        assert response.data["first_store_id"] == result["first_store_id"]
+        assert response["Cache-Control"] == "no-store, private"
+
+
 def test_completed_retry_is_safe_and_subsequent_company_signup_is_closed(
     proposal: dict[str, Any],
 ) -> None:

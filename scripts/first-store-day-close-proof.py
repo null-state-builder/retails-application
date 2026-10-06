@@ -42,8 +42,12 @@ def main() -> None:
             if switch is None or switch.revision == 1 and historical in record.get("commands", {}):
                 admin = proof.login(record, "admin")
                 proof.request(admin, "post", "/api/auth/step-up", {"password": record["admin"]["password"]})
+                # Creation has no revision to fence. Preserve an earlier invalid
+                # zero-revision payload under its original command identity.
+                command_key = current if switch else f"{current}-initial-v2"
+                revision = {"expected_revision": switch.revision} if switch else {}
                 proof.request(admin, "post", "/api/goods-v1/masters/store-features/switch", proof.command(
-                    record, current, expected_revision=switch.revision if switch else 0,
+                    record, command_key, **revision,
                     store_id=site.pk, feature_key=feature, enabled=True,
                 ))
         owner = proof.login(record, "owner")

@@ -59,7 +59,7 @@ export async function pairProof(page: Page) {
 }
 
 /** Confirm a privileged action through the normal same-session password dialog. */
-export async function stepUpProof(page: Page, role: "owner" | "count_checker") {
+export async function stepUpProof(page: Page, role: "owner" | "count_checker", keyboard = false) {
   const path = fileURLToPath(
     new URL("../../.local/first-store-browser-credentials.json", import.meta.url),
   );
@@ -72,7 +72,8 @@ export async function stepUpProof(page: Page, role: "owner" | "count_checker") {
   await expect(page.getByTestId("org-stepup")).toBeVisible();
   try {
     await page.getByTestId("org-stepup-password").fill(record[role].password);
-    await page.getByTestId("org-stepup-confirm").click();
+    if (keyboard) await page.getByTestId("org-stepup-password").press("Enter");
+    else await page.getByTestId("org-stepup-confirm").click();
     await expect(page.getByTestId("org-stepup")).toHaveCount(0);
   } catch {
     throw new Error("The separate proof reviewer could not confirm normally.");

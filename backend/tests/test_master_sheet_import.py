@@ -10,7 +10,7 @@ from __future__ import annotations
 import io
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from django.utils import timezone
@@ -131,7 +131,7 @@ def test_helper_options_name_every_real_value_in_order() -> None:
 
 def test_plan_flags_one_letter_twins_but_not_real_neighbours() -> None:
     parsed = ms.read_master_sheet(sheet_bytes())
-    empty = {"values": {}, "version_ids": {}, "brands": [], "seasons": [], "item_rules": {}}
+    empty: dict[str, Any] = {"values": {}, "version_ids": {}, "brands": [], "seasons": [], "item_rules": {}}
     plan = ms.plan_changes(parsed, empty, {})
     colour = next(d for d in plan["dimensions"] if d["dimension"] == "colour")
     assert [p["code"] for p in colour["problems"]] == [ms.LOOKS_LIKE]
@@ -167,25 +167,25 @@ def _upload(access: AccessContext, data: bytes) -> MasterSheetImport:
         expected_sha256=sha256_hex(data), contains_fields=[],
     )
     parsed = ms.read_master_sheet(data)
-    return command(
+    return cast(MasterSheetImport, command(
         access, "masters.master_sheet.upload",
         lambda run: services.create_import(run, evidence=evidence, parsed=parsed),
-    )
+    ))
 
 
 def _choose(access: AccessContext, source: MasterSheetImport, **choices: Any) -> MasterSheetImport:
     selections = {**source.selections, **choices}
-    return command(
+    return cast(MasterSheetImport, command(
         access, "masters.master_sheet.selections",
         lambda run: services.update_selections(run, access, source, selections, source.revision),
-    )
+    ))
 
 
 def _submit(access: AccessContext, source: MasterSheetImport) -> MasterSheetImport:
-    return command(
+    return cast(MasterSheetImport, command(
         access, "masters.master_sheet.submit",
         lambda run: services.submit(run, access, source, source.revision, source.reviewed_hash),
-    )
+    ))
 
 
 def _request(source: MasterSheetImport) -> ApprovalRequest:

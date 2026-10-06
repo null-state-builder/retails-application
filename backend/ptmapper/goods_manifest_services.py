@@ -635,7 +635,7 @@ def _request_manifest_approval(
         requested_action=MANIFEST_ACTION,
         site_id=manifest.site_id,
         require_distinct=True,
-        required_roles=["C-OWN"],
+        required_roles=["owner"],
         title=f"Opening manifest {manifest.batch_key}",
     )
 
@@ -826,7 +826,7 @@ def propose_variance(
         requested_action=VARIANCE_ACTION,
         site_id=manifest.site_id,
         require_distinct=True,
-        required_roles=["C-INV", "C-OWN"],
+        required_roles=["C-INV", "owner"],
         title=f"Opening variance on {row.source_row_key}",
     )
     run.audit_after = {"variance_request": str(draft.pk), "manifest_row_id": str(row.pk)}

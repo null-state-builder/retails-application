@@ -4,7 +4,7 @@
 // such screen needs. First written for Organisation (ticket 02); pulled out
 // here once a second screen (People and access, ticket 03) needed the same
 // fetch/error/step-up shape rather than a second copy of it.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { X } from "lucide-react";
 
@@ -44,7 +44,7 @@ export function Feedback({ error, ok }: { error: string; ok: string }) {
   return (
     <>
       {error && (
-        <div className="warn-note" data-testid="org-error">
+        <div className="warn-note" role="alert" data-testid="org-error">
           {error}
         </div>
       )}
@@ -73,32 +73,82 @@ export function Denied({ what }: { what: string }) {
  *  than five minutes (design §4.2). On `STEP_UP_REQUIRED`, ask once and
  *  retry the exact call that was refused. */
 export function useStepUp() {
-  const [pending, setPending] = useState<{ retry: () => void } | null>(null);
+  const [pending, setPending] = useState<{
+    retry: () => void;
+    cancel: () => void;
+  } | null>(null);
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const input = useRef<HTMLInputElement>(null);
+  const panel = useRef<HTMLFormElement>(null);
+  const opener = useRef<HTMLElement | null>(null);
+  const isOpen = useRef(false);
+  const titleId = useId();
+  const passwordId = useId();
+  const open = pending !== null;
+
+  useLayoutEffect(() => {
+    isOpen.current = open;
+    if (!open) return;
+    input.current?.focus();
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    if (busy) panel.current?.focus();
+    else input.current?.focus();
+  }, [open, busy]);
 
   async function guarded<T>(fn: () => Promise<T>): Promise<T> {
+    const trigger = document.activeElement;
     try {
       return await fn();
     } catch (e) {
       if (apiErrorCode(e) === "STEP_UP_REQUIRED") {
-        return new Promise<T>((resolve, reject) => {
-          setError("");
-          setPassword("");
-          setPending({
-            retry: () => {
-              fn().then(resolve, reject);
-            },
+        opener.current = trigger instanceof HTMLElement ? trigger : null;
+        const previous = opener.current;
+        try {
+          return await new Promise<T>((resolve, reject) => {
+            setError("");
+            setPassword("");
+            setPending({
+              retry: () => {
+                fn().then(resolve, reject);
+              },
+              cancel: () => reject(new Error("Password confirmation cancelled.")),
+            });
           });
-        });
+        } finally {
+          // Restore after the retried command settles, so the caller's finally
+          // block can enable its action. A failed command may render its error
+          // and re-enable the button a frame later than the guarded promise.
+          let frames = 0;
+          const restore = () => {
+            if (!previous?.isConnected) return;
+            if (isOpen.current || previous.matches(":disabled")) {
+              if (++frames < 120) requestAnimationFrame(restore);
+              return;
+            }
+            previous.focus();
+          };
+          requestAnimationFrame(restore);
+        }
       }
       throw e;
     }
   }
 
+  function cancel() {
+    if (!pending || busy) return;
+    pending.cancel();
+    setPending(null);
+    setPassword("");
+    setError("");
+  }
+
   async function confirm() {
-    if (!pending) return;
+    if (!pending || busy || !password) return;
     setBusy(true);
     setError("");
     try {
@@ -115,38 +165,90 @@ export function useStepUp() {
   }
 
   const dialog = pending ? (
-    <div className="card section-card" data-testid="org-stepup">
-      <h3 className="h3">Confirm it's you</h3>
-      <p className="lead">
-        This change needs your password again — it has been more than a moment since you last
-        confirmed it.
-      </p>
-      <Feedback error={error} ok="" />
-      <div className="form-grid">
-        <input
-          className="input"
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          data-testid="org-stepup-password"
-        />
-        <button
-          className="btn btn-cta"
-          onClick={confirm}
-          disabled={busy || !password}
-          data-testid="org-stepup-confirm"
-        >
-          Confirm
-        </button>
-        <button
-          className="btn btn-sm"
-          onClick={() => setPending(null)}
-          data-testid="org-stepup-cancel"
-        >
-          <X size={14} /> Cancel
-        </button>
-      </div>
+    <div className="modal-backdrop">
+      <form
+        className="modal"
+        ref={panel}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        data-testid="org-stepup"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void confirm();
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            event.preventDefault();
+            event.stopPropagation();
+            cancel();
+          } else if (event.key === "Tab") {
+            const controls = panel.current?.querySelectorAll<HTMLElement>(
+              "input:not([disabled]), button:not([disabled])",
+            );
+            const first = controls?.[0];
+            const last = controls?.[controls.length - 1];
+            if (!first) {
+              event.preventDefault();
+              panel.current?.focus();
+            } else if (event.shiftKey && document.activeElement === first) {
+              event.preventDefault();
+              last?.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+              event.preventDefault();
+              first?.focus();
+            }
+          }
+        }}
+      >
+        <h3 className="h3" id={titleId}>
+          Confirm it's you
+        </h3>
+        <p className="lead">
+          This change needs your password again — it has been more than a moment since you last
+          confirmed it.
+        </p>
+        {error && (
+          <p className="warn-note" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="form-grid">
+          <label className="field" htmlFor={passwordId}>
+            Password
+            <input
+              id={passwordId}
+              ref={input}
+              className="input"
+              type="password"
+              autoComplete="current-password"
+              required
+              disabled={busy}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              data-testid="org-stepup-password"
+            />
+          </label>
+          <button
+            className="btn btn-cta"
+            type="submit"
+            disabled={busy || !password}
+            data-testid="org-stepup-confirm"
+          >
+            Confirm
+          </button>
+          <button
+            className="btn btn-sm"
+            type="button"
+            disabled={busy}
+            onClick={cancel}
+            data-testid="org-stepup-cancel"
+          >
+            <X size={14} /> Cancel
+          </button>
+        </div>
+      </form>
     </div>
   ) : null;
 

@@ -30,7 +30,7 @@
 // reported here (E254) and goes to quarantine at once. Either way a different
 // person decides the report in the common damage review, which this screen
 // links to rather than restating.
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   AlertTriangle,
@@ -83,6 +83,7 @@ import { NO_DUE_DATE } from "../lib/goodsExceptions";
 import { useAuth } from "../auth/AuthContext";
 import { formatDateTime, formatPaiseString } from "../lib/format";
 import { rupeesToPaiseString } from "../lib/goodsPt";
+import { receiptShortages } from "../lib/goodsReceiptShortage";
 import { ThreeWayPanel, threeWayOn } from "./ThreeWayMatch";
 import "./GoodsReceiving.css";
 
@@ -838,7 +839,7 @@ function DamageReportsView({ grn }: { grn: ResourceDTO<GrnCoverage> }) {
       <h4 className="gr-h4">
         <ShieldAlert size={15} /> Damage reports
       </h4>
-      <div className="table-wrap">
+      <div className="table-wrap" role="region" aria-label="Receipt damage reports" tabIndex={0}>
         <table className="data">
           <thead>
             <tr>
@@ -889,6 +890,127 @@ function DamageReportsView({ grn }: { grn: ResourceDTO<GrnCoverage> }) {
   );
 }
 
+function ShortageForm({ grn, onDone }: { grn: ResourceDTO<GrnCoverage>; onDone: () => void }) {
+  const shortages = receiptShortages(grn.data);
+  const [lineKey, setLineKey] = useState("");
+  const [qty, setQty] = useState("1");
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [ok, setOk] = useState("");
+  const selected = shortages.find((row) => row.claim.line_key === lineKey) ?? shortages[0];
+
+  async function submit() {
+    setError("");
+    setOk("");
+    const quantity = Number(qty);
+    if (
+      !selected ||
+      !Number.isSafeInteger(quantity) ||
+      quantity < 1 ||
+      quantity > selected.remaining ||
+      !reason.trim()
+    ) {
+      setError("Enter a whole quantity within the remaining shortage and a decision reason.");
+      return;
+    }
+    setBusy(true);
+    try {
+      const body: Omit<DispositionRequest, keyof ReturnType<typeof goodsMeta>> = {
+        kind: "accept_shortage",
+        source_document_id: grn.id,
+        source_line_key: selected.claim.line_key,
+        qty: quantity,
+        reason_code: reason.trim(),
+        reviewed_grn_hash: grn.content_hash,
+      };
+      const { data } = await api.post<ResourceDTO<unknown>>(
+        `/goods-v1/inbound/grns/${grn.id}/dispositions`,
+        {
+          ...body,
+          ...goodsMeta(grn.revision),
+        },
+      );
+      setOk(
+        data.state.startsWith("approval")
+          ? "Shortage sent for independent review. The invoice and physical count stay unchanged."
+          : "Shortage decision recorded. The invoice and physical count stay unchanged.",
+      );
+      onDone();
+    } catch (e) {
+      setError(apiErrorMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="gr-panel" data-testid="gg-shortage">
+      <h4 className="gr-h4">Decide the invoice shortage</h4>
+      <Feedback error={error} ok={ok} />
+      {selected ? (
+        <>
+          <p className="gr-hint">
+            This records why fewer pieces arrived. It creates no goods, cost or value. Any required
+            checker decides in the review below.
+          </p>
+          <Field label="Invoice claim" id="gg-shortage-line">
+            <select
+              id="gg-shortage-line"
+              data-testid="gg-shortage-line"
+              value={selected.claim.line_key}
+              onChange={(e) => setLineKey(e.target.value)}
+            >
+              {shortages.map((row) => (
+                <option key={row.claim.line_key} value={row.claim.line_key}>
+                  {row.claim.description || row.claim.style_code || "Invoice line"} —{" "}
+                  {row.remaining} short
+                </option>
+              ))}
+            </select>
+          </Field>
+          <p data-testid="gg-shortage-comparison">
+            Invoice claimed {selected.comparison.claimed_qty}; physically counted{" "}
+            {selected.comparison.counted_qty}; {selected.remaining} still needs a shortage decision.
+          </p>
+          <Field label="Shortage quantity" id="gg-shortage-qty">
+            <input
+              id="gg-shortage-qty"
+              data-testid="gg-shortage-qty"
+              type="number"
+              min={1}
+              max={selected.remaining}
+              step={1}
+              value={qty}
+              onChange={(e) => setQty(e.target.value)}
+            />
+          </Field>
+          <Field label="Shortage decision reason" id="gg-shortage-reason">
+            <input
+              id="gg-shortage-reason"
+              data-testid="gg-shortage-reason"
+              maxLength={60}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </Field>
+          <button
+            type="button"
+            className="btn btn-cta"
+            data-testid="gg-shortage-submit"
+            disabled={busy}
+            onClick={submit}
+          >
+            {busy ? "Saving…" : "Record shortage decision"}
+          </button>
+        </>
+      ) : (
+        <p className="muted">No invoice shortage is waiting for a new decision.</p>
+      )}
+    </section>
+  );
+}
+
 function ApprovalsPanel({ grn, onDone }: { grn: ResourceDTO<GrnCoverage>; onDone: () => void }) {
   const { session } = useAuth();
   const me = session?.user.human_id ?? "";
@@ -920,6 +1042,16 @@ function ApprovalsPanel({ grn, onDone }: { grn: ResourceDTO<GrnCoverage>; onDone
       ),
     [],
   );
+  // A request made in a sibling form reloads the receipt, not this list. Read the
+  // list again whenever the receipt itself is read again, so a decision just
+  // requested is shown (and its own-request notice with it) without a page reload.
+  const seenReceipt = useRef(grn);
+  const { reload: reloadApprovals } = approvals;
+  useEffect(() => {
+    if (seenReceipt.current === grn) return;
+    seenReceipt.current = grn;
+    reloadApprovals();
+  }, [grn, reloadApprovals]);
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
   const [busy, setBusy] = useState(false);
@@ -974,7 +1106,12 @@ function ApprovalsPanel({ grn, onDone }: { grn: ResourceDTO<GrnCoverage>; onDone
       <Feedback error={error} ok={ok} />
       {stepUp.dialog}
       {state ?? (
-        <div className="table-wrap">
+        <div
+          className="table-wrap"
+          role="region"
+          aria-label="Receipt pending decisions"
+          tabIndex={0}
+        >
           <table className="data" data-testid="gg-approvals-table">
             <thead>
               <tr>
@@ -1161,7 +1298,12 @@ export function GrnPanel({
           against. That is not a mismatch — it is an unknown.
         </p>
       ) : (
-        <div className="table-wrap">
+        <div
+          className="table-wrap"
+          role="region"
+          aria-label="Receipt invoice comparison"
+          tabIndex={0}
+        >
           <table className="data" data-testid="gg-comparison">
             <thead>
               <tr>
@@ -1194,7 +1336,7 @@ export function GrnPanel({
       <h4 className="gr-h4">
         <Scale size={15} /> What is counted, covered and held
       </h4>
-      <div className="table-wrap">
+      <div className="table-wrap" role="region" aria-label="Receipt counted coverage" tabIndex={0}>
         <table className="data" data-testid="gg-lines">
           <caption className="sr-only">
             Each counted line, with how much a live PT covers, how much is held and how much has
@@ -1393,7 +1535,7 @@ export function HeldGoodsView({ grn }: { grn: ResourceDTO<GrnCoverage> }) {
           Every counted piece on this receipt is either covered by a live PT or has been decided.
         </p>
       ) : (
-        <div className="table-wrap">
+        <div className="table-wrap" role="region" aria-label="Receipt held pieces" tabIndex={0}>
           <table className="data" data-testid="gg-held">
             <thead>
               <tr>
@@ -1499,6 +1641,7 @@ export function DispositionPanel({ grnId }: { grnId: string }) {
   return (
     <div data-testid="gg-discrepancies">
       <HeldGoodsView grn={doc.doc} />
+      {canDecide && <ShortageForm grn={doc.doc} onDone={doc.reload} />}
       {canReport && <ReportDamageForm grn={doc.doc} onDone={doc.reload} />}
       {kinds.length > 0 ? (
         <DispositionForm grn={doc.doc} onDone={doc.reload} kinds={kinds} />

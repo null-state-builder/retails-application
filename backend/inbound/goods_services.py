@@ -2340,6 +2340,15 @@ def grn_comparison(grn: GoodsGrn) -> list[dict[str, Any]]:
     if claim is None:
         return []
     comparisons, _matched = compare_claim(list(claim.lines), current_grn_lines(grn.document_id))
+    remaining, _reasons = undecided_discrepancies(grn, claim_lines=list(claim.lines))
+    for comparison in comparisons:
+        # The decision writer consumes accepted shortages by this claim key.
+        # Preserve the original invoice/count difference beside the remaining
+        # quantity; pending requests have not consumed any shortage yet.
+        comparison["remaining_shortage_qty"] = min(
+            max(-comparison["difference"], 0),
+            remaining.get(comparison["claim_line_key"], 0),
+        )
     return comparisons
 
 

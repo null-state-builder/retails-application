@@ -1,6 +1,7 @@
 import { expect, test, type Page, type Response } from "@playwright/test";
 
 import { loginProof, pairProof } from "./firstStoreProof";
+import type { DashboardPayload } from "../src/pages/storeDashboardModel";
 
 // These journeys use the owned proof sibling's existing FIRST store. They
 // perform reads and draft-only interactions; no counts, stock, bills or
@@ -67,6 +68,105 @@ async function expectFrame(page: Page, width: number) {
 }
 
 for (const width of WIDTHS) {
+  test(`manager Today reads populated work and supports keyboard navigation at ${width}px`, async ({
+    page,
+  }) => {
+    test.setTimeout(90_000);
+    await page.setViewportSize({ width, height: 1000 });
+    await loginProof(page, "manager");
+    const errors: string[] = [];
+    const writes: string[] = [];
+    page.on("pageerror", (error) => errors.push(error.message));
+    page.on("request", (request) => {
+      const path = new URL(request.url()).pathname;
+      if (
+        ["POST", "PUT", "PATCH", "DELETE"].includes(request.method()) &&
+        path.startsWith("/api/") &&
+        !path.startsWith("/api/auth/")
+      ) {
+        writes.push(`${request.method()} ${path}`);
+      }
+    });
+
+    // Hold a real read to exercise loading; no payload or business result is simulated.
+    let release!: () => void;
+    const paused = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    await page.route("**/api/store/dashboard**", async (route) => {
+      await paused;
+      await route.continue();
+    });
+    const response = apiResponse(page, "/store/dashboard");
+    await page.goto("/");
+    const main = page.getByRole("main");
+    try {
+      await expect(main).toBeVisible();
+      await expect(page.getByRole("banner")).toBeVisible();
+      await expect(page.getByRole("navigation")).toHaveCount(1);
+      await expect(main.getByTestId("greeting")).toBeVisible();
+      await expect(main.getByTestId("dashboard-loading")).toBeVisible();
+      await expect(main.getByTestId("today-card")).toHaveCount(0);
+    } finally {
+      release();
+    }
+    const loaded = await response;
+    expect(loaded.status(), "Today must read the actual authorised store dashboard").toBe(200);
+    const data = (await loaded.json()) as DashboardPayload;
+    await page.unroute("**/api/store/dashboard**");
+    expect(data.store).toBe("FIRST");
+    expect(data.sales_live).toBe(true);
+    expect(data.today.bills, "the owned proof already has a bill today").toBeGreaterThan(0);
+    expect(data.today.pieces).toBeGreaterThan(0);
+    await expect(main.getByTestId("dashboard-loading")).toHaveCount(0);
+    await expect(main.getByTestId("dashboard-error")).toHaveCount(0);
+    await expect(main.getByRole("heading", { name: "The day so far", exact: true })).toBeVisible();
+    await expect(main.getByTestId("today-bills").locator(".net-num")).toHaveText(
+      String(data.today.bills),
+    );
+    await expect(main.getByTestId("today-pieces").locator(".net-num")).toHaveText(
+      String(data.today.pieces),
+    );
+    await expect(main.getByTestId("today-collections")).toContainText("Cash");
+    await expect(main.getByTestId("today-not-live")).toHaveCount(0);
+    await expect(main.getByTestId("action-queue")).toBeVisible();
+    await expect(main.getByTestId("live-card")).toBeVisible();
+    await expect(main.getByTestId("sparkline").locator(".spark-col")).toHaveCount(7);
+    const geometry = await main.evaluate((element) => ({
+      width: element.clientWidth,
+      scroll: element.scrollWidth,
+      pageWidth: document.documentElement.clientWidth,
+      pageScroll: document.documentElement.scrollWidth,
+    }));
+    expect(geometry.scroll, "dashboard content must fit its scroll container").toBeLessThanOrEqual(
+      geometry.width + 1,
+    );
+    expect(geometry.pageScroll).toBeLessThanOrEqual(geometry.pageWidth + 1);
+
+    // Read-only quick actions are in their actual tab order; Enter opens stock.
+    await main.getByTestId("quick-new-bill").focus();
+    for (const id of ["quick-receive", "quick-transfer", "quick-find-stock"]) {
+      await page.keyboard.press("Tab");
+      await expect(main.getByTestId(id)).toBeFocused();
+    }
+    await page.keyboard.press("Enter");
+    await expect(page).toHaveURL(/view=availability/);
+    await expect(page.getByTestId("stock-workspace-search")).toBeVisible();
+    await expect(page.getByTestId("availability-hint")).toBeVisible();
+    const home = page.getByRole("link", { name: "KDPS Operating System - home", exact: true });
+    await home.focus();
+    await home.press("Enter");
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByTestId("today-card")).toBeVisible();
+    expect(writes, "Today and its stock navigation must create no business commands").toEqual([]);
+    expect(errors).toEqual([]);
+    test.info().annotations.push({
+      type: "coverage",
+      description:
+        "Real populated Today read, delayed-read loading and keyboard navigation only; not the full state matrix.",
+    });
+  });
+
   test(`real manager operations remain coherent at ${width}px`, async ({ page }) => {
     test.setTimeout(120_000);
     const errors: string[] = [];

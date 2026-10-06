@@ -169,3 +169,72 @@ Acceptance requires all agreed active journeys, current permitted/denied and
 replay/concurrency/delayed-delivery evidence, no unexplained quantity or monetary
 difference, and an owned inactive exclusion for every unresolved identity or
 responsibility. Passing this checkpoint or the baseline alone cannot close it.
+
+## 4 October 2026 checkpoint (supersedes the 30 September "current checks" above)
+
+**Full alpha acceptance remains OPEN.** This update adds facts only; the
+30 September record above is preserved. Everything here is synthetic: no real
+KDPS data was read or written, nothing was committed or pushed, and the shop
+was not activated. The case-by-case results, exact fingerprint, database names
+and evidence paths are in the
+[QA execution record](kdps-first-store-qa-test-plan.md#4-october-2026-final-execution-phases-bc--fingerprint-recorded).
+
+### What passed at the final runtime
+
+- Aggregate `python3 scripts/baseline.py verify`: **PASS** (472 backend tests,
+  strict mypy 619 files, 2 import contracts, API contract 511 paths, 81 frontend
+  tests, seed repeatability, launcher, 6 baseline browser tests).
+- Migration proof, SO-03 consolidation (3,070 surfaces), boundaries and 13
+  checker tests: **PASS**.
+- Browser, on a freshly rebuilt synthetic source: bootstrap (SET, SOH-01–04),
+  manager/POS/count suite (24 passed, 1 recovery-only skip, four widths),
+  operating journey, transfer, receiving (SOH-05–07, RCV-01, DMG-01) and damage.
+- Read-only reconciliations: operating (0 unexplained, cash 190,000 paise),
+  transfer (source 1 / destination 1 / transit 0), receiving (0 unexplained in
+  the exercised slice), opening (3 units independently accepted).
+- Case rows: **18 PASS, 14 PASS with residual NOT RUN, 4 BLOCKED, 0 FAIL.**
+
+### Defects found and fixed in this pass
+
+- **Sales Report salesperson names (QA-D10).** Confirmed by reproduction:
+  names and codes were returned, in the report and the Excel export, without the
+  team-field demand the Staff report already used. Now refused unless the viewer
+  sees the team at every reported store; the export rechecks at delivery.
+- **Customer search reprint (QA-D11).** Confirmed: it printed the copy fetched at
+  Open time. It now re-reads the exact bill at print time.
+- Receipt approvals panel stale after a request (QA-D12); goods errors not
+  announced (QA-D13); dropdown closing itself (QA-D14); PT grid unusable at phone
+  width (QA-D15). Test-harness races and wrong assertions are listed as QA-D17.
+- The two new customer-search tests and the new sales-report test each **fail
+  with the fix reverted** and pass with it.
+
+### Still open or blocked (not closed by anything above)
+
+- **CASH-01, CASH-02, DAY-01** are blocked on product decisions (OQ-08, OQ-28);
+  nothing was built in their place. **ACT-01** is blocked on real inputs and an
+  explicit production authorisation.
+- **RBK-01:** assignment and role-policy compensation is proved on synthetic data;
+  **positive reviewed mapping compensation is not implemented or proved.** The
+  existing fences refuse it by design. Not real operational approval.
+- **QA-D16 (open, unexplained):** an intermittent arrival "Save" click that sent
+  no request in 2 of about 11 runs.
+- Real-workbook figures (25,689 rows, HSN gaps, ₹0.38 difference) were not run.
+- Browser coverage still missing: multi-step transfer routes, trading-count
+  shortage closure and races, damaged customer return, POS refusal journeys,
+  full privilege-change review, and delayed notification/job/SSE delivery.
+- No single database exercises the whole stock lifecycle, so one end-to-end
+  REC-01 reconciliation is not run; four slice reconciliations are.
+- The operating-copy script copies the database before it verifies the old
+  record, which left one unrecorded database (`kdps_rehearsal_operating_9387e1248cf9`).
+  It is preserved, not deleted.
+- Quality caveat: QA-D01/D02 are fixed in tests, but two full green runs do not
+  prove the absence of a flake.
+
+### Order for what remains
+
+1. Product owner decisions on CASH-01/02 and DAY-01 (see the
+   [decision register](kdps-first-store-alpha-decision-register-2026-10-03.md)),
+   then implementation and browser proof.
+2. A reviewed design for mapping compensation, then its implementation and proof.
+3. The listed missing browser journeys and an end-to-end reconciliation.
+4. Real inputs, fresh export and cutoff, and explicit authorisation (ACT-01).

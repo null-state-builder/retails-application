@@ -120,8 +120,23 @@ export default function CustomerSearchPage() {
     }
   }
 
+  /** Print from a fresh read of the exact bill, never from the copy on screen.
+   *  What was opened a while ago may have been fetched for a session, a field
+   *  grant or a scope that has since changed; the server answers again, for
+   *  who is signed in now, and a refusal prints nothing and drops the copy. */
   async function reprint(bill: PostedBill) {
-    const outcome = await browserPrintAdapter.print(postedReceiptHtml(bill));
+    setPrintProblem("");
+    let current: PostedBill;
+    try {
+      const { data } = await api.get(`/sell/sales/${bill.doc_number}`);
+      current = data as PostedBill;
+    } catch (e) {
+      setOpen(null);
+      setPrintProblem(apiErrorMessage(e));
+      return;
+    }
+    setOpen(current);
+    const outcome = await browserPrintAdapter.print(postedReceiptHtml(current));
     setPrintProblem(outcome.ok ? "" : outcome.reason);
   }
 

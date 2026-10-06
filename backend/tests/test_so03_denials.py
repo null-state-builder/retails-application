@@ -667,6 +667,48 @@ def test_report_protected_fields_require_every_store_on_one_assignment(
         assert sees_team(user, list(world.sites))
 
 
+def test_sales_report_salesperson_grouping_needs_team_sight_at_every_store(
+    worlds: tuple[TenantWorld, TenantWorld],
+) -> None:
+    """SO-03: names and codes of salespeople leave only with the team demand."""
+    from datetime import date
+
+    from reporting.base import ReportScope, record_export
+    from reporting.sales_report import build
+
+    world, _ = worlds
+    with tenant_context(world.tenant.pk):
+        user, human = _person(world, "sales-grouper")
+        _assign(world, human, "owner", sites=(world.sites[0],), all_brands=True)
+        _assign(world, human, "store_person", sites=(world.sites[1],), all_brands=True)
+
+        def scope(*sites: Any) -> ReportScope:
+            return ReportScope(
+                user=user, options=list(sites), stores=list(sites),
+                date_from=date(2026, 9, 1), date_to=date(2026, 9, 30),
+            )
+
+        # Team sight at the one store: the grouping is offered and answers.
+        owner_body = build(scope(world.sites[0]), "salesperson")
+        assert any(g["key"] == "salesperson" for g in owner_body["groupings"])
+        # One store without it makes the whole aggregate refuse; nothing is built.
+        for sites in ((world.sites[1],), (world.sites[0], world.sites[1])):
+            with pytest.raises(Refusal) as denied:
+                build(scope(*sites), "salesperson")
+            assert denied.value.code == "ACTION_DENIED"
+            assert denied.value.status == 403
+        # Other groupings stay available and do not offer the salesperson tab.
+        plain = build(scope(world.sites[1]), "day")
+        assert all(g["key"] != "salesperson" for g in plain["groupings"])
+        # A workbook rendered while team sight was present is not delivered after loss.
+        with pytest.raises(Refusal) as late:
+            record_export(
+                user, report="sales", scope=scope(world.sites[1]), detail={"rows": 0},
+                contains_team=True,
+            )
+        assert late.value.code == "ACTION_DENIED"
+
+
 def test_synchronous_export_rechecks_protected_fields_before_delivery(
     worlds: tuple[TenantWorld, TenantWorld],
 ) -> None:

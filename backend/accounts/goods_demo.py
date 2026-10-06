@@ -638,7 +638,7 @@ def seed_goods_personas(
     """Seed logins and only unambiguous six-role scope tuples, once."""
     from accounts.models import User
 
-    def assign(human: Any, persona: PersonaSpec) -> None:
+    def assign(run: CommandRun, human: Any, persona: PersonaSpec) -> None:
         # A mixed C-WHO/C-INV role and prepare-only destination privilege have
         # no safe role-for-role mapping. Warehouse at the destination would
         # also confer counting and acceptance there.
@@ -655,7 +655,7 @@ def seed_goods_personas(
             source_key=f"goods:{persona.staff_code}",
             all_sites=site is None,
             site_ids=() if site is None else (site.pk,),
-            all_brands=True,
+            all_brands=True, effective_from=run.now,
         )
 
     created: list[PersonaSpec] = []
@@ -687,7 +687,7 @@ def seed_goods_personas(
                 password=SYNTHETIC_PASSWORD,
                 tenant_staff=staff,
             )
-            assign(human, persona)
+            assign(run, human, persona)
             return CommandResult(resource_type="human", resource_id=str(human.pk), status_code=201)
 
         execute_command(
@@ -751,7 +751,7 @@ def seed_brand_scoped_persona(tenant: Any, brand: Any) -> None:
         seed_role_assignment(
             tenant, human, "brand_manager",
             source_key=f"goods:{BRAND_SCOPED_STAFF_CODE}",
-            all_sites=True, brand_ids=(brand.pk,),
+            all_sites=True, brand_ids=(brand.pk,), effective_from=run.now,
         )
         return CommandResult(resource_type="human", resource_id=str(human.pk), status_code=201)
 

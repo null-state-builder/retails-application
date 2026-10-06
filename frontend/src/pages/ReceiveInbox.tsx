@@ -27,6 +27,7 @@ import {
   STEP_LABEL,
   bookingProgress,
   ownerRoleName,
+  transferReceivingPath,
   type InboxItem,
 } from "../lib/goodsReceiving";
 import { AcceptPanel } from "./GoodsAccept";
@@ -34,6 +35,8 @@ import { AcceptPanel } from "./GoodsAccept";
 /** A delivery's own address inside the workflow. One URL per record, so a row
  *  can be sent to somebody and opened where they left it. */
 export function deliveryPath(item: InboxItem): string {
+  const transferPath = transferReceivingPath(item);
+  if (transferPath) return transferPath;
   const kind =
     item.kind === "transfer_dispatch"
       ? "transfer"

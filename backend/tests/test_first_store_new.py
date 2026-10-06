@@ -138,7 +138,8 @@ def _approve(proof: Any, action: str) -> Any:
     }), pk=proof.site.pk)
 
 
-def _configured_empty(data: dict[str, Any], *, kind: str = "new", approve_sell: bool = True) -> Any:
+def _configured_empty(data: dict[str, Any], *, kind: str = "new", approve_sell: bool = True,
+                      approve_goods: bool = True) -> Any:
     proof = _register(data, kind)
     world, site = proof.world, proof.site
     with tenant_context(world.tenant.pk):
@@ -201,7 +202,8 @@ def _configured_empty(data: dict[str, Any], *, kind: str = "new", approve_sell: 
         renew_authority(site)
         proof.numbering = till_numbering(site, proof.till, {})
         assert all(row["passed"] for row in compute_readiness_checks(site, timezone.now()))
-        for action in ("approve_opening_setup", "approve_goods"):
+        readiness_actions = ("approve_opening_setup", "approve_goods") if approve_goods else ("approve_opening_setup",)
+        for action in readiness_actions:
             response = _approve(proof, action)
             assert response.status_code == 200, response.data
         if approve_sell:
@@ -266,15 +268,17 @@ def test_jointly_declared_new_store_can_start_empty_but_cannot_issue_nonexistent
 def test_existing_declaration_requires_reconciliation_even_on_an_empty_ledger(
     proposal: dict[str, Any],
 ) -> None:
-    proof = _configured_empty(proposal, kind="existing", approve_sell=False)
+    proof = _configured_empty(proposal, kind="existing", approve_sell=False, approve_goods=False)
     with tenant_context(proof.world.tenant.pk):
         checks = selling_checks(proof.site, timezone.now())
-        assert {row["key"] for row in checks if not row["passed"]} == {"opening_reconciled"}
+        assert {row["key"] for row in checks if not row["passed"]} == {"goods_active", "opening_reconciled"}
         before = SiteCapabilityEvent.objects.count()
-        response = _approve(proof, "approve_sell")
-        assert response.status_code == 409 and response.data["code"] == "READINESS_UNOVERRIDABLE"
+        for action in ("approve_goods", "approve_sell"):
+            response = _approve(proof, action)
+            assert response.status_code == 409 and response.data["code"] == "READINESS_UNOVERRIDABLE"
         guard = SiteGuard.objects.get(site=proof.site)
-        assert not guard.sell_ready and SiteCapabilityEvent.objects.count() == before
+        assert not guard.goods_ready and not guard.sell_ready
+        assert guard.lifecycle == SiteGuard.Lifecycle.PLANNED and SiteCapabilityEvent.objects.count() == before
         _no_business_effects()
 
 

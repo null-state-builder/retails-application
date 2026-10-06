@@ -21,7 +21,7 @@ from django.utils import timezone
 from accounts.actions import ROLE_TEMPLATES, RoleTemplate
 from accounts.role_lists import NON_STAFF_ROLES
 from accounts.role_assignments import INITIAL_FIELD_ACCESS, INITIAL_ROLE_CODES
-from core.commands import CommandResult, CommandRun, CommandSpec, Principal, execute_command
+from core.commands import CommandResult, CommandRun, CommandSpec, Principal, database_now, execute_command
 from core.refusals import Refusal
 from core.tenancy import tenant_context
 
@@ -156,11 +156,14 @@ def seed_role_assignment(
     tenant: Any, human: Any, role_code: str, *, source_key: str,
     all_sites: bool = False, site_ids: Iterable[int] = (),
     all_brands: bool = False, brand_ids: Iterable[int] = (),
+    effective_from: datetime | None = None,
 ) -> Any:
     """Create one deterministic initial assignment; never restore a revoked one.
 
     A prior migration or an administrator's edit wins over the seed. No legacy
     grant is created, and repeated seeding cannot widen a narrowed assignment.
+    Command callers pin the start to their database instant; standalone seeds
+    use the same database clock as assignment evaluation and session expiry.
     """
     from accounts.goods_models import RoleAssignment
 
@@ -186,7 +189,7 @@ def seed_role_assignment(
             "tenant_id": tenant.pk, "human_id": human.pk, "role_id": role.pk,
             "all_sites": all_sites, "site_ids": [] if all_sites else sites,
             "all_brands": all_brands, "brand_ids": [] if all_brands else brands,
-            "effective_from": timezone.now(),
+            "effective_from": effective_from or database_now(),
         },
     )
     return assignment
@@ -508,11 +511,11 @@ def bootstrap_deployment(
         )
         seed_role_assignment(
             tenant, human, "it_admin", source_key="bootstrap-admin",
-            all_sites=True, all_brands=True,
+            all_sites=True, all_brands=True, effective_from=run.now,
         )
         seed_role_assignment(
             tenant, human, "owner", source_key="bootstrap-owner",
-            all_sites=True, all_brands=True,
+            all_sites=True, all_brands=True, effective_from=run.now,
         )
         run.audit_after = [{"field": "tenant", "redacted": False, "value": code}]
         return CommandResult(resource_type="tenant", resource_id=str(tenant.pk), status_code=201)

@@ -27700,6 +27700,8 @@ export interface operations {
                                 claimed_qty?: number;
                                 counted_qty?: number;
                                 difference?: number;
+                                /** @description Shortage still undecided by the canonical receipt writer; pending requests have not consumed it. */
+                                remaining_shortage_qty?: number;
                                 line_keys?: string[];
                             }[];
                             /** @description The issued count and every counter-GRN against it, oldest first. */

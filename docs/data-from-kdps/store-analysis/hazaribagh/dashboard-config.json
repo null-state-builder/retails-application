@@ -1,0 +1,8 @@
+{
+  "store_name": "Hazaribagh Store",
+  "store_code": "HZB",
+  "region": "Jharkhand",
+  "costs": { "variable_pct_of_sales": 7, "rent": 220000, "electricity": 100000, "misc": 40000 },
+  "discount_ceiling_pct": null,
+  "soh_as_on": "2026-07-24"
+}

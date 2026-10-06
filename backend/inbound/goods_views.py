@@ -525,6 +525,10 @@ GRN_COVERAGE_DATA: dict[str, Any] = {
                     "claimed_qty": {"type": "integer"},
                     "counted_qty": {"type": "integer"},
                     "difference": {"type": "integer"},
+                    "remaining_shortage_qty": {
+                        "type": "integer", "minimum": 0,
+                        "description": "Shortage still undecided by the canonical receipt writer; pending requests have not consumed it.",
+                    },
                     "line_keys": {"type": "array", "items": {"type": "string"}},
                 },
             },

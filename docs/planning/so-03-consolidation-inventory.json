@@ -2588,7 +2588,19 @@
       "kind": "api",
       "key_regex": "^api:GET:/api/goods\\-v1/stockledger/pending\\-acceptance$",
       "primary_id": "C06",
-      "lifecycle": "canonical"
+      "related_ids": [
+        "A00",
+        "C05"
+      ],
+      "lifecycle": "canonical",
+      "authorization": "Current stock.accept for each candidate tenant, site and source brand; the request-bound AccessContext filters the read after the site reach prefilter. No PT cost, line or exception detail is projected.",
+      "data_ownership": "Read-only official receipt/opening/found PT heads and lines, accepted/damaged portions and OPEN acceptance sessions. Zero remaining stays visible only until its original session completes; no quantity, journal or origin is written.",
+      "acceptance_evidence": "backend/tests/test_first_store_acceptance_resume.py and current first-store bootstrap browser evidence; docs/planning/kdps-first-store-qa-test-plan.md.",
+      "access_contract": {
+        "trace_status": "pending",
+        "required_action": "stock.accept on current tenant/site/source brand, rechecked at read and at resume/complete.",
+        "reviewed_chain": "GET pending-acceptance -> PendingAcceptanceView -> request-bound AccessContext.site_reach/can and source_brands -> goods_acceptance.pending_acceptance -> DocumentHead/OfficialLine/AcceptanceEvent/AcceptanceSession read; E139 resume and complete still run SiteGuard and document locks."
+      }
     },
     {
       "id": "S0297",
@@ -4643,7 +4655,21 @@
       "kind": "api",
       "key_regex": "^api:POST:/api/goods\\-v1/masters/stores/<int:pk>/readiness$",
       "primary_id": "C01",
-      "lifecycle": "canonical"
+      "lifecycle": "canonical",
+      "related_ids": [
+        "A00",
+        "C05",
+        "C06",
+        "C10"
+      ],
+      "authorization": "Current org.site.lifecycle.approve over the exact site, fresh revision and password-confirmed session. For every online_alpha approve_goods, non-overridable opening_ready requires the declared empty new-store start or independently reviewed and physically accepted opening source.",
+      "data_ownership": "One SiteGuard and attributable SiteCapabilityEvent; opening source/manifest/PT/stock history remain with C05/C06 retained writers. A denial changes neither guard nor capability history.",
+      "acceptance_evidence": "backend/tests targeted first-store readiness denial/accepted opening cases and current synthetic browser bootstrap; docs/planning/kdps-first-store-qa-test-plan.md records exact runtime.",
+      "access_contract": {
+        "trace_status": "pending",
+        "required_action": "Current org.site.lifecycle.approve over the exact site, fresh revision and password-confirmed session. For every online_alpha approve_goods, non-overridable opening_ready requires the declared empty new-store start or independently reviewed and physically accepted opening source.",
+        "reviewed_chain": "GoodsSiteReadinessView.post -> request AccessContext org.site.lifecycle.approve/step-up -> CommandRun SiteGuard lock and revision -> compute_readiness_checks -> apply_readiness_approval -> first_store_readiness.opening_ready -> InstallationRegistration/SohImport or soh_services.opening_reconciliation official PT/accepted portions -> enforce_checks_for_approval -> SiteCapabilityEvent and SiteGuard commit. Refusal leaves guard/event unchanged; later selling_checks uses the same opening gate."
+      }
     },
     {
       "id": "S0578",
@@ -15504,7 +15530,19 @@
       "kind": "module",
       "key_regex": "^module:approvals\\.goods_policy$",
       "primary_id": "C15",
-      "lifecycle": "canonical"
+      "lifecycle": "canonical",
+      "related_ids": [
+        "A00",
+        "C05"
+      ],
+      "authorization": "Current AccessContext role assignment, action, fields, complete site/brand cells, distinct human and session at inbox projection and final decision; only persisted historical C-OWN selector is interpreted as current owner, with no legacy grant lookup.",
+      "data_ownership": "Existing pending approval request, pinned hash, roles and audit remain unchanged; new opening source and manifest requests pin canonical owner. Deciding writes only the retained request and its subject through the existing command kernel.",
+      "acceptance_evidence": "backend/tests/test_first_store_opening_authority.py three exact pending/new/denial regressions; current synthetic browser bootstrap and current QA record.",
+      "access_contract": {
+        "trace_status": "pending",
+        "required_action": "Current owner assignment with opening.manifest.approve on the exact opening source or manifest site, distinct maker and password-confirmed command session.",
+        "reviewed_chain": "GoodsApprovalInboxView -> eligible_checker -> canonical_approval_roles(C-OWN only) -> current AccessContext.covers_all_actions; GoodsApprovalDecideView -> command kernel -> _check_approver current grants/role/action/scope -> existing subject handler. Historical request labels and hashes remain pinned. Other historical role selectors stay unresolved."
+      }
     },
     {
       "id": "S2092",
@@ -16416,7 +16454,21 @@
       "kind": "module",
       "key_regex": "^module:masters\\.goods_services$",
       "primary_id": "C01",
-      "lifecycle": "canonical"
+      "lifecycle": "canonical",
+      "related_ids": [
+        "A00",
+        "C05",
+        "C06",
+        "C10"
+      ],
+      "authorization": "Current org.site.lifecycle.approve over the exact site, fresh revision and password-confirmed session. For every online_alpha approve_goods, non-overridable opening_ready requires the declared empty new-store start or independently reviewed and physically accepted opening source.",
+      "data_ownership": "One SiteGuard and attributable SiteCapabilityEvent; opening source/manifest/PT/stock history remain with C05/C06 retained writers. A denial changes neither guard nor capability history.",
+      "acceptance_evidence": "backend/tests targeted first-store readiness denial/accepted opening cases and current synthetic browser bootstrap; docs/planning/kdps-first-store-qa-test-plan.md records exact runtime.",
+      "access_contract": {
+        "trace_status": "pending",
+        "required_action": "Current org.site.lifecycle.approve over the exact site, fresh revision and password-confirmed session. For every online_alpha approve_goods, non-overridable opening_ready requires the declared empty new-store start or independently reviewed and physically accepted opening source.",
+        "reviewed_chain": "GoodsSiteReadinessView.post -> request AccessContext org.site.lifecycle.approve/step-up -> CommandRun SiteGuard lock and revision -> compute_readiness_checks -> apply_readiness_approval -> first_store_readiness.opening_ready -> InstallationRegistration/SohImport or soh_services.opening_reconciliation official PT/accepted portions -> enforce_checks_for_approval -> SiteCapabilityEvent and SiteGuard commit. Refusal leaves guard/event unchanged; later selling_checks uses the same opening gate."
+      }
     },
     {
       "id": "S2222",
@@ -17069,7 +17121,20 @@
       "kind": "module",
       "key_regex": "^module:ptmapper\\.goods_manifest_services$",
       "primary_id": "C05",
-      "lifecycle": "canonical"
+      "lifecycle": "canonical",
+      "related_ids": [
+        "A00",
+        "C01",
+        "C06"
+      ],
+      "authorization": "Current owner action/scope and different human for opening manifest review; exact manifest revision/hash and same owned source/site, with independent normal approval.",
+      "data_ownership": "One existing OpeningManifestVersion and immutable source/claim links; approval changes reviewed version via retained handler, physical acceptance and stock journal remain separate.",
+      "acceptance_evidence": "backend/tests/test_first_store_opening_authority.py; current synthetic SOH bootstrap browser and QA record.",
+      "access_contract": {
+        "trace_status": "pending",
+        "required_action": "opening.manifest.approve on exact source site, current canonical owner grant, independent human, request-bound current session and preserved hash.",
+        "reviewed_chain": "goods_manifest_services._request_manifest_approval pins canonical owner -> ApprovalRequest -> GoodsApprovalInboxView/eligible_checker -> AccessContext -> GoodsApprovalDecideView/_check_approver -> manifest handler approved_version; later PT and physical acceptance use their own governed writers."
+      }
     },
     {
       "id": "S2311",
@@ -18230,7 +18295,19 @@
       "kind": "module",
       "key_regex": "^module:stockledger\\.goods_acceptance$",
       "primary_id": "C06",
-      "lifecycle": "canonical"
+      "related_ids": [
+        "A00",
+        "C05"
+      ],
+      "lifecycle": "canonical",
+      "authorization": "E139 physical acceptance commands use current stock.accept scope and SiteGuard; pending work is filtered again by PendingAcceptanceView per site and source brand.",
+      "data_ownership": "Canonical AcceptanceSession/Event and P09/P10 stock effect writer. The pending read includes an OPEN zero-remaining session for Finish; completion records session evidence without another stock or value posting.",
+      "acceptance_evidence": "backend/tests/test_first_store_acceptance_resume.py; current browser bootstrap and reconciliation reports.",
+      "access_contract": {
+        "trace_status": "pending",
+        "required_action": "Current stock.accept tenant/site/brand for every command and projected work row.",
+        "reviewed_chain": "goods_acceptance.pending_acceptance reads official heads/lines, AcceptanceEvent and OPEN AcceptanceSession in bulk; GoodsAccept/ReceiveDelivery resumes E139 against the same session ID; scan revision/key fences and P09/P10 writer remain unchanged; complete finalises the session only."
+      }
     },
     {
       "id": "S2471",
@@ -19856,7 +19933,19 @@
       "kind": "screen",
       "key_regex": "^screen:/goods/receive$",
       "primary_id": "C05",
-      "lifecycle": "canonical"
+      "related_ids": [
+        "A00",
+        "C06"
+      ],
+      "lifecycle": "canonical",
+      "authorization": "Current stock.accept on tenant/site/source brand, enforced by the API for each work row and again by the E139 session commands.",
+      "data_ownership": "Presentation only: shows positive-remaining PTs and unfinished zero-remaining sessions; Finish uses the existing acceptance session and does not rescan goods.",
+      "acceptance_evidence": "backend/tests/test_first_store_acceptance_resume.py; four-width first-store bootstrap browser result.",
+      "access_contract": {
+        "trace_status": "pending",
+        "required_action": "stock.accept on current tenant/site/source brand; no UI-only authority decision.",
+        "reviewed_chain": "GoodsAccept -> GET pending-acceptance -> scoped PendingAcceptanceView -> read-only goods_acceptance.pending_acceptance -> E139 resume/complete under current AccessContext and SiteGuard."
+      }
     },
     {
       "id": "S2700",
@@ -21015,13 +21104,13 @@
     {
       "id": "F0019",
       "kind": "print_output",
-      "key_regex": "^print_output:frontend/src/pages/sell/CustomerSearch\\.tsx:ecd8f3f87839$",
+      "key_regex": "^print_output:frontend/src/pages/sell/CustomerSearch\\.tsx:c33606532618$",
       "primary_id": "C10",
       "lifecycle": "unresolved",
       "related_ids": [
         "C15"
       ],
-      "gate": "SO-09 must trace this print payload to its authorised source and prove protected-field projection before browser printing."
+      "gate": "SO-09 must trace this print payload to its authorised source and prove protected-field projection before browser printing. Interim safety (4 October 2026): the payload is now a fresh exact-bill read at print time, not the cached Open copy; the SO-09 trace and projection proof remain required."
     },
     {
       "id": "F0020",
@@ -22313,7 +22402,7 @@
     {
       "id": "FIRST-STORE-026",
       "kind": "api_consumer",
-      "key_regex": "^api_consumer:frontend/src/pages/SohImport\\.tsx:457d3920f288$",
+      "key_regex": "^api_consumer:frontend/src/pages/SohImport\\.tsx:07779a8de3ff$",
       "primary_id": "C05",
       "related_ids": [
         "A00",
@@ -22327,7 +22416,7 @@
       "access_contract": {
         "trace_status": "pending",
         "required_action": "Trusted site and reviewed stable brand/SKU identities; action plus cost_own_pt/financial fields in one scoped assignment; immutable source/physical/review pins; canonical manifest/PT and goods acceptance writers.",
-        "reviewed_chain": "New first-store surface: frontend/src/pages/SohImport.tsx; full runtime acceptance is still in progress. Pending opening/repeat boundary: ptmapper.soh_services.apply_batch locks tenant/site SiteGuard before the source document; requires_inventory_reconciliation preserves the first approved parent and its resumable deterministic children, while another source or retained custody/origin/physical-position history requires a C08/SO-08 delta review. C06 is the retained stock journal dependency, not the repeat-snapshot workflow owner. No trading count, second opening or workflow retirement is accepted from this classification."
+        "reviewed_chain": "New first-store surface: frontend/src/pages/SohImport.tsx; full runtime acceptance is still in progress. Pending opening/repeat boundary: ptmapper.soh_services.apply_batch locks tenant/site SiteGuard before the source document; requires_inventory_reconciliation preserves the first approved parent and its resumable deterministic children, while another source or retained custody/origin/physical-position history requires a C08/SO-08 delta review. C06 is the retained stock journal dependency, not the repeat-snapshot workflow owner. No trading count, second opening or workflow retirement is accepted from this classification. Reviewed 4 October 2026: the mapping-group read now asks the same rows endpoint for stocked=0 (unstocked catalogue/mapping rows) instead of stocked=1; handler, scoped authority, field projection and protected-source checks are unchanged and no new surface or writer is introduced."
       },
       "migration_requirements": " Pending opening/repeat boundary: ptmapper.soh_services.apply_batch locks tenant/site SiteGuard before the source document; requires_inventory_reconciliation preserves the first approved parent and its resumable deterministic children, while another source or retained custody/origin/physical-position history requires a C08/SO-08 delta review. C06 is the retained stock journal dependency, not the repeat-snapshot workflow owner. No trading count, second opening or workflow retirement is accepted from this classification."
     },
@@ -22939,15 +23028,16 @@
       "related_ids": [
         "A00",
         "C05",
+        "C06",
         "C10"
       ],
       "lifecycle": "canonical",
-      "authorization": "Existing unified org.site.manage and versioned goods readiness; explicit online-alpha mode, current non-overridable gates and registered-till writer; tokens returned once, never retained in audit/history.",
-      "acceptance_evidence": "Current revision proof commands and browser evidence must be recorded in docs/planning/kdps-first-store-alpha-evidence.md; inventory coverage is not acceptance.",
+      "authorization": "Current org.site.lifecycle.approve over the exact site, fresh revision and password-confirmed session. For every online_alpha approve_goods, non-overridable opening_ready requires the declared empty new-store start or independently reviewed and physically accepted opening source.",
+      "acceptance_evidence": "backend/tests targeted first-store readiness denial/accepted opening cases and current synthetic browser bootstrap; docs/planning/kdps-first-store-qa-test-plan.md records exact runtime.",
       "access_contract": {
         "trace_status": "pending",
-        "required_action": "Existing unified org.site.manage and versioned goods readiness; explicit online-alpha mode, current non-overridable gates and registered-till writer; tokens returned once, never retained in audit/history.",
-        "reviewed_chain": "New first-store surface: backend/masters/first_store_readiness.py; full runtime acceptance is still in progress."
+        "required_action": "Current org.site.lifecycle.approve over the exact site, fresh revision and password-confirmed session. For every online_alpha approve_goods, non-overridable opening_ready requires the declared empty new-store start or independently reviewed and physically accepted opening source.",
+        "reviewed_chain": "GoodsSiteReadinessView.post -> request AccessContext org.site.lifecycle.approve/step-up -> CommandRun SiteGuard lock and revision -> compute_readiness_checks -> apply_readiness_approval -> first_store_readiness.opening_ready -> InstallationRegistration/SohImport or soh_services.opening_reconciliation official PT/accepted portions -> enforce_checks_for_approval -> SiteCapabilityEvent and SiteGuard commit. Refusal leaves guard/event unchanged; later selling_checks uses the same opening gate."
       }
     },
     {
@@ -23028,7 +23118,7 @@
       "access_contract": {
         "trace_status": "pending",
         "required_action": "Trusted site and reviewed stable brand/SKU identities; action plus cost_own_pt/financial fields in one scoped assignment; immutable source/physical/review pins; canonical manifest/PT and goods acceptance writers.",
-        "reviewed_chain": "New first-store surface: backend/ptmapper/soh_services.py; full runtime acceptance is still in progress. Pending opening/repeat boundary: ptmapper.soh_services.apply_batch locks tenant/site SiteGuard before the source document; requires_inventory_reconciliation preserves the first approved parent and its resumable deterministic children, while another source or retained custody/origin/physical-position history requires a C08/SO-08 delta review. C06 is the retained stock journal dependency, not the repeat-snapshot workflow owner. No trading count, second opening or workflow retirement is accepted from this classification."
+        "reviewed_chain": "New first-store surface: backend/ptmapper/soh_services.py; full runtime acceptance is still in progress. Pending opening/repeat boundary: ptmapper.soh_services.apply_batch locks tenant/site SiteGuard before the source document; requires_inventory_reconciliation preserves the first approved parent and its resumable deterministic children, while another source or retained custody/origin/physical-position history requires a C08/SO-08 delta review. C06 is the retained stock journal dependency, not the repeat-snapshot workflow owner. No trading count, second opening or workflow retirement is accepted from this classification. Current soh_services.submit pins canonical owner; historical C-OWN requests are interpreted only against current Owner grants in approvals.goods_policy and keep original metadata. Current source approval still requires distinct human and pinned source/hash/site."
       },
       "migration_requirements": " Pending opening/repeat boundary: ptmapper.soh_services.apply_batch locks tenant/site SiteGuard before the source document; requires_inventory_reconciliation preserves the first approved parent and its resumable deterministic children, while another source or retained custody/origin/physical-position history requires a C08/SO-08 delta review. C06 is the retained stock journal dependency, not the repeat-snapshot workflow owner. No trading count, second opening or workflow retirement is accepted from this classification."
     },
@@ -23902,10 +23992,248 @@
       "lifecycle": "canonical",
       "data_ownership": "Additive: creates the single global unknown historical season if absent; registration then records it as the new tenant's reviewed season. No existing row changes.",
       "acceptance_evidence": "backend/tests/test_installation_registration.py::test_genesis_adopts_the_unknown_historical_season_and_tax_rules_may_be_switched_on; KDPS SGM opening rehearsal (996 unknown-season rows)."
+    },
+    {
+      "id": "FIRST-STORE-094",
+      "kind": "api_consumer",
+      "key_regex": "^api_consumer:frontend/src/pages/GoodsReceipts\\.tsx:18d291177e7c$",
+      "priority": 20,
+      "primary_id": "C05",
+      "related_ids": [
+        "A00",
+        "C06"
+      ],
+      "lifecycle": "canonical",
+      "authorization": "receipt.disposition.decide on current GRN store/brand and distinct current checker, exact expected revision/reviewed hash; server rechecks policy and scope.",
+      "data_ownership": "Existing invoice claim/count/disposition history stays linked. GET GRN detail projects remaining_shortage_qty from the same undecided_discrepancies calculation used by the decision writer; accept_shortage decides only missing quantity and does not create stock, PT, or duplicate receipt writer.",
+      "acceptance_evidence": "docs/planning/kdps-first-store-qa-test-plan.md current revision-specific synthetic proof results; private .local/goal-alpha-20261003-*.log evidence.",
+      "access_contract": {
+        "trace_status": "pending",
+        "required_action": "receipt.disposition.decide on current GRN store/brand and distinct current checker, exact expected revision/reviewed hash; server rechecks policy and scope.",
+        "reviewed_chain": "GoodsReceipts ShortagePanel -> GET GRN detail -> GoodsGrnDetailView -> grn_comparison -> undecided_discrepancies from canonical invoice/count/decisions; POST /goods-v1/inbound/grns/{id}/dispositions -> GoodsDispositionView -> goods_services.record_disposition -> request-bound AccessContext, receipt policy and the same claim remainder -> immutable decision or approval; applied accept_shortage has zero stock effect."
+      }
+    },
+    {
+      "id": "FIRST-STORE-095",
+      "kind": "operational_file",
+      "key_regex": "^operational_file:scripts/first\\-store\\-receiving\\-proof\\.py$",
+      "priority": 20,
+      "primary_id": "P00",
+      "related_ids": [
+        "A00",
+        "C05",
+        "C06",
+        "C08"
+      ],
+      "lifecycle": "canonical",
+      "authorization": "Exact verified synthetic proof cluster/database/host/port/system ID and generated .example.test actors, current scoped API authority and private mode-0600 identity records; no real-tenant data or direct business writer.",
+      "data_ownership": "Clone only a completed owned ALPHA first-store sibling into a new receiving rehearsal database; preserve source, previous clones, credentials, business history and generated evidence.",
+      "acceptance_evidence": "docs/planning/kdps-first-store-qa-test-plan.md current revision-specific synthetic proof results; private .local/goal-alpha-20261003-*.log evidence.",
+      "access_contract": {
+        "trace_status": "pending",
+        "required_action": "Exact verified synthetic proof cluster/database/host/port/system ID and generated .example.test actors, current scoped API authority and private mode-0600 identity records; no real-tenant data or direct business writer.",
+        "reviewed_chain": "verified first-store source -> exact cluster/registration check -> CREATE DATABASE TEMPLATE new owned sibling -> per-command isolated environment -> canonical receiving/SOH browser and read-only reconciliation."
+      }
+    },
+    {
+      "id": "FIRST-STORE-096",
+      "kind": "operational_file",
+      "key_regex": "^operational_file:scripts/first\\-store\\-receiving\\-fixture\\.py$",
+      "priority": 20,
+      "primary_id": "P00",
+      "related_ids": [
+        "A00",
+        "C01",
+        "C05",
+        "C06",
+        "C08"
+      ],
+      "lifecycle": "canonical",
+      "authorization": "Exact verified synthetic proof cluster/database/host/port/system ID and generated .example.test actors, current scoped API authority and private mode-0600 identity records; no real-tenant data or direct business writer.",
+      "data_ownership": "Fictional supplier identity, policy and document inputs only on the isolated receiving sibling; ordinary governed API decisions preserve GRN, stock and approval IDs.",
+      "acceptance_evidence": "docs/planning/kdps-first-store-qa-test-plan.md current revision-specific synthetic proof results; private .local/goal-alpha-20261003-*.log evidence.",
+      "access_contract": {
+        "trace_status": "pending",
+        "required_action": "Exact verified synthetic proof cluster/database/host/port/system ID and generated .example.test actors, current scoped API authority and private mode-0600 identity records; no real-tenant data or direct business writer.",
+        "reviewed_chain": "owned receiving wrapper -> generated fictional supplier/source/count fixture -> ordinary scoped current APIs and independent approval -> read-only before/after stock, invoice, document and approval checks."
+      }
+    },
+    {
+      "id": "FIRST-STORE-097",
+      "kind": "operational_file",
+      "key_regex": "^operational_file:scripts/first\\-store\\-transfer\\-proof\\.py$",
+      "priority": 20,
+      "primary_id": "P00",
+      "related_ids": [
+        "A00",
+        "C06",
+        "C07",
+        "C10"
+      ],
+      "lifecycle": "canonical",
+      "authorization": "Exact verified synthetic proof cluster/database/host/port/system ID and generated .example.test actors, current scoped API authority and private mode-0600 identity records; no real-tenant data or direct business writer.",
+      "data_ownership": "Clone only a completed owned ALPHA first-store sibling into a new transfer rehearsal database; preserve source, prior clones and business evidence.",
+      "acceptance_evidence": "docs/planning/kdps-first-store-qa-test-plan.md current revision-specific synthetic proof results; private .local/goal-alpha-20261003-*.log evidence.",
+      "access_contract": {
+        "trace_status": "pending",
+        "required_action": "Exact verified synthetic proof cluster/database/host/port/system ID and generated .example.test actors, current scoped API authority and private mode-0600 identity records; no real-tenant data or direct business writer.",
+        "reviewed_chain": "verified first-store source -> exact cluster/registration check -> CREATE DATABASE TEMPLATE new owned sibling -> per-command isolated environment -> canonical transfer browser/reconciliation."
+      }
+    },
+    {
+      "id": "FIRST-STORE-098",
+      "kind": "operational_file",
+      "key_regex": "^operational_file:scripts/first\\-store\\-transfer\\-fixture\\.py$",
+      "priority": 20,
+      "primary_id": "P00",
+      "related_ids": [
+        "A00",
+        "C01",
+        "C06",
+        "C07",
+        "C10"
+      ],
+      "lifecycle": "canonical",
+      "authorization": "Exact verified synthetic proof cluster/database/host/port/system ID and generated .example.test actors, current scoped API authority and private mode-0600 identity records; no real-tenant data or direct business writer.",
+      "data_ownership": "Fictional destination site, staff and versioned route inputs on the isolated transfer sibling; ordinary transfer, dispatch and receipt APIs retain original stock origin and cost.",
+      "acceptance_evidence": "docs/planning/kdps-first-store-qa-test-plan.md current revision-specific synthetic proof results; private .local/goal-alpha-20261003-*.log evidence.",
+      "access_contract": {
+        "trace_status": "pending",
+        "required_action": "Exact verified synthetic proof cluster/database/host/port/system ID and generated .example.test actors, current scoped API authority and private mode-0600 identity records; no real-tenant data or direct business writer.",
+        "reviewed_chain": "owned transfer wrapper -> generated fictional destination, staff and policy fixture -> ordinary scoped API and independent reviews -> read-only source/in-transit/destination/cost and money checks."
+      }
+    },
+    {
+      "id": "FIRST-STORE-099",
+      "kind": "operational_file",
+      "key_regex": "^operational_file:scripts/test_first_store_commercial_proof\\.py$",
+      "priority": 20,
+      "primary_id": "P00",
+      "related_ids": [
+        "A00",
+        "C03",
+        "C10"
+      ],
+      "lifecycle": "canonical",
+      "authorization": "Pure structural denial tests for the isolated commercial proof identity; no database write or business authority.",
+      "data_ownership": "No business data writer; tests malformed/unowned identity records before commercial fixture execution.",
+      "acceptance_evidence": "docs/planning/kdps-first-store-qa-test-plan.md current revision-specific synthetic proof results; private .local/goal-alpha-20261003-*.log evidence.",
+      "access_contract": {
+        "trace_status": "pending",
+        "required_action": "Pure structural denial tests for the isolated commercial proof identity; no database write or business authority.",
+        "reviewed_chain": "unit identity fixtures -> first-store-commercial-proof guard -> refuse wrong database/system/host/user/port without querying or writing a tenant."
+      }
+    },
+    {
+      "id": "FIRST-STORE-100",
+      "kind": "operational_file",
+      "key_regex": "^operational_file:scripts/first\\-store\\-opening\\-reconciliation\\-proof\\.py$",
+      "priority": 20,
+      "primary_id": "P00",
+      "related_ids": [
+        "A00",
+        "C01",
+        "C05",
+        "C06"
+      ],
+      "lifecycle": "canonical",
+      "authorization": "Only exact owned synthetic first-store rehearsal identity and generated .example.test Owner/Admin; read-only canonical opening reconciliation after normal source, manifest, PT and physical acceptance.",
+      "data_ownership": "Reads immutable source, approved manifest, official PT lines and acceptance progress; emits a credential-free private proof report. No business writes, readiness bypass or altered history.",
+      "acceptance_evidence": "Current synthetic first-store bootstrap browser, backend opening authority regression, and docs/planning/kdps-first-store-qa-test-plan.md revision-specific evidence.",
+      "access_contract": {
+        "trace_status": "pending",
+        "required_action": "Verified owned proof database and exact fictional registration; database reader under tenant context, no API authority substitution.",
+        "reviewed_chain": "first-store-proof verified wrapper -> first-store-onboarding-proof registration/identity -> opening_reconciliation -> SohImport/OpeningManifest/GoodsPt/DocumentHead/line_progress -> private credential-free evidence; UI approval and physical writers run separately under current scoped authority."
+      }
+    },
+    {
+      "id": "FIRST-STORE-101",
+      "kind": "operational_file",
+      "key_regex": "^operational_file:scripts/first\\-store\\-receiving\\-reconciliation\\-proof\\.py$",
+      "priority": 20,
+      "primary_id": "P00",
+      "related_ids": [
+        "A00",
+        "C05",
+        "C06",
+        "C08",
+        "C10",
+        "C13"
+      ],
+      "lifecycle": "canonical",
+      "authorization": "Exact owned synthetic receiving sibling, sole completed ALPHA registration and current tenant context; read-only evidence with no business command or real-tenant access.",
+      "data_ownership": "Reads canonical receipt, source/count, stock position and quantity/value legs, sale/tender/cash and GL facts; writes only a private credential-free reconciliation report. Unvalued damaged intake and unexercised full-day closure remain explicit exclusions.",
+      "acceptance_evidence": "docs/planning/kdps-first-store-qa-test-plan.md current case-level synthetic receiving results and private .local/goal-receiving-*.log evidence.",
+      "access_contract": {
+        "trace_status": "pending",
+        "required_action": "Verified owned receiving database, exact fictional company and tenant context; database reads only, no API permission substitution.",
+        "reviewed_chain": "first-store-receiving-proof verified wrapper -> first-store-receiving-fixture initialise/snapshot -> tenant-scoped Origin/Position/QuantityLeg/ValueLeg/GRN/disposition/damage/SOH/sale/cash/GL reads -> paise and quantity reconciliation against preserved browser before evidence."
+      }
+    },
+    {
+      "id": "FIRST-STORE-102",
+      "kind": "operational_file",
+      "key_regex": "^operational_file:scripts/first\\-store\\-damage\\-proof\\.py$",
+      "priority": 20,
+      "primary_id": "P00",
+      "related_ids": [
+        "A00",
+        "C06",
+        "C08",
+        "C10"
+      ],
+      "lifecycle": "canonical",
+      "authorization": "Clone only the exact owned completed fictional ALPHA proof into a separate damage rehearsal sibling; verify host, port, database, user and PostgreSQL system identity before any command.",
+      "data_ownership": "Preserves source and prior clones; delegates scoped damage, review and sale refusals to current canonical application handlers and records private synthetic evidence only.",
+      "acceptance_evidence": "docs/planning/kdps-first-store-qa-test-plan.md current DMG-01 synthetic results and private .local/goal-alpha-20261003-damage-*.log evidence.",
+      "access_contract": {
+        "trace_status": "pending",
+        "required_action": "Verified owned damage sibling and fictional scoped actors; no direct business writer in the wrapper.",
+        "reviewed_chain": "verified first-store source -> exact cluster/registration check -> CREATE DATABASE TEMPLATE fresh damage sibling -> guarded environment -> canonical MarkDamagedView/damage_review and read-only physical/quarantine reconciliation."
+      }
+    },
+    {
+      "id": "FIRST-STORE-103",
+      "kind": "operational_file",
+      "key_regex": "^operational_file:scripts/first\\-store\\-damage\\-fixture\\.py$",
+      "priority": 20,
+      "primary_id": "P00",
+      "related_ids": [
+        "A00",
+        "C06",
+        "C08",
+        "C10"
+      ],
+      "lifecycle": "canonical",
+      "authorization": "Only fictional generated scoped people on the exact owned damage clone; the normal API and independent policy gates decide every protected mutation.",
+      "data_ownership": "Fixture creates only isolated synthetic review inputs and reads stable stock/cost/bill/ledger snapshots; no parallel damage or disposition writer.",
+      "acceptance_evidence": "docs/planning/kdps-first-store-qa-test-plan.md current DMG-01 synthetic results and private .local/goal-alpha-20261003-damage-*.log evidence.",
+      "access_contract": {
+        "trace_status": "pending",
+        "required_action": "Verified owned damage sibling, exact .example.test people and scoped current application API authority.",
+        "reviewed_chain": "owned damage wrapper -> fictional separate checker/policy inputs -> authenticated MarkDamagedView -> outbound.goods_movement_services.mark_damaged canonical quarantine -> DamageReportDecideView -> damage_review.decide; stock/till reads and preserved provenance checked independently."
+      }
+    },
+    {
+      "id": "FIRST-STORE-104",
+      "kind": "api_consumer",
+      "key_regex": "^api_consumer:frontend/src/pages/sell/CustomerSearch\\.tsx:415023097f47$",
+      "primary_id": "C10",
+      "lifecycle": "canonical",
+      "related_ids": [
+        "A00",
+        "C06"
+      ],
+      "acceptance_evidence": "frontend/browser/first-store-pos.spec.ts customer-search reprint cases (current authorised bill; logout before delayed delivery) at the exact tested revision recorded in docs/planning/kdps-first-store-qa-test-plan.md; inventory coverage is not acceptance.",
+      "access_contract": {
+        "trace_status": "pending",
+        "required_action": "Same exact-bill read as the Open action: GET /sell/sales/{doc_number} through the existing sale detail handler, replaying current session, resource scope and independently projected fields at the time of the print command.",
+        "reviewed_chain": "Reviewed 4 October 2026: CustomerSearch reprint no longer prints the copy fetched at Open time. It re-reads the exact bill from the existing sale detail handler, prints only that fresh response, and on any refusal clears the cached bill and prints nothing. No new endpoint or writer; a static consumer trace is not runtime acceptance."
+      }
     }
   ],
   "discovered": {
-    "checksum": "7bdba51d068271c90f82a6ad0bf24430033fb741ace6aa68fedb955a9117e279",
+    "checksum": "91448a006be581b11c95701701cf8e04e2268882eb4ab872831f43ac8cd118f4",
     "records": [
       {
         "kind": "api",
@@ -60653,10 +60981,13 @@
         },
         "primary_id": "C06",
         "owner": "SO-08",
-        "related_ids": [],
+        "related_ids": [
+          "A00",
+          "C05"
+        ],
         "lifecycle": "canonical",
-        "data_ownership": "Tenant-owned goods stock journal with legacy store-linked stock history",
-        "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
+        "data_ownership": "Read-only official receipt/opening/found PT heads and lines, accepted/damaged portions and OPEN acceptance sessions. Zero remaining stays visible only until its original session completes; no quantity, journal or origin is written.",
+        "authorization": "Current stock.accept for each candidate tenant, site and source brand; the request-bound AccessContext filters the read after the site reach prefilter. No PT cost, line or exception detail is projected.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
@@ -60861,17 +61192,12 @@
         },
         "access_contract": {
           "trace_status": "pending",
-          "actor_type": "unreviewed",
-          "required_action": "unreviewed",
-          "scope_source": "unreviewed",
-          "protected_fields": "unreviewed",
-          "delivery_recheck": "unreviewed",
-          "named_tests": [],
-          "reviewed_chain": "Static candidates do not establish runtime access coverage."
+          "required_action": "stock.accept on current tenant/site/source brand, rechecked at read and at resume/complete.",
+          "reviewed_chain": "GET pending-acceptance -> PendingAcceptanceView -> request-bound AccessContext.site_reach/can and source_brands -> goods_acceptance.pending_acceptance -> DocumentHead/OfficialLine/AcceptanceEvent/AcceptanceSession read; E139 resume and complete still run SiteGuard and document locks."
         },
         "replacement": "`/goods/stock`, `/goods/stock/origins/:id`, `/goods/movements` are canonical goods position and origin views; `/stock`, `/stock/search`, `/stock/history`, `/inventory` become governed projections of the same stock journal",
         "migration_requirements": "Link legacy ledger entries and balances to immutable origin and custody movement IDs.",
-        "acceptance_evidence": "Reconcile quantity/value by site, brand and origin, including held/transit stock.",
+        "acceptance_evidence": "backend/tests/test_first_store_acceptance_resume.py and current first-store bootstrap browser evidence; docs/planning/kdps-first-store-qa-test-plan.md.",
         "removal_condition": "Retire independent stock mutation/balance authority only after till, reporting and search read the same source.",
         "rule_id": "S0296"
       },
@@ -80632,6 +80958,7 @@
             "api_consumer:frontend/src/pages/sell/Billing.tsx:9eebedf9f593",
             "api_consumer:frontend/src/pages/sell/Bills.tsx:5249d9b4db39",
             "api_consumer:frontend/src/pages/sell/Bills.tsx:dad51a388655",
+            "api_consumer:frontend/src/pages/sell/CustomerSearch.tsx:415023097f47",
             "api_consumer:frontend/src/pages/sell/CustomerSearch.tsx:dad51a388655",
             "api_consumer:frontend/src/till/original.ts:8c7b5bfb29e6"
           ]
@@ -80751,6 +81078,7 @@
             "api_consumer:frontend/src/pages/sell/Billing.tsx:9eebedf9f593",
             "api_consumer:frontend/src/pages/sell/Bills.tsx:5249d9b4db39",
             "api_consumer:frontend/src/pages/sell/Bills.tsx:dad51a388655",
+            "api_consumer:frontend/src/pages/sell/CustomerSearch.tsx:415023097f47",
             "api_consumer:frontend/src/pages/sell/CustomerSearch.tsx:dad51a388655",
             "api_consumer:frontend/src/till/original.ts:8c7b5bfb29e6"
           ],
@@ -99307,7 +99635,8 @@
           ],
           "static_frontend_importers": [],
           "frontend_api_callsites": [
-            "api_consumer:frontend/src/pages/GoodsReceipts.tsx:12cf081e2f9d"
+            "api_consumer:frontend/src/pages/GoodsReceipts.tsx:12cf081e2f9d",
+            "api_consumer:frontend/src/pages/GoodsReceipts.tsx:18d291177e7c"
           ]
         },
         "dependencies": {
@@ -99432,7 +99761,8 @@
             "model:outbound.TransferReturn"
           ],
           "frontend_api_callsites": [
-            "api_consumer:frontend/src/pages/GoodsReceipts.tsx:12cf081e2f9d"
+            "api_consumer:frontend/src/pages/GoodsReceipts.tsx:12cf081e2f9d",
+            "api_consumer:frontend/src/pages/GoodsReceipts.tsx:18d291177e7c"
           ],
           "api_targets": [],
           "model_relations": [],
@@ -105573,10 +105903,15 @@
         },
         "primary_id": "C01",
         "owner": "SO-04",
-        "related_ids": [],
+        "related_ids": [
+          "A00",
+          "C05",
+          "C06",
+          "C10"
+        ],
         "lifecycle": "canonical",
-        "data_ownership": "Tenant-owned canonical masters with unowned legacy season/SKU history pending mapping",
-        "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
+        "data_ownership": "One SiteGuard and attributable SiteCapabilityEvent; opening source/manifest/PT/stock history remain with C05/C06 retained writers. A denial changes neither guard nor capability history.",
+        "authorization": "Current org.site.lifecycle.approve over the exact site, fresh revision and password-confirmed session. For every online_alpha approve_goods, non-overridable opening_ready requires the declared empty new-store start or independently reviewed and physically accepted opening source.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
@@ -105789,17 +106124,12 @@
         },
         "access_contract": {
           "trace_status": "pending",
-          "actor_type": "unreviewed",
-          "required_action": "unreviewed",
-          "scope_source": "unreviewed",
-          "protected_fields": "unreviewed",
-          "delivery_recheck": "unreviewed",
-          "named_tests": [],
-          "reviewed_chain": "Static candidates do not establish runtime access coverage."
+          "required_action": "Current org.site.lifecycle.approve over the exact site, fresh revision and password-confirmed session. For every online_alpha approve_goods, non-overridable opening_ready requires the declared empty new-store start or independently reviewed and physically accepted opening source.",
+          "reviewed_chain": "GoodsSiteReadinessView.post -> request AccessContext org.site.lifecycle.approve/step-up -> CommandRun SiteGuard lock and revision -> compute_readiness_checks -> apply_readiness_approval -> first_store_readiness.opening_ready -> InstallationRegistration/SohImport or soh_services.opening_reconciliation official PT/accepted portions -> enforce_checks_for_approval -> SiteCapabilityEvent and SiteGuard commit. Refusal leaves guard/event unchanged; later selling_checks uses the same opening gate."
         },
         "replacement": "`/setup/organisation`, `/setup/products-parties` and one governed master identity per tenant; `/setup/stores`, `/setup/brands`, `/setup/vendors`, `/setup/seasons`, `/setup/gstins` become views of those identities",
         "migration_requirements": "Map legacy store/legal entity/GSTIN/brand/vendor/season/product aliases to stable tenant IDs and approved master versions; preserve source codes and links.",
-        "acceptance_evidence": "Reconcile counts, opening quantities/values and duplicate handling before retiring legacy CRUD, parallel master screens and demo-only data. Restore SBU retirement only after its command revokes matching unified assignments, invalidates sessions, and proves no legacy RoleGrant writer or residual bypass.",
+        "acceptance_evidence": "backend/tests targeted first-store readiness denial/accepted opening cases and current synthetic browser bootstrap; docs/planning/kdps-first-store-qa-test-plan.md records exact runtime.",
         "removal_condition": "Reconcile counts, opening quantities/values and duplicate handling before retiring legacy CRUD, parallel master screens and demo-only data.",
         "rule_id": "S0577"
       },
@@ -153731,6 +154061,62 @@
       },
       {
         "kind": "api_consumer",
+        "key": "api_consumer:frontend/src/pages/GoodsReceipts.tsx:18d291177e7c",
+        "source": "frontend/src/pages/GoodsReceipts.tsx",
+        "detail": {
+          "invocation": "api.post",
+          "method": "POST",
+          "argument": "`/goods-v1/inbound/grns/${grn.id}/dispositions`",
+          "api_reference": "/api/goods-v1/inbound/grns/{grn.id}/dispositions",
+          "resolution": "template"
+        },
+        "primary_id": "C05",
+        "owner": "SO-07",
+        "related_ids": [
+          "A00",
+          "C06"
+        ],
+        "lifecycle": "canonical",
+        "data_ownership": "Existing invoice claim/count/disposition history stays linked. GET GRN detail projects remaining_shortage_qty from the same undecided_discrepancies calculation used by the decision writer; accept_shortage decides only missing quantity and does not create stock, PT, or duplicate receipt writer.",
+        "authorization": "receipt.disposition.decide on current GRN store/brand and distinct current checker, exact expected revision/reviewed hash; server rechecks policy and scope.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "frontend_declaration",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [
+            "api:POST:/api/goods-v1/inbound/grns/<uuid:pk>/dispositions"
+          ],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "unknown",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "replacement": "`/goods/receive/*`, `/goods/pt-work`, `/goods/labels` retain receiving, PT and labels. Old `/goods/arrivals`, `/goods/receipts`, `/goods/accept`, `/goods/pt/prepare`, `/goods/pt/approvals` are bookmark redirects",
+        "migration_requirements": "Map arrival, claimed invoice, count, GRN, PT rows, number, cost basis, label jobs and approval evidence with source IDs.",
+        "acceptance_evidence": "docs/planning/kdps-first-store-qa-test-plan.md current revision-specific synthetic proof results; private .local/goal-alpha-20261003-*.log evidence.",
+        "removal_condition": "Reconcile physical count and official value once; prove history and separate-person approval before removing separate screens or old write services.",
+        "rule_id": "FIRST-STORE-094"
+      },
+      {
+        "kind": "api_consumer",
         "key": "api_consumer:frontend/src/pages/GoodsReceipts.tsx:225797012604",
         "source": "frontend/src/pages/GoodsReceipts.tsx",
         "detail": {
@@ -167604,12 +167990,12 @@
       },
       {
         "kind": "api_consumer",
-        "key": "api_consumer:frontend/src/pages/SohImport.tsx:457d3920f288",
+        "key": "api_consumer:frontend/src/pages/SohImport.tsx:07779a8de3ff",
         "source": "frontend/src/pages/SohImport.tsx",
         "detail": {
           "invocation": "api.get",
           "method": "GET",
-          "argument": "`${base}/${source.id}/rows?stocked=1&group=${kind}`",
+          "argument": "`${base}/${source.id}/rows?stocked=0&group=${kind}`",
           "api_reference": null,
           "resolution": "template"
         },
@@ -172276,6 +172662,62 @@
         "acceptance_evidence": "Reconcile opening/closing balances and exports; retire duplicate posting and legacy payable dependencies when books and source workflows agree.",
         "removal_condition": "Reconcile opening/closing balances and exports; retire duplicate posting and legacy payable dependencies when books and source workflows agree.",
         "rule_id": "S1312"
+      },
+      {
+        "kind": "api_consumer",
+        "key": "api_consumer:frontend/src/pages/sell/CustomerSearch.tsx:415023097f47",
+        "source": "frontend/src/pages/sell/CustomerSearch.tsx",
+        "detail": {
+          "invocation": "api.get",
+          "method": "GET",
+          "argument": "`/sell/sales/${bill.doc_number}`",
+          "api_reference": "/api/sell/sales/{bill.doc_number}",
+          "resolution": "template"
+        },
+        "primary_id": "C10",
+        "owner": "SO-09",
+        "related_ids": [
+          "A00",
+          "C06"
+        ],
+        "lifecycle": "canonical",
+        "data_ownership": "Store-linked legacy selling and tenant-owned goods bill/till data",
+        "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "frontend_declaration",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [
+            "api:GET:/api/sell/sales/<path:doc_number>"
+          ],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "unknown",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "replacement": "`/sell`, `/sell/bills`, `/sell/till`, `/sell/cash-count`, `/sell/gift-vouchers`; customer display `/sell/display` keeps its separately authorised window",
+        "migration_requirements": "Use one bill/return and central stock source; map held and final bills, device IDs, number blocks, tenders, exchanged/returned pieces and replay keys without reissuing transactions.",
+        "acceptance_evidence": "frontend/browser/first-store-pos.spec.ts customer-search reprint cases (current authorised bill; logout before delayed delivery) at the exact tested revision recorded in docs/planning/kdps-first-store-qa-test-plan.md; inventory coverage is not acceptance.",
+        "removal_condition": "Prove offline lease, restart/reconnect, no duplicate effects and role/field protection before removing duplicate stock/till bridges.",
+        "rule_id": "FIRST-STORE-104"
       },
       {
         "kind": "api_consumer",
@@ -254951,6 +255393,7 @@
           "imports": [
             "accounts.goods_models",
             "accounts.sections",
+            "core.commands",
             "core.tenancy",
             "masters.models"
           ],
@@ -255017,12 +255460,14 @@
           "static_imports": [
             "accounts.goods_models",
             "accounts.sections",
+            "core.commands",
             "core.tenancy",
             "masters.models"
           ],
           "local_component_keys": [
             "module:accounts.goods_models",
             "module:accounts.sections",
+            "module:core.commands",
             "module:core.tenancy",
             "module:masters.models"
           ],
@@ -258177,10 +258622,13 @@
         },
         "primary_id": "C15",
         "owner": "SO-14",
-        "related_ids": [],
+        "related_ids": [
+          "A00",
+          "C05"
+        ],
         "lifecycle": "canonical",
-        "data_ownership": "Tenant-owned approval/evidence/notification readers with legacy brand-name snapshots",
-        "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
+        "data_ownership": "Existing pending approval request, pinned hash, roles and audit remain unchanged; new opening source and manifest requests pin canonical owner. Deciding writes only the retained request and its subject through the existing command kernel.",
+        "authorization": "Current AccessContext role assignment, action, fields, complete site/brand cells, distinct human and session at inbox projection and final decision; only persisted historical C-OWN selector is interpreted as current owner, with no legacy grant lookup.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
@@ -258259,7 +258707,7 @@
         },
         "replacement": "`/action-needed`, `/alerts`, `/setup/audit`, `/setup/monitoring`, `/reports/*`, `/checklist`, `/setup/checklists`, `/setup/feature-switches` use shared scoped queues, evidence and readers",
         "migration_requirements": "Map request/decision, maker/checker, notification/exception owner/state, audit, file hashes and source links.",
-        "acceptance_evidence": "Resolve `Approval.brand` name snapshots to stable tenant brand IDs, queue renamed or ambiguous history for review, and keep old authority evidence. Reconcile queue counts, decision outcomes, export bytes and before/after history; retire duplicate inbox/alert/search/export logic after denial and revocation tests.",
+        "acceptance_evidence": "backend/tests/test_first_store_opening_authority.py three exact pending/new/denial regressions; current synthetic browser bootstrap and current QA record.",
         "removal_condition": "`/approvals` and `/goods/exceptions` may remain tested redirects.",
         "rule_id": "S2091"
       },
@@ -260329,6 +260777,7 @@
             "module:accounts.goods_setup",
             "module:accounts.principal",
             "module:accounts.registration_services",
+            "module:accounts.role_assignments",
             "module:accounts.sessions",
             "module:accounts.till_pin",
             "module:accounts.unified_admin",
@@ -263342,6 +263791,7 @@
             "module:reporting.margin_share",
             "module:reporting.offer_return",
             "module:reporting.offer_simulation",
+            "module:reporting.sales_report",
             "module:reporting.staff_targets",
             "module:reporting.views",
             "module:sell.alteration_views",
@@ -270628,11 +271078,12 @@
         "related_ids": [
           "A00",
           "C05",
+          "C06",
           "C10"
         ],
         "lifecycle": "canonical",
         "data_ownership": "Tenant-owned canonical masters with unowned legacy season/SKU history pending mapping",
-        "authorization": "Existing unified org.site.manage and versioned goods readiness; explicit online-alpha mode, current non-overridable gates and registered-till writer; tokens returned once, never retained in audit/history.",
+        "authorization": "Current org.site.lifecycle.approve over the exact site, fresh revision and password-confirmed session. For every online_alpha approve_goods, non-overridable opening_ready requires the declared empty new-store start or independently reviewed and physically accepted opening source.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
@@ -270779,7 +271230,7 @@
         },
         "replacement": "`/setup/organisation`, `/setup/products-parties` and one governed master identity per tenant; `/setup/stores`, `/setup/brands`, `/setup/vendors`, `/setup/seasons`, `/setup/gstins` become views of those identities",
         "migration_requirements": "Map legacy store/legal entity/GSTIN/brand/vendor/season/product aliases to stable tenant IDs and approved master versions; preserve source codes and links.",
-        "acceptance_evidence": "Current revision proof commands and browser evidence must be recorded in docs/planning/kdps-first-store-alpha-evidence.md; inventory coverage is not acceptance.",
+        "acceptance_evidence": "backend/tests targeted first-store readiness denial/accepted opening cases and current synthetic browser bootstrap; docs/planning/kdps-first-store-qa-test-plan.md records exact runtime.",
         "removal_condition": "Reconcile counts, opening quantities/values and duplicate handling before retiring legacy CRUD, parallel master screens and demo-only data.",
         "rule_id": "FIRST-STORE-061"
       },
@@ -272892,7 +273343,6 @@
             "masters.goods_identity_services",
             "masters.goods_models",
             "masters.models",
-            "ptmapper.soh_services",
             "sell.models",
             "stockledger",
             "stockledger.goods_models",
@@ -273001,10 +273451,15 @@
         },
         "primary_id": "C01",
         "owner": "SO-04",
-        "related_ids": [],
+        "related_ids": [
+          "A00",
+          "C05",
+          "C06",
+          "C10"
+        ],
         "lifecycle": "canonical",
-        "data_ownership": "Tenant-owned canonical masters with unowned legacy season/SKU history pending mapping",
-        "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
+        "data_ownership": "One SiteGuard and attributable SiteCapabilityEvent; opening source/manifest/PT/stock history remain with C05/C06 retained writers. A denial changes neither guard nor capability history.",
+        "authorization": "Current org.site.lifecycle.approve over the exact site, fresh revision and password-confirmed session. For every online_alpha approve_goods, non-overridable opening_ready requires the declared empty new-store start or independently reviewed and physically accepted opening source.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
@@ -273047,7 +273502,6 @@
             "masters.goods_identity_services",
             "masters.goods_models",
             "masters.models",
-            "ptmapper.soh_services",
             "sell.models",
             "stockledger",
             "stockledger.goods_models",
@@ -273073,7 +273527,6 @@
             "module:masters.goods_identity_services",
             "module:masters.goods_models",
             "module:masters.models",
-            "module:ptmapper.soh_services",
             "module:sell.models",
             "module:stockledger.goods_models",
             "module:stockledger.models",
@@ -273303,7 +273756,7 @@
         },
         "replacement": "`/setup/organisation`, `/setup/products-parties` and one governed master identity per tenant; `/setup/stores`, `/setup/brands`, `/setup/vendors`, `/setup/seasons`, `/setup/gstins` become views of those identities",
         "migration_requirements": "Map legacy store/legal entity/GSTIN/brand/vendor/season/product aliases to stable tenant IDs and approved master versions; preserve source codes and links.",
-        "acceptance_evidence": "Reconcile counts, opening quantities/values and duplicate handling before retiring legacy CRUD, parallel master screens and demo-only data. Restore SBU retirement only after its command revokes matching unified assignments, invalidates sessions, and proves no legacy RoleGrant writer or residual bypass.",
+        "acceptance_evidence": "backend/tests targeted first-store readiness denial/accepted opening cases and current synthetic browser bootstrap; docs/planning/kdps-first-store-qa-test-plan.md records exact runtime.",
         "removal_condition": "Reconcile counts, opening quantities/values and duplicate handling before retiring legacy CRUD, parallel master screens and demo-only data.",
         "rule_id": "S2221"
       },
@@ -288817,10 +289270,14 @@
         },
         "primary_id": "C05",
         "owner": "SO-07",
-        "related_ids": [],
+        "related_ids": [
+          "A00",
+          "C01",
+          "C06"
+        ],
         "lifecycle": "canonical",
-        "data_ownership": "Tenant-owned goods receiving/PT evidence with legacy receiving history",
-        "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
+        "data_ownership": "One existing OpeningManifestVersion and immutable source/claim links; approval changes reviewed version via retained handler, physical acceptance and stock journal remain separate.",
+        "authorization": "Current owner action/scope and different human for opening manifest review; exact manifest revision/hash and same owned source/site, with independent normal approval.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
@@ -289079,7 +289536,7 @@
         },
         "replacement": "`/goods/receive/*`, `/goods/pt-work`, `/goods/labels` retain receiving, PT and labels. Old `/goods/arrivals`, `/goods/receipts`, `/goods/accept`, `/goods/pt/prepare`, `/goods/pt/approvals` are bookmark redirects",
         "migration_requirements": "Map arrival, claimed invoice, count, GRN, PT rows, number, cost basis, label jobs and approval evidence with source IDs.",
-        "acceptance_evidence": "Reconcile physical count and official value once; prove history and separate-person approval before removing separate screens or old write services.",
+        "acceptance_evidence": "backend/tests/test_first_store_opening_authority.py; current synthetic SOH bootstrap browser and QA record.",
         "removal_condition": "Reconcile physical count and official value once; prove history and separate-person approval before removing separate screens or old write services.",
         "rule_id": "S2310"
       },
@@ -292126,7 +292583,6 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:masters.first_store_readiness",
-            "module:masters.goods_services",
             "module:outbound.goods_soh_reconciliation",
             "module:ptmapper.apps",
             "module:ptmapper.goods_manifest_services",
@@ -297585,10 +298041,12 @@
         "source": "backend/reporting/sales_report.py",
         "detail": {
           "imports": [
+            "core.refusals",
             "masters.models",
             "reporting.base",
             "reporting.models",
-            "reporting.sales_facts"
+            "reporting.sales_facts",
+            "reporting.staff_report"
           ],
           "read_candidates": [
             "SalesLineFact.objects.filter",
@@ -297638,16 +298096,20 @@
           "source_module": "module:reporting.sales_report",
           "callback_component": null,
           "static_imports": [
+            "core.refusals",
             "masters.models",
             "reporting.base",
             "reporting.models",
-            "reporting.sales_facts"
+            "reporting.sales_facts",
+            "reporting.staff_report"
           ],
           "local_component_keys": [
+            "module:core.refusals",
             "module:masters.models",
             "module:reporting.base",
             "module:reporting.models",
-            "module:reporting.sales_facts"
+            "module:reporting.sales_facts",
+            "module:reporting.staff_report"
           ],
           "candidate_model_keys": [
             "model:masters.Brand",
@@ -298156,6 +298618,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:reporting.base",
+            "module:reporting.sales_report",
             "module:reporting.staff_targets",
             "module:reporting.views"
           ],
@@ -311827,6 +312290,7 @@
             "AcceptanceSession.objects.filter(pk=session_id).values_list",
             "AcceptanceSession.objects.filter(pk=session_id).values_list('site_id', flat=True).first",
             "AcceptanceSession.objects.filter(site_id=site_id, source_version_id=version.pk, state=AcceptanceSession.State.OPEN).first",
+            "AcceptanceSession.objects.filter(tenant_id=tenant_id, source_version_id__in=version_ids, state=AcceptanceSession.State.OPEN).values_list",
             "ActiveHold.objects.filter",
             "CustodyLot.objects.filter",
             "CustodyLot.objects.filter(adjustment_line_id__in=wanted).values_list",
@@ -311901,10 +312365,13 @@
         },
         "primary_id": "C06",
         "owner": "SO-08",
-        "related_ids": [],
+        "related_ids": [
+          "A00",
+          "C05"
+        ],
         "lifecycle": "canonical",
-        "data_ownership": "Tenant-owned goods stock journal with legacy store-linked stock history",
-        "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
+        "data_ownership": "Canonical AcceptanceSession/Event and P09/P10 stock effect writer. The pending read includes an OPEN zero-remaining session for Finish; completion records session evidence without another stock or value posting.",
+        "authorization": "E139 physical acceptance commands use current stock.accept scope and SiteGuard; pending work is filtered again by PendingAcceptanceView per site and source brand.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
@@ -312052,6 +312519,7 @@
             "AcceptanceSession.objects.filter(pk=session_id).values_list",
             "AcceptanceSession.objects.filter(pk=session_id).values_list('site_id', flat=True).first",
             "AcceptanceSession.objects.filter(site_id=site_id, source_version_id=version.pk, state=AcceptanceSession.State.OPEN).first",
+            "AcceptanceSession.objects.filter(tenant_id=tenant_id, source_version_id__in=version_ids, state=AcceptanceSession.State.OPEN).values_list",
             "ActiveHold.objects.filter",
             "CustodyLot.objects.filter",
             "CustodyLot.objects.filter(adjustment_line_id__in=wanted).values_list",
@@ -312128,7 +312596,7 @@
         },
         "replacement": "`/goods/stock`, `/goods/stock/origins/:id`, `/goods/movements` are canonical goods position and origin views; `/stock`, `/stock/search`, `/stock/history`, `/inventory` become governed projections of the same stock journal",
         "migration_requirements": "Link legacy ledger entries and balances to immutable origin and custody movement IDs.",
-        "acceptance_evidence": "Reconcile quantity/value by site, brand and origin, including held/transit stock.",
+        "acceptance_evidence": "backend/tests/test_first_store_acceptance_resume.py; current browser bootstrap and reconciliation reports.",
         "removal_condition": "Retire independent stock mutation/balance authority only after till, reporting and search read the same source.",
         "rule_id": "S2470"
       },
@@ -328332,6 +328800,7 @@
         "detail": {
           "format": ".py",
           "imports": [
+            "accounts.goods_models",
             "accounts.models",
             "core.canonical",
             "core.gl",
@@ -328351,6 +328820,7 @@
           "read_candidates": [
             "DocumentPrefix.objects.filter",
             "DocumentPrefix.objects.filter(tenant_id=claim.tenant_id, site=site).first",
+            "SecurityGuard.objects.get",
             "SiteGuard.objects.filter",
             "SiteGuard.objects.filter(site__code='SOH-PREVIEW', tenant_id=claim.tenant_id).first",
             "SiteGuard.objects.get",
@@ -328358,6 +328828,7 @@
             "Store.objects.select_related('gstin__legal_entity').get",
             "StoreFeatureSwitch.objects.filter",
             "StoreFeatureSwitch.objects.filter(tenant_id=claim.tenant_id, site=site, feature_key='tax-settings').first",
+            "StoreFeatureSwitch.objects.get",
             "StoreFeatureSwitch.objects.select_for_update",
             "StoreFeatureSwitch.objects.select_for_update().filter",
             "StoreFeatureSwitch.objects.select_for_update().filter(tenant_id=claim.tenant_id, site=site, feature_key='document-series').first",
@@ -328365,9 +328836,12 @@
             "TaxSettingVersion.objects.filter(tenant_id=claim.tenant_id, note=LABEL).first",
             "TaxSettingVersion.objects.get",
             "User.objects.get",
+            "admin.get",
             "counter.get",
             "marker.get",
             "model.objects.all",
+            "os.environ.get",
+            "os.path.exists",
             "person.get",
             "query.filter",
             "query.order_by('pk').values",
@@ -328432,6 +328906,173 @@
         "acceptance_evidence": "docs/planning/kdps-first-store-alpha-evidence.md and credential-free .local/first-store-commercial-proof.json distinguish the synthetic commercial fixture from actual opening/API/browser evidence.",
         "removal_condition": "Retain while required by deployment; remove only through platform change review.",
         "rule_id": "FIRST-STORE-077"
+      },
+      {
+        "kind": "operational_file",
+        "key": "operational_file:scripts/first-store-damage-fixture.py",
+        "source": "scripts/first-store-damage-fixture.py",
+        "detail": {
+          "format": ".py",
+          "imports": [
+            "accounts.registration_models",
+            "accounts.registration_services",
+            "core.canonical",
+            "core.gl",
+            "core.numbering",
+            "core.tenancy",
+            "finledger.models",
+            "masters.goods_models",
+            "masters.models",
+            "outbound.goods_models",
+            "sell.cash_models",
+            "sell.models",
+            "sell.services.goods_stock",
+            "stockledger.goods_models"
+          ],
+          "read_candidates": [
+            "ActiveHold.objects.order_by('pk').values",
+            "ActiveReservation.objects.order_by('pk').values",
+            "DamageReport.objects.order_by('pk').values",
+            "InstallationRegistration.objects.select_related",
+            "InstallationRegistration.objects.select_related('tenant').get",
+            "JournalBatch.objects.order_by('pk').values",
+            "Location.objects.get",
+            "OnlineSaleSubmission.objects.filter",
+            "OnlineSaleSubmission.objects.filter(status='accepted').count",
+            "OnlineSaleSubmission.objects.filter(status='rejected').count",
+            "Origin.objects.get",
+            "Origin.objects.order_by('pk').values",
+            "Origin.objects.values",
+            "Position.objects.select_related",
+            "QuantityLeg.objects.order_by('pk').values",
+            "Sale.objects.count",
+            "SiteGuard.objects.get",
+            "Store.objects.get",
+            "Tenant.objects.count",
+            "ValueLeg.objects.order_by('pk').values",
+            "model.objects.order_by('pk').values",
+            "os.environ.get",
+            "read_shelf(guard.site).quantities.values"
+          ],
+          "write_candidates": [],
+          "authorization_candidates": []
+        },
+        "primary_id": "P00",
+        "owner": "SO-02",
+        "related_ids": [
+          "A00",
+          "C06",
+          "C08",
+          "C10"
+        ],
+        "lifecycle": "canonical",
+        "data_ownership": "Fixture creates only isolated synthetic review inputs and reads stable stock/cost/bill/ledger snapshots; no parallel damage or disposition writer.",
+        "authorization": "Only fictional generated scoped people on the exact owned damage clone; the normal API and independent policy gates decide every protected mutation.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "declared_metadata_only",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "unknown",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "access_contract": {
+          "trace_status": "pending",
+          "required_action": "Verified owned damage sibling, exact .example.test people and scoped current application API authority.",
+          "reviewed_chain": "owned damage wrapper -> fictional separate checker/policy inputs -> authenticated MarkDamagedView -> outbound.goods_movement_services.mark_damaged canonical quarantine -> DamageReportDecideView -> damage_review.decide; stock/till reads and preserved provenance checked independently."
+        },
+        "replacement": "Supported platform endpoints with security review",
+        "migration_requirements": "No business transaction migration.",
+        "acceptance_evidence": "docs/planning/kdps-first-store-qa-test-plan.md current DMG-01 synthetic results and private .local/goal-alpha-20261003-damage-*.log evidence.",
+        "removal_condition": "Retain while required by deployment; remove only through platform change review.",
+        "rule_id": "FIRST-STORE-103"
+      },
+      {
+        "kind": "operational_file",
+        "key": "operational_file:scripts/first-store-damage-proof.py",
+        "source": "scripts/first-store-damage-proof.py",
+        "detail": {
+          "format": ".py",
+          "imports": [],
+          "read_candidates": [
+            "RECORD.exists",
+            "archive.exists",
+            "credentials.get",
+            "credentials.get('browser_bootstrap', {}).get",
+            "credentials.get('rehearsal_identity', {}).get"
+          ],
+          "write_candidates": [],
+          "authorization_candidates": []
+        },
+        "primary_id": "P00",
+        "owner": "SO-02",
+        "related_ids": [
+          "A00",
+          "C06",
+          "C08",
+          "C10"
+        ],
+        "lifecycle": "canonical",
+        "data_ownership": "Preserves source and prior clones; delegates scoped damage, review and sale refusals to current canonical application handlers and records private synthetic evidence only.",
+        "authorization": "Clone only the exact owned completed fictional ALPHA proof into a separate damage rehearsal sibling; verify host, port, database, user and PostgreSQL system identity before any command.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "declared_metadata_only",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "unknown",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "access_contract": {
+          "trace_status": "pending",
+          "required_action": "Verified owned damage sibling and fictional scoped actors; no direct business writer in the wrapper.",
+          "reviewed_chain": "verified first-store source -> exact cluster/registration check -> CREATE DATABASE TEMPLATE fresh damage sibling -> guarded environment -> canonical MarkDamagedView/damage_review and read-only physical/quarantine reconciliation."
+        },
+        "replacement": "Supported platform endpoints with security review",
+        "migration_requirements": "No business transaction migration.",
+        "acceptance_evidence": "docs/planning/kdps-first-store-qa-test-plan.md current DMG-01 synthetic results and private .local/goal-alpha-20261003-damage-*.log evidence.",
+        "removal_condition": "Retain while required by deployment; remove only through platform change review.",
+        "rule_id": "FIRST-STORE-102"
       },
       {
         "kind": "operational_file",
@@ -328784,6 +329425,86 @@
       },
       {
         "kind": "operational_file",
+        "key": "operational_file:scripts/first-store-opening-reconciliation-proof.py",
+        "source": "scripts/first-store-opening-reconciliation-proof.py",
+        "detail": {
+          "format": ".py",
+          "imports": [
+            "core.kernel_models",
+            "core.tenancy",
+            "masters.models",
+            "ptmapper.goods_models",
+            "ptmapper.soh_models",
+            "ptmapper.soh_services",
+            "stockledger.goods_acceptance",
+            "stockledger.goods_models"
+          ],
+          "read_candidates": [
+            "AcceptanceSession.objects.filter",
+            "AcceptanceSession.objects.filter(source_version_id__in=version_ids).values",
+            "DocumentHead.objects.get",
+            "GoodsPt.objects.get",
+            "SohImport.objects.get",
+            "Store.objects.get",
+            "os.path.exists",
+            "source.batches.select_related",
+            "source.batches.select_related('manifest').all"
+          ],
+          "write_candidates": [],
+          "authorization_candidates": []
+        },
+        "primary_id": "P00",
+        "owner": "SO-02",
+        "related_ids": [
+          "A00",
+          "C01",
+          "C05",
+          "C06"
+        ],
+        "lifecycle": "canonical",
+        "data_ownership": "Reads immutable source, approved manifest, official PT lines and acceptance progress; emits a credential-free private proof report. No business writes, readiness bypass or altered history.",
+        "authorization": "Only exact owned synthetic first-store rehearsal identity and generated .example.test Owner/Admin; read-only canonical opening reconciliation after normal source, manifest, PT and physical acceptance.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "declared_metadata_only",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "unknown",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "access_contract": {
+          "trace_status": "pending",
+          "required_action": "Verified owned proof database and exact fictional registration; database reader under tenant context, no API authority substitution.",
+          "reviewed_chain": "first-store-proof verified wrapper -> first-store-onboarding-proof registration/identity -> opening_reconciliation -> SohImport/OpeningManifest/GoodsPt/DocumentHead/line_progress -> private credential-free evidence; UI approval and physical writers run separately under current scoped authority."
+        },
+        "replacement": "Supported platform endpoints with security review",
+        "migration_requirements": "No business transaction migration.",
+        "acceptance_evidence": "Current synthetic first-store bootstrap browser, backend opening authority regression, and docs/planning/kdps-first-store-qa-test-plan.md revision-specific evidence.",
+        "removal_condition": "Retain while required by deployment; remove only through platform change review.",
+        "rule_id": "FIRST-STORE-100"
+      },
+      {
+        "kind": "operational_file",
         "key": "operational_file:scripts/first-store-operating-proof.py",
         "source": "scripts/first-store-operating-proof.py",
         "detail": {
@@ -329007,6 +329728,286 @@
         "acceptance_evidence": "docs/planning/kdps-first-store-alpha-evidence.md records owned environment identity and exact rehearsal commands; simulated people are not real approvals.",
         "removal_condition": "Retain while required by deployment; remove only through platform change review.",
         "rule_id": "FIRST-STORE-073"
+      },
+      {
+        "kind": "operational_file",
+        "key": "operational_file:scripts/first-store-receiving-fixture.py",
+        "source": "scripts/first-store-receiving-fixture.py",
+        "detail": {
+          "format": ".py",
+          "imports": [
+            "accounts.goods_models",
+            "accounts.models",
+            "accounts.registration_models",
+            "accounts.registration_services",
+            "approvals.goods_models",
+            "core.canonical",
+            "core.commands",
+            "core.goods_fields",
+            "core.numbering",
+            "core.tenancy",
+            "finledger.models",
+            "inbound.goods_models",
+            "masters.goods_models",
+            "masters.models",
+            "outbound.goods_models",
+            "outbound.goods_soh_models",
+            "ptmapper.soh_models",
+            "sell.models",
+            "sell.services.goods_stock",
+            "stockledger.goods_models",
+            "tests.first_store_goods"
+          ],
+          "read_candidates": [
+            "ApprovalRequest.objects.get",
+            "Arrival.objects.count",
+            "CashLedgerEntry.objects.values",
+            "ConfigVersion.objects.filter",
+            "ConfigVersion.objects.filter(tenant_id=claim.tenant_id, draft_id=draft['id']).first",
+            "ConfigVersion.objects.get",
+            "CountSession.objects.count",
+            "DamageReport.objects.values",
+            "GoodsGrn.objects.count",
+            "InstallationRegistration.objects.select_related",
+            "InstallationRegistration.objects.select_related('tenant').get",
+            "JournalBatch.objects.values",
+            "Location.objects.get",
+            "Origin.objects.filter",
+            "Origin.objects.filter(sku__aliases__value='ALPHA000123').first",
+            "Origin.objects.values",
+            "Position.objects.filter",
+            "Position.objects.filter(site_id=claim.first_store_id).select_related",
+            "Role.objects.get",
+            "Sale.objects.values",
+            "SaleTender.objects.values",
+            "SiteGuard.objects.get",
+            "SohImport.objects.values",
+            "SohReconciliation.objects.values",
+            "Store.objects.get",
+            "User.objects.filter",
+            "User.objects.filter(tenant_id=claim.tenant_id, email=person['email']).first",
+            "ValueLeg.objects.values",
+            "fixture.get",
+            "os.environ.get",
+            "path.exists",
+            "read_shelf(guard.site).quantities.values"
+          ],
+          "write_candidates": [
+            "HumanIdentity.objects.create",
+            "RoleAssignment.objects.create",
+            "book.save",
+            "fixture.update",
+            "proof.save",
+            "value_book.save"
+          ],
+          "authorization_candidates": []
+        },
+        "primary_id": "P00",
+        "owner": "SO-02",
+        "related_ids": [
+          "A00",
+          "C01",
+          "C05",
+          "C06",
+          "C08"
+        ],
+        "lifecycle": "canonical",
+        "data_ownership": "Fictional supplier identity, policy and document inputs only on the isolated receiving sibling; ordinary governed API decisions preserve GRN, stock and approval IDs.",
+        "authorization": "Exact verified synthetic proof cluster/database/host/port/system ID and generated .example.test actors, current scoped API authority and private mode-0600 identity records; no real-tenant data or direct business writer.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "declared_metadata_only",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "unknown",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "access_contract": {
+          "trace_status": "pending",
+          "required_action": "Exact verified synthetic proof cluster/database/host/port/system ID and generated .example.test actors, current scoped API authority and private mode-0600 identity records; no real-tenant data or direct business writer.",
+          "reviewed_chain": "owned receiving wrapper -> generated fictional supplier/source/count fixture -> ordinary scoped current APIs and independent approval -> read-only before/after stock, invoice, document and approval checks."
+        },
+        "replacement": "Supported platform endpoints with security review",
+        "migration_requirements": "No business transaction migration.",
+        "acceptance_evidence": "docs/planning/kdps-first-store-qa-test-plan.md current revision-specific synthetic proof results; private .local/goal-alpha-20261003-*.log evidence.",
+        "removal_condition": "Retain while required by deployment; remove only through platform change review.",
+        "rule_id": "FIRST-STORE-096"
+      },
+      {
+        "kind": "operational_file",
+        "key": "operational_file:scripts/first-store-receiving-proof.py",
+        "source": "scripts/first-store-receiving-proof.py",
+        "detail": {
+          "format": ".py",
+          "imports": [],
+          "read_candidates": [
+            "RECORD.exists",
+            "archive.exists",
+            "credentials.get",
+            "credentials.get('browser_bootstrap', {}).get",
+            "credentials.get('rehearsal_identity', {}).get"
+          ],
+          "write_candidates": [],
+          "authorization_candidates": []
+        },
+        "primary_id": "P00",
+        "owner": "SO-02",
+        "related_ids": [
+          "A00",
+          "C05",
+          "C06",
+          "C08"
+        ],
+        "lifecycle": "canonical",
+        "data_ownership": "Clone only a completed owned ALPHA first-store sibling into a new receiving rehearsal database; preserve source, previous clones, credentials, business history and generated evidence.",
+        "authorization": "Exact verified synthetic proof cluster/database/host/port/system ID and generated .example.test actors, current scoped API authority and private mode-0600 identity records; no real-tenant data or direct business writer.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "declared_metadata_only",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "unknown",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "access_contract": {
+          "trace_status": "pending",
+          "required_action": "Exact verified synthetic proof cluster/database/host/port/system ID and generated .example.test actors, current scoped API authority and private mode-0600 identity records; no real-tenant data or direct business writer.",
+          "reviewed_chain": "verified first-store source -> exact cluster/registration check -> CREATE DATABASE TEMPLATE new owned sibling -> per-command isolated environment -> canonical receiving/SOH browser and read-only reconciliation."
+        },
+        "replacement": "Supported platform endpoints with security review",
+        "migration_requirements": "No business transaction migration.",
+        "acceptance_evidence": "docs/planning/kdps-first-store-qa-test-plan.md current revision-specific synthetic proof results; private .local/goal-alpha-20261003-*.log evidence.",
+        "removal_condition": "Retain while required by deployment; remove only through platform change review.",
+        "rule_id": "FIRST-STORE-095"
+      },
+      {
+        "kind": "operational_file",
+        "key": "operational_file:scripts/first-store-receiving-reconciliation-proof.py",
+        "source": "scripts/first-store-receiving-reconciliation-proof.py",
+        "detail": {
+          "format": ".py",
+          "imports": [
+            "core.gl",
+            "core.tenancy",
+            "inbound.goods_models",
+            "inbound.goods_services",
+            "outbound.goods_models",
+            "outbound.goods_soh_models",
+            "sell.cash_models",
+            "sell.models",
+            "stockledger.goods_models"
+          ],
+          "read_candidates": [
+            "(row := json.loads(line)).get",
+            "CashCount.objects.filter",
+            "CashCountBill.objects.filter",
+            "CashCountBill.objects.filter(count=saved).count",
+            "DamageReport.objects.filter",
+            "Disposition.objects.filter",
+            "GLEntry.objects.filter",
+            "GLEntry.objects.filter(doc_number=bill.doc_number).aggregate",
+            "GoodsGrn.objects.filter",
+            "Sale.objects.filter",
+            "SohReconciliation.objects.filter",
+            "ValueLeg.objects.filter",
+            "ValueLeg.objects.filter(batch_id__in=[row.journal_batch_id for row in closed], bucket='stock').aggregate",
+            "model.objects.values",
+            "model.objects.values('batch_id', 'pair_key').annotate"
+          ],
+          "write_candidates": [],
+          "authorization_candidates": []
+        },
+        "primary_id": "P00",
+        "owner": "SO-02",
+        "related_ids": [
+          "A00",
+          "C05",
+          "C06",
+          "C08",
+          "C10",
+          "C13"
+        ],
+        "lifecycle": "canonical",
+        "data_ownership": "Reads canonical receipt, source/count, stock position and quantity/value legs, sale/tender/cash and GL facts; writes only a private credential-free reconciliation report. Unvalued damaged intake and unexercised full-day closure remain explicit exclusions.",
+        "authorization": "Exact owned synthetic receiving sibling, sole completed ALPHA registration and current tenant context; read-only evidence with no business command or real-tenant access.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "declared_metadata_only",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "unknown",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "access_contract": {
+          "trace_status": "pending",
+          "required_action": "Verified owned receiving database, exact fictional company and tenant context; database reads only, no API permission substitution.",
+          "reviewed_chain": "first-store-receiving-proof verified wrapper -> first-store-receiving-fixture initialise/snapshot -> tenant-scoped Origin/Position/QuantityLeg/ValueLeg/GRN/disposition/damage/SOH/sale/cash/GL reads -> paise and quantity reconciliation against preserved browser before evidence."
+        },
+        "replacement": "Supported platform endpoints with security review",
+        "migration_requirements": "No business transaction migration.",
+        "acceptance_evidence": "docs/planning/kdps-first-store-qa-test-plan.md current case-level synthetic receiving results and private .local/goal-receiving-*.log evidence.",
+        "removal_condition": "Retain while required by deployment; remove only through platform change review.",
+        "rule_id": "FIRST-STORE-101"
       },
       {
         "kind": "operational_file",
@@ -329308,6 +330309,197 @@
         "acceptance_evidence": "Platform exposure and deployment checks.",
         "removal_condition": "Retain while required by deployment; remove only through platform change review.",
         "rule_id": "platform-operational-files"
+      },
+      {
+        "kind": "operational_file",
+        "key": "operational_file:scripts/first-store-transfer-fixture.py",
+        "source": "scripts/first-store-transfer-fixture.py",
+        "detail": {
+          "format": ".py",
+          "imports": [
+            "accounts.goods_models",
+            "accounts.models",
+            "accounts.registration_models",
+            "accounts.registration_services",
+            "approvals.goods_models",
+            "core.canonical",
+            "core.commands",
+            "core.documents",
+            "core.fiscal",
+            "core.kernel_models",
+            "core.numbering",
+            "core.tenancy",
+            "finledger.models",
+            "masters.goods_models",
+            "masters.models",
+            "outbound.goods_models",
+            "sell.models",
+            "sell.services.goods_stock",
+            "stockledger.goods_models"
+          ],
+          "read_candidates": [
+            "ActiveReservation.objects.count",
+            "ApprovalRequest.objects.get",
+            "AuditEvent.objects.filter",
+            "CashLedgerEntry.objects.values",
+            "ConfigVersion.objects.filter",
+            "ConfigVersion.objects.filter(draft_id=draft['id']).first",
+            "ConfigVersion.objects.get",
+            "InstallationRegistration.objects.select_related",
+            "InstallationRegistration.objects.select_related('tenant').get",
+            "JournalBatch.objects.values",
+            "Origin.objects.get",
+            "Origin.objects.values",
+            "Position.objects.select_related",
+            "PrivilegedReview.objects.filter",
+            "PrivilegedReview.objects.filter(audit_event=event, reviewer_id=User.objects.get(email=record['admin']['email']).human_id).exists",
+            "Sale.objects.values",
+            "SaleTender.objects.values",
+            "ServerSession.objects.select_for_update",
+            "ServerSession.objects.select_for_update().get",
+            "SiteGuard.objects.values_list",
+            "Store.objects.get",
+            "Store.objects.select_related",
+            "Store.objects.select_related('gstin').get",
+            "TillPause.objects.filter",
+            "TillPause.objects.filter(till__store_id=claim.first_store_id, resumed_at__isnull=True).exists",
+            "TransferEvent.objects.filter",
+            "TransferEvent.objects.filter(transfer_id=transfer_id).order_by('recorded_at', 'pk').values",
+            "User.objects.filter",
+            "User.objects.filter(email=person['email']).first",
+            "User.objects.get",
+            "ValueLeg.objects.values",
+            "VoucherSeries.objects.get",
+            "body.get",
+            "event.get",
+            "os.environ.get",
+            "read_shelf(destination).quantities.values",
+            "read_shelf(source).quantities.values"
+          ],
+          "write_candidates": [
+            "fixture.update",
+            "proof.save",
+            "session.save"
+          ],
+          "authorization_candidates": []
+        },
+        "primary_id": "P00",
+        "owner": "SO-02",
+        "related_ids": [
+          "A00",
+          "C01",
+          "C06",
+          "C07",
+          "C10"
+        ],
+        "lifecycle": "canonical",
+        "data_ownership": "Fictional destination site, staff and versioned route inputs on the isolated transfer sibling; ordinary transfer, dispatch and receipt APIs retain original stock origin and cost.",
+        "authorization": "Exact verified synthetic proof cluster/database/host/port/system ID and generated .example.test actors, current scoped API authority and private mode-0600 identity records; no real-tenant data or direct business writer.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "declared_metadata_only",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "unknown",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "access_contract": {
+          "trace_status": "pending",
+          "required_action": "Exact verified synthetic proof cluster/database/host/port/system ID and generated .example.test actors, current scoped API authority and private mode-0600 identity records; no real-tenant data or direct business writer.",
+          "reviewed_chain": "owned transfer wrapper -> generated fictional destination, staff and policy fixture -> ordinary scoped API and independent reviews -> read-only source/in-transit/destination/cost and money checks."
+        },
+        "replacement": "Supported platform endpoints with security review",
+        "migration_requirements": "No business transaction migration.",
+        "acceptance_evidence": "docs/planning/kdps-first-store-qa-test-plan.md current revision-specific synthetic proof results; private .local/goal-alpha-20261003-*.log evidence.",
+        "removal_condition": "Retain while required by deployment; remove only through platform change review.",
+        "rule_id": "FIRST-STORE-098"
+      },
+      {
+        "kind": "operational_file",
+        "key": "operational_file:scripts/first-store-transfer-proof.py",
+        "source": "scripts/first-store-transfer-proof.py",
+        "detail": {
+          "format": ".py",
+          "imports": [],
+          "read_candidates": [
+            "RECORD.exists",
+            "archive.exists",
+            "credentials.get",
+            "credentials.get('browser_bootstrap', {}).get",
+            "credentials.get('rehearsal_identity', {}).get"
+          ],
+          "write_candidates": [],
+          "authorization_candidates": []
+        },
+        "primary_id": "P00",
+        "owner": "SO-02",
+        "related_ids": [
+          "A00",
+          "C06",
+          "C07",
+          "C10"
+        ],
+        "lifecycle": "canonical",
+        "data_ownership": "Clone only a completed owned ALPHA first-store sibling into a new transfer rehearsal database; preserve source, prior clones and business evidence.",
+        "authorization": "Exact verified synthetic proof cluster/database/host/port/system ID and generated .example.test actors, current scoped API authority and private mode-0600 identity records; no real-tenant data or direct business writer.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "declared_metadata_only",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "unknown",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "access_contract": {
+          "trace_status": "pending",
+          "required_action": "Exact verified synthetic proof cluster/database/host/port/system ID and generated .example.test actors, current scoped API authority and private mode-0600 identity records; no real-tenant data or direct business writer.",
+          "reviewed_chain": "verified first-store source -> exact cluster/registration check -> CREATE DATABASE TEMPLATE new owned sibling -> per-command isolated environment -> canonical transfer browser/reconciliation."
+        },
+        "replacement": "Supported platform endpoints with security review",
+        "migration_requirements": "No business transaction migration.",
+        "acceptance_evidence": "docs/planning/kdps-first-store-qa-test-plan.md current revision-specific synthetic proof results; private .local/goal-alpha-20261003-*.log evidence.",
+        "removal_condition": "Retain while required by deployment; remove only through platform change review.",
+        "rule_id": "FIRST-STORE-097"
       },
       {
         "kind": "operational_file",
@@ -329926,6 +331118,66 @@
         "acceptance_evidence": "Platform exposure and deployment checks.",
         "removal_condition": "Retain while required by deployment; remove only through platform change review.",
         "rule_id": "platform-operational-files"
+      },
+      {
+        "kind": "operational_file",
+        "key": "operational_file:scripts/test_first_store_commercial_proof.py",
+        "source": "scripts/test_first_store_commercial_proof.py",
+        "detail": {
+          "format": ".py",
+          "imports": [],
+          "read_candidates": [],
+          "write_candidates": [],
+          "authorization_candidates": []
+        },
+        "primary_id": "P00",
+        "owner": "SO-02",
+        "related_ids": [
+          "A00",
+          "C03",
+          "C10"
+        ],
+        "lifecycle": "canonical",
+        "data_ownership": "No business data writer; tests malformed/unowned identity records before commercial fixture execution.",
+        "authorization": "Pure structural denial tests for the isolated commercial proof identity; no database write or business authority.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "declared_metadata_only",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "unknown",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "access_contract": {
+          "trace_status": "pending",
+          "required_action": "Pure structural denial tests for the isolated commercial proof identity; no database write or business authority.",
+          "reviewed_chain": "unit identity fixtures -> first-store-commercial-proof guard -> refuse wrong database/system/host/user/port without querying or writing a tenant."
+        },
+        "replacement": "Supported platform endpoints with security review",
+        "migration_requirements": "No business transaction migration.",
+        "acceptance_evidence": "docs/planning/kdps-first-store-qa-test-plan.md current revision-specific synthetic proof results; private .local/goal-alpha-20261003-*.log evidence.",
+        "removal_condition": "Retain while required by deployment; remove only through platform change review.",
+        "rule_id": "FIRST-STORE-099"
       },
       {
         "kind": "operational_file",
@@ -330721,11 +331973,11 @@
       },
       {
         "kind": "print_output",
-        "key": "print_output:frontend/src/pages/sell/CustomerSearch.tsx:ecd8f3f87839",
+        "key": "print_output:frontend/src/pages/sell/CustomerSearch.tsx:c33606532618",
         "source": "frontend/src/pages/sell/CustomerSearch.tsx",
         "detail": {
           "invocation": "browserPrintAdapter.print",
-          "argument": "postedReceiptHtml(bill)",
+          "argument": "postedReceiptHtml(current)",
           "data_dependency": "dynamic",
           "delivery": "browser_print"
         },
@@ -330751,6 +332003,7 @@
           "local_component_keys": [],
           "candidate_model_keys": [],
           "frontend_api_callsites": [
+            "api_consumer:frontend/src/pages/sell/CustomerSearch.tsx:415023097f47",
             "api_consumer:frontend/src/pages/sell/CustomerSearch.tsx:9ad5895846e6",
             "api_consumer:frontend/src/pages/sell/CustomerSearch.tsx:dad51a388655"
           ],
@@ -330782,7 +332035,7 @@
         "migration_requirements": "Use one bill/return and central stock source; map held and final bills, device IDs, number blocks, tenders, exchanged/returned pieces and replay keys without reissuing transactions.",
         "acceptance_evidence": "Prove offline lease, restart/reconnect, no duplicate effects and role/field protection before removing duplicate stock/till bridges.",
         "removal_condition": "Prove offline lease, restart/reconnect, no duplicate effects and role/field protection before removing duplicate stock/till bridges.",
-        "gate": "SO-09 must trace this print payload to its authorised source and prove protected-field projection before browser printing.",
+        "gate": "SO-09 must trace this print payload to its authorised source and prove protected-field projection before browser printing. Interim safety (4 October 2026): the payload is now a fresh exact-bill read at print time, not the cached Open copy; the SO-09 trace and projection proof remain required.",
         "rule_id": "F0019"
       },
       {
@@ -334521,10 +335774,13 @@
         },
         "primary_id": "C05",
         "owner": "SO-07",
-        "related_ids": [],
+        "related_ids": [
+          "A00",
+          "C06"
+        ],
         "lifecycle": "canonical",
-        "data_ownership": "Tenant-owned goods receiving/PT evidence with legacy receiving history",
-        "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
+        "data_ownership": "Presentation only: shows positive-remaining PTs and unfinished zero-remaining sessions; Finish uses the existing acceptance session and does not rescan goods.",
+        "authorization": "Current stock.accept on tenant/site/source brand, enforced by the API for each work row and again by the E139 session commands.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [],
@@ -334557,17 +335813,12 @@
         },
         "access_contract": {
           "trace_status": "pending",
-          "actor_type": "unreviewed",
-          "required_action": "unreviewed",
-          "scope_source": "unreviewed",
-          "protected_fields": "unreviewed",
-          "delivery_recheck": "unreviewed",
-          "named_tests": [],
-          "reviewed_chain": "Static candidates do not establish runtime access coverage."
+          "required_action": "stock.accept on current tenant/site/source brand; no UI-only authority decision.",
+          "reviewed_chain": "GoodsAccept -> GET pending-acceptance -> scoped PendingAcceptanceView -> read-only goods_acceptance.pending_acceptance -> E139 resume/complete under current AccessContext and SiteGuard."
         },
         "replacement": "`/goods/receive/*`, `/goods/pt-work`, `/goods/labels` retain receiving, PT and labels. Old `/goods/arrivals`, `/goods/receipts`, `/goods/accept`, `/goods/pt/prepare`, `/goods/pt/approvals` are bookmark redirects",
         "migration_requirements": "Map arrival, claimed invoice, count, GRN, PT rows, number, cost basis, label jobs and approval evidence with source IDs.",
-        "acceptance_evidence": "Reconcile physical count and official value once; prove history and separate-person approval before removing separate screens or old write services.",
+        "acceptance_evidence": "backend/tests/test_first_store_acceptance_resume.py; four-width first-store bootstrap browser result.",
         "removal_condition": "Reconcile physical count and official value once; prove history and separate-person approval before removing separate screens or old write services.",
         "rule_id": "S2699"
       },
@@ -338609,6 +339860,7 @@
           "local_component_keys": [],
           "candidate_model_keys": [],
           "frontend_api_callsites": [
+            "api_consumer:frontend/src/pages/sell/CustomerSearch.tsx:415023097f47",
             "api_consumer:frontend/src/pages/sell/CustomerSearch.tsx:9ad5895846e6",
             "api_consumer:frontend/src/pages/sell/CustomerSearch.tsx:dad51a388655"
           ],

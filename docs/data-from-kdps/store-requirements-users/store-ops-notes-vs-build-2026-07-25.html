@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Store Ops Notes (25 July) — As Received vs What's Built / Planned</title>
+<style>
+  :root{
+    --navy:#1f2d4d; --navy2:#2c3e63; --rust:#c4623f; --rust-soft:#e8a07f;
+    --ink:#222; --muted:#6b7280; --line:#e3e6ec; --bg:#f7f8fa; --card:#fff;
+    --green:#1f7a4d; --green-bg:#e7f4ee; --amber:#9a6700; --amber-bg:#fdf3da;
+    --blue:#1e5fa8; --blue-bg:#e6f0fb; --grey-bg:#eef0f4;
+    --purple:#6b3fb0; --purple-bg:#efe7fb; --red:#a32a2a; --red-bg:#fde8e8;
+    --maxw:960px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--bg); color:var(--ink);
+    font:16px/1.62 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}
+  main{max-width:var(--maxw); margin:0 auto; padding:38px 34px 110px}
+  @media(max-width:700px){ main{padding:22px 16px 80px} }
+  header.doc{border-bottom:3px solid var(--rust); padding-bottom:20px; margin-bottom:22px}
+  .eyebrow{color:var(--rust); font-weight:700; letter-spacing:.14em; text-transform:uppercase; font-size:12px}
+  h1{font-size:28px; line-height:1.22; margin:8px 0 6px; color:var(--navy)}
+  .sub{color:var(--muted); font-size:15px; max-width:70ch}
+  .stamp{font-size:12.5px; color:var(--muted); margin-top:8px}
+  section{margin:36px 0}
+  h2{font-size:20px; color:var(--navy); border-left:4px solid var(--rust); padding-left:12px; margin:0 0 14px}
+  h3{font-size:16px; color:var(--navy2); margin:22px 0 7px}
+  p{margin:9px 0}
+  .badge{display:inline-block; font-size:11px; font-weight:700; letter-spacing:.04em; padding:2px 9px; border-radius:999px; vertical-align:middle; white-space:nowrap}
+  .b-built{background:var(--green-bg); color:var(--green)}
+  .b-part{background:var(--blue-bg); color:var(--blue)}
+  .b-not{background:var(--amber-bg); color:var(--amber)}
+  .b-def{background:var(--red-bg); color:var(--red)}
+  .b-new{background:var(--purple-bg); color:var(--purple)}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:15px 17px; margin:12px 0; box-shadow:0 1px 2px rgba(20,30,60,.04)}
+  .callout{border-radius:12px; padding:13px 16px; margin:13px 0; border:1px solid}
+  .co-key{background:var(--blue-bg); border-color:#bcd6f3}
+  .co-warn{background:var(--amber-bg); border-color:#ecd9a6}
+  .callout strong{color:var(--navy)}
+  table{width:100%; border-collapse:collapse; margin:13px 0; font-size:13.5px; background:#fff; border:1px solid var(--line); border-radius:10px; overflow:hidden}
+  th{background:var(--navy); color:#fff; text-align:left; padding:9px 11px; font-size:12.5px}
+  td{padding:9px 11px; border-top:1px solid var(--line); vertical-align:top}
+  tr:nth-child(even) td{background:#fafbfc}
+  ul,ol{margin:8px 0; padding-left:22px} li{margin:5px 0}
+  .photos{display:flex; gap:14px; flex-wrap:wrap; margin:14px 0}
+  .photos figure{flex:1 1 300px; margin:0}
+  .photos img{width:100%; border:1px solid var(--line); border-radius:12px; display:block}
+  .photos figcaption{font-size:12.5px; color:var(--muted); margin-top:6px; text-align:center}
+  .transcript{background:#fffdf5; border:1px solid #eee2b8; border-radius:12px; padding:15px 18px; margin:12px 0; font-size:14.5px}
+  .transcript h4{margin:12px 0 4px; font-size:14px; color:var(--navy)}
+  .transcript h4:first-child{margin-top:0}
+  .transcript ul{margin:4px 0}
+  .strike{text-decoration:line-through; color:var(--muted)}
+  .note{color:var(--muted); font-style:italic}
+  footer{margin-top:50px; padding-top:18px; border-top:1px solid var(--line); color:var(--muted); font-size:12.5px}
+</style>
+</head>
+<body>
+<main>
+
+<header class="doc">
+  <div class="eyebrow">Requirement received · Store operations</div>
+  <h1>Store Ops notes (25 July) — as received vs what's built / planned</h1>
+  <p class="sub">Two handwritten notebook pages listing the seven screens a store expects to work with, and what each screen should do. Transcribed exactly, then checked item by item against the current build and the locked design decisions.</p>
+  <div class="stamp">Received 25 July 2026 · Analysed 25 July 2026 · Second requirement note from the stores — the first was the 30 June store-app note in this same folder.</div>
+</header>
+
+<section>
+<h2>1 · The notes, exactly as received</h2>
+
+<div class="photos">
+  <figure>
+    <img src="store-ops-notes-2026-07-25-p1.png" alt="Page 1 — Store Ops screen list, Sell, Inventory, Item Search">
+    <figcaption>Page 1 — the screen list, Inventory and Item Search detail</figcaption>
+  </figure>
+  <figure>
+    <img src="store-ops-notes-2026-07-25-p2.png" alt="Page 2 — Attendance, Customer Search, Member Details, Reports">
+    <figcaption>Page 2 — Attendance, Customer Search, Member Details, Reports</figcaption>
+  </figure>
+</div>
+
+<div class="transcript">
+  <h4>Store Ops — the seven screens</h4>
+  <ol>
+    <li>Sell</li>
+    <li>Inventory <span class="note">(first written "Reports", corrected)</span></li>
+    <li>Reports</li>
+    <li>Barcode search / item search</li>
+    <li>Attendance</li>
+    <li>Customer search</li>
+    <li>Member details</li>
+  </ol>
+
+  <h4>Sell</h4>
+  <ul><li>"Interface" — noted as a heading, detail not written out on these pages.</li></ul>
+
+  <h4>Inventory</h4>
+  <ul>
+    <li>Stock receive</li>
+    <li>Stock transfer</li>
+    <li><span class="strike">one line crossed out</span></li>
+    <li>Voucher search</li>
+    <li>PT file generation — bracketed with: Invoice upload (Madura), Booking</li>
+  </ul>
+
+  <h4>Item search</h4>
+  <ul>
+    <li>Search item</li>
+    <li>Search barcode</li>
+    <li>Search brand</li>
+  </ul>
+
+  <h4>Attendance</h4>
+  <ul>
+    <li>Post attendance with biometric</li>
+    <li>View attendance (leave, delays, etc.)</li>
+    <li>Send attendance</li>
+  </ul>
+
+  <h4>Customer search</h4>
+  <ul>
+    <li>Search by name, phone number, or bill number</li>
+    <li>After search, the bill opens in the sell interface with details</li>
+    <li><strong>Can re-print only</strong> — no editing of a past bill</li>
+  </ul>
+
+  <h4>Member details</h4>
+  <ul>
+    <li>Add / remove members</li>
+    <li>Update members — contact details, bank details</li>
+    <li>Members' monthly target</li>
+    <li>Members' monthly achievement</li>
+    <li>Growth / de-growth</li>
+    <li>Show members with picture</li>
+  </ul>
+
+  <h4>Reports</h4>
+  <ul>
+    <li>Stock report</li>
+    <li>Sales report</li>
+    <li>Member-wise report</li>
+    <li>Item-wise report</li>
+    <li>Date-range sales report</li>
+    <li>etc.</li>
+  </ul>
+</div>
+
+<div class="callout co-key">
+  <p><strong>What this note is.</strong> It reads as a store's-eye map of the daily app — what a store manager and staff expect to open every day. It is a requirements input, not a design. The good news: most of it is either already built or already designed; only two items genuinely fall outside current decisions (staff targets, biometric attendance).</p>
+</div>
+</section>
+
+<section>
+<h2>2 · Item by item — where each one stands</h2>
+
+<table>
+  <tr><th style="width:24%">Asked for</th><th style="width:14%">Status</th><th>Where it stands today</th></tr>
+
+  <tr>
+    <td><strong>Sell</strong> (screen no. 1)</td>
+    <td><span class="badge b-not">Not built</span></td>
+    <td>Selling / POS is the biggest unbuilt piece. Decision stands: sell through Ten Software first, with our own POS proven at one store, one counter. The stores putting "Sell" first on their list confirms it should be the next major slice.</td>
+  </tr>
+
+  <tr>
+    <td><strong>Inventory — stock receive</strong></td>
+    <td><span class="badge b-built">Built</span></td>
+    <td>Goods inward (GRN) is live in the alpha — receiving against a booking, and direct receipt without a booking.</td>
+  </tr>
+
+  <tr>
+    <td><strong>Inventory — stock transfer</strong></td>
+    <td><span class="badge b-built">Built</span></td>
+    <td>Scan-based store transfer merged in July (wedge scanner, scan-is-truth). Later transfer slices are still in progress, but the store-side flow exists.</td>
+  </tr>
+
+  <tr>
+    <td><strong>Voucher search</strong></td>
+    <td><span class="badge b-built">Built</span></td>
+    <td>The global search shipped this month — one search box in the top bar that finds vouchers, items and barcodes.</td>
+  </tr>
+
+  <tr>
+    <td><strong>PT file generation + invoice upload (Madura)</strong></td>
+    <td><span class="badge b-part">Partly built</span></td>
+    <td>The PT-mapper is live for brand PT files (Madura is one of its nine brand profiles). Making a PT for non-brand goods is <strong>live too</strong> — it merged on 3 July, together with the inbound queue that links a goods receipt to its PT, and auto-pricing. The mapper also learns from operator corrections now. Turning a raw <em>invoice</em> into a PT inside the app is not built — that is still the separate weekly tool. <span class="note">(Corrected 25 July 2026: this row previously said non-brand PT making was sitting on an unmerged branch. It was, in early July; it landed on the 3rd. The branches still on the server are stale copies of merged work.)</span></td>
+  </tr>
+
+  <tr>
+    <td><strong>Booking</strong></td>
+    <td><span class="badge b-built">Built</span></td>
+    <td>The Bookings screen is live in the alpha.</td>
+  </tr>
+
+  <tr>
+    <td><strong>Item search — by item, barcode, brand</strong></td>
+    <td><span class="badge b-built">Built</span></td>
+    <td>Covered by the same global search. Barcode behaves per the locked decision: a scan alias, with stock counted under it.</td>
+  </tr>
+
+  <tr>
+    <td><strong>Attendance</strong> (with biometric)</td>
+    <td><span class="badge b-def">Deferred</span></td>
+    <td>Attendance &amp; payroll was consciously deferred, to revisit before go-live. This note asks for it again, now with a biometric device. That is a decision to make, not a build gap — see below.</td>
+  </tr>
+
+  <tr>
+    <td><strong>Customer search → re-print only</strong></td>
+    <td><span class="badge b-not">Not built</span></td>
+    <td>Hangs off the Sell screen, so it comes with the POS slice. The pleasant surprise: the stores themselves wrote "can re-print only" — no editing of a past bill. That is exactly the append-only rule the system is built on. Store expectation and system rule agree.</td>
+  </tr>
+
+  <tr>
+    <td><strong>Member details — add / remove / update staff</strong></td>
+    <td><span class="badge b-built">Built</span></td>
+    <td>Landed this week: members are staff, and the store manager keeps them — add, remove and update from the store screen.</td>
+  </tr>
+
+  <tr>
+    <td><strong>Member targets, achievement, growth, photo</strong></td>
+    <td><span class="badge b-new">New ask</span></td>
+    <td>Monthly target per staff member, achievement against it, growth versus last month, and a staff photo — none of this exists in the design corpus. It is a small, sensible feature, but it needs a decision on who sets targets and what counts as achievement (bills rung by that member).</td>
+  </tr>
+
+  <tr>
+    <td><strong>Reports</strong> (stock, sales, member-wise, item-wise, date-range)</td>
+    <td><span class="badge b-not">Designed, not built</span></td>
+    <td>All five are ordinary reads of ledgers the system already keeps (stock ledger, sales once POS exists). The analytics layer design covers them; nothing here contradicts it. Member-wise sales depends on the same "who rung the bill" question as targets above.</td>
+  </tr>
+</table>
+</section>
+
+<section>
+<h2>3 · What this changes — two calls to make, one confirmation</h2>
+
+<div class="card">
+  <h3>Call 1 — Attendance: hold the deferral or pull it forward?</h3>
+  <p>The project decision was to defer attendance &amp; payroll until before go-live. The stores have now asked twice (30 June note, and again here — with a biometric device this time). Options: hold the line, or pull forward a thin attendance-only slice (mark in / mark out, view leaves and delays) and keep payroll deferred. A biometric device is an external with lead time — if it is ever wanted, the spike should start early, like the other externals.</p>
+</div>
+
+<div class="card">
+  <h3>Call 2 — Staff targets and achievement: design it or park it</h3>
+  <p>Targets per member, achievement, growth/de-growth and photos are a genuinely new requirement. It touches two things: the staff record (photo, target — easy) and the sale record (each bill must carry <em>who sold it</em> — that must be decided <strong>before</strong> the POS slice is designed, or member-wise reporting will never have the data). Recommendation: park the screen, but lock "every sale records the salesperson" into the POS spec now.</p>
+</div>
+
+<div class="callout co-warn">
+  <p><strong>Confirmation worth keeping.</strong> "After search → re-print only" is the stores independently describing the append-only rule. When POS is specced, quote this note — it is evidence the ground already accepts no-edit-after-billing, which is the rule most likely to face pushback.</p>
+</div>
+</section>
+
+<section>
+<h2>4 · One-line summary</h2>
+<p>Of the seven screens the stores asked for, four are already live, two (Sell and Reports) are designed and waiting on the POS slice, and only two items need a decision — whether to pull attendance forward, and whether to record the salesperson on every bill so staff targets become possible later. Nothing in the note contradicts the design.</p>
+</section>
+
+<footer>
+  Source photos: this folder, pages one and two dated 25 July 2026. Companion to the 30 June store-app requirement note. Build status as of 25 July 2026.
+</footer>
+
+</main>
+</body>
+</html>

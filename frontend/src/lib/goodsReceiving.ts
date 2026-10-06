@@ -325,6 +325,7 @@ export interface Comparison {
   claimed_qty: number;
   counted_qty: number;
   difference: number;
+  remaining_shortage_qty: number;
   line_keys: string[];
 }
 
@@ -707,6 +708,9 @@ export interface InboxItem {
   pt_ids?: string[];
   official_version_id: string | null;
   acceptance_session_id: string | null;
+  /** Canonical transfer/dispatch identities projected by the scoped receiving inbox. */
+  transfer_id?: string | null;
+  dispatch_id?: string | null;
   /** The bill line a customer return came back on (OPS-09). Null on the other
    *  two kinds, so all three rows are one shape. */
   sale_line_id?: string | null;
@@ -717,6 +721,17 @@ export interface InboxItem {
   booking_number?: string | null;
   booking_booked_qty?: number | null;
   booking_received_qty?: number | null;
+}
+
+/** Receiving opens the retained transfer workflow using its stable server identity.
+ * A legacy dispatch bookmark still resolves through the scoped inbox first. */
+export function transferReceivingPath(
+  item: Pick<InboxItem, "kind" | "transfer_id">,
+): string | null {
+  if (item.kind !== "transfer_dispatch" || !item.transfer_id) return null;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(item.transfer_id))
+    return null;
+  return `/goods/transfers/${encodeURIComponent(item.transfer_id)}`;
 }
 
 /** "Booking B-104: 80 of 100 received" - the one sentence the Pending row and the

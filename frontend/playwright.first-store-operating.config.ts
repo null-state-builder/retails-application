@@ -13,6 +13,7 @@ export default defineConfig({
   outputDir: "../.local/first-store-operating-browser",
   use: {
     ...devices["Desktop Chrome"],
+    channel: process.env.PLAYWRIGHT_USE_CHROME ? "chrome" : undefined,
     baseURL: "http://127.0.0.1:5180",
     trace: "off",
     video: "off",

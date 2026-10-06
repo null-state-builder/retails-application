@@ -13,10 +13,10 @@ from datetime import datetime
 from typing import Any
 
 from django.db.models import Q
-from django.utils import timezone
 
 from accounts.goods_models import RoleAssignment
 from accounts.sections import CAP_VIEW, meets
+from core.commands import database_now
 from core.tenancy import require_tenant_id
 
 INITIAL_ROLE_CODES = frozenset(
@@ -45,7 +45,7 @@ def effective_assignments(
     assignment harmless if it was created with an empty selected scope.
     """
 
-    moment = at or timezone.now()
+    moment = at or database_now()
     rows: Any = (
         RoleAssignment.objects.select_related("role", "human")
         .filter(

@@ -64,22 +64,22 @@ The machine inventory assigns each mounted API method and URL module one primary
 `/api/health`, `/api/schema` and `/api/docs` are platform surfaces. The optional Django `/admin` exposes business and access models when enabled, so every discovered admin method is unresolved until SO-03/SO-02 proves it disabled in deployment or enforces the unified tenant, scope, field and write guards per model. Its presence in the P00 inventory is not access approval.
 
 <!-- BEGIN GENERATED SO-03 COVERAGE -->
-The [machine-readable inventory](so-03-consolidation-inventory.json) records every discovered entrypoint and component, its primary retirement owner, lifecycle, data ownership, authorization, callers, replacement, evidence and removal condition. Its structural checksum is `7bdba51d068271c90f82a6ad0bf24430033fb741ace6aa68fedb955a9117e279`. Temporary APIs without a statically named frontend consumer carry an explicit trace gate in the inventory. The counts below are generated from that same snapshot; they are coverage, not completion proof.
+The [machine-readable inventory](so-03-consolidation-inventory.json) records every discovered entrypoint and component, its primary retirement owner, lifecycle, data ownership, authorization, callers, replacement, evidence and removal condition. Its structural checksum is `91448a006be581b11c95701701cf8e04e2268882eb4ab872831f43ac8cd118f4`. Temporary APIs without a statically named frontend consumer carry an explicit trace gate in the inventory. The counts below are generated from that same snapshot; they are coverage, not completion proof.
 
 | Retirement item / owner | Discovered surfaces by kind | Unresolved | Untraced temporary APIs |
 | --- | --- | ---: | ---: |
 | A00 · SO-03 | api: 36, api_consumer: 36, bookmark: 4, command: 6, middleware: 2, migration: 31, model: 13, module: 53, navigation: 2, screen: 3 | 9 | 0 |
-| P00 · SO-02 | api: 205, api_consumer: 13, command: 2, job_handler: 1, middleware: 9, migration: 12, model: 30, module: 46, navigation: 1, operational_file: 44, screen: 1 | 214 | 0 |
+| P00 · SO-02 | api: 205, api_consumer: 13, command: 2, job_handler: 1, middleware: 9, migration: 12, model: 30, module: 46, navigation: 1, operational_file: 53, screen: 1 | 214 | 0 |
 | C01 · SO-04 | api: 121, api_consumer: 129, bookmark: 5, command: 1, migration: 27, model: 34, module: 33, navigation: 11, screen: 12 | 10 | 12 |
 | C02 · SO-05 | api: 9, api_consumer: 7, command: 2, migration: 7, model: 4, module: 5, navigation: 2, screen: 2 | 0 | 2 |
 | C03 · SO-06 | api: 23, api_consumer: 20, bookmark: 4, command: 3, migration: 11, model: 9, module: 28, navigation: 11, scheduled_job: 2, screen: 12 | 11 | 0 |
 | C04 · SO-07 | api: 14, api_consumer: 12, bookmark: 2, migration: 13, model: 8, module: 18, navigation: 3, screen: 3 | 0 | 2 |
-| C05 · SO-07 | api: 55, api_consumer: 75, bookmark: 5, command: 1, migration: 32, model: 24, module: 41, navigation: 6, print_output: 2, screen: 6, subview: 1 | 14 | 0 |
+| C05 · SO-07 | api: 55, api_consumer: 76, bookmark: 5, command: 1, migration: 32, model: 24, module: 41, navigation: 6, print_output: 2, screen: 6, subview: 1 | 14 | 0 |
 | C06 · SO-08 | api: 51, api_consumer: 41, bookmark: 2, command: 1, migration: 31, model: 29, module: 30, navigation: 12, screen: 11 | 5 | 4 |
 | C07 · SO-08 | api: 49, api_consumer: 29, bookmark: 3, command: 2, migration: 26, model: 20, module: 29, navigation: 8, print_output: 2, screen: 13 | 4 | 12 |
 | C08 · SO-08 | api: 46, api_consumer: 39, bookmark: 4, command: 2, migration: 9, model: 19, module: 16, navigation: 6, scheduled_job: 2, screen: 13 | 2 | 8 |
 | C09 · SO-08 | api: 7, api_consumer: 10, bookmark: 1, migration: 3, model: 3, module: 3, navigation: 3, screen: 3 | 6 | 3 |
-| C10 · SO-09 | api: 39, api_consumer: 43, bookmark: 4, client_module: 49, command: 3, display_window: 1, migration: 38, model: 28, module: 52, navigation: 7, print_output: 3, scheduled_job: 1, screen: 6, signal_receiver: 4 | 55 | 0 |
+| C10 · SO-09 | api: 39, api_consumer: 44, bookmark: 4, client_module: 49, command: 3, display_window: 1, migration: 38, model: 28, module: 52, navigation: 7, print_output: 3, scheduled_job: 1, screen: 6, signal_receiver: 4 | 55 | 0 |
 | C11 · SO-10 | api: 2, api_consumer: 2, command: 1, migration: 8, model: 5, module: 10, navigation: 3, screen: 4 | 0 | 0 |
 | C12 · SO-11 | api: 23, api_consumer: 10, migration: 4, model: 7, module: 9, navigation: 3, print_output: 2, scheduled_job: 1, screen: 3 | 5 | 16 |
 | C13 · SO-12 | api: 42, api_consumer: 30, bookmark: 6, migration: 14, model: 16, module: 25, navigation: 15, print_output: 1, screen: 17 | 16 | 0 |
@@ -456,7 +456,7 @@ Unresolved surfaces stay gated under their named owner:
 | `print_output:frontend/src/pages/TransferDocumentPrint.tsx:8447c46a3bae` | SO-08 | SO-08 must trace this print payload to its authorised source and prove protected-field projection before browser printing. |
 | `print_output:frontend/src/pages/sell/Billing.tsx:09cfd9576abf` | SO-09 | SO-09 must trace this print payload to its authorised source and prove protected-field projection before browser printing. |
 | `print_output:frontend/src/pages/sell/Bills.tsx:f888fb4b627e` | SO-09 | SO-09 must trace this print payload to its authorised source and prove protected-field projection before browser printing. |
-| `print_output:frontend/src/pages/sell/CustomerSearch.tsx:ecd8f3f87839` | SO-09 | SO-09 must trace this print payload to its authorised source and prove protected-field projection before browser printing. |
+| `print_output:frontend/src/pages/sell/CustomerSearch.tsx:c33606532618` | SO-09 | SO-09 must trace this print payload to its authorised source and prove protected-field projection before browser printing. Interim safety (4 October 2026): the payload is now a fresh exact-bill read at print time, not the cached Open copy; the SO-09 trace and projection proof remain required. |
 | `screen:/money/collections` | SO-12 | Implement and test the planned route and server access. |
 | `screen:/money/expenses` | SO-12 | Implement and test the planned route and server access. |
 | `screen:/money/payments` | SO-12 | Implement and test the planned route and server access. |

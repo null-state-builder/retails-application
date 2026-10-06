@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JSL Store — What to Buy for Winter 2026</title>
+<style>
+  :root{
+    --ink:#16233d; --ink2:#33415c; --muted:#6b7488; --line:#e6e3dc;
+    --paper:#f7f6f2; --card:#ffffff; --gold:#b8860b; --gold-soft:#f3ead2;
+    --red:#b5341f; --red-soft:#fbeae6; --green:#1f7a4d; --green-soft:#e7f3ec;
+    --blue:#2b5b8c; --blue-soft:#e9f0f7; --amber:#b9791a; --amber-soft:#fbf0dd;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1040px;margin:0 auto;padding:0 22px}
+  h1,h2,h3{line-height:1.2;margin:0}
+  .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+
+  /* header */
+  header{background:linear-gradient(135deg,#16233d 0%,#243a5e 100%);color:#fff;padding:46px 0 38px}
+  header .kick{letter-spacing:.18em;text-transform:uppercase;font-size:12px;color:#c7d2e2;font-weight:600}
+  header h1{font-size:33px;margin:10px 0 6px;font-weight:700}
+  header .sub{color:#cfd9e8;font-size:15px;max-width:760px}
+  header .meta{margin-top:18px;display:flex;flex-wrap:wrap;gap:10px;font-size:12.5px}
+  header .meta span{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);
+    padding:5px 11px;border-radius:20px;color:#e8eef6}
+
+  section{padding:34px 0;border-bottom:1px solid var(--line)}
+  .eyebrow{display:inline-block;letter-spacing:.13em;text-transform:uppercase;font-size:11.5px;
+    font-weight:700;color:var(--gold);margin-bottom:8px}
+  h2{font-size:23px;margin-bottom:6px}
+  .lead{color:var(--ink2);font-size:15.5px;max-width:780px}
+  p{color:var(--ink2);font-size:14.5px}
+
+  /* kpi cards */
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:8px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 16px 14px;
+    box-shadow:0 1px 2px rgba(20,33,61,.04)}
+  .kpi .lab{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600}
+  .kpi .big{font-size:27px;font-weight:700;margin-top:5px;letter-spacing:-.5px}
+  .kpi .note{font-size:12.5px;color:var(--muted);margin-top:3px}
+  .kpi.good .big{color:var(--green)} .kpi.warn .big{color:var(--red)} .kpi.flag .big{color:var(--amber)}
+
+  /* callouts */
+  .call{border-left:4px solid var(--blue);background:var(--blue-soft);border-radius:0 10px 10px 0;
+    padding:14px 18px;margin:16px 0;font-size:14.5px;color:var(--ink)}
+  .call.red{border-color:var(--red);background:var(--red-soft)}
+  .call.green{border-color:var(--green);background:var(--green-soft)}
+  .call.gold{border-color:var(--gold);background:var(--gold-soft)}
+  .call b{color:var(--ink)}
+
+  /* bars */
+  .chart{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-top:16px}
+  .chart h3{font-size:15px;margin-bottom:3px}
+  .chart .cap{font-size:12.5px;color:var(--muted);margin-bottom:14px}
+  .hbar{display:grid;grid-template-columns:170px 1fr 70px;align-items:center;gap:10px;margin:7px 0;font-size:13px}
+  .hbar .lbl{color:var(--ink2);font-weight:600;text-align:right;font-size:12.5px}
+  .track{background:#eef0f3;border-radius:6px;height:22px;position:relative;overflow:hidden}
+  .fill{height:100%;border-radius:6px;background:linear-gradient(90deg,#2b5b8c,#3f78b0)}
+  .fill.g{background:linear-gradient(90deg,#1f7a4d,#37a169)}
+  .fill.r{background:linear-gradient(90deg,#b5341f,#d05a44)}
+  .fill.gold{background:linear-gradient(90deg,#a9780a,#cda233)}
+  .val{font-weight:700;text-align:left;font-size:12.5px;color:var(--ink)}
+
+  /* tables */
+  table{width:100%;border-collapse:collapse;margin-top:14px;font-size:13px;background:var(--card);
+    border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  th,td{padding:9px 11px;text-align:right;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left}
+  thead th{background:#f0eee8;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink2);font-weight:700}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:nth-child(even){background:#faf9f6}
+  tfoot td{font-weight:700;background:#f0eee8;border-top:2px solid #d8d3c8}
+  .tag{display:inline-block;padding:2px 8px;border-radius:11px;font-size:11px;font-weight:700}
+  .tag.g{background:var(--green-soft);color:var(--green)} .tag.r{background:var(--red-soft);color:var(--red)}
+  .tag.a{background:var(--amber-soft);color:var(--amber)} .tag.b{background:var(--blue-soft);color:var(--blue)}
+
+  /* actions */
+  .act{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--gold);
+    border-radius:0 12px 12px 0;padding:16px 18px;margin:13px 0}
+  .act h3{font-size:16px;display:flex;align-items:center;gap:9px}
+  .act .pr{font-size:11px;font-weight:800;letter-spacing:.04em;color:#fff;background:var(--red);
+    padding:2px 9px;border-radius:5px}
+  .act .pr.med{background:var(--amber)} .act .pr.low{background:var(--blue)}
+  .act p{margin:8px 0 0;font-size:13.5px}
+  .act .impact{margin-top:9px;font-size:12.5px;color:var(--green);font-weight:700}
+
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  ul.tight{margin:10px 0;padding-left:20px}
+  ul.tight li{font-size:14px;color:var(--ink2);margin:6px 0}
+  .foot{padding:26px 0 60px;color:var(--muted);font-size:12px}
+  .foot b{color:var(--ink2)}
+  .legend{display:flex;gap:16px;font-size:11.5px;color:var(--muted);margin-top:10px;flex-wrap:wrap}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+  @media(max-width:720px){.kpis{grid-template-columns:1fr 1fr}.two{grid-template-columns:1fr}
+    .hbar{grid-template-columns:110px 1fr 58px}}
+  @page{size:A4;margin:0}
+  @media print{
+    *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}
+    body{background:#fff}
+    .wrap{padding:0 16mm}
+    .chart,.kpi,table,.act{box-shadow:none}
+    section{padding:24px 0}
+    .kpi,.chart,.act,.call,table,.two>div{break-inside:avoid;page-break-inside:avoid}
+    h2,h3,.eyebrow{break-after:avoid;page-break-after:avoid}
+    header{break-inside:avoid}
+    tr{break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="kick">Winter Buying Plan · Store Deep-Dive</div>
+    <h1>JSL Store — What to Buy for Winter</h1>
+    <div class="sub">A simple plan for the winter season (October 2026 to February 2027): what to buy, how much, and how to pay for it — worked out from the store's own stock list and sales.</div>
+    <div class="meta">
+      <span>🧾 Sales read: June 2026 · 595 bills</span>
+      <span>📦 Stock as on: 30 June 2026</span>
+      <span>👕 27,695 items in stock · ₹4.0 Cr</span>
+      <span>🛒 All buying done by: October 2026</span>
+    </div>
+  </div>
+</header>
+
+<!-- HEADLINE -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow">The headline</div>
+    <h2>The store already has too much stock — so buy less, but buy the right winter things</h2>
+    <p class="lead">The shop is full. It is holding <b>more than a year's worth of stock</b>, and a big part of it is <b>last winter's clothes that never sold</b>. So winter is not the time for a big new order. It is the time to <b>clear the old stock</b>, and spend a small, careful budget on the few things that really sell in winter — mostly <b>festival and Indian wear</b>, plus a small <b>winter-clothing range</b>.</p>
+
+    <div class="kpis" style="margin-top:18px">
+      <div class="kpi"><div class="lab">Stock in the shop (at cost)</div><div class="big num">₹4.0 Cr</div><div class="note">₹6.3 Cr at MRP · 27,695 items</div></div>
+      <div class="kpi"><div class="lab">June sales</div><div class="big num">₹25.7 L</div><div class="note">595 bills · average bill ₹4,320</div></div>
+      <div class="kpi warn"><div class="lab">How long the stock will last</div><div class="big num">~15 months</div><div class="note">A good clothes shop keeps 3–4 months</div></div>
+      <div class="kpi warn"><div class="lab">Stock 6 months old or more</div><div class="big num">₹1.44 Cr</div><div class="note">Money getting stuck</div></div>
+      <div class="kpi warn"><div class="lab">Last winter, still unsold</div><div class="big num">₹1.26 Cr</div><div class="note">Clear this first</div></div>
+      <div class="kpi good"><div class="lab">Suggested winter buy</div><div class="big num">₹60–98 L</div><div class="note">Small and focused · ₹78 L is the middle plan</div></div>
+    </div>
+
+    <div class="call gold" style="margin-top:20px">
+      <b>The simple story:</b> the shop is not short of clothes — it is short of <b>space and cash</b>. Clear the old stock first, then spend about <b>₹78 lakh</b> on fresh winter and festival stock. Do it this way and you go into winter with <b>newer clothes, more cash in hand, and less old stock</b> — not more.
+    </div>
+  </div>
+</section>
+
+<!-- 1 · WHAT SELLS -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow">1 · What sells well here</div>
+    <h2>Indian wear sells at full price. Men's jeans and shirts are on heavy discount.</h2>
+    <p class="lead">Two kinds of clothes behave very differently in this shop. Knowing the difference tells you exactly where to put the winter money. The shop sells almost equally to women, men and kids.</p>
+
+    <div class="chart">
+      <h3>Who the shop sells to (June sales)</h3>
+      <div class="cap">Share of money taken, by section.</div>
+      <div class="hbar"><div class="lbl">Women</div><div class="track"><div class="fill g" style="width:96%"></div></div><div class="val">46%</div></div>
+      <div class="hbar"><div class="lbl">Men</div><div class="track"><div class="fill" style="width:94%"></div></div><div class="val">45%</div></div>
+      <div class="hbar"><div class="lbl">Kids</div><div class="track"><div class="fill gold" style="width:17%"></div></div><div class="val">8%</div></div>
+      <div class="legend"><span>Costly (branded) clothes bring in about 8 out of every 10 rupees.</span></div>
+    </div>
+
+    <table>
+      <thead><tr><th>What it is</th><th>Sold in June</th><th>Money</th><th>Discount given</th><th>What it means</th></tr></thead>
+      <tbody>
+        <tr><td><b>Sarees</b></td><td class="num">242</td><td class="num">₹4.2 L</td><td class="num">4%</td><td><span class="tag g">Best seller · full price → buy more</span></td></tr>
+        <tr><td>Shirts (men)</td><td class="num">231</td><td class="num">₹3.7 L</td><td class="num">29%</td><td><span class="tag r">Too much stock → buy little</span></td></tr>
+        <tr><td>Jeans (men)</td><td class="num">141</td><td class="num">₹3.0 L</td><td class="num">31%</td><td><span class="tag r">Too much stock → buy little</span></td></tr>
+        <tr><td><b>Kurti sets</b></td><td class="num">122</td><td class="num">₹2.6 L</td><td class="num">3%</td><td><span class="tag g">Full price → buy more</span></td></tr>
+        <tr><td>T-shirts</td><td class="num">176</td><td class="num">₹1.8 L</td><td class="num">30%</td><td><span class="tag r">Too much stock → buy little</span></td></tr>
+        <tr><td>Trousers</td><td class="num">95</td><td class="num">₹1.7 L</td><td class="num">28%</td><td><span class="tag r">Too much stock → buy little</span></td></tr>
+        <tr><td><b>Salwar suits</b></td><td class="num">43</td><td class="num">₹1.0 L</td><td class="num">3%</td><td><span class="tag g">Full price → buy more</span></td></tr>
+        <tr><td>Lehengas</td><td class="num">10</td><td class="num">₹0.85 L</td><td class="num">4%</td><td><span class="tag a">Wedding wear · big price → buy for the season</span></td></tr>
+      </tbody>
+    </table>
+
+    <div class="call green">
+      <b>This is the most important thing in the report.</b> Look at the discount column. Men's <b>jeans, shirts and t-shirts are sold at 28–42% off</b> — the shop has too many, so they go on sale and make almost no profit. But <b>sarees, kurti sets and salwar suits sell at just 3–4% off</b> — almost full price — and they sell faster. <b>Indian wear is where the profit is. Spend the winter money there.</b>
+    </div>
+
+    <div class="call">
+      <b>Buy common sizes only.</b> Most sales are in the middle sizes: <b>waist 30 to 34</b> for jeans and trousers, and <b>M, L, XL</b> for shirts and t-shirts. Very small and very large sizes get stuck and end up as old stock — buy very few of those.
+    </div>
+  </div>
+</section>
+
+<!-- 2 · THE PROBLEM -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow">2 · The problem — too much old stock</div>
+    <h2>The shop is holding more than a year of stock</h2>
+    <p class="lead">This is why we must be careful with new buying. The shop is carrying about <b>15 months of stock</b>. A healthy clothes shop, where fashion changes fast, keeps only <b>3 to 4 months</b>. Too much stock means cash is stuck on the shelves and clothes slowly go out of season.</p>
+
+    <div class="call red">
+      <b>₹1.44 crore of the stock is already 6 months old or more.</b> And <b>₹1.26 crore of that is last winter's clothes</b> — still sitting unsold, about to go into a second winter. This is the money to free up first.
+    </div>
+
+    <div class="chart">
+      <h3>Stock by age (₹ crore, at cost)</h3>
+      <div class="cap">Green = fresh, give it time. Red = old, clear it.</div>
+      <div class="hbar"><div class="lbl">Under 3 months</div><div class="track"><div class="fill g" style="width:74%"></div></div><div class="val">₹1.04 Cr</div></div>
+      <div class="hbar"><div class="lbl">3 to 6 months</div><div class="track"><div class="fill g" style="width:86%"></div></div><div class="val">₹1.21 Cr</div></div>
+      <div class="hbar"><div class="lbl">6 to 12 months</div><div class="track"><div class="fill r" style="width:95%"></div></div><div class="val">₹1.34 Cr</div></div>
+      <div class="hbar"><div class="lbl">Over a year old</div><div class="track"><div class="fill r" style="width:7%"></div></div><div class="val">₹0.10 Cr</div></div>
+      <div class="legend"><span><i style="background:#37a169"></i>Fresh (under 6 months) — fine</span><span><i style="background:#b5341f"></i>6 months or older — clear it</span><span>(another ₹0.30 Cr has no season label.)</span></div>
+    </div>
+
+    <div class="call gold">
+      Half the stock is fresh and fine — <b>₹2.25 crore is under 6 months old</b>. The worry is the other side: <b>₹1.44 crore is getting old</b>, led by last winter's leftovers. Winter is the right time to clear it (festival and sale crowds are buying), and the cash it frees pays for the new winter stock.
+    </div>
+  </div>
+</section>
+
+<!-- 3 · THE BUY -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow">3 · The winter buy</div>
+    <h2>Buy about ₹78 lakh of fresh stock — mostly festival and Indian wear</h2>
+    <p class="lead">This is the plan in numbers. Buy <b>₹78 lakh worth (at cost)</b> in the middle plan — you can go as low as <b>₹60 lakh</b> or as high as <b>₹98 lakh</b> depending on how strong you expect the season to be. Here is where every rupee should go, most important first.</p>
+
+    <table>
+      <thead><tr><th>What to buy (most important first)</th><th>Money (cost)</th><th>Share</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><b>1. Festival &amp; Indian wear</b> <span class="tag g">push hard</span></td><td class="num">₹42 L</td><td class="num">54%</td><td>Fresh sarees, kurti sets, salwar suits, lehengas, gowns, and wedding wear (suits, sherwani, Nehru jackets). Full price, and the festive + wedding season is the best time for it.</td></tr>
+        <tr><td><b>2. Men's western — winter styles only</b> <span class="tag a">a little</span></td><td class="num">₹14 L</td><td class="num">18%</td><td>Only full-sleeve shirts, dark/thick jeans and light jackets, in common sizes. The shop already has plenty of the rest — sell that down.</td></tr>
+        <tr><td><b>3. Winter clothing</b> <span class="tag b">small &amp; smart</span></td><td class="num">₹12 L</td><td class="num">15%</td><td>Sweaters, sweatshirts, jackets, cardigans, thermals, mufflers, shawls, caps, and women's &amp; kids winter sets. Keep it small — last winter's lot was over-bought.</td></tr>
+        <tr><td><b>4. Kids</b></td><td class="num">₹6 L</td><td class="num">8%</td><td>Festival Indian wear and winter sets for children.</td></tr>
+        <tr><td><b>5. Accessories &amp; innerwear</b></td><td class="num">₹4 L</td><td class="num">5%</td><td>Stoles, caps, belts, purses, innerwear — small add-on sales, low risk.</td></tr>
+      </tbody>
+      <tfoot><tr><td>Total winter buy (middle plan)</td><td class="num">₹78 L</td><td class="num">100%</td><td>About ₹1.2 Cr at MRP</td></tr></tfoot>
+    </table>
+
+    <div class="chart">
+      <h3>Where the ₹78 lakh goes</h3>
+      <div class="cap">More than half goes to festival and Indian wear, because that is where the profit is.</div>
+      <div class="hbar"><div class="lbl">Festival &amp; Indian wear</div><div class="track"><div class="fill g" style="width:95%"></div></div><div class="val">₹42 L</div></div>
+      <div class="hbar"><div class="lbl">Men's western (winter)</div><div class="track"><div class="fill gold" style="width:32%"></div></div><div class="val">₹14 L</div></div>
+      <div class="hbar"><div class="lbl">Winter clothing</div><div class="track"><div class="fill" style="width:27%"></div></div><div class="val">₹12 L</div></div>
+      <div class="hbar"><div class="lbl">Kids</div><div class="track"><div class="fill" style="width:14%"></div></div><div class="val">₹6 L</div></div>
+      <div class="hbar"><div class="lbl">Accessories</div><div class="track"><div class="fill" style="width:9%"></div></div><div class="val">₹4 L</div></div>
+    </div>
+
+    <div class="call gold">
+      <b>Why so little winter clothing?</b> The shop is <i>still</i> holding about 1,650 winter pieces from last year (sweatshirts, jackets, winter tops), and most are unsold. That tells us this is not a heavy-winter town — so don't over-buy heavy winter wear. Re-display the plain ones that don't look dated (thermals, simple sweaters, mufflers, shawls), and buy only a small fresh, fashionable lot on top.
+    </div>
+
+    <h3 style="font-size:16px;margin-top:24px">When to buy — finish by October</h3>
+    <p>Stock must be on the floor <b>before</b> each rush. The big dates this year are around <b>Dussehra (20 Oct), Diwali (8 Nov) and Chhath (15 Nov)</b>, then the <b>wedding season</b> and the <b>cold months (Dec–Jan)</b>. So the buying runs July to October.</p>
+    <table>
+      <thead><tr><th>Month</th><th>What to do</th></tr></thead>
+      <tbody>
+        <tr><td><b>July</b></td><td>Place the festival and winter orders now (they take time to arrive). Start clearing last winter's old stock.</td></tr>
+        <tr><td><b>August</b></td><td>First new stock arrives and goes on display. Keep clearing the old.</td></tr>
+        <tr><td><b>September</b></td><td>Full festival and Indian wear on display, ready for Dussehra. Re-order the fast sellers (sarees, kurti sets).</td></tr>
+        <tr><td><b>October</b></td><td>Winter clothing fully on the floor for the cold and wedding rush. <b>All buying finished this month</b> — after this, only top up what sells.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 4 · HOW TO PAY -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow">4 · How to pay for it</div>
+    <h2>Clear the old stock — it pays for the new</h2>
+    <p class="lead">You do not need extra money for this plan. The cash is already sitting on the shelves as old stock. Sell it during the festival and sale crowds, and it more than covers the new winter buy.</p>
+
+    <div class="kpis" style="margin-top:6px">
+      <div class="kpi warn"><div class="lab">Old stock to clear</div><div class="big num">₹1.44 Cr</div><div class="note">₹2.30 Cr at MRP</div></div>
+      <div class="kpi good"><div class="lab">Cash it can free</div><div class="big num">₹1.1–1.3 Cr</div><div class="note">After clearance discounts</div></div>
+      <div class="kpi good"><div class="lab">New winter buy</div><div class="big num">₹78 L</div><div class="note">Much less than the cash freed</div></div>
+    </div>
+
+    <div class="call green">
+      <b>The result:</b> total stock goes <b>down</b> (from ₹4.0 Cr towards ₹3.2 Cr), cash goes <b>up</b>, and the shop looks <b>fresher</b> for the festivals. You are swapping old, stuck stock for new stock that sells — not adding more.
+    </div>
+
+    <p style="margin-top:8px">Clear the biggest blocks of old stock first — these are last winter's leftovers:</p>
+    <ul class="tight">
+      <li><b>Men's shirts</b> — about ₹27 lakh of old stock</li>
+      <li><b>Sarees</b> — about ₹18 lakh</li>
+      <li><b>Trousers</b> — about ₹16 lakh &nbsp;·&nbsp; <b>Jeans</b> — about ₹15 lakh</li>
+      <li><b>Formal suits</b> — about ₹10 lakh &nbsp;·&nbsp; <b>Kurti sets</b> — about ₹9 lakh</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 5 · WHAT TO DO -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow">5 · What to do now</div>
+    <h2>Five simple steps</h2>
+
+    <div class="act">
+      <h3><span class="pr">1</span> Clear the old stock first</h3>
+      <p>Start a clearance now, before the festivals, on the ₹1.44 crore of old stock — last winter's clothes first. Use the festival and sale crowds to turn it back into cash.</p>
+      <div class="impact">↳ Frees ₹1.1–1.3 crore of cash and empties the shelves for new stock.</div>
+    </div>
+
+    <div class="act">
+      <h3><span class="pr">2</span> Spend that money on festival &amp; Indian wear</h3>
+      <p>Put more than half the winter budget into fresh sarees, kurti sets, salwar suits, lehengas and wedding wear. This is what sells at full price in this shop.</p>
+      <div class="impact">↳ Best profit, and the festive + wedding season is the right time.</div>
+    </div>
+
+    <div class="act">
+      <h3><span class="pr med">3</span> Buy only a little men's western</h3>
+      <p>The shop already has too many jeans, shirts and t-shirts. Buy only fresh winter styles (full-sleeve shirts, dark jeans, light jackets) in common sizes (waist 30–34, M/L/XL). Let the rest sell down.</p>
+      <div class="impact">↳ Stops the over-stock problem from getting bigger.</div>
+    </div>
+
+    <div class="act">
+      <h3><span class="pr med">4</span> Keep the winter-clothing order small</h3>
+      <p>Last winter's sweaters and jackets are still here. Re-display the plain ones, and buy only a small, fashionable fresh lot. Don't over-buy heavy winter wear.</p>
+      <div class="impact">↳ Avoids repeating last year's left-over winter stock.</div>
+    </div>
+
+    <div class="act">
+      <h3><span class="pr low">5</span> Don't let total stock grow</h3>
+      <p>For every new piece that comes in, one old piece should go out (sold or cleared). The aim is to end winter with <b>less</b> stock than today — about 11 months' worth, not 15.</p>
+      <div class="impact">↳ More cash, fewer markdowns, a fresher shop.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOT -->
+<div class="wrap foot">
+  <p><b>How this was prepared.</b> Built from two files from the store: the <b>June 2026 sale report</b> (595 bills) and the <b>stock-on-hand list as on 30 June 2026</b>. All figures are worked out directly from those files. Money is shown at cost unless "MRP" is written. Shopping carry-bags (about 31,000 packaging pieces) were left out of the clothing numbers, and a stray total row in the stock file was removed before counting.</p>
+  <p><b>Honest note on the numbers.</b> This uses <b>one month of sales (June — a slow summer month)</b> and one stock list. What is <b>solid</b>: what sells well, the right sizes, the old-stock problem, and the full-price-vs-discount story — these do not change. What needs a check: the <b>exact size of the budget</b> (the ₹60–98 lakh), because winter is the busy season and June is quiet. <b>Please check it against last year's October-to-February sales</b> in your billing system and adjust up or down. Also note: stock comes into this shop <b>by transfer from the head-office godown</b>, so treat this as the shop's <b>winter order to head office</b>.</p>
+  <p style="margin-top:14px;color:#9aa0ad">Prepared for KDPS Lifestyle Pvt. Ltd. · JSL Store · Winter plan dated 30 June 2026.</p>
+</div>
+
+</body>
+</html>

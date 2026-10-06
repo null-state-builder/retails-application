@@ -4,6 +4,8 @@ import { ChevronDown, X } from "lucide-react";
 import "./Combobox.css";
 
 const MAX_VISIBLE = 60;
+/** Scrolls this soon after opening come from focusing the input, not from the person. */
+const GRACE_MS = 400;
 
 /**
  * Select-only searchable combobox: the Excel data-validation dropdown, not a text
@@ -37,6 +39,7 @@ export function Combobox({
   const rootRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+  const openedAt = useRef(0);
   const [pos, setPos] = useState<{ top: number; left: number; width: number } | null>(null);
 
   const suggestedSet = useMemo(() => new Set(suggested ?? []), [suggested]);
@@ -57,9 +60,14 @@ export function Combobox({
     return Math.max(0, n - MAX_VISIBLE);
   }, [options, query]);
 
-  function openList() {
+  function anchor() {
     const rect = rootRef.current?.getBoundingClientRect();
     if (rect) setPos({ top: rect.bottom + 2, left: rect.left, width: Math.max(rect.width, 190) });
+  }
+
+  function openList() {
+    anchor();
+    openedAt.current = Date.now();
     setQuery("");
     setActive(0);
     setOpen(true);
@@ -81,6 +89,12 @@ export function Combobox({
     if (!open) return;
     const onScroll = (e: Event) => {
       if (listRef.current && e.target instanceof Node && listRef.current.contains(e.target)) return;
+      // Focusing the input can make the browser scroll a grid to reveal it. That is
+      // not the person moving away: keep the list open and anchor it again.
+      if (Date.now() - openedAt.current < GRACE_MS) {
+        anchor();
+        return;
+      }
       close();
     };
     const onDown = (e: MouseEvent) => {
@@ -98,9 +112,17 @@ export function Combobox({
     };
   }, [open]);
 
+  // Keep the active option in view by moving the list's own scroll only.
+  // `scrollIntoView` would also scroll the page or grid behind it, and that outside
+  // scroll closes the list while the person is still typing.
   useEffect(() => {
     if (!open) return;
-    listRef.current?.querySelector(`[data-idx="${active}"]`)?.scrollIntoView({ block: "nearest" });
+    const list = listRef.current;
+    const option = list?.querySelector<HTMLElement>(`[data-idx="${active}"]`);
+    if (!list || !option) return;
+    if (option.offsetTop < list.scrollTop) list.scrollTop = option.offsetTop;
+    else if (option.offsetTop + option.offsetHeight > list.scrollTop + list.clientHeight)
+      list.scrollTop = option.offsetTop + option.offsetHeight - list.clientHeight;
   }, [active, open]);
 
   function onKeyDown(e: React.KeyboardEvent) {

@@ -415,6 +415,17 @@
   }
 }
 
+/* On a phone the four frozen columns would cover nearly the whole region and the
+   cells behind them could not be reached. Keep only the row number and the
+   checkbox frozen; the item and review columns scroll with the rest. */
+@media (max-width: 480px) {
+  .ptg .ptg-grid .ptg-fz-item,
+  .ptg .ptg-grid .ptg-fz-rev {
+    position: static;
+    box-shadow: none;
+  }
+}
+
 /* --- hosts ------------------------------------------------------------------ */
 
 /* The grid scrolls inside its own box, so its host need not cap its width. */

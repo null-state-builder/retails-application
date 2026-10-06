@@ -36,6 +36,7 @@ import {
   ownerRoleName,
   stepIsDone,
   stepIsReachable,
+  transferReceivingPath,
   type InboxItem,
   type ReceivingStep,
 } from "../lib/goodsReceiving";
@@ -99,12 +100,12 @@ function StepPanel({ item, step }: { item: InboxItem; step: ReceivingStep }) {
   }
 
   if (item.kind === "transfer_dispatch") {
-    // OPS-06 builds the dispatch records and their own steps. Until it does,
-    // the inbox can list one but has nothing to open.
+    const transferPath = transferReceivingPath(item);
+    if (!transferPath) return <Denied what="transfer shipment" />;
     return (
-      <p className="muted" data-testid="delivery-transfer-pending">
-        Incoming transfer dispatches are not yet opened here.
-      </p>
+      <Link className="btn btn-cta" to={transferPath} data-testid="delivery-open-transfer">
+        Open transfer shipment
+      </Link>
     );
   }
 

@@ -85,6 +85,13 @@ export function SalesReportPage() {
     };
   }, [filters, load]);
 
+  // The server says which groupings this viewer may have; by salesperson is the
+  // team field and is never offered until it has said so.
+  const offered = data?.groupings.map((g) => g.key);
+  const tabs = GROUPINGS.filter((g) =>
+    offered ? offered.includes(g.key) : g.key !== "salesperson",
+  );
+
   function set<K extends keyof SalesFilters>(key: K, value: SalesFilters[K]) {
     setFilters((current) => ({ ...current, [key]: value }));
   }
@@ -219,7 +226,7 @@ export function SalesReportPage() {
           data-testid="sales-groupings"
           style={{ flexWrap: "wrap" }}
         >
-          {GROUPINGS.map((g) => (
+          {tabs.map((g) => (
             <button
               key={g.key}
               type="button"

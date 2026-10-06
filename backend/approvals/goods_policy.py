@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
+from collections.abc import Iterable
 from typing import Any
 
 from core.commands import CommandRun, LockRank
@@ -173,6 +174,17 @@ def _stale(reason: str, message: str) -> Refusal:
     return Refusal(STALE, message, status=409, issues=[issue(reason, message, field="policy")])
 
 
+def canonical_approval_roles(roles: Iterable[str]) -> set[str]:
+    """Interpret historical Owner selectors using current unified assignments.
+
+    C-OWN is the earlier name of the PRD's current Owner role. This changes no
+    pinned request or policy evidence and reads no legacy grant: the caller must
+    still find a canonical owner assignment holding the action, fields and whole
+    scope. Other historical responsibilities have no inferred role equivalent.
+    """
+    return {"owner" if role == "C-OWN" else role for role in roles}
+
+
 def eligible_checker(access: Any, request: Any, cells: Any) -> bool:
     """Projection hint only; the deciding command rechecks the pinned policy."""
     basis = request.policy_basis or {}
@@ -184,7 +196,7 @@ def eligible_checker(access: Any, request: Any, cells: Any) -> bool:
               *(str(row.checker_id) for row in prior)}
     if request.require_distinct and str(access.human_id) in people:
         return False
-    roles = set(steps[len(prior)].get("roles") or [])
+    roles = canonical_approval_roles(steps[len(prior)].get("roles") or [])
     return bool(access.covers_all_actions({request.requested_action}, cells, basis.get("fields") or (), roles=roles or None))
 
 
@@ -206,7 +218,7 @@ def _check_approver(
     prior = list(request.decisions.filter(outcome="step_approved").order_by("recorded_at", "id"))
     if len(prior) >= len(steps):
         raise _stale("ROUTE_INVALID", "This approval route has inconsistent decisions.")
-    roles = {str(r) for r in steps[len(prior)]["roles"]}
+    roles = canonical_approval_roles(str(r) for r in steps[len(prior)]["roles"])
     if not access.covers_all_actions({request.requested_action}, cells, basis.get("fields") or (), roles=roles):
         raise Refusal("ACTION_DENIED", "Route role, action, fields and complete scope must be covered together.", status=403)
     grants = access.grants_with_roles(request.requested_action, cells, roles)

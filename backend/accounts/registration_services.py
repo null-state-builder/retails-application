@@ -523,6 +523,7 @@ def _complete_registration(row: InstallationRegistration) -> None:
                 source_key=f"joint-registration-{who}",
                 all_sites=True,
                 all_brands=True,
+                effective_from=run.now,
             )
             people[who] = str(human.pk)
             append_master_version(

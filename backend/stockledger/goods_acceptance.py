@@ -1345,12 +1345,14 @@ class PendingAcceptance:
 
 
 def pending_acceptance(tenant_id: uuid.UUID, site_ids: set[int] | None) -> list[PendingAcceptance]:
-    """Every live receipt/opening version at those sites with remaining quantity.
+    """Every live receipt/opening version with quantity or an unfinished session.
 
     ``site_ids`` of ``None`` means "no site prefilter"; the caller still checks each
     row's own site and brand grant. Read in bulk - one query for the candidate
     heads, one for their lines, one for their acceptance evidence - because a
     per-version ``line_progress`` call would cost a query per PT on every load.
+    An already accepted version stays reachable until its open session is
+    completed, including after a receiver reloads following the final scan.
     """
     heads = DocumentHead.objects.select_related("document", "live_version").filter(
         tenant_id=tenant_id,
@@ -1386,6 +1388,10 @@ def pending_acceptance(tenant_id: uuid.UUID, site_ids: set[int] | None) -> list[
     ).values_list("official_line_id", "portion", "outcome"):
         if outcome in (AcceptanceEvent.Outcome.ACCEPTED_GOOD, AcceptanceEvent.Outcome.DAMAGED):
             settled[line_version[line_id]] += ranges.length(bounds(stored))
+    unfinished = set(AcceptanceSession.objects.filter(
+        tenant_id=tenant_id, source_version_id__in=version_ids,
+        state=AcceptanceSession.State.OPEN,
+    ).values_list("source_version_id", flat=True))
     # Oldest actionable work first (design E248) means oldest *by when the work
     # appeared* - when the version became official - not by when its head was last
     # touched. The document id breaks a timestamp tie so a cursor stays stable
@@ -1401,5 +1407,5 @@ def pending_acceptance(tenant_id: uuid.UUID, site_ids: set[int] | None) -> list[
             updated_at=head.updated_at,
         )
         for head, version in candidates
-        if (remaining := max(expected[version.pk] - settled[version.pk], 0)) > 0
+        if (remaining := max(expected[version.pk] - settled[version.pk], 0)) > 0 or version.pk in unfinished
     ]

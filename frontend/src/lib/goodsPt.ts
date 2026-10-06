@@ -287,7 +287,9 @@ export function isSuperseded(
   approval: ApprovalDTO,
   pt: { state: string; content_hash: string; revision?: number } | null,
 ): boolean {
-  if (!pt) return false;
+  // A decided request remains historical evidence after officialisation has
+  // advanced the PT. The exact-revision warning belongs to a pending review.
+  if (!pt || approval.state !== "pending") return false;
   const expected = EXPECTED_STATE[approval.requested_action];
   if (expected && pt.state !== expected) return true;
   // The exact fact, now that the approval carries it: the document has moved on

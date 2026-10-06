@@ -36,6 +36,7 @@ from typing import Any
 from django.db.models import Count, F, Max, Q, QuerySet, Sum
 from django.utils import timezone
 
+from core.refusals import Refusal
 from masters.models import StoreTarget
 from reporting.base import (
     Column,
@@ -229,9 +230,27 @@ def _key_text(key: Any) -> str:
     return key.isoformat() if isinstance(key, date) else str(key)
 
 
+def _sees_team(user: Any, stores: list[Any]) -> bool:
+    # Imported late: the staff report imports this module for ``period_months``.
+    from reporting.staff_report import sees_team
+
+    return sees_team(user, stores)
+
+
 def build(scope: ReportScope, group_by: str) -> dict[str, Any]:
     """The sales report for ``scope``, grouped by ``group_by``, as the viewer may see it."""
     user = scope.user
+    # Names and codes of salespeople are the team field: the Staff report gates
+    # them on ``sees_team`` at every reported store, so grouping by person here
+    # needs the same demand. The refusal comes before any aggregation.
+    show_team = _sees_team(user, scope.stores)
+    if group_by == "salesperson" and not show_team:
+        raise Refusal(
+            "ACTION_DENIED",
+            "Results by salesperson are for managers who see the whole team at every store "
+            "in this report.",
+            status=403,
+        )
     show_cost = sees_cost(user, scope.stores)
     show_target = sees_targets(user, scope.stores)
     missing = Missing()
@@ -321,7 +340,11 @@ def build(scope: ReportScope, group_by: str) -> dict[str, Any]:
         shows_cost=show_cost,
         extra={
             "group_by": group_by,
-            "groupings": [{"key": k, "label": v} for k, v in GROUPINGS.items()],
+            "groupings": [
+                {"key": k, "label": v}
+                for k, v in GROUPINGS.items()
+                if k != "salesperson" or show_team
+            ],
             "shows_target": show_target,
             "rows": rows,
             "total": total,

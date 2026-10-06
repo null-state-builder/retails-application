@@ -231,6 +231,7 @@ class SalesReportExportView(APIView):
             detail={"group_by": body["group_by"], "rows": len(body["rows"])},
             contains_cost=body["shows_cost"],
             contains_targets=body["shows_target"],
+            contains_team=body["group_by"] == "salesperson",
         )
         return xlsx_response(content, "sales-report")
 

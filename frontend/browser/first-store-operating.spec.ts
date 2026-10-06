@@ -3,7 +3,7 @@ import { loginProof, pairProof } from "./firstStoreProof";
 
 // This journey writes only to the separately recorded clone of the fictional
 // shop. The initial three-unit opening, first ₹900 bill and history stay intact.
-test("online sale, lost response replay, exchange, physical acceptance and post-close disclosure", async ({
+test("online sale, lost response replay, exchange, physical acceptance and post-count disclosure", async ({
   page,
 }) => {
   test.setTimeout(120_000);
@@ -11,15 +11,16 @@ test("online sale, lost response replay, exchange, physical acceptance and post-
   await pairProof(page);
   await page.getByTestId("till-sync-now").click();
   await page.goto("/sell");
-  await expect(page.getByTestId("bill-scan")).toBeEnabled();
+  const scanner = page.getByRole("textbox", { name: "Scan a tag, or type a design number" });
+  await expect(scanner).toBeEnabled();
   const salesperson = await page
     .getByTestId("bill-sold-by")
     .locator("option")
     .last()
     .getAttribute("value");
   await page.getByTestId("bill-sold-by").selectOption(salesperson!);
-  await page.getByTestId("bill-scan").fill("ALPHA000123");
-  await page.getByTestId("bill-scan").press("Enter");
+  await scanner.fill("ALPHA000123");
+  await scanner.press("Enter");
   await expect(page.getByTestId("bill-line-1")).toContainText("ALPHA000123");
   await page.getByTestId("bill-all-cash").click();
   await expect(page.getByTestId("bill-save")).toBeEnabled();
@@ -94,8 +95,8 @@ test("online sale, lost response replay, exchange, physical acceptance and post-
   const position = await cash.json();
   expect(Number(position.cash_sales_paise)).toBe(100_000);
   expect(position.bills).toBe(2);
-  // The original shop already closed this business day. Preserve that count;
-  // never rewrite it to absorb sales arriving later or claim another close.
+  // The original shop saved its first cash-count window. Preserve that count;
+  // later sales remain uncounted without claiming operational day closure.
   await expect(page.getByTestId("cash-counted-today")).toBeVisible();
   await expect(page.getByTestId("cash-after-close")).toContainText("1,900");
   await expect(page.getByTestId("cash-after-close")).toContainText("2 uncounted bill(s)");

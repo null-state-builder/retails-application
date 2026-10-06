@@ -28,7 +28,7 @@ from masters.models import Brand, Store  # noqa: E402
 tenant = deployment_tenant()
 with tenant_context(tenant.pk):
     owner = User.objects.get(username="owner")
-    role = Role.objects.get(code="data_steward")
+    role = Role.objects.get(code="warehouse")
     original_hash = owner.password
     original_access = dict(role.section_access)
     changed_password = secrets.token_urlsafe(24)

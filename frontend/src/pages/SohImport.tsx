@@ -280,7 +280,7 @@ export function SohImportPanel({ siteId }: { siteId: string }) {
         const found: Record<string, Group[]> = {};
         for (const kind of ["brand", "season", "size", "category"])
           found[kind] = (
-            await api.get<{ items: Group[] }>(`${base}/${source.id}/rows?stocked=1&group=${kind}`)
+            await api.get<{ items: Group[] }>(`${base}/${source.id}/rows?stocked=0&group=${kind}`)
           ).data.items;
         setGroups(found);
         const brandRows = await allPages<ResourceDTO<{ name: string; code: string }>>(
@@ -410,7 +410,12 @@ export function SohImportPanel({ siteId }: { siteId: string }) {
     options?: Choice[],
   ) {
     return (
-      <div style={{ maxHeight: 360, overflow: "auto" }}>
+      <div
+        role="region"
+        aria-label={`SOH ${kind} mappings`}
+        tabIndex={0}
+        style={{ maxHeight: 360, overflow: "auto" }}
+      >
         <table className="table">
           <thead>
             <tr>
@@ -528,30 +533,32 @@ export function SohImportPanel({ siteId }: { siteId: string }) {
               </button>
             </div>
           )}
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Source</th>
-                <th>Rows</th>
-                <th>Quantity</th>
-                <th>State</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sources.map((source) => (
-                <tr key={source.id}>
-                  <td>
-                    <button className="btn btn-sm" onClick={() => open(source)}>
-                      {source.source_name}
-                    </button>
-                  </td>
-                  <td>{source.data.metadata.row_count}</td>
-                  <td>{source.data.metadata.quantity}</td>
-                  <td>{source.state}</td>
+          <div className="table-wrap" role="region" aria-label="SOH sources" tabIndex={0}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Source</th>
+                  <th>Rows</th>
+                  <th>Quantity</th>
+                  <th>State</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {sources.map((source) => (
+                  <tr key={source.id}>
+                    <td>
+                      <button className="btn btn-sm" onClick={() => open(source)}>
+                        {source.source_name}
+                      </button>
+                    </td>
+                    <td>{source.data.metadata.row_count}</td>
+                    <td>{source.data.metadata.quantity}</td>
+                    <td>{source.state}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       ) : (
         <>
@@ -632,85 +639,87 @@ export function SohImportPanel({ siteId }: { siteId: string }) {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Barcode / source item</th>
-                    <th>Brand / season</th>
-                    <th>SOH</th>
-                    <th>MRP</th>
-                    {selected.data.field_access.readable_fields.includes("cost") && (
-                      <th>Source Rate (meaning requires review)</th>
-                    )}
-                    <th>Physical / exclusion</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => (
-                    <tr key={row.barcode}>
-                      <td>
-                        {row.barcode}
-                        <div>{row.item_name}</div>
-                      </td>
-                      <td>
-                        {row.brand}
-                        <div>{row.season || "Season unavailable"}</div>
-                      </td>
-                      <td>{row.quantity}</td>
-                      <td>{formatPaiseString(row.mrp_paise)}</td>
+              <div className="table-wrap" role="region" aria-label="SOH source rows" tabIndex={0}>
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Barcode / source item</th>
+                      <th>Brand / season</th>
+                      <th>SOH</th>
+                      <th>MRP</th>
                       {selected.data.field_access.readable_fields.includes("cost") && (
-                        <td>
-                          {formatPaiseString(row.source_rate_paise)}
-                          {canPrepare &&
-                            config.rate_meaning === "reviewed_row_values" &&
-                            row.quantity > 0 &&
-                            !selected.data.batches.length && (
-                              <label>
-                                Reviewed basic unit value (INR)
-                                <input
-                                  className="input"
-                                  aria-label={`Reviewed basic unit value for ${row.barcode}`}
-                                  inputMode="decimal"
-                                  value={basicValues[row.barcode] ?? ""}
-                                  onChange={(e) =>
-                                    setBasicValues((old) => ({
-                                      ...old,
-                                      [row.barcode]: e.target.value,
-                                    }))
-                                  }
-                                />
-                              </label>
-                            )}
-                        </td>
+                        <th>Source Rate (meaning requires review)</th>
                       )}
-                      <td>
-                        {row.verification.observed_qty ?? "Unverified"}{" "}
-                        {row.verification.observed_condition}
-                        <div>{row.exclusion_reason}</div>
-                        {canPrepare && row.quantity > 0 && !selected.data.batches.length && (
-                          <input
-                            className="input"
-                            placeholder="Reviewed exclusion reason, if needed"
-                            value={config.row_overrides[row.barcode]?.exclude_reason ?? ""}
-                            onChange={(e) =>
-                              setConfig((old) => ({
-                                ...old,
-                                row_overrides: {
-                                  ...old.row_overrides,
-                                  [row.barcode]: {
-                                    ...old.row_overrides[row.barcode],
-                                    exclude_reason: e.target.value,
-                                  },
-                                },
-                              }))
-                            }
-                          />
-                        )}
-                      </td>
+                      <th>Physical / exclusion</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {rows.map((row) => (
+                      <tr key={row.barcode}>
+                        <td>
+                          {row.barcode}
+                          <div>{row.item_name}</div>
+                        </td>
+                        <td>
+                          {row.brand}
+                          <div>{row.season || "Season unavailable"}</div>
+                        </td>
+                        <td>{row.quantity}</td>
+                        <td>{formatPaiseString(row.mrp_paise)}</td>
+                        {selected.data.field_access.readable_fields.includes("cost") && (
+                          <td>
+                            {formatPaiseString(row.source_rate_paise)}
+                            {canPrepare &&
+                              config.rate_meaning === "reviewed_row_values" &&
+                              row.quantity > 0 &&
+                              !selected.data.batches.length && (
+                                <label>
+                                  Reviewed basic unit value (INR)
+                                  <input
+                                    className="input"
+                                    aria-label={`Reviewed basic unit value for ${row.barcode}`}
+                                    inputMode="decimal"
+                                    value={basicValues[row.barcode] ?? ""}
+                                    onChange={(e) =>
+                                      setBasicValues((old) => ({
+                                        ...old,
+                                        [row.barcode]: e.target.value,
+                                      }))
+                                    }
+                                  />
+                                </label>
+                              )}
+                          </td>
+                        )}
+                        <td>
+                          {row.verification.observed_qty ?? "Unverified"}{" "}
+                          {row.verification.observed_condition}
+                          <div>{row.exclusion_reason}</div>
+                          {canPrepare && row.quantity > 0 && !selected.data.batches.length && (
+                            <input
+                              className="input"
+                              placeholder="Reviewed exclusion reason, if needed"
+                              value={config.row_overrides[row.barcode]?.exclude_reason ?? ""}
+                              onChange={(e) =>
+                                setConfig((old) => ({
+                                  ...old,
+                                  row_overrides: {
+                                    ...old.row_overrides,
+                                    [row.barcode]: {
+                                      ...old.row_overrides[row.barcode],
+                                      exclude_reason: e.target.value,
+                                    },
+                                  },
+                                }))
+                              }
+                            />
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
               {rowCursor && (
                 <button
                   className="btn btn-sm"

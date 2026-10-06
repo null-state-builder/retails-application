@@ -168,7 +168,7 @@ def activate(record: dict[str, Any], claim: Any) -> None:
         record.setdefault("manager", {"email": proposed["email"], "temporary_password": secrets.token_urlsafe(24) + "A1!"})
         save(record)
         owner = login(record, "owner")
-        staff = request(owner, "post", "/api/auth/admin/staff", command(record, "manager-staff", staff_code=proposed["staff_code"], display_name=proposed["name"], site_id=claim.first_store_id, effective_from=timezone.now().isoformat(), salesperson=True))
+        staff = request(owner, "post", "/api/auth/admin/staff", command(record, "manager-staff-reserved-code-v2", staff_code=proposed["staff_code"], registration_email=proposed["email"], display_name=proposed["name"], site_id=claim.first_store_id, effective_from=timezone.now().isoformat(), salesperson=True))
         request(owner, "post", "/api/auth/step-up", {"password": record["owner"]["password"]})
         user_command = command(record, "manager-user", human_id=staff["data"]["human_id"], email=proposed["email"], display_name=proposed["name"], active=True, identity_email_confirmed=True)
         existing_manager = User.objects.filter(tenant_id=claim.tenant_id, email=proposed["email"]).first()

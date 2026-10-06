@@ -1446,7 +1446,7 @@ export function PtEditor({ ptId, onClose }: { ptId: string; onClose?: () => void
         )}
       </div>
 
-      <div className="ptg-scroll">
+      <div className="ptg-scroll" role="region" aria-label="PT rows" tabIndex={0}>
         <table className="ptg-grid" ref={gridRef} onPaste={onGridPaste} data-testid="pt-grid">
           <thead>
             <tr>

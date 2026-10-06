@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vaishnavi Deoghar — Stock Data Quality Findings</title>
+<style>
+  :root{
+    --ink:#16233d; --ink2:#33415c; --muted:#6b7488; --line:#e6e3dc;
+    --paper:#f7f6f2; --card:#ffffff; --gold:#b8860b; --gold-soft:#f3ead2;
+    --red:#b5341f; --red-soft:#fbeae6; --green:#1f7a4d; --green-soft:#e7f3ec;
+    --blue:#2b5b8c; --blue-soft:#e9f0f7; --amber:#b9791a; --amber-soft:#fbf0dd;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 22px}
+  h1,h2,h3{line-height:1.2;margin:0}
+  .num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+
+  header{background:linear-gradient(135deg,#16233d 0%,#243a5e 100%);color:#fff;padding:42px 0 34px}
+  header .kick{letter-spacing:.18em;text-transform:uppercase;font-size:12px;color:#c7d2e2;font-weight:600}
+  header h1{font-size:30px;margin:10px 0 6px;font-weight:700}
+  header .sub{color:#cfd9e8;font-size:14.5px;max-width:740px}
+  header .meta{margin-top:16px;display:flex;flex-wrap:wrap;gap:10px;font-size:12.5px}
+  header .meta span{background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.18);
+    padding:5px 11px;border-radius:20px;color:#e8eef6}
+
+  section{padding:30px 0;border-bottom:1px solid var(--line)}
+  .eyebrow{display:inline-block;letter-spacing:.13em;text-transform:uppercase;font-size:11.5px;
+    font-weight:700;color:var(--gold);margin-bottom:8px}
+  h2{font-size:21px;margin-bottom:6px}
+  .lead{color:var(--ink2);font-size:15px;max-width:760px}
+  p{color:var(--ink2);font-size:14.5px}
+
+  .kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:6px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:15px 16px 13px}
+  .kpi .lab{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+  .kpi .big{font-size:25px;font-weight:700;margin-top:5px;letter-spacing:-.5px}
+  .kpi .note{font-size:12.5px;color:var(--muted);margin-top:3px}
+  .kpi.warn .big{color:var(--red)} .kpi.flag .big{color:var(--amber)}
+
+  .call{border-left:4px solid var(--blue);background:var(--blue-soft);border-radius:0 10px 10px 0;
+    padding:13px 17px;margin:15px 0;font-size:14px;color:var(--ink)}
+  .call.red{border-color:var(--red);background:var(--red-soft)}
+  .call.gold{border-color:var(--gold);background:var(--gold-soft)}
+
+  table{width:100%;border-collapse:collapse;margin-top:13px;font-size:12.5px;background:var(--card);
+    border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  th,td{padding:7px 10px;text-align:right;border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{text-align:left} th:nth-child(2),td:nth-child(2){text-align:left}
+  thead th{background:#f0eee8;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--ink2);font-weight:700}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:nth-child(even){background:#faf9f6}
+  td.bad{color:var(--red);font-weight:700}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;color:var(--ink2)}
+
+  .hbar{display:grid;grid-template-columns:210px 1fr 52px;align-items:center;gap:10px;margin:7px 0;font-size:13px}
+  .hbar .lbl{color:var(--ink2);font-weight:600;text-align:right;font-size:12.5px}
+  .track{background:#eef0f3;border-radius:6px;height:22px;overflow:hidden}
+  .fill{height:100%;border-radius:6px;background:linear-gradient(90deg,#b5341f,#d05a44)}
+  .fill.a{background:linear-gradient(90deg,#a9780a,#cda233)}
+  .fill.b{background:linear-gradient(90deg,#2b5b8c,#3f78b0)}
+  .val{font-weight:700;text-align:left;font-size:12.5px}
+  .chart{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-top:14px}
+  .chart h3{font-size:14.5px;margin-bottom:10px}
+
+  ul.tight{margin:9px 0;padding-left:20px}
+  ul.tight li{font-size:14px;color:var(--ink2);margin:6px 0}
+  .foot{padding:24px 0 56px;color:var(--muted);font-size:12px}
+  .foot b{color:var(--ink2)}
+  @media(max-width:680px){.kpis{grid-template-columns:1fr}.hbar{grid-template-columns:130px 1fr 46px}}
+  @media print{
+    *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important}
+    body{background:#fff}
+    .kpi,.chart,.call,table{break-inside:avoid;page-break-inside:avoid}
+    tr{break-inside:avoid} h2,h3,.eyebrow{break-after:avoid}
+    section{padding:22px 0}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="kick">Data Quality Findings · Companion to the Store Analysis</div>
+    <h1>Vaishnavi — Deoghar · Stock Data Check</h1>
+    <div class="sub">While analysing the stock-on-hand file, a few data problems came up that make the numbers hard to trust. They're all fixable. This note lists exactly what was found, with the actual records, so your team can correct them.</div>
+    <div class="meta">
+      <span>📦 File: VAISHNAVI DEOGHAR 12-06-2026 SOH.xlsx</span>
+      <span>🏷️ 8,805 in-stock items checked</span>
+      <span>📎 Full lists in the attached Excel</span>
+    </div>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <div class="eyebrow">At a glance</div>
+    <h2>Three things to fix in the stock data</h2>
+    <div class="kpis" style="margin-top:14px">
+      <div class="kpi warn"><div class="lab">Cost higher than MRP</div><div class="big num">24 items</div><div class="note">Impossible — cost-field errors</div></div>
+      <div class="kpi warn"><div class="lab">Same item, two seasons</div><div class="big num">3,007</div><div class="note">34% of items differ across the 2 sheets</div></div>
+      <div class="kpi flag"><div class="lab">Structure problems</div><div class="big num">2 sheets</div><div class="note">+ a total row buried in the data</div></div>
+    </div>
+    <div class="call">
+      <b>Why this matters:</b> wherever cost is wrong, the profit/margin for that item is wrong too; and when an item's season is recorded two different ways, you can't reliably tell how old the stock is — which is exactly what drives markdown and dead-stock decisions. None of it is fatal, but it shows the data isn't being checked as it goes in.
+    </div>
+  </div>
+</section>
+
+<!-- ISSUE 1 -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Issue 1</div>
+    <h2>24 items have cost recorded higher than MRP</h2>
+    <p class="lead">An item can't cost more than its selling price. These are clearly data-entry errors in the cost field — mostly <b>Stride t-shirts</b> and <b>Van Heusen jeans</b> (where cost is entered ~75% above the price tag). Every one of these shows a fake loss until corrected.</p>
+    <table>
+      <thead><tr><th>Item</th><th>Brand</th><th>Size</th><th>Barcode</th><th>MRP</th><th>Cost entered</th><th>Gap</th><th>Qty</th></tr></thead>
+      <tbody>
+        <tr><td>Jeans</td><td>Van Heusen</td><td>82</td><td class="mono">8909045599857</td><td class="num">₹2,499</td><td class="num bad">₹4,375</td><td class="num">₹1,876</td><td class="num">1</td></tr>
+        <tr><td>Jeans</td><td>Van Heusen</td><td>86</td><td class="mono">8909045599864</td><td class="num">₹2,499</td><td class="num bad">₹4,375</td><td class="num">₹1,876</td><td class="num">1</td></tr>
+        <tr><td>Jeans</td><td>Van Heusen</td><td>82</td><td class="mono">8909045832879</td><td class="num">₹3,799</td><td class="num bad">₹4,434</td><td class="num">₹635</td><td class="num">1</td></tr>
+        <tr><td>Jeans</td><td>Van Heusen</td><td>86</td><td class="mono">8909045685284</td><td class="num">₹3,799</td><td class="num bad">₹4,434</td><td class="num">₹635</td><td class="num">1</td></tr>
+        <tr><td>Jeans</td><td>Van Heusen</td><td>92</td><td class="mono">8909045599871</td><td class="num">₹2,499</td><td class="num bad">₹2,917</td><td class="num">₹418</td><td class="num">1</td></tr>
+        <tr><td>T-Shirt</td><td>Stride</td><td>M</td><td class="mono">6570283791352</td><td class="num">₹1,699</td><td class="num bad">₹2,090</td><td class="num">₹391</td><td class="num">1</td></tr>
+        <tr><td>T-Shirt</td><td>Stride</td><td>M</td><td class="mono">6570283815195</td><td class="num">₹1,699</td><td class="num bad">₹2,090</td><td class="num">₹391</td><td class="num">2</td></tr>
+        <tr><td>T-Shirt</td><td>Stride</td><td>M</td><td class="mono">6570283815201</td><td class="num">₹1,699</td><td class="num bad">₹2,090</td><td class="num">₹391</td><td class="num">2</td></tr>
+        <tr><td>T-Shirt</td><td>Stride</td><td>L</td><td class="mono">6570283815232</td><td class="num">₹1,699</td><td class="num bad">₹2,090</td><td class="num">₹391</td><td class="num">1</td></tr>
+        <tr><td>T-Shirt</td><td>Stride</td><td>XL</td><td class="mono">6570283815256</td><td class="num">₹1,699</td><td class="num bad">₹2,090</td><td class="num">₹391</td><td class="num">2</td></tr>
+        <tr><td>T-Shirt</td><td>Stride</td><td>XL</td><td class="mono">6570283815263</td><td class="num">₹1,699</td><td class="num bad">₹2,090</td><td class="num">₹391</td><td class="num">2</td></tr>
+        <tr><td>T-Shirt</td><td>Stride</td><td>XL</td><td class="mono">6570283817625</td><td class="num">₹1,699</td><td class="num bad">₹2,090</td><td class="num">₹391</td><td class="num">1</td></tr>
+        <tr><td>T-Shirt</td><td>Stride</td><td>M</td><td class="mono">6570283771002</td><td class="num">₹1,599</td><td class="num bad">₹1,967</td><td class="num">₹368</td><td class="num">2</td></tr>
+        <tr><td>T-Shirt</td><td>Stride</td><td>L</td><td class="mono">6570283771026</td><td class="num">₹1,599</td><td class="num bad">₹1,967</td><td class="num">₹368</td><td class="num">1</td></tr>
+        <tr><td>T-Shirt</td><td>Stride</td><td>XL</td><td class="mono">6570283771040</td><td class="num">₹1,599</td><td class="num bad">₹1,967</td><td class="num">₹368</td><td class="num">1</td></tr>
+        <tr><td>T-Shirt</td><td>Stride</td><td>M</td><td class="mono">6570283775857</td><td class="num">₹1,499</td><td class="num bad">₹1,844</td><td class="num">₹345</td><td class="num">1</td></tr>
+        <tr><td>T-Shirt</td><td>Stride</td><td>L</td><td class="mono">6570283820526</td><td class="num">₹1,499</td><td class="num bad">₹1,844</td><td class="num">₹345</td><td class="num">1</td></tr>
+        <tr><td>T-Shirt</td><td>Stride</td><td>XL</td><td class="mono">6570283775895</td><td class="num">₹1,499</td><td class="num bad">₹1,844</td><td class="num">₹345</td><td class="num">1</td></tr>
+        <tr><td>T-Shirt</td><td>Stride</td><td>XL</td><td class="mono">6570283813733</td><td class="num">₹1,499</td><td class="num bad">₹1,844</td><td class="num">₹345</td><td class="num">1</td></tr>
+        <tr><td>T-Shirt</td><td>Stride</td><td>XL</td><td class="mono">6570283820540</td><td class="num">₹1,499</td><td class="num bad">₹1,844</td><td class="num">₹345</td><td class="num">1</td></tr>
+        <tr><td>Earbud</td><td>Turtle</td><td>Free</td><td class="mono">8905757733862</td><td class="num">₹199</td><td class="num bad">₹359</td><td class="num">₹160</td><td class="num">1</td></tr>
+        <tr><td>Bedsheet</td><td>Parx</td><td>Free</td><td class="mono">8905725116864</td><td class="num">₹499</td><td class="num bad">₹599</td><td class="num">₹100</td><td class="num">1</td></tr>
+        <tr><td>Tank Top</td><td>Jockey</td><td>S</td><td class="mono">1535S339</td><td class="num">₹339</td><td class="num bad">₹368</td><td class="num">₹29</td><td class="num">1</td></tr>
+        <tr><td>Back Pack</td><td>U.S. Polo Kids</td><td>Free</td><td class="mono">8909286004462</td><td class="num">₹499</td><td class="num bad">₹508</td><td class="num">₹9</td><td class="num">5</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ISSUE 2 -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Issue 2</div>
+    <h2>The same item carries a different season in the two sheets</h2>
+    <p class="lead">The workbook has two sheets listing the same 8,805 in-stock items. For <b>3,007 of them (34%)</b>, the "Season" — which tells you how old the stock is — does not match between the sheets. Here's what's behind those 3,007:</p>
+
+    <div class="chart">
+      <h3>Why the seasons don't match (3,007 items)</h3>
+      <div class="hbar"><div class="lbl">Just formatting — same season<br>written two ways (SS25 vs SS-25)</div><div class="track"><div class="fill a" style="width:100%"></div></div><div class="val">1,194</div></div>
+      <div class="hbar"><div class="lbl">A date sits where the season<br>should be (2026-04-23 vs SS-24)</div><div class="track"><div class="fill" style="width:85%"></div></div><div class="val">1,010</div></div>
+      <div class="hbar"><div class="lbl">Season is blank in one sheet,<br>filled in the other</div><div class="track"><div class="fill b" style="width:54%"></div></div><div class="val">640</div></div>
+      <div class="hbar"><div class="lbl">Genuinely different / "N/A"<br>vs a real season</div><div class="track"><div class="fill b" style="width:14%"></div></div><div class="val">163</div></div>
+    </div>
+
+    <div class="call gold">
+      <b>The takeaway:</b> roughly a third are harmless formatting differences, but <b>over 1,000 items have a date instead of a season</b>, and another 640 are blank on one side. Together that means the store cannot automatically sort stock by age — and ageing is what drives markdowns and clearing dead stock. The full item-by-item list (with both season values) is in the attached Excel.
+    </div>
+  </div>
+</section>
+
+<!-- ISSUE 3 -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow">Issue 3</div>
+    <h2>Totals and dead rows are mixed into the live data</h2>
+    <ul class="tight">
+      <li><b>Two sheets for the same stock.</b> One sheet lists the full catalogue (33,383 rows — including 24,576 items with zero stock), the other lists only the 8,805 items actually in stock. Keeping both, with different season labels, is how the mismatch above creeps in.</li>
+      <li><b>A grand-total row is buried inside the data</b> — a row with no barcode carrying the whole-store total (13,375 pieces, ₹1.80 Cr). If anyone sums the quantity column without spotting it, the total is double-counted.</li>
+      <li><b>Zero-stock items sit in the same list as live stock</b> — fine for a catalogue, but it inflates counts and slows down anyone reading the file.</li>
+    </ul>
+    <div class="call">
+      <b>What to do:</b> none of this needs a big project. The lasting fix is for the billing/stock system to keep <b>one record per item</b> with a <b>single, validated season</b> and a <b>cost that can never exceed MRP</b> — so these errors can't be entered in the first place. Until then, the 24 cost errors can be corrected today, and the season field standardised to one format.
+    </div>
+  </div>
+</section>
+
+<div class="wrap foot">
+  <p><b>About this note.</b> Prepared as a companion to the Vaishnavi (Deoghar) store analysis. All findings are taken directly from the stock-on-hand file dated 12 June 2026. The complete lists — all 24 cost-above-MRP items and all 3,007 season mismatches with both values side by side — are in the accompanying file <b>Vaishnavi-SOH-data-errors.xlsx</b>.</p>
+  <p style="margin-top:12px;color:#9aa0ad">Prepared for KDPS Lifestyle Pvt. Ltd. · Vaishnavi, Deoghar · 14 June 2026.</p>
+</div>
+
+</body>
+</html>

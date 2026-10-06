@@ -84,6 +84,61 @@ def test_session_expires_at_assignment_boundary(
         assert resolve_session(issued.token) is None
 
 
+@pytest.mark.parametrize("host_offset_minutes", [5, -5])
+def test_seed_clock_and_replay_preserve_scheduled_assignment(
+    worlds: tuple[TenantWorld, TenantWorld], monkeypatch: Any, host_offset_minutes: int,
+) -> None:
+    """Direct seeds and role-only readers agree with database-time boundaries."""
+    from accounts.goods_setup import seed_role_assignment
+    from accounts.principal import effective_grants
+    from accounts.role_assignments import effective_assignments
+    from core.commands import database_now
+
+    world, _ = worlds
+    with tenant_context(world.tenant.pk):
+        user, human = _person(world, "seed-chronology")
+        moment = database_now()
+        host_now = timezone.now
+        monkeypatch.setattr(timezone, "now", lambda: host_now() + timedelta(minutes=host_offset_minutes))
+        monkeypatch.setattr("accounts.goods_setup.database_now", lambda: moment)
+        monkeypatch.setattr("accounts.role_assignments.database_now", lambda: moment)
+        monkeypatch.setattr("accounts.principal.database_now", lambda: moment)
+        monkeypatch.setattr("accounts.sessions.database_now", lambda: moment)
+        assignment = seed_role_assignment(world.tenant, human, "owner", source_key="seed-chronology",
+                                          all_sites=True, all_brands=True)
+        assert assignment.effective_from == moment
+        assert [row.pk for row in effective_assignments(human.pk)] == [assignment.pk]
+        starts = moment + timedelta(minutes=10)
+        ends = starts + timedelta(minutes=10)
+        assignment.effective_from, assignment.effective_to = starts, ends
+        assignment.all_sites, assignment.site_ids = False, [world.sites[0].pk]
+        assignment.all_brands, assignment.brand_ids = False, [world.brands[0].pk]
+        assignment.save()
+        repeated = seed_role_assignment(world.tenant, human, "owner", source_key="seed-chronology",
+                                        all_sites=True, all_brands=True, effective_from=moment)
+        repeated.refresh_from_db()
+        assert repeated.pk == assignment.pk and RoleAssignment.objects.filter(human=human).count() == 1
+        assert repeated.effective_from == starts and repeated.effective_to == ends
+        assert not repeated.all_sites and repeated.site_ids == [world.sites[0].pk]
+        assert not repeated.all_brands and repeated.brand_ids == [world.brands[0].pk]
+        assert effective_assignments(human.pk) == [] and effective_grants(human.pk) == []
+        issued = issue_session(user)
+        assert issued.session.expires_at == starts and resolve_session(issued.token) is not None
+        assert [row.pk for row in effective_assignments(human.pk, starts)] == [assignment.pk]
+        moment = starts
+        assert [row.pk for row in effective_assignments(human.pk)] == [assignment.pk]
+        assert [grant.id for grant in effective_grants(human.pk)] == [assignment.pk]
+        assert resolve_session(issued.token) is None
+        moment = ends
+        assert effective_assignments(human.pk) == [] and effective_grants(human.pk) == []
+        assignment.revoked_at = moment
+        assignment.save(update_fields=["revoked_at"])
+        seed_role_assignment(world.tenant, human, "owner", source_key="seed-chronology",
+                             all_sites=True, all_brands=True, effective_from=moment)
+        assignment.refresh_from_db()
+        assert assignment.revoked_at == moment and effective_assignments(human.pk) == []
+
+
 def test_initial_role_cannot_be_deactivated(worlds: tuple[TenantWorld, TenantWorld]) -> None:
     from accounts.goods_admin_services import update_role
     from types import SimpleNamespace

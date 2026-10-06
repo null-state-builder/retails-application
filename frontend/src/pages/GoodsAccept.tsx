@@ -226,8 +226,10 @@ export function AcceptPanel({
             {waitingHere.map((row) => (
               <li key={row.official_version_id}>
                 <span>
-                  <b>{row.pt_number ?? row.pt_id.slice(0, 8)}</b> — {row.remaining_qty} piece(s)
-                  still to accept
+                  <b>{row.pt_number ?? row.pt_id.slice(0, 8)}</b> —{" "}
+                  {row.remaining_qty > 0
+                    ? `${row.remaining_qty} piece(s) still to accept`
+                    : "All pieces accepted; finish the open session"}
                 </span>
                 <button
                   className="btn btn-sm"
@@ -235,7 +237,7 @@ export function AcceptPanel({
                   onClick={() => open(row.official_version_id)}
                   data-testid={`accept-open-${row.pt_id}`}
                 >
-                  Open
+                  {row.remaining_qty > 0 ? "Open" : "Finish session"}
                 </button>
               </li>
             ))}

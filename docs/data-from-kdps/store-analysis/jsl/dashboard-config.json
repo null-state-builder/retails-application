@@ -1,0 +1,8 @@
+{
+  "store_name": "JSL Store",
+  "store_code": "JSL",
+  "region": "Bihar / Jharkhand",
+  "costs": { "variable_pct_of_sales": 7, "rent": 220000, "electricity": 100000, "misc": 40000 },
+  "discount_ceiling_pct": null,
+  "soh_as_on": "2026-06-30"
+}

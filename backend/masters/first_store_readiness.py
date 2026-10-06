@@ -39,17 +39,35 @@ def _opening_established(site: Store) -> bool:
                                     approved_by__isnull=False).exists()
 
 
+def opening_ready(site: Store, *, whole_store: bool = True) -> bool:
+    """A jointly declared empty new shop, or independently accepted opening.
+
+    Once a source is uploaded it must complete the same review/acceptance as
+    an existing shop. A lifecycle label never substitutes for that evidence.
+    """
+    from accounts.registration_models import InstallationRegistration
+    from ptmapper.soh_models import SohImport
+    from ptmapper.soh_services import is_reconciled
+
+    claim = InstallationRegistration.objects.filter(
+        tenant_id=site.tenant_id, first_store_id=site.pk,
+        completed_at__isnull=False,
+    ).first()
+    declared_new = bool(claim and claim.summary.get("store", {}).get("setup_kind") == "new")
+    empty_start = declared_new and not SohImport.objects.filter(
+        tenant_id=site.tenant_id, site_id=site.pk,
+    ).exclude(state="withdrawn").exists()
+    return empty_start or (is_reconciled(site) if whole_store else _opening_established(site))
+
+
 def selling_checks(site: Store, now: datetime, *, whole_store: bool = True) -> list[dict[str, Any]]:
     from accounts.models import User
     from accounts.principal import access_for_user
-    from accounts.registration_models import InstallationRegistration
     from masters.document_series import prefix_for_site
     from masters.goods_config import ConfigTarget, resolve
     from masters.goods_services import compute_readiness_checks
     from masters.store_features import is_feature_on
     from masters.tax_settings import in_force, saved_versions
-    from ptmapper.soh_services import is_reconciled
-    from ptmapper.soh_models import SohImport
     from sell.services.goods_stock import read_shelf
     from sell.services.online import sale_series_ready
     from sell.services.postings import resolve_goods_cost_plan
@@ -62,21 +80,11 @@ def selling_checks(site: Store, now: datetime, *, whole_store: bool = True) -> l
     live = bool(guard and guard.lifecycle == SiteGuard.Lifecycle.ACTIVE
                 and guard.goods_ready and not guard.freeze_id
                 and guard.stock_contract == SiteGuard.StockContract.GOODS_V1)
-    claim = InstallationRegistration.objects.filter(tenant_id=site.tenant_id,
-                                                     first_store_id=site.pk,
-                                                     completed_at__isnull=False).first()
-    declared_new = bool(claim and claim.summary.get("store", {}).get("setup_kind") == "new")
-    # The exact jointly confirmed new-store declaration establishes an empty
-    # start. Once a source has been uploaded it needs the same review as any
-    # existing store. Received stock still uses the governed receipt writer.
-    empty_start = declared_new and not SohImport.objects.filter(
-        tenant_id=site.tenant_id, site_id=site.pk).exclude(state="withdrawn").exists()
     checks = [
         _gate("goods_active", live, "Activate this goods store and resolve its stock freeze."),
         _gate("current_setup", all(row["passed"] for row in setup),
               "Complete the current legal, calendar, receiving and staff setup without unresolved gaps."),
-        _gate("opening_reconciled",
-              empty_start or (is_reconciled(site) if whole_store else _opening_established(site)),
+        _gate("opening_reconciled", opening_ready(site, whole_store=whole_store),
               "Approve the source, post every opening batch and reconcile physical acceptance."),
     ]
     policy = None

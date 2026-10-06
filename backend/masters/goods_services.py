@@ -705,17 +705,17 @@ def apply_readiness_approval(
 
     if action not in APPROVAL_ACTIONS:
         raise Refusal("INVALID_REQUEST", f"{action} is not a readiness approval.")
-    finishing_opening = (
+    online_goods_approval = (
         action == "approve_goods"
-        and guard.lifecycle == SiteGuard.Lifecycle.OPENING
         and guard.selling_mode == SiteGuard.SellingMode.ONLINE_ALPHA
     )
-    if finishing_opening:
-        from ptmapper.soh_services import is_reconciled
+    finishing_opening = online_goods_approval and guard.lifecycle == SiteGuard.Lifecycle.OPENING
+    if online_goods_approval:
+        from masters.first_store_readiness import opening_ready
 
         checks = [*checks, _check(
-            "opening_reconciled", is_reconciled(store),
-            "Approve and physically accept every opening batch before activating this store.",
+            "opening_reconciled", opening_ready(store),
+            "Confirm an empty new-store start, or approve and physically accept every opening batch before activating this store.",
             overridable=False,
         )]
     recorded = enforce_checks_for_approval(checks, residual_decisions)

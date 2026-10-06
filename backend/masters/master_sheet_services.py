@@ -21,7 +21,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
-from typing import Any
+from typing import Any, cast
 
 from accounts.principal import AccessContext
 from approvals.goods_services import (
@@ -149,12 +149,12 @@ def snapshot(tenant_id: uuid.UUID, now: datetime) -> dict[str, Any]:
                         }
                     )
         else:
-            for dimension, key in (
+            for profile_dimension, key in (
                 (payload.get("size_dimension"), "allowed_size_values"),
                 (payload.get("colour_dimension"), "allowed_colour_values"),
             ):
-                if dimension and payload.get(key):
-                    allow[str(dimension)] = True
+                if profile_dimension and payload.get(key):
+                    allow[str(profile_dimension)] = True
     return {
         "values": values,
         "version_ids": version_ids,
@@ -340,7 +340,7 @@ def locked_import(
     )
     if not found:
         raise Refusal("NOT_FOUND", "That master sheet import was not found.")
-    source = found[0]
+    source = cast(MasterSheetImport, found[0])
     if expected is not None and expected != source.revision:
         raise Refusal(
             "REVISION_SUPERSEDED",

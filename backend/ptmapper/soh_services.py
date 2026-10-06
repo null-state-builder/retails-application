@@ -337,7 +337,7 @@ def submit(run: CommandRun, access: AccessContext, source: SohImport, expected: 
     source.approval_request = create_request(run, subject_kind="soh_import", subject_key=str(source.pk),
                                              revision=source.revision, reviewed_hash=source.reviewed_hash,
                                              requested_action=APPROVE, site_id=source.site_id,
-                                             require_distinct=True, required_roles=["C-OWN"],
+                                             require_distinct=True, required_roles=["owner"],
                                              title=f"Review SOH migration source {source.source_name}")
     source.state = "submitted"
     source.save()
