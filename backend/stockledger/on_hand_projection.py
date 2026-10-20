@@ -1,6 +1,6 @@
 """Compatibility stock reads over one authoritative source per store.
 
-Online-alpha goods stores read canonical physical portions. Other stores retain
+Goods-v1 stores read canonical physical portions. Legacy-contract stores retain
 their ledger projection. This never copies balances or writes business history.
 """
 
@@ -27,9 +27,11 @@ DIMENSIONS = ("brand", "design", "color", "size", "item", "season", "sku_code")
 
 
 def canonical_sites(tenant_id: Any) -> set[int]:
+    # Every goods-v1 site, whatever its selling mode: the legacy writer is fenced
+    # there (CONTRACT_DISABLED), so its ledger projection is always empty and
+    # reading it showed a stocked historical-mode store as holding nothing.
     return set(SiteGuard.objects.filter(
         tenant_id=tenant_id, stock_contract=SiteGuard.StockContract.GOODS_V1,
-        selling_mode=SiteGuard.SellingMode.ONLINE_ALPHA,
     ).values_list("site_id", flat=True))
 
 
