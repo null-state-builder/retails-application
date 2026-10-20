@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { X } from "lucide-react";
 
 import { Field, useResourceList } from "../lib/goodsScreen";
 import { useConfigurations, TENANT_SCOPE, type ConfigScope } from "../lib/goodsConfig";
@@ -321,12 +322,17 @@ function Version({
   label,
   value,
   change,
+  hint = "Choose an approved version.",
+  emptyHint,
 }: {
   kind: string;
   name: string;
   label: string;
   value: unknown;
   change: (next: string) => void;
+  hint?: string;
+  /** Said instead of `hint` once the list has loaded and nothing is approved. */
+  emptyHint?: string;
 }) {
   const configs = useConfigurations(kind);
   const versions = configs.items.flatMap((row) =>
@@ -338,12 +344,21 @@ function Version({
       })),
   );
   return (
-    <Field id={`cfg-${name}`} label={label} hint={configs.failure || "Choose an approved version."}>
+    <Field
+      id={`cfg-${name}`}
+      label={label}
+      hint={
+        configs.failure ||
+        (emptyHint && !configs.loading && versions.length === 0 ? emptyHint : hint)
+      }
+    >
       <select
         id={`cfg-${name}`}
         className="input"
         value={String(value ?? "")}
         onChange={(e) => change(e.target.value)}
+        aria-describedby={`cfg-${name}-hint`}
+        data-testid={`cfg-${name}`}
       >
         <option value="">Choose…</option>
         {versions.map((v) => (
@@ -568,77 +583,318 @@ export function FirstStorePolicyEditor({ kind, value, onChange }: EditorProps & 
   return <BusinessProfileEditor value={value} onChange={onChange} />;
 }
 
+const GB = 1_000_000_000;
+
+/** A short list of names (categories, commercial models) as removable entries
+ *  with one input to add the next. Blank and repeated entries are dropped. */
+function ListEntries({
+  name,
+  label,
+  hint,
+  placeholder,
+  value,
+  change,
+}: {
+  name: string;
+  label: string;
+  hint: string;
+  placeholder: string;
+  value: unknown;
+  change: (next: string[]) => void;
+}) {
+  const [entry, setEntry] = useState("");
+  const entries = list(value).filter((item) => item.trim() !== "");
+  const add = () => {
+    const next = entry.trim();
+    if (!next) return;
+    if (!entries.some((item) => item.toLowerCase() === next.toLowerCase())) {
+      change([...entries, next]);
+    }
+    setEntry("");
+  };
+  return (
+    <div className="cfg-sect">
+      <div className="cfg-sect-head">
+        <label className="cfg-sect-label" htmlFor={`cfg-${name}`}>
+          {label}
+        </label>
+        <span className="cfg-sect-count">
+          {entries.length === 0 ? "None yet" : `${entries.length} added`}
+        </span>
+      </div>
+      <p className="goods-hint" id={`cfg-${name}-hint`}>
+        {hint}
+      </p>
+      <div className="cfg-entry-add">
+        <input
+          id={`cfg-${name}`}
+          className="input"
+          value={entry}
+          placeholder={placeholder}
+          onChange={(e) => setEntry(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              add();
+            }
+          }}
+          aria-describedby={`cfg-${name}-hint`}
+          data-testid={`cfg-${name}`}
+        />
+        <button type="button" className="btn" onClick={add}>
+          Add
+        </button>
+      </div>
+      {entries.length > 0 && (
+        <ul className="cfg-entries" aria-label={label}>
+          {entries.map((item) => (
+            <li key={item}>
+              <span>{item}</span>
+              <button
+                type="button"
+                onClick={() => change(entries.filter((other) => other !== item))}
+                aria-label={`Remove ${item}`}
+              >
+                <X size={13} aria-hidden="true" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+/** A whole number (or, with `scale`, a decimal of that unit) that keeps what
+ *  was typed, so clearing the box leaves it blank instead of snapping to 0. */
+function Count({
+  name,
+  label,
+  value,
+  change,
+  hint,
+  scale = 1,
+}: {
+  name: string;
+  label: string;
+  value: unknown;
+  change: (next: number | null) => void;
+  hint?: string;
+  scale?: number;
+}) {
+  const stored = typeof value === "number" && Number.isFinite(value) ? value : null;
+  const shown = stored === null ? "" : String(Number((stored / scale).toPrecision(12)));
+  const [typed, setTyped] = useState(shown);
+  const toStored = (text: string) =>
+    text.trim() === "" ? null : Math.max(0, Math.round(Number(text) * scale));
+  useEffect(() => {
+    // Follow the payload when it changes from outside (a loaded draft), but
+    // not while what is typed already means the same number.
+    if ((toStored(typed) ?? 0) !== (stored ?? 0)) setTyped(shown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stored]);
+  return (
+    <Field id={`cfg-${name}`} label={label} hint={hint}>
+      <input
+        id={`cfg-${name}`}
+        className="input"
+        type="number"
+        inputMode={scale === 1 ? "numeric" : "decimal"}
+        min={0}
+        step={scale === 1 ? 1 : "any"}
+        placeholder="0"
+        value={typed}
+        onChange={(e) => {
+          setTyped(e.target.value);
+          change(toStored(e.target.value));
+        }}
+        {...(hint ? { "aria-describedby": `cfg-${name}-hint` } : {})}
+        data-testid={`cfg-${name}`}
+      />
+    </Field>
+  );
+}
+
+const SCALE_FIELDS: { key: string; label: string; hint?: string; scale?: number }[] = [
+  { key: "expected_skus", label: "SKUs" },
+  { key: "brands", label: "Brands" },
+  { key: "sites", label: "Stores" },
+  { key: "sbus", label: "Business units" },
+  { key: "staff", label: "Staff" },
+  { key: "documents_per_day", label: "Documents a day", hint: "Bills, receipts and transfers." },
+  {
+    key: "evidence_bytes_per_year",
+    label: "Evidence a year (GB)",
+    hint: "Photos and files kept as proof.",
+    scale: GB,
+  },
+];
+
 function BusinessProfileEditor({ value, onChange }: EditorProps) {
   const sites = useResourceList<{ name: string }>("/goods-v1/masters/stores");
   const set = (key: string, next: unknown) => onChange({ ...value, [key]: next });
+  const tills = (Array.isArray(value.tills_per_site) ? value.tills_per_site : []) as Payload[];
+  const workforce = String(value.workforce_scope ?? "");
   return (
-    <div data-testid="business-profile-editor">
-      <Version
-        kind="identity_profile"
-        name="identity_profile_id"
-        label="Approved SKU identity profile"
-        value={value.identity_profile_id}
-        change={(v) => set("identity_profile_id", v)}
-      />
-      {["categories", "commercial_labels"].map((key) => (
-        <Lines
-          key={key}
-          name={key}
-          label={key.replaceAll("_", " ")}
-          value={value[key]}
-          change={(v) => set(key, v)}
+    <div className="cfg-bp" data-testid="business-profile-editor">
+      <section className="cfg-bp-group cfg-bp-gate" aria-labelledby="cfg-bp-receive">
+        <header className="cfg-bp-head">
+          <h4 className="h4" id="cfg-bp-receive">
+            Needed before you can receive stock
+          </h4>
+          <p className="goods-hint">
+            Booking and receiving need these before they are switched on.
+          </p>
+        </header>
+        <Version
+          kind="identity_profile"
+          name="identity_profile_id"
+          label="SKU identity profile"
+          hint="Decides which attributes make two items different SKUs."
+          emptyHint="Nothing approved yet. Approve one under SKU identity profile first."
+          value={value.identity_profile_id}
+          change={(v) => set("identity_profile_id", v)}
         />
-      ))}
-      {[
-        "expected_skus",
-        "brands",
-        "sites",
-        "sbus",
-        "staff",
-        "documents_per_day",
-        "evidence_bytes_per_year",
-      ].map((key) => (
-        <Text
-          key={key}
-          name={key}
-          label={key.replaceAll("_", " ")}
-          type="number"
-          value={value[key]}
-          change={(v) => set(key, Number(v))}
-        />
-      ))}
-      {["workforce_scope", "accounting_interface"].map((key) => (
-        <Text
-          key={key}
-          name={key}
-          label={key.replaceAll("_", " ")}
-          value={value[key]}
-          change={(v) => set(key, v)}
-        />
-      ))}
-      <fieldset>
-        <legend>Counters per store</legend>
-        {sites.items.map((site) => {
-          const rows = (
-            Array.isArray(value.tills_per_site) ? value.tills_per_site : []
-          ) as Payload[];
-          return (
-            <Text
-              key={site.id}
-              name={`counter-${site.id}`}
-              label={site.data.name}
-              type="number"
-              value={rows.find((row) => String(row.site_id) === site.id)?.count ?? ""}
-              change={(v) =>
-                set("tills_per_site", [
-                  ...rows.filter((row) => String(row.site_id) !== site.id),
-                  { site_id: site.id, count: Number(v) },
-                ])
-              }
+        <div className="cfg-two">
+          <ListEntries
+            name="categories"
+            label="Merchandise categories"
+            hint="What you sell, such as Sarees."
+            placeholder="Add a category"
+            value={value.categories}
+            change={(v) => set("categories", v)}
+          />
+          <ListEntries
+            name="commercial_labels"
+            label="Commercial models"
+            hint="How stock comes in, such as sale or return."
+            placeholder="Add a model"
+            value={value.commercial_labels}
+            change={(v) => set("commercial_labels", v)}
+          />
+        </div>
+      </section>
+
+      <section className="cfg-bp-group" aria-labelledby="cfg-bp-scale">
+        <header className="cfg-bp-head">
+          <h4 className="h4" id="cfg-bp-scale">
+            Expected scale
+          </h4>
+          <p className="goods-hint">Your best estimate, used to size the setup.</p>
+        </header>
+        <div className="cfg-bp-scale">
+          {SCALE_FIELDS.map((field) => (
+            <Count
+              key={field.key}
+              name={field.key}
+              label={field.label}
+              {...(field.hint ? { hint: field.hint } : {})}
+              {...(field.scale ? { scale: field.scale } : {})}
+              value={value[field.key]}
+              change={(v) => set(field.key, v ?? 0)}
             />
-          );
-        })}
-      </fieldset>
+          ))}
+        </div>
+      </section>
+
+      <section className="cfg-bp-group" aria-labelledby="cfg-bp-people">
+        <header className="cfg-bp-head">
+          <h4 className="h4" id="cfg-bp-people">
+            People and systems
+          </h4>
+          <p className="goods-hint">Needed before the features that use them are switched on.</p>
+        </header>
+        <div className="cfg-two">
+          <Field
+            id="cfg-workforce_scope"
+            label="Who works in the business"
+            hint={`Teams, roles or contractors this setup covers. ${workforce.length}/500`}
+          >
+            <textarea
+              id="cfg-workforce_scope"
+              className="input"
+              rows={3}
+              maxLength={500}
+              value={workforce}
+              onChange={(e) => set("workforce_scope", e.target.value)}
+              aria-describedby="cfg-workforce_scope-hint"
+              data-testid="cfg-workforce_scope"
+            />
+          </Field>
+          <Field
+            id="cfg-accounting_interface"
+            label="Accounting system"
+            hint="Where the books are kept, for example Tally."
+          >
+            <input
+              id="cfg-accounting_interface"
+              className="input"
+              maxLength={160}
+              value={String(value.accounting_interface ?? "")}
+              onChange={(e) => set("accounting_interface", e.target.value)}
+              aria-describedby="cfg-accounting_interface-hint"
+              data-testid="cfg-accounting_interface"
+            />
+          </Field>
+        </div>
+        <div className="cfg-sect">
+          <div className="cfg-sect-head">
+            <span className="cfg-sect-label" id="cfg-counters-label">
+              Billing counters per store
+            </span>
+            <span className="cfg-sect-count">
+              {sites.items.length === 0
+                ? ""
+                : `${tills.reduce((sum, row) => sum + Number(row.count ?? 0), 0)} in all`}
+            </span>
+          </div>
+          {sites.loading ? (
+            <p className="goods-hint">Loading stores…</p>
+          ) : sites.items.length === 0 ? (
+            <p className="goods-hint" data-testid="cfg-counters-empty">
+              {sites.failure || "No stores set up yet. Add them under Organisation."}
+            </p>
+          ) : (
+            <ul className="cfg-counters" aria-labelledby="cfg-counters-label">
+              {sites.items.map((site) => {
+                const row = tills.find((r) => String(r.site_id) === site.id);
+                return (
+                  <li key={site.id}>
+                    <label htmlFor={`cfg-counter-${site.id}`}>{site.data.name}</label>
+                    <input
+                      id={`cfg-counter-${site.id}`}
+                      className="input"
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      step={1}
+                      placeholder="0"
+                      value={row?.count == null ? "" : String(row.count)}
+                      onChange={(e) => {
+                        const others = tills.filter((r) => String(r.site_id) !== site.id);
+                        const text = e.target.value.trim();
+                        set(
+                          "tills_per_site",
+                          text === ""
+                            ? others
+                            : [
+                                ...others,
+                                {
+                                  site_id: site.id,
+                                  count: Math.max(0, Math.round(Number(text))),
+                                },
+                              ],
+                        );
+                      }}
+                      data-testid={`cfg-counter-${site.id}`}
+                    />
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </section>
     </div>
   );
 }

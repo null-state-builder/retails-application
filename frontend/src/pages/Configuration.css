@@ -280,17 +280,20 @@
   height: 40px;
 }
 
-.cfg-layout .cfg-holiday-add {
+.cfg-layout .cfg-holiday-add,
+.cfg-layout .cfg-entry-add {
   display: flex;
   gap: 8px;
   height: 48px;
 }
-.cfg-layout .cfg-holiday-add .input {
+.cfg-layout .cfg-holiday-add .input,
+.cfg-layout .cfg-entry-add .input {
   flex: 1 1 auto;
   min-width: 0;
   height: 100%;
 }
-.cfg-layout .cfg-holiday-add .btn {
+.cfg-layout .cfg-holiday-add .btn,
+.cfg-layout .cfg-entry-add .btn {
   height: 100%;
   white-space: nowrap;
 }
@@ -441,4 +444,138 @@
 }
 .cfg-layout .cfg-line .table-wrap {
   margin-top: 12px;
+}
+
+/* Business profile: three groups in one card, in the order the PRD asks for
+ * them (R-ORG-005) — what receiving needs, the expected scale, then the
+ * people and systems later features read. Each group says why it is asked. */
+.cfg-layout .cfg-bp {
+  display: flex;
+  flex-direction: column;
+}
+.cfg-layout .cfg-bp-group {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+.cfg-layout .cfg-bp-group + .cfg-bp-group {
+  margin-top: 26px;
+  padding-top: 24px;
+  border-top: 1px solid var(--hairline);
+}
+.cfg-layout .cfg-bp-head .h4 {
+  margin: 0 0 2px;
+}
+.cfg-layout .cfg-bp-head .goods-hint {
+  margin: 0;
+}
+/* The one accent on the card: the group that gates receiving. */
+.cfg-layout .cfg-bp-gate .cfg-bp-head {
+  border-left: 3px solid var(--rust);
+  padding-left: 11px;
+  margin-left: -14px;
+}
+.cfg-layout .cfg-bp textarea.input {
+  resize: vertical;
+  min-height: 48px;
+}
+.cfg-layout .cfg-bp input[type="number"] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Expected scale: short numbers, four to a row, so the card reads as a
+ * table of estimates rather than a column of boxes. */
+.cfg-layout .cfg-bp-scale {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+  gap: 18px 20px;
+}
+@media (max-width: 720px) {
+  .cfg-layout .cfg-bp-scale {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Entries added to a list: quiet removable pills under the add row. */
+.cfg-layout .cfg-entries {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 0;
+}
+.cfg-layout .cfg-entries li {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  padding: 3px 3px 3px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  background: var(--inner);
+  font-size: 13.5px;
+  color: var(--ink);
+}
+.cfg-layout .cfg-entries li span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cfg-layout .cfg-entries button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.cfg-layout .cfg-entries button:hover {
+  background: var(--red-bg);
+  color: var(--red);
+}
+.cfg-layout .cfg-entries button:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 1px;
+}
+
+/* Billing counters: one row per store, the name and a narrow number. */
+.cfg-layout .cfg-counters {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-inner);
+  background: var(--field-bg);
+}
+.cfg-layout .cfg-counters li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 6px 6px 6px 14px;
+  font-size: 14px;
+}
+.cfg-layout .cfg-counters li + li {
+  border-top: 1px solid var(--hairline);
+}
+.cfg-layout .cfg-counters label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cfg-layout .cfg-counters .input {
+  width: 96px;
+  flex: none;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  text-align: right;
 }

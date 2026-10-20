@@ -223,7 +223,7 @@ export function summarizeConfiguration(
         return [
           { label: "Categories", value: firstFew(list(p.categories), 2) },
           { label: "Expected SKUs", value: p.expected_skus ? String(p.expected_skus) : "" },
-          { label: "Sites", value: p.sites ? String(p.sites) : "" },
+          { label: "Stores", value: p.sites ? String(p.sites) : "" },
           { label: "Staff", value: p.staff ? String(p.staff) : "" },
         ];
       default:
