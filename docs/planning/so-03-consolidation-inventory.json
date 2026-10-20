@@ -6860,6 +6860,14 @@
       "lifecycle": "canonical"
     },
     {
+      "id": "CONFIG-UI-001",
+      "kind": "api_consumer",
+      "key_regex": "^api_consumer:frontend/src/pages/Configuration\\.tsx:5b1ebf2b28b3$",
+      "primary_id": "C15",
+      "lifecycle": "canonical",
+      "callers": "Configuration list cards read the existing approvals inbox (same GET /api/goods-v1/approvals as S0876) only to show who sent each waiting draft; read-only, no new writer."
+    },
+    {
       "id": "S0878",
       "kind": "api_consumer",
       "key_regex": "^api_consumer:frontend/src/pages/ConsentWording\\.tsx:14785f0cda88$",
@@ -24640,10 +24648,55 @@
       ],
       "lifecycle": "temporary_supported_legacy",
       "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
+    },
+    {
+      "id": "STORE-TEST-400",
+      "kind": "command",
+      "key_regex": "^command:load_test_store$",
+      "primary_id": "C05",
+      "related_ids": [
+        "A00",
+        "C01",
+        "C06",
+        "C08"
+      ],
+      "lifecycle": "temporary_supported_legacy",
+      "authorization": "Operator shell only; refuses a non-synthetic tenant. Drives the canonical SOH → manifest → opening PT → acceptance writers with distinct synthetic people.",
+      "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
+    },
+    {
+      "id": "STORE-TEST-401",
+      "kind": "module",
+      "key_regex": "^module:accounts\\.management\\.commands\\.load_test_store$",
+      "primary_id": "C05",
+      "related_ids": [
+        "A00",
+        "C01",
+        "C06",
+        "C08"
+      ],
+      "lifecycle": "temporary_supported_legacy",
+      "authorization": "Operator shell only; refuses a non-synthetic tenant. Drives the canonical SOH → manifest → opening PT → acceptance writers with distinct synthetic people.",
+      "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
+    },
+    {
+      "id": "STORE-TEST-402",
+      "kind": "module",
+      "key_regex": "^module:accounts\\.test_store_loader$",
+      "primary_id": "C05",
+      "related_ids": [
+        "A00",
+        "C01",
+        "C06",
+        "C08"
+      ],
+      "lifecycle": "temporary_supported_legacy",
+      "authorization": "Operator shell only; refuses a non-synthetic tenant. Drives the canonical SOH → manifest → opening PT → acceptance writers with distinct synthetic people.",
+      "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
     }
   ],
   "discovered": {
-    "checksum": "e13343e9f00697196ebc13116eaef08026a888ab8f2ae3d80d45bb7a5e2e72b3",
+    "checksum": "60e9d4a9657faa73103e3840ec078706801a6b229dee6fb9e3afc454c69075a1",
     "records": [
       {
         "kind": "api",
@@ -39005,6 +39058,7 @@
           ],
           "static_frontend_importers": [],
           "frontend_api_callsites": [
+            "api_consumer:frontend/src/pages/Configuration.tsx:5b1ebf2b28b3",
             "api_consumer:frontend/src/pages/Configuration.tsx:f7443397330d",
             "api_consumer:frontend/src/pages/GoodsReceipts.tsx:f7443397330d",
             "api_consumer:frontend/src/pages/PtApprovals.tsx:9f3f475e4963"
@@ -39036,6 +39090,7 @@
             "model:approvals.ApprovalRequest"
           ],
           "frontend_api_callsites": [
+            "api_consumer:frontend/src/pages/Configuration.tsx:5b1ebf2b28b3",
             "api_consumer:frontend/src/pages/Configuration.tsx:f7443397330d",
             "api_consumer:frontend/src/pages/GoodsReceipts.tsx:f7443397330d",
             "api_consumer:frontend/src/pages/PtApprovals.tsx:9f3f475e4963"
@@ -44382,6 +44437,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -44635,6 +44691,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -44876,6 +44933,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -45135,6 +45193,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -46121,6 +46180,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -46368,6 +46428,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -46609,6 +46670,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -46850,6 +46912,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -47337,6 +47400,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -48054,6 +48118,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -48301,6 +48366,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -49604,6 +49670,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -49851,6 +49918,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -50208,6 +50276,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -50453,6 +50522,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -50708,6 +50778,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -50949,6 +51020,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -51688,6 +51760,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -51929,6 +52002,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -52170,6 +52244,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -52523,6 +52598,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -86499,6 +86575,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -86740,6 +86817,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -87227,6 +87305,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -87472,6 +87551,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -87717,6 +87797,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -88204,6 +88285,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -88449,6 +88531,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -88936,6 +89019,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -89177,6 +89261,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -101761,6 +101846,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -102002,6 +102088,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -102243,6 +102330,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -102490,6 +102578,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -102737,6 +102826,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -103856,6 +103946,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -104101,6 +104192,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -104346,6 +104438,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -104591,6 +104684,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -105320,6 +105414,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -105561,6 +105656,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -106454,6 +106550,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -106818,6 +106915,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -107054,6 +107152,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -107299,6 +107398,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -107544,6 +107644,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -108283,6 +108384,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -108524,6 +108626,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -148393,6 +148496,59 @@
       },
       {
         "kind": "api_consumer",
+        "key": "api_consumer:frontend/src/pages/Configuration.tsx:5b1ebf2b28b3",
+        "source": "frontend/src/pages/Configuration.tsx",
+        "detail": {
+          "invocation": "useGoodsFetch",
+          "method": "GET",
+          "argument": "anyWaiting ? \"/goods-v1/approvals\" : null",
+          "api_reference": "/api/goods-v1/approvals",
+          "resolution": "literal_or_constant"
+        },
+        "primary_id": "C15",
+        "owner": "SO-14",
+        "related_ids": [],
+        "lifecycle": "canonical",
+        "data_ownership": "Tenant-owned approval/evidence/notification readers with legacy brand-name snapshots",
+        "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
+        "callers": {
+          "declared": "Configuration list cards read the existing approvals inbox (same GET /api/goods-v1/approvals as S0876) only to show who sent each waiting draft; read-only, no new writer.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "frontend_declaration",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [
+            "api:GET:/api/goods-v1/approvals"
+          ],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "unknown",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "replacement": "`/action-needed`, `/alerts`, `/setup/audit`, `/setup/monitoring`, `/reports/*`, `/checklist`, `/setup/checklists`, `/setup/feature-switches` use shared scoped queues, evidence and readers",
+        "migration_requirements": "Map request/decision, maker/checker, notification/exception owner/state, audit, file hashes and source links.",
+        "acceptance_evidence": "Resolve `Approval.brand` name snapshots to stable tenant brand IDs, queue renamed or ambiguous history for review, and keep old authority evidence. Reconcile queue counts, decision outcomes, export bytes and before/after history; retire duplicate inbox/alert/search/export logic after denial and revocation tests.",
+        "removal_condition": "`/approvals` and `/goods/exceptions` may remain tested redirects.",
+        "rule_id": "CONFIG-UI-001"
+      },
+      {
+        "kind": "api_consumer",
         "key": "api_consumer:frontend/src/pages/Configuration.tsx:653fda519715",
         "source": "frontend/src/pages/Configuration.tsx",
         "detail": {
@@ -183761,6 +183917,93 @@
       },
       {
         "kind": "command",
+        "key": "command:load_test_store",
+        "source": "backend/accounts/management/commands/load_test_store.py",
+        "detail": {
+          "module": "accounts.management.commands.load_test_store",
+          "read_candidates": [
+            "Tenant.objects.filter"
+          ],
+          "write_candidates": [],
+          "authorization_candidates": []
+        },
+        "primary_id": "C05",
+        "owner": "SO-07",
+        "related_ids": [
+          "A00",
+          "C01",
+          "C06",
+          "C08"
+        ],
+        "lifecycle": "temporary_supported_legacy",
+        "data_ownership": "Tenant-owned goods receiving/PT evidence with legacy receiving history",
+        "authorization": "Operator shell only; refuses a non-synthetic tenant. Drives the canonical SOH → manifest → opening PT → acceptance writers with distinct synthetic people.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "source_module_static",
+          "source_module": "module:accounts.management.commands.load_test_store",
+          "callback_component": null,
+          "static_imports": [
+            "accounts.test_store_loader",
+            "masters.goods_models"
+          ],
+          "local_component_keys": [
+            "module:accounts.test_store_loader",
+            "module:masters.goods_models"
+          ],
+          "candidate_model_keys": [
+            "model:masters.AliasRangeCounter",
+            "model:masters.BrandIdentityBinding",
+            "model:masters.ConfigDraft",
+            "model:masters.ConfigVersion",
+            "model:masters.EffectiveVersionPeriod",
+            "model:masters.Location",
+            "model:masters.MasterVersion",
+            "model:masters.Sbu",
+            "model:masters.SiteCapabilityEvent",
+            "model:masters.SiteGuard",
+            "model:masters.Tenant"
+          ],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "source_file_static_candidates",
+          "read_candidates": [
+            "Tenant.objects.filter"
+          ],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "access_contract": {
+          "trace_status": "pending",
+          "actor_type": "unreviewed",
+          "required_action": "unreviewed",
+          "scope_source": "unreviewed",
+          "protected_fields": "unreviewed",
+          "delivery_recheck": "unreviewed",
+          "named_tests": [],
+          "reviewed_chain": "Static candidates do not establish runtime access coverage."
+        },
+        "replacement": "`/goods/receive/*`, `/goods/pt-work`, `/goods/labels` retain receiving, PT and labels. Old `/goods/arrivals`, `/goods/receipts`, `/goods/accept`, `/goods/pt/prepare`, `/goods/pt/approvals` are bookmark redirects",
+        "migration_requirements": "Map arrival, claimed invoice, count, GRN, PT rows, number, cost basis, label jobs and approval evidence with source IDs.",
+        "acceptance_evidence": "Reconcile physical count and official value once; prove history and separate-person approval before removing separate screens or old write services.",
+        "removal_condition": "Retire with the store test run at real-store cutover (SO-22).",
+        "rule_id": "STORE-TEST-400"
+      },
+      {
+        "kind": "command",
         "key": "command:make_brand_reports",
         "source": "backend/reporting/management/commands/make_brand_reports.py",
         "detail": {
@@ -209359,6 +209602,7 @@
             "module:accounts.registration_services",
             "module:accounts.serializers",
             "module:accounts.sessions",
+            "module:accounts.test_store_loader",
             "module:accounts.till_pin",
             "module:accounts.unified_admin",
             "module:accounts.views",
@@ -209502,6 +209746,7 @@
             "module:accounts.registration_services",
             "module:accounts.serializers",
             "module:accounts.sessions",
+            "module:accounts.test_store_loader",
             "module:accounts.till_pin",
             "module:accounts.unified_admin",
             "module:accounts.views",
@@ -209633,6 +209878,7 @@
             "module:accounts.principal",
             "module:accounts.role_assignments",
             "module:accounts.sessions",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.warehouse_manager",
             "module:alerts.goods_services",
@@ -209778,6 +210024,7 @@
             "module:accounts.principal",
             "module:accounts.role_assignments",
             "module:accounts.sessions",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.warehouse_manager",
             "module:alerts.goods_services",
@@ -210020,6 +210267,7 @@
             "module:accounts.registration_services",
             "module:accounts.serializers",
             "module:accounts.sessions",
+            "module:accounts.test_store_loader",
             "module:accounts.till_pin",
             "module:accounts.unified_admin",
             "module:accounts.views",
@@ -210163,6 +210411,7 @@
             "module:accounts.registration_services",
             "module:accounts.serializers",
             "module:accounts.sessions",
+            "module:accounts.test_store_loader",
             "module:accounts.till_pin",
             "module:accounts.unified_admin",
             "module:accounts.views",
@@ -210314,6 +210563,7 @@
             "module:accounts.principal",
             "module:accounts.role_assignments",
             "module:accounts.sessions",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.warehouse_manager",
             "module:alerts.goods_services",
@@ -210497,6 +210747,7 @@
             "module:accounts.principal",
             "module:accounts.role_assignments",
             "module:accounts.sessions",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.warehouse_manager",
             "module:alerts.goods_services",
@@ -210668,6 +210919,7 @@
             "module:accounts.principal",
             "module:accounts.role_assignments",
             "module:accounts.sessions",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.warehouse_manager",
             "module:alerts.goods_services",
@@ -210819,6 +211071,7 @@
             "module:accounts.principal",
             "module:accounts.role_assignments",
             "module:accounts.sessions",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.warehouse_manager",
             "module:alerts.goods_services",
@@ -210973,6 +211226,7 @@
             "module:accounts.principal",
             "module:accounts.role_assignments",
             "module:accounts.sessions",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.warehouse_manager",
             "module:alerts.goods_services",
@@ -211133,6 +211387,7 @@
             "module:accounts.principal",
             "module:accounts.role_assignments",
             "module:accounts.sessions",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.warehouse_manager",
             "module:alerts.goods_services",
@@ -211321,6 +211576,7 @@
             "module:accounts.registration_services",
             "module:accounts.serializers",
             "module:accounts.sessions",
+            "module:accounts.test_store_loader",
             "module:accounts.till_pin",
             "module:accounts.unified_admin",
             "module:accounts.views",
@@ -212412,6 +212668,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:approvals.goods_services",
             "module:approvals.goods_views",
             "module:approvals.models",
@@ -212674,6 +212931,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:approvals.goods_services",
             "module:approvals.goods_views",
             "module:approvals.models",
@@ -212908,6 +213166,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:approvals.goods_services",
             "module:approvals.goods_views",
             "module:approvals.models",
@@ -213438,6 +213697,7 @@
           "static_backend_importers": [
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:alerts.goods_health",
             "module:alerts.goods_views",
             "module:approvals.goods_services",
@@ -213592,6 +213852,7 @@
           "static_backend_importers": [
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:alerts.goods_health",
             "module:alerts.goods_views",
             "module:approvals.goods_services",
@@ -213744,6 +214005,7 @@
           "static_backend_importers": [
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:alerts.goods_health",
             "module:alerts.goods_views",
             "module:approvals.goods_services",
@@ -213896,6 +214158,7 @@
           "static_backend_importers": [
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:alerts.goods_health",
             "module:alerts.goods_views",
             "module:approvals.goods_services",
@@ -214037,6 +214300,7 @@
           "static_backend_importers": [
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:alerts.goods_health",
             "module:alerts.goods_views",
             "module:approvals.goods_services",
@@ -214188,6 +214452,7 @@
           "static_backend_importers": [
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:alerts.goods_health",
             "module:alerts.goods_views",
             "module:approvals.goods_services",
@@ -214354,6 +214619,7 @@
           "static_backend_importers": [
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:alerts.goods_health",
             "module:alerts.goods_views",
             "module:approvals.goods_services",
@@ -214514,6 +214780,7 @@
           "static_backend_importers": [
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:alerts.goods_health",
             "module:alerts.goods_views",
             "module:approvals.goods_services",
@@ -214665,6 +214932,7 @@
           "static_backend_importers": [
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:alerts.goods_health",
             "module:alerts.goods_views",
             "module:approvals.goods_services",
@@ -214973,6 +215241,7 @@
           "static_backend_importers": [
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:alerts.goods_health",
             "module:alerts.goods_views",
             "module:approvals.goods_services",
@@ -215143,6 +215412,7 @@
           "static_backend_importers": [
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:alerts.goods_health",
             "module:alerts.goods_views",
             "module:approvals.goods_services",
@@ -215427,6 +215697,7 @@
           "static_backend_importers": [
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:alerts.goods_health",
             "module:alerts.goods_views",
             "module:approvals.goods_services",
@@ -215580,6 +215851,7 @@
           "static_backend_importers": [
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:alerts.goods_health",
             "module:alerts.goods_views",
             "module:approvals.goods_services",
@@ -215793,6 +216065,7 @@
           "static_backend_importers": [
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:alerts.goods_health",
             "module:alerts.goods_views",
             "module:approvals.goods_services",
@@ -215944,6 +216217,7 @@
           "static_backend_importers": [
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:alerts.goods_health",
             "module:alerts.goods_views",
             "module:approvals.goods_services",
@@ -216112,6 +216386,7 @@
           "static_backend_importers": [
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:alerts.goods_health",
             "module:alerts.goods_views",
             "module:approvals.goods_services",
@@ -216280,6 +216555,7 @@
           "static_backend_importers": [
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:alerts.goods_health",
             "module:alerts.goods_views",
             "module:approvals.goods_services",
@@ -216440,6 +216716,7 @@
           "static_backend_importers": [
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:alerts.goods_health",
             "module:alerts.goods_views",
             "module:approvals.goods_services",
@@ -216597,6 +216874,7 @@
           "static_backend_importers": [
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:alerts.goods_health",
             "module:alerts.goods_views",
             "module:approvals.goods_services",
@@ -216755,6 +217033,7 @@
           "static_backend_importers": [
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:alerts.goods_health",
             "module:alerts.goods_views",
             "module:approvals.goods_services",
@@ -216905,6 +217184,7 @@
           "static_backend_importers": [
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:alerts.goods_health",
             "module:alerts.goods_views",
             "module:approvals.goods_services",
@@ -220553,6 +220833,7 @@
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
             "module:accounts.management.commands.load_real_masters",
+            "module:accounts.management.commands.load_test_store",
             "module:accounts.management.commands.migrate_role_assignments",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
@@ -220560,6 +220841,7 @@
             "module:accounts.registration_services",
             "module:accounts.registration_views",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.unified_policy",
             "module:accounts.warehouse_manager",
@@ -220714,6 +220996,7 @@
             "module:accounts.role_assignments",
             "module:accounts.serializers",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
             "module:accounts.warehouse_manager",
@@ -221031,6 +221314,7 @@
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
             "module:accounts.management.commands.load_real_masters",
+            "module:accounts.management.commands.load_test_store",
             "module:accounts.management.commands.migrate_role_assignments",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
@@ -221038,6 +221322,7 @@
             "module:accounts.registration_services",
             "module:accounts.registration_views",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.unified_policy",
             "module:accounts.warehouse_manager",
@@ -221471,6 +221756,7 @@
             "module:accounts.role_assignments",
             "module:accounts.serializers",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
             "module:accounts.warehouse_manager",
@@ -221782,6 +222068,7 @@
             "module:accounts.role_assignments",
             "module:accounts.serializers",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
             "module:accounts.warehouse_manager",
@@ -222093,6 +222380,7 @@
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
             "module:accounts.management.commands.load_real_masters",
+            "module:accounts.management.commands.load_test_store",
             "module:accounts.management.commands.migrate_role_assignments",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
@@ -222100,6 +222388,7 @@
             "module:accounts.registration_services",
             "module:accounts.registration_views",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.unified_policy",
             "module:accounts.warehouse_manager",
@@ -222268,6 +222557,7 @@
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
             "module:accounts.management.commands.load_real_masters",
+            "module:accounts.management.commands.load_test_store",
             "module:accounts.management.commands.migrate_role_assignments",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
@@ -222275,6 +222565,7 @@
             "module:accounts.registration_services",
             "module:accounts.registration_views",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.unified_policy",
             "module:accounts.warehouse_manager",
@@ -222530,6 +222821,7 @@
             "module:accounts.role_assignments",
             "module:accounts.serializers",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
             "module:accounts.warehouse_manager",
@@ -222843,6 +223135,7 @@
             "module:accounts.role_assignments",
             "module:accounts.serializers",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
             "module:accounts.warehouse_manager",
@@ -223316,6 +223609,7 @@
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
             "module:accounts.management.commands.load_real_masters",
+            "module:accounts.management.commands.load_test_store",
             "module:accounts.management.commands.migrate_role_assignments",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
@@ -223323,6 +223617,7 @@
             "module:accounts.registration_services",
             "module:accounts.registration_views",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.unified_policy",
             "module:accounts.warehouse_manager",
@@ -223479,6 +223774,7 @@
             "module:accounts.role_assignments",
             "module:accounts.serializers",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
             "module:accounts.warehouse_manager",
@@ -223792,6 +224088,7 @@
             "module:accounts.role_assignments",
             "module:accounts.serializers",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
             "module:accounts.warehouse_manager",
@@ -224359,6 +224656,7 @@
             "module:accounts.role_assignments",
             "module:accounts.serializers",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
             "module:accounts.warehouse_manager",
@@ -224669,6 +224967,7 @@
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
             "module:accounts.management.commands.load_real_masters",
+            "module:accounts.management.commands.load_test_store",
             "module:accounts.management.commands.migrate_role_assignments",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
@@ -224676,6 +224975,7 @@
             "module:accounts.registration_services",
             "module:accounts.registration_views",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.unified_policy",
             "module:accounts.warehouse_manager",
@@ -225045,6 +225345,7 @@
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
             "module:accounts.management.commands.load_real_masters",
+            "module:accounts.management.commands.load_test_store",
             "module:accounts.management.commands.migrate_role_assignments",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
@@ -225052,6 +225353,7 @@
             "module:accounts.registration_services",
             "module:accounts.registration_views",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.unified_policy",
             "module:accounts.warehouse_manager",
@@ -225303,6 +225605,7 @@
             "module:accounts.role_assignments",
             "module:accounts.serializers",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
             "module:accounts.warehouse_manager",
@@ -225756,6 +226059,7 @@
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
             "module:accounts.management.commands.load_real_masters",
+            "module:accounts.management.commands.load_test_store",
             "module:accounts.management.commands.migrate_role_assignments",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
@@ -225763,6 +226067,7 @@
             "module:accounts.registration_services",
             "module:accounts.registration_views",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.unified_policy",
             "module:accounts.warehouse_manager",
@@ -225917,6 +226222,7 @@
             "module:accounts.role_assignments",
             "module:accounts.serializers",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
             "module:accounts.warehouse_manager",
@@ -226235,6 +226541,7 @@
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
             "module:accounts.management.commands.load_real_masters",
+            "module:accounts.management.commands.load_test_store",
             "module:accounts.management.commands.migrate_role_assignments",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
@@ -226242,6 +226549,7 @@
             "module:accounts.registration_services",
             "module:accounts.registration_views",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.unified_policy",
             "module:accounts.warehouse_manager",
@@ -226411,6 +226719,7 @@
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
             "module:accounts.management.commands.load_real_masters",
+            "module:accounts.management.commands.load_test_store",
             "module:accounts.management.commands.migrate_role_assignments",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
@@ -226418,6 +226727,7 @@
             "module:accounts.registration_services",
             "module:accounts.registration_views",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.unified_policy",
             "module:accounts.warehouse_manager",
@@ -226584,6 +226894,7 @@
             "module:accounts.role_assignments",
             "module:accounts.serializers",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
             "module:accounts.warehouse_manager",
@@ -227187,6 +227498,7 @@
             "module:accounts.role_assignments",
             "module:accounts.serializers",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
             "module:accounts.warehouse_manager",
@@ -227506,6 +227818,7 @@
             "module:accounts.role_assignments",
             "module:accounts.serializers",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
             "module:accounts.warehouse_manager",
@@ -227908,6 +228221,7 @@
             "module:accounts.role_assignments",
             "module:accounts.serializers",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
             "module:accounts.warehouse_manager",
@@ -228439,6 +228753,7 @@
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
             "module:accounts.management.commands.load_real_masters",
+            "module:accounts.management.commands.load_test_store",
             "module:accounts.management.commands.migrate_role_assignments",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
@@ -228446,6 +228761,7 @@
             "module:accounts.registration_services",
             "module:accounts.registration_views",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.unified_policy",
             "module:accounts.warehouse_manager",
@@ -236171,6 +236487,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:inbound.goods_services",
             "module:masters.goods_sbu",
             "module:outbound.goods_adjustments",
@@ -236492,6 +236809,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:inbound.goods_services",
             "module:masters.goods_sbu",
             "module:outbound.goods_adjustments",
@@ -236595,6 +236913,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:inbound.goods_services",
             "module:masters.goods_sbu",
             "module:outbound.goods_adjustments",
@@ -236705,6 +237024,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:inbound.goods_services",
             "module:masters.goods_sbu",
             "module:outbound.goods_adjustments",
@@ -236829,6 +237149,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:inbound.goods_services",
             "module:masters.goods_sbu",
             "module:outbound.goods_adjustments",
@@ -236953,6 +237274,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:inbound.goods_services",
             "module:masters.goods_sbu",
             "module:outbound.goods_adjustments",
@@ -237072,6 +237394,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:inbound.goods_services",
             "module:masters.goods_sbu",
             "module:outbound.goods_adjustments",
@@ -237188,6 +237511,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:inbound.goods_services",
             "module:masters.goods_sbu",
             "module:outbound.goods_adjustments",
@@ -237303,6 +237627,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:inbound.goods_services",
             "module:masters.goods_sbu",
             "module:outbound.goods_adjustments",
@@ -237431,6 +237756,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:masters.first_store_readiness",
             "module:outbound.goods_soh_reconciliation",
             "module:outbound.goods_soh_views",
@@ -237538,6 +237864,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:masters.first_store_readiness",
             "module:outbound.goods_soh_reconciliation",
             "module:outbound.goods_soh_views",
@@ -237638,6 +237965,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:masters.first_store_readiness",
             "module:outbound.goods_soh_reconciliation",
             "module:outbound.goods_soh_views",
@@ -237744,6 +238072,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:masters.first_store_readiness",
             "module:outbound.goods_soh_reconciliation",
             "module:outbound.goods_soh_views",
@@ -241419,6 +241748,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -241633,6 +241963,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -241854,6 +242185,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -242069,6 +242401,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -242267,6 +242600,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -242598,6 +242932,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -242815,6 +243150,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -243040,6 +243376,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -243457,6 +243794,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -243664,6 +244002,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -243879,6 +244218,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -244366,6 +244706,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -244689,6 +245030,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -244900,6 +245242,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -245215,6 +245558,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -245450,6 +245794,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -245702,6 +246047,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -245978,6 +246324,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -246236,6 +246583,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -246458,6 +246806,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -246672,6 +247021,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -246889,6 +247239,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -247107,6 +247458,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -247325,6 +247677,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -247539,6 +247892,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -247896,6 +248250,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -248108,6 +248463,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -248326,6 +248682,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -248536,6 +248893,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -255638,6 +255996,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.management.commands.seed_foundation",
+            "module:accounts.test_store_loader",
             "module:ptmapper.goods_rulebook_seed"
           ],
           "static_frontend_importers": [],
@@ -255882,6 +256241,7 @@
             "module:accounts.principal",
             "module:accounts.role_assignments",
             "module:accounts.sessions",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.warehouse_manager",
             "module:alerts.goods_services",
@@ -256059,6 +256419,7 @@
             "module:accounts.management.commands.bootstrap_deployment",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.registration_services",
+            "module:accounts.test_store_loader",
             "module:accounts.warehouse_manager",
             "module:ptmapper.goods_rulebook_seed"
           ],
@@ -256514,6 +256875,89 @@
         "acceptance_evidence": "Idempotent migration reconciliation, session invalidation, direct denial matrix and browser journeys.",
         "removal_condition": "Retire old grant editors, access writes and direct permission bridges after every active access consumer is switched and history remains resolvable.",
         "rule_id": "S2051"
+      },
+      {
+        "kind": "module",
+        "key": "module:accounts.management.commands.load_test_store",
+        "source": "backend/accounts/management/commands/load_test_store.py",
+        "detail": {
+          "imports": [
+            "accounts.test_store_loader",
+            "masters.goods_models"
+          ],
+          "read_candidates": [
+            "Tenant.objects.filter"
+          ],
+          "write_candidates": [],
+          "authorization_candidates": [],
+          "tags": [
+            "management"
+          ]
+        },
+        "primary_id": "C05",
+        "owner": "SO-07",
+        "related_ids": [
+          "A00",
+          "C01",
+          "C06",
+          "C08"
+        ],
+        "lifecycle": "temporary_supported_legacy",
+        "data_ownership": "Tenant-owned goods receiving/PT evidence with legacy receiving history",
+        "authorization": "Operator shell only; refuses a non-synthetic tenant. Drives the canonical SOH → manifest → opening PT → acceptance writers with distinct synthetic people.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "source_module_static",
+          "source_module": "module:accounts.management.commands.load_test_store",
+          "callback_component": null,
+          "static_imports": [
+            "accounts.test_store_loader",
+            "masters.goods_models"
+          ],
+          "local_component_keys": [
+            "module:accounts.test_store_loader",
+            "module:masters.goods_models"
+          ],
+          "candidate_model_keys": [
+            "model:masters.AliasRangeCounter",
+            "model:masters.BrandIdentityBinding",
+            "model:masters.ConfigDraft",
+            "model:masters.ConfigVersion",
+            "model:masters.EffectiveVersionPeriod",
+            "model:masters.Location",
+            "model:masters.MasterVersion",
+            "model:masters.Sbu",
+            "model:masters.SiteCapabilityEvent",
+            "model:masters.SiteGuard",
+            "model:masters.Tenant"
+          ],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "source_file_static_candidates",
+          "read_candidates": [
+            "Tenant.objects.filter"
+          ],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "replacement": "`/goods/receive/*`, `/goods/pt-work`, `/goods/labels` retain receiving, PT and labels. Old `/goods/arrivals`, `/goods/receipts`, `/goods/accept`, `/goods/pt/prepare`, `/goods/pt/approvals` are bookmark redirects",
+        "migration_requirements": "Map arrival, claimed invoice, count, GRN, PT rows, number, cost basis, label jobs and approval evidence with source IDs.",
+        "acceptance_evidence": "Reconcile physical count and official value once; prove history and separate-person approval before removing separate screens or old write services.",
+        "removal_condition": "Retire with the store test run at real-store cutover (SO-22).",
+        "rule_id": "STORE-TEST-401"
       },
       {
         "kind": "module",
@@ -257223,6 +257667,7 @@
             "module:accounts.registration_services",
             "module:accounts.serializers",
             "module:accounts.sessions",
+            "module:accounts.test_store_loader",
             "module:accounts.till_pin",
             "module:accounts.unified_admin",
             "module:accounts.views",
@@ -257482,6 +257927,7 @@
             "module:accounts.models",
             "module:accounts.permissions",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.till_pin",
             "module:alerts.goods_services",
             "module:alerts.views",
@@ -259119,6 +259565,372 @@
       },
       {
         "kind": "module",
+        "key": "module:accounts.test_store_loader",
+        "source": "backend/accounts/test_store_loader.py",
+        "detail": {
+          "imports": [
+            "accounts",
+            "accounts.goods_demo",
+            "accounts.goods_models",
+            "accounts.goods_setup",
+            "accounts.models",
+            "accounts.principal",
+            "accounts.warehouse_manager",
+            "approvals.goods_models",
+            "approvals.goods_services",
+            "core.canonical",
+            "core.commands",
+            "core.kernel_models",
+            "core.refusals",
+            "core.tenancy",
+            "files.goods_services",
+            "masters.goods_config",
+            "masters.goods_identity_services",
+            "masters.goods_models",
+            "masters.goods_services",
+            "masters.goods_views",
+            "masters.models",
+            "masters.store_features",
+            "ptmapper",
+            "ptmapper.goods_manifest_services",
+            "ptmapper.goods_models",
+            "ptmapper.soh_models",
+            "ptmapper.soh_parser",
+            "ptmapper.soh_services",
+            "sell.models",
+            "stockledger",
+            "stockledger.goods_acceptance"
+          ],
+          "read_candidates": [
+            "(payload.get('supplied') or {}).get",
+            "ApprovalRequest.objects.filter",
+            "ApprovalRequest.objects.filter(subject_kind='document', subject_key=str(identity_id), state='pending').first",
+            "ApprovalRequest.objects.filter(subject_kind='manifest', subject_key=str(manifest.pk), state='pending').first",
+            "Brand.objects.filter",
+            "ConfigVersion.objects.filter",
+            "DocumentHead.objects.get",
+            "GoodsPt.objects.filter",
+            "GoodsPt.objects.filter(manifest_version__manifest=manifest).first",
+            "Location.objects.get",
+            "MasterVersion.objects.filter",
+            "MasterVersion.objects.filter(tenant_id=self.tenant.pk, kind='season', target_key=str(s.pk)).exists",
+            "OfficialLine.objects.filter",
+            "RegisteredTill.objects.filter",
+            "RegisteredTill.objects.filter(store=store, active=True).exists",
+            "Role.objects.get",
+            "RoleAssignment.objects.filter",
+            "Season.objects.filter",
+            "Season.objects.get",
+            "SiteGuard.objects.get",
+            "SohImport.objects.filter",
+            "SohImport.objects.filter(tenant_id=self.tenant.pk, site=store, source_hash=sha256_hex(self.soh)).first",
+            "SubjectRevision.objects.filter",
+            "SubjectRevision.objects.filter(tenant_id=run.tenant_id, family='master:season', subject_key=str(season.pk)).exists",
+            "SubjectRevision.objects.filter(tenant_id=run.tenant_id, family='master:site', subject_key=str(store.pk)).exists",
+            "User.objects.get",
+            "brand_map.values",
+            "by_name.get",
+            "current.get",
+            "holder.get",
+            "payload.get",
+            "r.source.get",
+            "season_map.values",
+            "session.events.values_list",
+            "source.batches.filter",
+            "source.batches.filter(batch_index=index).first",
+            "source.rows.exclude",
+            "source.rows.exclude(verification={}).exists",
+            "source.rows.filter",
+            "source.rows.filter(quantity__gt=0, exclusion_reason='').count",
+            "source.rows.filter(quantity__gt=0, exclusion_reason='').values_list"
+          ],
+          "write_candidates": [
+            "Brand.objects.get_or_create",
+            "RegisteredTill.objects.create",
+            "RoleAssignment.objects.create",
+            "Season.objects.get_or_create",
+            "SecurityGuard.objects.get_or_create",
+            "ServerSession.objects.create",
+            "book.save",
+            "guard.save",
+            "known.add",
+            "open_rows.update",
+            "row.save"
+          ],
+          "authorization_candidates": [
+            "resolve_access"
+          ],
+          "tags": []
+        },
+        "primary_id": "C05",
+        "owner": "SO-07",
+        "related_ids": [
+          "A00",
+          "C01",
+          "C06",
+          "C08"
+        ],
+        "lifecycle": "temporary_supported_legacy",
+        "data_ownership": "Tenant-owned goods receiving/PT evidence with legacy receiving history",
+        "authorization": "Operator shell only; refuses a non-synthetic tenant. Drives the canonical SOH → manifest → opening PT → acceptance writers with distinct synthetic people.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [
+            "module:accounts.management.commands.load_test_store"
+          ],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "source_module_static",
+          "source_module": "module:accounts.test_store_loader",
+          "callback_component": null,
+          "static_imports": [
+            "accounts",
+            "accounts.goods_demo",
+            "accounts.goods_models",
+            "accounts.goods_setup",
+            "accounts.models",
+            "accounts.principal",
+            "accounts.warehouse_manager",
+            "approvals.goods_models",
+            "approvals.goods_services",
+            "core.canonical",
+            "core.commands",
+            "core.kernel_models",
+            "core.refusals",
+            "core.tenancy",
+            "files.goods_services",
+            "masters.goods_config",
+            "masters.goods_identity_services",
+            "masters.goods_models",
+            "masters.goods_services",
+            "masters.goods_views",
+            "masters.models",
+            "masters.store_features",
+            "ptmapper",
+            "ptmapper.goods_manifest_services",
+            "ptmapper.goods_models",
+            "ptmapper.soh_models",
+            "ptmapper.soh_parser",
+            "ptmapper.soh_services",
+            "sell.models",
+            "stockledger",
+            "stockledger.goods_acceptance"
+          ],
+          "local_component_keys": [
+            "module:accounts.goods_demo",
+            "module:accounts.goods_models",
+            "module:accounts.goods_setup",
+            "module:accounts.models",
+            "module:accounts.principal",
+            "module:accounts.warehouse_manager",
+            "module:approvals.goods_models",
+            "module:approvals.goods_services",
+            "module:core.canonical",
+            "module:core.commands",
+            "module:core.kernel_models",
+            "module:core.refusals",
+            "module:core.tenancy",
+            "module:files.goods_services",
+            "module:masters.goods_config",
+            "module:masters.goods_identity_services",
+            "module:masters.goods_models",
+            "module:masters.goods_services",
+            "module:masters.goods_views",
+            "module:masters.models",
+            "module:masters.store_features",
+            "module:ptmapper.goods_manifest_services",
+            "module:ptmapper.goods_models",
+            "module:ptmapper.soh_models",
+            "module:ptmapper.soh_parser",
+            "module:ptmapper.soh_services",
+            "module:sell.models",
+            "module:stockledger.goods_acceptance"
+          ],
+          "candidate_model_keys": [
+            "model:accounts.AccessChange",
+            "model:accounts.ActorPolicy",
+            "model:accounts.AuthenticationFailure",
+            "model:accounts.HumanIdentity",
+            "model:accounts.LoginAttempt",
+            "model:accounts.Role",
+            "model:accounts.RoleAssignment",
+            "model:accounts.RoleGrant",
+            "model:accounts.SecurityGuard",
+            "model:accounts.ServerSession",
+            "model:accounts.Staff",
+            "model:accounts.StaffAssignment",
+            "model:accounts.User",
+            "model:approvals.ActionDraft",
+            "model:approvals.ApprovalDecision",
+            "model:approvals.ApprovalRequest",
+            "model:core.AuditEvent",
+            "model:core.ChainHead",
+            "model:core.CommandAttempt",
+            "model:core.CommandKey",
+            "model:core.CommandOutcome",
+            "model:core.DeliveryEvent",
+            "model:core.DocumentEvent",
+            "model:core.DocumentHead",
+            "model:core.DocumentIdentity",
+            "model:core.DraftLine",
+            "model:core.DraftRevision",
+            "model:core.JobArtifact",
+            "model:core.JobState",
+            "model:core.LegacyReference",
+            "model:core.OfficialLine",
+            "model:core.OfficialVersion",
+            "model:core.OutboxIntent",
+            "model:core.PrivilegedReview",
+            "model:core.RecoveryRecord",
+            "model:core.SeriesCeiling",
+            "model:core.SubjectRevision",
+            "model:masters.AliasRangeCounter",
+            "model:masters.Brand",
+            "model:masters.BrandIdentityBinding",
+            "model:masters.CategoryMargin",
+            "model:masters.Cohort",
+            "model:masters.ConfigDraft",
+            "model:masters.ConfigVersion",
+            "model:masters.Customer",
+            "model:masters.CustomerNumber",
+            "model:masters.EffectiveVersionPeriod",
+            "model:masters.GstSlab",
+            "model:masters.Gstin",
+            "model:masters.LegalEntity",
+            "model:masters.Location",
+            "model:masters.MasterVersion",
+            "model:masters.PriceChange",
+            "model:masters.Sbu",
+            "model:masters.Season",
+            "model:masters.SiteCapabilityEvent",
+            "model:masters.SiteGuard",
+            "model:masters.Sku",
+            "model:masters.StaffTarget",
+            "model:masters.Store",
+            "model:masters.StoreTarget",
+            "model:masters.Tenant",
+            "model:ptmapper.GoodsPt",
+            "model:ptmapper.OpeningClaim",
+            "model:ptmapper.OpeningManifest",
+            "model:ptmapper.OpeningManifestRow",
+            "model:ptmapper.OpeningManifestVersion",
+            "model:ptmapper.OpeningSeasonCorrection",
+            "model:ptmapper.OpeningVariance",
+            "model:ptmapper.PrintEvent",
+            "model:ptmapper.PrintJob",
+            "model:ptmapper.SohImport",
+            "model:ptmapper.SohImportBatch",
+            "model:ptmapper.SohImportReview",
+            "model:ptmapper.SohImportRow",
+            "model:sell.ConsentAnswer",
+            "model:sell.ContinuityFlag",
+            "model:sell.CreditNote",
+            "model:sell.CreditNoteRedemption",
+            "model:sell.CustomerErasure",
+            "model:sell.DeferredCosting",
+            "model:sell.ExchangeCreditNote",
+            "model:sell.GiftPiece",
+            "model:sell.HeldBill",
+            "model:sell.IrnQueueItem",
+            "model:sell.OnlineSaleSubmission",
+            "model:sell.QuarantinedUpload",
+            "model:sell.RegisterHandover",
+            "model:sell.RegisteredTill",
+            "model:sell.Return",
+            "model:sell.ReturnLine",
+            "model:sell.Sale",
+            "model:sell.SaleLine",
+            "model:sell.SaleLineFunding",
+            "model:sell.SaleLineMarginShare",
+            "model:sell.SaleLineShare",
+            "model:sell.SaleTender",
+            "model:sell.SalespersonMatch",
+            "model:sell.SavedSize",
+            "model:sell.SellPolicy",
+            "model:sell.TillAllocation",
+            "model:sell.TillNumberBlock",
+            "model:sell.TillPause",
+            "model:sell.WorkingSetVersion"
+          ],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "source_file_static_candidates",
+          "read_candidates": [
+            "(payload.get('supplied') or {}).get",
+            "ApprovalRequest.objects.filter",
+            "ApprovalRequest.objects.filter(subject_kind='document', subject_key=str(identity_id), state='pending').first",
+            "ApprovalRequest.objects.filter(subject_kind='manifest', subject_key=str(manifest.pk), state='pending').first",
+            "Brand.objects.filter",
+            "ConfigVersion.objects.filter",
+            "DocumentHead.objects.get",
+            "GoodsPt.objects.filter",
+            "GoodsPt.objects.filter(manifest_version__manifest=manifest).first",
+            "Location.objects.get",
+            "MasterVersion.objects.filter",
+            "MasterVersion.objects.filter(tenant_id=self.tenant.pk, kind='season', target_key=str(s.pk)).exists",
+            "OfficialLine.objects.filter",
+            "RegisteredTill.objects.filter",
+            "RegisteredTill.objects.filter(store=store, active=True).exists",
+            "Role.objects.get",
+            "RoleAssignment.objects.filter",
+            "Season.objects.filter",
+            "Season.objects.get",
+            "SiteGuard.objects.get",
+            "SohImport.objects.filter",
+            "SohImport.objects.filter(tenant_id=self.tenant.pk, site=store, source_hash=sha256_hex(self.soh)).first",
+            "SubjectRevision.objects.filter",
+            "SubjectRevision.objects.filter(tenant_id=run.tenant_id, family='master:season', subject_key=str(season.pk)).exists",
+            "SubjectRevision.objects.filter(tenant_id=run.tenant_id, family='master:site', subject_key=str(store.pk)).exists",
+            "User.objects.get",
+            "brand_map.values",
+            "by_name.get",
+            "current.get",
+            "holder.get",
+            "payload.get",
+            "r.source.get",
+            "season_map.values",
+            "session.events.values_list",
+            "source.batches.filter",
+            "source.batches.filter(batch_index=index).first",
+            "source.rows.exclude",
+            "source.rows.exclude(verification={}).exists",
+            "source.rows.filter",
+            "source.rows.filter(quantity__gt=0, exclusion_reason='').count",
+            "source.rows.filter(quantity__gt=0, exclusion_reason='').values_list"
+          ],
+          "write_candidates": [
+            "Brand.objects.get_or_create",
+            "RegisteredTill.objects.create",
+            "RoleAssignment.objects.create",
+            "Season.objects.get_or_create",
+            "SecurityGuard.objects.get_or_create",
+            "ServerSession.objects.create",
+            "book.save",
+            "guard.save",
+            "known.add",
+            "open_rows.update",
+            "row.save"
+          ],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "replacement": "`/goods/receive/*`, `/goods/pt-work`, `/goods/labels` retain receiving, PT and labels. Old `/goods/arrivals`, `/goods/receipts`, `/goods/accept`, `/goods/pt/prepare`, `/goods/pt/approvals` are bookmark redirects",
+        "migration_requirements": "Map arrival, claimed invoice, count, GRN, PT rows, number, cost basis, label jobs and approval evidence with source IDs.",
+        "acceptance_evidence": "Reconcile physical count and official value once; prove history and separate-person approval before removing separate screens or old write services.",
+        "removal_condition": "Retire with the store test run at real-store cutover (SO-22).",
+        "rule_id": "STORE-TEST-402"
+      },
+      {
+        "kind": "module",
         "key": "module:accounts.till_pin",
         "source": "backend/accounts/till_pin.py",
         "detail": {
@@ -259910,7 +260722,8 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
-            "module:accounts.management.commands.setup_store_test_run"
+            "module:accounts.management.commands.setup_store_test_run",
+            "module:accounts.test_store_loader"
           ],
           "static_frontend_importers": [],
           "frontend_api_callsites": []
@@ -261644,6 +262457,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:approvals.goods_services",
             "module:approvals.goods_views",
             "module:approvals.models",
@@ -261865,6 +262679,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:approvals.goods_views",
             "module:inbound.goods_services",
             "module:masters.apps",
@@ -263758,6 +264573,7 @@
             "module:accounts.registration_services",
             "module:accounts.session_payload",
             "module:accounts.sessions",
+            "module:accounts.test_store_loader",
             "module:approvals.unified_authority",
             "module:core.anchors",
             "module:core.commands",
@@ -263885,6 +264701,7 @@
             "module:accounts.registration_services",
             "module:accounts.role_assignments",
             "module:accounts.sessions",
+            "module:accounts.test_store_loader",
             "module:accounts.till_pin",
             "module:accounts.unified_admin",
             "module:accounts.warehouse_manager",
@@ -265720,6 +266537,7 @@
           "static_backend_importers": [
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:alerts.goods_health",
             "module:alerts.goods_views",
             "module:approvals.goods_services",
@@ -266800,6 +267618,7 @@
             "module:accounts.registration_services",
             "module:accounts.registration_views",
             "module:accounts.sessions",
+            "module:accounts.test_store_loader",
             "module:accounts.till_pin",
             "module:accounts.unified_admin",
             "module:accounts.views",
@@ -267187,6 +268006,7 @@
             "module:accounts.principal",
             "module:accounts.registration_services",
             "module:accounts.role_assignments",
+            "module:accounts.test_store_loader",
             "module:accounts.till_pin",
             "module:accounts.views",
             "module:accounts.warehouse_manager",
@@ -267893,6 +268713,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:files.goods_export_views",
             "module:files.goods_exports",
             "module:files.goods_views",
@@ -274799,6 +275620,7 @@
           "static_backend_importers": [
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:alerts.goods_services",
             "module:approvals.goods_policy",
             "module:approvals.unified_authority",
@@ -275401,6 +276223,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:inbound.goods_services",
             "module:inbound.three_way_match",
             "module:masters.apps",
@@ -276010,6 +276833,7 @@
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
             "module:accounts.management.commands.load_real_masters",
+            "module:accounts.management.commands.load_test_store",
             "module:accounts.management.commands.migrate_role_assignments",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
@@ -276017,6 +276841,7 @@
             "module:accounts.registration_services",
             "module:accounts.registration_views",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.unified_policy",
             "module:accounts.warehouse_manager",
@@ -276611,6 +277436,7 @@
             "module:accounts.management.commands.load_real_masters",
             "module:accounts.management.commands.setup_store_test_run",
             "module:accounts.registration_services",
+            "module:accounts.test_store_loader",
             "module:masters.apps",
             "module:masters.first_store_readiness",
             "module:masters.goods_views",
@@ -277444,6 +278270,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:core.goods_history_views",
             "module:masters.goods_audit_log_views",
             "module:masters.goods_urls"
@@ -278425,6 +279252,7 @@
             "module:accounts.role_assignments",
             "module:accounts.serializers",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
             "module:accounts.warehouse_manager",
@@ -279409,6 +280237,7 @@
           "static_backend_importers": [
             "module:accounts.management.commands.setup_store_test_run",
             "module:accounts.session_payload",
+            "module:accounts.test_store_loader",
             "module:alerts.checks",
             "module:finledger.payable_views",
             "module:finledger.payables",
@@ -292446,6 +293275,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:alerts.goods_views",
             "module:ptmapper.apps",
             "module:ptmapper.goods_manifest_views",
@@ -293047,6 +293877,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:inbound.goods_services",
             "module:masters.goods_sbu",
             "module:outbound.goods_adjustments",
@@ -296008,6 +296839,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:masters.first_store_readiness",
             "module:outbound.goods_soh_reconciliation",
             "module:outbound.goods_soh_views",
@@ -296089,6 +296921,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:ptmapper.soh_services",
             "module:ptmapper.soh_views",
             "module:ptmapper.stock_sync_services",
@@ -296288,6 +297121,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:masters.first_store_readiness",
             "module:outbound.goods_soh_reconciliation",
             "module:ptmapper.apps",
@@ -305991,6 +306825,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.goods_demo",
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.size_balancing",
             "module:ptmapper.stock_sync_services",
@@ -316672,6 +317507,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:inbound.goods_services",
             "module:ptmapper.soh_services",
             "module:stockledger.goods_views"
@@ -318842,7 +319678,7 @@
             "Origin.objects.filter",
             "Origin.objects.filter(tenant_id=access.tenant_id, pk__in={row['origin_id'] for row in stock if row['origin_id']}).values_list",
             "SiteGuard.objects.filter",
-            "SiteGuard.objects.filter(tenant_id=tenant_id, stock_contract=SiteGuard.StockContract.GOODS_V1, selling_mode=SiteGuard.SellingMode.ONLINE_ALPHA).values_list",
+            "SiteGuard.objects.filter(tenant_id=tenant_id, stock_contract=SiteGuard.StockContract.GOODS_V1).values_list",
             "StockOnHand.objects.filter",
             "StockOnHand.objects.filter(net_qty__gt=0).exclude",
             "StockOnHand.objects.filter(net_qty__gt=0).exclude(store_id__in=canonical).select_related",
@@ -318983,7 +319819,7 @@
             "Origin.objects.filter",
             "Origin.objects.filter(tenant_id=access.tenant_id, pk__in={row['origin_id'] for row in stock if row['origin_id']}).values_list",
             "SiteGuard.objects.filter",
-            "SiteGuard.objects.filter(tenant_id=tenant_id, stock_contract=SiteGuard.StockContract.GOODS_V1, selling_mode=SiteGuard.SellingMode.ONLINE_ALPHA).values_list",
+            "SiteGuard.objects.filter(tenant_id=tenant_id, stock_contract=SiteGuard.StockContract.GOODS_V1).values_list",
             "StockOnHand.objects.filter",
             "StockOnHand.objects.filter(net_qty__gt=0).exclude",
             "StockOnHand.objects.filter(net_qty__gt=0).exclude(store_id__in=canonical).select_related",
@@ -344779,6 +345615,7 @@
             "api_consumer:frontend/src/pages/Configuration.tsx:0b9ba70e9ec7",
             "api_consumer:frontend/src/pages/Configuration.tsx:2069f500ca48",
             "api_consumer:frontend/src/pages/Configuration.tsx:225797012604",
+            "api_consumer:frontend/src/pages/Configuration.tsx:5b1ebf2b28b3",
             "api_consumer:frontend/src/pages/Configuration.tsx:653fda519715",
             "api_consumer:frontend/src/pages/Configuration.tsx:8a0b46c6fa30",
             "api_consumer:frontend/src/pages/Configuration.tsx:af9efca9f921",
@@ -348610,6 +349447,7 @@
             "api_consumer:frontend/src/pages/Configuration.tsx:0b9ba70e9ec7",
             "api_consumer:frontend/src/pages/Configuration.tsx:2069f500ca48",
             "api_consumer:frontend/src/pages/Configuration.tsx:225797012604",
+            "api_consumer:frontend/src/pages/Configuration.tsx:5b1ebf2b28b3",
             "api_consumer:frontend/src/pages/Configuration.tsx:653fda519715",
             "api_consumer:frontend/src/pages/Configuration.tsx:8a0b46c6fa30",
             "api_consumer:frontend/src/pages/Configuration.tsx:af9efca9f921",
