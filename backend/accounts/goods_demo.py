@@ -345,7 +345,7 @@ SEED_REASON = "SYNTHETIC_SEED"
 #: before the first one can be written: goods received and counter-received,
 #: receipt, opening and transfer PTs, bookings, movements, holds, releases and
 #: transit-shortage corrections (GAP, goods ticket 14).
-#: Readiness itself insists on three of them (`READINESS_SERIES`); the rest
+#: Readiness itself insists on four of them (`READINESS_SERIES`); the rest
 #: would each fail at their first document instead, which is a worse place to
 #: find out.
 OPS_SERIES = ("BKG", "GRN", "CGRN", "RPT", "OPT", "TPT", "MOV", "HLD", "REL", "GAP")

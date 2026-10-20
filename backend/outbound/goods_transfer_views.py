@@ -1207,15 +1207,18 @@ DESTINATION: dict[str, Any] = {
     "type": "object",
     "description": (
         "One site a transfer from the named source may be drafted to: its name, "
-        "code and kind (`store` or `warehouse`), and nothing it holds."
+        "code and kind (`store` or `warehouse`), and nothing it holds. `linked` "
+        "marks the source's linked site (a store's warehouse, or a warehouse's "
+        "stores), which the list puts first."
     ),
     "properties": {
         "id": {"type": "string"},
         "code": {"type": "string"},
         "name": {"type": "string"},
         "kind": {"type": "string", "enum": ["store", "warehouse"]},
+        "linked": {"type": "boolean"},
     },
-    "required": ["id", "code", "name", "kind"],
+    "required": ["id", "code", "name", "kind", "linked"],
 }
 
 

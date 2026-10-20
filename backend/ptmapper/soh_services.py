@@ -448,6 +448,25 @@ def models_q_for_alias(site_id: int, at: datetime) -> Any:
     return (Q(site_id=site_id) | Q(site__isnull=True)) & (Q(effective_to__isnull=True) | Q(effective_to__gt=at))
 
 
+def _stock_sync_top_up(source: SohImport) -> bool:
+    """A test tenant's nightly SOH sync stages barcodes this store has never held.
+
+    Only on a synthetic tenant (store test run), and only while every row is
+    still an item with no custody or origin at this store, so it opens new
+    pieces and can never repeat an existing balance.
+    """
+    if not source.source_metadata.get("stock_sync_top_up"):
+        return False
+    from masters.store_features import is_real_store
+    from stockledger.goods_models import Origin, Position
+    if is_real_store(source.site):
+        return False
+    barcodes = list(source.rows.values_list("barcode", flat=True))
+    skus = SkuAlias.objects.filter(tenant_id=source.tenant_id, alias_type="barcode", value__in=barcodes).values_list("sku_id", flat=True)
+    return not (Position.objects.filter(tenant_id=source.tenant_id, site_id=source.site_id, sku_id__in=skus).exists()
+                or Origin.objects.filter(tenant_id=source.tenant_id, site_id=source.site_id, sku_id__in=skus).exists())
+
+
 def requires_inventory_reconciliation(source: SohImport) -> bool:
     """A fresh full snapshot must never add another whole opening balance.
 
@@ -458,6 +477,8 @@ def requires_inventory_reconciliation(source: SohImport) -> bool:
     """
     from ptmapper.goods_models import OpeningManifest
     from stockledger.goods_models import CustodyLot, Origin, Position
+    if _stock_sync_top_up(source):
+        return False
     own_manifests = source.batches.values_list("manifest_id", flat=True)
     if OpeningManifest.objects.filter(tenant_id=source.tenant_id, site_id=source.site_id).exclude(pk__in=own_manifests).exists():
         return True

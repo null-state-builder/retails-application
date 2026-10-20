@@ -86,7 +86,7 @@ def configure_online(proof: Any) -> Any:
     _publish_tenant_config(world.tenant, proof.owner.human_id, kind="sell_policy",
         payload={"manual_discount_cap_percent": "10", "manual_discount_on_offer_lines": False,
                  "return_window_days": 15}, label="online-proof-policy")
-    for kind in ("GRN", "CGRN", "RPT"):
+    for kind in ("GRN", "CGRN", "RPT", "TPT"):
         prepare_series(world.tenant.pk, site.gstin.legal_entity, kind)
     TaxSettingVersion.objects.create(tenant=world.tenant, version=2, applies_from=timezone.localdate(),
         rules=[{"kind": "flat_rate", "hsn_prefix": "6101", "name": "Synthetic proof tax", "rate": "5.00"}],

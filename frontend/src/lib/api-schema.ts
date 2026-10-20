@@ -20130,6 +20130,8 @@ export interface operations {
                         expires_at: string;
                         /** Format: date-time */
                         step_up_valid_until: string | null;
+                        /** @description True when this tenant is synthetic (baseline B1): screens show a test badge and every printed document is marked as not a tax invoice. */
+                        test_environment: boolean;
                         /** @description Store operations feature switches (ST-OPS-6): each feature that is on at one or more of the stores this person may act at, with the ids of those stores. A feature absent here is off everywhere this person works, and its menus hide. */
                         store_features: {
                             [key: string]: string[];
@@ -20301,6 +20303,8 @@ export interface operations {
                         expires_at: string;
                         /** Format: date-time */
                         step_up_valid_until: string | null;
+                        /** @description True when this tenant is synthetic (baseline B1): screens show a test badge and every printed document is marked as not a tax invoice. */
+                        test_environment: boolean;
                         /** @description Store operations feature switches (ST-OPS-6): each feature that is on at one or more of the stores this person may act at, with the ids of those stores. A feature absent here is off everywhere this person works, and its menus hide. */
                         store_features: {
                             [key: string]: string[];
@@ -20464,6 +20468,8 @@ export interface operations {
                         expires_at: string;
                         /** Format: date-time */
                         step_up_valid_until: string | null;
+                        /** @description True when this tenant is synthetic (baseline B1): screens show a test badge and every printed document is marked as not a tax invoice. */
+                        test_environment: boolean;
                         /** @description Store operations feature switches (ST-OPS-6): each feature that is on at one or more of the stores this person may act at, with the ids of those stores. A feature absent here is off everywhere this person works, and its menus hide. */
                         store_features: {
                             [key: string]: string[];
@@ -61595,6 +61601,7 @@ export interface operations {
                             name: string;
                             /** @enum {string} */
                             kind: "store" | "warehouse";
+                            linked: boolean;
                         }[];
                     };
                 };

@@ -455,7 +455,7 @@ def site_ref(site: Any) -> dict[str, str]:
     return {"id": str(site.pk), "code": site.code, "name": site.name}
 
 
-def destinations(tenant_id: uuid.UUID, source_site_id: int) -> list[dict[str, str]]:
+def destinations(tenant_id: uuid.UUID, source_site_id: int) -> list[dict[str, Any]]:
     """Every site a transfer from ``source_site_id`` may be drafted to (OPS-11).
 
     Every other site of the same legal entity that moves goods through goods-v1
@@ -465,8 +465,12 @@ def destinations(tenant_id: uuid.UUID, source_site_id: int) -> list[dict[str, st
     is offered. A count freeze is not filtered out: it passes, and the draft
     says so in its own words rather than the site silently vanishing.
 
+    The source's linked sites come first and say so (``linked``): a store's
+    linked warehouse, or a warehouse's linked stores. The rest stay allowed.
+
     Name, code and kind only. Being offered a site to send to is not reading it.
     """
+    from masters.goods_services import linked_store_ids, linked_warehouse_id
     from masters.models import Store
 
     source = site_of(source_site_id)
@@ -484,10 +488,22 @@ def destinations(tenant_id: uuid.UUID, source_site_id: int) -> list[dict[str, st
         .exclude(pk=source.pk)
         .order_by("name", "pk")
     )
-    return [
-        {"id": str(site.pk), "code": site.code, "name": site.name, "kind": site.store_type}
+    if source.store_type == "warehouse":
+        linked = linked_store_ids(tenant_id, source.pk)
+    else:
+        warehouse = linked_warehouse_id(source)
+        linked = {warehouse} if warehouse is not None else set()
+    rows = [
+        {
+            "id": str(site.pk),
+            "code": site.code,
+            "name": site.name,
+            "kind": site.store_type,
+            "linked": site.pk in linked,
+        }
         for site in sites
     ]
+    return sorted(rows, key=lambda row: not row["linked"])
 
 
 def _require_same_entity(source: Any, destination: Any) -> None:

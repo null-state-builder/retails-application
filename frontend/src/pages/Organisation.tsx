@@ -35,6 +35,7 @@ import {
   Field,
   hold,
   PickerField,
+  useAllPages,
   usePagedPicker,
   useResourceDoc,
   useResourceList,
@@ -734,8 +735,53 @@ const blankSite = {
   entity_id: "",
   registration_id: "",
   counter_count: 0,
+  linked_warehouse_id: "",
   permitted_operations: [] as string[],
 };
+
+/** A store's linked warehouse: an active warehouse of the same legal entity
+ *  (the server refuses anything else as LINKED_WAREHOUSE_INVALID). */
+function LinkedWarehouseSelect({
+  entityId,
+  value,
+  onChange,
+  testId,
+}: {
+  entityId: string;
+  value: string;
+  onChange: (id: string) => void;
+  testId: string;
+}) {
+  const { items, loading, failure } = useAllPages<ResourceDTO<SiteData>>(
+    entityId ? "/goods-v1/masters/stores" : null,
+  );
+  const warehouses = items.filter(
+    (row) => row.data.type === "warehouse" && String(row.data.entity_id) === entityId,
+  );
+  return (
+    <Field
+      id={testId}
+      label="Linked warehouse"
+      hint={failure || "Transfers to and from this store offer it first."}
+    >
+      <select
+        id={testId}
+        className="select"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={!entityId || loading}
+        data-testid={testId}
+      >
+        <option value="">{loading ? "Loading…" : "No linked warehouse"}</option>
+        {warehouses.map((row) => (
+          <option key={row.id} value={String(row.id)}>
+            {row.data.name} ({row.data.code})
+          </option>
+        ))}
+      </select>
+    </Field>
+  );
+}
 
 function operationsFor(type: string): readonly string[] {
   // Warehouses (and DCs) never see a selling capability at all — never mind
@@ -743,6 +789,15 @@ function operationsFor(type: string): readonly string[] {
   return type === "store" || type === "concession"
     ? OPERATIONS
     : OPERATIONS.filter((o) => o !== "sell");
+}
+
+function LinkedWarehouseName({ id }: { id: string | null }) {
+  const { doc, loading } = useResourceDoc<SiteData>(
+    id ? `/goods-v1/masters/stores/${id}` : null,
+  );
+  if (!id) return <div>None</div>;
+  if (loading) return <div>Loading…</div>;
+  return <div>{doc ? `${doc.data.name} (${doc.data.code})` : `Site ${id}`}</div>;
 }
 
 function SiteListView({ onOpen }: { onOpen: (id: string) => void }) {
@@ -809,6 +864,7 @@ function SiteListView({ onOpen }: { onOpen: (id: string) => void }) {
       entity_id: form.entity_id,
       registration_id: form.registration_id,
       counter_count: form.type === "store" || form.type === "concession" ? form.counter_count : 0,
+      linked_warehouse_id: form.type === "store" ? form.linked_warehouse_id || null : null,
       permitted_operations: form.permitted_operations,
       brand_ids: [],
     };
@@ -884,6 +940,7 @@ function SiteListView({ onOpen }: { onOpen: (id: string) => void }) {
                 setForm({
                   ...form,
                   type: e.target.value as SiteData["type"],
+                  linked_warehouse_id: "",
                   permitted_operations: [],
                 })
               }
@@ -908,7 +965,9 @@ function SiteListView({ onOpen }: { onOpen: (id: string) => void }) {
               noun="legal entity"
               placeholder="Select legal entity…"
               value={form.entity_id}
-              onChange={(id) => setForm({ ...form, entity_id: id, registration_id: "" })}
+              onChange={(id) =>
+                setForm({ ...form, entity_id: id, registration_id: "", linked_warehouse_id: "" })
+              }
               picker={entities}
             />
             <PickerField
@@ -930,6 +989,14 @@ function SiteListView({ onOpen }: { onOpen: (id: string) => void }) {
                 value={form.counter_count}
                 onChange={(e) => setForm({ ...form, counter_count: Number(e.target.value) })}
                 data-testid="site-counter-count-input"
+              />
+            )}
+            {form.type === "store" && (
+              <LinkedWarehouseSelect
+                entityId={form.entity_id}
+                value={form.linked_warehouse_id}
+                onChange={(id) => setForm({ ...form, linked_warehouse_id: id })}
+                testId="site-linked-warehouse-select"
               />
             )}
           </div>
@@ -1109,6 +1176,7 @@ function SiteOverviewTab({
     entity_id: doc.data.entity_id ?? "",
     registration_id: doc.data.registration_id ?? "",
     counter_count: doc.data.counter_count ?? 0,
+    linked_warehouse_id: doc.data.linked_warehouse_id ? String(doc.data.linked_warehouse_id) : "",
     permitted_operations: doc.data.permitted_operations ?? [],
   }));
   // Both search and page (ticket 02D) rather than trusting a fixed first page
@@ -1154,6 +1222,7 @@ function SiteOverviewTab({
           entity_id: form.entity_id,
           registration_id: form.registration_id,
           counter_count: form.counter_count,
+          linked_warehouse_id: form.type === "store" ? form.linked_warehouse_id || null : null,
           permitted_operations: form.permitted_operations,
           ...goodsMeta(doc.revision),
         }),
@@ -1198,6 +1267,12 @@ function SiteOverviewTab({
               <b>City</b>
               <div>{doc.data.city || "—"}</div>
             </div>
+            {doc.data.type === "store" && (
+              <div data-testid="site-overview-linked-warehouse">
+                <b>Linked warehouse</b>
+                <LinkedWarehouseName id={doc.data.linked_warehouse_id ?? null} />
+              </div>
+            )}
             <div>
               <b>Permitted operations</b>
               <div>{(doc.data.permitted_operations || []).join(", ") || "None yet"}</div>
@@ -1258,7 +1333,9 @@ function SiteOverviewTab({
               noun="legal entity"
               placeholder="Select legal entity…"
               value={form.entity_id}
-              onChange={(id) => setForm({ ...form, entity_id: id, registration_id: "" })}
+              onChange={(id) =>
+                setForm({ ...form, entity_id: id, registration_id: "", linked_warehouse_id: "" })
+              }
               picker={entities}
             />
             <PickerField
@@ -1279,6 +1356,14 @@ function SiteOverviewTab({
                 value={form.counter_count}
                 onChange={(e) => setForm({ ...form, counter_count: Number(e.target.value) })}
                 data-testid="site-overview-counter-input"
+              />
+            )}
+            {form.type === "store" && (
+              <LinkedWarehouseSelect
+                entityId={form.entity_id}
+                value={form.linked_warehouse_id}
+                onChange={(id) => setForm({ ...form, linked_warehouse_id: id })}
+                testId="site-overview-linked-warehouse-select"
               />
             )}
           </div>

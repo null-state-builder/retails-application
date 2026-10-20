@@ -390,6 +390,18 @@ body.sidebar-resizing .sidebar-resizer::after {
 .topbar-logo-mark {
   display: none;
 }
+/* Baseline B1: a synthetic tenant says so on every screen, beside the logo. */
+.test-env-badge {
+  flex: none;
+  padding: 3px 8px;
+  border: 1px solid var(--amber-bd);
+  border-radius: 999px;
+  background: var(--amber-bg);
+  color: var(--amber);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
 /* Sizing lives on .search-wrap (GlobalSearch.css) — it anchors the results
    panel; this rule is the pill itself. */
 .topbar-search {

@@ -113,6 +113,11 @@ interface SiteRef {
   name: string;
 }
 
+/** A site the server offers as a transfer destination. */
+interface DestinationRef extends SiteRef {
+  linked?: boolean;
+}
+
 function siteLabel(sites: SiteRef[], id: string | null): string {
   if (!id) return "—";
   const found = sites.find((site) => String(site.id) === String(id));
@@ -178,7 +183,9 @@ export function NewTransferPanel({
   // person's session: a store person reads one site, their own, and a list
   // built from that offers nowhere to send (OPS-11). The server offers every
   // other site of the same company that can receive, by name and code only.
-  const offered = useGoodsFetch<{ items: SiteRef[] }, SiteRef[]>(
+  // The source's linked site (a store's warehouse, a warehouse's stores) comes
+  // first and is marked; the others stay allowed.
+  const offered = useGoodsFetch<{ items: DestinationRef[] }, DestinationRef[]>(
     `${TRANSFERS}/destinations?source_site_id=${sourceSiteId}`,
     (r) => r.items ?? [],
     [],
@@ -390,7 +397,15 @@ export function NewTransferPanel({
             <option value="pre_pt">Damaged goods not yet on a PT (they stay held)</option>
           </select>
         </Field>
-        <Field id="transfer-destination" label="Send to">
+        <Field
+          id="transfer-destination"
+          label="Send to"
+          hint={
+            offered.value.find((site) => site.id === destination)?.linked
+              ? "Linked site"
+              : undefined
+          }
+        >
           <select
             id="transfer-destination"
             className="select"
@@ -400,7 +415,7 @@ export function NewTransferPanel({
           >
             {offered.value.map((site) => (
               <option key={site.id} value={site.id}>
-                {site.name} ({site.code})
+                {site.name} ({site.code}){site.linked ? " · linked" : ""}
               </option>
             ))}
           </select>

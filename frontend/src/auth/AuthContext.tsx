@@ -120,6 +120,9 @@ export interface GoodsSession {
     brands: Brand[];
   };
   store_features: Record<string, string[]>;
+  /** True on a synthetic tenant (baseline B1): test badge, and printed paper
+   *  marked as not a tax invoice. Absent from an older server means real. */
+  test_environment?: boolean;
   expires_at: string;
   step_up_valid_until: string | null;
 }
@@ -267,12 +270,34 @@ function pickDefaultBrand(u: User): Brand | null {
   return brands.length === 1 ? (brands[0] ?? null) : null;
 }
 
+/** Persona precedence for a person holding several role codes, highest first.
+ *  Owner and Admin keep the head-office shell; a warehouse manager who also
+ *  bills (a second `store_person` assignment) keeps the warehouse layout. */
+const SHELL_ROLE_PRECEDENCE = [
+  "owner",
+  "it_admin",
+  "warehouse_manager",
+  "warehouse",
+  "store_person",
+] as const;
+
+/** The one role the shell draws for. A mix that includes any role outside the
+ *  precedence ladder (Accounts, Brand Manager, a tenant role) has no single
+ *  persona and falls back to the default layout. This picks presentation
+ *  only; every action is still authorised by the server per assignment. */
+export function shellRole(roles: readonly string[]): string | null {
+  if (roles.length === 1) return roles[0] ?? null;
+  const ladder: readonly string[] = SHELL_ROLE_PRECEDENCE;
+  if (roles.length === 0 || roles.some((code) => !ladder.includes(code))) return null;
+  return ladder.find((code) => roles.includes(code)) ?? null;
+}
+
 /** A shell view of the one session response. No second profile or role-scoped
  * permissions are fetched or merged into this object. */
 export function shellUser(session: GoodsSession): User {
   const choices = session.context_choices;
   const roles = [...new Set(session.assignments.map((a) => a.role_code))];
-  const singleRole = roles.length === 1 ? roles[0] : null;
+  const singleRole = shellRole(roles);
   const roleAssignment = singleRole
     ? session.assignments.find((a) => a.role_code === singleRole)
     : undefined;
@@ -299,7 +324,11 @@ export function shellUser(session: GoodsSession): User {
     navigation: session.navigation,
     display_actions: session.display_actions,
     landing_page:
-      singleRole === "store_person" ? "store" : singleRole === "warehouse" ? "warehouse" : "owner",
+      singleRole === "store_person"
+        ? "store"
+        : singleRole === "warehouse" || singleRole === "warehouse_manager"
+          ? "warehouse"
+          : "owner",
     business_units: stores,
     all_business_units: choices.all_units,
     business_unit_mode: choices.mode,

@@ -87,6 +87,7 @@ import { ReceiveHistoryPage, ReceiveInboxPage } from "./pages/ReceiveInbox";
 import { PtWorkPage } from "./pages/PtWork";
 // Goods-v1 opening stock for synthetic tenants (ticket 10, GSA-T10).
 import { GoodsOpeningPage } from "./pages/GoodsOpening";
+import { StockSyncPage } from "./pages/StockSync";
 import { GoodsOriginJourneyPage, GoodsStockPage } from "./pages/GoodsStock";
 // Goods-v1 labels and print jobs (ticket 11), beside the legacy TagPrint modal
 // (PriceList.tsx), which prints a different, unrelated floor price tag.
@@ -202,6 +203,8 @@ const BUILT: Screen[] = [
   // file uses everywhere else (a document id must never shadow a section word).
   // Goods-v1 opening stock for synthetic tenants (ticket 10).
   { id: "goods-opening", path: "/goods/opening", element: <GoodsOpeningPage /> },
+  // Store test run: nightly stock sync to the legacy SOH (test tenant only).
+  { id: "goods-stock-sync", path: "/goods/stock-sync", element: <StockSyncPage /> },
   {
     id: "goods-stock-origin-journey",
     path: "/goods/stock/origins/:id",

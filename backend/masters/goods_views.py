@@ -84,6 +84,7 @@ from masters.goods_services import (
     trading_not_excluded,
     validate_config_payload,
     validate_gstin_number,
+    validate_linked_warehouse,
 )
 from masters.models import Brand, Gstin, LegalEntity, Season, Store
 
@@ -1455,6 +1456,7 @@ class GoodsSiteListCreateView(GoodsAPIView):
         def handler(run: CommandRun) -> CommandResult:
             access.require_step_up()
             entity, registration = _validate_site_payload(body)
+            validate_linked_warehouse(run.tenant_id, None, body, entity)
             if Store.objects.filter(code=body["code"]).exists():
                 raise Refusal("MASTER_CONFLICT", f"A site with code {body['code']} already exists.")
             try:
@@ -1548,6 +1550,7 @@ class GoodsSiteDetailView(GoodsAPIView):
             merged = {**(latest.payload if latest else _site_fallback(store)), **body}
             entity, _registration = _validate_site_payload(merged)
             _require_entity(access, "org.site.manage", entity.pk)
+            validate_linked_warehouse(run.tenant_id, pk, merged, entity)
             brand_ids = [parse_int_id(b, "brand_ids") for b in (merged.get("brand_ids") or [])]
             # Add only missing units; never retire or reactivate historical SBUs.
             ensure_site_sbus(run.tenant_id, store, brand_ids)

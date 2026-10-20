@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { contextSelection, readSession, shellUser } from "./AuthContext";
+import { contextSelection, readSession, shellRole, shellUser } from "./AuthContext";
 import { canAccess } from "./routeAccess";
-import { resolveLegacyPath } from "../shell/navConfig";
+import { layoutFor, resolveLegacyPath } from "../shell/navConfig";
 import { switcherModel } from "../shell/unitSwitcher";
 
 const session = {
@@ -88,6 +88,33 @@ describe("unified session", () => {
       }),
     );
     expect(user.role).toBeNull();
+  });
+
+  it("keeps the warehouse layout for a warehouse person who also bills", () => {
+    for (const warehouseRole of ["warehouse", "warehouse_manager"]) {
+      const user = shellUser(
+        readSession({
+          ...session,
+          assignments: [
+            { ...session.assignments[0], id: "assignment-wh", role_code: warehouseRole },
+            ...session.assignments,
+          ],
+        }),
+      );
+      expect(user.role?.code).toBe(warehouseRole);
+      expect(user.landing_page).toBe("warehouse");
+      expect(layoutFor(user.role?.code ?? "")).toBe(layoutFor("warehouse"));
+    }
+  });
+
+  it("ranks owner and admin above the shop-floor personas", () => {
+    expect(shellRole(["store_person", "owner"])).toBe("owner");
+    expect(shellRole(["warehouse", "it_admin"])).toBe("it_admin");
+    expect(shellRole(["store_person", "warehouse", "warehouse_manager"])).toBe(
+      "warehouse_manager",
+    );
+    expect(shellRole(["warehouse", "accounts"])).toBeNull();
+    expect(shellRole([])).toBeNull();
   });
 
   it("keeps mixed-role context on one selector axis", () => {

@@ -16,9 +16,9 @@ Generated from [the SO-03 machine inventory](so-03-consolidation-inventory.json)
 | Authorization | Required boundaries: BOOKING_ACTION plus cost field from one assignment over the selected site/brand cell.; Deployment-bound registration lock; hashed personal credentials; exact independently confirmed initial baseline; no business access before first password replacement.; Explicit AccessContext decisions; tenant source and target IDs; no label-based authority.; In-page signup section/error anchors only; no business authority or new route.; SO-03 unified server evaluator; owner must prove resource and field denials at cutover. Handler-level enforcement requires behaviour and denial proof. |
 | Services | 2 tagged service modules: `module:accounts.goods_admin_services`, `module:accounts.registration_services`. |
 | Offline client modules | 0 till/PWA modules: None discovered. |
-| Data | 13 owned model classes: `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.AuthenticationFailure`, `model:accounts.HumanIdentity`, `model:accounts.InstallationRegistration`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.RoleAssignment`, `model:accounts.RoleGrant`, `model:accounts.SecurityGuard`, `model:accounts.ServerSession`, `model:accounts.User`, `model:masters.BrandIdentityBinding`. 79 direct model-module import edges from owned modules; 563 static read-call candidates in 40 backend/client modules (individual expressions are in the machine inventory). |
-| Downstream readers | 36 frontend API callsites; 28 endpoint/callsite links, 8 dynamic URL references; 297 cross-owner static backend import edges. |
-| Lifecycle | canonical: 127, historical_read_only: 19, retirement_candidate: 12, temporary_supported_legacy: 19, unresolved: 9. |
+| Data | 13 owned model classes: `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.AuthenticationFailure`, `model:accounts.HumanIdentity`, `model:accounts.InstallationRegistration`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.RoleAssignment`, `model:accounts.RoleGrant`, `model:accounts.SecurityGuard`, `model:accounts.ServerSession`, `model:accounts.User`, `model:masters.BrandIdentityBinding`. 83 direct model-module import edges from owned modules; 580 static read-call candidates in 41 backend/client modules (individual expressions are in the machine inventory). |
+| Downstream readers | 36 frontend API callsites; 28 endpoint/callsite links, 8 dynamic URL references; 310 cross-owner static backend import edges. |
+| Lifecycle | canonical: 128, historical_read_only: 19, retirement_candidate: 12, temporary_supported_legacy: 19, unresolved: 9. |
 
 ### Entry-point dependency traces
 
@@ -32,11 +32,11 @@ Each row follows entry point → declared authorization → implementation and s
 | `api:GET:/api/auth/admin/registration` | Deployment-bound registration lock; hashed personal credentials; exact independently confirmed initial baseline; no business access before first password replacement. | `pending` | `module:accounts.registration_views` → `module:accounts.authentication`, `module:accounts.goods_api`, `module:accounts.registration_models`, `module:accounts.registration_serializers`, `module:accounts.registration_services`, `module:core.refusals`, `module:masters.first_store_readiness`, `module:masters.goods_models`, `module:masters.models`; model `model:accounts.InstallationRegistration`, `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.BrandIdentityBinding`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.PriceChange`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Tenant` | R:5 / W:0 / models:26; `static leads only; route-specific and dynamic data access unverified` | backend `module:accounts.unified_urls`, `module:accounts.urls`; runtime `unknown; static discovery is not execution tracing` |
 | `api:GET:/api/auth/admin/roles` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:accounts.goods_admin_views` → `module:accounts.goods_admin_services`, `module:accounts.goods_api`, `module:accounts.models`, `module:accounts.principal`, `module:accounts.role_assignments`, `module:accounts.till_pin`, `module:core.commands`, `module:core.refusals`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.User` | R:2 / W:1 / models:5; `static leads only; route-specific and dynamic data access unverified` | backend `module:accounts.unified_urls`, `module:accounts.views`; runtime `unknown; static discovery is not execution tracing` |
 | `api:GET:/api/auth/admin/roles/<int:pk>` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:accounts.goods_admin_views` → `module:accounts.goods_admin_services`, `module:accounts.goods_api`, `module:accounts.models`, `module:accounts.principal`, `module:accounts.role_assignments`, `module:accounts.till_pin`, `module:core.commands`, `module:core.refusals`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.User` | R:2 / W:1 / models:5; `static leads only; route-specific and dynamic data access unverified` | backend `module:accounts.unified_urls`, `module:accounts.views`; runtime `unknown; static discovery is not execution tracing` |
-| `api:GET:/api/auth/admin/roles/<slug:code>/policy` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:accounts.unified_admin` → `module:accounts.floors`, `module:accounts.goods_admin_services`, `module:accounts.goods_api`, `module:accounts.goods_models`, `module:accounts.models`, `module:accounts.role_assignments`, `module:accounts.sections`, `module:accounts.sessions`, `module:accounts.unified_policy`, `module:core.commands`, `module:core.refusals`, `module:masters.goods_models`, `module:masters.models`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.AuthenticationFailure`, `model:accounts.HumanIdentity`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.RoleAssignment`, `model:accounts.RoleGrant`, `model:accounts.SecurityGuard`, `model:accounts.ServerSession`, `model:accounts.Staff`, `model:accounts.StaffAssignment`, `model:accounts.User`, `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.BrandIdentityBinding`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.PriceChange`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Tenant` | R:33 / W:6 / models:38; `static leads only; route-specific and dynamic data access unverified` | backend `module:accounts.unified_urls`; runtime `unknown; static discovery is not execution tracing` |
+| `api:GET:/api/auth/admin/roles/<slug:code>/policy` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:accounts.unified_admin` → `module:accounts.floors`, `module:accounts.goods_admin_services`, `module:accounts.goods_api`, `module:accounts.goods_models`, `module:accounts.models`, `module:accounts.role_assignments`, `module:accounts.sections`, `module:accounts.sessions`, `module:accounts.unified_policy`, `module:core.commands`, `module:core.refusals`, `module:masters.goods_models`, `module:masters.models`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.AuthenticationFailure`, `model:accounts.HumanIdentity`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.RoleAssignment`, `model:accounts.RoleGrant`, `model:accounts.SecurityGuard`, `model:accounts.ServerSession`, `model:accounts.Staff`, `model:accounts.StaffAssignment`, `model:accounts.User`, `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.BrandIdentityBinding`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.PriceChange`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Tenant` | R:33 / W:6 / models:38; `static leads only; route-specific and dynamic data access unverified` | backend `module:accounts.unified_urls`, `module:accounts.warehouse_manager`; runtime `unknown; static discovery is not execution tracing` |
 | `api:GET:/api/auth/admin/users` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:accounts.goods_admin_views` → `module:accounts.goods_admin_services`, `module:accounts.goods_api`, `module:accounts.models`, `module:accounts.principal`, `module:accounts.role_assignments`, `module:accounts.till_pin`, `module:core.commands`, `module:core.refusals`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.User` | R:2 / W:1 / models:5; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/PeopleAccess.tsx:684039a9658f`; backend `module:accounts.unified_urls`, `module:accounts.views`; calls `api_consumer:frontend/src/pages/PeopleAccess.tsx:684039a9658f`; API `api:GET:/api/auth/admin/users`; runtime `unknown; static discovery is not execution tracing` |
 | `api:GET:/api/auth/admin/users/<int:pk>` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:accounts.goods_admin_views` → `module:accounts.goods_admin_services`, `module:accounts.goods_api`, `module:accounts.models`, `module:accounts.principal`, `module:accounts.role_assignments`, `module:accounts.till_pin`, `module:core.commands`, `module:core.refusals`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.User` | R:2 / W:1 / models:5; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/components/CounterPinCard.tsx:1d971fc19f3b`, `api_consumer:frontend/src/pages/PeopleAccess.tsx:dd34c25756ba`; backend `module:accounts.unified_urls`, `module:accounts.views`; calls `api_consumer:frontend/src/components/CounterPinCard.tsx:1d971fc19f3b`, `api_consumer:frontend/src/pages/PeopleAccess.tsx:dd34c25756ba`; API `api:GET:/api/auth/admin/users/<int:pk>`; runtime `unknown; static discovery is not execution tracing` |
-| `api:GET:/api/auth/admin/users/<int:pk>/assignments` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:accounts.unified_admin` → `module:accounts.floors`, `module:accounts.goods_admin_services`, `module:accounts.goods_api`, `module:accounts.goods_models`, `module:accounts.models`, `module:accounts.role_assignments`, `module:accounts.sections`, `module:accounts.sessions`, `module:accounts.unified_policy`, `module:core.commands`, `module:core.refusals`, `module:masters.goods_models`, `module:masters.models`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.AuthenticationFailure`, `model:accounts.HumanIdentity`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.RoleAssignment`, `model:accounts.RoleGrant`, `model:accounts.SecurityGuard`, `model:accounts.ServerSession`, `model:accounts.Staff`, `model:accounts.StaffAssignment`, `model:accounts.User`, `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.BrandIdentityBinding`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.PriceChange`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Tenant` | R:33 / W:6 / models:38; `static leads only; route-specific and dynamic data access unverified` | backend `module:accounts.unified_urls`; runtime `unknown; static discovery is not execution tracing` |
-| `api:GET:/api/auth/admin/workflow-policy` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:accounts.unified_admin` → `module:accounts.floors`, `module:accounts.goods_admin_services`, `module:accounts.goods_api`, `module:accounts.goods_models`, `module:accounts.models`, `module:accounts.role_assignments`, `module:accounts.sections`, `module:accounts.sessions`, `module:accounts.unified_policy`, `module:core.commands`, `module:core.refusals`, `module:masters.goods_models`, `module:masters.models`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.AuthenticationFailure`, `model:accounts.HumanIdentity`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.RoleAssignment`, `model:accounts.RoleGrant`, `model:accounts.SecurityGuard`, `model:accounts.ServerSession`, `model:accounts.Staff`, `model:accounts.StaffAssignment`, `model:accounts.User`, `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.BrandIdentityBinding`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.PriceChange`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Tenant` | R:33 / W:6 / models:38; `static leads only; route-specific and dynamic data access unverified` | backend `module:accounts.unified_urls`; runtime `unknown; static discovery is not execution tracing` |
+| `api:GET:/api/auth/admin/users/<int:pk>/assignments` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:accounts.unified_admin` → `module:accounts.floors`, `module:accounts.goods_admin_services`, `module:accounts.goods_api`, `module:accounts.goods_models`, `module:accounts.models`, `module:accounts.role_assignments`, `module:accounts.sections`, `module:accounts.sessions`, `module:accounts.unified_policy`, `module:core.commands`, `module:core.refusals`, `module:masters.goods_models`, `module:masters.models`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.AuthenticationFailure`, `model:accounts.HumanIdentity`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.RoleAssignment`, `model:accounts.RoleGrant`, `model:accounts.SecurityGuard`, `model:accounts.ServerSession`, `model:accounts.Staff`, `model:accounts.StaffAssignment`, `model:accounts.User`, `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.BrandIdentityBinding`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.PriceChange`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Tenant` | R:33 / W:6 / models:38; `static leads only; route-specific and dynamic data access unverified` | backend `module:accounts.unified_urls`, `module:accounts.warehouse_manager`; runtime `unknown; static discovery is not execution tracing` |
+| `api:GET:/api/auth/admin/workflow-policy` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:accounts.unified_admin` → `module:accounts.floors`, `module:accounts.goods_admin_services`, `module:accounts.goods_api`, `module:accounts.goods_models`, `module:accounts.models`, `module:accounts.role_assignments`, `module:accounts.sections`, `module:accounts.sessions`, `module:accounts.unified_policy`, `module:core.commands`, `module:core.refusals`, `module:masters.goods_models`, `module:masters.models`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.AuthenticationFailure`, `model:accounts.HumanIdentity`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.RoleAssignment`, `model:accounts.RoleGrant`, `model:accounts.SecurityGuard`, `model:accounts.ServerSession`, `model:accounts.Staff`, `model:accounts.StaffAssignment`, `model:accounts.User`, `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.BrandIdentityBinding`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.PriceChange`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Tenant` | R:33 / W:6 / models:38; `static leads only; route-specific and dynamic data access unverified` | backend `module:accounts.unified_urls`, `module:accounts.warehouse_manager`; runtime `unknown; static discovery is not execution tracing` |
 | `api:GET:/api/auth/csrf` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:accounts.views` → `module:accounts.access_changes`, `module:accounts.authentication`, `module:accounts.change_password`, `module:accounts.floors`, `module:accounts.goods_admin_views`, `module:accounts.matrix`, `module:accounts.models`, `module:accounts.permissions`, `module:accounts.sections`, `module:accounts.serializers`, `module:accounts.session_payload`, `module:accounts.sessions`, `module:accounts.till_pin`, `module:approvals.models`, `module:core.refusals`, `module:core.tenancy`, `module:core.textsearch`, `module:masters.models`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.User`, `model:approvals.Approval`, `model:approvals.ApprovalPolicy`, `model:approvals.ApprovalRoute`, `model:approvals.ApprovalStepDecision`, `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.PriceChange`, `model:masters.Season`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget` | R:14 / W:0 / models:23; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/lib/api.ts:8930c918bbb7`, `api_consumer:frontend/src/pages/Signup.tsx:8930c918bbb7`; backend `module:accounts.urls`; calls `api_consumer:frontend/src/lib/api.ts:8930c918bbb7`, `api_consumer:frontend/src/pages/Signup.tsx:8930c918bbb7`; API `api:GET:/api/auth/csrf`; runtime `unknown; static discovery is not execution tracing` |
 | `api:GET:/api/auth/me` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:accounts.views` → `module:accounts.access_changes`, `module:accounts.authentication`, `module:accounts.change_password`, `module:accounts.floors`, `module:accounts.goods_admin_views`, `module:accounts.matrix`, `module:accounts.models`, `module:accounts.permissions`, `module:accounts.sections`, `module:accounts.serializers`, `module:accounts.session_payload`, `module:accounts.sessions`, `module:accounts.till_pin`, `module:approvals.models`, `module:core.refusals`, `module:core.tenancy`, `module:core.textsearch`, `module:masters.models`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.User`, `model:approvals.Approval`, `model:approvals.ApprovalPolicy`, `model:approvals.ApprovalRoute`, `model:approvals.ApprovalStepDecision`, `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.PriceChange`, `model:masters.Season`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget` | R:14 / W:0 / models:23; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/lib/api.ts:627164d522b3`; backend `module:accounts.urls`; calls `api_consumer:frontend/src/lib/api.ts:627164d522b3`; API `api:GET:/api/auth/me`; runtime `unknown; static discovery is not execution tracing` |
 | `api:GET:/api/auth/registration` | Deployment-bound registration lock; hashed personal credentials; exact independently confirmed initial baseline; no business access before first password replacement. | `pending` | `module:accounts.registration_views` → `module:accounts.authentication`, `module:accounts.goods_api`, `module:accounts.registration_models`, `module:accounts.registration_serializers`, `module:accounts.registration_services`, `module:core.refusals`, `module:masters.first_store_readiness`, `module:masters.goods_models`, `module:masters.models`; model `model:accounts.InstallationRegistration`, `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.BrandIdentityBinding`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.PriceChange`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Tenant` | R:5 / W:0 / models:26; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/Signup.tsx:463a6d628cfe`, `api_consumer:frontend/src/pages/Signup.tsx:ffdb169d585c`; backend `module:accounts.unified_urls`, `module:accounts.urls`; calls `api_consumer:frontend/src/pages/Signup.tsx:463a6d628cfe`, `api_consumer:frontend/src/pages/Signup.tsx:ffdb169d585c`; API `api:GET:/api/auth/registration`; runtime `unknown; static discovery is not execution tracing` |
@@ -58,9 +58,9 @@ Each row follows entry point → declared authorization → implementation and s
 | `api:POST:/api/auth/registration/confirm` | Deployment-bound registration lock; hashed personal credentials; exact independently confirmed initial baseline; no business access before first password replacement. | `pending` | `module:accounts.registration_views` → `module:accounts.authentication`, `module:accounts.goods_api`, `module:accounts.registration_models`, `module:accounts.registration_serializers`, `module:accounts.registration_services`, `module:core.refusals`, `module:masters.first_store_readiness`, `module:masters.goods_models`, `module:masters.models`; model `model:accounts.InstallationRegistration`, `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.BrandIdentityBinding`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.PriceChange`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Tenant` | R:5 / W:0 / models:26; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/Signup.tsx:77f35abeabe6`, `api_consumer:frontend/src/pages/Signup.tsx:7b3e85b35f35`, `api_consumer:frontend/src/pages/Signup.tsx:d646aba7b7ba`; backend `module:accounts.unified_urls`, `module:accounts.urls`; calls `api_consumer:frontend/src/pages/Signup.tsx:77f35abeabe6`, `api_consumer:frontend/src/pages/Signup.tsx:7b3e85b35f35`, `api_consumer:frontend/src/pages/Signup.tsx:d646aba7b7ba`; API `api:POST:/api/auth/registration/confirm`; runtime `unknown; static discovery is not execution tracing` |
 | `api:POST:/api/auth/step-up` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:accounts.views` → `module:accounts.access_changes`, `module:accounts.authentication`, `module:accounts.change_password`, `module:accounts.floors`, `module:accounts.goods_admin_views`, `module:accounts.matrix`, `module:accounts.models`, `module:accounts.permissions`, `module:accounts.sections`, `module:accounts.serializers`, `module:accounts.session_payload`, `module:accounts.sessions`, `module:accounts.till_pin`, `module:approvals.models`, `module:core.refusals`, `module:core.tenancy`, `module:core.textsearch`, `module:masters.models`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.User`, `model:approvals.Approval`, `model:approvals.ApprovalPolicy`, `model:approvals.ApprovalRoute`, `model:approvals.ApprovalStepDecision`, `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.PriceChange`, `model:masters.Season`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget` | R:14 / W:0 / models:23; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/lib/api.ts:d9b4637ee2b4`; backend `module:accounts.urls`; calls `api_consumer:frontend/src/lib/api.ts:d9b4637ee2b4`; API `api:POST:/api/auth/step-up`; runtime `unknown; static discovery is not execution tracing` |
 | `api:POST:/api/goods-v1/masters/brand-reconciliation` | Explicit AccessContext decisions; tenant source and target IDs; no label-based authority. | `verified` | `module:masters.brand_reconciliation_views` → `module:accounts.goods_api`, `module:accounts.sessions`, `module:core.commands`, `module:core.models`, `module:core.refusals`, `module:masters.brand_identity`, `module:masters.models`; model `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.PriceChange`, `model:masters.Season`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget` | R:6 / W:1 / models:14; `static leads only; route-specific and dynamic data access unverified` | backend `module:masters.goods_urls`; runtime `unknown; static discovery is not execution tracing` |
-| `api:PUT:/api/auth/admin/roles/<slug:code>/policy` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:accounts.unified_admin` → `module:accounts.floors`, `module:accounts.goods_admin_services`, `module:accounts.goods_api`, `module:accounts.goods_models`, `module:accounts.models`, `module:accounts.role_assignments`, `module:accounts.sections`, `module:accounts.sessions`, `module:accounts.unified_policy`, `module:core.commands`, `module:core.refusals`, `module:masters.goods_models`, `module:masters.models`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.AuthenticationFailure`, `model:accounts.HumanIdentity`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.RoleAssignment`, `model:accounts.RoleGrant`, `model:accounts.SecurityGuard`, `model:accounts.ServerSession`, `model:accounts.Staff`, `model:accounts.StaffAssignment`, `model:accounts.User`, `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.BrandIdentityBinding`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.PriceChange`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Tenant` | R:33 / W:6 / models:38; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/UnifiedAccess.tsx:016b788a5b91`; backend `module:accounts.unified_urls`; calls `api_consumer:frontend/src/pages/UnifiedAccess.tsx:016b788a5b91`; API `api:PUT:/api/auth/admin/roles/<slug:code>/policy`; runtime `unknown; static discovery is not execution tracing` |
-| `api:PUT:/api/auth/admin/users/<int:pk>/assignments` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:accounts.unified_admin` → `module:accounts.floors`, `module:accounts.goods_admin_services`, `module:accounts.goods_api`, `module:accounts.goods_models`, `module:accounts.models`, `module:accounts.role_assignments`, `module:accounts.sections`, `module:accounts.sessions`, `module:accounts.unified_policy`, `module:core.commands`, `module:core.refusals`, `module:masters.goods_models`, `module:masters.models`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.AuthenticationFailure`, `model:accounts.HumanIdentity`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.RoleAssignment`, `model:accounts.RoleGrant`, `model:accounts.SecurityGuard`, `model:accounts.ServerSession`, `model:accounts.Staff`, `model:accounts.StaffAssignment`, `model:accounts.User`, `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.BrandIdentityBinding`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.PriceChange`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Tenant` | R:33 / W:6 / models:38; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/UnifiedAccess.tsx:dc679667d547`; backend `module:accounts.unified_urls`; calls `api_consumer:frontend/src/pages/UnifiedAccess.tsx:dc679667d547`; API `api:PUT:/api/auth/admin/users/<int:pk>/assignments`; runtime `unknown; static discovery is not execution tracing` |
-| `api:PUT:/api/auth/admin/workflow-policy` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:accounts.unified_admin` → `module:accounts.floors`, `module:accounts.goods_admin_services`, `module:accounts.goods_api`, `module:accounts.goods_models`, `module:accounts.models`, `module:accounts.role_assignments`, `module:accounts.sections`, `module:accounts.sessions`, `module:accounts.unified_policy`, `module:core.commands`, `module:core.refusals`, `module:masters.goods_models`, `module:masters.models`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.AuthenticationFailure`, `model:accounts.HumanIdentity`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.RoleAssignment`, `model:accounts.RoleGrant`, `model:accounts.SecurityGuard`, `model:accounts.ServerSession`, `model:accounts.Staff`, `model:accounts.StaffAssignment`, `model:accounts.User`, `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.BrandIdentityBinding`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.PriceChange`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Tenant` | R:33 / W:6 / models:38; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/UnifiedAccess.tsx:b7549bce885b`; backend `module:accounts.unified_urls`; calls `api_consumer:frontend/src/pages/UnifiedAccess.tsx:b7549bce885b`; API `api:PUT:/api/auth/admin/workflow-policy`; runtime `unknown; static discovery is not execution tracing` |
+| `api:PUT:/api/auth/admin/roles/<slug:code>/policy` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:accounts.unified_admin` → `module:accounts.floors`, `module:accounts.goods_admin_services`, `module:accounts.goods_api`, `module:accounts.goods_models`, `module:accounts.models`, `module:accounts.role_assignments`, `module:accounts.sections`, `module:accounts.sessions`, `module:accounts.unified_policy`, `module:core.commands`, `module:core.refusals`, `module:masters.goods_models`, `module:masters.models`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.AuthenticationFailure`, `model:accounts.HumanIdentity`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.RoleAssignment`, `model:accounts.RoleGrant`, `model:accounts.SecurityGuard`, `model:accounts.ServerSession`, `model:accounts.Staff`, `model:accounts.StaffAssignment`, `model:accounts.User`, `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.BrandIdentityBinding`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.PriceChange`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Tenant` | R:33 / W:6 / models:38; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/UnifiedAccess.tsx:016b788a5b91`; backend `module:accounts.unified_urls`, `module:accounts.warehouse_manager`; calls `api_consumer:frontend/src/pages/UnifiedAccess.tsx:016b788a5b91`; API `api:PUT:/api/auth/admin/roles/<slug:code>/policy`; runtime `unknown; static discovery is not execution tracing` |
+| `api:PUT:/api/auth/admin/users/<int:pk>/assignments` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:accounts.unified_admin` → `module:accounts.floors`, `module:accounts.goods_admin_services`, `module:accounts.goods_api`, `module:accounts.goods_models`, `module:accounts.models`, `module:accounts.role_assignments`, `module:accounts.sections`, `module:accounts.sessions`, `module:accounts.unified_policy`, `module:core.commands`, `module:core.refusals`, `module:masters.goods_models`, `module:masters.models`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.AuthenticationFailure`, `model:accounts.HumanIdentity`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.RoleAssignment`, `model:accounts.RoleGrant`, `model:accounts.SecurityGuard`, `model:accounts.ServerSession`, `model:accounts.Staff`, `model:accounts.StaffAssignment`, `model:accounts.User`, `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.BrandIdentityBinding`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.PriceChange`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Tenant` | R:33 / W:6 / models:38; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/UnifiedAccess.tsx:dc679667d547`; backend `module:accounts.unified_urls`, `module:accounts.warehouse_manager`; calls `api_consumer:frontend/src/pages/UnifiedAccess.tsx:dc679667d547`; API `api:PUT:/api/auth/admin/users/<int:pk>/assignments`; runtime `unknown; static discovery is not execution tracing` |
+| `api:PUT:/api/auth/admin/workflow-policy` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:accounts.unified_admin` → `module:accounts.floors`, `module:accounts.goods_admin_services`, `module:accounts.goods_api`, `module:accounts.goods_models`, `module:accounts.models`, `module:accounts.role_assignments`, `module:accounts.sections`, `module:accounts.sessions`, `module:accounts.unified_policy`, `module:core.commands`, `module:core.refusals`, `module:masters.goods_models`, `module:masters.models`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.AuthenticationFailure`, `model:accounts.HumanIdentity`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.RoleAssignment`, `model:accounts.RoleGrant`, `model:accounts.SecurityGuard`, `model:accounts.ServerSession`, `model:accounts.Staff`, `model:accounts.StaffAssignment`, `model:accounts.User`, `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.BrandIdentityBinding`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.PriceChange`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Tenant` | R:33 / W:6 / models:38; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/UnifiedAccess.tsx:b7549bce885b`; backend `module:accounts.unified_urls`, `module:accounts.warehouse_manager`; calls `api_consumer:frontend/src/pages/UnifiedAccess.tsx:b7549bce885b`; API `api:PUT:/api/auth/admin/workflow-policy`; runtime `unknown; static discovery is not execution tracing` |
 | `api:PUT:/api/auth/me/till-pin` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:accounts.views` → `module:accounts.access_changes`, `module:accounts.authentication`, `module:accounts.change_password`, `module:accounts.floors`, `module:accounts.goods_admin_views`, `module:accounts.matrix`, `module:accounts.models`, `module:accounts.permissions`, `module:accounts.sections`, `module:accounts.serializers`, `module:accounts.session_payload`, `module:accounts.sessions`, `module:accounts.till_pin`, `module:approvals.models`, `module:core.refusals`, `module:core.tenancy`, `module:core.textsearch`, `module:masters.models`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.User`, `model:approvals.Approval`, `model:approvals.ApprovalPolicy`, `model:approvals.ApprovalRoute`, `model:approvals.ApprovalStepDecision`, `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.PriceChange`, `model:masters.Season`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget` | R:14 / W:0 / models:23; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/sell/Till.tsx:a2b578ec77bd`; backend `module:accounts.urls`; calls `api_consumer:frontend/src/pages/sell/Till.tsx:a2b578ec77bd`; API `api:PUT:/api/auth/me/till-pin`; runtime `unknown; static discovery is not execution tracing` |
 | `bookmark:/edges/rbac` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/shell/navConfig.ts` → `screen:/setup/people-access` | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | runtime `unknown; static discovery is not execution tracing` |
 | `bookmark:/masters/users` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/shell/navConfig.ts` → `screen:/setup/people-access` | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | runtime `unknown; static discovery is not execution tracing` |
@@ -163,6 +163,10 @@ Direct data-import edges (module → model module):
 - `module:accounts.views` → `module:accounts.models`
 - `module:accounts.views` → `module:approvals.models`
 - `module:accounts.views` → `module:masters.models`
+- `module:accounts.warehouse_manager` → `module:accounts.goods_models`
+- `module:accounts.warehouse_manager` → `module:accounts.models`
+- `module:accounts.warehouse_manager` → `module:masters.goods_models`
+- `module:accounts.warehouse_manager` → `module:masters.models`
 - `module:approvals.unified_authority` → `module:masters.goods_models`
 - `module:approvals.unified_authority` → `module:masters.models`
 - `module:masters.brand_identity` → `module:accounts.goods_models`
@@ -173,6 +177,7 @@ Direct data-import edges (module → model module):
 
 Cross-owner static downstream readers (owned service/model → importer):
 
+- `model:accounts.AccessChange` → `module:accounts.management.commands.setup_store_test_run` (C01)
 - `model:accounts.AccessChange` → `module:alerts.goods_services` (C15)
 - `model:accounts.AccessChange` → `module:alerts.views` (C15)
 - `model:accounts.AccessChange` → `module:core.goods_administrative_history` (C15)
@@ -194,6 +199,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:accounts.AccessChange` → `module:sell.services.petty_cash` (C13)
 - `model:accounts.AccessChange` → `module:sell.services.resolve` (C10)
 - `model:accounts.AccessChange` → `module:vendors.views` (C04)
+- `model:accounts.ActorPolicy` → `module:accounts.management.commands.setup_store_test_run` (C01)
 - `model:accounts.ActorPolicy` → `module:alerts.goods_services` (C15)
 - `model:accounts.ActorPolicy` → `module:alerts.views` (C15)
 - `model:accounts.ActorPolicy` → `module:core.goods_administrative_history` (C15)
@@ -215,6 +221,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:accounts.ActorPolicy` → `module:sell.services.petty_cash` (C13)
 - `model:accounts.ActorPolicy` → `module:sell.services.resolve` (C10)
 - `model:accounts.ActorPolicy` → `module:vendors.views` (C04)
+- `model:accounts.AuthenticationFailure` → `module:accounts.management.commands.setup_store_test_run` (C01)
 - `model:accounts.AuthenticationFailure` → `module:alerts.goods_services` (C15)
 - `model:accounts.AuthenticationFailure` → `module:core.goods_administrative_history` (C15)
 - `model:accounts.AuthenticationFailure` → `module:inbound.goods_services` (C05)
@@ -237,6 +244,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:accounts.AuthenticationFailure` → `module:sell.services.salespeople` (C10)
 - `model:accounts.AuthenticationFailure` → `module:sell.views` (C10)
 - `model:accounts.AuthenticationFailure` → `module:stockledger.broken_size_views` (C06)
+- `model:accounts.HumanIdentity` → `module:accounts.management.commands.setup_store_test_run` (C01)
 - `model:accounts.HumanIdentity` → `module:alerts.goods_services` (C15)
 - `model:accounts.HumanIdentity` → `module:core.goods_administrative_history` (C15)
 - `model:accounts.HumanIdentity` → `module:inbound.goods_services` (C05)
@@ -260,6 +268,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:accounts.HumanIdentity` → `module:sell.views` (C10)
 - `model:accounts.HumanIdentity` → `module:stockledger.broken_size_views` (C06)
 - `model:accounts.InstallationRegistration` → `module:masters.first_store_readiness` (C01)
+- `model:accounts.LoginAttempt` → `module:accounts.management.commands.setup_store_test_run` (C01)
 - `model:accounts.LoginAttempt` → `module:alerts.goods_services` (C15)
 - `model:accounts.LoginAttempt` → `module:alerts.views` (C15)
 - `model:accounts.LoginAttempt` → `module:core.goods_administrative_history` (C15)
@@ -281,6 +290,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:accounts.LoginAttempt` → `module:sell.services.petty_cash` (C13)
 - `model:accounts.LoginAttempt` → `module:sell.services.resolve` (C10)
 - `model:accounts.LoginAttempt` → `module:vendors.views` (C04)
+- `model:accounts.Role` → `module:accounts.management.commands.setup_store_test_run` (C01)
 - `model:accounts.Role` → `module:alerts.goods_services` (C15)
 - `model:accounts.Role` → `module:alerts.views` (C15)
 - `model:accounts.Role` → `module:core.goods_administrative_history` (C15)
@@ -302,6 +312,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:accounts.Role` → `module:sell.services.petty_cash` (C13)
 - `model:accounts.Role` → `module:sell.services.resolve` (C10)
 - `model:accounts.Role` → `module:vendors.views` (C04)
+- `model:accounts.RoleAssignment` → `module:accounts.management.commands.setup_store_test_run` (C01)
 - `model:accounts.RoleAssignment` → `module:alerts.goods_services` (C15)
 - `model:accounts.RoleAssignment` → `module:core.goods_administrative_history` (C15)
 - `model:accounts.RoleAssignment` → `module:inbound.goods_services` (C05)
@@ -324,6 +335,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:accounts.RoleAssignment` → `module:sell.services.salespeople` (C10)
 - `model:accounts.RoleAssignment` → `module:sell.views` (C10)
 - `model:accounts.RoleAssignment` → `module:stockledger.broken_size_views` (C06)
+- `model:accounts.RoleGrant` → `module:accounts.management.commands.setup_store_test_run` (C01)
 - `model:accounts.RoleGrant` → `module:alerts.goods_services` (C15)
 - `model:accounts.RoleGrant` → `module:core.goods_administrative_history` (C15)
 - `model:accounts.RoleGrant` → `module:inbound.goods_services` (C05)
@@ -346,6 +358,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:accounts.RoleGrant` → `module:sell.services.salespeople` (C10)
 - `model:accounts.RoleGrant` → `module:sell.views` (C10)
 - `model:accounts.RoleGrant` → `module:stockledger.broken_size_views` (C06)
+- `model:accounts.SecurityGuard` → `module:accounts.management.commands.setup_store_test_run` (C01)
 - `model:accounts.SecurityGuard` → `module:alerts.goods_services` (C15)
 - `model:accounts.SecurityGuard` → `module:core.goods_administrative_history` (C15)
 - `model:accounts.SecurityGuard` → `module:inbound.goods_services` (C05)
@@ -368,6 +381,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:accounts.SecurityGuard` → `module:sell.services.salespeople` (C10)
 - `model:accounts.SecurityGuard` → `module:sell.views` (C10)
 - `model:accounts.SecurityGuard` → `module:stockledger.broken_size_views` (C06)
+- `model:accounts.ServerSession` → `module:accounts.management.commands.setup_store_test_run` (C01)
 - `model:accounts.ServerSession` → `module:alerts.goods_services` (C15)
 - `model:accounts.ServerSession` → `module:core.goods_administrative_history` (C15)
 - `model:accounts.ServerSession` → `module:inbound.goods_services` (C05)
@@ -390,6 +404,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:accounts.ServerSession` → `module:sell.services.salespeople` (C10)
 - `model:accounts.ServerSession` → `module:sell.views` (C10)
 - `model:accounts.ServerSession` → `module:stockledger.broken_size_views` (C06)
+- `model:accounts.User` → `module:accounts.management.commands.setup_store_test_run` (C01)
 - `model:accounts.User` → `module:alerts.goods_services` (C15)
 - `model:accounts.User` → `module:alerts.views` (C15)
 - `model:accounts.User` → `module:core.goods_administrative_history` (C15)
@@ -411,6 +426,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:accounts.User` → `module:sell.services.petty_cash` (C13)
 - `model:accounts.User` → `module:sell.services.resolve` (C10)
 - `model:accounts.User` → `module:vendors.views` (C04)
+- `model:masters.BrandIdentityBinding` → `module:accounts.management.commands.setup_store_test_run` (C01)
 - `model:masters.BrandIdentityBinding` → `module:approvals.goods_policy` (C15)
 - `model:masters.BrandIdentityBinding` → `module:approvals.goods_services` (C15)
 - `model:masters.BrandIdentityBinding` → `module:core.goods_administrative_history` (C15)
@@ -451,6 +467,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.BrandIdentityBinding` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.BrandIdentityBinding` → `module:ptmapper.management.commands.load_goods_rulebook` (C05)
 - `model:masters.BrandIdentityBinding` → `module:ptmapper.soh_services` (C05)
+- `model:masters.BrandIdentityBinding` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.BrandIdentityBinding` → `module:reporting.gst_facts` (C16)
 - `model:masters.BrandIdentityBinding` → `module:reporting.inventory_facts` (C15)
 - `model:masters.BrandIdentityBinding` → `module:reporting.management.commands.make_brand_reports` (C14)
@@ -507,6 +524,7 @@ These calls need a data-target and runtime-reachability review before the retire
 | `backend/accounts/till_pin.py` (`module:accounts.till_pin`) | `row.save` | canonical |
 | `backend/accounts/unified_admin.py` (`module:accounts.unified_admin`) | `RoleAssignment.objects.create`, `edited_future_ids.add`, `role.save`, `row.save`, `self.run_command`, `unchanged_ids.add` | canonical |
 | `backend/accounts/unified_policy.py` (`module:accounts.unified_policy`) | `INITIAL_STEP_ROLES.update`, `actions.add` | canonical |
+| `backend/accounts/warehouse_manager.py` (`module:accounts.warehouse_manager`) | `Role.objects.create`, `RoleAssignment.objects.create`, `row.save` | canonical |
 | `backend/approvals/unified_authority.py` (`module:approvals.unified_authority`) | `brands.add`, `people.update`, `sites.add`, `sites.update` | unresolved |
 | `backend/masters/brand_identity.py` (`module:masters.brand_identity`) | `row.save`, `run.record` | canonical |
 | `backend/masters/brand_reconciliation_views.py` (`module:masters.brand_reconciliation_views`) | `self.run_command` | canonical |
@@ -524,7 +542,7 @@ These calls need a data-target and runtime-reachability review before the retire
 | Services | 1 tagged service modules: `module:core.posting`. |
 | Offline client modules | 0 till/PWA modules: None discovered. |
 | Data | 30 owned model classes: `model:admin.LogEntry`, `model:auth.Group`, `model:auth.Permission`, `model:contenttypes.ContentType`, `model:core.AuditEvent`, `model:core.ChainHead`, `model:core.CommandAttempt`, `model:core.CommandKey`, `model:core.CommandOutcome`, `model:core.DeliveryEvent`, `model:core.DocumentEvent`, `model:core.DocumentHead`, `model:core.DocumentIdentity`, `model:core.DocumentProbe`, `model:core.DraftLine`, `model:core.DraftRevision`, `model:core.GLEntry`, `model:core.JobArtifact`, `model:core.JobState`, `model:core.LedgerProbe`, `model:core.LegacyReference`, `model:core.OfficialLine`, `model:core.OfficialVersion`, `model:core.OutboxIntent`, `model:core.PrivilegedReview`, `model:core.RecoveryRecord`, `model:core.SeriesCeiling`, `model:core.SubjectRevision`, `model:core.VoucherSeries`, `model:sessions.Session`. 18 direct model-module import edges from owned modules; 89 static read-call candidates in 25 backend/client modules (individual expressions are in the machine inventory). |
-| Downstream readers | 13 frontend API callsites; 1 endpoint/callsite links, 13 dynamic URL references; 1274 cross-owner static backend import edges. |
+| Downstream readers | 13 frontend API callsites; 1 endpoint/callsite links, 13 dynamic URL references; 1318 cross-owner static backend import edges. |
 | Lifecycle | canonical: 112, historical_read_only: 12, retirement_candidate: 32, temporary_supported_legacy: 3, unresolved: 214. |
 
 ### Entry-point dependency traces
@@ -878,7 +896,9 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:core.AuditEvent` → `module:ptmapper.goods_pt_services` (C05)
 - `model:core.AuditEvent` → `module:ptmapper.goods_pt_views` (C05)
 - `model:core.AuditEvent` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:core.AuditEvent` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:core.AuditEvent` → `module:ptmapper.soh_services` (C05)
+- `model:core.AuditEvent` → `module:ptmapper.stock_sync_services` (C08)
 - `model:core.AuditEvent` → `module:reporting.inventory_facts` (C15)
 - `model:core.AuditEvent` → `module:reporting.shrinkage_facts` (C15)
 - `model:core.AuditEvent` → `module:sell.services.brand_claims` (C14)
@@ -933,7 +953,9 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:core.ChainHead` → `module:ptmapper.goods_pt_services` (C05)
 - `model:core.ChainHead` → `module:ptmapper.goods_pt_views` (C05)
 - `model:core.ChainHead` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:core.ChainHead` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:core.ChainHead` → `module:ptmapper.soh_services` (C05)
+- `model:core.ChainHead` → `module:ptmapper.stock_sync_services` (C08)
 - `model:core.ChainHead` → `module:reporting.inventory_facts` (C15)
 - `model:core.ChainHead` → `module:reporting.shrinkage_facts` (C15)
 - `model:core.ChainHead` → `module:sell.services.brand_claims` (C14)
@@ -988,7 +1010,9 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:core.CommandAttempt` → `module:ptmapper.goods_pt_services` (C05)
 - `model:core.CommandAttempt` → `module:ptmapper.goods_pt_views` (C05)
 - `model:core.CommandAttempt` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:core.CommandAttempt` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:core.CommandAttempt` → `module:ptmapper.soh_services` (C05)
+- `model:core.CommandAttempt` → `module:ptmapper.stock_sync_services` (C08)
 - `model:core.CommandAttempt` → `module:reporting.inventory_facts` (C15)
 - `model:core.CommandAttempt` → `module:reporting.shrinkage_facts` (C15)
 - `model:core.CommandAttempt` → `module:sell.services.brand_claims` (C14)
@@ -1043,7 +1067,9 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:core.CommandKey` → `module:ptmapper.goods_pt_services` (C05)
 - `model:core.CommandKey` → `module:ptmapper.goods_pt_views` (C05)
 - `model:core.CommandKey` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:core.CommandKey` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:core.CommandKey` → `module:ptmapper.soh_services` (C05)
+- `model:core.CommandKey` → `module:ptmapper.stock_sync_services` (C08)
 - `model:core.CommandKey` → `module:reporting.inventory_facts` (C15)
 - `model:core.CommandKey` → `module:reporting.shrinkage_facts` (C15)
 - `model:core.CommandKey` → `module:sell.services.brand_claims` (C14)
@@ -1098,7 +1124,9 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:core.CommandOutcome` → `module:ptmapper.goods_pt_services` (C05)
 - `model:core.CommandOutcome` → `module:ptmapper.goods_pt_views` (C05)
 - `model:core.CommandOutcome` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:core.CommandOutcome` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:core.CommandOutcome` → `module:ptmapper.soh_services` (C05)
+- `model:core.CommandOutcome` → `module:ptmapper.stock_sync_services` (C08)
 - `model:core.CommandOutcome` → `module:reporting.inventory_facts` (C15)
 - `model:core.CommandOutcome` → `module:reporting.shrinkage_facts` (C15)
 - `model:core.CommandOutcome` → `module:sell.services.brand_claims` (C14)
@@ -1153,7 +1181,9 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:core.DeliveryEvent` → `module:ptmapper.goods_pt_services` (C05)
 - `model:core.DeliveryEvent` → `module:ptmapper.goods_pt_views` (C05)
 - `model:core.DeliveryEvent` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:core.DeliveryEvent` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:core.DeliveryEvent` → `module:ptmapper.soh_services` (C05)
+- `model:core.DeliveryEvent` → `module:ptmapper.stock_sync_services` (C08)
 - `model:core.DeliveryEvent` → `module:reporting.inventory_facts` (C15)
 - `model:core.DeliveryEvent` → `module:reporting.shrinkage_facts` (C15)
 - `model:core.DeliveryEvent` → `module:sell.services.brand_claims` (C14)
@@ -1208,7 +1238,9 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:core.DocumentEvent` → `module:ptmapper.goods_pt_services` (C05)
 - `model:core.DocumentEvent` → `module:ptmapper.goods_pt_views` (C05)
 - `model:core.DocumentEvent` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:core.DocumentEvent` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:core.DocumentEvent` → `module:ptmapper.soh_services` (C05)
+- `model:core.DocumentEvent` → `module:ptmapper.stock_sync_services` (C08)
 - `model:core.DocumentEvent` → `module:reporting.inventory_facts` (C15)
 - `model:core.DocumentEvent` → `module:reporting.shrinkage_facts` (C15)
 - `model:core.DocumentEvent` → `module:sell.services.brand_claims` (C14)
@@ -1263,7 +1295,9 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:core.DocumentHead` → `module:ptmapper.goods_pt_services` (C05)
 - `model:core.DocumentHead` → `module:ptmapper.goods_pt_views` (C05)
 - `model:core.DocumentHead` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:core.DocumentHead` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:core.DocumentHead` → `module:ptmapper.soh_services` (C05)
+- `model:core.DocumentHead` → `module:ptmapper.stock_sync_services` (C08)
 - `model:core.DocumentHead` → `module:reporting.inventory_facts` (C15)
 - `model:core.DocumentHead` → `module:reporting.shrinkage_facts` (C15)
 - `model:core.DocumentHead` → `module:sell.services.brand_claims` (C14)
@@ -1318,7 +1352,9 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:core.DocumentIdentity` → `module:ptmapper.goods_pt_services` (C05)
 - `model:core.DocumentIdentity` → `module:ptmapper.goods_pt_views` (C05)
 - `model:core.DocumentIdentity` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:core.DocumentIdentity` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:core.DocumentIdentity` → `module:ptmapper.soh_services` (C05)
+- `model:core.DocumentIdentity` → `module:ptmapper.stock_sync_services` (C08)
 - `model:core.DocumentIdentity` → `module:reporting.inventory_facts` (C15)
 - `model:core.DocumentIdentity` → `module:reporting.shrinkage_facts` (C15)
 - `model:core.DocumentIdentity` → `module:sell.services.brand_claims` (C14)
@@ -1347,6 +1383,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:core.DocumentProbe` → `module:outbound.serializers` (C07)
 - `model:core.DocumentProbe` → `module:outbound.size_balancing` (C06)
 - `model:core.DocumentProbe` → `module:outbound.views` (C07)
+- `model:core.DocumentProbe` → `module:ptmapper.stock_sync_services` (C08)
 - `model:core.DocumentProbe` → `module:reporting.brand_sale_facts` (C14)
 - `model:core.DocumentProbe` → `module:reporting.exception_facts` (C15)
 - `model:core.DocumentProbe` → `module:reporting.funding_facts` (C15)
@@ -1423,7 +1460,9 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:core.DraftLine` → `module:ptmapper.goods_pt_services` (C05)
 - `model:core.DraftLine` → `module:ptmapper.goods_pt_views` (C05)
 - `model:core.DraftLine` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:core.DraftLine` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:core.DraftLine` → `module:ptmapper.soh_services` (C05)
+- `model:core.DraftLine` → `module:ptmapper.stock_sync_services` (C08)
 - `model:core.DraftLine` → `module:reporting.inventory_facts` (C15)
 - `model:core.DraftLine` → `module:reporting.shrinkage_facts` (C15)
 - `model:core.DraftLine` → `module:sell.services.brand_claims` (C14)
@@ -1478,7 +1517,9 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:core.DraftRevision` → `module:ptmapper.goods_pt_services` (C05)
 - `model:core.DraftRevision` → `module:ptmapper.goods_pt_views` (C05)
 - `model:core.DraftRevision` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:core.DraftRevision` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:core.DraftRevision` → `module:ptmapper.soh_services` (C05)
+- `model:core.DraftRevision` → `module:ptmapper.stock_sync_services` (C08)
 - `model:core.DraftRevision` → `module:reporting.inventory_facts` (C15)
 - `model:core.DraftRevision` → `module:reporting.shrinkage_facts` (C15)
 - `model:core.DraftRevision` → `module:sell.services.brand_claims` (C14)
@@ -1543,7 +1584,9 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:core.JobArtifact` → `module:ptmapper.goods_pt_services` (C05)
 - `model:core.JobArtifact` → `module:ptmapper.goods_pt_views` (C05)
 - `model:core.JobArtifact` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:core.JobArtifact` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:core.JobArtifact` → `module:ptmapper.soh_services` (C05)
+- `model:core.JobArtifact` → `module:ptmapper.stock_sync_services` (C08)
 - `model:core.JobArtifact` → `module:reporting.inventory_facts` (C15)
 - `model:core.JobArtifact` → `module:reporting.shrinkage_facts` (C15)
 - `model:core.JobArtifact` → `module:sell.services.brand_claims` (C14)
@@ -1598,7 +1641,9 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:core.JobState` → `module:ptmapper.goods_pt_services` (C05)
 - `model:core.JobState` → `module:ptmapper.goods_pt_views` (C05)
 - `model:core.JobState` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:core.JobState` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:core.JobState` → `module:ptmapper.soh_services` (C05)
+- `model:core.JobState` → `module:ptmapper.stock_sync_services` (C08)
 - `model:core.JobState` → `module:reporting.inventory_facts` (C15)
 - `model:core.JobState` → `module:reporting.shrinkage_facts` (C15)
 - `model:core.JobState` → `module:sell.services.brand_claims` (C14)
@@ -1655,7 +1700,9 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:core.LegacyReference` → `module:ptmapper.goods_pt_services` (C05)
 - `model:core.LegacyReference` → `module:ptmapper.goods_pt_views` (C05)
 - `model:core.LegacyReference` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:core.LegacyReference` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:core.LegacyReference` → `module:ptmapper.soh_services` (C05)
+- `model:core.LegacyReference` → `module:ptmapper.stock_sync_services` (C08)
 - `model:core.LegacyReference` → `module:reporting.inventory_facts` (C15)
 - `model:core.LegacyReference` → `module:reporting.shrinkage_facts` (C15)
 - `model:core.LegacyReference` → `module:sell.services.brand_claims` (C14)
@@ -1710,7 +1757,9 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:core.OfficialLine` → `module:ptmapper.goods_pt_services` (C05)
 - `model:core.OfficialLine` → `module:ptmapper.goods_pt_views` (C05)
 - `model:core.OfficialLine` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:core.OfficialLine` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:core.OfficialLine` → `module:ptmapper.soh_services` (C05)
+- `model:core.OfficialLine` → `module:ptmapper.stock_sync_services` (C08)
 - `model:core.OfficialLine` → `module:reporting.inventory_facts` (C15)
 - `model:core.OfficialLine` → `module:reporting.shrinkage_facts` (C15)
 - `model:core.OfficialLine` → `module:sell.services.brand_claims` (C14)
@@ -1765,7 +1814,9 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:core.OfficialVersion` → `module:ptmapper.goods_pt_services` (C05)
 - `model:core.OfficialVersion` → `module:ptmapper.goods_pt_views` (C05)
 - `model:core.OfficialVersion` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:core.OfficialVersion` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:core.OfficialVersion` → `module:ptmapper.soh_services` (C05)
+- `model:core.OfficialVersion` → `module:ptmapper.stock_sync_services` (C08)
 - `model:core.OfficialVersion` → `module:reporting.inventory_facts` (C15)
 - `model:core.OfficialVersion` → `module:reporting.shrinkage_facts` (C15)
 - `model:core.OfficialVersion` → `module:sell.services.brand_claims` (C14)
@@ -1820,7 +1871,9 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:core.OutboxIntent` → `module:ptmapper.goods_pt_services` (C05)
 - `model:core.OutboxIntent` → `module:ptmapper.goods_pt_views` (C05)
 - `model:core.OutboxIntent` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:core.OutboxIntent` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:core.OutboxIntent` → `module:ptmapper.soh_services` (C05)
+- `model:core.OutboxIntent` → `module:ptmapper.stock_sync_services` (C08)
 - `model:core.OutboxIntent` → `module:reporting.inventory_facts` (C15)
 - `model:core.OutboxIntent` → `module:reporting.shrinkage_facts` (C15)
 - `model:core.OutboxIntent` → `module:sell.services.brand_claims` (C14)
@@ -1875,7 +1928,9 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:core.PrivilegedReview` → `module:ptmapper.goods_pt_services` (C05)
 - `model:core.PrivilegedReview` → `module:ptmapper.goods_pt_views` (C05)
 - `model:core.PrivilegedReview` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:core.PrivilegedReview` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:core.PrivilegedReview` → `module:ptmapper.soh_services` (C05)
+- `model:core.PrivilegedReview` → `module:ptmapper.stock_sync_services` (C08)
 - `model:core.PrivilegedReview` → `module:reporting.inventory_facts` (C15)
 - `model:core.PrivilegedReview` → `module:reporting.shrinkage_facts` (C15)
 - `model:core.PrivilegedReview` → `module:sell.services.brand_claims` (C14)
@@ -1930,7 +1985,9 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:core.RecoveryRecord` → `module:ptmapper.goods_pt_services` (C05)
 - `model:core.RecoveryRecord` → `module:ptmapper.goods_pt_views` (C05)
 - `model:core.RecoveryRecord` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:core.RecoveryRecord` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:core.RecoveryRecord` → `module:ptmapper.soh_services` (C05)
+- `model:core.RecoveryRecord` → `module:ptmapper.stock_sync_services` (C08)
 - `model:core.RecoveryRecord` → `module:reporting.inventory_facts` (C15)
 - `model:core.RecoveryRecord` → `module:reporting.shrinkage_facts` (C15)
 - `model:core.RecoveryRecord` → `module:sell.services.brand_claims` (C14)
@@ -1985,7 +2042,9 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:core.SeriesCeiling` → `module:ptmapper.goods_pt_services` (C05)
 - `model:core.SeriesCeiling` → `module:ptmapper.goods_pt_views` (C05)
 - `model:core.SeriesCeiling` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:core.SeriesCeiling` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:core.SeriesCeiling` → `module:ptmapper.soh_services` (C05)
+- `model:core.SeriesCeiling` → `module:ptmapper.stock_sync_services` (C08)
 - `model:core.SeriesCeiling` → `module:reporting.inventory_facts` (C15)
 - `model:core.SeriesCeiling` → `module:reporting.shrinkage_facts` (C15)
 - `model:core.SeriesCeiling` → `module:sell.services.brand_claims` (C14)
@@ -2040,7 +2099,9 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:core.SubjectRevision` → `module:ptmapper.goods_pt_services` (C05)
 - `model:core.SubjectRevision` → `module:ptmapper.goods_pt_views` (C05)
 - `model:core.SubjectRevision` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:core.SubjectRevision` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:core.SubjectRevision` → `module:ptmapper.soh_services` (C05)
+- `model:core.SubjectRevision` → `module:ptmapper.stock_sync_services` (C08)
 - `model:core.SubjectRevision` → `module:reporting.inventory_facts` (C15)
 - `model:core.SubjectRevision` → `module:reporting.shrinkage_facts` (C15)
 - `model:core.SubjectRevision` → `module:sell.services.brand_claims` (C14)
@@ -2069,6 +2130,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:core.VoucherSeries` → `module:outbound.serializers` (C07)
 - `model:core.VoucherSeries` → `module:outbound.size_balancing` (C06)
 - `model:core.VoucherSeries` → `module:outbound.views` (C07)
+- `model:core.VoucherSeries` → `module:ptmapper.stock_sync_services` (C08)
 - `model:core.VoucherSeries` → `module:reporting.brand_sale_facts` (C14)
 - `model:core.VoucherSeries` → `module:reporting.exception_facts` (C15)
 - `model:core.VoucherSeries` → `module:reporting.funding_facts` (C15)
@@ -2170,13 +2232,13 @@ These calls need a data-target and runtime-reachability review before the retire
 
 | Boundary | Inventory-derived view |
 | --- | --- |
-| Entry points | 150 discovered: 121 HTTP method routes, 12 screens, 0 nested views, 0 print/display sinks, 16 navigation/bookmarks, 1 jobs/commands/signals, 0 middleware, 0 operational files. HTTP namespaces: `/api/goods-v1/masters` (85), `/api/goods-v1/vendors` (5), `/api/masters/brands` (5), `/api/masters/entities` (1), `/api/masters/gstins` (5), `/api/masters/locations` (1), `/api/masters/seasons` (5), `/api/masters/skus` (1), `/api/masters/store-targets` (2), `/api/masters/stores` (5), `/api/masters/summary` (1), `/api/vendors` (2), `/api/vendors/<int:pk>` (3). |
-| Authorization | Required boundaries: Current org.site.lifecycle.approve over the exact site, fresh revision and password-confirmed session. For every online_alpha approve_goods, non-overridable opening_ready requires the declared empty new-store start or independently reviewed and physically accepted opening source.; Existing unified org.site.manage and versioned goods readiness; explicit online-alpha mode, current non-overridable gates and registered-till writer; tokens returned once, never retained in audit/history.; Product lists: config.draft or config.approve holders; the master sheet import package (MASTER-SHEET-001) is the server authority.; SO-03 unified server evaluator; owner must prove resource and field denials at cutover.; config.draft (upload, review choices, submit; uploader only) plus vendor.manage when brands/seasons are created and crosswalk.manage when ITEM rules change; one config.approve decision by a different person through /api/goods-v1/approvals/<id>/decide with step-up; tenant-scoped rows; re-plan against the live lists at approval refuses a stale package. Handler-level enforcement requires behaviour and denial proof. |
+| Entry points | 151 discovered: 121 HTTP method routes, 12 screens, 0 nested views, 0 print/display sinks, 16 navigation/bookmarks, 2 jobs/commands/signals, 0 middleware, 0 operational files. HTTP namespaces: `/api/goods-v1/masters` (85), `/api/goods-v1/vendors` (5), `/api/masters/brands` (5), `/api/masters/entities` (1), `/api/masters/gstins` (5), `/api/masters/locations` (1), `/api/masters/seasons` (5), `/api/masters/skus` (1), `/api/masters/store-targets` (2), `/api/masters/stores` (5), `/api/masters/summary` (1), `/api/vendors` (2), `/api/vendors/<int:pk>` (3). |
+| Authorization | Required boundaries: Current org.site.lifecycle.approve over the exact site, fresh revision and password-confirmed session. For every online_alpha approve_goods, non-overridable opening_ready requires the declared empty new-store start or independently reviewed and physically accepted opening source.; Existing unified org.site.manage and versioned goods readiness; explicit online-alpha mode, current non-overridable gates and registered-till writer; tokens returned once, never retained in audit/history.; Operator shell only; refuses a real (non-synthetic) tenant. Writes only the Warehouse manager role policy and assignments through accounts.warehouse_manager; every other gate is checked, not written.; Product lists: config.draft or config.approve holders; the master sheet import package (MASTER-SHEET-001) is the server authority.; SO-03 unified server evaluator; owner must prove resource and field denials at cutover.; config.draft (upload, review choices, submit; uploader only) plus vendor.manage when brands/seasons are created and crosswalk.manage when ITEM rules change; one config.approve decision by a different person through /api/goods-v1/approvals/<id>/decide with step-up; tenant-scoped rows; re-plan against the live lists at approval refuses a stale package. Handler-level enforcement requires behaviour and denial proof. |
 | Services | 3 tagged service modules: `module:masters.goods_identity_services`, `module:masters.goods_services`, `module:masters.master_sheet_services`. |
 | Offline client modules | 0 till/PWA modules: None discovered. |
-| Data | 34 owned model classes: `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.DocumentPrefix`, `model:masters.DocumentSeriesCounter`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.IdentityPick`, `model:masters.IssuedDocumentNumber`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterSheetImport`, `model:masters.MasterSheetImportReview`, `model:masters.MasterVersion`, `model:masters.NumberingSetting`, `model:masters.PriceChange`, `model:masters.ProductSku`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.SkuAlias`, `model:masters.SourceCrosswalk`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Style`, `model:masters.Tenant`, `model:vendors.Vendor`, `model:vendors.VendorBrand`. 74 direct model-module import edges from owned modules; 560 static read-call candidates in 21 backend/client modules (individual expressions are in the machine inventory). |
-| Downstream readers | 129 frontend API callsites; 131 endpoint/callsite links, 9 dynamic URL references; 2684 cross-owner static backend import edges. |
-| Lifecycle | canonical: 284, historical_read_only: 24, retirement_candidate: 1, temporary_supported_legacy: 54, unresolved: 10. |
+| Data | 34 owned model classes: `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.DocumentPrefix`, `model:masters.DocumentSeriesCounter`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.IdentityPick`, `model:masters.IssuedDocumentNumber`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterSheetImport`, `model:masters.MasterSheetImportReview`, `model:masters.MasterVersion`, `model:masters.NumberingSetting`, `model:masters.PriceChange`, `model:masters.ProductSku`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.SkuAlias`, `model:masters.SourceCrosswalk`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Style`, `model:masters.Tenant`, `model:vendors.Vendor`, `model:vendors.VendorBrand`. 78 direct model-module import edges from owned modules; 577 static read-call candidates in 22 backend/client modules (individual expressions are in the machine inventory). |
+| Downstream readers | 131 frontend API callsites; 133 endpoint/callsite links, 9 dynamic URL references; 2749 cross-owner static backend import edges. |
+| Lifecycle | canonical: 287, historical_read_only: 24, retirement_candidate: 1, temporary_supported_legacy: 55, unresolved: 10. |
 
 ### Entry-point dependency traces
 
@@ -2210,8 +2272,8 @@ Each row follows entry point → declared authorization → implementation and s
 | `api:GET:/api/goods-v1/masters/skus/lookup` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:masters.goods_identity_views` → `module:accounts.goods_api`, `module:accounts.principal`, `module:approvals.goods_models`, `module:approvals.goods_services`, `module:core.commands`, `module:core.kernel_models`, `module:core.refusals`, `module:masters.goods_config`, `module:masters.goods_identity_models`, `module:masters.goods_identity_services`, `module:masters.goods_models`, `module:masters.models`; model `model:approvals.ActionDraft`, `model:approvals.ApprovalDecision`, `model:approvals.ApprovalRequest`, `model:core.AuditEvent`, `model:core.ChainHead`, `model:core.CommandAttempt`, `model:core.CommandKey`, `model:core.CommandOutcome`, `model:core.DeliveryEvent`, `model:core.DocumentEvent`, `model:core.DocumentHead`, `model:core.DocumentIdentity`, `model:core.DraftLine`, `model:core.DraftRevision`, `model:core.JobArtifact`, `model:core.JobState`, `model:core.LegacyReference`, `model:core.OfficialLine`, `model:core.OfficialVersion`, `model:core.OutboxIntent`, `model:core.PrivilegedReview`, `model:core.RecoveryRecord`, `model:core.SeriesCeiling`, `model:core.SubjectRevision`, `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.BrandIdentityBinding`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.IdentityPick`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.PriceChange`, `model:masters.ProductSku`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.SkuAlias`, `model:masters.SourceCrosswalk`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Style`, `model:masters.Tenant` | R:93 / W:4 / models:54; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/GoodsArrivals.tsx:674b62b1734a`, `api_consumer:frontend/src/pages/ProductsParties.tsx:1d556822bde9`; backend `module:masters.goods_identity_urls`, `module:ptmapper.goods_vocab_views`; calls `api_consumer:frontend/src/pages/GoodsArrivals.tsx:674b62b1734a`, `api_consumer:frontend/src/pages/ProductsParties.tsx:1d556822bde9`; API `api:GET:/api/goods-v1/masters/skus/<uuid:pk>`, `api:GET:/api/goods-v1/masters/skus/lookup`; runtime `unknown; static discovery is not execution tracing` |
 | `api:GET:/api/goods-v1/masters/store-features` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:masters.goods_store_feature_views` → `module:accounts.goods_api`, `module:accounts.goods_models`, `module:accounts.permissions`, `module:accounts.principal`, `module:accounts.sections`, `module:accounts.sessions`, `module:core.commands`, `module:core.kernel_models`, `module:core.refusals`, `module:masters.document_series`, `module:masters.models`, `module:masters.scoping`, `module:masters.store_feature_models`, `module:masters.store_feature_registry`, `module:masters.store_features`; model `model:accounts.AuthenticationFailure`, `model:accounts.HumanIdentity`, `model:accounts.RoleAssignment`, `model:accounts.RoleGrant`, `model:accounts.SecurityGuard`, `model:accounts.ServerSession`, `model:accounts.Staff`, `model:accounts.StaffAssignment`, `model:core.AuditEvent`, `model:core.ChainHead`, `model:core.CommandAttempt`, `model:core.CommandKey`, `model:core.CommandOutcome`, `model:core.DeliveryEvent`, `model:core.DocumentEvent`, `model:core.DocumentHead`, `model:core.DocumentIdentity`, `model:core.DraftLine`, `model:core.DraftRevision`, `model:core.JobArtifact`, `model:core.JobState`, `model:core.LegacyReference`, `model:core.OfficialLine`, `model:core.OfficialVersion`, `model:core.OutboxIntent`, `model:core.PrivilegedReview`, `model:core.RecoveryRecord`, `model:core.SeriesCeiling`, `model:core.SubjectRevision`, `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.PriceChange`, `model:masters.Season`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreFeatureSwitch`, `model:masters.StoreTarget` | R:13 / W:3 / models:44; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/FeatureSwitches.tsx:9717732d0f31`; backend `module:masters.goods_urls`; calls `api_consumer:frontend/src/pages/FeatureSwitches.tsx:9717732d0f31`; API `api:GET:/api/goods-v1/masters/store-features`; runtime `unknown; static discovery is not execution tracing` |
 | `api:GET:/api/goods-v1/masters/store-features/probe` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:masters.goods_store_feature_views` → `module:accounts.goods_api`, `module:accounts.goods_models`, `module:accounts.permissions`, `module:accounts.principal`, `module:accounts.sections`, `module:accounts.sessions`, `module:core.commands`, `module:core.kernel_models`, `module:core.refusals`, `module:masters.document_series`, `module:masters.models`, `module:masters.scoping`, `module:masters.store_feature_models`, `module:masters.store_feature_registry`, `module:masters.store_features`; model `model:accounts.AuthenticationFailure`, `model:accounts.HumanIdentity`, `model:accounts.RoleAssignment`, `model:accounts.RoleGrant`, `model:accounts.SecurityGuard`, `model:accounts.ServerSession`, `model:accounts.Staff`, `model:accounts.StaffAssignment`, `model:core.AuditEvent`, `model:core.ChainHead`, `model:core.CommandAttempt`, `model:core.CommandKey`, `model:core.CommandOutcome`, `model:core.DeliveryEvent`, `model:core.DocumentEvent`, `model:core.DocumentHead`, `model:core.DocumentIdentity`, `model:core.DraftLine`, `model:core.DraftRevision`, `model:core.JobArtifact`, `model:core.JobState`, `model:core.LegacyReference`, `model:core.OfficialLine`, `model:core.OfficialVersion`, `model:core.OutboxIntent`, `model:core.PrivilegedReview`, `model:core.RecoveryRecord`, `model:core.SeriesCeiling`, `model:core.SubjectRevision`, `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.PriceChange`, `model:masters.Season`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreFeatureSwitch`, `model:masters.StoreTarget` | R:13 / W:3 / models:44; `static leads only; route-specific and dynamic data access unverified` | backend `module:masters.goods_urls`; runtime `unknown; static discovery is not execution tracing` |
-| `api:GET:/api/goods-v1/masters/stores` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:masters.goods_views` → `module:accounts.actions`, `module:accounts.goods_api`, `module:accounts.principal`, `module:approvals.goods_services`, `module:core.commands`, `module:core.refusals`, `module:files.goods_models`, `module:files.goods_services`, `module:masters.first_store_readiness`, `module:masters.goods_config`, `module:masters.goods_models`, `module:masters.goods_services`, `module:masters.models`, `module:stockledger.goods_models`; model `model:files.EvidenceLink`, `model:files.EvidenceObject`, `model:files.UploadIntent`, `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.BrandIdentityBinding`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.PriceChange`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Tenant`, `model:stockledger.AcceptanceEvent`, `model:stockledger.AcceptanceSession`, `model:stockledger.ActiveHold`, `model:stockledger.ActiveReservation`, `model:stockledger.AllocationGuard`, `model:stockledger.CoverageEvent`, `model:stockledger.CustodyLot`, `model:stockledger.CustodyMatch`, `model:stockledger.EncumbranceLeg`, `model:stockledger.HoldEvent`, `model:stockledger.JournalBatch`, `model:stockledger.LiveCoverage`, `model:stockledger.LiveValueBasis`, `model:stockledger.Origin`, `model:stockledger.Position`, `model:stockledger.QuantityLeg`, `model:stockledger.ReservationEvent`, `model:stockledger.ValueLeg` | R:83 / W:16 / models:46; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/firstStoreConfiguration.tsx:d6f72a672e3e`; backend `module:core.goods_history_views`, `module:masters.goods_audit_log_views`, `module:masters.goods_urls`; calls `api_consumer:frontend/src/pages/firstStoreConfiguration.tsx:d6f72a672e3e`; API `api:GET:/api/goods-v1/masters/stores`; runtime `unknown; static discovery is not execution tracing` |
-| `api:GET:/api/goods-v1/masters/stores/<int:pk>` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:masters.goods_views` → `module:accounts.actions`, `module:accounts.goods_api`, `module:accounts.principal`, `module:approvals.goods_services`, `module:core.commands`, `module:core.refusals`, `module:files.goods_models`, `module:files.goods_services`, `module:masters.first_store_readiness`, `module:masters.goods_config`, `module:masters.goods_models`, `module:masters.goods_services`, `module:masters.models`, `module:stockledger.goods_models`; model `model:files.EvidenceLink`, `model:files.EvidenceObject`, `model:files.UploadIntent`, `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.BrandIdentityBinding`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.PriceChange`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Tenant`, `model:stockledger.AcceptanceEvent`, `model:stockledger.AcceptanceSession`, `model:stockledger.ActiveHold`, `model:stockledger.ActiveReservation`, `model:stockledger.AllocationGuard`, `model:stockledger.CoverageEvent`, `model:stockledger.CustodyLot`, `model:stockledger.CustodyMatch`, `model:stockledger.EncumbranceLeg`, `model:stockledger.HoldEvent`, `model:stockledger.JournalBatch`, `model:stockledger.LiveCoverage`, `model:stockledger.LiveValueBasis`, `model:stockledger.Origin`, `model:stockledger.Position`, `model:stockledger.QuantityLeg`, `model:stockledger.ReservationEvent`, `model:stockledger.ValueLeg` | R:83 / W:16 / models:46; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/Organisation.tsx:166446e5d5f3`; backend `module:core.goods_history_views`, `module:masters.goods_audit_log_views`, `module:masters.goods_urls`; calls `api_consumer:frontend/src/pages/Organisation.tsx:166446e5d5f3`; API `api:GET:/api/goods-v1/masters/stores/<int:pk>`; runtime `unknown; static discovery is not execution tracing` |
+| `api:GET:/api/goods-v1/masters/stores` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:masters.goods_views` → `module:accounts.actions`, `module:accounts.goods_api`, `module:accounts.principal`, `module:approvals.goods_services`, `module:core.commands`, `module:core.refusals`, `module:files.goods_models`, `module:files.goods_services`, `module:masters.first_store_readiness`, `module:masters.goods_config`, `module:masters.goods_models`, `module:masters.goods_services`, `module:masters.models`, `module:stockledger.goods_models`; model `model:files.EvidenceLink`, `model:files.EvidenceObject`, `model:files.UploadIntent`, `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.BrandIdentityBinding`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.PriceChange`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Tenant`, `model:stockledger.AcceptanceEvent`, `model:stockledger.AcceptanceSession`, `model:stockledger.ActiveHold`, `model:stockledger.ActiveReservation`, `model:stockledger.AllocationGuard`, `model:stockledger.CoverageEvent`, `model:stockledger.CustodyLot`, `model:stockledger.CustodyMatch`, `model:stockledger.EncumbranceLeg`, `model:stockledger.HoldEvent`, `model:stockledger.JournalBatch`, `model:stockledger.LiveCoverage`, `model:stockledger.LiveValueBasis`, `model:stockledger.Origin`, `model:stockledger.Position`, `model:stockledger.QuantityLeg`, `model:stockledger.ReservationEvent`, `model:stockledger.ValueLeg` | R:83 / W:16 / models:46; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/Organisation.tsx:a595df522f73`, `api_consumer:frontend/src/pages/firstStoreConfiguration.tsx:d6f72a672e3e`; backend `module:core.goods_history_views`, `module:masters.goods_audit_log_views`, `module:masters.goods_urls`; calls `api_consumer:frontend/src/pages/Organisation.tsx:a595df522f73`, `api_consumer:frontend/src/pages/firstStoreConfiguration.tsx:d6f72a672e3e`; API `api:GET:/api/goods-v1/masters/stores`; runtime `unknown; static discovery is not execution tracing` |
+| `api:GET:/api/goods-v1/masters/stores/<int:pk>` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:masters.goods_views` → `module:accounts.actions`, `module:accounts.goods_api`, `module:accounts.principal`, `module:approvals.goods_services`, `module:core.commands`, `module:core.refusals`, `module:files.goods_models`, `module:files.goods_services`, `module:masters.first_store_readiness`, `module:masters.goods_config`, `module:masters.goods_models`, `module:masters.goods_services`, `module:masters.models`, `module:stockledger.goods_models`; model `model:files.EvidenceLink`, `model:files.EvidenceObject`, `model:files.UploadIntent`, `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.BrandIdentityBinding`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.PriceChange`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Tenant`, `model:stockledger.AcceptanceEvent`, `model:stockledger.AcceptanceSession`, `model:stockledger.ActiveHold`, `model:stockledger.ActiveReservation`, `model:stockledger.AllocationGuard`, `model:stockledger.CoverageEvent`, `model:stockledger.CustodyLot`, `model:stockledger.CustodyMatch`, `model:stockledger.EncumbranceLeg`, `model:stockledger.HoldEvent`, `model:stockledger.JournalBatch`, `model:stockledger.LiveCoverage`, `model:stockledger.LiveValueBasis`, `model:stockledger.Origin`, `model:stockledger.Position`, `model:stockledger.QuantityLeg`, `model:stockledger.ReservationEvent`, `model:stockledger.ValueLeg` | R:83 / W:16 / models:46; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/Organisation.tsx:166446e5d5f3`, `api_consumer:frontend/src/pages/Organisation.tsx:5d629cccac5d`; backend `module:core.goods_history_views`, `module:masters.goods_audit_log_views`, `module:masters.goods_urls`; calls `api_consumer:frontend/src/pages/Organisation.tsx:166446e5d5f3`, `api_consumer:frontend/src/pages/Organisation.tsx:5d629cccac5d`; API `api:GET:/api/goods-v1/masters/stores/<int:pk>`; runtime `unknown; static discovery is not execution tracing` |
 | `api:GET:/api/goods-v1/masters/stores/<int:pk>/counter` | Existing unified org.site.manage and versioned goods readiness; explicit online-alpha mode, current non-overridable gates and registered-till writer; tokens returned once, never retained in audit/history. | `pending` | `module:masters.first_store_views` → `module:accounts.goods_api`, `module:core.commands`, `module:core.refusals`, `module:masters.goods_models`, `module:masters.models`, `module:sell.services.till_authority`; model `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.BrandIdentityBinding`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.PriceChange`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Tenant` | R:6 / W:2 / models:25; `static leads only; route-specific and dynamic data access unverified` | backend `module:masters.goods_urls`; runtime `unknown; static discovery is not execution tracing` |
 | `api:GET:/api/goods-v1/masters/stores/<int:pk>/readiness` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:masters.goods_views` → `module:accounts.actions`, `module:accounts.goods_api`, `module:accounts.principal`, `module:approvals.goods_services`, `module:core.commands`, `module:core.refusals`, `module:files.goods_models`, `module:files.goods_services`, `module:masters.first_store_readiness`, `module:masters.goods_config`, `module:masters.goods_models`, `module:masters.goods_services`, `module:masters.models`, `module:stockledger.goods_models`; model `model:files.EvidenceLink`, `model:files.EvidenceObject`, `model:files.UploadIntent`, `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.BrandIdentityBinding`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.PriceChange`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Tenant`, `model:stockledger.AcceptanceEvent`, `model:stockledger.AcceptanceSession`, `model:stockledger.ActiveHold`, `model:stockledger.ActiveReservation`, `model:stockledger.AllocationGuard`, `model:stockledger.CoverageEvent`, `model:stockledger.CustodyLot`, `model:stockledger.CustodyMatch`, `model:stockledger.EncumbranceLeg`, `model:stockledger.HoldEvent`, `model:stockledger.JournalBatch`, `model:stockledger.LiveCoverage`, `model:stockledger.LiveValueBasis`, `model:stockledger.Origin`, `model:stockledger.Position`, `model:stockledger.QuantityLeg`, `model:stockledger.ReservationEvent`, `model:stockledger.ValueLeg` | R:83 / W:16 / models:46; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/FirstStoreSetup.tsx:59e3837aebfb`; backend `module:core.goods_history_views`, `module:masters.goods_audit_log_views`, `module:masters.goods_urls`; calls `api_consumer:frontend/src/pages/FirstStoreSetup.tsx:59e3837aebfb`; API `api:GET:/api/goods-v1/masters/stores/<int:pk>/readiness`; runtime `unknown; static discovery is not execution tracing` |
 | `api:GET:/api/goods-v1/masters/stores/<int:site_id>/locations` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:masters.goods_views` → `module:accounts.actions`, `module:accounts.goods_api`, `module:accounts.principal`, `module:approvals.goods_services`, `module:core.commands`, `module:core.refusals`, `module:files.goods_models`, `module:files.goods_services`, `module:masters.first_store_readiness`, `module:masters.goods_config`, `module:masters.goods_models`, `module:masters.goods_services`, `module:masters.models`, `module:stockledger.goods_models`; model `model:files.EvidenceLink`, `model:files.EvidenceObject`, `model:files.UploadIntent`, `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.BrandIdentityBinding`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.PriceChange`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Tenant`, `model:stockledger.AcceptanceEvent`, `model:stockledger.AcceptanceSession`, `model:stockledger.ActiveHold`, `model:stockledger.ActiveReservation`, `model:stockledger.AllocationGuard`, `model:stockledger.CoverageEvent`, `model:stockledger.CustodyLot`, `model:stockledger.CustodyMatch`, `model:stockledger.EncumbranceLeg`, `model:stockledger.HoldEvent`, `model:stockledger.JournalBatch`, `model:stockledger.LiveCoverage`, `model:stockledger.LiveValueBasis`, `model:stockledger.Origin`, `model:stockledger.Position`, `model:stockledger.QuantityLeg`, `model:stockledger.ReservationEvent`, `model:stockledger.ValueLeg` | R:83 / W:16 / models:46; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/GoodsAccept.tsx:d581f54f3705`, `api_consumer:frontend/src/pages/GoodsMovements.tsx:f29931232c8c`, `api_consumer:frontend/src/pages/Organisation.tsx:7b4a2c47bca6`, `api_consumer:frontend/src/pages/ReturnedGoodsAcceptance.tsx:52c31c3462bd`, `api_consumer:frontend/src/pages/TransferDetail.tsx:ec5bf9cf3229`, `api_consumer:frontend/src/pages/TransferDetail.tsx:fe0180a831a5`; backend `module:core.goods_history_views`, `module:masters.goods_audit_log_views`, `module:masters.goods_urls`; calls `api_consumer:frontend/src/pages/GoodsAccept.tsx:d581f54f3705`, `api_consumer:frontend/src/pages/GoodsMovements.tsx:f29931232c8c`, `api_consumer:frontend/src/pages/Organisation.tsx:7b4a2c47bca6`, `api_consumer:frontend/src/pages/ReturnedGoodsAcceptance.tsx:52c31c3462bd`, `api_consumer:frontend/src/pages/TransferDetail.tsx:ec5bf9cf3229`, `api_consumer:frontend/src/pages/TransferDetail.tsx:fe0180a831a5`; API `api:GET:/api/goods-v1/masters/stores/<int:site_id>/locations`; runtime `unknown; static discovery is not execution tracing` |
@@ -2311,6 +2373,7 @@ Each row follows entry point → declared authorization → implementation and s
 | `bookmark:/masters/stores` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/shell/navConfig.ts` → `screen:/setup/stores` | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | runtime `unknown; static discovery is not execution tracing` |
 | `bookmark:/masters/vendors` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/shell/navConfig.ts` → `screen:/setup/vendors` | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | runtime `unknown; static discovery is not execution tracing` |
 | `command:load_real_masters` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:accounts.management.commands.load_real_masters` → `module:core.tenancy`, `module:masters.goods_models`, `module:masters.goods_services`, `module:masters.models`, `module:stockledger.models`, `module:vendors.models`; model `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.BrandIdentityBinding`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.PriceChange`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Tenant`, `model:stockledger.InTransitStock`, `model:stockledger.QuarantineStock`, `model:stockledger.StockLedgerEntry`, `model:stockledger.StockOnHand`, `model:vendors.Booking`, `model:vendors.BookingLine`, `model:vendors.Vendor`, `model:vendors.VendorBrand` | R:8 / W:8 / models:33; `static leads only; route-specific and dynamic data access unverified` | runtime `unknown; static discovery is not execution tracing` |
+| `command:setup_store_test_run` | Operator shell only; refuses a real (non-synthetic) tenant. Writes only the Warehouse manager role policy and assignments through accounts.warehouse_manager; every other gate is checked, not written. | `pending` | `module:accounts.management.commands.setup_store_test_run` → `module:accounts.goods_models`, `module:accounts.models`, `module:accounts.warehouse_manager`, `module:core.tenancy`, `module:masters.first_store_readiness`, `module:masters.goods_models`, `module:masters.goods_services`, `module:masters.models`, `module:masters.store_features`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.AuthenticationFailure`, `model:accounts.HumanIdentity`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.RoleAssignment`, `model:accounts.RoleGrant`, `model:accounts.SecurityGuard`, `model:accounts.ServerSession`, `model:accounts.Staff`, `model:accounts.StaffAssignment`, `model:accounts.User`, `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.BrandIdentityBinding`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.PriceChange`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Tenant` | R:14 / W:0 / models:38; `static leads only; route-specific and dynamic data access unverified` | runtime `unknown; static discovery is not execution tracing` |
 | `navigation:receive_goods:/goods/opening` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/shell/navConfig.ts` → `screen:/goods/opening` | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | runtime `unknown; static discovery is not execution tracing` |
 | `navigation:setup:/setup/brands` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/shell/navConfig.ts` → `screen:/setup/brands` | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | runtime `unknown; static discovery is not execution tracing` |
 | `navigation:setup:/setup/document-numbering` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/shell/navConfig.ts` → `screen:/setup/document-numbering` | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | runtime `unknown; static discovery is not execution tracing` |
@@ -2327,7 +2390,7 @@ Each row follows entry point → declared authorization → implementation and s
 | `screen:/setup/document-numbering` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/pages/DocumentNumbering.tsx` → no resolved local dependency | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | calls `api_consumer:frontend/src/pages/DocumentNumbering.tsx:1bf972ac981d`, `api_consumer:frontend/src/pages/DocumentNumbering.tsx:4f8a4707c146`, `api_consumer:frontend/src/pages/DocumentNumbering.tsx:a81d1e14a829`; API `api:GET:/api/goods-v1/masters/document-series`, `api:POST:/api/goods-v1/masters/document-series/prefixes`, `api:POST:/api/goods-v1/masters/document-series/setting`; runtime `unknown; static discovery is not execution tracing` |
 | `screen:/setup/first-store` | Existing unified org.site.manage and versioned goods readiness; explicit online-alpha mode, current non-overridable gates and registered-till writer; tokens returned once, never retained in audit/history. | `pending` | `frontend/src/pages/FirstStoreSetup.tsx` → no resolved local dependency | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | calls `api_consumer:frontend/src/pages/FirstStoreSetup.tsx:59e3837aebfb`; API `api:GET:/api/goods-v1/masters/stores/<int:pk>/readiness`; runtime `unknown; static discovery is not execution tracing` |
 | `screen:/setup/gstins` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/pages/MasterPages.tsx` → no resolved local dependency | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | calls `api_consumer:frontend/src/pages/MasterPages.tsx:1f6063eef2c7`, `api_consumer:frontend/src/pages/MasterPages.tsx:2dbf87b41553`, `api_consumer:frontend/src/pages/MasterPages.tsx:3f11d70212db`, `api_consumer:frontend/src/pages/MasterPages.tsx:51ebcb89ab76`, `api_consumer:frontend/src/pages/MasterPages.tsx:56a5dfa98160`, `api_consumer:frontend/src/pages/MasterPages.tsx:66207cce2a4f`, `api_consumer:frontend/src/pages/MasterPages.tsx:778a4c784e45`, `api_consumer:frontend/src/pages/MasterPages.tsx:7d7352d2b3e6`, `api_consumer:frontend/src/pages/MasterPages.tsx:821e66df074e`, `api_consumer:frontend/src/pages/MasterPages.tsx:88434fdad73c`, `api_consumer:frontend/src/pages/MasterPages.tsx:8cf24308b9fe`, `api_consumer:frontend/src/pages/MasterPages.tsx:96ec0bbebe32`, `api_consumer:frontend/src/pages/MasterPages.tsx:ab553434a841`, `api_consumer:frontend/src/pages/MasterPages.tsx:ac14beadf307`, `api_consumer:frontend/src/pages/MasterPages.tsx:bb27b912ab7e`, `api_consumer:frontend/src/pages/MasterPages.tsx:d75f36fc7a1d`, `api_consumer:frontend/src/pages/MasterPages.tsx:e3cda89208c9`, `api_consumer:frontend/src/pages/MasterPages.tsx:e4cfd1d0a0be`, `api_consumer:frontend/src/pages/MasterPages.tsx:e658e77c9d34`, `api_consumer:frontend/src/pages/MasterPages.tsx:f0dbeaa12d8a`, `api_consumer:frontend/src/pages/MasterPages.tsx:fc8a6faa4a6e`; API `api:GET:/api/masters/brands`, `api:GET:/api/masters/entities`, `api:GET:/api/masters/gstins`, `api:GET:/api/masters/seasons`, `api:GET:/api/masters/store-targets`, `api:GET:/api/masters/store-targets/locations`, `api:GET:/api/masters/stores`, `api:PATCH:/api/masters/brands/<int:pk>`, `api:PATCH:/api/masters/gstins/<int:pk>`, `api:PATCH:/api/masters/seasons/<int:pk>`, `api:PATCH:/api/masters/stores/<int:pk>`, `api:PATCH:/api/vendors/<int:pk>`, `api:POST:/api/masters/brands`, `api:POST:/api/masters/gstins`, `api:POST:/api/masters/seasons`, `api:POST:/api/masters/stores`, `api:POST:/api/vendors`, `api:PUT:/api/masters/store-targets`; runtime `unknown; static discovery is not execution tracing` |
-| `screen:/setup/organisation` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/pages/Organisation.tsx` → no resolved local dependency | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | calls `api_consumer:frontend/src/pages/Organisation.tsx:005686f9a477`, `api_consumer:frontend/src/pages/Organisation.tsx:166446e5d5f3`, `api_consumer:frontend/src/pages/Organisation.tsx:1988846609a0`, `api_consumer:frontend/src/pages/Organisation.tsx:1b79efa3d703`, `api_consumer:frontend/src/pages/Organisation.tsx:27ab936817e5`, `api_consumer:frontend/src/pages/Organisation.tsx:2db363f851fd`, `api_consumer:frontend/src/pages/Organisation.tsx:37c5f3a3d37e`, `api_consumer:frontend/src/pages/Organisation.tsx:396dc9a441eb`, `api_consumer:frontend/src/pages/Organisation.tsx:487ef93ef3b2`, `api_consumer:frontend/src/pages/Organisation.tsx:5910a1514c25`, `api_consumer:frontend/src/pages/Organisation.tsx:68230fdfdeb4`, `api_consumer:frontend/src/pages/Organisation.tsx:7b4a2c47bca6`, `api_consumer:frontend/src/pages/Organisation.tsx:883d5b0f5168`, `api_consumer:frontend/src/pages/Organisation.tsx:9093aa15a0b2`, `api_consumer:frontend/src/pages/Organisation.tsx:9376162b69ce`, `api_consumer:frontend/src/pages/Organisation.tsx:b080cd725f0b`, `api_consumer:frontend/src/pages/Organisation.tsx:bfaf6ce8b43f`, `api_consumer:frontend/src/pages/Organisation.tsx:d00f35d539ff`, `api_consumer:frontend/src/pages/Organisation.tsx:ed9a58b4efe7`, `api_consumer:frontend/src/pages/Organisation.tsx:f51874c07b9d`; API `api:GET:/api/goods-v1/masters/entities`, `api:GET:/api/goods-v1/masters/stores/<int:pk>`, `api:GET:/api/goods-v1/masters/stores/<int:site_id>/locations`, `api:GET:/api/goods-v1/masters/stores/<int:site_id>/sbus`, `api:PATCH:/api/goods-v1/masters/entities/<int:pk>`, `api:PATCH:/api/goods-v1/masters/gstins/<int:pk>`, `api:PATCH:/api/goods-v1/masters/stores/<int:pk>`, `api:PATCH:/api/goods-v1/masters/stores/<int:site_id>/locations/<uuid:pk>`, `api:POST:/api/goods-v1/masters/entities`, `api:POST:/api/goods-v1/masters/entities/<int:pk>/retire`, `api:POST:/api/goods-v1/masters/gstins`, `api:POST:/api/goods-v1/masters/gstins/<int:pk>/retire`, `api:POST:/api/goods-v1/masters/stores`, `api:POST:/api/goods-v1/masters/stores/<int:pk>/counter`, `api:POST:/api/goods-v1/masters/stores/<int:pk>/retire`, `api:POST:/api/goods-v1/masters/stores/<int:site_id>/locations`, `api:POST:/api/goods-v1/masters/stores/<int:site_id>/locations/<uuid:pk>/retire`; runtime `unknown; static discovery is not execution tracing` |
+| `screen:/setup/organisation` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/pages/Organisation.tsx` → no resolved local dependency | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | calls `api_consumer:frontend/src/pages/Organisation.tsx:005686f9a477`, `api_consumer:frontend/src/pages/Organisation.tsx:166446e5d5f3`, `api_consumer:frontend/src/pages/Organisation.tsx:1988846609a0`, `api_consumer:frontend/src/pages/Organisation.tsx:1b79efa3d703`, `api_consumer:frontend/src/pages/Organisation.tsx:27ab936817e5`, `api_consumer:frontend/src/pages/Organisation.tsx:2db363f851fd`, `api_consumer:frontend/src/pages/Organisation.tsx:37c5f3a3d37e`, `api_consumer:frontend/src/pages/Organisation.tsx:396dc9a441eb`, `api_consumer:frontend/src/pages/Organisation.tsx:487ef93ef3b2`, `api_consumer:frontend/src/pages/Organisation.tsx:5910a1514c25`, `api_consumer:frontend/src/pages/Organisation.tsx:5d629cccac5d`, `api_consumer:frontend/src/pages/Organisation.tsx:68230fdfdeb4`, `api_consumer:frontend/src/pages/Organisation.tsx:7b4a2c47bca6`, `api_consumer:frontend/src/pages/Organisation.tsx:883d5b0f5168`, `api_consumer:frontend/src/pages/Organisation.tsx:9093aa15a0b2`, `api_consumer:frontend/src/pages/Organisation.tsx:9376162b69ce`, `api_consumer:frontend/src/pages/Organisation.tsx:a595df522f73`, `api_consumer:frontend/src/pages/Organisation.tsx:b080cd725f0b`, `api_consumer:frontend/src/pages/Organisation.tsx:bfaf6ce8b43f`, `api_consumer:frontend/src/pages/Organisation.tsx:d00f35d539ff`, `api_consumer:frontend/src/pages/Organisation.tsx:ed9a58b4efe7`, `api_consumer:frontend/src/pages/Organisation.tsx:f51874c07b9d`; API `api:GET:/api/goods-v1/masters/entities`, `api:GET:/api/goods-v1/masters/stores`, `api:GET:/api/goods-v1/masters/stores/<int:pk>`, `api:GET:/api/goods-v1/masters/stores/<int:site_id>/locations`, `api:GET:/api/goods-v1/masters/stores/<int:site_id>/sbus`, `api:PATCH:/api/goods-v1/masters/entities/<int:pk>`, `api:PATCH:/api/goods-v1/masters/gstins/<int:pk>`, `api:PATCH:/api/goods-v1/masters/stores/<int:pk>`, `api:PATCH:/api/goods-v1/masters/stores/<int:site_id>/locations/<uuid:pk>`, `api:POST:/api/goods-v1/masters/entities`, `api:POST:/api/goods-v1/masters/entities/<int:pk>/retire`, `api:POST:/api/goods-v1/masters/gstins`, `api:POST:/api/goods-v1/masters/gstins/<int:pk>/retire`, `api:POST:/api/goods-v1/masters/stores`, `api:POST:/api/goods-v1/masters/stores/<int:pk>/counter`, `api:POST:/api/goods-v1/masters/stores/<int:pk>/retire`, `api:POST:/api/goods-v1/masters/stores/<int:site_id>/locations`, `api:POST:/api/goods-v1/masters/stores/<int:site_id>/locations/<uuid:pk>/retire`; runtime `unknown; static discovery is not execution tracing` |
 | `screen:/setup/products` | Product lists: config.draft or config.approve holders; the master sheet import package (MASTER-SHEET-001) is the server authority. | `pending` | `frontend/src/pages/ProductLists.tsx` → no resolved local dependency | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | calls `api_consumer:frontend/src/pages/ProductLists.tsx:0af8e0dd2503`, `api_consumer:frontend/src/pages/ProductLists.tsx:4e75397fbe10`, `api_consumer:frontend/src/pages/ProductLists.tsx:5cb3dcddae24`, `api_consumer:frontend/src/pages/ProductLists.tsx:84b43dac9bc4`, `api_consumer:frontend/src/pages/ProductLists.tsx:a8ca9725b235`, `api_consumer:frontend/src/pages/ProductLists.tsx:d76bd4cacc7d`, `api_consumer:frontend/src/pages/ProductLists.tsx:ff0e56ae7b21`; API `api:GET:/api/goods-v1/masters/master-sheet-imports`, `api:GET:/api/goods-v1/masters/master-sheet-imports/<uuid:pk>`, `api:GET:/api/goods-v1/masters/master-sheet-imports/summary`, `api:GET:/api/goods-v1/masters/master-sheet-imports/template.xlsx`, `api:POST:/api/goods-v1/approvals/<uuid:pk>/decide`, `api:POST:/api/goods-v1/masters/master-sheet-imports/<uuid:pk>/<str:operation>`, `api:POST:/api/goods-v1/masters/master-sheet-imports/upload`; runtime `unknown; static discovery is not execution tracing` |
 | `screen:/setup/products-parties` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/pages/ProductsParties.tsx` → no resolved local dependency | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | calls `api_consumer:frontend/src/pages/ProductsParties.tsx:1d556822bde9`, `api_consumer:frontend/src/pages/ProductsParties.tsx:2309fd348e30`, `api_consumer:frontend/src/pages/ProductsParties.tsx:2e2dc53f30d9`, `api_consumer:frontend/src/pages/ProductsParties.tsx:35fa3b5ee9b7`, `api_consumer:frontend/src/pages/ProductsParties.tsx:41abdd3ae9b0`, `api_consumer:frontend/src/pages/ProductsParties.tsx:5fd7fcf83783`, `api_consumer:frontend/src/pages/ProductsParties.tsx:68fc90fc49af`, `api_consumer:frontend/src/pages/ProductsParties.tsx:7a9f276cbec5`, `api_consumer:frontend/src/pages/ProductsParties.tsx:900ae26fd1b9`, `api_consumer:frontend/src/pages/ProductsParties.tsx:9c23c1d2959d`, `api_consumer:frontend/src/pages/ProductsParties.tsx:9c9f1bd67b46`, `api_consumer:frontend/src/pages/ProductsParties.tsx:9d2534bccd03`, `api_consumer:frontend/src/pages/ProductsParties.tsx:a180ed96ec4f`, `api_consumer:frontend/src/pages/ProductsParties.tsx:b26972e7edb1`, `api_consumer:frontend/src/pages/ProductsParties.tsx:b3fad0563332`, `api_consumer:frontend/src/pages/ProductsParties.tsx:d2c15d6752bb`, `api_consumer:frontend/src/pages/ProductsParties.tsx:d39ef813a978`, `api_consumer:frontend/src/pages/ProductsParties.tsx:e3b3422eb635`, `api_consumer:frontend/src/pages/ProductsParties.tsx:ea0b605b0c63`, `api_consumer:frontend/src/pages/ProductsParties.tsx:eceb27218389`, `api_consumer:frontend/src/pages/ProductsParties.tsx:f0a767776ad0`, `api_consumer:frontend/src/pages/ProductsParties.tsx:fd14ed1bf5a1`, `api_consumer:frontend/src/pages/ProductsParties.tsx:fe6824d920ab`, `api_consumer:frontend/src/pages/ProductsParties.tsx:fed3c9cdd85f`; API `api:GET:/api/goods-v1/masters/aliases`, `api:GET:/api/goods-v1/masters/brands`, `api:GET:/api/goods-v1/masters/crosswalks`, `api:GET:/api/goods-v1/masters/skus`, `api:GET:/api/goods-v1/masters/skus/<uuid:pk>`, `api:GET:/api/goods-v1/masters/skus/lookup`, `api:GET:/api/goods-v1/masters/styles`, `api:GET:/api/goods-v1/vendors`, `api:PATCH:/api/goods-v1/masters/skus/<uuid:pk>`, `api:POST:/api/goods-v1/masters/aliases`, `api:POST:/api/goods-v1/masters/crosswalks`, `api:POST:/api/goods-v1/masters/identity-picks`, `api:POST:/api/goods-v1/masters/skus`, `api:POST:/api/goods-v1/masters/styles`, `api:POST:/api/goods-v1/masters/styles/<uuid:pk>/retire`; runtime `unknown; static discovery is not execution tracing` |
 | `screen:/setup/seasons` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/pages/MasterPages.tsx` → no resolved local dependency | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | calls `api_consumer:frontend/src/pages/MasterPages.tsx:1f6063eef2c7`, `api_consumer:frontend/src/pages/MasterPages.tsx:2dbf87b41553`, `api_consumer:frontend/src/pages/MasterPages.tsx:3f11d70212db`, `api_consumer:frontend/src/pages/MasterPages.tsx:51ebcb89ab76`, `api_consumer:frontend/src/pages/MasterPages.tsx:56a5dfa98160`, `api_consumer:frontend/src/pages/MasterPages.tsx:66207cce2a4f`, `api_consumer:frontend/src/pages/MasterPages.tsx:778a4c784e45`, `api_consumer:frontend/src/pages/MasterPages.tsx:7d7352d2b3e6`, `api_consumer:frontend/src/pages/MasterPages.tsx:821e66df074e`, `api_consumer:frontend/src/pages/MasterPages.tsx:88434fdad73c`, `api_consumer:frontend/src/pages/MasterPages.tsx:8cf24308b9fe`, `api_consumer:frontend/src/pages/MasterPages.tsx:96ec0bbebe32`, `api_consumer:frontend/src/pages/MasterPages.tsx:ab553434a841`, `api_consumer:frontend/src/pages/MasterPages.tsx:ac14beadf307`, `api_consumer:frontend/src/pages/MasterPages.tsx:bb27b912ab7e`, `api_consumer:frontend/src/pages/MasterPages.tsx:d75f36fc7a1d`, `api_consumer:frontend/src/pages/MasterPages.tsx:e3cda89208c9`, `api_consumer:frontend/src/pages/MasterPages.tsx:e4cfd1d0a0be`, `api_consumer:frontend/src/pages/MasterPages.tsx:e658e77c9d34`, `api_consumer:frontend/src/pages/MasterPages.tsx:f0dbeaa12d8a`, `api_consumer:frontend/src/pages/MasterPages.tsx:fc8a6faa4a6e`; API `api:GET:/api/masters/brands`, `api:GET:/api/masters/entities`, `api:GET:/api/masters/gstins`, `api:GET:/api/masters/seasons`, `api:GET:/api/masters/store-targets`, `api:GET:/api/masters/store-targets/locations`, `api:GET:/api/masters/stores`, `api:PATCH:/api/masters/brands/<int:pk>`, `api:PATCH:/api/masters/gstins/<int:pk>`, `api:PATCH:/api/masters/seasons/<int:pk>`, `api:PATCH:/api/masters/stores/<int:pk>`, `api:PATCH:/api/vendors/<int:pk>`, `api:POST:/api/masters/brands`, `api:POST:/api/masters/gstins`, `api:POST:/api/masters/seasons`, `api:POST:/api/masters/stores`, `api:POST:/api/vendors`, `api:PUT:/api/masters/store-targets`; runtime `unknown; static discovery is not execution tracing` |
@@ -2338,9 +2401,14 @@ Each row follows entry point → declared authorization → implementation and s
 Registered jobs, commands and signal handlers:
 
 - `command:load_real_masters` — `backend/accounts/management/commands/load_real_masters.py`
+- `command:setup_store_test_run` — `backend/accounts/management/commands/setup_store_test_run.py`
 
 Direct data-import edges (module → model module):
 
+- `module:accounts.management.commands.setup_store_test_run` → `module:accounts.goods_models`
+- `module:accounts.management.commands.setup_store_test_run` → `module:accounts.models`
+- `module:accounts.management.commands.setup_store_test_run` → `module:masters.goods_models`
+- `module:accounts.management.commands.setup_store_test_run` → `module:masters.models`
 - `module:masters.admin` → `module:masters.models`
 - `module:masters.document_series` → `module:alerts.models`
 - `module:masters.document_series` → `module:masters.document_series_models`
@@ -2431,6 +2499,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.AliasRangeCounter` → `module:accounts.session_payload` (A00)
 - `model:masters.AliasRangeCounter` → `module:accounts.unified_admin` (A00)
 - `model:masters.AliasRangeCounter` → `module:accounts.unified_policy` (A00)
+- `model:masters.AliasRangeCounter` → `module:accounts.warehouse_manager` (A00)
 - `model:masters.AliasRangeCounter` → `module:approvals.goods_policy` (C15)
 - `model:masters.AliasRangeCounter` → `module:approvals.goods_services` (C15)
 - `model:masters.AliasRangeCounter` → `module:approvals.unified_authority` (A00)
@@ -2463,6 +2532,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.AliasRangeCounter` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.AliasRangeCounter` → `module:ptmapper.management.commands.load_goods_rulebook` (C05)
 - `model:masters.AliasRangeCounter` → `module:ptmapper.soh_services` (C05)
+- `model:masters.AliasRangeCounter` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.AliasRangeCounter` → `module:reporting.gst_facts` (C16)
 - `model:masters.AliasRangeCounter` → `module:reporting.inventory_facts` (C15)
 - `model:masters.AliasRangeCounter` → `module:reporting.management.commands.make_brand_reports` (C14)
@@ -2494,6 +2564,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Brand` → `module:accounts.session_payload` (A00)
 - `model:masters.Brand` → `module:accounts.unified_admin` (A00)
 - `model:masters.Brand` → `module:accounts.views` (A00)
+- `model:masters.Brand` → `module:accounts.warehouse_manager` (A00)
 - `model:masters.Brand` → `module:alerts.checks` (C15)
 - `model:masters.Brand` → `module:approvals.services` (C15)
 - `model:masters.Brand` → `module:approvals.unified_authority` (A00)
@@ -2549,8 +2620,11 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Brand` → `module:ptmapper.goods_rulebook` (C05)
 - `model:masters.Brand` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.Brand` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:masters.Brand` → `module:ptmapper.legacy_sales_services` (C08)
+- `model:masters.Brand` → `module:ptmapper.legacy_sales_views` (C08)
 - `model:masters.Brand` → `module:ptmapper.soh_services` (C05)
 - `model:masters.Brand` → `module:ptmapper.soh_views` (C05)
+- `model:masters.Brand` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.Brand` → `module:reporting.base` (C15)
 - `model:masters.Brand` → `module:reporting.brand_layouts` (C14)
 - `model:masters.Brand` → `module:reporting.brand_performance` (C14)
@@ -2660,6 +2734,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.CategoryMargin` → `module:accounts.session_payload` (A00)
 - `model:masters.CategoryMargin` → `module:accounts.unified_admin` (A00)
 - `model:masters.CategoryMargin` → `module:accounts.views` (A00)
+- `model:masters.CategoryMargin` → `module:accounts.warehouse_manager` (A00)
 - `model:masters.CategoryMargin` → `module:alerts.checks` (C15)
 - `model:masters.CategoryMargin` → `module:approvals.services` (C15)
 - `model:masters.CategoryMargin` → `module:approvals.unified_authority` (A00)
@@ -2715,8 +2790,11 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.CategoryMargin` → `module:ptmapper.goods_rulebook` (C05)
 - `model:masters.CategoryMargin` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.CategoryMargin` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:masters.CategoryMargin` → `module:ptmapper.legacy_sales_services` (C08)
+- `model:masters.CategoryMargin` → `module:ptmapper.legacy_sales_views` (C08)
 - `model:masters.CategoryMargin` → `module:ptmapper.soh_services` (C05)
 - `model:masters.CategoryMargin` → `module:ptmapper.soh_views` (C05)
+- `model:masters.CategoryMargin` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.CategoryMargin` → `module:reporting.base` (C15)
 - `model:masters.CategoryMargin` → `module:reporting.brand_layouts` (C14)
 - `model:masters.CategoryMargin` → `module:reporting.brand_performance` (C14)
@@ -2826,6 +2904,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Cohort` → `module:accounts.session_payload` (A00)
 - `model:masters.Cohort` → `module:accounts.unified_admin` (A00)
 - `model:masters.Cohort` → `module:accounts.views` (A00)
+- `model:masters.Cohort` → `module:accounts.warehouse_manager` (A00)
 - `model:masters.Cohort` → `module:alerts.checks` (C15)
 - `model:masters.Cohort` → `module:approvals.services` (C15)
 - `model:masters.Cohort` → `module:approvals.unified_authority` (A00)
@@ -2881,8 +2960,11 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Cohort` → `module:ptmapper.goods_rulebook` (C05)
 - `model:masters.Cohort` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.Cohort` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:masters.Cohort` → `module:ptmapper.legacy_sales_services` (C08)
+- `model:masters.Cohort` → `module:ptmapper.legacy_sales_views` (C08)
 - `model:masters.Cohort` → `module:ptmapper.soh_services` (C05)
 - `model:masters.Cohort` → `module:ptmapper.soh_views` (C05)
+- `model:masters.Cohort` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.Cohort` → `module:reporting.base` (C15)
 - `model:masters.Cohort` → `module:reporting.brand_layouts` (C14)
 - `model:masters.Cohort` → `module:reporting.brand_performance` (C14)
@@ -2991,6 +3073,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.ConfigDraft` → `module:accounts.session_payload` (A00)
 - `model:masters.ConfigDraft` → `module:accounts.unified_admin` (A00)
 - `model:masters.ConfigDraft` → `module:accounts.unified_policy` (A00)
+- `model:masters.ConfigDraft` → `module:accounts.warehouse_manager` (A00)
 - `model:masters.ConfigDraft` → `module:approvals.goods_policy` (C15)
 - `model:masters.ConfigDraft` → `module:approvals.goods_services` (C15)
 - `model:masters.ConfigDraft` → `module:approvals.unified_authority` (A00)
@@ -3023,6 +3106,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.ConfigDraft` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.ConfigDraft` → `module:ptmapper.management.commands.load_goods_rulebook` (C05)
 - `model:masters.ConfigDraft` → `module:ptmapper.soh_services` (C05)
+- `model:masters.ConfigDraft` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.ConfigDraft` → `module:reporting.gst_facts` (C16)
 - `model:masters.ConfigDraft` → `module:reporting.inventory_facts` (C15)
 - `model:masters.ConfigDraft` → `module:reporting.management.commands.make_brand_reports` (C14)
@@ -3053,6 +3137,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.ConfigVersion` → `module:accounts.session_payload` (A00)
 - `model:masters.ConfigVersion` → `module:accounts.unified_admin` (A00)
 - `model:masters.ConfigVersion` → `module:accounts.unified_policy` (A00)
+- `model:masters.ConfigVersion` → `module:accounts.warehouse_manager` (A00)
 - `model:masters.ConfigVersion` → `module:approvals.goods_policy` (C15)
 - `model:masters.ConfigVersion` → `module:approvals.goods_services` (C15)
 - `model:masters.ConfigVersion` → `module:approvals.unified_authority` (A00)
@@ -3085,6 +3170,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.ConfigVersion` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.ConfigVersion` → `module:ptmapper.management.commands.load_goods_rulebook` (C05)
 - `model:masters.ConfigVersion` → `module:ptmapper.soh_services` (C05)
+- `model:masters.ConfigVersion` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.ConfigVersion` → `module:reporting.gst_facts` (C16)
 - `model:masters.ConfigVersion` → `module:reporting.inventory_facts` (C15)
 - `model:masters.ConfigVersion` → `module:reporting.management.commands.make_brand_reports` (C14)
@@ -3119,6 +3205,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.EffectiveVersionPeriod` → `module:accounts.session_payload` (A00)
 - `model:masters.EffectiveVersionPeriod` → `module:accounts.unified_admin` (A00)
 - `model:masters.EffectiveVersionPeriod` → `module:accounts.unified_policy` (A00)
+- `model:masters.EffectiveVersionPeriod` → `module:accounts.warehouse_manager` (A00)
 - `model:masters.EffectiveVersionPeriod` → `module:approvals.goods_policy` (C15)
 - `model:masters.EffectiveVersionPeriod` → `module:approvals.goods_services` (C15)
 - `model:masters.EffectiveVersionPeriod` → `module:approvals.unified_authority` (A00)
@@ -3151,6 +3238,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.EffectiveVersionPeriod` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.EffectiveVersionPeriod` → `module:ptmapper.management.commands.load_goods_rulebook` (C05)
 - `model:masters.EffectiveVersionPeriod` → `module:ptmapper.soh_services` (C05)
+- `model:masters.EffectiveVersionPeriod` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.EffectiveVersionPeriod` → `module:reporting.gst_facts` (C16)
 - `model:masters.EffectiveVersionPeriod` → `module:reporting.inventory_facts` (C15)
 - `model:masters.EffectiveVersionPeriod` → `module:reporting.management.commands.make_brand_reports` (C14)
@@ -3182,6 +3270,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.GstSlab` → `module:accounts.session_payload` (A00)
 - `model:masters.GstSlab` → `module:accounts.unified_admin` (A00)
 - `model:masters.GstSlab` → `module:accounts.views` (A00)
+- `model:masters.GstSlab` → `module:accounts.warehouse_manager` (A00)
 - `model:masters.GstSlab` → `module:alerts.checks` (C15)
 - `model:masters.GstSlab` → `module:approvals.services` (C15)
 - `model:masters.GstSlab` → `module:approvals.unified_authority` (A00)
@@ -3237,8 +3326,11 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.GstSlab` → `module:ptmapper.goods_rulebook` (C05)
 - `model:masters.GstSlab` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.GstSlab` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:masters.GstSlab` → `module:ptmapper.legacy_sales_services` (C08)
+- `model:masters.GstSlab` → `module:ptmapper.legacy_sales_views` (C08)
 - `model:masters.GstSlab` → `module:ptmapper.soh_services` (C05)
 - `model:masters.GstSlab` → `module:ptmapper.soh_views` (C05)
+- `model:masters.GstSlab` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.GstSlab` → `module:reporting.base` (C15)
 - `model:masters.GstSlab` → `module:reporting.brand_layouts` (C14)
 - `model:masters.GstSlab` → `module:reporting.brand_performance` (C14)
@@ -3348,6 +3440,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Gstin` → `module:accounts.session_payload` (A00)
 - `model:masters.Gstin` → `module:accounts.unified_admin` (A00)
 - `model:masters.Gstin` → `module:accounts.views` (A00)
+- `model:masters.Gstin` → `module:accounts.warehouse_manager` (A00)
 - `model:masters.Gstin` → `module:alerts.checks` (C15)
 - `model:masters.Gstin` → `module:approvals.services` (C15)
 - `model:masters.Gstin` → `module:approvals.unified_authority` (A00)
@@ -3403,8 +3496,11 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Gstin` → `module:ptmapper.goods_rulebook` (C05)
 - `model:masters.Gstin` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.Gstin` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:masters.Gstin` → `module:ptmapper.legacy_sales_services` (C08)
+- `model:masters.Gstin` → `module:ptmapper.legacy_sales_views` (C08)
 - `model:masters.Gstin` → `module:ptmapper.soh_services` (C05)
 - `model:masters.Gstin` → `module:ptmapper.soh_views` (C05)
+- `model:masters.Gstin` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.Gstin` → `module:reporting.base` (C15)
 - `model:masters.Gstin` → `module:reporting.brand_layouts` (C14)
 - `model:masters.Gstin` → `module:reporting.brand_performance` (C14)
@@ -3548,6 +3644,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.LegalEntity` → `module:accounts.session_payload` (A00)
 - `model:masters.LegalEntity` → `module:accounts.unified_admin` (A00)
 - `model:masters.LegalEntity` → `module:accounts.views` (A00)
+- `model:masters.LegalEntity` → `module:accounts.warehouse_manager` (A00)
 - `model:masters.LegalEntity` → `module:alerts.checks` (C15)
 - `model:masters.LegalEntity` → `module:approvals.services` (C15)
 - `model:masters.LegalEntity` → `module:approvals.unified_authority` (A00)
@@ -3603,8 +3700,11 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.LegalEntity` → `module:ptmapper.goods_rulebook` (C05)
 - `model:masters.LegalEntity` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.LegalEntity` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:masters.LegalEntity` → `module:ptmapper.legacy_sales_services` (C08)
+- `model:masters.LegalEntity` → `module:ptmapper.legacy_sales_views` (C08)
 - `model:masters.LegalEntity` → `module:ptmapper.soh_services` (C05)
 - `model:masters.LegalEntity` → `module:ptmapper.soh_views` (C05)
+- `model:masters.LegalEntity` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.LegalEntity` → `module:reporting.base` (C15)
 - `model:masters.LegalEntity` → `module:reporting.brand_layouts` (C14)
 - `model:masters.LegalEntity` → `module:reporting.brand_performance` (C14)
@@ -3713,6 +3813,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Location` → `module:accounts.session_payload` (A00)
 - `model:masters.Location` → `module:accounts.unified_admin` (A00)
 - `model:masters.Location` → `module:accounts.unified_policy` (A00)
+- `model:masters.Location` → `module:accounts.warehouse_manager` (A00)
 - `model:masters.Location` → `module:approvals.goods_policy` (C15)
 - `model:masters.Location` → `module:approvals.goods_services` (C15)
 - `model:masters.Location` → `module:approvals.unified_authority` (A00)
@@ -3745,6 +3846,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Location` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.Location` → `module:ptmapper.management.commands.load_goods_rulebook` (C05)
 - `model:masters.Location` → `module:ptmapper.soh_services` (C05)
+- `model:masters.Location` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.Location` → `module:reporting.gst_facts` (C16)
 - `model:masters.Location` → `module:reporting.inventory_facts` (C15)
 - `model:masters.Location` → `module:reporting.management.commands.make_brand_reports` (C14)
@@ -3775,6 +3877,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.MasterVersion` → `module:accounts.session_payload` (A00)
 - `model:masters.MasterVersion` → `module:accounts.unified_admin` (A00)
 - `model:masters.MasterVersion` → `module:accounts.unified_policy` (A00)
+- `model:masters.MasterVersion` → `module:accounts.warehouse_manager` (A00)
 - `model:masters.MasterVersion` → `module:approvals.goods_policy` (C15)
 - `model:masters.MasterVersion` → `module:approvals.goods_services` (C15)
 - `model:masters.MasterVersion` → `module:approvals.unified_authority` (A00)
@@ -3807,6 +3910,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.MasterVersion` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.MasterVersion` → `module:ptmapper.management.commands.load_goods_rulebook` (C05)
 - `model:masters.MasterVersion` → `module:ptmapper.soh_services` (C05)
+- `model:masters.MasterVersion` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.MasterVersion` → `module:reporting.gst_facts` (C16)
 - `model:masters.MasterVersion` → `module:reporting.inventory_facts` (C15)
 - `model:masters.MasterVersion` → `module:reporting.management.commands.make_brand_reports` (C14)
@@ -3840,6 +3944,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.PriceChange` → `module:accounts.session_payload` (A00)
 - `model:masters.PriceChange` → `module:accounts.unified_admin` (A00)
 - `model:masters.PriceChange` → `module:accounts.views` (A00)
+- `model:masters.PriceChange` → `module:accounts.warehouse_manager` (A00)
 - `model:masters.PriceChange` → `module:alerts.checks` (C15)
 - `model:masters.PriceChange` → `module:approvals.services` (C15)
 - `model:masters.PriceChange` → `module:approvals.unified_authority` (A00)
@@ -3895,8 +4000,11 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.PriceChange` → `module:ptmapper.goods_rulebook` (C05)
 - `model:masters.PriceChange` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.PriceChange` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:masters.PriceChange` → `module:ptmapper.legacy_sales_services` (C08)
+- `model:masters.PriceChange` → `module:ptmapper.legacy_sales_views` (C08)
 - `model:masters.PriceChange` → `module:ptmapper.soh_services` (C05)
 - `model:masters.PriceChange` → `module:ptmapper.soh_views` (C05)
+- `model:masters.PriceChange` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.PriceChange` → `module:reporting.base` (C15)
 - `model:masters.PriceChange` → `module:reporting.brand_layouts` (C14)
 - `model:masters.PriceChange` → `module:reporting.brand_performance` (C14)
@@ -4037,6 +4145,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Sbu` → `module:accounts.session_payload` (A00)
 - `model:masters.Sbu` → `module:accounts.unified_admin` (A00)
 - `model:masters.Sbu` → `module:accounts.unified_policy` (A00)
+- `model:masters.Sbu` → `module:accounts.warehouse_manager` (A00)
 - `model:masters.Sbu` → `module:approvals.goods_policy` (C15)
 - `model:masters.Sbu` → `module:approvals.goods_services` (C15)
 - `model:masters.Sbu` → `module:approvals.unified_authority` (A00)
@@ -4069,6 +4178,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Sbu` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.Sbu` → `module:ptmapper.management.commands.load_goods_rulebook` (C05)
 - `model:masters.Sbu` → `module:ptmapper.soh_services` (C05)
+- `model:masters.Sbu` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.Sbu` → `module:reporting.gst_facts` (C16)
 - `model:masters.Sbu` → `module:reporting.inventory_facts` (C15)
 - `model:masters.Sbu` → `module:reporting.management.commands.make_brand_reports` (C14)
@@ -4100,6 +4210,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Season` → `module:accounts.session_payload` (A00)
 - `model:masters.Season` → `module:accounts.unified_admin` (A00)
 - `model:masters.Season` → `module:accounts.views` (A00)
+- `model:masters.Season` → `module:accounts.warehouse_manager` (A00)
 - `model:masters.Season` → `module:alerts.checks` (C15)
 - `model:masters.Season` → `module:approvals.services` (C15)
 - `model:masters.Season` → `module:approvals.unified_authority` (A00)
@@ -4155,8 +4266,11 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Season` → `module:ptmapper.goods_rulebook` (C05)
 - `model:masters.Season` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.Season` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:masters.Season` → `module:ptmapper.legacy_sales_services` (C08)
+- `model:masters.Season` → `module:ptmapper.legacy_sales_views` (C08)
 - `model:masters.Season` → `module:ptmapper.soh_services` (C05)
 - `model:masters.Season` → `module:ptmapper.soh_views` (C05)
+- `model:masters.Season` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.Season` → `module:reporting.base` (C15)
 - `model:masters.Season` → `module:reporting.brand_layouts` (C14)
 - `model:masters.Season` → `module:reporting.brand_performance` (C14)
@@ -4265,6 +4379,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.SiteCapabilityEvent` → `module:accounts.session_payload` (A00)
 - `model:masters.SiteCapabilityEvent` → `module:accounts.unified_admin` (A00)
 - `model:masters.SiteCapabilityEvent` → `module:accounts.unified_policy` (A00)
+- `model:masters.SiteCapabilityEvent` → `module:accounts.warehouse_manager` (A00)
 - `model:masters.SiteCapabilityEvent` → `module:approvals.goods_policy` (C15)
 - `model:masters.SiteCapabilityEvent` → `module:approvals.goods_services` (C15)
 - `model:masters.SiteCapabilityEvent` → `module:approvals.unified_authority` (A00)
@@ -4297,6 +4412,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.SiteCapabilityEvent` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.SiteCapabilityEvent` → `module:ptmapper.management.commands.load_goods_rulebook` (C05)
 - `model:masters.SiteCapabilityEvent` → `module:ptmapper.soh_services` (C05)
+- `model:masters.SiteCapabilityEvent` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.SiteCapabilityEvent` → `module:reporting.gst_facts` (C16)
 - `model:masters.SiteCapabilityEvent` → `module:reporting.inventory_facts` (C15)
 - `model:masters.SiteCapabilityEvent` → `module:reporting.management.commands.make_brand_reports` (C14)
@@ -4327,6 +4443,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.SiteGuard` → `module:accounts.session_payload` (A00)
 - `model:masters.SiteGuard` → `module:accounts.unified_admin` (A00)
 - `model:masters.SiteGuard` → `module:accounts.unified_policy` (A00)
+- `model:masters.SiteGuard` → `module:accounts.warehouse_manager` (A00)
 - `model:masters.SiteGuard` → `module:approvals.goods_policy` (C15)
 - `model:masters.SiteGuard` → `module:approvals.goods_services` (C15)
 - `model:masters.SiteGuard` → `module:approvals.unified_authority` (A00)
@@ -4359,6 +4476,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.SiteGuard` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.SiteGuard` → `module:ptmapper.management.commands.load_goods_rulebook` (C05)
 - `model:masters.SiteGuard` → `module:ptmapper.soh_services` (C05)
+- `model:masters.SiteGuard` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.SiteGuard` → `module:reporting.gst_facts` (C16)
 - `model:masters.SiteGuard` → `module:reporting.inventory_facts` (C15)
 - `model:masters.SiteGuard` → `module:reporting.management.commands.make_brand_reports` (C14)
@@ -4390,6 +4508,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Sku` → `module:accounts.session_payload` (A00)
 - `model:masters.Sku` → `module:accounts.unified_admin` (A00)
 - `model:masters.Sku` → `module:accounts.views` (A00)
+- `model:masters.Sku` → `module:accounts.warehouse_manager` (A00)
 - `model:masters.Sku` → `module:alerts.checks` (C15)
 - `model:masters.Sku` → `module:approvals.services` (C15)
 - `model:masters.Sku` → `module:approvals.unified_authority` (A00)
@@ -4445,8 +4564,11 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Sku` → `module:ptmapper.goods_rulebook` (C05)
 - `model:masters.Sku` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.Sku` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:masters.Sku` → `module:ptmapper.legacy_sales_services` (C08)
+- `model:masters.Sku` → `module:ptmapper.legacy_sales_views` (C08)
 - `model:masters.Sku` → `module:ptmapper.soh_services` (C05)
 - `model:masters.Sku` → `module:ptmapper.soh_views` (C05)
+- `model:masters.Sku` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.Sku` → `module:reporting.base` (C15)
 - `model:masters.Sku` → `module:reporting.brand_layouts` (C14)
 - `model:masters.Sku` → `module:reporting.brand_performance` (C14)
@@ -4620,6 +4742,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Store` → `module:accounts.session_payload` (A00)
 - `model:masters.Store` → `module:accounts.unified_admin` (A00)
 - `model:masters.Store` → `module:accounts.views` (A00)
+- `model:masters.Store` → `module:accounts.warehouse_manager` (A00)
 - `model:masters.Store` → `module:alerts.checks` (C15)
 - `model:masters.Store` → `module:approvals.services` (C15)
 - `model:masters.Store` → `module:approvals.unified_authority` (A00)
@@ -4675,8 +4798,11 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Store` → `module:ptmapper.goods_rulebook` (C05)
 - `model:masters.Store` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.Store` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:masters.Store` → `module:ptmapper.legacy_sales_services` (C08)
+- `model:masters.Store` → `module:ptmapper.legacy_sales_views` (C08)
 - `model:masters.Store` → `module:ptmapper.soh_services` (C05)
 - `model:masters.Store` → `module:ptmapper.soh_views` (C05)
+- `model:masters.Store` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.Store` → `module:reporting.base` (C15)
 - `model:masters.Store` → `module:reporting.brand_layouts` (C14)
 - `model:masters.Store` → `module:reporting.brand_performance` (C14)
@@ -4786,6 +4912,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.StoreTarget` → `module:accounts.session_payload` (A00)
 - `model:masters.StoreTarget` → `module:accounts.unified_admin` (A00)
 - `model:masters.StoreTarget` → `module:accounts.views` (A00)
+- `model:masters.StoreTarget` → `module:accounts.warehouse_manager` (A00)
 - `model:masters.StoreTarget` → `module:alerts.checks` (C15)
 - `model:masters.StoreTarget` → `module:approvals.services` (C15)
 - `model:masters.StoreTarget` → `module:approvals.unified_authority` (A00)
@@ -4841,8 +4968,11 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.StoreTarget` → `module:ptmapper.goods_rulebook` (C05)
 - `model:masters.StoreTarget` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.StoreTarget` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:masters.StoreTarget` → `module:ptmapper.legacy_sales_services` (C08)
+- `model:masters.StoreTarget` → `module:ptmapper.legacy_sales_views` (C08)
 - `model:masters.StoreTarget` → `module:ptmapper.soh_services` (C05)
 - `model:masters.StoreTarget` → `module:ptmapper.soh_views` (C05)
+- `model:masters.StoreTarget` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.StoreTarget` → `module:reporting.base` (C15)
 - `model:masters.StoreTarget` → `module:reporting.brand_layouts` (C14)
 - `model:masters.StoreTarget` → `module:reporting.brand_performance` (C14)
@@ -4983,6 +5113,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Tenant` → `module:accounts.session_payload` (A00)
 - `model:masters.Tenant` → `module:accounts.unified_admin` (A00)
 - `model:masters.Tenant` → `module:accounts.unified_policy` (A00)
+- `model:masters.Tenant` → `module:accounts.warehouse_manager` (A00)
 - `model:masters.Tenant` → `module:approvals.goods_policy` (C15)
 - `model:masters.Tenant` → `module:approvals.goods_services` (C15)
 - `model:masters.Tenant` → `module:approvals.unified_authority` (A00)
@@ -5015,6 +5146,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Tenant` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.Tenant` → `module:ptmapper.management.commands.load_goods_rulebook` (C05)
 - `model:masters.Tenant` → `module:ptmapper.soh_services` (C05)
+- `model:masters.Tenant` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.Tenant` → `module:reporting.gst_facts` (C16)
 - `model:masters.Tenant` → `module:reporting.inventory_facts` (C15)
 - `model:masters.Tenant` → `module:reporting.management.commands.make_brand_reports` (C14)
@@ -5098,6 +5230,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `module:masters.goods_services` → `module:accounts.management.commands.load_real_masters` (A00)
 - `module:masters.goods_services` → `module:accounts.registration_services` (A00)
 - `module:masters.goods_services` → `module:outbound.goods_counts` (C08)
+- `module:masters.goods_services` → `module:outbound.transfers` (C07)
 - `module:masters.goods_services` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `module:masters.goods_services` → `module:sell.services.dataset` (C10)
 - `module:masters.goods_services` → `module:sell.services.online` (C10)
@@ -5129,7 +5262,7 @@ These calls need a data-target and runtime-reachability review before the retire
 | `backend/masters/goods_identity_services.py` (`module:masters.goods_identity_services`) | `AliasRangeCounter.objects.create`, `counter.save`, `out.add`, `row.save`, `run.record` | canonical |
 | `backend/masters/goods_identity_views.py` (`module:masters.goods_identity_views`) | `actions.add`, `brands.add`, `row.save`, `self.run_command` | canonical |
 | `backend/masters/goods_sbu.py` (`module:masters.goods_sbu`) | `unknown.add`, `unknown.update` | temporary_supported_legacy |
-| `backend/masters/goods_services.py` (`module:masters.goods_services`) | `Location.objects.create`, `Sbu.objects.get_or_create`, `SubjectRevision.objects.create`, `draft.save`, `guard.save`, `head.save`, `model.objects.create`, `run.record`, `seen.add`, `wanted.setdefault(str(payload.get('calendar_version_id')), set()).add` | canonical |
+| `backend/masters/goods_services.py` (`module:masters.goods_services`) | `Location.objects.create`, `Sbu.objects.get_or_create`, `SubjectRevision.objects.create`, `draft.save`, `found.add`, `guard.save`, `head.save`, `model.objects.create`, `run.record`, `seen.add`, `wanted.setdefault(str(payload.get('calendar_version_id')), set()).add` | canonical |
 | `backend/masters/goods_views.py` (`module:masters.goods_views`) | `ConfigDraft.objects.create`, `Gstin.objects.create`, `LegalEntity.objects.create`, `Location.objects.create`, `SiteGuard.objects.create`, `Store.objects.create`, `brands.add`, `entities.add`, `entity.save`, `g.save`, `guard.save`, `row.save`, `run.record`, `self.run_command`, `store.save`, `tenant.save` | canonical |
 | `backend/masters/master_sheet.py` (`module:masters.master_sheet`) | `codes.add`, `in_sheet.add`, `present.add`, `sheet.brands.add`, `sheet.values[dimension].add`, `status.add` | canonical |
 | `backend/masters/master_sheet_services.py` (`module:masters.master_sheet_services`) | `ConfigDraft.objects.create`, `labels.update`, `run.record`, `source.save` | canonical |
@@ -5152,7 +5285,7 @@ These calls need a data-target and runtime-reachability review before the retire
 | Services | 2 tagged service modules: `module:sell.services.salesperson_move`, `module:sell.services.salesperson_rehearsal`. |
 | Offline client modules | 0 till/PWA modules: None discovered. |
 | Data | 4 owned model classes: `model:accounts.Staff`, `model:accounts.StaffAssignment`, `model:masters.StaffTarget`, `model:sell.SalespersonMatch`. 4 direct model-module import edges from owned modules; 20 static read-call candidates in 3 backend/client modules (individual expressions are in the machine inventory). |
-| Downstream readers | 7 frontend API callsites; 7 endpoint/callsite links, 0 dynamic URL references; 307 cross-owner static backend import edges. |
+| Downstream readers | 7 frontend API callsites; 7 endpoint/callsite links, 0 dynamic URL references; 317 cross-owner static backend import edges. |
 | Lifecycle | canonical: 17, historical_read_only: 7, retirement_candidate: 1, temporary_supported_legacy: 13. |
 
 ### Entry-point dependency traces
@@ -5196,11 +5329,13 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:accounts.Staff` → `module:accounts.goods_admin_services` (A00)
 - `model:accounts.Staff` → `module:accounts.goods_setup` (A00)
 - `model:accounts.Staff` → `module:accounts.management.commands.seed_foundation` (A00)
+- `model:accounts.Staff` → `module:accounts.management.commands.setup_store_test_run` (C01)
 - `model:accounts.Staff` → `module:accounts.models` (A00)
 - `model:accounts.Staff` → `module:accounts.principal` (A00)
 - `model:accounts.Staff` → `module:accounts.role_assignments` (A00)
 - `model:accounts.Staff` → `module:accounts.sessions` (A00)
 - `model:accounts.Staff` → `module:accounts.unified_admin` (A00)
+- `model:accounts.Staff` → `module:accounts.warehouse_manager` (A00)
 - `model:accounts.Staff` → `module:alerts.goods_services` (C15)
 - `model:accounts.Staff` → `module:core.goods_administrative_history` (C15)
 - `model:accounts.Staff` → `module:inbound.goods_services` (C05)
@@ -5228,11 +5363,13 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:accounts.StaffAssignment` → `module:accounts.goods_admin_services` (A00)
 - `model:accounts.StaffAssignment` → `module:accounts.goods_setup` (A00)
 - `model:accounts.StaffAssignment` → `module:accounts.management.commands.seed_foundation` (A00)
+- `model:accounts.StaffAssignment` → `module:accounts.management.commands.setup_store_test_run` (C01)
 - `model:accounts.StaffAssignment` → `module:accounts.models` (A00)
 - `model:accounts.StaffAssignment` → `module:accounts.principal` (A00)
 - `model:accounts.StaffAssignment` → `module:accounts.role_assignments` (A00)
 - `model:accounts.StaffAssignment` → `module:accounts.sessions` (A00)
 - `model:accounts.StaffAssignment` → `module:accounts.unified_admin` (A00)
+- `model:accounts.StaffAssignment` → `module:accounts.warehouse_manager` (A00)
 - `model:accounts.StaffAssignment` → `module:alerts.goods_services` (C15)
 - `model:accounts.StaffAssignment` → `module:core.goods_administrative_history` (C15)
 - `model:accounts.StaffAssignment` → `module:inbound.goods_services` (C05)
@@ -5261,6 +5398,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.StaffTarget` → `module:accounts.goods_models` (A00)
 - `model:masters.StaffTarget` → `module:accounts.management.commands.load_real_masters` (A00)
 - `model:masters.StaffTarget` → `module:accounts.management.commands.seed_foundation` (A00)
+- `model:masters.StaffTarget` → `module:accounts.management.commands.setup_store_test_run` (C01)
 - `model:masters.StaffTarget` → `module:accounts.principal` (A00)
 - `model:masters.StaffTarget` → `module:accounts.registration_services` (A00)
 - `model:masters.StaffTarget` → `module:accounts.registration_views` (A00)
@@ -5269,6 +5407,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.StaffTarget` → `module:accounts.session_payload` (A00)
 - `model:masters.StaffTarget` → `module:accounts.unified_admin` (A00)
 - `model:masters.StaffTarget` → `module:accounts.views` (A00)
+- `model:masters.StaffTarget` → `module:accounts.warehouse_manager` (A00)
 - `model:masters.StaffTarget` → `module:alerts.checks` (C15)
 - `model:masters.StaffTarget` → `module:approvals.services` (C15)
 - `model:masters.StaffTarget` → `module:approvals.unified_authority` (A00)
@@ -5340,8 +5479,11 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.StaffTarget` → `module:ptmapper.goods_rulebook` (C05)
 - `model:masters.StaffTarget` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.StaffTarget` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:masters.StaffTarget` → `module:ptmapper.legacy_sales_services` (C08)
+- `model:masters.StaffTarget` → `module:ptmapper.legacy_sales_views` (C08)
 - `model:masters.StaffTarget` → `module:ptmapper.soh_services` (C05)
 - `model:masters.StaffTarget` → `module:ptmapper.soh_views` (C05)
+- `model:masters.StaffTarget` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.StaffTarget` → `module:reporting.base` (C15)
 - `model:masters.StaffTarget` → `module:reporting.brand_layouts` (C14)
 - `model:masters.StaffTarget` → `module:reporting.brand_performance` (C14)
@@ -5439,6 +5581,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.SalespersonMatch` → `module:accounts.goods_demo` (A00)
 - `model:sell.SalespersonMatch` → `module:masters.goods_services` (C01)
 - `model:sell.SalespersonMatch` → `module:outbound.size_balancing` (C06)
+- `model:sell.SalespersonMatch` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.SalespersonMatch` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.SalespersonMatch` → `module:reporting.discount_funding` (C03)
 - `model:sell.SalespersonMatch` → `module:reporting.exception_facts` (C15)
@@ -5911,8 +6054,8 @@ These calls need a data-target and runtime-reachability review before the retire
 | Authorization | Required boundaries: Current stock.accept on tenant/site/source brand, enforced by the API for each work row and again by the E139 session commands.; SO-03 unified server evaluator; owner must prove resource and field denials at cutover.; Trusted site and reviewed stable brand/SKU identities; action plus cost_own_pt/financial fields in one scoped assignment; immutable source/physical/review pins; canonical manifest/PT and goods acceptance writers. Handler-level enforcement requires behaviour and denial proof. |
 | Services | 5 tagged service modules: `module:inbound.goods_services`, `module:ptmapper.goods_manifest_services`, `module:ptmapper.goods_print_services`, `module:ptmapper.goods_pt_services`, `module:ptmapper.soh_services`. |
 | Offline client modules | 0 till/PWA modules: None discovered. |
-| Data | 24 owned model classes: `model:inbound.Arrival`, `model:inbound.ArrivalDecision`, `model:inbound.ArrivalHead`, `model:inbound.CountHandover`, `model:inbound.CountSession`, `model:inbound.CounterGrnDraft`, `model:inbound.Disposition`, `model:inbound.DuplicateArrivalAcknowledgement`, `model:inbound.GoodsGrn`, `model:inbound.InvoiceClaimVersion`, `model:inbound.ScanObservation`, `model:ptmapper.GoodsPt`, `model:ptmapper.OpeningClaim`, `model:ptmapper.OpeningManifest`, `model:ptmapper.OpeningManifestRow`, `model:ptmapper.OpeningManifestVersion`, `model:ptmapper.OpeningSeasonCorrection`, `model:ptmapper.OpeningVariance`, `model:ptmapper.PrintEvent`, `model:ptmapper.PrintJob`, `model:ptmapper.SohImport`, `model:ptmapper.SohImportBatch`, `model:ptmapper.SohImportReview`, `model:ptmapper.SohImportRow`. 95 direct model-module import edges from owned modules; 780 static read-call candidates in 23 backend/client modules (individual expressions are in the machine inventory). |
-| Downstream readers | 76 frontend API callsites; 42 endpoint/callsite links, 17 dynamic URL references; 223 cross-owner static backend import edges. |
+| Data | 24 owned model classes: `model:inbound.Arrival`, `model:inbound.ArrivalDecision`, `model:inbound.ArrivalHead`, `model:inbound.CountHandover`, `model:inbound.CountSession`, `model:inbound.CounterGrnDraft`, `model:inbound.Disposition`, `model:inbound.DuplicateArrivalAcknowledgement`, `model:inbound.GoodsGrn`, `model:inbound.InvoiceClaimVersion`, `model:inbound.ScanObservation`, `model:ptmapper.GoodsPt`, `model:ptmapper.OpeningClaim`, `model:ptmapper.OpeningManifest`, `model:ptmapper.OpeningManifestRow`, `model:ptmapper.OpeningManifestVersion`, `model:ptmapper.OpeningSeasonCorrection`, `model:ptmapper.OpeningVariance`, `model:ptmapper.PrintEvent`, `model:ptmapper.PrintJob`, `model:ptmapper.SohImport`, `model:ptmapper.SohImportBatch`, `model:ptmapper.SohImportReview`, `model:ptmapper.SohImportRow`. 97 direct model-module import edges from owned modules; 784 static read-call candidates in 23 backend/client modules (individual expressions are in the machine inventory). |
+| Downstream readers | 76 frontend API callsites; 42 endpoint/callsite links, 17 dynamic URL references; 227 cross-owner static backend import edges. |
 | Lifecycle | canonical: 196, historical_read_only: 31, temporary_supported_legacy: 8, unresolved: 14. |
 
 ### Entry-point dependency traces
@@ -6085,7 +6228,9 @@ Direct data-import edges (module → model module):
 - `module:ptmapper.goods_vocab_views` → `module:masters.models`
 - `module:ptmapper.management.commands.load_goods_rulebook` → `module:masters.goods_models`
 - `module:ptmapper.models` → `module:ptmapper.goods_models`
+- `module:ptmapper.models` → `module:ptmapper.legacy_sales_models`
 - `module:ptmapper.models` → `module:ptmapper.soh_models`
+- `module:ptmapper.models` → `module:ptmapper.stock_sync_models`
 - `module:ptmapper.soh_services` → `module:approvals.goods_models`
 - `module:ptmapper.soh_services` → `module:core.kernel_models`
 - `module:ptmapper.soh_services` → `module:files.goods_models`
@@ -6298,18 +6443,22 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:ptmapper.SohImport` → `module:masters.first_store_readiness` (C01)
 - `model:ptmapper.SohImport` → `module:outbound.goods_soh_reconciliation` (C08)
 - `model:ptmapper.SohImport` → `module:outbound.goods_soh_views` (C08)
+- `model:ptmapper.SohImport` → `module:ptmapper.stock_sync_services` (C08)
 - `model:ptmapper.SohImport` → `module:stockledger.goods_descriptions` (C06)
 - `model:ptmapper.SohImportBatch` → `module:masters.first_store_readiness` (C01)
 - `model:ptmapper.SohImportBatch` → `module:outbound.goods_soh_reconciliation` (C08)
 - `model:ptmapper.SohImportBatch` → `module:outbound.goods_soh_views` (C08)
+- `model:ptmapper.SohImportBatch` → `module:ptmapper.stock_sync_services` (C08)
 - `model:ptmapper.SohImportBatch` → `module:stockledger.goods_descriptions` (C06)
 - `model:ptmapper.SohImportReview` → `module:masters.first_store_readiness` (C01)
 - `model:ptmapper.SohImportReview` → `module:outbound.goods_soh_reconciliation` (C08)
 - `model:ptmapper.SohImportReview` → `module:outbound.goods_soh_views` (C08)
+- `model:ptmapper.SohImportReview` → `module:ptmapper.stock_sync_services` (C08)
 - `model:ptmapper.SohImportReview` → `module:stockledger.goods_descriptions` (C06)
 - `model:ptmapper.SohImportRow` → `module:masters.first_store_readiness` (C01)
 - `model:ptmapper.SohImportRow` → `module:outbound.goods_soh_reconciliation` (C08)
 - `model:ptmapper.SohImportRow` → `module:outbound.goods_soh_views` (C08)
+- `model:ptmapper.SohImportRow` → `module:ptmapper.stock_sync_services` (C08)
 - `model:ptmapper.SohImportRow` → `module:stockledger.goods_descriptions` (C06)
 - `module:inbound.goods_services` → `module:inbound.debit_notes` (C13)
 - `module:inbound.goods_services` → `module:outbound.damage_review` (C06)
@@ -6386,7 +6535,7 @@ These calls need a data-target and runtime-reachability review before the retire
 | Services | 0 tagged service modules: None discovered. |
 | Offline client modules | 0 till/PWA modules: None discovered. |
 | Data | 29 owned model classes: `model:outbound.DamageReport`, `model:outbound.GoodsMovement`, `model:outbound.MarkDamaged`, `model:outbound.MarkDamagedLine`, `model:outbound.SizeBalanceSuggestion`, `model:stockledger.AcceptanceEvent`, `model:stockledger.AcceptanceSession`, `model:stockledger.ActiveHold`, `model:stockledger.ActiveReservation`, `model:stockledger.AllocationGuard`, `model:stockledger.BrokenSizeAlert`, `model:stockledger.CoverageEvent`, `model:stockledger.CustodyLot`, `model:stockledger.CustodyMatch`, `model:stockledger.EncumbranceLeg`, `model:stockledger.HoldEvent`, `model:stockledger.InTransitStock`, `model:stockledger.JournalBatch`, `model:stockledger.LiveCoverage`, `model:stockledger.LiveValueBasis`, `model:stockledger.Origin`, `model:stockledger.Position`, `model:stockledger.QuantityLeg`, `model:stockledger.QuarantineStock`, `model:stockledger.ReservationEvent`, `model:stockledger.SizeRule`, `model:stockledger.StockLedgerEntry`, `model:stockledger.StockOnHand`, `model:stockledger.ValueLeg`. 72 direct model-module import edges from owned modules; 476 static read-call candidates in 21 backend/client modules (individual expressions are in the machine inventory). |
-| Downstream readers | 41 frontend API callsites; 35 endpoint/callsite links, 5 dynamic URL references; 763 cross-owner static backend import edges. |
+| Downstream readers | 41 frontend API callsites; 35 endpoint/callsite links, 5 dynamic URL references; 781 cross-owner static backend import edges. |
 | Lifecycle | canonical: 146, historical_read_only: 31, temporary_supported_legacy: 26, unresolved: 5. |
 
 ### Entry-point dependency traces
@@ -6666,6 +6815,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.AcceptanceEvent` → `module:ptmapper.goods_manifest_services` (C05)
 - `model:stockledger.AcceptanceEvent` → `module:ptmapper.goods_pt_services` (C05)
 - `model:stockledger.AcceptanceEvent` → `module:ptmapper.soh_services` (C05)
+- `model:stockledger.AcceptanceEvent` → `module:ptmapper.stock_sync_services` (C08)
 - `model:stockledger.AcceptanceEvent` → `module:reporting.inventory_facts` (C15)
 - `model:stockledger.AcceptanceEvent` → `module:reporting.shrinkage_facts` (C15)
 - `model:stockledger.AcceptanceEvent` → `module:sell.services.gift_stock` (C10)
@@ -6698,6 +6848,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.AcceptanceSession` → `module:ptmapper.goods_manifest_services` (C05)
 - `model:stockledger.AcceptanceSession` → `module:ptmapper.goods_pt_services` (C05)
 - `model:stockledger.AcceptanceSession` → `module:ptmapper.soh_services` (C05)
+- `model:stockledger.AcceptanceSession` → `module:ptmapper.stock_sync_services` (C08)
 - `model:stockledger.AcceptanceSession` → `module:reporting.inventory_facts` (C15)
 - `model:stockledger.AcceptanceSession` → `module:reporting.shrinkage_facts` (C15)
 - `model:stockledger.AcceptanceSession` → `module:sell.services.gift_stock` (C10)
@@ -6730,6 +6881,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.ActiveHold` → `module:ptmapper.goods_manifest_services` (C05)
 - `model:stockledger.ActiveHold` → `module:ptmapper.goods_pt_services` (C05)
 - `model:stockledger.ActiveHold` → `module:ptmapper.soh_services` (C05)
+- `model:stockledger.ActiveHold` → `module:ptmapper.stock_sync_services` (C08)
 - `model:stockledger.ActiveHold` → `module:reporting.inventory_facts` (C15)
 - `model:stockledger.ActiveHold` → `module:reporting.shrinkage_facts` (C15)
 - `model:stockledger.ActiveHold` → `module:sell.services.gift_stock` (C10)
@@ -6762,6 +6914,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.ActiveReservation` → `module:ptmapper.goods_manifest_services` (C05)
 - `model:stockledger.ActiveReservation` → `module:ptmapper.goods_pt_services` (C05)
 - `model:stockledger.ActiveReservation` → `module:ptmapper.soh_services` (C05)
+- `model:stockledger.ActiveReservation` → `module:ptmapper.stock_sync_services` (C08)
 - `model:stockledger.ActiveReservation` → `module:reporting.inventory_facts` (C15)
 - `model:stockledger.ActiveReservation` → `module:reporting.shrinkage_facts` (C15)
 - `model:stockledger.ActiveReservation` → `module:sell.services.gift_stock` (C10)
@@ -6794,6 +6947,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.AllocationGuard` → `module:ptmapper.goods_manifest_services` (C05)
 - `model:stockledger.AllocationGuard` → `module:ptmapper.goods_pt_services` (C05)
 - `model:stockledger.AllocationGuard` → `module:ptmapper.soh_services` (C05)
+- `model:stockledger.AllocationGuard` → `module:ptmapper.stock_sync_services` (C08)
 - `model:stockledger.AllocationGuard` → `module:reporting.inventory_facts` (C15)
 - `model:stockledger.AllocationGuard` → `module:reporting.shrinkage_facts` (C15)
 - `model:stockledger.AllocationGuard` → `module:sell.services.gift_stock` (C10)
@@ -6827,6 +6981,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.CoverageEvent` → `module:ptmapper.goods_manifest_services` (C05)
 - `model:stockledger.CoverageEvent` → `module:ptmapper.goods_pt_services` (C05)
 - `model:stockledger.CoverageEvent` → `module:ptmapper.soh_services` (C05)
+- `model:stockledger.CoverageEvent` → `module:ptmapper.stock_sync_services` (C08)
 - `model:stockledger.CoverageEvent` → `module:reporting.inventory_facts` (C15)
 - `model:stockledger.CoverageEvent` → `module:reporting.shrinkage_facts` (C15)
 - `model:stockledger.CoverageEvent` → `module:sell.services.gift_stock` (C10)
@@ -6859,6 +7014,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.CustodyLot` → `module:ptmapper.goods_manifest_services` (C05)
 - `model:stockledger.CustodyLot` → `module:ptmapper.goods_pt_services` (C05)
 - `model:stockledger.CustodyLot` → `module:ptmapper.soh_services` (C05)
+- `model:stockledger.CustodyLot` → `module:ptmapper.stock_sync_services` (C08)
 - `model:stockledger.CustodyLot` → `module:reporting.inventory_facts` (C15)
 - `model:stockledger.CustodyLot` → `module:reporting.shrinkage_facts` (C15)
 - `model:stockledger.CustodyLot` → `module:sell.services.gift_stock` (C10)
@@ -6891,6 +7047,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.CustodyMatch` → `module:ptmapper.goods_manifest_services` (C05)
 - `model:stockledger.CustodyMatch` → `module:ptmapper.goods_pt_services` (C05)
 - `model:stockledger.CustodyMatch` → `module:ptmapper.soh_services` (C05)
+- `model:stockledger.CustodyMatch` → `module:ptmapper.stock_sync_services` (C08)
 - `model:stockledger.CustodyMatch` → `module:reporting.inventory_facts` (C15)
 - `model:stockledger.CustodyMatch` → `module:reporting.shrinkage_facts` (C15)
 - `model:stockledger.CustodyMatch` → `module:sell.services.gift_stock` (C10)
@@ -6923,6 +7080,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.EncumbranceLeg` → `module:ptmapper.goods_manifest_services` (C05)
 - `model:stockledger.EncumbranceLeg` → `module:ptmapper.goods_pt_services` (C05)
 - `model:stockledger.EncumbranceLeg` → `module:ptmapper.soh_services` (C05)
+- `model:stockledger.EncumbranceLeg` → `module:ptmapper.stock_sync_services` (C08)
 - `model:stockledger.EncumbranceLeg` → `module:reporting.inventory_facts` (C15)
 - `model:stockledger.EncumbranceLeg` → `module:reporting.shrinkage_facts` (C15)
 - `model:stockledger.EncumbranceLeg` → `module:sell.services.gift_stock` (C10)
@@ -6955,6 +7113,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.HoldEvent` → `module:ptmapper.goods_manifest_services` (C05)
 - `model:stockledger.HoldEvent` → `module:ptmapper.goods_pt_services` (C05)
 - `model:stockledger.HoldEvent` → `module:ptmapper.soh_services` (C05)
+- `model:stockledger.HoldEvent` → `module:ptmapper.stock_sync_services` (C08)
 - `model:stockledger.HoldEvent` → `module:reporting.inventory_facts` (C15)
 - `model:stockledger.HoldEvent` → `module:reporting.shrinkage_facts` (C15)
 - `model:stockledger.HoldEvent` → `module:sell.services.gift_stock` (C10)
@@ -7011,6 +7170,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.JournalBatch` → `module:ptmapper.goods_manifest_services` (C05)
 - `model:stockledger.JournalBatch` → `module:ptmapper.goods_pt_services` (C05)
 - `model:stockledger.JournalBatch` → `module:ptmapper.soh_services` (C05)
+- `model:stockledger.JournalBatch` → `module:ptmapper.stock_sync_services` (C08)
 - `model:stockledger.JournalBatch` → `module:reporting.inventory_facts` (C15)
 - `model:stockledger.JournalBatch` → `module:reporting.shrinkage_facts` (C15)
 - `model:stockledger.JournalBatch` → `module:sell.services.gift_stock` (C10)
@@ -7043,6 +7203,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.LiveCoverage` → `module:ptmapper.goods_manifest_services` (C05)
 - `model:stockledger.LiveCoverage` → `module:ptmapper.goods_pt_services` (C05)
 - `model:stockledger.LiveCoverage` → `module:ptmapper.soh_services` (C05)
+- `model:stockledger.LiveCoverage` → `module:ptmapper.stock_sync_services` (C08)
 - `model:stockledger.LiveCoverage` → `module:reporting.inventory_facts` (C15)
 - `model:stockledger.LiveCoverage` → `module:reporting.shrinkage_facts` (C15)
 - `model:stockledger.LiveCoverage` → `module:sell.services.gift_stock` (C10)
@@ -7075,6 +7236,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.LiveValueBasis` → `module:ptmapper.goods_manifest_services` (C05)
 - `model:stockledger.LiveValueBasis` → `module:ptmapper.goods_pt_services` (C05)
 - `model:stockledger.LiveValueBasis` → `module:ptmapper.soh_services` (C05)
+- `model:stockledger.LiveValueBasis` → `module:ptmapper.stock_sync_services` (C08)
 - `model:stockledger.LiveValueBasis` → `module:reporting.inventory_facts` (C15)
 - `model:stockledger.LiveValueBasis` → `module:reporting.shrinkage_facts` (C15)
 - `model:stockledger.LiveValueBasis` → `module:sell.services.gift_stock` (C10)
@@ -7107,6 +7269,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.Origin` → `module:ptmapper.goods_manifest_services` (C05)
 - `model:stockledger.Origin` → `module:ptmapper.goods_pt_services` (C05)
 - `model:stockledger.Origin` → `module:ptmapper.soh_services` (C05)
+- `model:stockledger.Origin` → `module:ptmapper.stock_sync_services` (C08)
 - `model:stockledger.Origin` → `module:reporting.inventory_facts` (C15)
 - `model:stockledger.Origin` → `module:reporting.shrinkage_facts` (C15)
 - `model:stockledger.Origin` → `module:sell.services.gift_stock` (C10)
@@ -7139,6 +7302,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.Position` → `module:ptmapper.goods_manifest_services` (C05)
 - `model:stockledger.Position` → `module:ptmapper.goods_pt_services` (C05)
 - `model:stockledger.Position` → `module:ptmapper.soh_services` (C05)
+- `model:stockledger.Position` → `module:ptmapper.stock_sync_services` (C08)
 - `model:stockledger.Position` → `module:reporting.inventory_facts` (C15)
 - `model:stockledger.Position` → `module:reporting.shrinkage_facts` (C15)
 - `model:stockledger.Position` → `module:sell.services.gift_stock` (C10)
@@ -7171,6 +7335,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.QuantityLeg` → `module:ptmapper.goods_manifest_services` (C05)
 - `model:stockledger.QuantityLeg` → `module:ptmapper.goods_pt_services` (C05)
 - `model:stockledger.QuantityLeg` → `module:ptmapper.soh_services` (C05)
+- `model:stockledger.QuantityLeg` → `module:ptmapper.stock_sync_services` (C08)
 - `model:stockledger.QuantityLeg` → `module:reporting.inventory_facts` (C15)
 - `model:stockledger.QuantityLeg` → `module:reporting.shrinkage_facts` (C15)
 - `model:stockledger.QuantityLeg` → `module:sell.services.gift_stock` (C10)
@@ -7227,6 +7392,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.ReservationEvent` → `module:ptmapper.goods_manifest_services` (C05)
 - `model:stockledger.ReservationEvent` → `module:ptmapper.goods_pt_services` (C05)
 - `model:stockledger.ReservationEvent` → `module:ptmapper.soh_services` (C05)
+- `model:stockledger.ReservationEvent` → `module:ptmapper.stock_sync_services` (C08)
 - `model:stockledger.ReservationEvent` → `module:reporting.inventory_facts` (C15)
 - `model:stockledger.ReservationEvent` → `module:reporting.shrinkage_facts` (C15)
 - `model:stockledger.ReservationEvent` → `module:sell.services.gift_stock` (C10)
@@ -7308,6 +7474,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:stockledger.ValueLeg` → `module:ptmapper.goods_manifest_services` (C05)
 - `model:stockledger.ValueLeg` → `module:ptmapper.goods_pt_services` (C05)
 - `model:stockledger.ValueLeg` → `module:ptmapper.soh_services` (C05)
+- `model:stockledger.ValueLeg` → `module:ptmapper.stock_sync_services` (C08)
 - `model:stockledger.ValueLeg` → `module:reporting.inventory_facts` (C15)
 - `model:stockledger.ValueLeg` → `module:reporting.shrinkage_facts` (C15)
 - `model:stockledger.ValueLeg` → `module:sell.services.gift_stock` (C10)
@@ -7834,13 +8001,13 @@ These calls need a data-target and runtime-reachability review before the retire
 
 | Boundary | Inventory-derived view |
 | --- | --- |
-| Entry points | 73 discovered: 46 HTTP method routes, 13 screens, 0 nested views, 0 print/display sinks, 10 navigation/bookmarks, 4 jobs/commands/signals, 0 middleware, 0 operational files. HTTP namespaces: `/api/goods-v1/outbound` (21), `/api/outbound/adjustments` (5), `/api/outbound/count-lookup` (1), `/api/outbound/count-sessions` (2), `/api/outbound/stocktakes` (7), `/api/outbound/vflips` (5), `/api/outbound/writeoffs` (5). |
-| Authorization | Required boundaries: One current all-brand assignment at the complete store for count.run; independent count.review with cost, layer_value and financial together. Different maker/source upload/preparation/physical observer cannot approve. Session/password, scope, exact content/revision, source cutoff, policy limits and versioned reasons remain pinned; one retained stock writer.; SO-03 unified server evaluator; owner must prove resource and field denials at cutover. Handler-level enforcement requires behaviour and denial proof. |
-| Services | 0 tagged service modules: None discovered. |
+| Entry points | 83 discovered: 54 HTTP method routes, 14 screens, 0 nested views, 0 print/display sinks, 11 navigation/bookmarks, 4 jobs/commands/signals, 0 middleware, 0 operational files. HTTP namespaces: `/api/goods-v1/outbound` (21), `/api/goods-v1/ptmapper` (8), `/api/outbound/adjustments` (5), `/api/outbound/count-lookup` (1), `/api/outbound/count-sessions` (2), `/api/outbound/stocktakes` (7), `/api/outbound/vflips` (5), `/api/outbound/writeoffs` (5). |
+| Authorization | Required boundaries: One current all-brand assignment at the complete store for count.run; independent count.review with cost, layer_value and financial together. Different maker/source upload/preparation/physical observer cannot approve. Session/password, scope, exact content/revision, source cutoff, policy limits and versioned reasons remain pinned; one retained stock writer.; SO-03 unified server evaluator; owner must prove resource and field denials at cutover.; opening.import.stage at the exact store in one scoped assignment; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. SITE-before-DOCUMENT lock order. Handler-level enforcement requires behaviour and denial proof. |
+| Services | 2 tagged service modules: `module:ptmapper.legacy_sales_services`, `module:ptmapper.stock_sync_services`. |
 | Offline client modules | 0 till/PWA modules: None discovered. |
-| Data | 19 owned model classes: `model:outbound.CountAffirmation`, `model:outbound.CountDecision`, `model:outbound.CountSchedule`, `model:outbound.CountSelection`, `model:outbound.CountSession`, `model:outbound.CountSessionLine`, `model:outbound.CountSnapshot`, `model:outbound.GoodsCountPass`, `model:outbound.GoodsStocktake`, `model:outbound.Recount`, `model:outbound.SohReconciliation`, `model:outbound.SohReconciliationEvidence`, `model:outbound.StockAdjustment`, `model:outbound.StockAdjustmentLine`, `model:outbound.Stocktake`, `model:outbound.VFlip`, `model:outbound.VFlipLine`, `model:outbound.WriteOff`, `model:outbound.WriteOffLine`. 67 direct model-module import edges from owned modules; 353 static read-call candidates in 14 backend/client modules (individual expressions are in the machine inventory). |
-| Downstream readers | 39 frontend API callsites; 31 endpoint/callsite links, 6 dynamic URL references; 291 cross-owner static backend import edges. |
-| Lifecycle | canonical: 71, historical_read_only: 8, retirement_candidate: 2, temporary_supported_legacy: 73, unresolved: 2. |
+| Data | 23 owned model classes: `model:outbound.CountAffirmation`, `model:outbound.CountDecision`, `model:outbound.CountSchedule`, `model:outbound.CountSelection`, `model:outbound.CountSession`, `model:outbound.CountSessionLine`, `model:outbound.CountSnapshot`, `model:outbound.GoodsCountPass`, `model:outbound.GoodsStocktake`, `model:outbound.Recount`, `model:outbound.SohReconciliation`, `model:outbound.SohReconciliationEvidence`, `model:outbound.StockAdjustment`, `model:outbound.StockAdjustmentLine`, `model:outbound.Stocktake`, `model:outbound.VFlip`, `model:outbound.VFlipLine`, `model:outbound.WriteOff`, `model:outbound.WriteOffLine`, `model:ptmapper.LegacySalesImport`, `model:ptmapper.LegacySalesRow`, `model:ptmapper.StockSync`, `model:ptmapper.StockSyncRow`. 85 direct model-module import edges from owned modules; 411 static read-call candidates in 19 backend/client modules (individual expressions are in the machine inventory). |
+| Downstream readers | 43 frontend API callsites; 32 endpoint/callsite links, 7 dynamic URL references; 295 cross-owner static backend import edges. |
+| Lifecycle | canonical: 71, historical_read_only: 8, retirement_candidate: 2, temporary_supported_legacy: 103, unresolved: 2. |
 
 ### Entry-point dependency traces
 
@@ -7855,6 +8022,10 @@ Each row follows entry point → declared authorization → implementation and s
 | `api:GET:/api/goods-v1/outbound/stocktakes` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:outbound.goods_count_views` → `module:accounts.goods_api`, `module:accounts.principal`, `module:core.commands`, `module:core.refusals`, `module:masters.goods_identity_services`, `module:masters.models`, `module:outbound.count_review`, `module:outbound.goods_count_reads`, `module:outbound.goods_counts`, `module:outbound.goods_models`; model `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.PriceChange`, `model:masters.Season`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:outbound.CountAffirmation`, `model:outbound.CountDecision`, `model:outbound.CountSelection`, `model:outbound.CountSnapshot`, `model:outbound.DamageReport`, `model:outbound.DispatchPreparation`, `model:outbound.DispatchScan`, `model:outbound.GapResolution`, `model:outbound.GoodsCountPass`, `model:outbound.GoodsMovement`, `model:outbound.GoodsStocktake`, `model:outbound.GoodsTransfer`, `model:outbound.RtvEvent`, `model:outbound.TransferDispatch`, `model:outbound.TransferEvent`, `model:outbound.TransferRequest`, `model:outbound.TransferReturn` | R:8 / W:1 / models:31; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/GoodsCounts.tsx:59bcdd40664a`; backend `module:outbound.goods_urls`; calls `api_consumer:frontend/src/pages/GoodsCounts.tsx:59bcdd40664a`; API `api:GET:/api/goods-v1/outbound/stocktakes`; runtime `unknown; static discovery is not execution tracing` |
 | `api:GET:/api/goods-v1/outbound/stocktakes/<uuid:pk>` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:outbound.goods_count_views` → `module:accounts.goods_api`, `module:accounts.principal`, `module:core.commands`, `module:core.refusals`, `module:masters.goods_identity_services`, `module:masters.models`, `module:outbound.count_review`, `module:outbound.goods_count_reads`, `module:outbound.goods_counts`, `module:outbound.goods_models`; model `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.PriceChange`, `model:masters.Season`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:outbound.CountAffirmation`, `model:outbound.CountDecision`, `model:outbound.CountSelection`, `model:outbound.CountSnapshot`, `model:outbound.DamageReport`, `model:outbound.DispatchPreparation`, `model:outbound.DispatchScan`, `model:outbound.GapResolution`, `model:outbound.GoodsCountPass`, `model:outbound.GoodsMovement`, `model:outbound.GoodsStocktake`, `model:outbound.GoodsTransfer`, `model:outbound.RtvEvent`, `model:outbound.TransferDispatch`, `model:outbound.TransferEvent`, `model:outbound.TransferRequest`, `model:outbound.TransferReturn` | R:8 / W:1 / models:31; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/GoodsCounts.tsx:b81e03e84d3f`; backend `module:outbound.goods_urls`; calls `api_consumer:frontend/src/pages/GoodsCounts.tsx:b81e03e84d3f`; API `api:GET:/api/goods-v1/outbound/stocktakes/<uuid:pk>`; runtime `unknown; static discovery is not execution tracing` |
 | `api:GET:/api/goods-v1/outbound/stocktakes/<uuid:pk>/variance` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:outbound.goods_count_views` → `module:accounts.goods_api`, `module:accounts.principal`, `module:core.commands`, `module:core.refusals`, `module:masters.goods_identity_services`, `module:masters.models`, `module:outbound.count_review`, `module:outbound.goods_count_reads`, `module:outbound.goods_counts`, `module:outbound.goods_models`; model `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.PriceChange`, `model:masters.Season`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:outbound.CountAffirmation`, `model:outbound.CountDecision`, `model:outbound.CountSelection`, `model:outbound.CountSnapshot`, `model:outbound.DamageReport`, `model:outbound.DispatchPreparation`, `model:outbound.DispatchScan`, `model:outbound.GapResolution`, `model:outbound.GoodsCountPass`, `model:outbound.GoodsMovement`, `model:outbound.GoodsStocktake`, `model:outbound.GoodsTransfer`, `model:outbound.RtvEvent`, `model:outbound.TransferDispatch`, `model:outbound.TransferEvent`, `model:outbound.TransferRequest`, `model:outbound.TransferReturn` | R:8 / W:1 / models:31; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/GoodsCounts.tsx:6b86065e9b3e`; backend `module:outbound.goods_urls`; calls `api_consumer:frontend/src/pages/GoodsCounts.tsx:6b86065e9b3e`; API `api:GET:/api/goods-v1/outbound/stocktakes/<uuid:pk>/variance`; runtime `unknown; static discovery is not execution tracing` |
+| `api:GET:/api/goods-v1/ptmapper/legacy-sales` | opening.import.stage at the exact store in one scoped assignment; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. SITE-before-DOCUMENT lock order. | `pending` | `module:ptmapper.legacy_sales_views` → `module:accounts.goods_api`, `module:accounts.principal`, `module:core.commands`, `module:core.refusals`, `module:files.goods_models`, `module:files.goods_services`, `module:masters.models`, `module:ptmapper.legacy_sales_models`, `module:ptmapper.legacy_sales_parser`, `module:ptmapper.legacy_sales_services`, `module:ptmapper.stock_sync_services`; model `model:files.EvidenceLink`, `model:files.EvidenceObject`, `model:files.UploadIntent`, `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.PriceChange`, `model:masters.Season`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:ptmapper.LegacySalesImport`, `model:ptmapper.LegacySalesRow` | R:10 / W:1 / models:19; `static leads only; route-specific and dynamic data access unverified` | backend `module:ptmapper.legacy_sales_urls`, `module:ptmapper.stock_sync_views`; runtime `unknown; static discovery is not execution tracing` |
+| `api:GET:/api/goods-v1/ptmapper/legacy-sales/<uuid:pk>` | opening.import.stage at the exact store in one scoped assignment; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. SITE-before-DOCUMENT lock order. | `pending` | `module:ptmapper.legacy_sales_views` → `module:accounts.goods_api`, `module:accounts.principal`, `module:core.commands`, `module:core.refusals`, `module:files.goods_models`, `module:files.goods_services`, `module:masters.models`, `module:ptmapper.legacy_sales_models`, `module:ptmapper.legacy_sales_parser`, `module:ptmapper.legacy_sales_services`, `module:ptmapper.stock_sync_services`; model `model:files.EvidenceLink`, `model:files.EvidenceObject`, `model:files.UploadIntent`, `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.PriceChange`, `model:masters.Season`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:ptmapper.LegacySalesImport`, `model:ptmapper.LegacySalesRow` | R:10 / W:1 / models:19; `static leads only; route-specific and dynamic data access unverified` | backend `module:ptmapper.legacy_sales_urls`, `module:ptmapper.stock_sync_views`; runtime `unknown; static discovery is not execution tracing` |
+| `api:GET:/api/goods-v1/ptmapper/legacy-sync` | opening.import.stage at the exact store in one scoped assignment; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. SITE-before-DOCUMENT lock order. | `pending` | `module:ptmapper.stock_sync_views` → `module:accounts.goods_api`, `module:accounts.principal`, `module:core.commands`, `module:core.refusals`, `module:files.goods_models`, `module:files.goods_services`, `module:masters.store_features`, `module:ptmapper.legacy_sales_models`, `module:ptmapper.legacy_sales_views`, `module:ptmapper.soh_parser`, `module:ptmapper.stock_sync_models`, `module:ptmapper.stock_sync_services`; model `model:files.EvidenceLink`, `model:files.EvidenceObject`, `model:files.UploadIntent`, `model:ptmapper.LegacySalesImport`, `model:ptmapper.LegacySalesRow`, `model:ptmapper.StockSync`, `model:ptmapper.StockSyncRow` | R:11 / W:1 / models:7; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/StockSync.tsx:e8f873e76e4a`; backend `module:ptmapper.stock_sync_urls`; calls `api_consumer:frontend/src/pages/StockSync.tsx:e8f873e76e4a`; API `api:GET:/api/goods-v1/ptmapper/legacy-sync`; runtime `unknown; static discovery is not execution tracing` |
+| `api:GET:/api/goods-v1/ptmapper/stock-syncs/<uuid:pk>` | opening.import.stage at the exact store in one scoped assignment; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. SITE-before-DOCUMENT lock order. | `pending` | `module:ptmapper.stock_sync_views` → `module:accounts.goods_api`, `module:accounts.principal`, `module:core.commands`, `module:core.refusals`, `module:files.goods_models`, `module:files.goods_services`, `module:masters.store_features`, `module:ptmapper.legacy_sales_models`, `module:ptmapper.legacy_sales_views`, `module:ptmapper.soh_parser`, `module:ptmapper.stock_sync_models`, `module:ptmapper.stock_sync_services`; model `model:files.EvidenceLink`, `model:files.EvidenceObject`, `model:files.UploadIntent`, `model:ptmapper.LegacySalesImport`, `model:ptmapper.LegacySalesRow`, `model:ptmapper.StockSync`, `model:ptmapper.StockSyncRow` | R:11 / W:1 / models:7; `static leads only; route-specific and dynamic data access unverified` | backend `module:ptmapper.stock_sync_urls`; runtime `unknown; static discovery is not execution tracing` |
 | `api:GET:/api/outbound/adjustments` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:outbound.views` → `module:accounts.models`, `module:accounts.principal`, `module:core.documents`, `module:core.money`, `module:core.tenancy`, `module:core.textsearch`, `module:finledger.access`, `module:finledger.posting`, `module:masters.models`, `module:masters.scoping`, `module:outbound.costing`, `module:outbound.counting`, `module:outbound.distribution`, `module:outbound.maker_checker`, `module:outbound.models`, `module:outbound.permissions`, `module:outbound.posting`, `module:outbound.returnable`, `module:outbound.scoping`, `module:outbound.serializers`, `module:stockledger.models`, `module:stockledger.on_hand_projection`, `module:stockledger.views`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.User`, `model:core.DocumentProbe`, `model:core.VoucherSeries`, `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.PriceChange`, `model:masters.Season`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:outbound.BillingPolicy`, `model:outbound.CountSession`, `model:outbound.CountSessionLine`, `model:outbound.MarkDamaged`, `model:outbound.MarkDamagedLine`, `model:outbound.Recount`, `model:outbound.ReturnCreditNote`, `model:outbound.ReturnToVendor`, `model:outbound.ReturnToVendorLine`, `model:outbound.StockAdjustment`, `model:outbound.StockAdjustmentLine`, `model:outbound.StockRequest`, `model:outbound.StockRequestClosure`, `model:outbound.StockRequestLine`, `model:outbound.Stocktake`, `model:outbound.StoreTransfer`, `model:outbound.StoreTransferLine`, `model:outbound.TransferGapClosure`, `model:outbound.TransferGapClosureLine`, `model:outbound.TransferPT`, `model:outbound.TransferReceipt`, `model:outbound.TransferReceiptException`, `model:outbound.VFlip`, `model:outbound.VFlipLine`, `model:outbound.WriteOff`, `model:outbound.WriteOffLine`, `model:stockledger.InTransitStock`, `model:stockledger.QuarantineStock`, `model:stockledger.StockLedgerEntry`, `model:stockledger.StockOnHand` | R:84 / W:4 / models:51; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/OutboundAdjustments.tsx:346f08934efa`; backend `module:outbound.urls`; calls `api_consumer:frontend/src/pages/OutboundAdjustments.tsx:346f08934efa`; API `api:GET:/api/outbound/adjustments`; runtime `unknown; static discovery is not execution tracing` |
 | `api:GET:/api/outbound/adjustments/<int:pk>` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:outbound.views` → `module:accounts.models`, `module:accounts.principal`, `module:core.documents`, `module:core.money`, `module:core.tenancy`, `module:core.textsearch`, `module:finledger.access`, `module:finledger.posting`, `module:masters.models`, `module:masters.scoping`, `module:outbound.costing`, `module:outbound.counting`, `module:outbound.distribution`, `module:outbound.maker_checker`, `module:outbound.models`, `module:outbound.permissions`, `module:outbound.posting`, `module:outbound.returnable`, `module:outbound.scoping`, `module:outbound.serializers`, `module:stockledger.models`, `module:stockledger.on_hand_projection`, `module:stockledger.views`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.User`, `model:core.DocumentProbe`, `model:core.VoucherSeries`, `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.PriceChange`, `model:masters.Season`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:outbound.BillingPolicy`, `model:outbound.CountSession`, `model:outbound.CountSessionLine`, `model:outbound.MarkDamaged`, `model:outbound.MarkDamagedLine`, `model:outbound.Recount`, `model:outbound.ReturnCreditNote`, `model:outbound.ReturnToVendor`, `model:outbound.ReturnToVendorLine`, `model:outbound.StockAdjustment`, `model:outbound.StockAdjustmentLine`, `model:outbound.StockRequest`, `model:outbound.StockRequestClosure`, `model:outbound.StockRequestLine`, `model:outbound.Stocktake`, `model:outbound.StoreTransfer`, `model:outbound.StoreTransferLine`, `model:outbound.TransferGapClosure`, `model:outbound.TransferGapClosureLine`, `model:outbound.TransferPT`, `model:outbound.TransferReceipt`, `model:outbound.TransferReceiptException`, `model:outbound.VFlip`, `model:outbound.VFlipLine`, `model:outbound.WriteOff`, `model:outbound.WriteOffLine`, `model:stockledger.InTransitStock`, `model:stockledger.QuarantineStock`, `model:stockledger.StockLedgerEntry`, `model:stockledger.StockOnHand` | R:84 / W:4 / models:51; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/OutboundAdjustments.tsx:3833738550fc`; backend `module:outbound.urls`; calls `api_consumer:frontend/src/pages/OutboundAdjustments.tsx:3833738550fc`; API `api:GET:/api/outbound/adjustments/<int:pk>`; runtime `unknown; static discovery is not execution tracing` |
 | `api:GET:/api/outbound/count-lookup` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:outbound.views` → `module:accounts.models`, `module:accounts.principal`, `module:core.documents`, `module:core.money`, `module:core.tenancy`, `module:core.textsearch`, `module:finledger.access`, `module:finledger.posting`, `module:masters.models`, `module:masters.scoping`, `module:outbound.costing`, `module:outbound.counting`, `module:outbound.distribution`, `module:outbound.maker_checker`, `module:outbound.models`, `module:outbound.permissions`, `module:outbound.posting`, `module:outbound.returnable`, `module:outbound.scoping`, `module:outbound.serializers`, `module:stockledger.models`, `module:stockledger.on_hand_projection`, `module:stockledger.views`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.User`, `model:core.DocumentProbe`, `model:core.VoucherSeries`, `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.PriceChange`, `model:masters.Season`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:outbound.BillingPolicy`, `model:outbound.CountSession`, `model:outbound.CountSessionLine`, `model:outbound.MarkDamaged`, `model:outbound.MarkDamagedLine`, `model:outbound.Recount`, `model:outbound.ReturnCreditNote`, `model:outbound.ReturnToVendor`, `model:outbound.ReturnToVendorLine`, `model:outbound.StockAdjustment`, `model:outbound.StockAdjustmentLine`, `model:outbound.StockRequest`, `model:outbound.StockRequestClosure`, `model:outbound.StockRequestLine`, `model:outbound.Stocktake`, `model:outbound.StoreTransfer`, `model:outbound.StoreTransferLine`, `model:outbound.TransferGapClosure`, `model:outbound.TransferGapClosureLine`, `model:outbound.TransferPT`, `model:outbound.TransferReceipt`, `model:outbound.TransferReceiptException`, `model:outbound.VFlip`, `model:outbound.VFlipLine`, `model:outbound.WriteOff`, `model:outbound.WriteOffLine`, `model:stockledger.InTransitStock`, `model:stockledger.QuarantineStock`, `model:stockledger.StockLedgerEntry`, `model:stockledger.StockOnHand` | R:84 / W:4 / models:51; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/StockCount.tsx:c1805035726b`; backend `module:outbound.urls`; calls `api_consumer:frontend/src/pages/StockCount.tsx:c1805035726b`; API `api:GET:/api/outbound/count-lookup`; runtime `unknown; static discovery is not execution tracing` |
@@ -7879,6 +8050,10 @@ Each row follows entry point → declared authorization → implementation and s
 | `api:POST:/api/goods-v1/outbound/stocktakes/<uuid:pk>/recount` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:outbound.goods_count_views` → `module:accounts.goods_api`, `module:accounts.principal`, `module:core.commands`, `module:core.refusals`, `module:masters.goods_identity_services`, `module:masters.models`, `module:outbound.count_review`, `module:outbound.goods_count_reads`, `module:outbound.goods_counts`, `module:outbound.goods_models`; model `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.PriceChange`, `model:masters.Season`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:outbound.CountAffirmation`, `model:outbound.CountDecision`, `model:outbound.CountSelection`, `model:outbound.CountSnapshot`, `model:outbound.DamageReport`, `model:outbound.DispatchPreparation`, `model:outbound.DispatchScan`, `model:outbound.GapResolution`, `model:outbound.GoodsCountPass`, `model:outbound.GoodsMovement`, `model:outbound.GoodsStocktake`, `model:outbound.GoodsTransfer`, `model:outbound.RtvEvent`, `model:outbound.TransferDispatch`, `model:outbound.TransferEvent`, `model:outbound.TransferRequest`, `model:outbound.TransferReturn` | R:8 / W:1 / models:31; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/GoodsCounts.tsx:9a42db06e56c`; backend `module:outbound.goods_urls`; calls `api_consumer:frontend/src/pages/GoodsCounts.tsx:9a42db06e56c`; API `api:POST:/api/goods-v1/outbound/stocktakes/<uuid:pk>/recount`; runtime `unknown; static discovery is not execution tracing` |
 | `api:POST:/api/goods-v1/outbound/stocktakes/<uuid:pk>/sessions` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:outbound.goods_count_views` → `module:accounts.goods_api`, `module:accounts.principal`, `module:core.commands`, `module:core.refusals`, `module:masters.goods_identity_services`, `module:masters.models`, `module:outbound.count_review`, `module:outbound.goods_count_reads`, `module:outbound.goods_counts`, `module:outbound.goods_models`; model `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.PriceChange`, `model:masters.Season`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:outbound.CountAffirmation`, `model:outbound.CountDecision`, `model:outbound.CountSelection`, `model:outbound.CountSnapshot`, `model:outbound.DamageReport`, `model:outbound.DispatchPreparation`, `model:outbound.DispatchScan`, `model:outbound.GapResolution`, `model:outbound.GoodsCountPass`, `model:outbound.GoodsMovement`, `model:outbound.GoodsStocktake`, `model:outbound.GoodsTransfer`, `model:outbound.RtvEvent`, `model:outbound.TransferDispatch`, `model:outbound.TransferEvent`, `model:outbound.TransferRequest`, `model:outbound.TransferReturn` | R:8 / W:1 / models:31; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/GoodsCounts.tsx:2caf9586cf42`; backend `module:outbound.goods_urls`; calls `api_consumer:frontend/src/pages/GoodsCounts.tsx:2caf9586cf42`; API `api:POST:/api/goods-v1/outbound/stocktakes/<uuid:pk>/sessions`; runtime `unknown; static discovery is not execution tracing` |
 | `api:POST:/api/goods-v1/outbound/stocktakes/<uuid:pk>/submit-review` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:outbound.goods_count_views` → `module:accounts.goods_api`, `module:accounts.principal`, `module:core.commands`, `module:core.refusals`, `module:masters.goods_identity_services`, `module:masters.models`, `module:outbound.count_review`, `module:outbound.goods_count_reads`, `module:outbound.goods_counts`, `module:outbound.goods_models`; model `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.PriceChange`, `model:masters.Season`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:outbound.CountAffirmation`, `model:outbound.CountDecision`, `model:outbound.CountSelection`, `model:outbound.CountSnapshot`, `model:outbound.DamageReport`, `model:outbound.DispatchPreparation`, `model:outbound.DispatchScan`, `model:outbound.GapResolution`, `model:outbound.GoodsCountPass`, `model:outbound.GoodsMovement`, `model:outbound.GoodsStocktake`, `model:outbound.GoodsTransfer`, `model:outbound.RtvEvent`, `model:outbound.TransferDispatch`, `model:outbound.TransferEvent`, `model:outbound.TransferRequest`, `model:outbound.TransferReturn` | R:8 / W:1 / models:31; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/GoodsCounts.tsx:7bda643468ee`; backend `module:outbound.goods_urls`; calls `api_consumer:frontend/src/pages/GoodsCounts.tsx:7bda643468ee`; API `api:POST:/api/goods-v1/outbound/stocktakes/<uuid:pk>/submit-review`; runtime `unknown; static discovery is not execution tracing` |
+| `api:POST:/api/goods-v1/ptmapper/legacy-sales/<uuid:pk>/<str:operation>` | opening.import.stage at the exact store in one scoped assignment; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. SITE-before-DOCUMENT lock order. | `pending` | `module:ptmapper.legacy_sales_views` → `module:accounts.goods_api`, `module:accounts.principal`, `module:core.commands`, `module:core.refusals`, `module:files.goods_models`, `module:files.goods_services`, `module:masters.models`, `module:ptmapper.legacy_sales_models`, `module:ptmapper.legacy_sales_parser`, `module:ptmapper.legacy_sales_services`, `module:ptmapper.stock_sync_services`; model `model:files.EvidenceLink`, `model:files.EvidenceObject`, `model:files.UploadIntent`, `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.PriceChange`, `model:masters.Season`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:ptmapper.LegacySalesImport`, `model:ptmapper.LegacySalesRow` | R:10 / W:1 / models:19; `static leads only; route-specific and dynamic data access unverified` | backend `module:ptmapper.legacy_sales_urls`, `module:ptmapper.stock_sync_views`; runtime `unknown; static discovery is not execution tracing` |
+| `api:POST:/api/goods-v1/ptmapper/legacy-sales/upload` | opening.import.stage at the exact store in one scoped assignment; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. SITE-before-DOCUMENT lock order. | `pending` | `module:ptmapper.legacy_sales_views` → `module:accounts.goods_api`, `module:accounts.principal`, `module:core.commands`, `module:core.refusals`, `module:files.goods_models`, `module:files.goods_services`, `module:masters.models`, `module:ptmapper.legacy_sales_models`, `module:ptmapper.legacy_sales_parser`, `module:ptmapper.legacy_sales_services`, `module:ptmapper.stock_sync_services`; model `model:files.EvidenceLink`, `model:files.EvidenceObject`, `model:files.UploadIntent`, `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.PriceChange`, `model:masters.Season`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:ptmapper.LegacySalesImport`, `model:ptmapper.LegacySalesRow` | R:10 / W:1 / models:19; `static leads only; route-specific and dynamic data access unverified` | backend `module:ptmapper.legacy_sales_urls`, `module:ptmapper.stock_sync_views`; runtime `unknown; static discovery is not execution tracing` |
+| `api:POST:/api/goods-v1/ptmapper/stock-syncs/<uuid:pk>/<str:operation>` | opening.import.stage at the exact store in one scoped assignment; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. SITE-before-DOCUMENT lock order. | `pending` | `module:ptmapper.stock_sync_views` → `module:accounts.goods_api`, `module:accounts.principal`, `module:core.commands`, `module:core.refusals`, `module:files.goods_models`, `module:files.goods_services`, `module:masters.store_features`, `module:ptmapper.legacy_sales_models`, `module:ptmapper.legacy_sales_views`, `module:ptmapper.soh_parser`, `module:ptmapper.stock_sync_models`, `module:ptmapper.stock_sync_services`; model `model:files.EvidenceLink`, `model:files.EvidenceObject`, `model:files.UploadIntent`, `model:ptmapper.LegacySalesImport`, `model:ptmapper.LegacySalesRow`, `model:ptmapper.StockSync`, `model:ptmapper.StockSyncRow` | R:11 / W:1 / models:7; `static leads only; route-specific and dynamic data access unverified` | backend `module:ptmapper.stock_sync_urls`; runtime `unknown; static discovery is not execution tracing` |
+| `api:POST:/api/goods-v1/ptmapper/stock-syncs/upload` | opening.import.stage at the exact store in one scoped assignment; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. SITE-before-DOCUMENT lock order. | `pending` | `module:ptmapper.stock_sync_views` → `module:accounts.goods_api`, `module:accounts.principal`, `module:core.commands`, `module:core.refusals`, `module:files.goods_models`, `module:files.goods_services`, `module:masters.store_features`, `module:ptmapper.legacy_sales_models`, `module:ptmapper.legacy_sales_views`, `module:ptmapper.soh_parser`, `module:ptmapper.stock_sync_models`, `module:ptmapper.stock_sync_services`; model `model:files.EvidenceLink`, `model:files.EvidenceObject`, `model:files.UploadIntent`, `model:ptmapper.LegacySalesImport`, `model:ptmapper.LegacySalesRow`, `model:ptmapper.StockSync`, `model:ptmapper.StockSyncRow` | R:11 / W:1 / models:7; `static leads only; route-specific and dynamic data access unverified` | backend `module:ptmapper.stock_sync_urls`; runtime `unknown; static discovery is not execution tracing` |
 | `api:POST:/api/outbound/adjustments` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:outbound.views` → `module:accounts.models`, `module:accounts.principal`, `module:core.documents`, `module:core.money`, `module:core.tenancy`, `module:core.textsearch`, `module:finledger.access`, `module:finledger.posting`, `module:masters.models`, `module:masters.scoping`, `module:outbound.costing`, `module:outbound.counting`, `module:outbound.distribution`, `module:outbound.maker_checker`, `module:outbound.models`, `module:outbound.permissions`, `module:outbound.posting`, `module:outbound.returnable`, `module:outbound.scoping`, `module:outbound.serializers`, `module:stockledger.models`, `module:stockledger.on_hand_projection`, `module:stockledger.views`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.User`, `model:core.DocumentProbe`, `model:core.VoucherSeries`, `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.PriceChange`, `model:masters.Season`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:outbound.BillingPolicy`, `model:outbound.CountSession`, `model:outbound.CountSessionLine`, `model:outbound.MarkDamaged`, `model:outbound.MarkDamagedLine`, `model:outbound.Recount`, `model:outbound.ReturnCreditNote`, `model:outbound.ReturnToVendor`, `model:outbound.ReturnToVendorLine`, `model:outbound.StockAdjustment`, `model:outbound.StockAdjustmentLine`, `model:outbound.StockRequest`, `model:outbound.StockRequestClosure`, `model:outbound.StockRequestLine`, `model:outbound.Stocktake`, `model:outbound.StoreTransfer`, `model:outbound.StoreTransferLine`, `model:outbound.TransferGapClosure`, `model:outbound.TransferGapClosureLine`, `model:outbound.TransferPT`, `model:outbound.TransferReceipt`, `model:outbound.TransferReceiptException`, `model:outbound.VFlip`, `model:outbound.VFlipLine`, `model:outbound.WriteOff`, `model:outbound.WriteOffLine`, `model:stockledger.InTransitStock`, `model:stockledger.QuarantineStock`, `model:stockledger.StockLedgerEntry`, `model:stockledger.StockOnHand` | R:84 / W:4 / models:51; `static leads only; route-specific and dynamic data access unverified` | backend `module:outbound.urls`; runtime `unknown; static discovery is not execution tracing` |
 | `api:POST:/api/outbound/adjustments/<int:pk>/request-approval` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:outbound.views` → `module:accounts.models`, `module:accounts.principal`, `module:core.documents`, `module:core.money`, `module:core.tenancy`, `module:core.textsearch`, `module:finledger.access`, `module:finledger.posting`, `module:masters.models`, `module:masters.scoping`, `module:outbound.costing`, `module:outbound.counting`, `module:outbound.distribution`, `module:outbound.maker_checker`, `module:outbound.models`, `module:outbound.permissions`, `module:outbound.posting`, `module:outbound.returnable`, `module:outbound.scoping`, `module:outbound.serializers`, `module:stockledger.models`, `module:stockledger.on_hand_projection`, `module:stockledger.views`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.User`, `model:core.DocumentProbe`, `model:core.VoucherSeries`, `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.PriceChange`, `model:masters.Season`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:outbound.BillingPolicy`, `model:outbound.CountSession`, `model:outbound.CountSessionLine`, `model:outbound.MarkDamaged`, `model:outbound.MarkDamagedLine`, `model:outbound.Recount`, `model:outbound.ReturnCreditNote`, `model:outbound.ReturnToVendor`, `model:outbound.ReturnToVendorLine`, `model:outbound.StockAdjustment`, `model:outbound.StockAdjustmentLine`, `model:outbound.StockRequest`, `model:outbound.StockRequestClosure`, `model:outbound.StockRequestLine`, `model:outbound.Stocktake`, `model:outbound.StoreTransfer`, `model:outbound.StoreTransferLine`, `model:outbound.TransferGapClosure`, `model:outbound.TransferGapClosureLine`, `model:outbound.TransferPT`, `model:outbound.TransferReceipt`, `model:outbound.TransferReceiptException`, `model:outbound.VFlip`, `model:outbound.VFlipLine`, `model:outbound.WriteOff`, `model:outbound.WriteOffLine`, `model:stockledger.InTransitStock`, `model:stockledger.QuarantineStock`, `model:stockledger.StockLedgerEntry`, `model:stockledger.StockOnHand` | R:84 / W:4 / models:51; `static leads only; route-specific and dynamic data access unverified` | backend `module:outbound.urls`; runtime `unknown; static discovery is not execution tracing` |
 | `api:POST:/api/outbound/adjustments/<int:pk>/submit` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:outbound.views` → `module:accounts.models`, `module:accounts.principal`, `module:core.documents`, `module:core.money`, `module:core.tenancy`, `module:core.textsearch`, `module:finledger.access`, `module:finledger.posting`, `module:masters.models`, `module:masters.scoping`, `module:outbound.costing`, `module:outbound.counting`, `module:outbound.distribution`, `module:outbound.maker_checker`, `module:outbound.models`, `module:outbound.permissions`, `module:outbound.posting`, `module:outbound.returnable`, `module:outbound.scoping`, `module:outbound.serializers`, `module:stockledger.models`, `module:stockledger.on_hand_projection`, `module:stockledger.views`; model `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.User`, `model:core.DocumentProbe`, `model:core.VoucherSeries`, `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.PriceChange`, `model:masters.Season`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:outbound.BillingPolicy`, `model:outbound.CountSession`, `model:outbound.CountSessionLine`, `model:outbound.MarkDamaged`, `model:outbound.MarkDamagedLine`, `model:outbound.Recount`, `model:outbound.ReturnCreditNote`, `model:outbound.ReturnToVendor`, `model:outbound.ReturnToVendorLine`, `model:outbound.StockAdjustment`, `model:outbound.StockAdjustmentLine`, `model:outbound.StockRequest`, `model:outbound.StockRequestClosure`, `model:outbound.StockRequestLine`, `model:outbound.Stocktake`, `model:outbound.StoreTransfer`, `model:outbound.StoreTransferLine`, `model:outbound.TransferGapClosure`, `model:outbound.TransferGapClosureLine`, `model:outbound.TransferPT`, `model:outbound.TransferReceipt`, `model:outbound.TransferReceiptException`, `model:outbound.VFlip`, `model:outbound.VFlipLine`, `model:outbound.WriteOff`, `model:outbound.WriteOffLine`, `model:stockledger.InTransitStock`, `model:stockledger.QuarantineStock`, `model:stockledger.StockLedgerEntry`, `model:stockledger.StockOnHand` | R:84 / W:4 / models:51; `static leads only; route-specific and dynamic data access unverified` | UI `api_consumer:frontend/src/pages/OutboundAdjustments.tsx:4bfba94772f0`; backend `module:outbound.urls`; calls `api_consumer:frontend/src/pages/OutboundAdjustments.tsx:4bfba94772f0`; API `api:POST:/api/outbound/adjustments/<int:pk>/submit`; runtime `unknown; static discovery is not execution tracing` |
@@ -7900,6 +8075,7 @@ Each row follows entry point → declared authorization → implementation and s
 | `bookmark:/store/count` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/shell/navConfig.ts` → `screen:/stock-count` | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | runtime `unknown; static discovery is not execution tracing` |
 | `command:check_count_schedules` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:outbound.management.commands.check_count_schedules` → `module:core.tenancy`, `module:masters.tenancy_middleware`, `module:outbound.count_schedules` | R:1 / W:0; `static leads only; route-specific and dynamic data access unverified` | runtime `unknown; static discovery is not execution tracing` |
 | `command:fix_rtv28_vflip_brand` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:outbound.management.commands.fix_rtv28_vflip_brand` → `module:core.documents`, `module:outbound.models`, `module:stockledger.contracts`, `module:stockledger.models`; model `model:core.DocumentProbe`, `model:core.VoucherSeries`, `model:outbound.BillingPolicy`, `model:outbound.CountSession`, `model:outbound.CountSessionLine`, `model:outbound.MarkDamaged`, `model:outbound.MarkDamagedLine`, `model:outbound.Recount`, `model:outbound.ReturnCreditNote`, `model:outbound.ReturnToVendor`, `model:outbound.ReturnToVendorLine`, `model:outbound.StockAdjustment`, `model:outbound.StockAdjustmentLine`, `model:outbound.StockRequest`, `model:outbound.StockRequestClosure`, `model:outbound.StockRequestLine`, `model:outbound.Stocktake`, `model:outbound.StoreTransfer`, `model:outbound.StoreTransferLine`, `model:outbound.TransferGapClosure`, `model:outbound.TransferGapClosureLine`, `model:outbound.TransferPT`, `model:outbound.TransferReceipt`, `model:outbound.TransferReceiptException`, `model:outbound.VFlip`, `model:outbound.VFlipLine`, `model:outbound.WriteOff`, `model:outbound.WriteOffLine`, `model:stockledger.InTransitStock`, `model:stockledger.QuarantineStock`, `model:stockledger.StockLedgerEntry`, `model:stockledger.StockOnHand` | R:10 / W:4 / models:32; `static leads only; route-specific and dynamic data access unverified` | runtime `unknown; static discovery is not execution tracing` |
+| `navigation:receive_goods:/goods/stock-sync` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/shell/navConfig.ts` → `screen:/goods/stock-sync` | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | runtime `unknown; static discovery is not execution tracing` |
 | `navigation:stock:/stock/vflips` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/shell/navConfig.ts` → `screen:/stock/vflips` | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | runtime `unknown; static discovery is not execution tracing` |
 | `navigation:stock_count:/goods/counts` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/shell/navConfig.ts` → `screen:/goods/counts` | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | runtime `unknown; static discovery is not execution tracing` |
 | `navigation:stock_count:/stock-count` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/shell/navConfig.ts` → `screen:/stock-count` | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | runtime `unknown; static discovery is not execution tracing` |
@@ -7910,6 +8086,7 @@ Each row follows entry point → declared authorization → implementation and s
 | `scheduled_job:count_staleness` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:outbound.apps` → callback `module:outbound.goods_counts` → `module:approvals.hooks`, `module:core.outbox`, `module:outbound.count_review`, `module:outbound.count_schedules`, `module:outbound.goods_counts`, `module:outbound.goods_movements`, `module:outbound.goods_rtv_shipments`, `module:outbound.goods_soh_reconciliation`, `module:outbound.models`, `module:outbound.posting`, `module:outbound.transfer_authority`; model `model:outbound.BillingPolicy`, `model:outbound.CountSession`, `model:outbound.CountSessionLine`, `model:outbound.MarkDamaged`, `model:outbound.MarkDamagedLine`, `model:outbound.Recount`, `model:outbound.ReturnCreditNote`, `model:outbound.ReturnToVendor`, `model:outbound.ReturnToVendorLine`, `model:outbound.StockAdjustment`, `model:outbound.StockAdjustmentLine`, `model:outbound.StockRequest`, `model:outbound.StockRequestClosure`, `model:outbound.StockRequestLine`, `model:outbound.Stocktake`, `model:outbound.StoreTransfer`, `model:outbound.StoreTransferLine`, `model:outbound.TransferGapClosure`, `model:outbound.TransferGapClosureLine`, `model:outbound.TransferPT`, `model:outbound.TransferReceipt`, `model:outbound.TransferReceiptException`, `model:outbound.VFlip`, `model:outbound.VFlipLine`, `model:outbound.WriteOff`, `model:outbound.WriteOffLine` | R:55 / W:8 / models:26; `static leads only; route-specific and dynamic data access unverified` | runtime `unknown; static discovery is not execution tracing` |
 | `screen:/goods/counts` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/pages/GoodsCounts.tsx` → no resolved local dependency | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | calls `api_consumer:frontend/src/pages/GoodsCounts.tsx:28ee45ec08a1`, `api_consumer:frontend/src/pages/GoodsCounts.tsx:2caf9586cf42`, `api_consumer:frontend/src/pages/GoodsCounts.tsx:363a7b2b9ed5`, `api_consumer:frontend/src/pages/GoodsCounts.tsx:59bcdd40664a`, `api_consumer:frontend/src/pages/GoodsCounts.tsx:6b86065e9b3e`, `api_consumer:frontend/src/pages/GoodsCounts.tsx:72fe59d08e24`, `api_consumer:frontend/src/pages/GoodsCounts.tsx:7bda643468ee`, `api_consumer:frontend/src/pages/GoodsCounts.tsx:7be03b2c23bd`, `api_consumer:frontend/src/pages/GoodsCounts.tsx:9a42db06e56c`, `api_consumer:frontend/src/pages/GoodsCounts.tsx:a88608c49c78`, `api_consumer:frontend/src/pages/GoodsCounts.tsx:b4ee8d8083d2`, `api_consumer:frontend/src/pages/GoodsCounts.tsx:b81e03e84d3f`, `api_consumer:frontend/src/pages/GoodsCounts.tsx:cf1c7238e943`, `api_consumer:frontend/src/pages/GoodsCounts.tsx:f9ce7e90e76c`; API `api:GET:/api/goods-v1/outbound/count-lookup`, `api:GET:/api/goods-v1/outbound/count-sessions/<uuid:pk>`, `api:GET:/api/goods-v1/outbound/stocktakes`, `api:GET:/api/goods-v1/outbound/stocktakes/<uuid:pk>`, `api:GET:/api/goods-v1/outbound/stocktakes/<uuid:pk>/variance`, `api:POST:/api/goods-v1/approvals/<uuid:pk>/decide`, `api:POST:/api/goods-v1/outbound/count-sessions/<uuid:pk>/resume`, `api:POST:/api/goods-v1/outbound/count-sessions/<uuid:pk>/scan`, `api:POST:/api/goods-v1/outbound/count-sessions/<uuid:pk>/submit`, `api:POST:/api/goods-v1/outbound/stocktakes`, `api:POST:/api/goods-v1/outbound/stocktakes/<uuid:pk>/close`, `api:POST:/api/goods-v1/outbound/stocktakes/<uuid:pk>/recount`, `api:POST:/api/goods-v1/outbound/stocktakes/<uuid:pk>/sessions`, `api:POST:/api/goods-v1/outbound/stocktakes/<uuid:pk>/submit-review`; runtime `unknown; static discovery is not execution tracing` |
 | `screen:/goods/counts/:id` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/pages/GoodsCounts.tsx` → no resolved local dependency | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | calls `api_consumer:frontend/src/pages/GoodsCounts.tsx:28ee45ec08a1`, `api_consumer:frontend/src/pages/GoodsCounts.tsx:2caf9586cf42`, `api_consumer:frontend/src/pages/GoodsCounts.tsx:363a7b2b9ed5`, `api_consumer:frontend/src/pages/GoodsCounts.tsx:59bcdd40664a`, `api_consumer:frontend/src/pages/GoodsCounts.tsx:6b86065e9b3e`, `api_consumer:frontend/src/pages/GoodsCounts.tsx:72fe59d08e24`, `api_consumer:frontend/src/pages/GoodsCounts.tsx:7bda643468ee`, `api_consumer:frontend/src/pages/GoodsCounts.tsx:7be03b2c23bd`, `api_consumer:frontend/src/pages/GoodsCounts.tsx:9a42db06e56c`, `api_consumer:frontend/src/pages/GoodsCounts.tsx:a88608c49c78`, `api_consumer:frontend/src/pages/GoodsCounts.tsx:b4ee8d8083d2`, `api_consumer:frontend/src/pages/GoodsCounts.tsx:b81e03e84d3f`, `api_consumer:frontend/src/pages/GoodsCounts.tsx:cf1c7238e943`, `api_consumer:frontend/src/pages/GoodsCounts.tsx:f9ce7e90e76c`; API `api:GET:/api/goods-v1/outbound/count-lookup`, `api:GET:/api/goods-v1/outbound/count-sessions/<uuid:pk>`, `api:GET:/api/goods-v1/outbound/stocktakes`, `api:GET:/api/goods-v1/outbound/stocktakes/<uuid:pk>`, `api:GET:/api/goods-v1/outbound/stocktakes/<uuid:pk>/variance`, `api:POST:/api/goods-v1/approvals/<uuid:pk>/decide`, `api:POST:/api/goods-v1/outbound/count-sessions/<uuid:pk>/resume`, `api:POST:/api/goods-v1/outbound/count-sessions/<uuid:pk>/scan`, `api:POST:/api/goods-v1/outbound/count-sessions/<uuid:pk>/submit`, `api:POST:/api/goods-v1/outbound/stocktakes`, `api:POST:/api/goods-v1/outbound/stocktakes/<uuid:pk>/close`, `api:POST:/api/goods-v1/outbound/stocktakes/<uuid:pk>/recount`, `api:POST:/api/goods-v1/outbound/stocktakes/<uuid:pk>/sessions`, `api:POST:/api/goods-v1/outbound/stocktakes/<uuid:pk>/submit-review`; runtime `unknown; static discovery is not execution tracing` |
+| `screen:/goods/stock-sync` | opening.import.stage at the exact store in one scoped assignment; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. SITE-before-DOCUMENT lock order. | `pending` | `frontend/src/pages/StockSync.tsx` → no resolved local dependency | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | calls `api_consumer:frontend/src/pages/StockSync.tsx:46ac19e29c99`, `api_consumer:frontend/src/pages/StockSync.tsx:95e9af9d5bdb`, `api_consumer:frontend/src/pages/StockSync.tsx:e8f873e76e4a`, `api_consumer:frontend/src/pages/StockSync.tsx:e9835bbe118b`; API `api:GET:/api/goods-v1/ptmapper/legacy-sync`; runtime `unknown; static discovery is not execution tracing` |
 | `screen:/stock-count` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/pages/StockCount.tsx` → no resolved local dependency | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | calls `api_consumer:frontend/src/pages/StockCount.tsx:40948daa4fd7`, `api_consumer:frontend/src/pages/StockCount.tsx:5d2c97b0bcad`, `api_consumer:frontend/src/pages/StockCount.tsx:821e66df074e`, `api_consumer:frontend/src/pages/StockCount.tsx:9ce9e793b88e`, `api_consumer:frontend/src/pages/StockCount.tsx:c1805035726b`, `api_consumer:frontend/src/pages/StockCount.tsx:d7b3b356fa19`, `api_consumer:frontend/src/pages/StockCount.tsx:ded2dec7212a`, `api_consumer:frontend/src/pages/StockCount.tsx:e48b3951d4aa`; API `api:GET:/api/masters/stores`, `api:GET:/api/outbound/count-lookup`, `api:GET:/api/outbound/stocktakes`, `api:GET:/api/outbound/stocktakes/<int:pk>`, `api:GET:/api/outbound/stocktakes/<int:pk>/variance`, `api:POST:/api/outbound/stocktakes`, `api:POST:/api/outbound/stocktakes/<int:pk>/recount`; runtime `unknown; static discovery is not execution tracing` |
 | `screen:/stock-count/:id` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/pages/StockCount.tsx` → no resolved local dependency | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | calls `api_consumer:frontend/src/pages/StockCount.tsx:40948daa4fd7`, `api_consumer:frontend/src/pages/StockCount.tsx:5d2c97b0bcad`, `api_consumer:frontend/src/pages/StockCount.tsx:821e66df074e`, `api_consumer:frontend/src/pages/StockCount.tsx:9ce9e793b88e`, `api_consumer:frontend/src/pages/StockCount.tsx:c1805035726b`, `api_consumer:frontend/src/pages/StockCount.tsx:d7b3b356fa19`, `api_consumer:frontend/src/pages/StockCount.tsx:ded2dec7212a`, `api_consumer:frontend/src/pages/StockCount.tsx:e48b3951d4aa`; API `api:GET:/api/masters/stores`, `api:GET:/api/outbound/count-lookup`, `api:GET:/api/outbound/stocktakes`, `api:GET:/api/outbound/stocktakes/<int:pk>`, `api:GET:/api/outbound/stocktakes/<int:pk>/variance`, `api:POST:/api/outbound/stocktakes`, `api:POST:/api/outbound/stocktakes/<int:pk>/recount`; runtime `unknown; static discovery is not execution tracing` |
 | `screen:/stock-count/adjustments` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/pages/OutboundAdjustments.tsx` → no resolved local dependency | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | calls `api_consumer:frontend/src/pages/OutboundAdjustments.tsx:346f08934efa`, `api_consumer:frontend/src/pages/OutboundAdjustments.tsx:3833738550fc`, `api_consumer:frontend/src/pages/OutboundAdjustments.tsx:4bfba94772f0`; API `api:GET:/api/outbound/adjustments`, `api:GET:/api/outbound/adjustments/<int:pk>`, `api:POST:/api/outbound/adjustments/<int:pk>/submit`; runtime `unknown; static discovery is not execution tracing` |
@@ -7998,6 +8175,24 @@ Direct data-import edges (module → model module):
 - `module:outbound.management.commands.fix_rtv28_vflip_brand` → `module:core.documents`
 - `module:outbound.management.commands.fix_rtv28_vflip_brand` → `module:outbound.models`
 - `module:outbound.management.commands.fix_rtv28_vflip_brand` → `module:stockledger.models`
+- `module:ptmapper.legacy_sales_services` → `module:core.kernel_models`
+- `module:ptmapper.legacy_sales_services` → `module:masters.models`
+- `module:ptmapper.legacy_sales_services` → `module:ptmapper.legacy_sales_models`
+- `module:ptmapper.legacy_sales_views` → `module:files.goods_models`
+- `module:ptmapper.legacy_sales_views` → `module:masters.models`
+- `module:ptmapper.legacy_sales_views` → `module:ptmapper.legacy_sales_models`
+- `module:ptmapper.stock_sync_services` → `module:core.documents`
+- `module:ptmapper.stock_sync_services` → `module:core.kernel_models`
+- `module:ptmapper.stock_sync_services` → `module:files.goods_models`
+- `module:ptmapper.stock_sync_services` → `module:masters.goods_models`
+- `module:ptmapper.stock_sync_services` → `module:masters.models`
+- `module:ptmapper.stock_sync_services` → `module:ptmapper.soh_models`
+- `module:ptmapper.stock_sync_services` → `module:ptmapper.stock_sync_models`
+- `module:ptmapper.stock_sync_services` → `module:sell.models`
+- `module:ptmapper.stock_sync_services` → `module:stockledger.goods_models`
+- `module:ptmapper.stock_sync_views` → `module:files.goods_models`
+- `module:ptmapper.stock_sync_views` → `module:ptmapper.legacy_sales_models`
+- `module:ptmapper.stock_sync_views` → `module:ptmapper.stock_sync_models`
 
 Cross-owner static downstream readers (owned service/model → importer):
 
@@ -8292,6 +8487,10 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:outbound.WriteOffLine` → `module:reporting.shrinkage_facts` (C15)
 - `model:outbound.WriteOffLine` → `module:search.views` (C15)
 - `model:outbound.WriteOffLine` → `module:storefront.dashboard` (C10)
+- `model:ptmapper.LegacySalesImport` → `module:ptmapper.models` (C05)
+- `model:ptmapper.LegacySalesRow` → `module:ptmapper.models` (C05)
+- `model:ptmapper.StockSync` → `module:ptmapper.models` (C05)
+- `model:ptmapper.StockSyncRow` → `module:ptmapper.models` (C05)
 
 Dynamic frontend API references requiring a consumer trace:
 
@@ -8301,6 +8500,7 @@ Dynamic frontend API references requiring a consumer trace:
 - `api_consumer:frontend/src/pages/SohReconciliation.tsx:d086061d9aeb` — `\`${base}/${count.id}/cancel\``
 - `api_consumer:frontend/src/pages/SohReconciliation.tsx:ec7e89b11f11` — `base`
 - `api_consumer:frontend/src/pages/StockCount.tsx:e48b3951d4aa` — `url`
+- `api_consumer:frontend/src/pages/StockSync.tsx:46ac19e29c99` — `path`
 
 ### C08 static writer candidates
 
@@ -8320,6 +8520,10 @@ These calls need a data-target and runtime-reachability review before the retire
 | `backend/outbound/goods_soh_reconciliation.py` (`module:outbound.goods_soh_reconciliation`) | `SohReconciliation.objects.create`, `engine.post`, `guard.save`, `guards[0].save`, `row.approval_request.save`, `row.save`, `run.record` | canonical |
 | `backend/outbound/goods_soh_views.py` (`module:outbound.goods_soh_views`) | `self.run_command` | canonical |
 | `backend/outbound/goods_writeoff.py` (`module:outbound.goods_writeoff`) | `engine.post` | canonical |
+| `backend/ptmapper/legacy_sales_services.py` (`module:ptmapper.legacy_sales_services`) | `LegacySalesImport.objects.create`, `LegacySalesRow.objects.bulk_create`, `LegacySalesRow.objects.bulk_update`, `engine.post`, `sold.save`, `source.save` | temporary_supported_legacy |
+| `backend/ptmapper/legacy_sales_views.py` (`module:ptmapper.legacy_sales_views`) | `self.run_command` | temporary_supported_legacy |
+| `backend/ptmapper/stock_sync_services.py` (`module:ptmapper.stock_sync_services`) | `AcceptanceSession.objects.create`, `SohImport.objects.create`, `SohImportRow.objects.bulk_create`, `StockSync.objects.create`, `StockSyncRow.objects.bulk_create`, `engine.post`, `new_items.add`, `run.record`, `sync.save` | temporary_supported_legacy |
+| `backend/ptmapper/stock_sync_views.py` (`module:ptmapper.stock_sync_views`) | `self.run_command` | temporary_supported_legacy |
 
 ## C09 — SO-08
 
@@ -8474,7 +8678,7 @@ These calls need a data-target and runtime-reachability review before the retire
 | Services | 31 tagged service modules: `module:sell.services.accept`, `module:sell.services.advances`, `module:sell.services.cancel`, `module:sell.services.costing_sweep`, `module:sell.services.daily_check`, `module:sell.services.dataset`, `module:sell.services.exchange_tax`, `module:sell.services.gift_stock`, `module:sell.services.gift_vouchers`, `module:sell.services.goods_sale`, `module:sell.services.goods_stock`, `module:sell.services.invoice_numbers`, `module:sell.services.margin_share`, `module:sell.services.missing_hsn`, `module:sell.services.movements`, `module:sell.services.no_bill_caps`, `module:sell.services.online`, `module:sell.services.overrides`, `module:sell.services.postings`, `module:sell.services.recompute`, `module:sell.services.refunds`, `module:sell.services.register`, `module:sell.services.resolve`, `module:sell.services.returned_pieces`, `module:sell.services.returns`, `module:sell.services.salespeople`, `module:sell.services.saved_sizes`, `module:sell.services.split_shares`, `module:sell.services.tax_rulebook`, `module:sell.services.till_authority`, `module:sell.services.working_set`. |
 | Offline client modules | 49 till/PWA modules: `client_module:frontend/src/pwa/config.ts`, `client_module:frontend/src/till/SyncLight.tsx`, `client_module:frontend/src/till/TillProvider.tsx`, `client_module:frontend/src/till/alteration.ts`, `client_module:frontend/src/till/authority.ts`, `client_module:frontend/src/till/barcode.ts`, `client_module:frontend/src/till/bills.ts`, `client_module:frontend/src/till/cart.ts`, `client_module:frontend/src/till/consent.ts`, `client_module:frontend/src/till/customerDisplay.ts`, `client_module:frontend/src/till/db.ts`, `client_module:frontend/src/till/draft.ts`, `client_module:frontend/src/till/engine.ts`, `client_module:frontend/src/till/exchange.ts`, `client_module:frontend/src/till/giftVoucher.ts`, `client_module:frontend/src/till/gstin.ts`, `client_module:frontend/src/till/guard.ts`, `client_module:frontend/src/till/held.ts`, `client_module:frontend/src/till/invoiceNumbers.ts`, `client_module:frontend/src/till/latest.ts`, `client_module:frontend/src/till/lookup.ts`, `client_module:frontend/src/till/numbering.ts`, `client_module:frontend/src/till/offers.ts`, `client_module:frontend/src/till/online.ts`, `client_module:frontend/src/till/onlineOnly.ts`, `client_module:frontend/src/till/original.ts`, `client_module:frontend/src/till/pause.ts`, `client_module:frontend/src/till/payment.ts`, `client_module:frontend/src/till/pin.ts`, `client_module:frontend/src/till/pricing.ts`, `client_module:frontend/src/till/print.ts`, `client_module:frontend/src/till/receipt.ts`, `client_module:frontend/src/till/returnTax.ts`, `client_module:frontend/src/till/sounds.ts`, `client_module:frontend/src/till/split.ts`, `client_module:frontend/src/till/status.ts`, `client_module:frontend/src/till/sync.ts`, `client_module:frontend/src/till/tax.ts`, `client_module:frontend/src/till/tender.ts`, `client_module:frontend/src/till/transport.ts`, `client_module:frontend/src/till/types.ts`, `client_module:frontend/src/till/undo.ts`, `client_module:frontend/src/till/useCart.ts`, `client_module:frontend/src/till/useCounterKeys.ts`, `client_module:frontend/src/till/useCounterRoom.ts`, `client_module:frontend/src/till/useScanBox.ts`, `client_module:frontend/src/till/useTillDisplay.ts`, `client_module:frontend/src/till/useTillWorld.ts`, `client_module:frontend/src/till/uuid.ts`. SO-09 owns retained-bill, dataset and sync cutover proof. |
 | Data | 28 owned model classes: `model:sell.BrandClaim`, `model:sell.BrandClaimPart`, `model:sell.ContinuityFlag`, `model:sell.CreditNote`, `model:sell.CreditNoteRedemption`, `model:sell.DeferredCosting`, `model:sell.ExchangeCreditNote`, `model:sell.GiftPiece`, `model:sell.GiftVoucher`, `model:sell.GiftVoucherMovement`, `model:sell.HeldBill`, `model:sell.OnlineSaleSubmission`, `model:sell.QuarantinedUpload`, `model:sell.RegisterHandover`, `model:sell.RegisteredTill`, `model:sell.Return`, `model:sell.ReturnLine`, `model:sell.Sale`, `model:sell.SaleLine`, `model:sell.SaleLineFunding`, `model:sell.SaleLineMarginShare`, `model:sell.SaleLineShare`, `model:sell.SavedSize`, `model:sell.SellPolicy`, `model:sell.TillAllocation`, `model:sell.TillNumberBlock`, `model:sell.TillPause`, `model:sell.WorkingSetVersion`. 139 direct model-module import edges from owned modules; 636 static read-call candidates in 60 backend/client modules (individual expressions are in the machine inventory). |
-| Downstream readers | 44 frontend API callsites; 42 endpoint/callsite links, 2 dynamic URL references; 864 cross-owner static backend import edges. |
+| Downstream readers | 44 frontend API callsites; 42 endpoint/callsite links, 2 dynamic URL references; 891 cross-owner static backend import edges. |
 | Lifecycle | canonical: 149, historical_read_only: 37, retirement_candidate: 2, temporary_supported_legacy: 36, unresolved: 55. |
 
 ### Entry-point dependency traces
@@ -8714,6 +8918,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.ContinuityFlag` → `module:accounts.goods_demo` (A00)
 - `model:sell.ContinuityFlag` → `module:masters.goods_services` (C01)
 - `model:sell.ContinuityFlag` → `module:outbound.size_balancing` (C06)
+- `model:sell.ContinuityFlag` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.ContinuityFlag` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.ContinuityFlag` → `module:reporting.discount_funding` (C03)
 - `model:sell.ContinuityFlag` → `module:reporting.exception_facts` (C15)
@@ -8748,6 +8953,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.CreditNote` → `module:accounts.goods_demo` (A00)
 - `model:sell.CreditNote` → `module:masters.goods_services` (C01)
 - `model:sell.CreditNote` → `module:outbound.size_balancing` (C06)
+- `model:sell.CreditNote` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.CreditNote` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.CreditNote` → `module:reporting.discount_funding` (C03)
 - `model:sell.CreditNote` → `module:reporting.exception_facts` (C15)
@@ -8782,6 +8988,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.CreditNoteRedemption` → `module:accounts.goods_demo` (A00)
 - `model:sell.CreditNoteRedemption` → `module:masters.goods_services` (C01)
 - `model:sell.CreditNoteRedemption` → `module:outbound.size_balancing` (C06)
+- `model:sell.CreditNoteRedemption` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.CreditNoteRedemption` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.CreditNoteRedemption` → `module:reporting.discount_funding` (C03)
 - `model:sell.CreditNoteRedemption` → `module:reporting.exception_facts` (C15)
@@ -8816,6 +9023,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.DeferredCosting` → `module:accounts.goods_demo` (A00)
 - `model:sell.DeferredCosting` → `module:masters.goods_services` (C01)
 - `model:sell.DeferredCosting` → `module:outbound.size_balancing` (C06)
+- `model:sell.DeferredCosting` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.DeferredCosting` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.DeferredCosting` → `module:reporting.discount_funding` (C03)
 - `model:sell.DeferredCosting` → `module:reporting.exception_facts` (C15)
@@ -8850,6 +9058,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.ExchangeCreditNote` → `module:accounts.goods_demo` (A00)
 - `model:sell.ExchangeCreditNote` → `module:masters.goods_services` (C01)
 - `model:sell.ExchangeCreditNote` → `module:outbound.size_balancing` (C06)
+- `model:sell.ExchangeCreditNote` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.ExchangeCreditNote` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.ExchangeCreditNote` → `module:reporting.discount_funding` (C03)
 - `model:sell.ExchangeCreditNote` → `module:reporting.exception_facts` (C15)
@@ -8884,6 +9093,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.GiftPiece` → `module:accounts.goods_demo` (A00)
 - `model:sell.GiftPiece` → `module:masters.goods_services` (C01)
 - `model:sell.GiftPiece` → `module:outbound.size_balancing` (C06)
+- `model:sell.GiftPiece` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.GiftPiece` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.GiftPiece` → `module:reporting.discount_funding` (C03)
 - `model:sell.GiftPiece` → `module:reporting.exception_facts` (C15)
@@ -8918,6 +9128,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.HeldBill` → `module:accounts.goods_demo` (A00)
 - `model:sell.HeldBill` → `module:masters.goods_services` (C01)
 - `model:sell.HeldBill` → `module:outbound.size_balancing` (C06)
+- `model:sell.HeldBill` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.HeldBill` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.HeldBill` → `module:reporting.discount_funding` (C03)
 - `model:sell.HeldBill` → `module:reporting.exception_facts` (C15)
@@ -8952,6 +9163,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.OnlineSaleSubmission` → `module:accounts.goods_demo` (A00)
 - `model:sell.OnlineSaleSubmission` → `module:masters.goods_services` (C01)
 - `model:sell.OnlineSaleSubmission` → `module:outbound.size_balancing` (C06)
+- `model:sell.OnlineSaleSubmission` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.OnlineSaleSubmission` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.OnlineSaleSubmission` → `module:reporting.discount_funding` (C03)
 - `model:sell.OnlineSaleSubmission` → `module:reporting.exception_facts` (C15)
@@ -8986,6 +9198,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.QuarantinedUpload` → `module:accounts.goods_demo` (A00)
 - `model:sell.QuarantinedUpload` → `module:masters.goods_services` (C01)
 - `model:sell.QuarantinedUpload` → `module:outbound.size_balancing` (C06)
+- `model:sell.QuarantinedUpload` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.QuarantinedUpload` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.QuarantinedUpload` → `module:reporting.discount_funding` (C03)
 - `model:sell.QuarantinedUpload` → `module:reporting.exception_facts` (C15)
@@ -9020,6 +9233,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.RegisterHandover` → `module:accounts.goods_demo` (A00)
 - `model:sell.RegisterHandover` → `module:masters.goods_services` (C01)
 - `model:sell.RegisterHandover` → `module:outbound.size_balancing` (C06)
+- `model:sell.RegisterHandover` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.RegisterHandover` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.RegisterHandover` → `module:reporting.discount_funding` (C03)
 - `model:sell.RegisterHandover` → `module:reporting.exception_facts` (C15)
@@ -9054,6 +9268,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.RegisteredTill` → `module:accounts.goods_demo` (A00)
 - `model:sell.RegisteredTill` → `module:masters.goods_services` (C01)
 - `model:sell.RegisteredTill` → `module:outbound.size_balancing` (C06)
+- `model:sell.RegisteredTill` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.RegisteredTill` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.RegisteredTill` → `module:reporting.discount_funding` (C03)
 - `model:sell.RegisteredTill` → `module:reporting.exception_facts` (C15)
@@ -9088,6 +9303,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.Return` → `module:accounts.goods_demo` (A00)
 - `model:sell.Return` → `module:masters.goods_services` (C01)
 - `model:sell.Return` → `module:outbound.size_balancing` (C06)
+- `model:sell.Return` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.Return` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.Return` → `module:reporting.discount_funding` (C03)
 - `model:sell.Return` → `module:reporting.exception_facts` (C15)
@@ -9122,6 +9338,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.ReturnLine` → `module:accounts.goods_demo` (A00)
 - `model:sell.ReturnLine` → `module:masters.goods_services` (C01)
 - `model:sell.ReturnLine` → `module:outbound.size_balancing` (C06)
+- `model:sell.ReturnLine` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.ReturnLine` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.ReturnLine` → `module:reporting.discount_funding` (C03)
 - `model:sell.ReturnLine` → `module:reporting.exception_facts` (C15)
@@ -9156,6 +9373,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.Sale` → `module:accounts.goods_demo` (A00)
 - `model:sell.Sale` → `module:masters.goods_services` (C01)
 - `model:sell.Sale` → `module:outbound.size_balancing` (C06)
+- `model:sell.Sale` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.Sale` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.Sale` → `module:reporting.discount_funding` (C03)
 - `model:sell.Sale` → `module:reporting.exception_facts` (C15)
@@ -9190,6 +9408,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.SaleLine` → `module:accounts.goods_demo` (A00)
 - `model:sell.SaleLine` → `module:masters.goods_services` (C01)
 - `model:sell.SaleLine` → `module:outbound.size_balancing` (C06)
+- `model:sell.SaleLine` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.SaleLine` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.SaleLine` → `module:reporting.discount_funding` (C03)
 - `model:sell.SaleLine` → `module:reporting.exception_facts` (C15)
@@ -9224,6 +9443,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.SaleLineFunding` → `module:accounts.goods_demo` (A00)
 - `model:sell.SaleLineFunding` → `module:masters.goods_services` (C01)
 - `model:sell.SaleLineFunding` → `module:outbound.size_balancing` (C06)
+- `model:sell.SaleLineFunding` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.SaleLineFunding` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.SaleLineFunding` → `module:reporting.discount_funding` (C03)
 - `model:sell.SaleLineFunding` → `module:reporting.exception_facts` (C15)
@@ -9258,6 +9478,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.SaleLineMarginShare` → `module:accounts.goods_demo` (A00)
 - `model:sell.SaleLineMarginShare` → `module:masters.goods_services` (C01)
 - `model:sell.SaleLineMarginShare` → `module:outbound.size_balancing` (C06)
+- `model:sell.SaleLineMarginShare` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.SaleLineMarginShare` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.SaleLineMarginShare` → `module:reporting.discount_funding` (C03)
 - `model:sell.SaleLineMarginShare` → `module:reporting.exception_facts` (C15)
@@ -9292,6 +9513,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.SaleLineShare` → `module:accounts.goods_demo` (A00)
 - `model:sell.SaleLineShare` → `module:masters.goods_services` (C01)
 - `model:sell.SaleLineShare` → `module:outbound.size_balancing` (C06)
+- `model:sell.SaleLineShare` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.SaleLineShare` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.SaleLineShare` → `module:reporting.discount_funding` (C03)
 - `model:sell.SaleLineShare` → `module:reporting.exception_facts` (C15)
@@ -9326,6 +9548,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.SavedSize` → `module:accounts.goods_demo` (A00)
 - `model:sell.SavedSize` → `module:masters.goods_services` (C01)
 - `model:sell.SavedSize` → `module:outbound.size_balancing` (C06)
+- `model:sell.SavedSize` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.SavedSize` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.SavedSize` → `module:reporting.discount_funding` (C03)
 - `model:sell.SavedSize` → `module:reporting.exception_facts` (C15)
@@ -9360,6 +9583,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.SellPolicy` → `module:accounts.goods_demo` (A00)
 - `model:sell.SellPolicy` → `module:masters.goods_services` (C01)
 - `model:sell.SellPolicy` → `module:outbound.size_balancing` (C06)
+- `model:sell.SellPolicy` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.SellPolicy` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.SellPolicy` → `module:reporting.discount_funding` (C03)
 - `model:sell.SellPolicy` → `module:reporting.exception_facts` (C15)
@@ -9394,6 +9618,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.TillAllocation` → `module:accounts.goods_demo` (A00)
 - `model:sell.TillAllocation` → `module:masters.goods_services` (C01)
 - `model:sell.TillAllocation` → `module:outbound.size_balancing` (C06)
+- `model:sell.TillAllocation` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.TillAllocation` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.TillAllocation` → `module:reporting.discount_funding` (C03)
 - `model:sell.TillAllocation` → `module:reporting.exception_facts` (C15)
@@ -9428,6 +9653,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.TillNumberBlock` → `module:accounts.goods_demo` (A00)
 - `model:sell.TillNumberBlock` → `module:masters.goods_services` (C01)
 - `model:sell.TillNumberBlock` → `module:outbound.size_balancing` (C06)
+- `model:sell.TillNumberBlock` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.TillNumberBlock` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.TillNumberBlock` → `module:reporting.discount_funding` (C03)
 - `model:sell.TillNumberBlock` → `module:reporting.exception_facts` (C15)
@@ -9462,6 +9688,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.TillPause` → `module:accounts.goods_demo` (A00)
 - `model:sell.TillPause` → `module:masters.goods_services` (C01)
 - `model:sell.TillPause` → `module:outbound.size_balancing` (C06)
+- `model:sell.TillPause` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.TillPause` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.TillPause` → `module:reporting.discount_funding` (C03)
 - `model:sell.TillPause` → `module:reporting.exception_facts` (C15)
@@ -9496,6 +9723,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.WorkingSetVersion` → `module:accounts.goods_demo` (A00)
 - `model:sell.WorkingSetVersion` → `module:masters.goods_services` (C01)
 - `model:sell.WorkingSetVersion` → `module:outbound.size_balancing` (C06)
+- `model:sell.WorkingSetVersion` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.WorkingSetVersion` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.WorkingSetVersion` → `module:reporting.discount_funding` (C03)
 - `model:sell.WorkingSetVersion` → `module:reporting.exception_facts` (C15)
@@ -9532,9 +9760,12 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `module:sell.services.advances` → `module:sell.services.reservations` (C12)
 - `module:sell.services.advances` → `module:sell.services.special_orders` (C12)
 - `module:sell.services.dataset` → `module:sell.services.running_offers` (C03)
+- `module:sell.services.goods_sale` → `module:ptmapper.legacy_sales_services` (C08)
+- `module:sell.services.goods_sale` → `module:ptmapper.stock_sync_services` (C08)
 - `module:sell.services.goods_sale` → `module:stockledger.goods_views` (C06)
 - `module:sell.services.goods_stock` → `module:masters.first_store_readiness` (C01)
 - `module:sell.services.goods_stock` → `module:offers.price_views` (C03)
+- `module:sell.services.goods_stock` → `module:ptmapper.stock_sync_services` (C08)
 - `module:sell.services.goods_stock` → `module:sell.services.reservations` (C12)
 - `module:sell.services.goods_stock` → `module:sell.services.special_orders` (C12)
 - `module:sell.services.goods_stock` → `module:sell.special_order_views` (C12)
@@ -9634,7 +9865,7 @@ These calls need a data-target and runtime-reachability review before the retire
 | Services | 5 tagged service modules: `module:sell.services.consent`, `module:sell.services.customer_numbers`, `module:sell.services.customer_retention`, `module:sell.services.customer_rights`, `module:sell.services.customers`. |
 | Offline client modules | 0 till/PWA modules: None discovered. |
 | Data | 5 owned model classes: `model:masters.ConsentWording`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:sell.ConsentAnswer`, `model:sell.CustomerErasure`. 13 direct model-module import edges from owned modules; 82 static read-call candidates in 8 backend/client modules (individual expressions are in the machine inventory). |
-| Downstream readers | 2 frontend API callsites; 2 endpoint/callsite links, 0 dynamic URL references; 485 cross-owner static backend import edges. |
+| Downstream readers | 2 frontend API callsites; 2 endpoint/callsite links, 0 dynamic URL references; 497 cross-owner static backend import edges. |
 | Lifecycle | canonical: 23, historical_read_only: 8, temporary_supported_legacy: 4. |
 
 ### Entry-point dependency traces
@@ -9683,6 +9914,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Customer` → `module:accounts.goods_models` (A00)
 - `model:masters.Customer` → `module:accounts.management.commands.load_real_masters` (A00)
 - `model:masters.Customer` → `module:accounts.management.commands.seed_foundation` (A00)
+- `model:masters.Customer` → `module:accounts.management.commands.setup_store_test_run` (C01)
 - `model:masters.Customer` → `module:accounts.principal` (A00)
 - `model:masters.Customer` → `module:accounts.registration_services` (A00)
 - `model:masters.Customer` → `module:accounts.registration_views` (A00)
@@ -9691,6 +9923,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Customer` → `module:accounts.session_payload` (A00)
 - `model:masters.Customer` → `module:accounts.unified_admin` (A00)
 - `model:masters.Customer` → `module:accounts.views` (A00)
+- `model:masters.Customer` → `module:accounts.warehouse_manager` (A00)
 - `model:masters.Customer` → `module:alerts.checks` (C15)
 - `model:masters.Customer` → `module:approvals.services` (C15)
 - `model:masters.Customer` → `module:approvals.unified_authority` (A00)
@@ -9762,8 +9995,11 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Customer` → `module:ptmapper.goods_rulebook` (C05)
 - `model:masters.Customer` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.Customer` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:masters.Customer` → `module:ptmapper.legacy_sales_services` (C08)
+- `model:masters.Customer` → `module:ptmapper.legacy_sales_views` (C08)
 - `model:masters.Customer` → `module:ptmapper.soh_services` (C05)
 - `model:masters.Customer` → `module:ptmapper.soh_views` (C05)
+- `model:masters.Customer` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.Customer` → `module:reporting.base` (C15)
 - `model:masters.Customer` → `module:reporting.brand_layouts` (C14)
 - `model:masters.Customer` → `module:reporting.brand_performance` (C14)
@@ -9860,6 +10096,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.CustomerNumber` → `module:accounts.goods_models` (A00)
 - `model:masters.CustomerNumber` → `module:accounts.management.commands.load_real_masters` (A00)
 - `model:masters.CustomerNumber` → `module:accounts.management.commands.seed_foundation` (A00)
+- `model:masters.CustomerNumber` → `module:accounts.management.commands.setup_store_test_run` (C01)
 - `model:masters.CustomerNumber` → `module:accounts.principal` (A00)
 - `model:masters.CustomerNumber` → `module:accounts.registration_services` (A00)
 - `model:masters.CustomerNumber` → `module:accounts.registration_views` (A00)
@@ -9868,6 +10105,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.CustomerNumber` → `module:accounts.session_payload` (A00)
 - `model:masters.CustomerNumber` → `module:accounts.unified_admin` (A00)
 - `model:masters.CustomerNumber` → `module:accounts.views` (A00)
+- `model:masters.CustomerNumber` → `module:accounts.warehouse_manager` (A00)
 - `model:masters.CustomerNumber` → `module:alerts.checks` (C15)
 - `model:masters.CustomerNumber` → `module:approvals.services` (C15)
 - `model:masters.CustomerNumber` → `module:approvals.unified_authority` (A00)
@@ -9939,8 +10177,11 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.CustomerNumber` → `module:ptmapper.goods_rulebook` (C05)
 - `model:masters.CustomerNumber` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.CustomerNumber` → `module:ptmapper.goods_vocab_views` (C05)
+- `model:masters.CustomerNumber` → `module:ptmapper.legacy_sales_services` (C08)
+- `model:masters.CustomerNumber` → `module:ptmapper.legacy_sales_views` (C08)
 - `model:masters.CustomerNumber` → `module:ptmapper.soh_services` (C05)
 - `model:masters.CustomerNumber` → `module:ptmapper.soh_views` (C05)
+- `model:masters.CustomerNumber` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.CustomerNumber` → `module:reporting.base` (C15)
 - `model:masters.CustomerNumber` → `module:reporting.brand_layouts` (C14)
 - `model:masters.CustomerNumber` → `module:reporting.brand_performance` (C14)
@@ -10034,6 +10275,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.ConsentAnswer` → `module:accounts.goods_demo` (A00)
 - `model:sell.ConsentAnswer` → `module:masters.goods_services` (C01)
 - `model:sell.ConsentAnswer` → `module:outbound.size_balancing` (C06)
+- `model:sell.ConsentAnswer` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.ConsentAnswer` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.ConsentAnswer` → `module:reporting.discount_funding` (C03)
 - `model:sell.ConsentAnswer` → `module:reporting.exception_facts` (C15)
@@ -10093,6 +10335,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.CustomerErasure` → `module:accounts.goods_demo` (A00)
 - `model:sell.CustomerErasure` → `module:masters.goods_services` (C01)
 - `model:sell.CustomerErasure` → `module:outbound.size_balancing` (C06)
+- `model:sell.CustomerErasure` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.CustomerErasure` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.CustomerErasure` → `module:reporting.discount_funding` (C03)
 - `model:sell.CustomerErasure` → `module:reporting.exception_facts` (C15)
@@ -10328,7 +10571,7 @@ These calls need a data-target and runtime-reachability review before the retire
 | Services | 3 tagged service modules: `module:finledger.posting`, `module:sell.services.cash_count`, `module:sell.services.petty_cash`. |
 | Offline client modules | 0 till/PWA modules: None discovered. |
 | Data | 16 owned model classes: `model:finledger.CashLedgerEntry`, `model:finledger.PartnerLedgerEntry`, `model:finledger.PayableAllocation`, `model:finledger.PayableInvoice`, `model:finledger.PayablePayment`, `model:finledger.VendorLedgerEntry`, `model:inbound.DebitNote`, `model:inbound.DebitNoteSource`, `model:outbound.BillingPolicy`, `model:sell.CashCount`, `model:sell.CashCountBill`, `model:sell.CashMovement`, `model:sell.PettyCashFloat`, `model:sell.PettyCashSpend`, `model:sell.PettyCashTopUp`, `model:sell.SaleTender`. 44 direct model-module import edges from owned modules; 236 static read-call candidates in 13 backend/client modules (individual expressions are in the machine inventory). |
-| Downstream readers | 30 frontend API callsites; 24 endpoint/callsite links, 5 dynamic URL references; 112 cross-owner static backend import edges. |
+| Downstream readers | 30 frontend API callsites; 24 endpoint/callsite links, 5 dynamic URL references; 113 cross-owner static backend import edges. |
 | Lifecycle | canonical: 118, historical_read_only: 14, temporary_supported_legacy: 18, unresolved: 16. |
 
 ### Entry-point dependency traces
@@ -10512,6 +10755,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.SaleTender` → `module:accounts.goods_demo` (A00)
 - `model:sell.SaleTender` → `module:masters.goods_services` (C01)
 - `model:sell.SaleTender` → `module:outbound.size_balancing` (C06)
+- `model:sell.SaleTender` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.SaleTender` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.SaleTender` → `module:reporting.discount_funding` (C03)
 - `model:sell.SaleTender` → `module:reporting.exception_facts` (C15)
@@ -10855,7 +11099,7 @@ These calls need a data-target and runtime-reachability review before the retire
 | Services | 4 tagged service modules: `module:alerts.goods_services`, `module:approvals.goods_services`, `module:approvals.services`, `module:files.goods_services`. |
 | Offline client modules | 0 till/PWA modules: None discovered. |
 | Data | 35 owned model classes: `model:alerts.Alert`, `model:alerts.AlertPolicy`, `model:alerts.AlertSeen`, `model:alerts.ExceptionEvent`, `model:alerts.GoodsException`, `model:alerts.GoodsNotification`, `model:alerts.NotificationAcknowledgement`, `model:alerts.OriginInvestigationOutcome`, `model:approvals.ActionDraft`, `model:approvals.Approval`, `model:approvals.ApprovalDecision`, `model:approvals.ApprovalPolicy`, `model:approvals.ApprovalRequest`, `model:approvals.ApprovalRoute`, `model:approvals.ApprovalStepDecision`, `model:files.EvidenceLink`, `model:files.EvidenceObject`, `model:files.StoredFile`, `model:files.UploadIntent`, `model:masters.StoreFeatureSwitch`, `model:reporting.ExceptionFact`, `model:reporting.GiftItcFact`, `model:reporting.InventoryItemFact`, `model:reporting.InventoryReceiptFact`, `model:reporting.InventorySnapshot`, `model:reporting.InventoryStockFact`, `model:reporting.OfferSimLineFact`, `model:reporting.OfferSimulation`, `model:reporting.ReportRefresh`, `model:reporting.SalesLineFact`, `model:reporting.SalesTenderFact`, `model:reporting.ShrinkageLineFact`, `model:storefront.ChecklistMiss`, `model:storefront.ChecklistTemplate`, `model:storefront.ChecklistTick`. 124 direct model-module import edges from owned modules; 653 static read-call candidates in 48 backend/client modules (individual expressions are in the machine inventory). |
-| Downstream readers | 54 frontend API callsites; 59 endpoint/callsite links, 5 dynamic URL references; 446 cross-owner static backend import edges. |
+| Downstream readers | 54 frontend API callsites; 59 endpoint/callsite links, 5 dynamic URL references; 457 cross-owner static backend import edges. |
 | Lifecycle | canonical: 206, historical_read_only: 61, temporary_supported_legacy: 67, unresolved: 14. |
 
 ### Entry-point dependency traces
@@ -11339,8 +11583,11 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:files.EvidenceLink` → `module:ptmapper.goods_canonical` (C05)
 - `model:files.EvidenceLink` → `module:ptmapper.goods_manifest_services` (C05)
 - `model:files.EvidenceLink` → `module:ptmapper.goods_pt_views` (C05)
+- `model:files.EvidenceLink` → `module:ptmapper.legacy_sales_views` (C08)
 - `model:files.EvidenceLink` → `module:ptmapper.soh_services` (C05)
 - `model:files.EvidenceLink` → `module:ptmapper.soh_views` (C05)
+- `model:files.EvidenceLink` → `module:ptmapper.stock_sync_services` (C08)
+- `model:files.EvidenceLink` → `module:ptmapper.stock_sync_views` (C08)
 - `model:files.EvidenceLink` → `module:vendors.goods_services` (C04)
 - `model:files.EvidenceObject` → `module:inbound.goods_services` (C05)
 - `model:files.EvidenceObject` → `module:masters.goods_views` (C01)
@@ -11353,8 +11600,11 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:files.EvidenceObject` → `module:ptmapper.goods_canonical` (C05)
 - `model:files.EvidenceObject` → `module:ptmapper.goods_manifest_services` (C05)
 - `model:files.EvidenceObject` → `module:ptmapper.goods_pt_views` (C05)
+- `model:files.EvidenceObject` → `module:ptmapper.legacy_sales_views` (C08)
 - `model:files.EvidenceObject` → `module:ptmapper.soh_services` (C05)
 - `model:files.EvidenceObject` → `module:ptmapper.soh_views` (C05)
+- `model:files.EvidenceObject` → `module:ptmapper.stock_sync_services` (C08)
+- `model:files.EvidenceObject` → `module:ptmapper.stock_sync_views` (C08)
 - `model:files.EvidenceObject` → `module:vendors.goods_services` (C04)
 - `model:files.StoredFile` → `module:finledger.views` (C13)
 - `model:files.StoredFile` → `module:vendors.views` (C04)
@@ -11369,8 +11619,11 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:files.UploadIntent` → `module:ptmapper.goods_canonical` (C05)
 - `model:files.UploadIntent` → `module:ptmapper.goods_manifest_services` (C05)
 - `model:files.UploadIntent` → `module:ptmapper.goods_pt_views` (C05)
+- `model:files.UploadIntent` → `module:ptmapper.legacy_sales_views` (C08)
 - `model:files.UploadIntent` → `module:ptmapper.soh_services` (C05)
 - `model:files.UploadIntent` → `module:ptmapper.soh_views` (C05)
+- `model:files.UploadIntent` → `module:ptmapper.stock_sync_services` (C08)
+- `model:files.UploadIntent` → `module:ptmapper.stock_sync_views` (C08)
 - `model:files.UploadIntent` → `module:vendors.goods_services` (C04)
 - `model:masters.StoreFeatureSwitch` → `module:masters.models` (C01)
 - `model:masters.StoreFeatureSwitch` → `module:sell.services.online` (C10)
@@ -11572,7 +11825,9 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `module:files.goods_services` → `module:ptmapper.goods_brand_intake` (C05)
 - `module:files.goods_services` → `module:ptmapper.goods_canonical` (C05)
 - `module:files.goods_services` → `module:ptmapper.goods_pt_views` (C05)
+- `module:files.goods_services` → `module:ptmapper.legacy_sales_views` (C08)
 - `module:files.goods_services` → `module:ptmapper.soh_views` (C05)
+- `module:files.goods_services` → `module:ptmapper.stock_sync_views` (C08)
 
 Dynamic frontend API references requiring a consumer trace:
 
@@ -11632,7 +11887,7 @@ These calls need a data-target and runtime-reachability review before the retire
 | Services | 0 tagged service modules: None discovered. |
 | Offline client modules | 0 till/PWA modules: None discovered. |
 | Data | 7 owned model classes: `model:finledger.BankStatementImport`, `model:finledger.BankStatementLine`, `model:reporting.GstDocumentFact`, `model:reporting.GstLineFact`, `model:reporting.GstNumberFact`, `model:reporting.GstOpenBlockFact`, `model:sell.IrnQueueItem`. 7 direct model-module import edges from owned modules; 75 static read-call candidates in 2 backend/client modules (individual expressions are in the machine inventory). |
-| Downstream readers | 7 frontend API callsites; 6 endpoint/callsite links, 1 dynamic URL references; 176 cross-owner static backend import edges. |
+| Downstream readers | 7 frontend API callsites; 6 endpoint/callsite links, 1 dynamic URL references; 177 cross-owner static backend import edges. |
 | Lifecycle | canonical: 24, historical_read_only: 2, temporary_supported_legacy: 9, unresolved: 1. |
 
 ### Entry-point dependency traces
@@ -11793,6 +12048,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:sell.IrnQueueItem` → `module:accounts.goods_demo` (A00)
 - `model:sell.IrnQueueItem` → `module:masters.goods_services` (C01)
 - `model:sell.IrnQueueItem` → `module:outbound.size_balancing` (C06)
+- `model:sell.IrnQueueItem` → `module:ptmapper.stock_sync_services` (C08)
 - `model:sell.IrnQueueItem` → `module:reporting.brand_sale_facts` (C14)
 - `model:sell.IrnQueueItem` → `module:reporting.discount_funding` (C03)
 - `model:sell.IrnQueueItem` → `module:reporting.exception_facts` (C15)

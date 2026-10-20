@@ -138,6 +138,7 @@ SESSION_RESPONSE: dict[str, Any] = {
         "expires_at",
         "step_up_valid_until",
         "store_features",
+        "test_environment",
     ],
     "properties": {
         "contract_version": {"type": "string", "enum": ["access-v2"]},
@@ -214,6 +215,13 @@ SESSION_RESPONSE: dict[str, Any] = {
         },
         "expires_at": {"type": "string", "format": "date-time"},
         "step_up_valid_until": {"type": "string", "format": "date-time", "nullable": True},
+        "test_environment": {
+            "type": "boolean",
+            "description": (
+                "True when this tenant is synthetic (baseline B1): screens show a test "
+                "badge and every printed document is marked as not a tax invoice."
+            ),
+        },
         "store_features": {
             "type": "object",
             "additionalProperties": {"type": "array", "items": {"type": "string"}},

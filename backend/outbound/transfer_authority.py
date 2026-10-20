@@ -7,6 +7,8 @@ command; intermediate steps record evidence and move nothing.
 from __future__ import annotations
 
 import uuid
+from collections.abc import Iterable
+from datetime import datetime
 from typing import Any
 
 from approvals.goods_models import ApprovalRequest
@@ -60,15 +62,21 @@ def snapshot(run: CommandRun, transfer: GoodsTransfer, head: DocumentHead, plan:
         "cells": [list(cell) for cell in sorted(cells)], "qty": qty, "value_paise": None if unknown else str(value)}
 
 
+def shared_policy(tenant_id: uuid.UUID, now: datetime, site_ids: Iterable[int], brand_ids: list[int]) -> ConfigVersion:
+    """The one transfer approval policy in force at every site in ``site_ids`` for ``brand_ids``."""
+    found = {resolve(tenant_id, "approval", ConfigTarget.of(now, site_id=site, brand_ids=brand_ids, purpose="transfer"), match={"action": ACTION}, code="APPROVAL_POLICY_BLOCKED", path="approval_policy") for site in site_ids}
+    if len(found) != 1:
+        raise Refusal("APPROVAL_POLICY_BLOCKED", "Both sites must share one explicit transfer approval policy.", status=422)
+    return found.pop()
+
+
 def submit(run: CommandRun, transfer: GoodsTransfer, head: DocumentHead, plan: DocumentHead, *, new_subject: bool = True) -> ApprovalRequest:
     evidence = snapshot(run, transfer, head, plan)
     brands = sorted({cell[1] for cell in evidence["cells"]})
     policy = pin(run, action=ACTION, purpose="transfer", site_id=transfer.source_site_id,
         brand_ids=brands, amounts=Amounts(evidence["qty"], int(evidence["value_paise"]) if evidence["value_paise"] is not None else None))
-    for site in (transfer.source_site_id, transfer.destination_site_id):
-        current = resolve(run.tenant_id, "approval", ConfigTarget.of(run.now, site_id=site, brand_ids=brands, purpose="transfer"), match={"action": ACTION}, code="APPROVAL_POLICY_BLOCKED", path="approval_policy")
-        if current.pk != policy.version_id:
-            raise Refusal("APPROVAL_POLICY_BLOCKED", "Both sites must share one explicit transfer approval policy.", status=422)
+    if shared_policy(run.tenant_id, run.now, (transfer.source_site_id, transfer.destination_site_id), brands).pk != policy.version_id:
+        raise Refusal("APPROVAL_POLICY_BLOCKED", "Both sites must share one explicit transfer approval policy.", status=422)
     version = ConfigVersion.objects.get(pk=policy.version_id)
     for step in policy.basis["steps"]:
         if band_failure({**version.payload, **step}, Amounts(evidence["qty"], int(evidence["value_paise"]) if evidence["value_paise"] is not None else None)):

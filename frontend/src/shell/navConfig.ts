@@ -460,6 +460,8 @@ export const SECTIONS: NavSectionDef[] = [
           "pt.approve.opening",
         ],
       },
+      // Store test run (test tenant only): the nightly legacy SOH / sales sync.
+      { label: "Legacy sync", to: "/goods/stock-sync", goodsActions: ["opening.import.stage"] },
     ],
   },
   {
@@ -1364,7 +1366,7 @@ export const SELL_STRIP: NavStripDef = {
 // OPS-17 and the manifest in OPS-18, with its screen.
 export const RECEIVE_INBOX_STRIP: NavStripDef = {
   section: "receive_goods",
-  tabs: ["/goods/receive", "/goods/receive/history", "/goods/opening"],
+  tabs: ["/goods/receive", "/goods/receive/history", "/goods/opening", "/goods/stock-sync"],
   goodsTabs: [],
 };
 
@@ -1379,6 +1381,7 @@ export const WAREHOUSE_RECEIVE_STRIP: NavStripDef = {
     "/goods/pt-work",
     "/goods/labels",
     "/goods/opening",
+    "/goods/stock-sync",
   ],
   goodsTabs: [],
 };
@@ -1566,6 +1569,10 @@ const WAREHOUSE_LAYOUT: PersonaLayout = [
 export const PERSONA_LAYOUTS: Record<string, PersonaLayout> = {
   store_person: STORE_LAYOUT,
   warehouse: WAREHOUSE_LAYOUT,
+  // The tenant's Warehouse manager policy (backend `accounts/warehouse_manager.py`)
+  // is the warehouse persona with approval and store oversight; Sell and Setup,
+  // which it may view, are appended by `applyLayout` in the server's order.
+  warehouse_manager: WAREHOUSE_LAYOUT,
 };
 
 // Everyone else - Owner, Accounts, Brand Manager, Admin - reads the store operations

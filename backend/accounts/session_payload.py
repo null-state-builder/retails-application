@@ -19,7 +19,7 @@ from core.canonical import sha256_hex
 
 
 def session_payload(user: Any, session: Any, *, csrf_token: str | None = None) -> dict[str, Any]:
-    from masters.goods_models import MasterVersion, SiteGuard
+    from masters.goods_models import MasterVersion, SiteGuard, Tenant
     from masters.models import Brand, Store
     from masters.store_features import features_on_by_site
     from accounts.unified_policy import WORKFLOW_TARGET_KEY
@@ -70,6 +70,12 @@ def session_payload(user: Any, session: Any, *, csrf_token: str | None = None) -
         )
     )
     human = user.human
+    # Baseline B1: a synthetic tenant is a test environment. The screens and
+    # every printed document say so, so test paper is never taken for a real
+    # tax invoice while the legacy software does the store's real billing.
+    test_environment = bool(
+        Tenant.objects.filter(pk=user.tenant_id).values_list("synthetic", flat=True).first()
+    )
     payload: dict[str, Any] = {
         "contract_version": "access-v2",
         "policy_version": sha256_hex(version_material),
@@ -115,6 +121,7 @@ def session_payload(user: Any, session: Any, *, csrf_token: str | None = None) -
             for store in stores
         ],
         "store_features": features_on_by_site(store.pk for store in stores),
+        "test_environment": test_environment,
         "expires_at": min(session.expires_at, session.last_seen_at + IDLE_LIFE).isoformat() if session is not None else None,
         "step_up_valid_until": (
             until.isoformat() if (until := step_up_valid_until(session, timezone.now())) else None

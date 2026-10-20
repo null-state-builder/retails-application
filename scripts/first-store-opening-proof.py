@@ -94,9 +94,10 @@ def main() -> None:
         if entity_id is None:
             from masters.models import Store
             entity_id = Store.objects.get(pk=claim.first_store_id, tenant_id=claim.tenant_id).gstin.legal_entity_id
-        for doc_type in ("GRN", "CGRN", "RPT", "OPT"):
+        # TPT too: goods readiness requires the transfer PT series (READINESS_SERIES).
+        for doc_type in ("GRN", "CGRN", "RPT", "OPT", "TPT"):
             publish(f"series-{doc_type}", "series", {"entity_id": str(entity_id), "type": doc_type, "fy": financial_year(), "ceiling_block_size": 100}, {"scope_kind": "entity", "entity_id": str(entity_id)})
-            # Run only the canonical ceiling-publisher job for these four
+            # Run only the canonical ceiling-publisher job for these five
             # governed proof series. Do not drain unrelated delivery jobs.
             series = VoucherSeries.objects.get(tenant_id=claim.tenant_id, store_code=series_store_code(int(entity_id)), fy=financial_year(), doc_type=doc_type, scope_version="entity_v1")
             publish_ceiling(claim.tenant_id, series.pk, target=series.ceiling_block_size)

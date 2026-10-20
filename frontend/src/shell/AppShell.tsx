@@ -8,6 +8,7 @@ import type { LucideIcon } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import { KdpsLogo } from "../components/KdpsLogo";
 import { HostedPageContext } from "../components/PageHeader";
+import { setTestEnvironment } from "../lib/testEnvironment";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import type { Room } from "../routes";
 import { SyncLight } from "../till/SyncLight";
@@ -676,7 +677,12 @@ export function SectionTabsProvider({ children }: { children: ReactNode }) {
 }
 
 export function AppShell({ children, room }: { children: ReactNode; room?: Room }) {
-  const { activeStore, activeBrand } = useAuth();
+  const { activeStore, activeBrand, session } = useAuth();
+  const testEnvironment = Boolean(session?.test_environment);
+  // The print adapter is not a React consumer, so it reads the flag from here.
+  useEffect(() => {
+    setTestEnvironment(testEnvironment);
+  }, [testEnvironment]);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const closeMobileNav = useCallback(() => setMobileNavOpen(false), []);
   const mobileNavCtx = useMemo(
@@ -753,6 +759,16 @@ export function AppShell({ children, room }: { children: ReactNode; room?: Room 
             <KdpsLogo className="topbar-logo-full" height={30} title="" />
             <KdpsLogo className="topbar-logo-mark" variant="mark" height={30} title="" />
           </Link>
+          {testEnvironment && (
+            <span
+              className="test-env-badge"
+              role="status"
+              title="This is a test environment. Bills and documents printed here are not tax invoices."
+              data-testid="test-environment-badge"
+            >
+              Test environment
+            </span>
+          )}
         </div>
         {/* The drawer's overlay (z-index 55/60) sits above these popups
             (40/50) by design (see MobileNavContext) - so whichever of the
