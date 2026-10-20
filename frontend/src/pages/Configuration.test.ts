@@ -15,14 +15,12 @@ describe("configuration effective dates", () => {
   });
 
   it.each(["", " ", "invalid"])("refuses invalid start %j with an actionable message", (from) => {
-    expect(() => configurationPeriod(from, "")).toThrow(
-      "Choose a valid In force from date and time.",
-    );
+    expect(() => configurationPeriod(from, "")).toThrow("Choose a valid start date and time.");
   });
 
   it("refuses a malformed optional end", () => {
     expect(() => configurationPeriod("2026-09-30T10:00:00Z", "invalid")).toThrow(
-      "Choose a valid Until date and time, or leave it empty.",
+      "Choose a valid end date and time, or leave it blank.",
     );
   });
 
@@ -30,7 +28,7 @@ describe("configuration effective dates", () => {
     "refuses a non-positive effective period ending at %s",
     (until) => {
       expect(() => configurationPeriod("2026-09-30T10:00:00Z", until)).toThrow(
-        "Until must be later than In force from.",
+        "End date must be after the start date.",
       );
     },
   );

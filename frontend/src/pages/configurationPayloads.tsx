@@ -227,7 +227,7 @@ export function TaxRatesEditor({ value, onChange }: EditorProps) {
             </Field>
             <Field
               id={`tax-from-${ruleIndex}`}
-              label="In force from"
+              label="Start date"
               hint="A rule with no time zone never applies, so this carries yours."
             >
               <input
