@@ -3,7 +3,36 @@
 The legacy software is the real system. This one runs alongside it on a
 **synthetic test tenant** (see `store-test-run-decision.md`).
 
-## One-time setup
+## Quick start: one command
+
+On a synthetic tenant, this builds the store `VAS-SGMR` and its linked
+warehouse `VAS-WH`, creates the people, and loads the legacy SOH through the
+reviewed opening path:
+
+```bash
+python manage.py load_test_store --soh ../docs/VAS-SGMR_SOH_28-09-2026.xlsx
+```
+
+Logins all use `Synthetic@123`:
+
+| Login | Role |
+| --- | --- |
+| `vas.store` | store person |
+| `vas.cashier` | cashier |
+| `vas.warehouse` | warehouse operator |
+| `vas.preparer` | opening preparer |
+| `vas.whm1`, `vas.whm2` | warehouse managers |
+
+Test-only choices:
+- Sizes and seasons are taken as the file spells them.
+- HSN comes from the category (the file has none).
+- Verification uses the legacy quantity, not a count.
+- 9 rows with bad cost or MRP are excluded.
+
+It is safe to re-run. Stop the goods worker while it loads, because the large
+opening documents conflict with it.
+
+## One-time setup (by hand)
 
 1. **Tenant:** `python manage.py bootstrap_deployment --synthetic` on the test
    deployment. Load masters (`load_real_masters`).
