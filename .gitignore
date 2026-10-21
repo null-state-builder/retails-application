@@ -9,3 +9,6 @@ backend/staticfiles/
 *.py[cod]
 frontend/node_modules/
 frontend/dist/
+
+# Server secrets for deploy/compose.yaml
+deploy/.env

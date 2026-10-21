@@ -7,7 +7,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://api-production-74e9d.up.railway.app/api/:path*"
+      "destination": "https://187-126-127-252.sslip.io/api/:path*"
     },
     { "source": "/((?!api/|assets/|.*\\..*).*)", "destination": "/index.html" }
   ],
