@@ -3,6 +3,44 @@
 The legacy software is the real system. This one runs alongside it on a
 **synthetic test tenant** (see `store-test-run-decision.md`).
 
+## Test server (VPS)
+
+The test runs on `https://kdps-pos.vercel.app` (Vercel), whose `/api` goes to
+the VPS (`deploy/README.md`). The VPS holds one **synthetic** tenant,
+`KDPS-TEST`, built once with:
+
+```bash
+cd ~/kdps/deploy
+docker compose exec -T -e KDPS_BOOTSTRAP_ADMIN_PASSWORD=... api python manage.py bootstrap_deployment \
+  --synthetic --code KDPS-TEST --name "KDPS Lifestyle (test)" \
+  --admin-email syn.owner@synthetic.demo --admin-name "Synthetic Company Owner" --admin-staff-code OWN-01
+# then: seed_working_calendar(tenant, owner) in `manage.py shell` (the loader needs a calendar)
+docker compose stop api
+docker compose run --rm --no-deps -v ~/soh:/soh api python manage.py load_test_store --soh /soh/<file>.xlsx
+docker compose start api
+```
+
+The bootstrap admin must be `syn.owner@synthetic.demo`: the loader approves as
+that owner. After the load, the feature switches `tax-settings`,
+`sales-report` and `transfer-documents`, a tax-settings version and the
+warehouse operator's staff placement were made through the API as the owner.
+
+Every login has its own password, kept only in `~kdps/test-logins.txt` (mode
+600) on the server; `Synthetic@123` is not used there.
+
+| Login (`@synthetic.demo`) | Role | Used for |
+| --- | --- | --- |
+| `syn.owner` | owner + IT admin | setup and every approval (SOH, opening top-ups, transfers) |
+| `vas.store` | store person | receive, accept, sell, the nightly SOH upload |
+| `vas.cashier` | store person | billing |
+| `vas.warehouse` | warehouse | warehouse operations |
+| `vas.whm1`, `vas.whm2` | warehouse manager | transfers: one drafts, the other approves |
+| `vas.preparer` | warehouse + IT admin | prepares the opening top-ups the SOH sync stages |
+
+The store bills in counter (`historical`) mode, as the loader leaves it, so
+the online-mode gates in `setup_store_test_run` (invoice prefix, sell policy,
+online bill series, online selling) stay open there by design.
+
 ## Quick start: one command
 
 On a synthetic tenant, this builds the store `VAS-SGMR` and its linked
