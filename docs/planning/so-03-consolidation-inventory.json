@@ -24696,7 +24696,7 @@
     }
   ],
   "discovered": {
-    "checksum": "60e9d4a9657faa73103e3840ec078706801a6b229dee6fb9e3afc454c69075a1",
+    "checksum": "dd2378c606f4e976d1ca7a3605950c601dc27c3228e9f0f4725a14fa4198def7",
     "records": [
       {
         "kind": "api",
@@ -319684,8 +319684,6 @@
             "StockOnHand.objects.filter(net_qty__gt=0).exclude(store_id__in=canonical).select_related",
             "Store.objects.filter",
             "aliases.get",
-            "costs[brand_id].get",
-            "costs[brand_id].get(_portion_key(item), {}).get",
             "first.get",
             "groups.values",
             "hsn.get",
@@ -319694,6 +319692,8 @@
             "item.get",
             "item_names.get",
             "params.get",
+            "priced.get",
+            "priced.get(_portion_key(item), {}).get",
             "request.query_params.get",
             "row.get",
             "sites.filter"
@@ -319825,8 +319825,6 @@
             "StockOnHand.objects.filter(net_qty__gt=0).exclude(store_id__in=canonical).select_related",
             "Store.objects.filter",
             "aliases.get",
-            "costs[brand_id].get",
-            "costs[brand_id].get(_portion_key(item), {}).get",
             "first.get",
             "groups.values",
             "hsn.get",
@@ -319835,6 +319833,8 @@
             "item.get",
             "item_names.get",
             "params.get",
+            "priced.get",
+            "priced.get(_portion_key(item), {}).get",
             "request.query_params.get",
             "row.get",
             "sites.filter"

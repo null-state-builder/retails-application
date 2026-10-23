@@ -78,6 +78,20 @@ def projected_rows(request: Any, *, availability: bool = False, values: bool = T
         item_names = origin_item_names(access.tenant_id, {row["origin_id"] for row in stock if row["origin_id"]})
         aliases = barcode_aliases(site, query.watermark)
         costs: dict[int, dict[tuple[Any, ...], dict[str, Any]]] = {}
+        # One cost read for the whole site when cost is granted for every brand
+        # in it; each per-brand read reloads every portion of the site, so a
+        # store with hundreds of brands otherwise rebuilds its stock hundreds of
+        # times. A narrower cost grant is refused here and keeps the per-brand
+        # reads below. The per-row grant check still decides what is priced.
+        site_costs: dict[tuple[Any, ...], dict[str, Any]] | None = None
+        if values and not availability:
+            try:
+                site_costs = _unique_portions(reads.on_hand_rows(reads.resolve_query(access, {
+                    "site_id": str(site.pk), "basis": "cost",
+                })))
+            except Refusal as refusal:
+                if refusal.code != "FIELD_DENIED":
+                    raise
         for item in stock:
             identity = identities.get(item["sku_id"], {})
             brand_id = identity.get("brand_id")
@@ -99,20 +113,18 @@ def projected_rows(request: Any, *, availability: bool = False, values: bool = T
                    "net_qty": qty, "skus": 1, "identity_complete": bool(identity and barcode),
                    "ats_qty": item["ats_qty"], "transferable_qty": item["transferable_qty"],
                    "hsn": str(hsn.get(str(item.get("origin_id"))) or "") if identity else ""}
-            if values and brand_id is not None and _value_granted(access, site.pk, brand_id):
-                if brand_id not in costs:
-                    valued_query = reads.resolve_query(access, {
-                        "site_id": str(site.pk), "brand_id": str(brand_id), "basis": "cost",
-                    })
-                    valued_rows = reads.on_hand_rows(valued_query)
-                    grouped_values: dict[tuple[Any, ...], list[dict[str, Any]]] = defaultdict(list)
-                    for value in valued_rows:
-                        grouped_values[_portion_key(value)].append(value)
-                    # Older read DTOs omit the value-basis origin of adjustment
-                    # portions. A collision cannot be priced by picking a row.
-                    costs[brand_id] = {key: parts[0] for key, parts in grouped_values.items() if len(parts) == 1}
-                valued = costs[brand_id].get(_portion_key(item), {}).get("cost_value_paise")
-                if valued is not None and not availability:
+            if (values and not availability and brand_id is not None
+                    and _value_granted(access, site.pk, brand_id)):
+                if site_costs is not None:
+                    priced = site_costs
+                else:
+                    if brand_id not in costs:
+                        costs[brand_id] = _unique_portions(reads.on_hand_rows(reads.resolve_query(access, {
+                            "site_id": str(site.pk), "brand_id": str(brand_id), "basis": "cost",
+                        })))
+                    priced = costs[brand_id]
+                valued = priced.get(_portion_key(item), {}).get("cost_value_paise")
+                if valued is not None:
                     row["net_value_paise"] = int(valued)
             found.append(row)
     return found
@@ -124,6 +136,16 @@ def uuid_value(value: Any) -> Any:
 
 def _portion_key(row: dict[str, Any]) -> tuple[Any, ...]:
     return tuple(row.get(key) for key in ("sku_id", "origin_id", "location_id", "condition"))
+
+
+def _unique_portions(rows: list[dict[str, Any]]) -> dict[tuple[Any, ...], dict[str, Any]]:
+    grouped: dict[tuple[Any, ...], list[dict[str, Any]]] = defaultdict(list)
+    for row in rows:
+        grouped[_portion_key(row)].append(row)
+    # Older read DTOs omit the value-basis origin of adjustment portions. A
+    # collision cannot be priced by picking a row. A SKU has one brand, so a
+    # site-wide read collides exactly where the per-brand reads did.
+    return {key: parts[0] for key, parts in grouped.items() if len(parts) == 1}
 
 
 def filtered_rows(rows: list[dict[str, Any]], params: Any) -> list[dict[str, Any]]:

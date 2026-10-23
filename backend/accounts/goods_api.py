@@ -13,10 +13,11 @@ import base64
 import json
 import logging
 import uuid
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
 from datetime import datetime
 from typing import Any
 
+from django.db.models import QuerySet
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter
 from rest_framework.request import Request
@@ -335,13 +336,15 @@ PAGE_PARAMETERS: list[OpenApiParameter] = [
 
 
 def paginate(
-    items: list[Any], params: dict[str, str], *, default: int = 50, maximum: int = 100
+    items: Sequence[Any] | QuerySet[Any], params: dict[str, str], *, default: int = 50, maximum: int = 100
 ) -> tuple[list[Any], str | None]:
+    """One page of a list or an ordered queryset; a queryset is sliced in the database."""
     offset = decode_cursor(params.get("cursor"))
     limit = page_limit(params, default=default, maximum=maximum)
-    window = items[offset : offset + limit]
-    next_cursor = encode_cursor(offset + limit) if offset + limit < len(items) else None
-    return window, next_cursor
+    # One row past the page says whether another page exists without counting.
+    window = list(items[offset : offset + limit + 1])
+    next_cursor = encode_cursor(offset + limit) if len(window) > limit else None
+    return window[:limit], next_cursor
 
 
 def page(items: list[Any], next_cursor: str | None) -> dict[str, Any]:

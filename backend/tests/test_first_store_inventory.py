@@ -182,3 +182,21 @@ def test_same_display_brand_names_remain_separate_stable_identity_groups() -> No
         assert len(body["rows"]) == 2 and body["summary"]["units_on_hand"] == 2
         assert {row["brand_id"] for row in body["rows"]} == {10, 20}
         assert "value_paise" not in body["summary"]
+
+
+def test_full_cost_inventory_reads_each_site_once_for_cost_not_once_per_brand(
+    online_goods: Any, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    proof = online_goods
+    calls: list[str] = []
+    original = on_hand_projection.reads.on_hand_rows
+
+    def counted(query: Any) -> Any:
+        calls.append(query.basis)
+        return original(query)
+
+    monkeypatch.setattr(on_hand_projection.reads, "on_hand_rows", counted)
+    response = _read(proof, owner=True, params={"store": proof.world.sites[0].code})
+    assert response.status_code == 200 and response.data["summary"]["value_paise"] == 150000
+    sites = len(on_hand_projection.canonical_sites(proof.world.tenant.pk))
+    assert calls.count("cost") == sites and calls.count("quantity") == sites
