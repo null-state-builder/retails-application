@@ -810,9 +810,13 @@ def origin_seasons(origin_ids: Iterable[str]) -> dict[str, dict[str, Any]]:
     ids = sorted({str(o) for o in origin_ids if o})
     if not ids:
         return {}
+    # The two evidence keys this answer is made of, not each origin's whole
+    # evidence document: a store asks this for every origin it holds.
     frozen = {
-        str(pk): evidence or {}
-        for pk, evidence in Origin.objects.filter(pk__in=ids).values_list("pk", "frozen_evidence")
+        str(pk): {"season_id": season_id, "manifest_row_id": manifest_row_id}
+        for pk, season_id, manifest_row_id in Origin.objects.filter(pk__in=ids).values_list(
+            "pk", "frozen_evidence__season_id", "frozen_evidence__manifest_row_id"
+        )
     }
     row_ids = {
         uuid.UUID(str(e["manifest_row_id"])) for e in frozen.values() if e.get("manifest_row_id")
@@ -913,9 +917,14 @@ def _unbranded_limit(query: StockQuery, row: dict[str, Any]) -> dict[str, Any]:
     return {**row, "description": "", "origin_id": None}
 
 
-def on_hand_rows(query: StockQuery) -> list[dict[str, Any]]:
-    """Every physical portion in scope: all conditions, holds and reservations."""
-    snap = load(query)
+def on_hand_rows(query: StockQuery, snap: Snapshot | None = None) -> list[dict[str, Any]]:
+    """Every physical portion in scope: all conditions, holds and reservations.
+
+    ``snap`` lets two reads of the same sites (a quantity and a cost read) share
+    one load; each still applies its own scope and value grants to the rows.
+    """
+    if snap is None:
+        snap = load(query)
     return _rows(query, snap, _visible_physical(query, snap.physical), query.money)
 
 

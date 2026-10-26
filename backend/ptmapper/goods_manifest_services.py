@@ -1559,10 +1559,12 @@ def latest_season_corrections(row_ids: Iterable[uuid.UUID]) -> dict[uuid.UUID, i
     position, and asking row by row would cost a query per line on screen.
     """
     out: dict[uuid.UUID, int] = {}
-    for correction in OpeningSeasonCorrection.objects.filter(
-        manifest_row_id__in=list(row_ids)
-    ).order_by("recorded_at", "event_at"):
-        out[correction.manifest_row_id] = correction.to_season_id
+    for manifest_row_id, to_season_id in (
+        OpeningSeasonCorrection.objects.filter(manifest_row_id__in=list(row_ids))
+        .order_by("recorded_at", "event_at")
+        .values_list("manifest_row_id", "to_season_id")
+    ):
+        out[manifest_row_id] = to_season_id
     return out
 
 

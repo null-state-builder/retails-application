@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from functools import partial
 from typing import Any
 
 from django.db.models import Count, Q, Sum
@@ -29,7 +30,9 @@ from stockledger.models import (
 )
 from stockledger.serializers import StockLedgerEntrySerializer
 from stockledger.access import project_stock
-from stockledger.on_hand_projection import filtered_rows, on_hand_response, projected_rows, require_value_request
+from stockledger.on_hand_projection import (
+    describe_items, filtered_rows, on_hand_response, projected_rows, require_value_request,
+)
 
 
 class StockLedgerPagination(PageNumberPagination):
@@ -356,9 +359,16 @@ class StockOnHandView(APIView):
         group_by = request.query_params.get("group_by", "sku")
         if group_by not in ("sku", "brand", "store"):
             group_by = "sku"
-        rows = filtered_rows(projected_rows(request), request.query_params)
+        # A search matches item names, so it names every row first; otherwise
+        # only the lines on the page are named.
+        search = bool(str(request.query_params.get("q") or "").strip())
+        rows = filtered_rows(projected_rows(
+            request, store_code=str(request.query_params.get("store") or "").strip(), describe=search,
+        ), request.query_params)
         require_value_request(request, rows)
-        body = on_hand_response(rows, group_by, self.MAX_LINES)
+        tenant_id = resolve_access(request).tenant_id
+        body = on_hand_response(rows, group_by, self.MAX_LINES,
+                                describe=None if search else partial(describe_items, tenant_id))
         resolve_access(request).revalidate_delivery()
         response = Response(body)
         response["Cache-Control"] = "no-store, private"
@@ -489,7 +499,10 @@ class StockAvailabilityView(APIView):
 
         access = resolve_access(request)
         if canonical_sites(access.tenant_id):
-            visible = filtered_rows(projected_rows(request, availability=True, values=False), request.query_params)
+            visible = filtered_rows(projected_rows(
+                request, availability=True, values=False,
+                store_code=str(request.query_params.get("store") or "").strip(),
+            ), request.query_params)
             visible.sort(key=lambda row: (row["brand_id"] or 0, row["design"], row["size"], row["store_code"]))
             canonical_styles = list(dict.fromkeys((row["brand_id"], row["design"]) for row in visible))
             canonical_shown = set(canonical_styles[:self.MAX_DESIGNS])

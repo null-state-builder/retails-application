@@ -12,6 +12,8 @@ from collections.abc import Iterable
 from typing import Any
 import uuid
 
+from django.db.models.fields.json import KT
+
 from core.canonical import content_hash
 from ptmapper.goods_models import OpeningManifestRow
 from ptmapper.soh_models import SohImportBatch, SohImportReview, SohImportRow
@@ -41,11 +43,14 @@ def _verified_review_rows(review_id: Any, review_hash: str) -> dict[str, dict[st
 
 
 def origin_item_names(tenant_id: Any, origin_ids: Iterable[Any]) -> dict[str, str]:
+    # Only the fields and JSON keys checked below: a store reads this for every
+    # origin it holds, and decoding each whole evidence document cost more than
+    # the check itself.
     origins: list[dict[str, Any]] = [dict(row) for row in Origin.objects.filter(tenant_id=tenant_id, pk__in=list(origin_ids))
-                                    .values("id", "sku_id", "frozen_evidence")]
+                                    .values("id", "sku_id", manifest_row_id=KT("frozen_evidence__manifest_row_id"))]
     by_row: dict[uuid.UUID, list[dict[str, Any]]] = {}
     for origin in origins:
-        value = (origin["frozen_evidence"] or {}).get("manifest_row_id")
+        value = origin["manifest_row_id"]
         try:
             row_id = uuid.UUID(str(value))
         except (ValueError, TypeError, AttributeError):
@@ -53,10 +58,11 @@ def origin_item_names(tenant_id: Any, origin_ids: Iterable[Any]) -> dict[str, st
         by_row.setdefault(row_id, []).append(origin)
     if not by_row:
         return {}
-    rows = list(OpeningManifestRow.objects.filter(tenant_id=tenant_id, pk__in=by_row)
-                .select_related("manifest_version"))
+    rows: list[Any] = list(OpeningManifestRow.objects.filter(tenant_id=tenant_id, pk__in=by_row).values_list(
+        "pk", "source_row_key", "manifest_version__manifest_id", "manifest_version__source_evidence_id",
+        "payload__identity__sku_id", "payload__dataset_key", named=True))
     batches = {batch.manifest_id: batch for batch in SohImportBatch.objects.filter(
-        tenant_id=tenant_id, manifest_id__in={row.manifest_version.manifest_id for row in rows},
+        tenant_id=tenant_id, manifest_id__in={row.manifest_version__manifest_id for row in rows},
         source_import__tenant_id=tenant_id, source_import__approved_by__isnull=False,
     ).select_related("source_import")}
     sources = {batch.source_import_id: batch.source_import for batch in batches.values()}
@@ -72,19 +78,20 @@ def origin_item_names(tenant_id: Any, origin_ids: Iterable[Any]) -> dict[str, st
     source_rows = {(row.source_import_id, row.source_row_key): row for row in SohImportRow.objects.filter(
         tenant_id=tenant_id, source_import_id__in=reviews,
         source_row_key__in={row.source_row_key for row in rows},
-    )}
+    ).values_list("source_import_id", "source_row_key", "ordinal", "barcode", "quantity", "mrp_paise",
+                  "source_rate_paise", "source", named=True)}
     names: dict[str, str] = {}
     for row in rows:
-        batch = batches.get(row.manifest_version.manifest_id)
+        batch = batches.get(row.manifest_version__manifest_id)
         if batch is None:
             continue
         source = batch.source_import
         raw = source_rows.get((source.pk, row.source_row_key))
         reviewed = reviews.get(source.pk, {}).get(row.source_row_key, {})
-        sku_id = str((row.payload.get("identity") or {}).get("sku_id") or "")
+        sku_id = str(row.payload__identity__sku_id or "")
         if (raw is None or not sku_id or str((reviewed.get("mapping") or {}).get("sku_id")) != sku_id
-                or row.manifest_version.source_evidence_id != source.source_evidence_id
-                or row.payload.get("dataset_key") != f"soh:{source.source_hash}"):
+                or row.manifest_version__source_evidence_id != source.source_evidence_id
+                or row.payload__dataset_key != f"soh:{source.source_hash}"):
             continue
         original = {"ordinal": raw.ordinal, "barcode": raw.barcode, "quantity": raw.quantity,
                     "mrp_paise": raw.mrp_paise, "source_rate_paise": raw.source_rate_paise, "source": raw.source}

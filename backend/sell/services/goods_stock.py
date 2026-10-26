@@ -174,7 +174,8 @@ def _received_label_bindings(
     if values is not None:
         candidates = candidates.filter(Q(official_line__payload__alias_as_used__in=sorted(set(values)))
                                        | Q(sku_id__in=list(skus)))
-    for sku_id, source_site, payload in candidates.filter(
+    # Only the two payload keys checked here, not each line's whole payload.
+    for sku_id, source_site, line_sku, label in candidates.filter(
         tenant_id=store.tenant_id, pk__in=origins, site__tenant_id=store.tenant_id,
         official_line__tenant_id=store.tenant_id,
         official_line__version__tenant_id=store.tenant_id,
@@ -182,10 +183,8 @@ def _received_label_bindings(
         sku__tenant_id=store.tenant_id,
         sku__style__tenant_id=store.tenant_id,
         sku__style__brand__tenant_id=store.tenant_id,
-    ).values_list("sku_id", "site_id", "official_line__payload"):
-        body = payload if isinstance(payload, dict) else {}
-        label = body.get("alias_as_used")
-        if (str(body.get("sku_id")) == str(sku_id) and isinstance(label, str)
+    ).values_list("sku_id", "site_id", "official_line__payload__sku_id", "official_line__payload__alias_as_used"):
+        if (str(line_sku) == str(sku_id) and isinstance(label, str)
                 and 1 <= len(label) <= 128):
             received.add((sku_id, label, source_site))
     return received

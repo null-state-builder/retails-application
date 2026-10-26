@@ -7,6 +7,7 @@ their ledger projection. This never copies balances or writes business history.
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Callable
 import uuid
 from typing import Any
 
@@ -39,8 +40,15 @@ def _value_granted(access: AccessContext, site_id: int, brand_id: int | None) ->
     return access.covers_all({READ}, [(site_id, brand_id)], {"cost"})
 
 
-def projected_rows(request: Any, *, availability: bool = False, values: bool = True) -> list[dict[str, Any]]:
-    """Trusted identities, quantities and optional row-scoped cost; no label grants."""
+def projected_rows(request: Any, *, availability: bool = False, values: bool = True,
+                   store_code: str = "", describe: bool = True) -> list[dict[str, Any]]:
+    """Trusted identities, quantities and optional row-scoped cost; no label grants.
+
+    ``store_code`` skips building stores the caller filters out anyway; it only
+    narrows, and ``filtered_rows`` still applies the same filter to every row.
+    ``describe=False`` leaves out HSN and defers each goods row's item name to
+    ``describe_items``, for a caller that names only the rows it shows.
+    """
     access = resolve_access(request)
     access.require_action(READ)
     canonical = canonical_sites(access.tenant_id)
@@ -65,33 +73,47 @@ def projected_rows(request: Any, *, availability: bool = False, values: bool = T
     sites = Store.objects.filter(tenant_id=access.tenant_id, pk__in=canonical)
     if selected is not None:
         sites = sites.filter(pk__in=selected)
+    if store_code:
+        sites = sites.filter(code__iexact=store_code)
     selected_brands = active_brand_ids(request.user, section="stock", minimum="view")
     for site in sites.order_by("code", "pk"):
         query = reads.resolve_query(access, {"site_id": str(site.pk), "basis": "quantity"})
-        stock = reads.on_hand_rows(query)
-        hsn = {str(pk): value for pk, value in Origin.objects.filter(
-            tenant_id=access.tenant_id, pk__in={row["origin_id"] for row in stock if row["origin_id"]},
-        ).values_list("pk", "frozen_evidence__hsn")}
-        identities = {item["sku_id"]: item for item in candidates_for(
-            access.tenant_id, {row["sku_id"] for row in stock if row["sku_id"] is not None},
-        )}
-        item_names = origin_item_names(access.tenant_id, {row["origin_id"] for row in stock if row["origin_id"]})
-        aliases = barcode_aliases(site, query.watermark)
-        costs: dict[int, dict[tuple[Any, ...], dict[str, Any]]] = {}
+        # One load of the site's portions serves the quantity read and every
+        # cost read below; each read still scopes and prices its own rows.
+        snap = reads.load(query)
         # One cost read for the whole site when cost is granted for every brand
-        # in it; each per-brand read reloads every portion of the site, so a
-        # store with hundreds of brands otherwise rebuilds its stock hundreds of
+        # in it; each per-brand read rebuilds every row of the site, so a store
+        # with hundreds of brands otherwise rebuilds its stock hundreds of
         # times. A narrower cost grant is refused here and keeps the per-brand
         # reads below. The per-row grant check still decides what is priced.
         site_costs: dict[tuple[Any, ...], dict[str, Any]] | None = None
+        stock: list[dict[str, Any]] | None = None
         if values and not availability:
             try:
-                site_costs = _unique_portions(reads.on_hand_rows(reads.resolve_query(access, {
+                valued_stock = reads.on_hand_rows(reads.resolve_query(access, {
                     "site_id": str(site.pk), "basis": "cost",
-                })))
+                }), snap)
             except Refusal as refusal:
                 if refusal.code != "FIELD_DENIED":
                     raise
+            else:
+                site_costs = _unique_portions(valued_stock)
+                # The basis only adds value columns: these are the quantity
+                # read's rows, so the site is not built a second time.
+                stock = valued_stock
+        if stock is None:
+            stock = reads.on_hand_rows(query, snap)
+        hsn = {str(pk): value for pk, value in Origin.objects.filter(
+            tenant_id=access.tenant_id, pk__in={row["origin_id"] for row in stock if row["origin_id"]},
+        ).values_list("pk", "frozen_evidence__hsn")} if describe else {}
+        identities = {item["sku_id"]: item for item in candidates_for(
+            access.tenant_id, {row["sku_id"] for row in stock if row["sku_id"] is not None},
+        )}
+        item_names = origin_item_names(
+            access.tenant_id, {row["origin_id"] for row in stock if row["origin_id"]},
+        ) if describe else {}
+        aliases = barcode_aliases(site, query.watermark)
+        costs: dict[int, dict[tuple[Any, ...], dict[str, Any]]] = {}
         for item in stock:
             identity = identities.get(item["sku_id"], {})
             brand_id = identity.get("brand_id")
@@ -113,6 +135,9 @@ def projected_rows(request: Any, *, availability: bool = False, values: bool = T
                    "net_qty": qty, "skus": 1, "identity_complete": bool(identity and barcode),
                    "ats_qty": item["ats_qty"], "transferable_qty": item["transferable_qty"],
                    "hsn": str(hsn.get(str(item.get("origin_id"))) or "") if identity else ""}
+            if not describe:
+                row["_describe"] = (item["origin_id"], identity.get("grade", ""))
+                del row["hsn"]
             if (values and not availability and brand_id is not None
                     and _value_granted(access, site.pk, brand_id)):
                 if site_costs is not None:
@@ -121,7 +146,7 @@ def projected_rows(request: Any, *, availability: bool = False, values: bool = T
                     if brand_id not in costs:
                         costs[brand_id] = _unique_portions(reads.on_hand_rows(reads.resolve_query(access, {
                             "site_id": str(site.pk), "brand_id": str(brand_id), "basis": "cost",
-                        })))
+                        }), snap))
                     priced = costs[brand_id]
                 valued = priced.get(_portion_key(item), {}).get("cost_value_paise")
                 if valued is not None:
@@ -161,13 +186,25 @@ def filtered_rows(rows: list[dict[str, Any]], params: Any) -> list[dict[str, Any
     return rows
 
 
-def on_hand_response(rows: list[dict[str, Any]], group: str, limit: int) -> dict[str, Any]:
+def describe_items(tenant_id: Any, rows: list[dict[str, Any]]) -> None:
+    """Fill the item name of rows ``projected_rows(describe=False)`` left unnamed."""
+    pending = [row for row in rows if "_describe" in row]
+    names = origin_item_names(tenant_id, {row["_describe"][0] for row in pending if row["_describe"][0]})
+    for row in pending:
+        origin_id, grade = row.pop("_describe")
+        row["item"] = names.get(str(origin_id)) or grade
+
+
+def on_hand_response(rows: list[dict[str, Any]], group: str, limit: int,
+                     describe: Callable[[list[dict[str, Any]]], None] | None = None) -> dict[str, Any]:
+    """Grouped lines and totals; ``describe`` names only the lines on the page."""
     groups: dict[tuple[Any, ...], list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
         group_key = ((row["store_id"], row["brand_id"], row["sku_id"] or row["sku_code"], row.get("season_id") or row["season"])
                if group == "sku" else (row["store_id"], row["brand_id"]) if group == "brand" else (row["store_id"],))
         groups[group_key].append(row)
     rendered = []
+    firsts = []
     for parts in groups.values():
         first = parts[0]
         row = {key: first.get(key, "") for key in (*DIMENSIONS, "store_id", "store_code", "store_name",
@@ -183,7 +220,15 @@ def on_hand_response(rows: list[dict[str, Any]], group: str, limit: int) -> dict
         if all("net_value_paise" in part for part in parts):
             row["net_value_paise"] = sum(part["net_value_paise"] for part in parts)
         rendered.append(row)
-    rendered.sort(key=lambda row: (str(row["store_code"]), str(row["brand"]), str(row["sku_code"]), str(row["sku_id"])))
+        firsts.append(first)
+    order = sorted(range(len(rendered)), key=lambda i: (
+        str(rendered[i]["store_code"]), str(rendered[i]["brand"]), str(rendered[i]["sku_code"]), str(rendered[i]["sku_id"])))
+    rendered = [rendered[i] for i in order]
+    if describe is not None and group == "sku":
+        page = [firsts[i] for i in order[:limit]]
+        describe(page)
+        for row, first in zip(rendered[:limit], page, strict=True):
+            row["item"] = first.get("item", "")
     summary = {"units_on_hand": sum(row["net_qty"] for row in rows), "lines": len(rendered),
                "displayed": min(limit, len(rendered)), "truncated": len(rendered) > limit,
                "scope": "current_access", "identity_complete": all(row["identity_complete"] for row in rows),

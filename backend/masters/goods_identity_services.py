@@ -947,16 +947,27 @@ def candidates_for(tenant_id: uuid.UUID, sku_ids: Iterable[Any]) -> list[dict[st
     labels = value_labels(tenant_id)
     skus = {
         str(sku.pk): sku
-        for sku in ProductSku.objects.select_related(
-            "style", "style__brand", "identity_profile"
-        ).filter(tenant_id=tenant_id, style__tenant_id=tenant_id, style__brand__tenant_id=tenant_id, pk__in=ids)
+        for sku in ProductSku.objects.filter(
+            tenant_id=tenant_id, style__tenant_id=tenant_id, style__brand__tenant_id=tenant_id, pk__in=ids
+        ).values_list(
+            "pk", "attrs", "identity_profile_id", "style__style_code", "style__brand_id", "style__brand__name",
+            named=True,
+        )
+    }
+    # A store's SKUs share a handful of identity profiles: read and parse each once,
+    # not once per SKU.
+    profiles = {
+        version.pk: profile_from_version(version)
+        for version in ConfigVersion.objects.filter(
+            pk__in={sku.identity_profile_id for sku in skus.values() if sku.identity_profile_id}
+        )
     }
     out: list[dict[str, Any]] = []
     for sku_id in ids:
         sku = skus.get(sku_id)
         if sku is None:
             continue
-        profile = profile_from_version(sku.identity_profile) if sku.identity_profile else None
+        profile = profiles.get(sku.identity_profile_id) if sku.identity_profile_id else None
         by_field = {e.get("field_id"): e for e in sku.attrs or [] if isinstance(e, dict)}
 
         def label_of(dimension: str | None, attrs: dict[Any, Any] = by_field) -> str | None:
@@ -970,9 +981,9 @@ def candidates_for(tenant_id: uuid.UUID, sku_ids: Iterable[Any]) -> list[dict[st
 
         item: dict[str, Any] = {
             "sku_id": sku_id,
-            "brand": sku.style.brand.name,
-            "brand_id": sku.style.brand_id,
-            "style": sku.style.style_code,
+            "brand": sku.style__brand__name,
+            "brand_id": sku.style__brand_id,
+            "style": sku.style__style_code,
             "size": (label_of(profile.size_dimension) if profile else None) or "unknown",
         }
         colour = label_of(profile.colour_dimension) if profile else None

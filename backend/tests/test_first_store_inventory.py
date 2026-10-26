@@ -184,19 +184,48 @@ def test_same_display_brand_names_remain_separate_stable_identity_groups() -> No
         assert "value_paise" not in body["summary"]
 
 
-def test_full_cost_inventory_reads_each_site_once_for_cost_not_once_per_brand(
+def test_full_cost_inventory_builds_only_the_asked_store_once(
     online_goods: Any, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     proof = online_goods
-    calls: list[str] = []
-    original = on_hand_projection.reads.on_hand_rows
+    built: list[str] = []
+    loads: list[frozenset[int]] = []
+    original_rows, original_load = on_hand_projection.reads.on_hand_rows, on_hand_projection.reads.load
 
-    def counted(query: Any) -> Any:
-        calls.append(query.basis)
-        return original(query)
+    def counted_rows(query: Any, snap: Any = None) -> Any:
+        built.append(query.basis)
+        return original_rows(query, snap)
 
-    monkeypatch.setattr(on_hand_projection.reads, "on_hand_rows", counted)
-    response = _read(proof, owner=True, params={"store": proof.world.sites[0].code})
+    def counted_load(query: Any, **kwargs: Any) -> Any:
+        loads.append(frozenset(query.site_ids))
+        return original_load(query, **kwargs)
+
+    monkeypatch.setattr(on_hand_projection.reads, "on_hand_rows", counted_rows)
+    monkeypatch.setattr(on_hand_projection.reads, "load", counted_load)
+    site = proof.world.sites[0]
+    response = _read(proof, owner=True, params={"store": site.code})
     assert response.status_code == 200 and response.data["summary"]["value_paise"] == 150000
-    sites = len(on_hand_projection.canonical_sites(proof.world.tenant.pk))
-    assert calls.count("cost") == sites and calls.count("quantity") == sites
+    # Full cost: the cost read's rows are the quantity rows, from one load of one store.
+    assert built == ["cost"] and loads == [frozenset({site.pk})]
+
+def test_inventory_names_only_the_lines_on_the_page() -> None:
+    def part(store: str, sku: str, origin: str) -> dict[str, Any]:
+        return {"store_id": 1, "store_code": store, "store_name": store, "brand_id": 1, "sku_id": sku,
+                "record_contract": "goods-v1", "brand": "B", "design": "D", "color": "", "size": "M",
+                "item": None, "season": "", "season_id": None, "sku_code": sku, "net_qty": 1, "skus": 1,
+                "identity_complete": True, "_describe": (origin, "grade")}
+
+    rows = [part("S", "c", "o3"), part("S", "a", "o1"), part("S", "b", "o2")]
+    asked: list[str] = []
+
+    def describe(page: list[dict[str, Any]]) -> None:
+        for row in page:
+            origin, _grade = row.pop("_describe")
+            asked.append(origin)
+            row["item"] = f"name {origin}"
+
+    body = on_hand_projection.on_hand_response(rows, "sku", 2, describe=describe)
+    assert asked == ["o1", "o2"]
+    assert [(row["sku_code"], row["item"]) for row in body["rows"]] == [("a", "name o1"), ("b", "name o2")]
+    assert body["summary"]["lines"] == 3 and body["summary"]["truncated"] is True
+    assert all("_describe" not in row for row in body["rows"])
