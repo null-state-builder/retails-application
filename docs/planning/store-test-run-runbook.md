@@ -28,6 +28,12 @@ warehouse operator's staff placement were made through the API as the owner.
 Every login has its own password, kept only in `~kdps/test-logins.txt` (mode
 600) on the server; `Synthetic@123` is not used there.
 
+The sign-in page's demo chips sign straight in as these logins (one tap, no
+password typing). Their passwords come from `KDPS_DEMO_LOGINS` in
+`deploy/.env`, built from `test-logins.txt`, so anyone who opens the site can
+sign in to the test store. After rotating passwords, rebuild that line and run
+`docker compose up -d api`, or the chips fail to sign in.
+
 | Login (`@synthetic.demo`) | Role | Used for |
 | --- | --- | --- |
 | `syn.owner` | owner + IT admin | setup and every approval (SOH, opening top-ups, transfers) |

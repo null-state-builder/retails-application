@@ -64,7 +64,7 @@ The machine inventory assigns each mounted API method and URL module one primary
 `/api/health`, `/api/schema` and `/api/docs` are platform surfaces. The optional Django `/admin` exposes business and access models when enabled, so every discovered admin method is unresolved until SO-03/SO-02 proves it disabled in deployment or enforces the unified tenant, scope, field and write guards per model. Its presence in the P00 inventory is not access approval.
 
 <!-- BEGIN GENERATED SO-03 COVERAGE -->
-The [machine-readable inventory](so-03-consolidation-inventory.json) records every discovered entrypoint and component, its primary retirement owner, lifecycle, data ownership, authorization, callers, replacement, evidence and removal condition. Its structural checksum is `f68370ab4414ad463a39ac93c59691afbe7d5be25daeb6872fea556a20dbee92`. Temporary APIs without a statically named frontend consumer carry an explicit trace gate in the inventory. The counts below are generated from that same snapshot; they are coverage, not completion proof.
+The [machine-readable inventory](so-03-consolidation-inventory.json) records every discovered entrypoint and component, its primary retirement owner, lifecycle, data ownership, authorization, callers, replacement, evidence and removal condition. Its structural checksum is `2e59fe4a3c718d9bd0dd3a2f09f5ed4b9ab8e6633efb6f966ef4604d919ce951`. Temporary APIs without a statically named frontend consumer carry an explicit trace gate in the inventory. The counts below are generated from that same snapshot; they are coverage, not completion proof.
 
 | Retirement item / owner | Discovered surfaces by kind | Unresolved | Untraced temporary APIs |
 | --- | --- | ---: | ---: |

@@ -12,8 +12,12 @@ export interface RegistrationState {
   pending_confirmation: boolean;
   message: string;
   synthetic: boolean;
+  /** A synthetic deployment's own one-tap logins, when the server has them. */
+  demo_logins?: DemoLogin[];
   options?: RegistrationOptions;
 }
+
+export type DemoLogin = { label: string; email: string; password: string };
 
 type Person = { name: string; email: string; staff_code: string; temporary_password: string };
 type Proposed = Omit<Person, "temporary_password"> & { role_code: string };

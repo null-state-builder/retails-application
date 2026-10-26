@@ -2,16 +2,18 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import { api, apiErrorMessage } from "../lib/api";
-import type { RegistrationState } from "./Signup";
+import type { DemoLogin, RegistrationState } from "./Signup";
 import { useAuth } from "../auth/AuthContext";
 import { KdpsLogo } from "../components/KdpsLogo";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import "./Login.css";
 
-// The six initial roles (RBAC v1, 22 Sep 2026), in the sheet's column order.
-// Every other seeded login in `app/test_credentials.md` still signs in by
-// typing its email; it just gets no chip here.
-const DEMO: { label: string; email: string; password: string }[] = [
+// The six initial roles (RBAC v1, 22 Sep 2026), in the sheet's column order,
+// as `seed_foundation` creates them. Every other seeded login in
+// `app/test_credentials.md` still signs in by typing its email; it just gets no
+// chip here. A synthetic deployment built another way (the store test run)
+// sends its own logins instead, since these accounts do not exist there.
+const DEMO: DemoLogin[] = [
   { label: "Owner", email: "owner@kdps.demo", password: "Owner@123" },
   { label: "Store person", email: "deo.manager@kdps.demo", password: "Store@123" },
   { label: "Warehouse", email: "wh.patna@kdps.demo", password: "Wh@123" },
@@ -149,7 +151,7 @@ export function Login() {
             <div className="login-demo">
               <span>Demo logins</span>
               <div className="login-demo-chips">
-                {DEMO.map((d) => (
+                {(registration.demo_logins?.length ? registration.demo_logins : DEMO).map((d) => (
                   <button
                     key={d.email}
                     type="button"

@@ -24696,7 +24696,7 @@
     }
   ],
   "discovered": {
-    "checksum": "f68370ab4414ad463a39ac93c59691afbe7d5be25daeb6872fea556a20dbee92",
+    "checksum": "2e59fe4a3c718d9bd0dd3a2f09f5ed4b9ab8e6633efb6f966ef4604d919ce951",
     "records": [
       {
         "kind": "api",
@@ -258446,10 +258446,13 @@
             "Tenant.objects.exists",
             "Tenant.objects.filter",
             "Tenant.objects.filter(deployment_key=deployment_key(), synthetic=True).exists",
+            "User.objects.filter",
+            "User.objects.filter(is_active=True, email__isnull=False, tenant__synthetic=True, tenant__deployment_key=deployment_key()).values_list",
             "by_email.get",
             "data.get",
             "data[role].get",
             "e.get",
+            "entry.get",
             "event.get",
             "old.get",
             "old.get(key, {}).get",
@@ -258585,10 +258588,13 @@
             "Tenant.objects.exists",
             "Tenant.objects.filter",
             "Tenant.objects.filter(deployment_key=deployment_key(), synthetic=True).exists",
+            "User.objects.filter",
+            "User.objects.filter(is_active=True, email__isnull=False, tenant__synthetic=True, tenant__deployment_key=deployment_key()).values_list",
             "by_email.get",
             "data.get",
             "data[role].get",
             "e.get",
+            "entry.get",
             "event.get",
             "old.get",
             "old.get(key, {}).get",
