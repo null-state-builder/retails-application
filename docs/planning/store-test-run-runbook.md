@@ -138,6 +138,23 @@ only.
    SOH.
 6. **Sell** at `/sell` (Cashier 1 or 2), then follow "Each day" below.
 
+**Or load the PT opening from the server shell** (no browser; the same reviewed
+path and the same progress on `/goods/opening`). It resumes the PT source
+Debanjan uploaded, including one whose web load failed or stopped:
+
+```bash
+docker compose exec -T api python manage.py load_pt_opening --store WRR
+```
+
+With nothing uploaded yet, copy the combined file into the container and stage
+it as Debanjan: `--pt /tmp/WARDROBE_PT_combined.xlsx --stager debanjan@wardrobe.test`.
+The owner approves. Only the web step-up (the owner's password) is skipped; it
+still refuses a real store, a finished source and an owner who uploaded it.
+Each batch of 5,000 lines looks its barcodes up in one query, and each
+scan reads only its own line's acceptance evidence, so a fresh database with
+no planner statistics no longer slows it to a stop (the first
+server load, 28 Oct 2026, ran 32 minutes and failed `RETRY_EXHAUSTED`).
+
 Local rehearsal, 28 Oct 2026, with the real files (152 PT files normalised into
 one, and `SOH_WARDROBE_28-10-2026.xlsx` uploaded as exported):
 
@@ -145,7 +162,7 @@ one, and `SOH_WARDROBE_28-10-2026.xlsx` uploaded as exported):
 | --- | --- |
 | Normalise | 6,671 lines, 6,311 barcodes, 15,734 pieces; `lp1522.xlsx` dropped (37 lines); 6 HSN, 12 MRP and 11 P RATE fixes; reader self-check: 0 problems, 0 conflicts |
 | PT preview | 6,311 barcodes, 15,734 pieces, none left out; MRP ₹2,52,92,047, P RATE ₹1,57,55,304.17 |
-| PT load | about 8 minutes, two batches; 15,734 pieces on the floor |
+| PT load | 2 min 33 s by `load_pt_opening` on a fresh database (was 10 min 47 s before the two lookup fixes), two batches; 15,734 pieces on the floor |
 | Seasons | AW-26 10,956, AW-25 2,440, SS-26 1,794, SS-25 302, AW-23 8, AW-24 7, SS-24 4, unknown historical 223 pieces |
 | SOH sync | 2,089 pieces out, 2 in; 20 new barcodes (31 pieces) staged |
 | Top-up load | 31 pieces of 20 barcodes |
@@ -251,6 +268,8 @@ opening documents conflict with it.
   - **Or:** upload the day's "Sale report".
   - Review the exceptions. New items appear in `/goods/opening` as a top-up
     for review.
+  - Each SOH must be exported after the one applied before it
+    (`STOCK_SYNC_STALE`); test bills since that one are put back first.
   - Any transfer still in transit at night is not in the legacy SOH. Finish
     it or expect it to show as an exception.
 

@@ -178,12 +178,7 @@ def prepare(run: CommandRun, access: AccessContext, source: SohImport, configura
     season_versions: dict[str, MasterVersion] = {}
     for version in MasterVersion.objects.filter(tenant_id=run.tenant_id, kind="season", target_key__in=season_ids).order_by("target_key", "-revision"):
         season_versions.setdefault(version.target_key, version)
-    aliases_by_barcode: dict[str, list[SkuAlias]] = {}
-    for alias in SkuAlias.objects.filter(tenant_id=run.tenant_id, alias_type="barcode", value__in=[r.barcode for r in rows],
-                                        governance_state=GovernanceState.EFFECTIVE, effective_from__lte=run.now,
-                                        sku__governance_state=GovernanceState.EFFECTIVE,
-                                        sku__style__governance_state=GovernanceState.EFFECTIVE).filter(models_q_for_alias(source.site_id, run.now)).select_related("sku__style"):
-        aliases_by_barcode.setdefault(alias.value, []).append(alias)
+    aliases_by_barcode = effective_aliases(run, source.site_id, [r.barcode for r in rows])
     for row in rows:
         override = config.get("row_overrides", {}).get(row.barcode, {})
         if not isinstance(override, dict):
@@ -398,8 +393,20 @@ def _materialisation_snapshot(run: CommandRun, source: SohImport) -> Materialisa
     return MaterialisationSnapshot(profile_version, profile, vocabulary(run.tenant_id, run.now))
 
 
+def effective_aliases(run: CommandRun, site_id: int, barcodes: list[str]) -> dict[str, list[SkuAlias]]:
+    """Every effective barcode alias visible at the site for these values, by value, in one query."""
+    found: dict[str, list[SkuAlias]] = {}
+    for alias in SkuAlias.objects.filter(tenant_id=run.tenant_id, alias_type="barcode", value__in=barcodes,
+                                        governance_state=GovernanceState.EFFECTIVE, effective_from__lte=run.now,
+                                        sku__governance_state=GovernanceState.EFFECTIVE,
+                                        sku__style__governance_state=GovernanceState.EFFECTIVE).filter(models_q_for_alias(site_id, run.now)).select_related("sku__style"):
+        found.setdefault(alias.value, []).append(alias)
+    return found
+
+
 def _materialise(run: CommandRun, access: AccessContext, source: SohImport, row: SohImportRow,
-                 *, snapshot: MaterialisationSnapshot | None = None) -> uuid.UUID:
+                 *, snapshot: MaterialisationSnapshot | None = None,
+                 aliases_by_barcode: dict[str, list[SkuAlias]] | None = None) -> uuid.UUID:
     mapping = row.mapping
     access.require("product.master.manage", brand_id=int(mapping["brand_id"]))
     snapshot = snapshot or _materialisation_snapshot(run, source)
@@ -407,11 +414,11 @@ def _materialise(run: CommandRun, access: AccessContext, source: SohImport, row:
     if profile_version.tenant_id != run.tenant_id or str(profile_version.pk) != str(mapping["identity_profile_id"]):
         raise Refusal("SOH_IDENTITY_CONFLICT", "The row does not match the exact approved identity profile.", status=422)
     # SKU reuse requires an already effective exact stable alias with same reviewed brand.
-    aliases = list(SkuAlias.objects.filter(tenant_id=run.tenant_id, alias_type="barcode", value=row.barcode,
-                                          governance_state=GovernanceState.EFFECTIVE, effective_from__lte=run.now,
-                                          sku__governance_state=GovernanceState.EFFECTIVE,
-                                          sku__style__governance_state=GovernanceState.EFFECTIVE)
-                   .filter(models_q_for_alias(source.site_id, run.now)).select_related("sku__style"))
+    # A batch passes its aliases fetched up front: one lookup per row is slow on a
+    # fresh database whose planner has no statistics yet (store test run, 28 Oct 2026).
+    if aliases_by_barcode is None:
+        aliases_by_barcode = effective_aliases(run, source.site_id, [row.barcode])
+    aliases = aliases_by_barcode.get(row.barcode, [])
     if aliases:
         ids = {alias.sku_id for alias in aliases}
         if len(ids) != 1 or aliases[0].sku.style.brand_id != int(mapping["brand_id"]) or str(aliases[0].sku_id) != mapping["sku_id"]:
@@ -440,6 +447,7 @@ def _materialise(run: CommandRun, access: AccessContext, source: SohImport, row:
                      effective_from=source.cutoff_at, governance_state=GovernanceState.EFFECTIVE)
     save_master(alias, conflict="The reviewed source barcode conflicts.")
     record_master_version(run, "alias", alias, approval_id=source.approval_request_id)
+    aliases_by_barcode[row.barcode] = [alias]
     return sku.pk
 
 
@@ -517,9 +525,10 @@ def apply_batch(run: CommandRun, access: AccessContext, source: SohImport, batch
     if not rows:
         raise Refusal("INVALID_REQUEST", "Unknown import batch.")
     snapshot = _materialisation_snapshot(run, source)
+    aliases_by_barcode = effective_aliases(run, source.site_id, [r.barcode for r in rows])
     payloads = []
     for row in rows:
-        sku_id = _materialise(run, access, source, row, snapshot=snapshot)
+        sku_id = _materialise(run, access, source, row, snapshot=snapshot, aliases_by_barcode=aliases_by_barcode)
         mapped = row.mapping
         payloads.append({"row": {"source_row_key": row.source_row_key, "site_id": source.site_id, "condition": "good",
                                   "identity": {"sku_id": str(sku_id), "raw_alias": row.barcode,

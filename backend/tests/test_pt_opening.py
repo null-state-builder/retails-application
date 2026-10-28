@@ -218,3 +218,86 @@ def test_a_second_pt_opening_is_refused_once_the_store_has_stock(store: Store) -
         second = load(stage_pt(store, [("second.xlsx", pt_book({"Sheet1": [pt_row("C1", 1)]}))]))
         assert second["state"] == "failed" and second["error"].startswith("SOH_RECONCILIATION_REQUIRED")
         assert sum(read_shelf(store).quantities.values()) == 2
+
+
+def _alias_queries_per_batch(store: Store, monkeypatch: pytest.MonkeyPatch, barcodes: list[str]) -> int:
+    from django.db import connection
+    from django.test.utils import CaptureQueriesContext
+
+    from ptmapper import soh_services
+
+    counts: list[int] = []
+    real = soh_services.apply_batch
+
+    def counted(*args: Any, **kwargs: Any) -> Any:
+        with CaptureQueriesContext(connection) as captured:
+            batch = real(*args, **kwargs)
+        counts.append(sum('FROM "masters_skualias"' in q["sql"] for q in captured.captured_queries))
+        return batch
+
+    monkeypatch.setattr(soh_services, "apply_batch", counted)
+    book = pt_book({"Sheet1": [pt_row(code, 1, size=f"S{n}") for n, code in enumerate(barcodes)]})
+    assert load(stage_pt(store, [("pt.xlsx", book)]))["state"] == "done"
+    assert len(counts) == 1
+    return counts[0]
+
+
+def test_a_batch_looks_its_barcodes_up_together_not_one_by_one(store: Store, monkeypatch: pytest.MonkeyPatch) -> None:
+    # One lookup per row was quadratic on the fresh server database (28 Oct 2026).
+    with tenant_context(store.tenant_id):
+        queries = _alias_queries_per_batch(store, monkeypatch, [f"Q{n}" for n in range(8)])
+    assert queries <= 2  # was one per row (8 here, 5,000 in a full batch)
+
+
+# -- load_pt_opening (the same load from a server shell) ------------------------
+
+
+def test_load_pt_opening_stages_and_loads_then_resumes_nothing_twice(store: Store, tmp_path: Any) -> None:
+    from django.core.management import CommandError, call_command
+
+    path = tmp_path / "pt.xlsx"
+    path.write_bytes(pt_book({"Sheet1": [pt_row("A1", 3), pt_row("A2", 2, size="L")]}))
+    out = io.StringIO()
+    with pytest.raises(CommandError, match="needs --stager"):
+        call_command("load_pt_opening", "--store", store.code, "--pt", str(path))
+    with pytest.raises(CommandError, match="cannot also upload"):
+        call_command("load_pt_opening", "--store", store.code, "--pt", str(path), "--stager", OWNER)
+    call_command("load_pt_opening", "--store", store.code, "--pt", str(path), "--stager", "wrr.store@synthetic.demo",
+                 stdout=out)
+    assert "Done: 5 pieces on the floor" in out.getvalue()
+    with tenant_context(store.tenant_id):
+        assert sum(read_shelf(store).quantities.values()) == 5
+        assert SohImport.objects.filter(site=store).count() == 1
+    with pytest.raises(CommandError, match="no PT source waiting"):
+        call_command("load_pt_opening", "--store", store.code)  # a loaded source is not loaded again
+
+
+def test_load_pt_opening_resumes_the_uploaded_source(store: Store) -> None:
+    from django.core.management import CommandError, call_command
+
+    with tenant_context(store.tenant_id):
+        source = stage_pt(store, [("pt.xlsx", pt_book({"Sheet1": [pt_row("A1", 2)]}))])
+        quick._record(source.pk, state="failed", error="RETRY_EXHAUSTED: busy")  # the web load that gave up
+    with pytest.raises(CommandError, match="already has a PT source"):
+        call_command("load_pt_opening", "--store", store.code, "--pt", __file__, "--stager", "wrr.store@synthetic.demo")
+    out = io.StringIO()
+    call_command("load_pt_opening", "--store", store.code, stdout=out)
+    assert "Done: 2 pieces on the floor" in out.getvalue()
+    with tenant_context(store.tenant_id):
+        source.refresh_from_db()
+        assert quick.status(source)["state"] == "done"
+        assert SohImport.objects.filter(site=store).count() == 1
+
+
+def test_load_pt_opening_keeps_the_page_guards(store: Store, monkeypatch: pytest.MonkeyPatch) -> None:
+    from django.core.management import CommandError, call_command
+
+    with tenant_context(store.tenant_id):
+        stage_pt(store, [("own.xlsx", pt_book({"Sheet1": [pt_row("B1", 1)]}))], who=OWNER)
+    with pytest.raises(CommandError, match="SELF_APPROVAL"):
+        call_command("load_pt_opening", "--store", store.code)
+    monkeypatch.setattr(sync_services, "is_real_store", lambda _store: True)
+    with pytest.raises(CommandError, match="TEST_TENANT_ONLY"):
+        call_command("load_pt_opening", "--store", store.code)
+    with pytest.raises(CommandError, match="No store NOPE"):
+        call_command("load_pt_opening", "--store", "NOPE")

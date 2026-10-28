@@ -22,6 +22,7 @@ import logging
 import threading
 import uuid
 from datetime import datetime, timedelta
+from collections.abc import Callable
 from types import SimpleNamespace
 from typing import Any
 
@@ -88,6 +89,13 @@ def _preparer_email(source: SohImport, exclude: set[str]) -> str:
 
 def check(access: AccessContext, source: SohImport) -> tuple[str, str, str]:
     """Who stages, prepares and approves; refuses unless this caller may load this source now."""
+    people = loaders(access, source)
+    access.require_step_up()
+    return people
+
+
+def loaders(access: AccessContext, source: SohImport) -> tuple[str, str, str]:
+    """``check`` without the web step-up: a server shell (``load_pt_opening``) has no password prompt."""
     from ptmapper.stock_sync_services import require_test_store
 
     require_test_store(source.site)
@@ -101,7 +109,6 @@ def check(access: AccessContext, source: SohImport) -> tuple[str, str, str]:
         raise Refusal("SELF_APPROVAL", "The person who uploaded or prepared this source cannot approve it.", status=403)
     if running(source):
         raise Refusal("STATE_CONFLICT", "This source is already loading.", status=409)
-    access.require_step_up()
     caller = _email(access.human_id)
     return _email(source.uploaded_by_id), _preparer_email(source, {str(access.human_id), str(source.uploaded_by_id)}), caller
 
@@ -111,8 +118,12 @@ def _rows(source: SohImport) -> list[Any]:
                             mrp=r.mrp_paise, source=r.source) for r in source.rows.order_by("ordinal")]
 
 
-def load(source_id: uuid.UUID, *, stager: str, preparer: str, approver: str) -> None:
-    """Run the whole opening for one source; records progress, then ``done`` or ``failed``."""
+def load(source_id: uuid.UUID, *, stager: str, preparer: str, approver: str,
+         echo: Callable[[str], None] = lambda _text: None) -> None:
+    """Run the whole opening for one source; records progress, then ``done`` or ``failed``.
+
+    ``echo`` also receives each step and log line (``load_pt_opening`` prints them).
+    """
     from accounts.test_store_loader import (PT_NOTE, PT_REASON, SOH_REASON, TEST_NOTE, OpeningDriver, access_for,
                                             catalogue_config)
     from accounts.goods_demo import _owner_human_id
@@ -127,6 +138,11 @@ def load(source_id: uuid.UUID, *, stager: str, preparer: str, approver: str) -> 
     def log(text: str) -> None:
         lines.append(text)
         _record(source_id, log=lines[-20:])
+        echo(text)
+
+    def step(text: str) -> None:
+        _record(source_id, step=text)
+        echo(text)
 
     try:
         _record(source_id, state="running", step="Creating brands, sizes and tax rules", error=None,
@@ -138,7 +154,7 @@ def load(source_id: uuid.UUID, *, stager: str, preparer: str, approver: str) -> 
         driver = OpeningDriver(tenant, store, stager=lambda: access_for(stager), preparer=lambda: access_for(preparer),
                                approver=lambda: access_for(approver), log=log)
         driver.load(source, config, note=PT_NOTE if pt else TEST_NOTE, reason=PT_REASON if pt else SOH_REASON,
-                    step=lambda text: _record(source_id, step=text))
+                    step=step)
         included = source.rows.filter(quantity__gt=0, exclusion_reason="")
         _record(source_id, state="done", step="Stock is on the floor and ready to sell",
                 finished_at=timezone.now().isoformat(),

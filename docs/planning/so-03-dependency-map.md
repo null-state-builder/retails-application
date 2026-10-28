@@ -17,7 +17,7 @@ Generated from [the SO-03 machine inventory](so-03-consolidation-inventory.json)
 | Services | 2 tagged service modules: `module:accounts.goods_admin_services`, `module:accounts.registration_services`. |
 | Offline client modules | 0 till/PWA modules: None discovered. |
 | Data | 13 owned model classes: `model:accounts.AccessChange`, `model:accounts.ActorPolicy`, `model:accounts.AuthenticationFailure`, `model:accounts.HumanIdentity`, `model:accounts.InstallationRegistration`, `model:accounts.LoginAttempt`, `model:accounts.Role`, `model:accounts.RoleAssignment`, `model:accounts.RoleGrant`, `model:accounts.SecurityGuard`, `model:accounts.ServerSession`, `model:accounts.User`, `model:masters.BrandIdentityBinding`. 88 direct model-module import edges from owned modules; 587 static read-call candidates in 41 backend/client modules (individual expressions are in the machine inventory). |
-| Downstream readers | 36 frontend API callsites; 28 endpoint/callsite links, 8 dynamic URL references; 329 cross-owner static backend import edges. |
+| Downstream readers | 36 frontend API callsites; 28 endpoint/callsite links, 8 dynamic URL references; 330 cross-owner static backend import edges. |
 | Lifecycle | canonical: 130, historical_read_only: 19, retirement_candidate: 12, temporary_supported_legacy: 19, unresolved: 9. |
 
 ### Entry-point dependency traces
@@ -489,6 +489,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.BrandIdentityBinding` → `module:ptmapper.goods_pt_views` (C05)
 - `model:masters.BrandIdentityBinding` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.BrandIdentityBinding` → `module:ptmapper.management.commands.load_goods_rulebook` (C05)
+- `model:masters.BrandIdentityBinding` → `module:ptmapper.management.commands.load_pt_opening` (C05)
 - `model:masters.BrandIdentityBinding` → `module:ptmapper.soh_services` (C05)
 - `model:masters.BrandIdentityBinding` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.BrandIdentityBinding` → `module:reporting.gst_facts` (C16)
@@ -2286,7 +2287,7 @@ These calls need a data-target and runtime-reachability review before the retire
 | Services | 3 tagged service modules: `module:masters.goods_identity_services`, `module:masters.goods_services`, `module:masters.master_sheet_services`. |
 | Offline client modules | 0 till/PWA modules: None discovered. |
 | Data | 34 owned model classes: `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.DocumentPrefix`, `model:masters.DocumentSeriesCounter`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.IdentityPick`, `model:masters.IssuedDocumentNumber`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterSheetImport`, `model:masters.MasterSheetImportReview`, `model:masters.MasterVersion`, `model:masters.NumberingSetting`, `model:masters.PriceChange`, `model:masters.ProductSku`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.SkuAlias`, `model:masters.SourceCrosswalk`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Style`, `model:masters.Tenant`, `model:vendors.Vendor`, `model:vendors.VendorBrand`. 78 direct model-module import edges from owned modules; 580 static read-call candidates in 22 backend/client modules (individual expressions are in the machine inventory). |
-| Downstream readers | 131 frontend API callsites; 133 endpoint/callsite links, 9 dynamic URL references; 2799 cross-owner static backend import edges. |
+| Downstream readers | 131 frontend API callsites; 133 endpoint/callsite links, 9 dynamic URL references; 2820 cross-owner static backend import edges. |
 | Lifecycle | canonical: 287, historical_read_only: 24, retirement_candidate: 1, temporary_supported_legacy: 55, unresolved: 10. |
 
 ### Entry-point dependency traces
@@ -2582,6 +2583,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.AliasRangeCounter` → `module:ptmapper.goods_pt_views` (C05)
 - `model:masters.AliasRangeCounter` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.AliasRangeCounter` → `module:ptmapper.management.commands.load_goods_rulebook` (C05)
+- `model:masters.AliasRangeCounter` → `module:ptmapper.management.commands.load_pt_opening` (C05)
 - `model:masters.AliasRangeCounter` → `module:ptmapper.soh_services` (C05)
 - `model:masters.AliasRangeCounter` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.AliasRangeCounter` → `module:reporting.gst_facts` (C16)
@@ -2674,6 +2676,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Brand` → `module:ptmapper.goods_vocab_views` (C05)
 - `model:masters.Brand` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:masters.Brand` → `module:ptmapper.legacy_sales_views` (C08)
+- `model:masters.Brand` → `module:ptmapper.management.commands.load_pt_opening` (C05)
 - `model:masters.Brand` → `module:ptmapper.pt_opening_services` (C05)
 - `model:masters.Brand` → `module:ptmapper.soh_services` (C05)
 - `model:masters.Brand` → `module:ptmapper.soh_views` (C05)
@@ -2846,6 +2849,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.CategoryMargin` → `module:ptmapper.goods_vocab_views` (C05)
 - `model:masters.CategoryMargin` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:masters.CategoryMargin` → `module:ptmapper.legacy_sales_views` (C08)
+- `model:masters.CategoryMargin` → `module:ptmapper.management.commands.load_pt_opening` (C05)
 - `model:masters.CategoryMargin` → `module:ptmapper.pt_opening_services` (C05)
 - `model:masters.CategoryMargin` → `module:ptmapper.soh_services` (C05)
 - `model:masters.CategoryMargin` → `module:ptmapper.soh_views` (C05)
@@ -3018,6 +3022,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Cohort` → `module:ptmapper.goods_vocab_views` (C05)
 - `model:masters.Cohort` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:masters.Cohort` → `module:ptmapper.legacy_sales_views` (C08)
+- `model:masters.Cohort` → `module:ptmapper.management.commands.load_pt_opening` (C05)
 - `model:masters.Cohort` → `module:ptmapper.pt_opening_services` (C05)
 - `model:masters.Cohort` → `module:ptmapper.soh_services` (C05)
 - `model:masters.Cohort` → `module:ptmapper.soh_views` (C05)
@@ -3164,6 +3169,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.ConfigDraft` → `module:ptmapper.goods_pt_views` (C05)
 - `model:masters.ConfigDraft` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.ConfigDraft` → `module:ptmapper.management.commands.load_goods_rulebook` (C05)
+- `model:masters.ConfigDraft` → `module:ptmapper.management.commands.load_pt_opening` (C05)
 - `model:masters.ConfigDraft` → `module:ptmapper.soh_services` (C05)
 - `model:masters.ConfigDraft` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.ConfigDraft` → `module:reporting.gst_facts` (C16)
@@ -3230,6 +3236,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.ConfigVersion` → `module:ptmapper.goods_pt_views` (C05)
 - `model:masters.ConfigVersion` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.ConfigVersion` → `module:ptmapper.management.commands.load_goods_rulebook` (C05)
+- `model:masters.ConfigVersion` → `module:ptmapper.management.commands.load_pt_opening` (C05)
 - `model:masters.ConfigVersion` → `module:ptmapper.soh_services` (C05)
 - `model:masters.ConfigVersion` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.ConfigVersion` → `module:reporting.gst_facts` (C16)
@@ -3300,6 +3307,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.EffectiveVersionPeriod` → `module:ptmapper.goods_pt_views` (C05)
 - `model:masters.EffectiveVersionPeriod` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.EffectiveVersionPeriod` → `module:ptmapper.management.commands.load_goods_rulebook` (C05)
+- `model:masters.EffectiveVersionPeriod` → `module:ptmapper.management.commands.load_pt_opening` (C05)
 - `model:masters.EffectiveVersionPeriod` → `module:ptmapper.soh_services` (C05)
 - `model:masters.EffectiveVersionPeriod` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.EffectiveVersionPeriod` → `module:reporting.gst_facts` (C16)
@@ -3392,6 +3400,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.GstSlab` → `module:ptmapper.goods_vocab_views` (C05)
 - `model:masters.GstSlab` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:masters.GstSlab` → `module:ptmapper.legacy_sales_views` (C08)
+- `model:masters.GstSlab` → `module:ptmapper.management.commands.load_pt_opening` (C05)
 - `model:masters.GstSlab` → `module:ptmapper.pt_opening_services` (C05)
 - `model:masters.GstSlab` → `module:ptmapper.soh_services` (C05)
 - `model:masters.GstSlab` → `module:ptmapper.soh_views` (C05)
@@ -3564,6 +3573,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Gstin` → `module:ptmapper.goods_vocab_views` (C05)
 - `model:masters.Gstin` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:masters.Gstin` → `module:ptmapper.legacy_sales_views` (C08)
+- `model:masters.Gstin` → `module:ptmapper.management.commands.load_pt_opening` (C05)
 - `model:masters.Gstin` → `module:ptmapper.pt_opening_services` (C05)
 - `model:masters.Gstin` → `module:ptmapper.soh_services` (C05)
 - `model:masters.Gstin` → `module:ptmapper.soh_views` (C05)
@@ -3771,6 +3781,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.LegalEntity` → `module:ptmapper.goods_vocab_views` (C05)
 - `model:masters.LegalEntity` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:masters.LegalEntity` → `module:ptmapper.legacy_sales_views` (C08)
+- `model:masters.LegalEntity` → `module:ptmapper.management.commands.load_pt_opening` (C05)
 - `model:masters.LegalEntity` → `module:ptmapper.pt_opening_services` (C05)
 - `model:masters.LegalEntity` → `module:ptmapper.soh_services` (C05)
 - `model:masters.LegalEntity` → `module:ptmapper.soh_views` (C05)
@@ -3917,6 +3928,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Location` → `module:ptmapper.goods_pt_views` (C05)
 - `model:masters.Location` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.Location` → `module:ptmapper.management.commands.load_goods_rulebook` (C05)
+- `model:masters.Location` → `module:ptmapper.management.commands.load_pt_opening` (C05)
 - `model:masters.Location` → `module:ptmapper.soh_services` (C05)
 - `model:masters.Location` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.Location` → `module:reporting.gst_facts` (C16)
@@ -3983,6 +3995,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.MasterVersion` → `module:ptmapper.goods_pt_views` (C05)
 - `model:masters.MasterVersion` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.MasterVersion` → `module:ptmapper.management.commands.load_goods_rulebook` (C05)
+- `model:masters.MasterVersion` → `module:ptmapper.management.commands.load_pt_opening` (C05)
 - `model:masters.MasterVersion` → `module:ptmapper.soh_services` (C05)
 - `model:masters.MasterVersion` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.MasterVersion` → `module:reporting.gst_facts` (C16)
@@ -4077,6 +4090,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.PriceChange` → `module:ptmapper.goods_vocab_views` (C05)
 - `model:masters.PriceChange` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:masters.PriceChange` → `module:ptmapper.legacy_sales_views` (C08)
+- `model:masters.PriceChange` → `module:ptmapper.management.commands.load_pt_opening` (C05)
 - `model:masters.PriceChange` → `module:ptmapper.pt_opening_services` (C05)
 - `model:masters.PriceChange` → `module:ptmapper.soh_services` (C05)
 - `model:masters.PriceChange` → `module:ptmapper.soh_views` (C05)
@@ -4256,6 +4270,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Sbu` → `module:ptmapper.goods_pt_views` (C05)
 - `model:masters.Sbu` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.Sbu` → `module:ptmapper.management.commands.load_goods_rulebook` (C05)
+- `model:masters.Sbu` → `module:ptmapper.management.commands.load_pt_opening` (C05)
 - `model:masters.Sbu` → `module:ptmapper.soh_services` (C05)
 - `model:masters.Sbu` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.Sbu` → `module:reporting.gst_facts` (C16)
@@ -4348,6 +4363,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Season` → `module:ptmapper.goods_vocab_views` (C05)
 - `model:masters.Season` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:masters.Season` → `module:ptmapper.legacy_sales_views` (C08)
+- `model:masters.Season` → `module:ptmapper.management.commands.load_pt_opening` (C05)
 - `model:masters.Season` → `module:ptmapper.pt_opening_services` (C05)
 - `model:masters.Season` → `module:ptmapper.soh_services` (C05)
 - `model:masters.Season` → `module:ptmapper.soh_views` (C05)
@@ -4494,6 +4510,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.SiteCapabilityEvent` → `module:ptmapper.goods_pt_views` (C05)
 - `model:masters.SiteCapabilityEvent` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.SiteCapabilityEvent` → `module:ptmapper.management.commands.load_goods_rulebook` (C05)
+- `model:masters.SiteCapabilityEvent` → `module:ptmapper.management.commands.load_pt_opening` (C05)
 - `model:masters.SiteCapabilityEvent` → `module:ptmapper.soh_services` (C05)
 - `model:masters.SiteCapabilityEvent` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.SiteCapabilityEvent` → `module:reporting.gst_facts` (C16)
@@ -4560,6 +4577,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.SiteGuard` → `module:ptmapper.goods_pt_views` (C05)
 - `model:masters.SiteGuard` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.SiteGuard` → `module:ptmapper.management.commands.load_goods_rulebook` (C05)
+- `model:masters.SiteGuard` → `module:ptmapper.management.commands.load_pt_opening` (C05)
 - `model:masters.SiteGuard` → `module:ptmapper.soh_services` (C05)
 - `model:masters.SiteGuard` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.SiteGuard` → `module:reporting.gst_facts` (C16)
@@ -4652,6 +4670,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Sku` → `module:ptmapper.goods_vocab_views` (C05)
 - `model:masters.Sku` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:masters.Sku` → `module:ptmapper.legacy_sales_views` (C08)
+- `model:masters.Sku` → `module:ptmapper.management.commands.load_pt_opening` (C05)
 - `model:masters.Sku` → `module:ptmapper.pt_opening_services` (C05)
 - `model:masters.Sku` → `module:ptmapper.soh_services` (C05)
 - `model:masters.Sku` → `module:ptmapper.soh_views` (C05)
@@ -4890,6 +4909,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Store` → `module:ptmapper.goods_vocab_views` (C05)
 - `model:masters.Store` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:masters.Store` → `module:ptmapper.legacy_sales_views` (C08)
+- `model:masters.Store` → `module:ptmapper.management.commands.load_pt_opening` (C05)
 - `model:masters.Store` → `module:ptmapper.pt_opening_services` (C05)
 - `model:masters.Store` → `module:ptmapper.soh_services` (C05)
 - `model:masters.Store` → `module:ptmapper.soh_views` (C05)
@@ -5062,6 +5082,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.StoreTarget` → `module:ptmapper.goods_vocab_views` (C05)
 - `model:masters.StoreTarget` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:masters.StoreTarget` → `module:ptmapper.legacy_sales_views` (C08)
+- `model:masters.StoreTarget` → `module:ptmapper.management.commands.load_pt_opening` (C05)
 - `model:masters.StoreTarget` → `module:ptmapper.pt_opening_services` (C05)
 - `model:masters.StoreTarget` → `module:ptmapper.soh_services` (C05)
 - `model:masters.StoreTarget` → `module:ptmapper.soh_views` (C05)
@@ -5241,6 +5262,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Tenant` → `module:ptmapper.goods_pt_views` (C05)
 - `model:masters.Tenant` → `module:ptmapper.goods_rulebook_seed` (C05)
 - `model:masters.Tenant` → `module:ptmapper.management.commands.load_goods_rulebook` (C05)
+- `model:masters.Tenant` → `module:ptmapper.management.commands.load_pt_opening` (C05)
 - `model:masters.Tenant` → `module:ptmapper.soh_services` (C05)
 - `model:masters.Tenant` → `module:ptmapper.stock_sync_services` (C08)
 - `model:masters.Tenant` → `module:reporting.gst_facts` (C16)
@@ -5384,7 +5406,7 @@ These calls need a data-target and runtime-reachability review before the retire
 | Services | 2 tagged service modules: `module:sell.services.salesperson_move`, `module:sell.services.salesperson_rehearsal`. |
 | Offline client modules | 0 till/PWA modules: None discovered. |
 | Data | 4 owned model classes: `model:accounts.Staff`, `model:accounts.StaffAssignment`, `model:masters.StaffTarget`, `model:sell.SalespersonMatch`. 4 direct model-module import edges from owned modules; 20 static read-call candidates in 3 backend/client modules (individual expressions are in the machine inventory). |
-| Downstream readers | 7 frontend API callsites; 7 endpoint/callsite links, 0 dynamic URL references; 328 cross-owner static backend import edges. |
+| Downstream readers | 7 frontend API callsites; 7 endpoint/callsite links, 0 dynamic URL references; 329 cross-owner static backend import edges. |
 | Lifecycle | canonical: 17, historical_read_only: 7, retirement_candidate: 1, temporary_supported_legacy: 13. |
 
 ### Entry-point dependency traces
@@ -5589,6 +5611,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.StaffTarget` → `module:ptmapper.goods_vocab_views` (C05)
 - `model:masters.StaffTarget` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:masters.StaffTarget` → `module:ptmapper.legacy_sales_views` (C08)
+- `model:masters.StaffTarget` → `module:ptmapper.management.commands.load_pt_opening` (C05)
 - `model:masters.StaffTarget` → `module:ptmapper.pt_opening_services` (C05)
 - `model:masters.StaffTarget` → `module:ptmapper.soh_services` (C05)
 - `model:masters.StaffTarget` → `module:ptmapper.soh_views` (C05)
@@ -6160,13 +6183,13 @@ These calls need a data-target and runtime-reachability review before the retire
 
 | Boundary | Inventory-derived view |
 | --- | --- |
-| Entry points | 79 discovered: 57 HTTP method routes, 6 screens, 1 nested views, 2 print/display sinks, 11 navigation/bookmarks, 2 jobs/commands/signals, 0 middleware, 0 operational files. HTTP namespaces: `/api/goods-v1/inbound` (20), `/api/goods-v1/ptmapper` (37). |
+| Entry points | 80 discovered: 57 HTTP method routes, 6 screens, 1 nested views, 2 print/display sinks, 11 navigation/bookmarks, 3 jobs/commands/signals, 0 middleware, 0 operational files. HTTP namespaces: `/api/goods-v1/inbound` (20), `/api/goods-v1/ptmapper` (37). |
 | Authorization | Required boundaries: Current stock.accept on tenant/site/source brand, enforced by the API for each work row and again by the E139 session commands.; Operator shell only; refuses a non-synthetic tenant. Drives the canonical SOH → manifest → opening PT → acceptance writers with distinct synthetic people.; SO-03 unified server evaluator; owner must prove resource and field denials at cutover.; Trusted site and reviewed stable brand/SKU identities; action plus cost_own_pt/financial fields in one scoped assignment; immutable source/physical/review pins; canonical manifest/PT and goods acceptance writers.; Upload: opening.import.stage at the exact store. Load: opening.manifest.approve with cost and financial on every source cell, a recent step-up, and a caller who neither uploaded nor prepared the source. Both refused with TEST_TENANT_ONLY unless the tenant is synthetic (stock_sync_services.require_test_store). The load then runs as three distinct synthetic people through the canonical opening writers. Handler-level enforcement requires behaviour and denial proof. |
 | Services | 6 tagged service modules: `module:inbound.goods_services`, `module:ptmapper.goods_manifest_services`, `module:ptmapper.goods_print_services`, `module:ptmapper.goods_pt_services`, `module:ptmapper.pt_opening_services`, `module:ptmapper.soh_services`. |
 | Offline client modules | 0 till/PWA modules: None discovered. |
-| Data | 24 owned model classes: `model:inbound.Arrival`, `model:inbound.ArrivalDecision`, `model:inbound.ArrivalHead`, `model:inbound.CountHandover`, `model:inbound.CountSession`, `model:inbound.CounterGrnDraft`, `model:inbound.Disposition`, `model:inbound.DuplicateArrivalAcknowledgement`, `model:inbound.GoodsGrn`, `model:inbound.InvoiceClaimVersion`, `model:inbound.ScanObservation`, `model:ptmapper.GoodsPt`, `model:ptmapper.OpeningClaim`, `model:ptmapper.OpeningManifest`, `model:ptmapper.OpeningManifestRow`, `model:ptmapper.OpeningManifestVersion`, `model:ptmapper.OpeningSeasonCorrection`, `model:ptmapper.OpeningVariance`, `model:ptmapper.PrintEvent`, `model:ptmapper.PrintJob`, `model:ptmapper.SohImport`, `model:ptmapper.SohImportBatch`, `model:ptmapper.SohImportReview`, `model:ptmapper.SohImportRow`. 110 direct model-module import edges from owned modules; 871 static read-call candidates in 28 backend/client modules (individual expressions are in the machine inventory). |
+| Data | 24 owned model classes: `model:inbound.Arrival`, `model:inbound.ArrivalDecision`, `model:inbound.ArrivalHead`, `model:inbound.CountHandover`, `model:inbound.CountSession`, `model:inbound.CounterGrnDraft`, `model:inbound.Disposition`, `model:inbound.DuplicateArrivalAcknowledgement`, `model:inbound.GoodsGrn`, `model:inbound.InvoiceClaimVersion`, `model:inbound.ScanObservation`, `model:ptmapper.GoodsPt`, `model:ptmapper.OpeningClaim`, `model:ptmapper.OpeningManifest`, `model:ptmapper.OpeningManifestRow`, `model:ptmapper.OpeningManifestVersion`, `model:ptmapper.OpeningSeasonCorrection`, `model:ptmapper.OpeningVariance`, `model:ptmapper.PrintEvent`, `model:ptmapper.PrintJob`, `model:ptmapper.SohImport`, `model:ptmapper.SohImportBatch`, `model:ptmapper.SohImportReview`, `model:ptmapper.SohImportRow`. 113 direct model-module import edges from owned modules; 878 static read-call candidates in 29 backend/client modules (individual expressions are in the machine inventory). |
 | Downstream readers | 79 frontend API callsites; 46 endpoint/callsite links, 17 dynamic URL references; 227 cross-owner static backend import edges. |
-| Lifecycle | canonical: 196, historical_read_only: 31, temporary_supported_legacy: 19, unresolved: 14. |
+| Lifecycle | canonical: 196, historical_read_only: 31, temporary_supported_legacy: 21, unresolved: 14. |
 
 ### Entry-point dependency traces
 
@@ -6237,6 +6260,7 @@ Each row follows entry point → declared authorization → implementation and s
 | `bookmark:/goods/pt/prepare` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/shell/navConfig.ts` → `screen:/goods/pt-work` | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | runtime `unknown; static discovery is not execution tracing` |
 | `bookmark:/goods/receipts` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/shell/navConfig.ts` → `screen:/goods/receive` | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | runtime `unknown; static discovery is not execution tracing` |
 | `command:load_goods_rulebook` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `module:ptmapper.management.commands.load_goods_rulebook` → `module:core.refusals`, `module:core.tenancy`, `module:masters.goods_models`, `module:ptmapper.goods_rulebook_seed`; model `model:masters.AliasRangeCounter`, `model:masters.BrandIdentityBinding`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.EffectiveVersionPeriod`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.Sbu`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Tenant` | R:4 / W:0 / models:11; `static leads only; route-specific and dynamic data access unverified` | runtime `unknown; static discovery is not execution tracing` |
+| `command:load_pt_opening` | Operator shell only; refuses a non-synthetic tenant. Drives the canonical SOH → manifest → opening PT → acceptance writers with distinct synthetic people. | `pending` | `module:ptmapper.management.commands.load_pt_opening` → `module:accounts.goods_demo`, `module:accounts.test_store_loader`, `module:core.refusals`, `module:core.tenancy`, `module:masters.goods_models`, `module:masters.models`, `module:ptmapper.pt_opening`, `module:ptmapper.pt_opening_services`, `module:ptmapper.soh_models`; model `model:masters.AliasRangeCounter`, `model:masters.Brand`, `model:masters.BrandIdentityBinding`, `model:masters.CategoryMargin`, `model:masters.Cohort`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:masters.EffectiveVersionPeriod`, `model:masters.GstSlab`, `model:masters.Gstin`, `model:masters.LegalEntity`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.PriceChange`, `model:masters.Sbu`, `model:masters.Season`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Sku`, `model:masters.StaffTarget`, `model:masters.Store`, `model:masters.StoreTarget`, `model:masters.Tenant`, `model:ptmapper.SohImport`, `model:ptmapper.SohImportBatch`, `model:ptmapper.SohImportReview`, `model:ptmapper.SohImportRow` | R:9 / W:0 / models:29; `static leads only; route-specific and dynamic data access unverified` | runtime `unknown; static discovery is not execution tracing` |
 | `command:load_test_store` | Operator shell only; refuses a non-synthetic tenant. Drives the canonical SOH → manifest → opening PT → acceptance writers with distinct synthetic people. | `pending` | `module:accounts.management.commands.load_test_store` → `module:accounts.goods_demo`, `module:accounts.test_store_loader`, `module:core.refusals`, `module:masters.goods_models`; model `model:masters.AliasRangeCounter`, `model:masters.BrandIdentityBinding`, `model:masters.ConfigDraft`, `model:masters.ConfigVersion`, `model:masters.EffectiveVersionPeriod`, `model:masters.Location`, `model:masters.MasterVersion`, `model:masters.Sbu`, `model:masters.SiteCapabilityEvent`, `model:masters.SiteGuard`, `model:masters.Tenant` | R:1 / W:0 / models:11; `static leads only; route-specific and dynamic data access unverified` | runtime `unknown; static discovery is not execution tracing` |
 | `navigation:receive_goods:/goods/labels` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/shell/navConfig.ts` → `screen:/goods/labels` | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | runtime `unknown; static discovery is not execution tracing` |
 | `navigation:receive_goods:/goods/pt-work` | SO-03 unified server evaluator; owner must prove resource and field denials at cutover. | `pending` | `frontend/src/shell/navConfig.ts` → `screen:/goods/pt-work` | R:0 / W:0; `static leads only; route-specific and dynamic data access unverified` | runtime `unknown; static discovery is not execution tracing` |
@@ -6257,6 +6281,7 @@ Each row follows entry point → declared authorization → implementation and s
 Registered jobs, commands and signal handlers:
 
 - `command:load_goods_rulebook` — `backend/ptmapper/management/commands/load_goods_rulebook.py`
+- `command:load_pt_opening` — `backend/ptmapper/management/commands/load_pt_opening.py`
 - `command:load_test_store` — `backend/accounts/management/commands/load_test_store.py`
 
 Direct data-import edges (module → model module):
@@ -6351,6 +6376,9 @@ Direct data-import edges (module → model module):
 - `module:ptmapper.goods_vocab_views` → `module:masters.goods_identity_models`
 - `module:ptmapper.goods_vocab_views` → `module:masters.models`
 - `module:ptmapper.management.commands.load_goods_rulebook` → `module:masters.goods_models`
+- `module:ptmapper.management.commands.load_pt_opening` → `module:masters.goods_models`
+- `module:ptmapper.management.commands.load_pt_opening` → `module:masters.models`
+- `module:ptmapper.management.commands.load_pt_opening` → `module:ptmapper.soh_models`
 - `module:ptmapper.models` → `module:ptmapper.goods_models`
 - `module:ptmapper.models` → `module:ptmapper.legacy_sales_models`
 - `module:ptmapper.models` → `module:ptmapper.soh_models`
@@ -10022,7 +10050,7 @@ These calls need a data-target and runtime-reachability review before the retire
 | Services | 5 tagged service modules: `module:sell.services.consent`, `module:sell.services.customer_numbers`, `module:sell.services.customer_retention`, `module:sell.services.customer_rights`, `module:sell.services.customers`. |
 | Offline client modules | 0 till/PWA modules: None discovered. |
 | Data | 5 owned model classes: `model:masters.ConsentWording`, `model:masters.Customer`, `model:masters.CustomerNumber`, `model:sell.ConsentAnswer`, `model:sell.CustomerErasure`. 13 direct model-module import edges from owned modules; 82 static read-call candidates in 8 backend/client modules (individual expressions are in the machine inventory). |
-| Downstream readers | 2 frontend API callsites; 2 endpoint/callsite links, 0 dynamic URL references; 503 cross-owner static backend import edges. |
+| Downstream readers | 2 frontend API callsites; 2 endpoint/callsite links, 0 dynamic URL references; 505 cross-owner static backend import edges. |
 | Lifecycle | canonical: 23, historical_read_only: 8, temporary_supported_legacy: 4. |
 
 ### Entry-point dependency traces
@@ -10155,6 +10183,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.Customer` → `module:ptmapper.goods_vocab_views` (C05)
 - `model:masters.Customer` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:masters.Customer` → `module:ptmapper.legacy_sales_views` (C08)
+- `model:masters.Customer` → `module:ptmapper.management.commands.load_pt_opening` (C05)
 - `model:masters.Customer` → `module:ptmapper.pt_opening_services` (C05)
 - `model:masters.Customer` → `module:ptmapper.soh_services` (C05)
 - `model:masters.Customer` → `module:ptmapper.soh_views` (C05)
@@ -10339,6 +10368,7 @@ Cross-owner static downstream readers (owned service/model → importer):
 - `model:masters.CustomerNumber` → `module:ptmapper.goods_vocab_views` (C05)
 - `model:masters.CustomerNumber` → `module:ptmapper.legacy_sales_services` (C08)
 - `model:masters.CustomerNumber` → `module:ptmapper.legacy_sales_views` (C08)
+- `model:masters.CustomerNumber` → `module:ptmapper.management.commands.load_pt_opening` (C05)
 - `model:masters.CustomerNumber` → `module:ptmapper.pt_opening_services` (C05)
 - `model:masters.CustomerNumber` → `module:ptmapper.soh_services` (C05)
 - `model:masters.CustomerNumber` → `module:ptmapper.soh_views` (C05)
