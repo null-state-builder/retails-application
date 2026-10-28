@@ -183,15 +183,10 @@ def test_pt_files_open_a_test_store_and_the_soh_brings_it_to_the_floor(store: St
 
         sync = soh_sync(store, {"A1": 1, "A2": 4, "N1": 2})  # A1 sold 2, A2 two more found, N1 never in a PT
         assert sync.outcome["removed_qty"] == 2 and sync.outcome["added_qty"] == 2
-        assert sync.outcome["new_item_barcodes"] == 1
+        # N1 is flagged for review only: no top-up import, no stock, nothing to sell until its PT comes.
+        assert sync.outcome["soh_only_barcodes"] == 1 and sync.top_up_import is None
+        assert sync.rows.get(barcode="N1").category == "SOH_ONLY"
         assert sum(read_shelf(store).quantities.values()) == 5
-
-        top_up = sync.top_up_import
-        assert top_up is not None
-        state = load(top_up)  # the same one-click load takes the new items in, at the SOH Rate
-        assert state["state"] == "done", state
-        assert sum(read_shelf(store).quantities.values()) == 7
-        assert top_up.rows.get(barcode="N1").mapping["basic_paise"] == "90000"
 
 
 def test_load_needs_a_different_approving_owner_and_a_test_store(store: Store, monkeypatch: pytest.MonkeyPatch) -> None:

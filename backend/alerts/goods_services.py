@@ -151,6 +151,13 @@ EXCEPTION_DEFAULTS: dict[str, ExceptionDefault] = {
         "C-OWN", 30, "days", "difference closed by the Owner, acknowledged, or returned to source"
     ),
     "eway_missing": ExceptionDefault("M-STR", 1, "working_days", "reference attached"),
+    # Store test run: one per applied legacy SOH sync whose rows differ from the
+    # book (ptmapper.stock_sync_services). Stock is already brought to the SOH;
+    # the store manager reviews the flagged rows. Never one per row. It closes
+    # when every flagged row of that sync is acknowledged.
+    "stock_sync_review": ExceptionDefault(
+        "M-STR", 2, "days", "every flagged row acknowledged"
+    ),
     "count_session_stale": ExceptionDefault("C-INV", 1, "working_days", "completed or cancelled"),
     "setup_item_missing": ExceptionDefault("C-OWN", 30, "days", "configuration approved"),
     "series_hole": ExceptionDefault("C-OWN", 5, "working_days", "explained"),

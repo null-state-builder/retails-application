@@ -15,6 +15,12 @@ import { sha256Hex } from "../lib/goodsPt";
 import { Feedback, Field, hold } from "../lib/goodsScreen";
 
 interface Row {
+  id?: string;
+  category?: Category | null;
+  mrp_differs?: boolean;
+  soh_mrp_paise?: number | null;
+  book_mrp_paise?: number | null;
+  review_state?: "open" | "acknowledged";
   barcode: string;
   outcome: string;
   applied_qty: number;
@@ -33,14 +39,59 @@ interface SohSync {
   state: string;
   source_name: string;
   cutoff_at: string;
-  outcome: Record<string, number>;
+  outcome: Record<string, number | Record<string, number>>;
   changed_rows: number;
   exception_count: number;
   new_item_rows: number;
   top_up_import_id: string | null;
   allowed_actions: string[];
-  preview?: Record<string, number>;
+  preview?: SohPreview;
+  review?: ReviewCounts;
   rows?: Row[];
+}
+
+// A row's flag after an SOH sync. Stock for PT items is already brought to the
+// SOH; acknowledging a row only marks it reviewed.
+type Category = "SOH_ONLY" | "PT_ONLY" | "SOH_ABOVE" | "SOH_BELOW" | "MRP_DIFFERS";
+
+const CATEGORY_LABEL: Record<Category, string> = {
+  SOH_ONLY: "Not in any PT — not sellable until its PT is uploaded",
+  PT_ONLY: "Not in the SOH — taken to 0",
+  SOH_ABOVE: "SOH higher — added",
+  SOH_BELOW: "SOH lower — taken out",
+  MRP_DIFFERS: "MRP differs",
+};
+const CATEGORIES = Object.keys(CATEGORY_LABEL) as Category[];
+const PAGE_SIZE = 100;
+
+interface SohPreview {
+  test_bills_to_reverse: number;
+  book_qty: number;
+  soh_qty: number;
+  remove_qty: number;
+  add_qty: number;
+  soh_only_qty: number;
+  flagged_rows: number;
+  category_counts: Record<Category, number>;
+}
+
+interface ReviewCounts {
+  categories: Record<Category, number>;
+  total: number;
+  open: number;
+  acknowledged: number;
+}
+
+interface ReviewPage {
+  counts: ReviewCounts;
+  total: number;
+  offset: number;
+  limit: number;
+  rows: Row[];
+}
+
+function rupees(paise: number | null | undefined): string {
+  return paise == null ? "–" : `₹${(paise / 100).toLocaleString()}`;
 }
 
 interface SalesImport {
@@ -96,6 +147,49 @@ export function StockSyncPage() {
   const [error, setError] = useState("");
   const [needsOpening, setNeedsOpening] = useState(false);
   const [ok, setOk] = useState("");
+  const [review, setReview] = useState<ReviewPage | null>(null);
+  const [category, setCategory] = useState<Category | "">("");
+  const [onlyOpen, setOnlyOpen] = useState(true);
+  const [offset, setOffset] = useState(0);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+
+  const reviewId = selected?.kind === "soh" && selected.state === "applied" ? selected.id : null;
+
+  async function loadReview(id: string, from: number) {
+    const query = new URLSearchParams({ offset: String(from), limit: String(PAGE_SIZE) });
+    if (category) query.set("category", category);
+    if (onlyOpen) query.set("review_state", "open");
+    const result = await api.get<ReviewPage>(`${BASE}/stock-syncs/${id}/rows?${query.toString()}`);
+    setReview(result.data);
+    setPicked(new Set());
+  }
+
+  useEffect(() => {
+    setReview(null);
+    if (reviewId) loadReview(reviewId, offset).catch((e) => setError(apiErrorMessage(e)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reviewId, category, onlyOpen, offset]);
+
+  async function acknowledge(ids: string[]) {
+    if (!reviewId || ids.length === 0) return;
+    const result = await api.post<{ acknowledged: number; open_rows: number }>(
+      `${BASE}/stock-syncs/${reviewId}/rows/acknowledge`,
+      { ...goodsMeta(), row_ids: ids },
+    );
+    setOk(
+      `Marked ${result.data.acknowledged} reviewed. ${result.data.open_rows} still to review. Stock is not changed.`,
+    );
+    await loadReview(reviewId, offset);
+  }
+
+  function togglePick(id: string) {
+    setPicked((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   useEffect(() => {
     if (!siteId && sites[0]) setSiteId(sites[0].id);
@@ -132,6 +226,7 @@ export function StockSyncPage() {
   async function open(kind: "soh" | "sales", id: string) {
     const path = kind === "soh" ? `stock-syncs/${id}` : `legacy-sales/${id}`;
     const result = await api.get(`${BASE}/${path}`);
+    setOffset(0);
     setSelected({ ...result.data, kind } as Selected);
   }
 
@@ -158,7 +253,12 @@ export function StockSyncPage() {
     const path = selected.kind === "soh" ? "stock-syncs" : "legacy-sales";
     const result = await api.post(`${BASE}/${path}/${selected.id}/${operation}`, goodsMeta());
     setSelected({ ...result.data, kind: selected.kind } as Selected);
-    if (operation === "apply") setOk(`Applied. ${result.data.exception_count} rows need attention.`);
+    if (operation === "apply" && selected.kind === "soh") {
+      const flagged = result.data.review?.total ?? 0;
+      setOk(`Applied. Stock now matches the SOH; ${flagged} rows are flagged for review below.`);
+    } else if (operation === "apply") {
+      setOk(`Applied. ${result.data.exception_count} rows need attention.`);
+    }
     await refresh();
   }
 
@@ -259,7 +359,9 @@ export function StockSyncPage() {
           </h3>
           <ul>
             {selected.preview && (
-              <li>{selected.preview.test_bills_to_reverse} test bills will be put back on the shelf</li>
+              <li>
+                {selected.preview.test_bills_to_reverse} test bills will be put back on the shelf
+              </li>
             )}
             {selected.kind === "soh" && selected.preview && (
               <>
@@ -269,7 +371,16 @@ export function StockSyncPage() {
                 </li>
                 <li>{selected.preview.remove_qty} to take out</li>
                 <li>{selected.preview.add_qty} to add for items already here</li>
-                <li>{selected.preview.new_item_qty} of new items to review as an opening top-up</li>
+                <li>
+                  {selected.preview.soh_only_qty} pieces are in no PT: they will be flagged, not
+                  added, and are not sellable until their PT is uploaded
+                </li>
+                <li>
+                  {selected.preview.flagged_rows} rows will be flagged for review:{" "}
+                  {CATEGORIES.map(
+                    (c) => `${selected.preview?.category_counts[c] ?? 0} ${CATEGORY_LABEL[c]}`,
+                  ).join(" · ")}
+                </li>
               </>
             )}
             {selected.kind === "sales" && (
@@ -279,11 +390,15 @@ export function StockSyncPage() {
               </li>
             )}
             {selected.state === "applied" &&
-              Object.entries(selected.outcome).map(([key, value]) => (
-                <li key={key}>
-                  {key.replaceAll("_", " ")}: {value}
-                </li>
-              ))}
+              Object.entries(selected.outcome)
+                .flatMap(([key, value]) =>
+                  typeof value === "number" ? [[key, value] as const] : [],
+                )
+                .map(([key, value]) => (
+                  <li key={key}>
+                    {key.replaceAll("_", " ")}: {value}
+                  </li>
+                ))}
             <li>
               <strong>{selected.exception_count}</strong> rows need attention
             </li>
@@ -295,7 +410,11 @@ export function StockSyncPage() {
           </ul>
           {selected.allowed_actions.includes("apply") && (
             <div className="btn-row">
-              <button className="btn btn-cta" disabled={busy} onClick={() => run(() => act("apply"))}>
+              <button
+                className="btn btn-cta"
+                disabled={busy}
+                onClick={() => run(() => act("apply"))}
+              >
                 Apply to stock
               </button>
               <button className="btn" disabled={busy} onClick={() => run(() => act("discard"))}>
@@ -303,7 +422,143 @@ export function StockSyncPage() {
               </button>
             </div>
           )}
-          {selected.rows && selected.rows.length > 0 && (
+          {reviewId && review && (
+            <OperationsTable label="Flagged rows">
+              <p className="lead" data-testid="sync-review-counts">
+                Stock for PT items now matches the SOH. {review.counts.open} of{" "}
+                {review.counts.total} flagged rows still to review. Acknowledging a row only marks
+                it seen; nobody adds or edits items or stock here.
+              </p>
+              <div className="btn-row" role="group" aria-label="Filter by category">
+                <button
+                  className={category === "" ? "btn btn-cta" : "btn"}
+                  onClick={() => {
+                    setOffset(0);
+                    setCategory("");
+                  }}
+                >
+                  All ({review.counts.total})
+                </button>
+                {CATEGORIES.map((c) => (
+                  <button
+                    key={c}
+                    className={category === c ? "btn btn-cta" : "btn"}
+                    onClick={() => {
+                      setOffset(0);
+                      setCategory(c);
+                    }}
+                  >
+                    {CATEGORY_LABEL[c]} ({review.counts.categories[c] ?? 0})
+                  </button>
+                ))}
+              </div>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={onlyOpen}
+                  onChange={(e) => {
+                    setOffset(0);
+                    setOnlyOpen(e.target.checked);
+                  }}
+                />{" "}
+                Only rows still to review
+              </label>
+              <div className="btn-row">
+                <button
+                  className="btn"
+                  disabled={busy || picked.size === 0}
+                  onClick={() => run(() => acknowledge([...picked]))}
+                >
+                  Acknowledge selected ({picked.size})
+                </button>
+                <button
+                  className="btn"
+                  disabled={busy || !review.rows.some((r) => r.review_state === "open")}
+                  onClick={() =>
+                    run(() =>
+                      acknowledge(
+                        review.rows.filter((r) => r.review_state === "open").map((r) => r.id ?? ""),
+                      ),
+                    )
+                  }
+                >
+                  Acknowledge this page
+                </button>
+              </div>
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th aria-label="Select" />
+                    <th>Barcode</th>
+                    <th>Here before</th>
+                    <th>SOH</th>
+                    <th>Applied</th>
+                    <th>Flag</th>
+                    <th>MRP (SOH / here)</th>
+                    <th>Review</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {review.rows.map((row) => (
+                    <tr key={row.id}>
+                      <td>
+                        {row.review_state === "open" && row.id && (
+                          <input
+                            type="checkbox"
+                            aria-label={`Select ${row.barcode}`}
+                            checked={picked.has(row.id)}
+                            onChange={() => row.id && togglePick(row.id)}
+                          />
+                        )}
+                      </td>
+                      <td>{row.barcode}</td>
+                      <td>{row.book_qty}</td>
+                      <td>{row.soh_qty}</td>
+                      <td>{row.applied_qty}</td>
+                      <td>
+                        {row.category ? CATEGORY_LABEL[row.category] : "–"}
+                        {row.mrp_differs && row.category !== "MRP_DIFFERS" && (
+                          <div>MRP differs</div>
+                        )}
+                        {row.outcome === "exception" && <div>⚠ {row.exception_code}</div>}
+                        {row.exception_note && row.category !== "SOH_ONLY" && (
+                          <div className="muted">{row.exception_note}</div>
+                        )}
+                      </td>
+                      <td>
+                        {row.mrp_differs || row.soh_mrp_paise != null
+                          ? `${rupees(row.soh_mrp_paise)} / ${rupees(row.book_mrp_paise)}`
+                          : "–"}
+                      </td>
+                      <td>{row.review_state === "acknowledged" ? "Reviewed" : "To review"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="btn-row">
+                <button
+                  className="btn"
+                  disabled={busy || offset === 0}
+                  onClick={() => setOffset(Math.max(offset - PAGE_SIZE, 0))}
+                >
+                  Previous
+                </button>
+                <span className="muted">
+                  {review.total === 0
+                    ? "No rows"
+                    : `${offset + 1}–${Math.min(offset + PAGE_SIZE, review.total)} of ${review.total}`}
+                </span>
+                <button
+                  className="btn"
+                  disabled={busy || offset + PAGE_SIZE >= review.total}
+                  onClick={() => setOffset(offset + PAGE_SIZE)}
+                >
+                  Next
+                </button>
+              </div>
+            </OperationsTable>
+          )}
+          {!reviewId && selected.rows && selected.rows.length > 0 && (
             <OperationsTable label="Changed rows">
               <table className="table">
                 <thead>
@@ -341,7 +596,9 @@ export function StockSyncPage() {
                       )}
                       <td>{row.applied_qty}</td>
                       <td>
-                        {row.outcome === "exception" ? `⚠ ${row.exception_code}` : row.outcome.replace("_", " ")}
+                        {row.outcome === "exception"
+                          ? `⚠ ${row.exception_code}`
+                          : row.outcome.replace("_", " ")}
                         {row.exception_note && <div className="muted">{row.exception_note}</div>}
                       </td>
                     </tr>
@@ -370,7 +627,10 @@ export function StockSyncPage() {
                 <tr key={item.id}>
                   <td>SOH</td>
                   <td>
-                    <button className="btn btn-link" onClick={() => run(() => open("soh", item.id))}>
+                    <button
+                      className="btn btn-link"
+                      onClick={() => run(() => open("soh", item.id))}
+                    >
                       {when(item.cutoff_at)}
                     </button>
                   </td>
@@ -383,8 +643,13 @@ export function StockSyncPage() {
                 <tr key={item.id}>
                   <td>Sales</td>
                   <td>
-                    <button className="btn btn-link" onClick={() => run(() => open("sales", item.id))}>
-                      {item.date_from === item.date_to ? item.date_from : `${item.date_from} – ${item.date_to}`}
+                    <button
+                      className="btn btn-link"
+                      onClick={() => run(() => open("sales", item.id))}
+                    >
+                      {item.date_from === item.date_to
+                        ? item.date_from
+                        : `${item.date_from} – ${item.date_to}`}
                     </button>
                   </td>
                   <td>{item.source_name}</td>

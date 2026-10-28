@@ -13,10 +13,15 @@ one apply brings this store to it, in one journal batch:
 3. **More in the SOH, item already known:** a new adjustment lot arrives valued
    at that SKU's most recent recorded origin cost and is accepted straight onto
    the floor, so the counter can sell it in the morning.
-4. **Barcode never held here:** not invented. Those rows are staged together as
-   a reviewed top-up opening import (`ptmapper.soh_services`), which brings in
-   identity, HSN and cost through the normal approval path.
+4. **Barcode in no PT:** flagged only. Nothing is created, stocked or made
+   sellable; it becomes real when a PT carrying it is uploaded, and a later
+   SOH sync then matches it.
 
+The legacy software is master for quantities during the alpha, so known items
+are adjusted automatically, and every row that differs is kept with a review
+category (``StockSyncRow.Category``) for the store manager, who is told once
+per sync through one ``stock_sync_review`` exception. Acknowledging a row only
+marks it reviewed; nothing here lets anyone add or edit items or stock by hand.
 Anything that cannot be applied - held or reserved stock, an SKU with no
 scannable barcode - is kept as an exception row and never blocks the night.
 Nothing here creates a bill, a tax document or a GL posting, and the whole
@@ -25,7 +30,6 @@ module refuses at a real (non-synthetic) store.
 
 from __future__ import annotations
 
-import hashlib
 import uuid
 from collections import defaultdict
 from collections.abc import Mapping
@@ -36,6 +40,7 @@ from typing import Any
 from django.db.models import Max
 from django.utils import timezone
 
+from accounts.goods_models import HumanIdentity
 from core.commands import CommandRun, LockRank
 from core.documents import DocStatus
 from core.goods_documents import append_revision, new_document, officialise
@@ -48,11 +53,10 @@ from masters.goods_identity_models import SkuAlias
 from masters.goods_models import Location
 from masters.models import Store
 from masters.store_features import is_real_store
-from ptmapper.soh_models import SohImport, SohImportRow
 from ptmapper.soh_parser import SourceRow
 from ptmapper.stock_sync_models import StockSync, StockSyncRow
 from sell.services.goods_sale import SOLD_REASON, GoodsSaleError, plan_sale
-from sell.services.goods_stock import barcode_aliases, is_goods_site, read_shelf
+from sell.services.goods_stock import Shelf, barcode_aliases, is_goods_site, read_shelf
 from stockledger import goods_engine as engine
 from stockledger import ranges
 from stockledger.goods_models import (
@@ -73,6 +77,10 @@ PURPOSE = "stock_sync"
 #: Why a piece left: the reason on its consumed quantity leg.
 SYNC_REMOVED_REASON = "legacy_soh_lower"
 FOUND_BOUNDARY = "legacy_soh"
+#: One owned exception per applied sync with flagged rows, for the store manager.
+EXCEPTION_KIND = "stock_sync_review"
+SOH_ONLY_NOTE = "Not in any PT - not sellable until its PT is uploaded."
+Category = StockSyncRow.Category
 
 
 def require_test_store(store: Store) -> None:
@@ -131,7 +139,6 @@ def create_sync(run: CommandRun, *, site_id: int, evidence: EvidenceObject, cuto
     # App and database clocks may differ slightly; a cutoff minutes ahead is a mistake.
     if cutoff_at > run.now + timedelta(minutes=5):
         raise Refusal("INVALID_REQUEST", "The SOH export time cannot be in the future.")
-    require_soh_after_stock(stores[0], cutoff_at, run.now)
     found = (StockSync.objects.filter(tenant_id=run.tenant_id, site_id=site_id, source_hash=evidence.sha256)
              .exclude(state=StockSync.State.DISCARDED).first())
     if found is not None and found.cutoff_at != cutoff_at:
@@ -139,8 +146,11 @@ def create_sync(run: CommandRun, *, site_id: int, evidence: EvidenceObject, cuto
                       f"This SOH is already uploaded as exported at {timezone.localtime(found.cutoff_at):%d %b %Y, %H:%M}. "
                       "Discard that one to give it a different export time.", status=409)
     if found is not None:
+        # The same file at the same export time is the same sync: nothing happens again.
         run.audit_after = {"stock_sync_id": str(found.pk), "unchanged": True}
         return found
+    require_newer_than_applied(stores[0], cutoff_at)
+    require_soh_after_stock(stores[0], cutoff_at, run.now)
     assert run.principal.human_id is not None
     rows = [{"ordinal": r.ordinal, "barcode": r.barcode, "qty": r.quantity, "brand": r.brand,
              "mrp": r.mrp, "rate": r.rate, "source": r.source} for r in parsed]
@@ -152,6 +162,15 @@ def create_sync(run: CommandRun, *, site_id: int, evidence: EvidenceObject, cuto
     run.audit_site_id = site_id
     run.audit_after = {"stock_sync_id": str(sync.pk), "rows": len(rows), "cutoff_at": cutoff_at.isoformat()}
     return sync
+
+
+def require_newer_than_applied(store: Store, cutoff_at: datetime) -> None:
+    """An SOH exported at or before the last applied one would take the store back in time."""
+    after = previous_cutoff(store)
+    if after is not None and cutoff_at <= after:
+        raise Refusal("STOCK_SYNC_STALE",
+                      f"A newer SOH (exported {timezone.localtime(after):%d %b %Y, %H:%M}) is already applied "
+                      "at this store. Export the SOH again now and upload that one.", status=409)
 
 
 def discard(run: CommandRun, sync: StockSync) -> StockSync:
@@ -207,23 +226,119 @@ def soh_quantities(sync: StockSync) -> dict[str, int]:
     return dict(out)
 
 
+def soh_mrps(sync: StockSync) -> dict[str, set[int]]:
+    """Every MRP (paise) the SOH gives each barcode; a barcode may repeat across rows."""
+    out: dict[str, set[int]] = defaultdict(set)
+    for row in sync.metadata.get("rows", []):
+        if row.get("mrp"):
+            out[str(row["barcode"])].add(int(row["mrp"]))
+    return dict(out)
+
+
+def book_mrps(shelf: Shelf) -> dict[str, set[int]]:
+    """The MRP each barcode's pieces carry here (one per season, from its newest origin)."""
+    out: dict[str, set[int]] = defaultdict(set)
+    for piece in shelf.pieces:
+        if piece.mrp_paise:
+            out[piece.barcode].add(int(piece.mrp_paise))
+    return dict(out)
+
+
+def sellable_by_barcode(shelf: Shelf) -> dict[str, int]:
+    out: dict[str, int] = defaultdict(int)
+    for (barcode, _season), qty in shelf.quantities.items():
+        out[barcode] += qty
+    return dict(out)
+
+
+def valuation_origins(store: Store, sku_ids: set[uuid.UUID]) -> dict[uuid.UUID, Origin]:
+    """Per SKU, the origin a found piece is valued at: its latest here, else its latest anywhere.
+
+    One read for every SKU. A SKU with no origin at all came in on no PT, so an SOH
+    barcode naming it is ``SOH_ONLY``.
+    """
+    here: dict[uuid.UUID, Origin] = {}
+    anywhere: dict[uuid.UUID, Origin] = {}
+    for origin in (Origin.objects.filter(tenant_id=store.tenant_id, sku_id__in=list(sku_ids))
+                   .order_by("sku_id", "-source_time", "pk")):
+        if origin.site_id == store.pk:
+            here.setdefault(origin.sku_id, origin)
+        anywhere.setdefault(origin.sku_id, origin)
+    return {sku: here.get(sku) or origin for sku, origin in anywhere.items()}
+
+
+def categorise(held: int, wanted: int, *, known: bool) -> str | None:
+    """The quantity category of one barcode, or ``None`` when the book and the SOH agree.
+
+    ``known`` means the barcode names a SKU that came in on a PT (it has an origin).
+    """
+    if held == wanted:
+        return None
+    if held > 0 and wanted == 0:
+        return Category.PT_ONLY
+    if wanted < held:
+        return Category.SOH_BELOW
+    return Category.SOH_ABOVE if known else Category.SOH_ONLY
+
+
+def mrp_check(barcode: str, theirs: Mapping[str, set[int]],
+              ours: Mapping[str, set[int]]) -> tuple[bool, int | None, int | None]:
+    """(differs, SOH MRP, book MRP). Judged only when both sides name an MRP.
+
+    It differs when the SOH names an MRP that none of this barcode's pieces carry.
+    """
+    soh, held = theirs.get(barcode) or set(), ours.get(barcode) or set()
+    if not soh or not held:
+        return False, min(soh) if soh else None, min(held) if held else None
+    odd = sorted(soh - held)
+    if odd:
+        return True, odd[0], min(held)
+    shared = min(soh & held)
+    return False, shared, shared
+
+
+def category_counts(rows: list[tuple[str | None, bool]]) -> dict[str, int]:
+    """Rows per category from (category, mrp_differs) pairs.
+
+    ``MRP_DIFFERS`` counts every row whose MRP differs, whether or not its
+    quantity is flagged too, so the counts can add up to more than the rows.
+    """
+    out = {category.value: 0 for category in Category}
+    for category, differs in rows:
+        if category and category != Category.MRP_DIFFERS:
+            out[category] += 1
+        if differs:
+            out[Category.MRP_DIFFERS] += 1
+    return out
+
+
 def preview(sync: StockSync) -> dict[str, Any]:
     """What an apply would do now, read-only (before test bills are put back)."""
     store = sync.site
     counts, by_barcode, unlabelled = book(store, sync.cutoff_at)
-    soh = soh_quantities(sync)
-    lower = higher = new = 0
+    soh, theirs = soh_quantities(sync), soh_mrps(sync)
+    ours = book_mrps(read_shelf(store, sync.cutoff_at))
+    known = valuation_origins(store, set(by_barcode.values()))
+    lower = higher = soh_only = 0
+    flags: list[tuple[str | None, bool]] = []
     for barcode in set(counts) | set(soh):
-        delta = soh.get(barcode, 0) - counts.get(barcode, 0)
-        if delta < 0:
-            lower += -delta
-        elif delta > 0 and barcode in by_barcode:
-            higher += delta
-        elif delta > 0:
-            new += delta
+        held, wanted = counts.get(barcode, 0), soh.get(barcode, 0)
+        sku = by_barcode.get(barcode)
+        category = categorise(held, wanted, known=sku is not None and sku in known)
+        differs = mrp_check(barcode, theirs, ours)[0]
+        if category is None and not differs:
+            continue
+        flags.append((category or Category.MRP_DIFFERS, differs))
+        if wanted < held:
+            lower += held - wanted
+        elif category == Category.SOH_ABOVE:
+            higher += wanted - held
+        elif category == Category.SOH_ONLY:
+            soh_only += wanted
     return {"test_bills_to_reverse": len(test_bills(store, previous_cutoff(store), sync.cutoff_at)),
             "book_qty": sum(counts.values()), "soh_qty": sum(soh.values()),
-            "remove_qty": lower, "add_qty": higher, "new_item_qty": new, "unlabelled_skus": len(unlabelled)}
+            "remove_qty": lower, "add_qty": higher, "soh_only_qty": soh_only, "unlabelled_skus": len(unlabelled),
+            "flagged_rows": len(flags), "category_counts": category_counts(flags)}
 
 
 # ---------------------------------------------------------------------------
@@ -285,25 +400,11 @@ def _reverse_test_bills(run: CommandRun, batch: engine.Plan, store: Store, bills
 
 
 def _sellable(store: Store, barcode: str) -> int:
+    """One barcode's sellable pieces here (the sales-report import reads them line by line)."""
     return sum(qty for (code, _season), qty in read_shelf(store, barcodes={barcode}).quantities.items() if code == barcode)
 
 
-def _remove(run: CommandRun, batch: engine.Plan, store: Store, row: StockSyncRow, qty: int) -> None:
-    take = min(qty, _sellable(store, row.barcode))
-    if take > 0:
-        try:
-            plan = plan_sale(store, [{"line_no": 1, "barcode": row.barcode, "season": "", "qty": take, "direction": "sale"}])
-        except GoodsSaleError as refusal:
-            row.outcome, row.exception_code, row.exception_note = "exception", refusal.code, str(refusal)[:300]
-            return
-        for allocation in plan.sold[1]:
-            engine.lock_lots(run, [allocation.lot_id])
-            engine.end_positions(run, batch, allocation.lot_id, allocation.interval, "consumed", SYNC_REMOVED_REASON)
-            if allocation.cost_paise > 0:
-                batch.value.append(ValuePair(origin_id=allocation.origin_id, amount=allocation.cost_paise,
-                                             source_bucket="stock", destination_bucket="external",
-                                             source_site_id=store.pk, destination_site_id=None,
-                                             lot_id=allocation.lot_id, lower=allocation.lower, upper=allocation.upper))
+def _removed(row: StockSyncRow, qty: int, take: int) -> None:
     row.applied_qty = -take
     if take == qty:
         row.outcome = "removed"
@@ -313,11 +414,52 @@ def _remove(run: CommandRun, batch: engine.Plan, store: Store, row: StockSyncRow
                               "(receiving, quarantine, held or reserved); settle them where they stand.")
 
 
-def _value_origin(store: Store, sku_id: uuid.UUID) -> Origin | None:
-    """The cost a new-found piece is valued at: this SKU's latest origin, this store's first."""
-    origins = Origin.objects.filter(tenant_id=store.tenant_id, sku_id=sku_id).order_by("-source_time")
-    origin: Origin | None = origins.filter(site_id=store.pk).first() or origins.first()
-    return origin
+def _end(run: CommandRun, batch: engine.Plan, store: Store, allocations: list[Any]) -> None:
+    for allocation in allocations:
+        engine.lock_lots(run, [allocation.lot_id])
+        engine.end_positions(run, batch, allocation.lot_id, allocation.interval, "consumed", SYNC_REMOVED_REASON)
+        if allocation.cost_paise > 0:
+            batch.value.append(ValuePair(origin_id=allocation.origin_id, amount=allocation.cost_paise,
+                                         source_bucket="stock", destination_bucket="external",
+                                         source_site_id=store.pk, destination_site_id=None,
+                                         lot_id=allocation.lot_id, lower=allocation.lower, upper=allocation.upper))
+
+
+def _remove_all(run: CommandRun, batch: engine.Plan, store: Store, removals: list[tuple[StockSyncRow, int]],
+                sellable: Mapping[str, int]) -> None:
+    """Take every lower barcode out oldest-first by the bill's own FIFO (``plan_sale``), in one plan.
+
+    Each barcode names its own SKU, so one plan over all of them chooses exactly
+    what one plan per barcode would, with one shelf read instead of thousands. If
+    the pooled plan is refused, each barcode is planned alone so only the barcode
+    at fault becomes an exception row.
+    """
+    lines: dict[int, tuple[StockSyncRow, int, int]] = {}
+    for row, qty in removals:
+        take = min(qty, sellable.get(row.barcode, 0))
+        if take > 0:
+            lines[len(lines) + 1] = (row, qty, take)
+        else:
+            _removed(row, qty, 0)
+    if not lines:
+        return
+    try:
+        pooled = plan_sale(store, [{"line_no": no, "barcode": row.barcode, "season": "", "qty": take,
+                                    "direction": "sale"} for no, (row, _qty, take) in lines.items()])
+    except GoodsSaleError:
+        pooled = None
+    for no, (row, qty, take) in lines.items():
+        if pooled is not None:
+            allocations = pooled.sold[no]
+        else:
+            try:
+                allocations = plan_sale(store, [{"line_no": 1, "barcode": row.barcode, "season": "", "qty": take,
+                                                 "direction": "sale"}]).sold[1]
+            except GoodsSaleError as refusal:
+                row.outcome, row.exception_code, row.exception_note = "exception", refusal.code, str(refusal)[:300]
+                continue
+        _end(run, batch, store, allocations)
+        _removed(row, qty, take)
 
 
 def _selling_location(store: Store) -> Location:
@@ -357,70 +499,52 @@ def _add(run: CommandRun, batch: engine.Plan, store: Store, version: Any, sessio
     return qty
 
 
-def _top_up(run: CommandRun, sync: StockSync, barcodes: set[str]) -> SohImport | None:
-    """Stage the barcodes this store has never held as a reviewed opening import."""
-    rows = [row for row in sync.metadata.get("rows", []) if row["barcode"] in barcodes and int(row["qty"]) > 0]
-    if not rows:
-        return None
-    assert run.principal.human_id is not None
-    digest = hashlib.sha256(f"{sync.source_hash}:top-up".encode()).hexdigest()
-    quantity = sum(int(row["qty"]) for row in rows)
-    metadata = {**{k: v for k, v in sync.metadata.items() if k in {"sheet", "header_row", "columns", "preamble"}},
-                "row_count": len(rows), "stocked_rows": len(rows), "quantity": quantity, "zero_stock_rows": 0,
-                "negative_rows": 0, "rate_meaning": "unconfirmed",
-                "stock_mrp_paise": str(sum((row["mrp"] or 0) * int(row["qty"]) for row in rows)),
-                "stock_sync_top_up": str(sync.pk)}
-    source = SohImport.objects.create(tenant_id=run.tenant_id, site_id=sync.site_id, source_evidence=sync.source_evidence,
-                                      source_hash=digest, source_name=f"New items from {sync.source_name}"[:240],
-                                      source_metadata=metadata, uploaded_by_id=run.principal.human_id)
-    SohImportRow.objects.bulk_create([
-        SohImportRow(tenant_id=run.tenant_id, source_import=source, ordinal=row["ordinal"],
-                     source_row_key=f"{metadata.get('sheet', 'SOH')}:{row['ordinal']}", barcode=row["barcode"],
-                     source_brand=row["brand"] or "", quantity=int(row["qty"]), mrp_paise=row["mrp"],
-                     source_rate_paise=row["rate"], source=row["source"])
-        for row in rows
-    ], batch_size=1000)
-    return source
-
-
 def apply(run: CommandRun, sync: StockSync) -> StockSync:
     # Store before document: the command kernel's lock order.
     store = run.lock(LockRank.SITE, Store.objects.filter(tenant_id=run.tenant_id, pk=sync.site_id))[0]
     sync = _locked(run, sync)
     require_test_store(store)
     after = previous_cutoff(store)
-    if after is not None and sync.cutoff_at <= after:
-        raise Refusal("STOCK_SYNC_STALE",
-                      f"A newer SOH (exported {after.isoformat()}) is already applied at this store.", status=409)
+    require_newer_than_applied(store, sync.cutoff_at)
     require_soh_after_stock(store, sync.cutoff_at, run.now)
     assert run.principal.human_id is not None
     batch = engine.Plan(LEGACY_SYNC_POSTING, uuid.uuid4(), engine.event_key(PURPOSE, sync.pk))
     reversed_ = _reverse_test_bills(run, batch, store, test_bills(store, after, sync.cutoff_at))
 
+    # One read of the whole store, after the test bills are back, serves every barcode.
     counts, by_barcode, unlabelled = book(store, run.now)
-    soh = soh_quantities(sync)
+    shelf = read_shelf(store, run.now)
+    sellable, ours = sellable_by_barcode(shelf), book_mrps(shelf)
+    soh, theirs = soh_quantities(sync), soh_mrps(sync)
+    origins = valuation_origins(store, set(by_barcode.values()))
     rows: list[StockSyncRow] = []
+    removals: list[tuple[StockSyncRow, int]] = []
     gains: list[tuple[StockSyncRow, dict[str, Any]]] = []
-    new_items: set[str] = set()
     for barcode in sorted(set(counts) | set(soh)):
         held, wanted = counts.get(barcode, 0), soh.get(barcode, 0)
-        if held == wanted:
+        sku_id = by_barcode.get(barcode)
+        origin = origins.get(sku_id) if sku_id is not None else None
+        category = categorise(held, wanted, known=origin is not None)
+        differs, soh_mrp, book_mrp = mrp_check(barcode, theirs, ours)
+        if category is None and not differs:
             continue
         row = StockSyncRow(tenant_id=run.tenant_id, sync=sync, barcode=barcode, soh_qty=wanted, book_qty=held,
-                           outcome="exception")
+                           outcome=StockSyncRow.Outcome.FLAGGED, category=category or Category.MRP_DIFFERS,
+                           mrp_differs=differs, soh_mrp_paise=soh_mrp, book_mrp_paise=book_mrp)
         rows.append(row)
-        if wanted < held:
-            _remove(run, batch, store, row, held - wanted)
-            continue
-        sku_id = by_barcode.get(barcode)
-        origin = _value_origin(store, sku_id) if sku_id is not None else None
-        if origin is None:
-            row.outcome = "new_item"
-            row.exception_note = "Never held here: staged in the new-items opening import for review."
-            new_items.add(barcode)
-            continue
-        gains.append((row, {"barcode": barcode, "sku_id": str(sku_id), "qty": wanted - held,
-                            "origin_id": str(origin.pk), "unit_cost_paise": int(origin.unit_cost or 0)}))
+        if category == Category.SOH_ONLY:
+            row.exception_note = SOH_ONLY_NOTE  # flagged only: no item, no stock, nothing to sell
+        elif wanted < held:
+            removals.append((row, held - wanted))
+        elif wanted > held and origin is None:
+            # Held here but valued by no origin: there is no cost to bring a found piece in at.
+            row.outcome, row.exception_code = StockSyncRow.Outcome.EXCEPTION, "NO_ORIGIN"
+            row.exception_note = "No purchase record to value the extra pieces at; they were not added."
+        elif wanted > held:
+            assert sku_id is not None and origin is not None
+            gains.append((row, {"barcode": barcode, "sku_id": str(sku_id), "qty": wanted - held,
+                                "origin_id": str(origin.pk), "unit_cost_paise": int(origin.unit_cost or 0)}))
+    _remove_all(run, batch, store, removals, sellable)
     for sku in unlabelled:
         rows.append(StockSyncRow(tenant_id=run.tenant_id, sync=sync, barcode=f"sku:{sku}"[:128], soh_qty=0,
                                  book_qty=0, outcome="exception", exception_code="NO_BARCODE",
@@ -428,12 +552,15 @@ def apply(run: CommandRun, sync: StockSync) -> StockSync:
 
     identity, head = new_document(run, kind=DOC_KIND, purpose=DocumentIdentity.Purpose.LEGACY_SYNC,
                                   entity_id=store.gstin.legal_entity_id, site_id=store.pk)
+    soh_only = [r for r in rows if r.category == Category.SOH_ONLY]
     summary = {"test_bills_reversed": reversed_["bills"], "test_pieces_restored": reversed_["pieces"],
                "test_pieces_already_back": reversed_["already_back"],
+               "book_qty_before": sum(counts.values()), "soh_qty": sum(soh.values()),
                "removed_qty": -sum(r.applied_qty for r in rows if r.applied_qty < 0),
                "added_qty": sum(int(body["qty"]) for _r, body in gains),
-               "new_item_qty": sum(soh[b] for b in new_items), "new_item_barcodes": len(new_items),
-               "exceptions": sum(r.outcome == "exception" for r in rows)}
+               "soh_only_qty": sum(r.soh_qty for r in soh_only), "soh_only_barcodes": len(soh_only),
+               "flagged_rows": len(rows), "exceptions": sum(r.outcome == "exception" for r in rows),
+               "category_counts": category_counts([(r.category, r.mrp_differs) for r in rows])}
     header = {"kind": PURPOSE, "sync_id": str(sync.pk), "store_code": store.code,
               "cutoff_at": sync.cutoff_at.isoformat(), "source_hash": sync.source_hash}
     lines: list[tuple[uuid.UUID, Mapping[str, Any]]] = [(uuid.uuid5(identity.pk, "summary"), summary)]
@@ -450,7 +577,7 @@ def apply(run: CommandRun, sync: StockSync) -> StockSync:
         for row, body in gains:
             row.applied_qty = _add(run, batch, store, version, session,
                                    by_key[uuid.uuid5(identity.pk, f"gain:{body['barcode']}")], floor)
-            row.outcome = "added"
+            row.outcome = StockSyncRow.Outcome.ADDED
     StockSyncRow.objects.bulk_create(rows, batch_size=1000)
 
     batch_id = None
@@ -458,7 +585,6 @@ def apply(run: CommandRun, sync: StockSync) -> StockSync:
         batch = engine.Plan(LEGACY_SYNC_POSTING, version.pk, batch.event_key, quantity=batch.quantity,
                             value=batch.value, encumbrance=batch.encumbrance)
         batch_id = engine.post(run, version, batch)
-    sync.top_up_import = _top_up(run, sync, new_items)
     sync.state = StockSync.State.APPLIED
     sync.applied_by_id = run.principal.human_id
     sync.applied_at = run.now
@@ -466,7 +592,69 @@ def apply(run: CommandRun, sync: StockSync) -> StockSync:
     sync.document = identity
     sync.journal_batch_id = batch_id
     sync.save()
-    run.audit_subject_key = f"stock_sync:{sync.pk}"
+    if rows:
+        _raise_review(run, store, sync, summary)
+    run.audit_subject_key = review_subject(sync)
     run.audit_site_id = store.pk
     run.audit_after = {"stock_sync_id": str(sync.pk), **summary}
     return sync
+
+
+def review_subject(sync: StockSync) -> str:
+    return f"stock_sync:{sync.pk}"
+
+
+def _raise_review(run: CommandRun, store: Store, sync: StockSync, summary: Mapping[str, Any]) -> None:
+    """One exception - so one notification - per sync for the store manager, never one per row."""
+    from alerts.goods_services import open_exception
+
+    flagged = ", ".join(f"{count} {name}" for name, count in summary["category_counts"].items() if count)
+    open_exception(run, kind=EXCEPTION_KIND, site_id=store.pk, subject_key=review_subject(sync),
+                   reason_code="SOH_MISMATCH", source_event_key=sync.pk, allowed_resolution_actions=[ACTION],
+                   note=f"{summary['flagged_rows']} rows differ from the legacy SOH ({flagged}). Stock was brought "
+                        "to the SOH; review and acknowledge each row at Legacy sync.")
+
+
+# ---------------------------------------------------------------------------
+# Review: acknowledging flagged rows marks them seen and changes nothing else
+# ---------------------------------------------------------------------------
+
+MAX_ACKNOWLEDGE = 1000
+
+
+def acknowledge(run: CommandRun, sync: StockSync, row_ids: set[uuid.UUID]) -> dict[str, int]:
+    """Mark rows of an applied sync reviewed. Never edits stock, items, or what a row records.
+
+    When the last open row is acknowledged, the sync's review exception closes:
+    its cause - differences nobody has looked at - is gone.
+    """
+    if not row_ids or len(row_ids) > MAX_ACKNOWLEDGE:
+        raise Refusal("INVALID_REQUEST", f"Give between 1 and {MAX_ACKNOWLEDGE} row ids to acknowledge.")
+    # Store before document: the command kernel's lock order.
+    run.lock(LockRank.SITE, Store.objects.filter(tenant_id=run.tenant_id, pk=sync.site_id))
+    found = run.lock(LockRank.DOCUMENT, StockSync.objects.filter(tenant_id=run.tenant_id, pk=sync.pk))
+    if not found:
+        raise Refusal("NOT_FOUND", "That stock sync was not found.")
+    locked: StockSync = found[0]
+    if locked.state != StockSync.State.APPLIED:
+        raise Refusal("STATE_CONFLICT", "Only an applied stock sync has rows to review.", status=409)
+    rows = StockSyncRow.objects.filter(tenant_id=run.tenant_id, sync=locked, pk__in=list(row_ids))
+    if rows.count() != len(row_ids):
+        raise Refusal("NOT_FOUND", "Some of those rows are not in this stock sync.")
+    assert run.principal.human_id is not None
+    reviewer = HumanIdentity.objects.get(pk=run.principal.human_id)
+    changed = rows.filter(review_state=StockSyncRow.ReviewState.OPEN).update(
+        review_state=StockSyncRow.ReviewState.ACKNOWLEDGED, reviewed_by=reviewer, reviewed_at=run.now)
+    remaining = StockSyncRow.objects.filter(tenant_id=run.tenant_id, sync=locked,
+                                            review_state=StockSyncRow.ReviewState.OPEN).count()
+    if remaining == 0:
+        from alerts.goods_services import resolve_exceptions
+
+        resolve_exceptions(run, kind=EXCEPTION_KIND, subject_key=review_subject(locked),
+                           reason_code="ALL_ROWS_REVIEWED", source_event_key=locked.pk)
+    run.audit_subject_key = review_subject(locked)
+    run.audit_site_id = locked.site_id
+    run.audit_after = {"acknowledged": changed, "open_rows": remaining, "row_ids": sorted(str(pk) for pk in row_ids)}
+    return {"acknowledged": changed, "open_rows": remaining}
+
+
