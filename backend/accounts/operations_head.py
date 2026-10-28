@@ -11,6 +11,8 @@ site:
   (store → warehouse returns; warehouse → store needs none at The Wardrobe). The
   tenant's transfer approval policy must name :data:`ROLE_CODE`.
 * ``count.review`` - approves count differences.
+* ``opening.import.stage`` - uploads a store's PT files and legacy SOH exports
+  (29 Oct 2026), like the store manager and the warehouse.
 * No Money, no Setup, and no opening approval: those stay with the owner. Booking
   and offers are lowered to view.
 
@@ -34,7 +36,7 @@ ROLE = CustomRole(
     name="Operations head",
     description="Oversees every store and warehouse: reads stock and sales, approves transfers and count differences.",
     base="ho_ops",
-    added_steps=("pt.approve.transfer", "count.review"),
+    added_steps=("pt.approve.transfer", "count.review", "opening.import.stage"),
     fields=("cost",),
     section_floor={"home": CAP_VIEW, "sell": CAP_VIEW, "reports": CAP_VIEW, "stock": CAP_VIEW},
     section_set={"booking": (CAP_VIEW, "View"), "offers_price": (CAP_VIEW, "View"),

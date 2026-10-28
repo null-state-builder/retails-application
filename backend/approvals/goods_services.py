@@ -11,12 +11,13 @@ from __future__ import annotations
 
 import uuid
 from collections import defaultdict
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from typing import Any
 
 from approvals.goods_models import ApprovalDecision, ApprovalRequest
-from approvals.goods_policy import PolicyPin, enforce
+from approvals.goods_policy import AUTO_NOT_ALLOWED, AUTO_REASON, PolicyPin, enforce, enforce_auto
 from core.commands import CommandRun, LockRank
 from core.kernel_models import DocumentHead
 from core.refusals import Refusal
@@ -32,6 +33,11 @@ class DecisionContext:
     #: Locks and rechecks the pinned approval policy; a policy-governed handler calls it
     #: after locking its subject documents and before touching custody.
     enforce_policy: Callable[[CommandRun], None] = field(default=lambda run: None)
+    #: No second person (``decide_without_second_person``): the maker confirms their own
+    #: submission because a policy says no approver is needed. A handler skips only the
+    #: checks about *who approves* (self-approval, approver role and fields, step-up) and
+    #: keeps every subject check: hash, revision, state and the maker's complete scope.
+    auto: bool = False
 
 
 SubjectHandler = Callable[[CommandRun, DecisionContext], dict[str, Any] | None]
@@ -61,6 +67,22 @@ def policy_governed(subject_kind: str, requested_action: str) -> bool:
 
 def registered_subjects() -> list[tuple[str, str]]:
     return sorted(_HANDLERS)
+
+
+#: Says whether a pending request needs no second person: the id of the approval policy
+#: version that lets it through, or ``None``. Never a default and never a fallback.
+AutoRule = Callable[[CommandRun, ApprovalRequest], "uuid.UUID | None"]
+_AUTO_RULES: dict[tuple[str, str], tuple[AutoRule, str]] = {}
+
+
+def register_auto_rule(subject_kind: str, requested_action: str, rule: AutoRule, *, flag: str) -> None:
+    """Let a domain say when its maker may confirm a request without a second person.
+
+    ``rule`` returns the approval policy version that allows it; that version must carry
+    ``flag`` (``true``) and stay in force when the decision commits. Registered by the
+    domain, so this module imports none.
+    """
+    _AUTO_RULES[(subject_kind, requested_action)] = (rule, flag)
 
 
 Cell = tuple[int | None, int | None]
@@ -194,6 +216,131 @@ def create_request(
     )
 
 
+#: Refusals a decision passes through unchanged; every other domain refusal becomes
+#: APPROVAL_REFUSED (422) carrying its typed code (E234).
+_PASS_THROUGH = frozenset({
+    "STEP_UP_REQUIRED",
+    "SELF_APPROVAL",
+    "ACTION_DENIED",
+    "NOT_FOUND",
+    "REVISION_SUPERSEDED",
+    "APPROVAL_STALE",
+    AUTO_NOT_ALLOWED,
+})
+
+
+@contextmanager
+def _domain_refusals() -> Iterator[None]:
+    try:
+        yield
+    except Refusal as refusal:
+        if refusal.code in _PASS_THROUGH:
+            raise
+        raise Refusal(
+            "APPROVAL_REFUSED",
+            refusal.message,
+            status=422,
+            issues=refusal.issues,
+            domain_code=refusal.code,
+        ) from refusal
+
+
+def _lock_pending(run: CommandRun, request_id: uuid.UUID) -> ApprovalRequest:
+    # The subject's site guard ranks below documents in the fixed lock order, so
+    # it is taken first: domain handlers check capability and count freezes under it.
+    target = ApprovalRequest.objects.filter(tenant_id=run.tenant_id, pk=request_id).first()
+    site_ids = {site for site, _brand in subject_cells(target) if site is not None} if target else set()
+    if site_ids:
+        from masters.goods_models import SiteGuard
+
+        run.lock(LockRank.SITE, SiteGuard.objects.filter(site_id__in=sorted(site_ids)).order_by("site_id"))
+    locked = run.lock(LockRank.DOCUMENT, ApprovalRequest.objects.filter(tenant_id=run.tenant_id, pk=request_id))
+    if not locked:
+        raise Refusal("NOT_FOUND", "That approval was not found.")
+    request: ApprovalRequest = locked[0]
+    if request.state != ApprovalRequest.State.PENDING:
+        raise Refusal("STATE_CONFLICT", "This approval has already been decided or replaced.")
+    return request
+
+
+def _maker_access(run: CommandRun) -> Any:
+    """The maker's authority now, without a session (a job or a server shell has none)."""
+    from accounts.principal import AccessContext, effective_grants
+
+    assert run.principal.human_id is not None
+    return AccessContext(user=None, human_id=run.principal.human_id, tenant_id=run.tenant_id,
+                         session=None, grants=effective_grants(run.principal.human_id))
+
+
+def decide_without_second_person(
+    run: CommandRun, request_id: uuid.UUID, *, access: Any = None
+) -> ApprovalDecision:
+    """The maker confirms their own pending request because a policy needs no approver.
+
+    Generalises the warehouse → store transfer rule (``outbound.transfer_authority``):
+    a domain registers an auto rule (``register_auto_rule``) naming the approval policy
+    version that lets a request through. Only the request's maker may confirm it. The
+    rule is never a fallback: without one, or when it finds no flagged policy (a real
+    store, the flag off or removed), the request stays pending and this refuses
+    ``AUTO_APPROVAL_NOT_ALLOWED``. The domain handler runs as for any approval, with
+    ``DecisionContext.auto`` so it skips only the approver checks, and the policy is
+    locked and rechecked (``goods_policy.enforce_auto``) before the decision commits.
+    The decision is APPROVED with reason ``NO_APPROVAL_REQUIRED`` and names the policy.
+
+    ``access`` is the maker's authority for the handler's scope checks; without one it is
+    rebuilt from the maker's current grants (no session, so no step-up is possible).
+    """
+    request = _lock_pending(run, request_id)
+    maker = run.principal.human_id
+    if maker is None or maker != request.maker_id:
+        raise Refusal("ACTION_DENIED", "Only the person who submitted this confirms it.", status=403)
+    registered = _AUTO_RULES.get((request.subject_kind, request.requested_action))
+    handler = _HANDLERS.get((request.subject_kind, request.requested_action))
+    if registered is None or handler is None:
+        raise Refusal(AUTO_NOT_ALLOWED, "This approval needs a second person.", status=409)
+    rule, flag = registered
+    version_id = rule(run, request)
+    if version_id is None:
+        raise Refusal(AUTO_NOT_ALLOWED, "No approval policy lets this through without a second person here.", status=409)
+    access = access if access is not None else _maker_access(run)
+    if access.human_id != maker:
+        raise Refusal("ACTION_DENIED", "Only the person who submitted this confirms it.", status=403)
+    enforced: list[bool] = []
+
+    def enforce_policy(inner: CommandRun) -> None:
+        if enforced:
+            return
+        enforce_auto(inner, request, version_id=version_id, flag=flag)
+        # Under the policy lock: the rule must still name the same version.
+        if rule(inner, request) != version_id:
+            raise Refusal(AUTO_NOT_ALLOWED, "The approval policy changed; this needs a second person now.", status=409)
+        enforced.append(True)
+
+    context = DecisionContext(request, "approve", AUTO_REASON, maker, access, enforce_policy, auto=True)
+    with _domain_refusals():
+        result = handler(run, context)
+        # A fixed-rule handler never calls it; its subject locks rank below the policy's.
+        enforce_policy(run)
+    if result is not None and result.pop("_approval_pending", False):
+        raise Refusal(AUTO_NOT_ALLOWED, "A multi-step approval route needs its approvers.", status=409)
+    request.state = ApprovalRequest.State.APPROVED
+    request.decided_at = run.now
+    request.save(update_fields=["state", "decided_at"])
+    decision: ApprovalDecision = run.record(
+        ApprovalDecision(
+            request_id=request.pk,
+            checker_id=maker,
+            outcome=ApprovalDecision.Outcome.APPROVED,
+            reviewed_hash=request.reviewed_hash,
+            reason_code=AUTO_REASON,
+            result={**(result or {}), "auto": True, "policy_version_id": str(version_id)},
+        )
+    )
+    run.audit_subject_key = request.subject_key
+    run.audit_site_id = request.site_id
+    return decision
+
+
 def decide(
     run: CommandRun,
     *,
@@ -205,20 +352,7 @@ def decide(
 ) -> tuple[ApprovalRequest, dict[str, Any] | None]:
     if decision not in ("approve", "reject"):
         raise Refusal("INVALID_REQUEST", "decision must be approve or reject.")
-    # The subject's site guard ranks below documents in the fixed lock order, so
-    # it is taken first: domain handlers check capability and count freezes under it.
-    target = ApprovalRequest.objects.filter(tenant_id=run.tenant_id, pk=request_id).first()
-    site_ids = {site for site, _brand in subject_cells(target) if site is not None} if target else set()
-    if site_ids:
-        from masters.goods_models import SiteGuard
-
-        run.lock(LockRank.SITE, SiteGuard.objects.filter(site_id__in=sorted(site_ids)).order_by("site_id"))
-    locked = run.lock(LockRank.DOCUMENT, ApprovalRequest.objects.filter(pk=request_id))
-    if not locked:
-        raise Refusal("NOT_FOUND", "That approval was not found.")
-    request = locked[0]
-    if request.state != ApprovalRequest.State.PENDING:
-        raise Refusal("STATE_CONFLICT", "This approval has already been decided or replaced.")
+    request = _lock_pending(run, request_id)
     if reviewed_hash != request.reviewed_hash:
         raise Refusal(
             "REVISION_SUPERSEDED", "What you reviewed is no longer what is waiting for approval."
@@ -242,30 +376,12 @@ def decide(
             enforced.append(True)
 
     context = DecisionContext(request, decision, reason_code, checker, access, enforce_policy)
-    try:
+    with _domain_refusals():
         result = handler(run, context)
         if governed and not enforced:
             raise RuntimeError(
                 f"The {request.requested_action} handler decided without checking its policy."
             )
-    except Refusal as refusal:
-        if refusal.code in {
-            "STEP_UP_REQUIRED",
-            "SELF_APPROVAL",
-            "ACTION_DENIED",
-            "NOT_FOUND",
-            "REVISION_SUPERSEDED",
-            "APPROVAL_STALE",
-        }:
-            raise
-        # E234: every other domain refusal is APPROVAL_REFUSED (422) with its typed code.
-        raise Refusal(
-            "APPROVAL_REFUSED",
-            refusal.message,
-            status=422,
-            issues=refusal.issues,
-            domain_code=refusal.code,
-        ) from refusal
     if result is not None and result.pop("_approval_pending", False):
         if decision != "approve" or not governed:
             raise RuntimeError("Only a governed approval step may defer final effects.")

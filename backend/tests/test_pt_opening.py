@@ -212,12 +212,15 @@ def test_load_needs_a_different_approving_owner_and_a_test_store(store: Store, m
         assert real.value.code == "TEST_TENANT_ONLY"
 
 
-def test_a_second_pt_opening_is_refused_once_the_store_has_stock(store: Store) -> None:
+def test_a_second_pt_opens_only_the_barcodes_the_store_never_opened(store: Store) -> None:
+    from ptmapper import soh_services
+
     with tenant_context(store.tenant_id):
         assert load(stage_pt(store, [("first.xlsx", pt_book({"Sheet1": [pt_row("A1", 2)]}))]))["state"] == "done"
-        second = load(stage_pt(store, [("second.xlsx", pt_book({"Sheet1": [pt_row("C1", 1)]}))]))
-        assert second["state"] == "failed" and second["error"].startswith("SOH_RECONCILIATION_REQUIRED")
-        assert sum(read_shelf(store).quantities.values()) == 2
+        source = stage_pt(store, [("second.xlsx", pt_book({"Sheet1": [pt_row("A1", 5), pt_row("C1", 1, size="L")]}))])
+        assert load(source)["state"] == "done"
+        assert source.rows.get(barcode="A1").exclusion_reason == soh_services.ALREADY_OPENED
+        assert sum(read_shelf(store).quantities.values()) == 3  # A1's balance is the SOH sync's to correct
 
 
 def _alias_queries_per_batch(store: Store, monkeypatch: pytest.MonkeyPatch, barcodes: list[str]) -> int:

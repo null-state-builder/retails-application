@@ -105,3 +105,68 @@ def test_historical_owner_selector_never_qualifies_legacy_grant_or_unknown_role(
         proof.source.refresh_from_db()
         assert proof.source.state == "submitted" and not proof.source.batches.exists()
         assert not JournalBatch.objects.exists() and not Origin.objects.exists()
+
+
+def test_a_real_store_opening_never_confirms_without_its_approver(worlds: Any) -> None:
+    from approvals.goods_services import decide_without_second_person
+    from core.refusals import Refusal
+    from ptmapper import opening_auto
+    from tests.first_store_goods import _publish_tenant_config
+
+    world, _ = worlds
+    with tenant_context(world.tenant.pk):
+        proof = reviewed_source(world, *actors(world))
+        _publish_tenant_config(world.tenant, proof.owner.human_id, kind="approval", payload={
+            "action": "pt.approve.opening", "roles": ["owner"], "site_ids": [], "brand_ids": [], "require_distinct": True,
+            "qty_max": 100, "value_max": "10000000", "step_up": True, "unknown_value": "refuse",
+            opening_auto.FLAG: True}, label="soh-approval-auto")
+        request = proof.source.approval_request
+        assert request.maker_id == proof.warehouse.human_id
+        with pytest.raises(Refusal) as refused:  # the flag never applies to a real store
+            command(proof.warehouse, request.requested_action,
+                    lambda run: decide_without_second_person(run, request.pk, access=proof.warehouse))
+        assert refused.value.code == "AUTO_APPROVAL_NOT_ALLOWED"
+        request.refresh_from_db()
+        assert request.state == "pending" and not request.decisions.exists()
+
+
+def _uploader(world: Any, role_code: str) -> Any:
+    from accounts import operations_head
+    from accounts.models import Role
+    from tests.test_so03_denials import _person
+
+    user, human = _person(world, f"uploader-{role_code}")
+    if role_code == operations_head.ROLE_CODE:
+        # The policy ``operations_head.ensure_policy`` writes for the tenant's custom role.
+        policy = operations_head.ROLE.policy()
+        world.roles[role_code] = Role.objects.create(
+            tenant=world.tenant, code=role_code, name="Operations head", is_system=False,
+            section_access=policy["section_access"], field_access=policy["field_access"],
+            permissions_map={"step_actions": policy["step_actions"]})
+    _assign(world, human, role_code, sites=(world.sites[0],), all_brands=True)
+    return live_access(user)
+
+
+@pytest.mark.parametrize("role_code, allowed", [
+    ("store_person", True), ("warehouse", True), ("operations_head", True),
+    ("accounts", False), ("brand_manager", False), ("it_admin", False)])
+def test_pt_and_soh_uploaders_are_the_store_manager_warehouse_and_operations_head(
+        worlds: Any, role_code: str, allowed: bool) -> None:
+    from core.refusals import Refusal
+    from ptmapper import stock_sync_services
+
+    world, _ = worlds
+    # One action guards the PT upload, the SOH upload and the stock-sync upload and apply.
+    assert stock_sync_services.ACTION == soh_services.STAGE == "opening.import.stage"
+    with tenant_context(world.tenant.pk):
+        access = _uploader(world, role_code)
+        site = world.sites[0]
+        assert access.covers_all({soh_services.STAGE}, {(site.pk, None)}) is allowed
+        if allowed:
+            access.require(soh_services.STAGE, site_id=site.pk)
+            with pytest.raises(Refusal):  # only at the stores the assignment names
+                access.require(soh_services.STAGE, site_id=world.sites[1].pk)
+        else:
+            with pytest.raises(Refusal) as denied:
+                access.require(soh_services.STAGE, site_id=site.pk)
+            assert denied.value.code == "ACTION_DENIED"

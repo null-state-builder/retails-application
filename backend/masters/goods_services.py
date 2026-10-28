@@ -1456,6 +1456,9 @@ CONFIG_SCHEMAS: dict[str, Checker] = {
             # Owner decision (The Wardrobe, 28 Oct 2026): a warehouse → store transfer
             # is approved by its submitter, recorded as such (`outbound.transfers`).
             "auto_approve_warehouse_to_store": _optional(_boolean),
+            # Owner decision (The Wardrobe, 29 Oct 2026): no approvals while a test store
+            # opens; its preparer confirms each step (`ptmapper.opening_auto`).
+            "auto_approve_test_store_opening": _optional(_boolean),
         }
     ),
     "reasons": _object(
@@ -1743,6 +1746,11 @@ def _check_rules(  # noqa: C901 - one branch per configuration kind with cross-f
                 raise config_invalid("payload.auto_approve_warehouse_to_store", "applies only to transfer approval")
             if payload.get("steps"):
                 raise config_invalid("payload.auto_approve_warehouse_to_store", "needs a single-step route")
+        if payload.get("auto_approve_test_store_opening"):
+            if payload["action"] != "pt.approve.opening":
+                raise config_invalid("payload.auto_approve_test_store_opening", "applies only to opening approval")
+            if payload.get("steps"):
+                raise config_invalid("payload.auto_approve_test_store_opening", "needs a single-step route")
     if kind == "reasons":
         codes = [code["code"] for code in payload["codes"]]
         if len(set(codes)) != len(codes):
