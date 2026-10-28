@@ -67,6 +67,21 @@ def create_source(run: CommandRun, *, site_id: int, evidence: EvidenceObject,
     if not run.lock(LockRank.SITE, Store.objects.filter(tenant_id=run.tenant_id, pk=site_id, is_active=True)):
         raise Refusal("NOT_FOUND", "That store was not found.")
     found = SohImport.objects.filter(tenant_id=run.tenant_id, site_id=site_id, source_hash=evidence.sha256).first()
+    # The same parsed content is the same source, even when its evidence file's bytes
+    # differ (a PT upload re-serialises the workbook every time). A withdrawn one is
+    # retained evidence, so its replacement stages anew.
+    # ``content_hash`` leaves out where each row was read (file name, sheet, row number),
+    # so the same PT saved under another name is the same source too.
+    metadata = {**metadata, "content_hash": content_hash([
+        {"ordinal": row.ordinal, "barcode": row.barcode, "brand": row.brand, "quantity": row.quantity,
+         "mrp": row.mrp, "rate": row.rate, "source": {k: v for k, v in row.source.items() if k != "from"}}
+        for row in parsed])}
+    if found is None:
+        same = SohImport.objects.filter(tenant_id=run.tenant_id, site_id=site_id).exclude(state="withdrawn")
+        parsed_hash = metadata.get("parsed_hash")
+        found = (same.filter(source_metadata__content_hash=metadata["content_hash"]).order_by("created_at").first()
+                 or (same.filter(source_metadata__parsed_hash=parsed_hash).order_by("created_at").first()
+                     if parsed_hash else None))
     if found:
         run.audit_after = {"source_import_id": str(found.pk), "unchanged": True}
         return found
@@ -179,6 +194,8 @@ def prepare(run: CommandRun, access: AccessContext, source: SohImport, configura
     for version in MasterVersion.objects.filter(tenant_id=run.tenant_id, kind="season", target_key__in=season_ids).order_by("target_key", "-revision"):
         season_versions.setdefault(version.target_key, version)
     aliases_by_barcode = effective_aliases(run, source.site_id, [r.barcode for r in rows])
+    # A later PT opens only new barcodes; the rest are already on this store's books.
+    opened = opened_barcodes(source, [r.barcode for r in rows if r.quantity > 0]) if pt_top_up(source) else set()
     for row in rows:
         override = config.get("row_overrides", {}).get(row.barcode, {})
         if not isinstance(override, dict):
@@ -189,6 +206,9 @@ def prepare(run: CommandRun, access: AccessContext, source: SohImport, configura
         if row.quantity <= 0:
             row.exclusion_reason = "Catalogue only: zero source quantity" if row.quantity == 0 else "Negative source quantity requires reconciliation"
             row.mapping = {}
+            continue
+        if row.barcode in opened:
+            row.exclusion_reason, row.mapping = ALREADY_OPENED, {}
             continue
         if excluded:
             row.exclusion_reason, row.mapping = excluded, {}
@@ -345,10 +365,15 @@ def _decide(run: CommandRun, context: DecisionContext) -> dict[str, Any]:
     if not sources:
         raise Refusal("NOT_FOUND", "That SOH import was not found.")
     source = sources[0]
-    _require(context.access, APPROVE, source, fields=("cost", "financial"))
-    observers = {r.verification.get("observer_id") for r in source.rows.filter(exclusion_reason="") if r.verification}
-    if str(context.checker_id) in {str(source.prepared_by_id), str(source.uploaded_by_id), *observers}:
-        raise Refusal("SELF_APPROVAL", "The source uploader, preparer and physical verifier cannot approve this import.", status=403)
+    if context.auto:
+        # No approver (``ptmapper.opening_auto``): the preparer confirms within their own
+        # complete preparation scope; who approves is not checked, everything else is.
+        _require(context.access, PREPARE, source, fields=("cost",))
+    else:
+        _require(context.access, APPROVE, source, fields=("cost", "financial"))
+        observers = {r.verification.get("observer_id") for r in source.rows.filter(exclusion_reason="") if r.verification}
+        if str(context.checker_id) in {str(source.prepared_by_id), str(source.uploaded_by_id), *observers}:
+            raise Refusal("SELF_APPROVAL", "The source uploader, preparer and physical verifier cannot approve this import.", status=403)
     if source.state != "submitted" or source.revision != context.request.revision or review_hash(source) != context.request.reviewed_hash:
         raise Refusal("REVISION_SUPERSEDED", "The import changed after review.", status=409)
     if context.decision == "reject":
@@ -475,6 +500,49 @@ def _stock_sync_top_up(source: SohImport) -> bool:
                 or Origin.objects.filter(tenant_id=source.tenant_id, site_id=source.site_id, sku_id__in=skus).exists())
 
 
+#: Why a later PT's row opens no stock: the store already opened that barcode.
+ALREADY_OPENED = "Already opened by an earlier PT"
+
+
+def pt_top_up(source: SohImport) -> bool:
+    """A test store's PT upload: a later one opens only the barcodes the store never opened.
+
+    Synthetic stores only (store test run). A legacy SOH snapshot is never a top-up: a
+    second full snapshot still needs its reviewed inventory delta.
+    """
+    if not source.source_metadata.get("pt_opening"):
+        return False
+    from masters.store_features import is_real_store
+    return not is_real_store(source.site)
+
+
+def opened_barcodes(source: SohImport, barcodes: list[str]) -> set[str]:
+    """Which of ``barcodes`` this store already opened or holds.
+
+    A barcode is opened when its SKU has an origin or a stock position here, or when an
+    included row of another live source already applied here (its manifest may still
+    await approval) names it.
+    """
+    from django.db.models import Q
+
+    from stockledger.goods_models import Origin, Position
+    if not barcodes:
+        return set()
+    tenant_id, site_id = source.tenant_id, source.site_id
+    skus: dict[uuid.UUID, set[str]] = {}
+    for value, sku_id in SkuAlias.objects.filter(tenant_id=tenant_id, alias_type="barcode", value__in=barcodes).filter(
+            Q(site_id=site_id) | Q(site__isnull=True)).values_list("value", "sku_id"):
+        skus.setdefault(sku_id, set()).add(value)
+    held = set(Origin.objects.filter(tenant_id=tenant_id, site_id=site_id, sku_id__in=list(skus)).values_list("sku_id", flat=True))
+    held |= set(Position.objects.filter(tenant_id=tenant_id, site_id=site_id, sku_id__in=list(skus)).values_list("sku_id", flat=True))
+    known = {value for sku_id in held for value in skus.get(sku_id, ())}
+    known |= set(SohImportRow.objects.filter(
+        tenant_id=tenant_id, source_import__site_id=site_id, source_import__batches__isnull=False,
+        barcode__in=barcodes, quantity__gt=0, exclusion_reason="",
+    ).exclude(source_import=source).exclude(source_import__state="withdrawn").values_list("barcode", flat=True))
+    return known
+
+
 def requires_inventory_reconciliation(source: SohImport) -> bool:
     """A fresh full snapshot must never add another whole opening balance.
 
@@ -487,6 +555,14 @@ def requires_inventory_reconciliation(source: SohImport) -> bool:
     from stockledger.goods_models import CustodyLot, Origin, Position
     if _stock_sync_top_up(source):
         return False
+    if pt_top_up(source):
+        # Every included row is a barcode this store never opened (``prepare`` excludes
+        # the rest), so it adds new pieces and never repeats a balance. Once its first
+        # batch passed this check under the site guard, the same source finishes.
+        if source.batches.exists():
+            return False
+        included = list(source.rows.filter(quantity__gt=0, exclusion_reason="").values_list("barcode", flat=True))
+        return bool(opened_barcodes(source, included))
     own_manifests = source.batches.values_list("manifest_id", flat=True)
     if OpeningManifest.objects.filter(tenant_id=source.tenant_id, site_id=source.site_id).exclude(pk__in=own_manifests).exists():
         return True
@@ -495,6 +571,14 @@ def requires_inventory_reconciliation(source: SohImport) -> bool:
     return (CustodyLot.objects.filter(tenant_id=source.tenant_id, initial_site_id=source.site_id).exists()
             or Origin.objects.filter(tenant_id=source.tenant_id, site_id=source.site_id).exists()
             or Position.objects.filter(tenant_id=source.tenant_id, site_id=source.site_id, boundary="physical").exists())
+
+
+def older_origin_ref(row: SohImportRow) -> str | None:
+    """Where a PT-opened piece came from before this opening: its PT bill numbers, as the PT
+    files name them (``pt_opening`` keeps each barcode's ``BillNo`` values). A legacy SOH row
+    names no bill, so its older origin stays unknown and is investigated per row."""
+    bills = str(row.source.get("bills") or "").strip()
+    return f"PT bill {bills}"[:160] if bills else None
 
 
 def apply_batch(run: CommandRun, access: AccessContext, source: SohImport, batch_index: int, expected: int | None = None) -> SohImportBatch:
@@ -534,7 +618,8 @@ def apply_batch(run: CommandRun, access: AccessContext, source: SohImport, batch
                                   "identity": {"sku_id": str(sku_id), "raw_alias": row.barcode,
                                                "description": str(row.source.get("itemname") or f"{source.source_name}!{row.source_row_key}")[:240], "attributes": []},
                                   "qty": row.quantity, "basic_paise": mapped["basic_paise"], "mrp_paise": str(row.mrp_paise),
-                                  "hsn": mapped["hsn"], "season_id": mapped["season_id"], "season_unknown_historical": mapped["season_unknown_historical"]},
+                                  "hsn": mapped["hsn"], "season_id": mapped["season_id"], "season_unknown_historical": mapped["season_unknown_historical"],
+                                  "older_origin_ref": older_origin_ref(row)},
                          "verification": {key: row.verification[key] for key in ("observed_qty", "observed_condition", "notes")}})
     assert source.cutoff_at is not None
     manifest = goods_manifest_services.create_manifest(run, body={"site_id": source.site_id, "batch_key": f"soh-{source.pk}-{batch_index}",
@@ -633,3 +718,8 @@ def _request_cells(requests: list[ApprovalRequest]) -> dict[Any, frozenset[tuple
 def install() -> None:
     register_subject_handler("soh_import", APPROVE, _decide, policy_governed=False)
     register_subject_cells("soh_import", APPROVE, _request_cells)
+    # A test store's opening needs no second person when its policy says so (§1). Here,
+    # after the manifest and opening PT handlers, so every handler it names exists.
+    from ptmapper import opening_auto
+
+    opening_auto.register()

@@ -328,3 +328,41 @@ def enforce(
     if payload.get("step_up"):
         access.require_step_up(run.now)
     _check_in_force(run, request, version, basis)
+
+
+#: The decision reason when a policy lets the maker's own submission through.
+AUTO_REASON = "NO_APPROVAL_REQUIRED"
+#: No registered rule lets this request through without a second person (flag off, real
+#: store, another subject): it stays pending for a normal approval.
+AUTO_NOT_ALLOWED = "AUTO_APPROVAL_NOT_ALLOWED"
+
+
+def enforce_auto(run: CommandRun, request: Any, *, version_id: uuid.UUID, flag: str) -> None:
+    """Lock and recheck the policy that says no second person is needed.
+
+    The version must be an approval policy that is still in force and still carries
+    ``flag``. A request that pinned a policy at submission must have pinned exactly this
+    version, and it must still be the one in force with the pinned amounts inside it
+    (the same check a normal decision makes). No approver role, two-person rule or
+    step-up is checked: the policy itself says none is needed.
+    """
+    from masters.goods_config import CONFIGURATION, candidate
+    from masters.goods_models import ConfigVersion, EffectiveVersionPeriod
+
+    run.lock(
+        LockRank.DRAFT,
+        EffectiveVersionPeriod.objects.filter(target_kind=CONFIGURATION, target_id=version_id),
+    )
+    version = ConfigVersion.objects.filter(tenant_id=run.tenant_id, pk=version_id, kind="approval").first()
+    if version is None:
+        raise Refusal(AUTO_NOT_ALLOWED, "No approval policy lets this through without a second person.", status=409)
+    payload = version.payload if isinstance(version.payload, dict) else {}
+    basis = dict(request.policy_basis or {})
+    _record(run, version, basis)
+    if payload.get(flag) is not True or candidate(version).state(run.now) != "effective":
+        raise Refusal(AUTO_NOT_ALLOWED, "The approval policy no longer lets this through without a second person.", status=409)
+    if request.policy_version_id is None:
+        return
+    if request.policy_version_id != version.pk or not basis:
+        raise _stale("POLICY_SUPERSEDED", "A different approval policy applies since this was submitted; submit again.")
+    _check_in_force(run, request, version, basis)

@@ -142,7 +142,9 @@ def serialise_workflow_levels(levels: Mapping[str, tuple[str, str]]) -> dict[str
 # approved six-role baseline assigns.  A broader section rung cannot turn a
 # central administrator into the receiver at a store or a PT preparer.
 INITIAL_STEP_ROLES: dict[str, frozenset[str]] = {
-    "opening.import.stage": frozenset({"owner", "store_person", "warehouse"}),
+    # Uploading a PT or SOH (store test run, 29 Oct 2026): the store manager, the
+    # warehouse and the operations head; the owner keeps it to see every source.
+    "opening.import.stage": frozenset({"owner", "store_person", "warehouse", "operations_head"}),
     "receive.arrival": frozenset({"store_person", "warehouse"}),
     "stock.accept": frozenset({"store_person", "warehouse"}),
     "pt.prepare": frozenset({"warehouse"}),

@@ -36,7 +36,9 @@ KEPT = ("itemname", "brand", "color", "size", "designno", "category", "type", "g
         "hsn", "basic", "prate", "inputtax", "outputtax")
 #: The columns of the normalised workbook kept as the source's evidence.
 EVIDENCE_HEADER = ["Item Name", "Brand", "Color", "Size", "Barcode", "Design No", "Category", "Type", "Gender",
-                   "Fit", "Season", "HSN", "Tqty", "Mrp", "Rate", "Basic", "Input Tax", "Output Tax", "From"]
+                   "Fit", "Season", "HSN", "Tqty", "Mrp", "Rate", "Basic", "Input Tax", "Output Tax", "From", "Bills"]
+#: A barcode's PT bill numbers (``BillNo``) kept on its source, so its opening names where it came from.
+MAX_BILLS_TEXT = 500
 
 
 @dataclass
@@ -49,6 +51,7 @@ class _Barcode:
     rate_last: int | None = None
     key: str = ""
     origins: list[str] = field(default_factory=list)
+    bills: list[str] = field(default_factory=list)
 
 
 def _text(value: Any) -> str:
@@ -154,6 +157,9 @@ def parse_pt_files(files: list[tuple[str, bytes]]) -> tuple[dict[str, Any], list
                     entry.last = {k: named.get(k, "") for k in KEPT}
                     entry.key = f"{number}:{title}:{row_number}"[:100]
                     entry.origins.append(where)
+                    bill = _text(cells.get("billno"))
+                    if bill and bill not in entry.bills:
+                        entry.bills.append(bill)
             except Refusal:
                 raise
             except Exception as exc:
@@ -187,6 +193,8 @@ def parse_pt_files(files: list[tuple[str, bytes]]) -> tuple[dict[str, Any], list
                                          "mrp": None if mrp is None else str(Decimal(mrp) / 100),
                                          "rate": None if rate is None else str(Decimal(rate) / 100),
                                          "from": "; ".join(entry.origins[-3:])[:500]}
+        if entry.bills:
+            source["bills"] = "; ".join(entry.bills)[:MAX_BILLS_TEXT]
         if barcode in problems:
             source["problem"] = problems[barcode]
         rows.append(SourceRow(ordinal, entry.key, barcode, entry.last.get("brand", ""), entry.qty, mrp, rate, source))
@@ -218,5 +226,6 @@ def evidence_workbook(rows: list[SourceRow]) -> bytes:
                      cell(row, "designno"), cell(row, "category"), cell(row, "type"), cell(row, "gender"),
                      cell(row, "fit"), cell(row, "season"), cell(row, "hsn"), row.quantity,
                      Amount(row.mrp) if row.mrp is not None else None, Amount(row.rate) if row.rate is not None else None,
-                     cell(row, "basic"), cell(row, "inputtax"), cell(row, "outputtax"), cell(row, "from")])
+                     cell(row, "basic"), cell(row, "inputtax"), cell(row, "outputtax"), cell(row, "from"),
+                     cell(row, "bills")])
     return workbook_bytes("PT opening", body)
