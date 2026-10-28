@@ -64,7 +64,7 @@ The machine inventory assigns each mounted API method and URL module one primary
 `/api/health`, `/api/schema` and `/api/docs` are platform surfaces. The optional Django `/admin` exposes business and access models when enabled, so every discovered admin method is unresolved until SO-03/SO-02 proves it disabled in deployment or enforces the unified tenant, scope, field and write guards per model. Its presence in the P00 inventory is not access approval.
 
 <!-- BEGIN GENERATED SO-03 COVERAGE -->
-The [machine-readable inventory](so-03-consolidation-inventory.json) records every discovered entrypoint and component, its primary retirement owner, lifecycle, data ownership, authorization, callers, replacement, evidence and removal condition. Its structural checksum is `2e59fe4a3c718d9bd0dd3a2f09f5ed4b9ab8e6633efb6f966ef4604d919ce951`. Temporary APIs without a statically named frontend consumer carry an explicit trace gate in the inventory. The counts below are generated from that same snapshot; they are coverage, not completion proof.
+The [machine-readable inventory](so-03-consolidation-inventory.json) records every discovered entrypoint and component, its primary retirement owner, lifecycle, data ownership, authorization, callers, replacement, evidence and removal condition. Its structural checksum is `d1c90a7be9ae9ba2004c5bec0ecd2137fae9d2c3ce90c7de8151d79456f5b3f4`. Temporary APIs without a statically named frontend consumer carry an explicit trace gate in the inventory. The counts below are generated from that same snapshot; they are coverage, not completion proof.
 
 | Retirement item / owner | Discovered surfaces by kind | Unresolved | Untraced temporary APIs |
 | --- | --- | ---: | ---: |
@@ -74,7 +74,7 @@ The [machine-readable inventory](so-03-consolidation-inventory.json) records eve
 | C02 · SO-05 | api: 9, api_consumer: 7, command: 2, migration: 7, model: 4, module: 5, navigation: 2, screen: 2 | 0 | 2 |
 | C03 · SO-06 | api: 23, api_consumer: 20, bookmark: 4, command: 3, migration: 11, model: 9, module: 28, navigation: 11, scheduled_job: 2, screen: 12 | 11 | 0 |
 | C04 · SO-07 | api: 14, api_consumer: 12, bookmark: 2, migration: 13, model: 8, module: 18, navigation: 3, screen: 3 | 0 | 2 |
-| C05 · SO-07 | api: 55, api_consumer: 76, bookmark: 5, command: 2, migration: 32, model: 24, module: 43, navigation: 6, print_output: 2, screen: 6, subview: 1 | 14 | 0 |
+| C05 · SO-07 | api: 57, api_consumer: 79, bookmark: 5, command: 2, migration: 32, model: 24, module: 45, navigation: 6, print_output: 2, screen: 6, subview: 1 | 14 | 0 |
 | C06 · SO-08 | api: 51, api_consumer: 41, bookmark: 2, command: 1, migration: 31, model: 29, module: 30, navigation: 12, screen: 11 | 5 | 4 |
 | C07 · SO-08 | api: 49, api_consumer: 29, bookmark: 3, command: 2, migration: 26, model: 20, module: 29, navigation: 8, print_output: 2, screen: 13 | 4 | 12 |
 | C08 · SO-08 | api: 54, api_consumer: 43, bookmark: 4, command: 2, migration: 12, model: 23, module: 25, navigation: 7, scheduled_job: 2, screen: 14 | 2 | 15 |

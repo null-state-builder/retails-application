@@ -5,11 +5,12 @@
 // Either way, the day's test bills go back on the shelf first. Customer data
 // in the sales report is never stored.
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
 import { OperationsPage, OperationsTable } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
-import { api, apiErrorMessage, goodsMeta } from "../lib/api";
+import { api, apiErrorCode, apiErrorMessage, goodsMeta } from "../lib/api";
 import { sha256Hex } from "../lib/goodsPt";
 import { Feedback, Field, hold } from "../lib/goodsScreen";
 
@@ -93,6 +94,7 @@ export function StockSyncPage() {
   const [cutoff, setCutoff] = useState(localNow());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [needsOpening, setNeedsOpening] = useState(false);
   const [ok, setOk] = useState("");
 
   useEffect(() => {
@@ -115,11 +117,13 @@ export function StockSyncPage() {
   async function run(work: () => Promise<void>) {
     setBusy(true);
     setError("");
+    setNeedsOpening(false);
     setOk("");
     try {
       await work();
     } catch (e) {
       setError(apiErrorMessage(e));
+      setNeedsOpening(apiErrorCode(e) === "OPENING_REQUIRED");
     } finally {
       setBusy(false);
     }
@@ -174,6 +178,11 @@ export function StockSyncPage() {
         lead="Each night, bring this store in line with the legacy software. Today's test bills go back on the shelf first."
       />
       <Feedback error={error} ok={ok} />
+      {needsOpening && (
+        <p className="lead">
+          <Link to="/goods/opening">Go to Opening stock</Link> to upload this store&apos;s PT files.
+        </p>
+      )}
       {overview && !overview.test_environment && (
         <div className="warn-note" role="alert">
           This store is live. Legacy sync runs only on the test environment.

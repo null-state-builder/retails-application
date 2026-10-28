@@ -13,6 +13,7 @@ import { PageHeader } from "../components/PageHeader";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import { rupeesToPaiseString, uploadEvidence } from "../lib/goodsPt";
 import { ptWorkPath } from "../lib/ptWork";
+import { PtOpeningPanel } from "./PtOpening";
 import { SohImportPanel } from "./SohImport";
 import {
   Denied,
@@ -1192,6 +1193,7 @@ export function GoodsOpeningPage() {
               </select>
             </Field>
           </div>
+          {siteId && <PtOpeningPanel key={`pt-${siteId}`} siteId={siteId} />}
           {siteId && <SohImportPanel key={siteId} siteId={siteId} />}
           {canPrepare && manifestPage.manual && !showForm && (
             <button

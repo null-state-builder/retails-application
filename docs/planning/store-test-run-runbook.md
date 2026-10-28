@@ -76,6 +76,45 @@ Test-only choices:
 It is safe to re-run. Stop the goods worker while it loads, because the large
 opening documents conflict with it.
 
+## A new test store from its PT files: Wardrobe Ratu Road
+
+Owner's process (28 Oct 2026): set up the store empty, open it from its PT files
+(no scanning, cost = P RATE), then bring it to the legacy SOH. Synthetic tenant
+only.
+
+1. **Set up the store (operator, once):**
+   ```bash
+   docker compose stop api
+   docker compose run --rm --no-deps api python manage.py load_test_store \
+     --store WRR --store-name "Wardrobe Ratu Road (test)" \
+     --warehouse RNC-WH --warehouse-name "Warehouse Ranchi (test)" --prefix wrr
+   docker compose start api
+   ```
+   This creates the store and its linked warehouse, the `wrr.*` logins (store,
+   cashier, warehouse, preparer, whm1, whm2) and the counter, and leaves the
+   store sell-ready with no stock. Add the `wrr.*` passwords to
+   `test-logins.txt` and `KDPS_DEMO_LOGINS`, then pair the counter at
+   `/setup/first-store`.
+2. **Upload the PT files (`wrr.store`):** at `/goods/opening`, pick the store and,
+   under "Opening from PT files", choose every PT file sent to it (KDPS
+   22-column .xlsx; every sheet with the PT header is read, so the multi-sheet
+   work book is fine; save .xls/.csv as .xlsx first). The preview shows
+   barcodes, pieces, value at MRP and P RATE, and rows that will be left out
+   (no MRP or P RATE, P RATE above MRP, bad HSN, no barcode) or need a look
+   (one barcode with different MRPs: the last row is used).
+3. **Approve and load (`syn.owner`):** same screen, **Approve and load**. The
+   server maps brands, sizes and seasons by their spelling, uses each row's HSN
+   and P RATE, records the PT quantity as the count, approves, and accepts
+   everything onto the Floor. It takes a few minutes; the card shows progress.
+   The uploader, the preparer (`wrr.preparer`) and the approver are three
+   different people.
+4. **Match the floor (`wrr.store`):** at `/goods/stock-sync`, upload the legacy
+   SOH with its export time. Sold pieces leave, extra pieces of known items are
+   added, and barcodes with no PT are staged as new items; load those with the
+   same **Approve and load** button at `/goods/opening` (cost = SOH Rate).
+   An SOH upload before step 3 is refused (`OPENING_REQUIRED`).
+5. **Sell** at `/sell`, then follow "Each day" below.
+
 ## One-time setup (by hand)
 
 1. **Tenant:** `python manage.py bootstrap_deployment --synthetic` on the test

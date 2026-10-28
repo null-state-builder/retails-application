@@ -79,6 +79,19 @@ def require_test_store(store: Store) -> None:
         raise Refusal("CONTRACT_DISABLED", "This store does not keep goods-v1 stock.", status=409)
 
 
+def require_opening(store: Store) -> None:
+    """A store that has never held stock opens first (PT files or an SOH at /goods/opening).
+
+    Synced first, every barcode would become a top-up opening, and the store's own
+    opening would then be refused as a second one.
+    """
+    if not (CustodyLot.objects.filter(tenant_id=store.tenant_id, initial_site_id=store.pk).exists()
+            or Origin.objects.filter(tenant_id=store.tenant_id, site_id=store.pk).exists()
+            or Position.objects.filter(tenant_id=store.tenant_id, site_id=store.pk, boundary="physical").exists()):
+        raise Refusal("OPENING_REQUIRED", "Load this store's opening stock first (Opening stock: upload its PT files).",
+                      status=409)
+
+
 def previous_cutoff(store: Store) -> datetime | None:
     last = (StockSync.objects.filter(tenant_id=store.tenant_id, site=store, state=StockSync.State.APPLIED)
             .order_by("-cutoff_at").first())
@@ -91,6 +104,7 @@ def create_sync(run: CommandRun, *, site_id: int, evidence: EvidenceObject, cuto
     if not stores:
         raise Refusal("NOT_FOUND", "That store was not found.")
     require_test_store(stores[0])
+    require_opening(stores[0])
     # App and database clocks may differ slightly; a cutoff minutes ahead is a mistake.
     if cutoff_at > run.now + timedelta(minutes=5):
         raise Refusal("INVALID_REQUEST", "The SOH export time cannot be in the future.")

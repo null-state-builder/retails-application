@@ -24693,10 +24693,75 @@
       "lifecycle": "temporary_supported_legacy",
       "authorization": "Operator shell only; refuses a non-synthetic tenant. Drives the canonical SOH → manifest → opening PT → acceptance writers with distinct synthetic people.",
       "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
+    },
+    {
+      "id": "STORE-TEST-500",
+      "kind": "api",
+      "key_regex": "^api:POST:/api/goods\\-v1/ptmapper/soh\\-imports/(pt\\-upload|<uuid:pk>/load)$",
+      "primary_id": "C05",
+      "related_ids": [
+        "A00",
+        "C01",
+        "C06",
+        "C08"
+      ],
+      "lifecycle": "temporary_supported_legacy",
+      "authorization": "Upload: opening.import.stage at the exact store. Load: opening.manifest.approve with cost and financial on every source cell, a recent step-up, and a caller who neither uploaded nor prepared the source. Both refused with TEST_TENANT_ONLY unless the tenant is synthetic (stock_sync_services.require_test_store). The load then runs as three distinct synthetic people through the canonical opening writers.",
+      "data_ownership": "Store test run only: the legacy software is the only real book. PT workbooks become one SohImport (normalised evidence workbook, original file hashes in metadata; cost = P RATE by owner decision 28 Oct 2026). Stock moves only through the canonical SOH -> manifest -> opening PT -> acceptance writers; problem rows are excluded with their reason, never invented.",
+      "acceptance_evidence": "backend/tests/test_pt_opening.py on the exact revision; store test run browser journey recorded in docs/planning/store-test-run-runbook.md.",
+      "removal_condition": "Retire with the store test run at real-store cutover (SO-22): the synthetic tenant is closed and no real tenant can reach these surfaces.",
+      "migration_requirements": "Test-tenant coexistence decision: docs/planning/store-test-run-decision.md. A second full opening stays refused (SOH_RECONCILIATION_REQUIRED); an SOH sync before any opening is refused (OPENING_REQUIRED).",
+      "access_contract": {
+        "trace_status": "pending",
+        "required_action": "opening.import.stage / opening.manifest.approve",
+        "reviewed_chain": "ptmapper.soh_views SohImportPtUploadView / SohImportLoadView -> AccessContext.require / covers_all -> pt_opening_services.check (require_test_store, SELF_APPROVAL) -> accounts.test_store_loader.OpeningDriver -> soh_services / goods_manifest_services / goods_acceptance."
+      }
+    },
+    {
+      "id": "STORE-TEST-501",
+      "kind": "module",
+      "key_regex": "^module:ptmapper\\.pt_opening$",
+      "primary_id": "C05",
+      "related_ids": [
+        "A00",
+        "C01",
+        "C06",
+        "C08"
+      ],
+      "lifecycle": "temporary_supported_legacy",
+      "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
+    },
+    {
+      "id": "STORE-TEST-502",
+      "kind": "module",
+      "key_regex": "^module:ptmapper\\.pt_opening_services$",
+      "primary_id": "C05",
+      "related_ids": [
+        "A00",
+        "C01",
+        "C06",
+        "C08"
+      ],
+      "lifecycle": "temporary_supported_legacy",
+      "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
+    },
+    {
+      "id": "STORE-TEST-504",
+      "kind": "api_consumer",
+      "key_regex": "^api_consumer:frontend/src/pages/PtOpening\\.tsx:[0-9a-f]{12}$",
+      "primary_id": "C05",
+      "related_ids": [
+        "A00",
+        "C01",
+        "C06",
+        "C08"
+      ],
+      "lifecycle": "temporary_supported_legacy",
+      "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
     }
   ],
   "discovered": {
-    "checksum": "2e59fe4a3c718d9bd0dd3a2f09f5ed4b9ab8e6633efb6f966ef4604d919ce951",
+    "checksum": "d1c90a7be9ae9ba2004c5bec0ecd2137fae9d2c3ce90c7de8151d79456f5b3f4",
     "records": [
       {
         "kind": "api",
@@ -58534,7 +58599,9 @@
             "module:ptmapper.soh_urls"
           ],
           "static_frontend_importers": [],
-          "frontend_api_callsites": []
+          "frontend_api_callsites": [
+            "api_consumer:frontend/src/pages/PtOpening.tsx:b618151589d5"
+          ]
         },
         "dependencies": {
           "basis": "source_module_static",
@@ -58549,11 +58616,15 @@
             "files.goods_services",
             "masters.goods_identity_services",
             "masters.models",
+            "masters.store_features",
             "outbound.goods_soh_models",
             "ptmapper",
+            "ptmapper.pt_opening",
+            "ptmapper.pt_opening_services",
             "ptmapper.soh_models",
             "ptmapper.soh_parser",
-            "ptmapper.soh_services"
+            "ptmapper.soh_services",
+            "ptmapper.stock_sync_services"
           ],
           "local_component_keys": [
             "module:accounts.goods_api",
@@ -58564,10 +58635,14 @@
             "module:files.goods_services",
             "module:masters.goods_identity_services",
             "module:masters.models",
+            "module:masters.store_features",
             "module:outbound.goods_soh_models",
+            "module:ptmapper.pt_opening",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_models",
             "module:ptmapper.soh_parser",
-            "module:ptmapper.soh_services"
+            "module:ptmapper.soh_services",
+            "module:ptmapper.stock_sync_services"
           ],
           "candidate_model_keys": [
             "model:files.EvidenceLink",
@@ -58594,7 +58669,9 @@
             "model:ptmapper.SohImportReview",
             "model:ptmapper.SohImportRow"
           ],
-          "frontend_api_callsites": [],
+          "frontend_api_callsites": [
+            "api_consumer:frontend/src/pages/PtOpening.tsx:b618151589d5"
+          ],
           "api_targets": [],
           "model_relations": [],
           "migration_dependencies": [],
@@ -58609,11 +58686,14 @@
             "SohReconciliation.objects.filter(source_import=source).first",
             "Store.objects.filter",
             "Store.objects.filter(tenant_id=access.tenant_id, pk=site_id, is_active=True).exists",
+            "Store.objects.filter(tenant_id=access.tenant_id, pk=site_id, is_active=True).first",
             "includes.aggregate",
             "includes.count",
             "includes.exclude",
             "includes.exclude(verification={}).count",
+            "loading.get",
             "params.get",
+            "pt.get",
             "request.FILES.get",
             "request.data.get",
             "row.source.get",
@@ -58627,6 +58707,7 @@
             "source.rows.filter",
             "source.rows.filter(quantity__gt=0).exclude",
             "source.rows.filter(quantity__gt=0).exclude(exclusion_reason='').count",
+            "source.source_metadata.get",
             "source_rows.filter"
           ],
           "write_candidates": [
@@ -58690,11 +58771,15 @@
             "files.goods_services",
             "masters.goods_identity_services",
             "masters.models",
+            "masters.store_features",
             "outbound.goods_soh_models",
             "ptmapper",
+            "ptmapper.pt_opening",
+            "ptmapper.pt_opening_services",
             "ptmapper.soh_models",
             "ptmapper.soh_parser",
-            "ptmapper.soh_services"
+            "ptmapper.soh_services",
+            "ptmapper.stock_sync_services"
           ],
           "local_component_keys": [
             "module:accounts.goods_api",
@@ -58705,10 +58790,14 @@
             "module:files.goods_services",
             "module:masters.goods_identity_services",
             "module:masters.models",
+            "module:masters.store_features",
             "module:outbound.goods_soh_models",
+            "module:ptmapper.pt_opening",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_models",
             "module:ptmapper.soh_parser",
-            "module:ptmapper.soh_services"
+            "module:ptmapper.soh_services",
+            "module:ptmapper.stock_sync_services"
           ],
           "candidate_model_keys": [
             "model:files.EvidenceLink",
@@ -58750,11 +58839,14 @@
             "SohReconciliation.objects.filter(source_import=source).first",
             "Store.objects.filter",
             "Store.objects.filter(tenant_id=access.tenant_id, pk=site_id, is_active=True).exists",
+            "Store.objects.filter(tenant_id=access.tenant_id, pk=site_id, is_active=True).first",
             "includes.aggregate",
             "includes.count",
             "includes.exclude",
             "includes.exclude(verification={}).count",
+            "loading.get",
             "params.get",
+            "pt.get",
             "request.FILES.get",
             "request.data.get",
             "row.source.get",
@@ -58768,6 +58860,7 @@
             "source.rows.filter",
             "source.rows.filter(quantity__gt=0).exclude",
             "source.rows.filter(quantity__gt=0).exclude(exclusion_reason='').count",
+            "source.source_metadata.get",
             "source_rows.filter"
           ],
           "write_candidates": [
@@ -58831,11 +58924,15 @@
             "files.goods_services",
             "masters.goods_identity_services",
             "masters.models",
+            "masters.store_features",
             "outbound.goods_soh_models",
             "ptmapper",
+            "ptmapper.pt_opening",
+            "ptmapper.pt_opening_services",
             "ptmapper.soh_models",
             "ptmapper.soh_parser",
-            "ptmapper.soh_services"
+            "ptmapper.soh_services",
+            "ptmapper.stock_sync_services"
           ],
           "local_component_keys": [
             "module:accounts.goods_api",
@@ -58846,10 +58943,14 @@
             "module:files.goods_services",
             "module:masters.goods_identity_services",
             "module:masters.models",
+            "module:masters.store_features",
             "module:outbound.goods_soh_models",
+            "module:ptmapper.pt_opening",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_models",
             "module:ptmapper.soh_parser",
-            "module:ptmapper.soh_services"
+            "module:ptmapper.soh_services",
+            "module:ptmapper.stock_sync_services"
           ],
           "candidate_model_keys": [
             "model:files.EvidenceLink",
@@ -58891,11 +58992,14 @@
             "SohReconciliation.objects.filter(source_import=source).first",
             "Store.objects.filter",
             "Store.objects.filter(tenant_id=access.tenant_id, pk=site_id, is_active=True).exists",
+            "Store.objects.filter(tenant_id=access.tenant_id, pk=site_id, is_active=True).first",
             "includes.aggregate",
             "includes.count",
             "includes.exclude",
             "includes.exclude(verification={}).count",
+            "loading.get",
             "params.get",
+            "pt.get",
             "request.FILES.get",
             "request.data.get",
             "row.source.get",
@@ -58909,6 +59013,7 @@
             "source.rows.filter",
             "source.rows.filter(quantity__gt=0).exclude",
             "source.rows.filter(quantity__gt=0).exclude(exclusion_reason='').count",
+            "source.source_metadata.get",
             "source_rows.filter"
           ],
           "write_candidates": [
@@ -119550,7 +119655,9 @@
             "module:ptmapper.soh_urls"
           ],
           "static_frontend_importers": [],
-          "frontend_api_callsites": []
+          "frontend_api_callsites": [
+            "api_consumer:frontend/src/pages/PtOpening.tsx:2873aa087af1"
+          ]
         },
         "dependencies": {
           "basis": "source_module_static",
@@ -119565,11 +119672,15 @@
             "files.goods_services",
             "masters.goods_identity_services",
             "masters.models",
+            "masters.store_features",
             "outbound.goods_soh_models",
             "ptmapper",
+            "ptmapper.pt_opening",
+            "ptmapper.pt_opening_services",
             "ptmapper.soh_models",
             "ptmapper.soh_parser",
-            "ptmapper.soh_services"
+            "ptmapper.soh_services",
+            "ptmapper.stock_sync_services"
           ],
           "local_component_keys": [
             "module:accounts.goods_api",
@@ -119580,10 +119691,14 @@
             "module:files.goods_services",
             "module:masters.goods_identity_services",
             "module:masters.models",
+            "module:masters.store_features",
             "module:outbound.goods_soh_models",
+            "module:ptmapper.pt_opening",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_models",
             "module:ptmapper.soh_parser",
-            "module:ptmapper.soh_services"
+            "module:ptmapper.soh_services",
+            "module:ptmapper.stock_sync_services"
           ],
           "candidate_model_keys": [
             "model:files.EvidenceLink",
@@ -119610,7 +119725,9 @@
             "model:ptmapper.SohImportReview",
             "model:ptmapper.SohImportRow"
           ],
-          "frontend_api_callsites": [],
+          "frontend_api_callsites": [
+            "api_consumer:frontend/src/pages/PtOpening.tsx:2873aa087af1"
+          ],
           "api_targets": [],
           "model_relations": [],
           "migration_dependencies": [],
@@ -119625,11 +119742,14 @@
             "SohReconciliation.objects.filter(source_import=source).first",
             "Store.objects.filter",
             "Store.objects.filter(tenant_id=access.tenant_id, pk=site_id, is_active=True).exists",
+            "Store.objects.filter(tenant_id=access.tenant_id, pk=site_id, is_active=True).first",
             "includes.aggregate",
             "includes.count",
             "includes.exclude",
             "includes.exclude(verification={}).count",
+            "loading.get",
             "params.get",
+            "pt.get",
             "request.FILES.get",
             "request.data.get",
             "row.source.get",
@@ -119643,6 +119763,7 @@
             "source.rows.filter",
             "source.rows.filter(quantity__gt=0).exclude",
             "source.rows.filter(quantity__gt=0).exclude(exclusion_reason='').count",
+            "source.source_metadata.get",
             "source_rows.filter"
           ],
           "write_candidates": [
@@ -119664,6 +119785,332 @@
         "acceptance_evidence": "Current revision proof commands and browser evidence must be recorded in docs/planning/kdps-first-store-alpha-evidence.md; inventory coverage is not acceptance.",
         "removal_condition": "Reconcile physical count and official value once; prove history and separate-person approval before removing separate screens or old write services.",
         "rule_id": "FIRST-STORE-011"
+      },
+      {
+        "kind": "api",
+        "key": "api:POST:/api/goods-v1/ptmapper/soh-imports/<uuid:pk>/load",
+        "source": "backend/ptmapper/soh_views.py",
+        "detail": {
+          "handler": "ptmapper.soh_views.SohImportLoadView",
+          "route_name": "soh-import-load",
+          "dynamic_permissions": false
+        },
+        "primary_id": "C05",
+        "owner": "SO-07",
+        "related_ids": [
+          "A00",
+          "C01",
+          "C06",
+          "C08"
+        ],
+        "lifecycle": "temporary_supported_legacy",
+        "data_ownership": "Store test run only: the legacy software is the only real book. PT workbooks become one SohImport (normalised evidence workbook, original file hashes in metadata; cost = P RATE by owner decision 28 Oct 2026). Stock moves only through the canonical SOH -> manifest -> opening PT -> acceptance writers; problem rows are excluded with their reason, never invented.",
+        "authorization": "Upload: opening.import.stage at the exact store. Load: opening.manifest.approve with cost and financial on every source cell, a recent step-up, and a caller who neither uploaded nor prepared the source. Both refused with TEST_TENANT_ONLY unless the tenant is synthetic (stock_sync_services.require_test_store). The load then runs as three distinct synthetic people through the canonical opening writers.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [
+            "module:ptmapper.soh_urls"
+          ],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": [
+            "api_consumer:frontend/src/pages/PtOpening.tsx:2873aa087af1"
+          ]
+        },
+        "dependencies": {
+          "basis": "source_module_static",
+          "source_module": "module:ptmapper.soh_views",
+          "callback_component": null,
+          "static_imports": [
+            "accounts.goods_api",
+            "accounts.principal",
+            "core.commands",
+            "core.refusals",
+            "files.goods_models",
+            "files.goods_services",
+            "masters.goods_identity_services",
+            "masters.models",
+            "masters.store_features",
+            "outbound.goods_soh_models",
+            "ptmapper",
+            "ptmapper.pt_opening",
+            "ptmapper.pt_opening_services",
+            "ptmapper.soh_models",
+            "ptmapper.soh_parser",
+            "ptmapper.soh_services",
+            "ptmapper.stock_sync_services"
+          ],
+          "local_component_keys": [
+            "module:accounts.goods_api",
+            "module:accounts.principal",
+            "module:core.commands",
+            "module:core.refusals",
+            "module:files.goods_models",
+            "module:files.goods_services",
+            "module:masters.goods_identity_services",
+            "module:masters.models",
+            "module:masters.store_features",
+            "module:outbound.goods_soh_models",
+            "module:ptmapper.pt_opening",
+            "module:ptmapper.pt_opening_services",
+            "module:ptmapper.soh_models",
+            "module:ptmapper.soh_parser",
+            "module:ptmapper.soh_services",
+            "module:ptmapper.stock_sync_services"
+          ],
+          "candidate_model_keys": [
+            "model:files.EvidenceLink",
+            "model:files.EvidenceObject",
+            "model:files.UploadIntent",
+            "model:masters.Brand",
+            "model:masters.CategoryMargin",
+            "model:masters.Cohort",
+            "model:masters.Customer",
+            "model:masters.CustomerNumber",
+            "model:masters.GstSlab",
+            "model:masters.Gstin",
+            "model:masters.LegalEntity",
+            "model:masters.PriceChange",
+            "model:masters.Season",
+            "model:masters.Sku",
+            "model:masters.StaffTarget",
+            "model:masters.Store",
+            "model:masters.StoreTarget",
+            "model:outbound.SohReconciliation",
+            "model:outbound.SohReconciliationEvidence",
+            "model:ptmapper.SohImport",
+            "model:ptmapper.SohImportBatch",
+            "model:ptmapper.SohImportReview",
+            "model:ptmapper.SohImportRow"
+          ],
+          "frontend_api_callsites": [
+            "api_consumer:frontend/src/pages/PtOpening.tsx:2873aa087af1"
+          ],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "source_file_static_candidates",
+          "read_candidates": [
+            "SohImport.objects.filter",
+            "SohImport.objects.filter(tenant_id=access.tenant_id, pk=pk).first",
+            "SohReconciliation.objects.filter",
+            "SohReconciliation.objects.filter(source_import=source).first",
+            "Store.objects.filter",
+            "Store.objects.filter(tenant_id=access.tenant_id, pk=site_id, is_active=True).exists",
+            "Store.objects.filter(tenant_id=access.tenant_id, pk=site_id, is_active=True).first",
+            "includes.aggregate",
+            "includes.count",
+            "includes.exclude",
+            "includes.exclude(verification={}).count",
+            "loading.get",
+            "params.get",
+            "pt.get",
+            "request.FILES.get",
+            "request.data.get",
+            "row.source.get",
+            "rows.count",
+            "rows.filter",
+            "rows.values",
+            "rows.values('source_brand').annotate",
+            "rows.values(key).annotate",
+            "source.batches.exists",
+            "source.batches.select_related",
+            "source.rows.filter",
+            "source.rows.filter(quantity__gt=0).exclude",
+            "source.rows.filter(quantity__gt=0).exclude(exclusion_reason='').count",
+            "source.source_metadata.get",
+            "source_rows.filter"
+          ],
+          "write_candidates": [
+            "metadata.update",
+            "self.run_command"
+          ],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "access_contract": {
+          "trace_status": "pending",
+          "required_action": "opening.import.stage / opening.manifest.approve",
+          "reviewed_chain": "ptmapper.soh_views SohImportPtUploadView / SohImportLoadView -> AccessContext.require / covers_all -> pt_opening_services.check (require_test_store, SELF_APPROVAL) -> accounts.test_store_loader.OpeningDriver -> soh_services / goods_manifest_services / goods_acceptance."
+        },
+        "consumer_trace": {
+          "status": "static_frontend_callsite",
+          "named_callsites": [
+            "api_consumer:frontend/src/pages/PtOpening.tsx:2873aa087af1"
+          ]
+        },
+        "replacement": "`/goods/receive/*`, `/goods/pt-work`, `/goods/labels` retain receiving, PT and labels. Old `/goods/arrivals`, `/goods/receipts`, `/goods/accept`, `/goods/pt/prepare`, `/goods/pt/approvals` are bookmark redirects",
+        "migration_requirements": "Test-tenant coexistence decision: docs/planning/store-test-run-decision.md. A second full opening stays refused (SOH_RECONCILIATION_REQUIRED); an SOH sync before any opening is refused (OPENING_REQUIRED).",
+        "acceptance_evidence": "backend/tests/test_pt_opening.py on the exact revision; store test run browser journey recorded in docs/planning/store-test-run-runbook.md.",
+        "removal_condition": "Retire with the store test run at real-store cutover (SO-22): the synthetic tenant is closed and no real tenant can reach these surfaces.",
+        "rule_id": "STORE-TEST-500"
+      },
+      {
+        "kind": "api",
+        "key": "api:POST:/api/goods-v1/ptmapper/soh-imports/pt-upload",
+        "source": "backend/ptmapper/soh_views.py",
+        "detail": {
+          "handler": "ptmapper.soh_views.SohImportPtUploadView",
+          "route_name": "soh-import-pt-upload",
+          "dynamic_permissions": false
+        },
+        "primary_id": "C05",
+        "owner": "SO-07",
+        "related_ids": [
+          "A00",
+          "C01",
+          "C06",
+          "C08"
+        ],
+        "lifecycle": "temporary_supported_legacy",
+        "data_ownership": "Store test run only: the legacy software is the only real book. PT workbooks become one SohImport (normalised evidence workbook, original file hashes in metadata; cost = P RATE by owner decision 28 Oct 2026). Stock moves only through the canonical SOH -> manifest -> opening PT -> acceptance writers; problem rows are excluded with their reason, never invented.",
+        "authorization": "Upload: opening.import.stage at the exact store. Load: opening.manifest.approve with cost and financial on every source cell, a recent step-up, and a caller who neither uploaded nor prepared the source. Both refused with TEST_TENANT_ONLY unless the tenant is synthetic (stock_sync_services.require_test_store). The load then runs as three distinct synthetic people through the canonical opening writers.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [
+            "module:ptmapper.soh_urls"
+          ],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": [
+            "api_consumer:frontend/src/pages/PtOpening.tsx:baa34f1dd0b7"
+          ]
+        },
+        "dependencies": {
+          "basis": "source_module_static",
+          "source_module": "module:ptmapper.soh_views",
+          "callback_component": null,
+          "static_imports": [
+            "accounts.goods_api",
+            "accounts.principal",
+            "core.commands",
+            "core.refusals",
+            "files.goods_models",
+            "files.goods_services",
+            "masters.goods_identity_services",
+            "masters.models",
+            "masters.store_features",
+            "outbound.goods_soh_models",
+            "ptmapper",
+            "ptmapper.pt_opening",
+            "ptmapper.pt_opening_services",
+            "ptmapper.soh_models",
+            "ptmapper.soh_parser",
+            "ptmapper.soh_services",
+            "ptmapper.stock_sync_services"
+          ],
+          "local_component_keys": [
+            "module:accounts.goods_api",
+            "module:accounts.principal",
+            "module:core.commands",
+            "module:core.refusals",
+            "module:files.goods_models",
+            "module:files.goods_services",
+            "module:masters.goods_identity_services",
+            "module:masters.models",
+            "module:masters.store_features",
+            "module:outbound.goods_soh_models",
+            "module:ptmapper.pt_opening",
+            "module:ptmapper.pt_opening_services",
+            "module:ptmapper.soh_models",
+            "module:ptmapper.soh_parser",
+            "module:ptmapper.soh_services",
+            "module:ptmapper.stock_sync_services"
+          ],
+          "candidate_model_keys": [
+            "model:files.EvidenceLink",
+            "model:files.EvidenceObject",
+            "model:files.UploadIntent",
+            "model:masters.Brand",
+            "model:masters.CategoryMargin",
+            "model:masters.Cohort",
+            "model:masters.Customer",
+            "model:masters.CustomerNumber",
+            "model:masters.GstSlab",
+            "model:masters.Gstin",
+            "model:masters.LegalEntity",
+            "model:masters.PriceChange",
+            "model:masters.Season",
+            "model:masters.Sku",
+            "model:masters.StaffTarget",
+            "model:masters.Store",
+            "model:masters.StoreTarget",
+            "model:outbound.SohReconciliation",
+            "model:outbound.SohReconciliationEvidence",
+            "model:ptmapper.SohImport",
+            "model:ptmapper.SohImportBatch",
+            "model:ptmapper.SohImportReview",
+            "model:ptmapper.SohImportRow"
+          ],
+          "frontend_api_callsites": [
+            "api_consumer:frontend/src/pages/PtOpening.tsx:baa34f1dd0b7"
+          ],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "source_file_static_candidates",
+          "read_candidates": [
+            "SohImport.objects.filter",
+            "SohImport.objects.filter(tenant_id=access.tenant_id, pk=pk).first",
+            "SohReconciliation.objects.filter",
+            "SohReconciliation.objects.filter(source_import=source).first",
+            "Store.objects.filter",
+            "Store.objects.filter(tenant_id=access.tenant_id, pk=site_id, is_active=True).exists",
+            "Store.objects.filter(tenant_id=access.tenant_id, pk=site_id, is_active=True).first",
+            "includes.aggregate",
+            "includes.count",
+            "includes.exclude",
+            "includes.exclude(verification={}).count",
+            "loading.get",
+            "params.get",
+            "pt.get",
+            "request.FILES.get",
+            "request.data.get",
+            "row.source.get",
+            "rows.count",
+            "rows.filter",
+            "rows.values",
+            "rows.values('source_brand').annotate",
+            "rows.values(key).annotate",
+            "source.batches.exists",
+            "source.batches.select_related",
+            "source.rows.filter",
+            "source.rows.filter(quantity__gt=0).exclude",
+            "source.rows.filter(quantity__gt=0).exclude(exclusion_reason='').count",
+            "source.source_metadata.get",
+            "source_rows.filter"
+          ],
+          "write_candidates": [
+            "metadata.update",
+            "self.run_command"
+          ],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "access_contract": {
+          "trace_status": "pending",
+          "required_action": "opening.import.stage / opening.manifest.approve",
+          "reviewed_chain": "ptmapper.soh_views SohImportPtUploadView / SohImportLoadView -> AccessContext.require / covers_all -> pt_opening_services.check (require_test_store, SELF_APPROVAL) -> accounts.test_store_loader.OpeningDriver -> soh_services / goods_manifest_services / goods_acceptance."
+        },
+        "consumer_trace": {
+          "status": "static_frontend_callsite",
+          "named_callsites": [
+            "api_consumer:frontend/src/pages/PtOpening.tsx:baa34f1dd0b7"
+          ]
+        },
+        "replacement": "`/goods/receive/*`, `/goods/pt-work`, `/goods/labels` retain receiving, PT and labels. Old `/goods/arrivals`, `/goods/receipts`, `/goods/accept`, `/goods/pt/prepare`, `/goods/pt/approvals` are bookmark redirects",
+        "migration_requirements": "Test-tenant coexistence decision: docs/planning/store-test-run-decision.md. A second full opening stays refused (SOH_RECONCILIATION_REQUIRED); an SOH sync before any opening is refused (OPENING_REQUIRED).",
+        "acceptance_evidence": "backend/tests/test_pt_opening.py on the exact revision; store test run browser journey recorded in docs/planning/store-test-run-runbook.md.",
+        "removal_condition": "Retire with the store test run at real-store cutover (SO-22): the synthetic tenant is closed and no real tenant can reach these surfaces.",
+        "rule_id": "STORE-TEST-500"
       },
       {
         "kind": "api",
@@ -119706,11 +120153,15 @@
             "files.goods_services",
             "masters.goods_identity_services",
             "masters.models",
+            "masters.store_features",
             "outbound.goods_soh_models",
             "ptmapper",
+            "ptmapper.pt_opening",
+            "ptmapper.pt_opening_services",
             "ptmapper.soh_models",
             "ptmapper.soh_parser",
-            "ptmapper.soh_services"
+            "ptmapper.soh_services",
+            "ptmapper.stock_sync_services"
           ],
           "local_component_keys": [
             "module:accounts.goods_api",
@@ -119721,10 +120172,14 @@
             "module:files.goods_services",
             "module:masters.goods_identity_services",
             "module:masters.models",
+            "module:masters.store_features",
             "module:outbound.goods_soh_models",
+            "module:ptmapper.pt_opening",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_models",
             "module:ptmapper.soh_parser",
-            "module:ptmapper.soh_services"
+            "module:ptmapper.soh_services",
+            "module:ptmapper.stock_sync_services"
           ],
           "candidate_model_keys": [
             "model:files.EvidenceLink",
@@ -119766,11 +120221,14 @@
             "SohReconciliation.objects.filter(source_import=source).first",
             "Store.objects.filter",
             "Store.objects.filter(tenant_id=access.tenant_id, pk=site_id, is_active=True).exists",
+            "Store.objects.filter(tenant_id=access.tenant_id, pk=site_id, is_active=True).first",
             "includes.aggregate",
             "includes.count",
             "includes.exclude",
             "includes.exclude(verification={}).count",
+            "loading.get",
             "params.get",
+            "pt.get",
             "request.FILES.get",
             "request.data.get",
             "row.source.get",
@@ -119784,6 +120242,7 @@
             "source.rows.filter",
             "source.rows.filter(quantity__gt=0).exclude",
             "source.rows.filter(quantity__gt=0).exclude(exclusion_reason='').count",
+            "source.source_metadata.get",
             "source_rows.filter"
           ],
           "write_candidates": [
@@ -166069,6 +166528,181 @@
       },
       {
         "kind": "api_consumer",
+        "key": "api_consumer:frontend/src/pages/PtOpening.tsx:2873aa087af1",
+        "source": "frontend/src/pages/PtOpening.tsx",
+        "detail": {
+          "invocation": "api.post",
+          "method": "POST",
+          "argument": "`${BASE}/${source.id}/load`",
+          "api_reference": "/api/goods-v1/ptmapper/soh-imports/{source.id}/load",
+          "resolution": "template"
+        },
+        "primary_id": "C05",
+        "owner": "SO-07",
+        "related_ids": [
+          "A00",
+          "C01",
+          "C06",
+          "C08"
+        ],
+        "lifecycle": "temporary_supported_legacy",
+        "data_ownership": "Tenant-owned goods receiving/PT evidence with legacy receiving history",
+        "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "frontend_declaration",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [
+            "api:POST:/api/goods-v1/ptmapper/soh-imports/<uuid:pk>/<str:operation>",
+            "api:POST:/api/goods-v1/ptmapper/soh-imports/<uuid:pk>/load"
+          ],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "unknown",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "replacement": "`/goods/receive/*`, `/goods/pt-work`, `/goods/labels` retain receiving, PT and labels. Old `/goods/arrivals`, `/goods/receipts`, `/goods/accept`, `/goods/pt/prepare`, `/goods/pt/approvals` are bookmark redirects",
+        "migration_requirements": "Map arrival, claimed invoice, count, GRN, PT rows, number, cost basis, label jobs and approval evidence with source IDs.",
+        "acceptance_evidence": "Reconcile physical count and official value once; prove history and separate-person approval before removing separate screens or old write services.",
+        "removal_condition": "Retire with the store test run at real-store cutover (SO-22).",
+        "rule_id": "STORE-TEST-504"
+      },
+      {
+        "kind": "api_consumer",
+        "key": "api_consumer:frontend/src/pages/PtOpening.tsx:b618151589d5",
+        "source": "frontend/src/pages/PtOpening.tsx",
+        "detail": {
+          "invocation": "api.get",
+          "method": "GET",
+          "argument": "`${BASE}?site_id=${siteId}`",
+          "api_reference": "/api/goods-v1/ptmapper/soh-imports?site_id={siteId}",
+          "resolution": "template"
+        },
+        "primary_id": "C05",
+        "owner": "SO-07",
+        "related_ids": [
+          "A00",
+          "C01",
+          "C06",
+          "C08"
+        ],
+        "lifecycle": "temporary_supported_legacy",
+        "data_ownership": "Tenant-owned goods receiving/PT evidence with legacy receiving history",
+        "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "frontend_declaration",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [
+            "api:GET:/api/goods-v1/ptmapper/soh-imports"
+          ],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "unknown",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "replacement": "`/goods/receive/*`, `/goods/pt-work`, `/goods/labels` retain receiving, PT and labels. Old `/goods/arrivals`, `/goods/receipts`, `/goods/accept`, `/goods/pt/prepare`, `/goods/pt/approvals` are bookmark redirects",
+        "migration_requirements": "Map arrival, claimed invoice, count, GRN, PT rows, number, cost basis, label jobs and approval evidence with source IDs.",
+        "acceptance_evidence": "Reconcile physical count and official value once; prove history and separate-person approval before removing separate screens or old write services.",
+        "removal_condition": "Retire with the store test run at real-store cutover (SO-22).",
+        "rule_id": "STORE-TEST-504"
+      },
+      {
+        "kind": "api_consumer",
+        "key": "api_consumer:frontend/src/pages/PtOpening.tsx:baa34f1dd0b7",
+        "source": "frontend/src/pages/PtOpening.tsx",
+        "detail": {
+          "invocation": "api.post",
+          "method": "POST",
+          "argument": "`${BASE}/pt-upload`",
+          "api_reference": "/api/goods-v1/ptmapper/soh-imports/pt-upload",
+          "resolution": "template"
+        },
+        "primary_id": "C05",
+        "owner": "SO-07",
+        "related_ids": [
+          "A00",
+          "C01",
+          "C06",
+          "C08"
+        ],
+        "lifecycle": "temporary_supported_legacy",
+        "data_ownership": "Tenant-owned goods receiving/PT evidence with legacy receiving history",
+        "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "frontend_declaration",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [
+            "api:POST:/api/goods-v1/ptmapper/soh-imports/pt-upload"
+          ],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "unknown",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "replacement": "`/goods/receive/*`, `/goods/pt-work`, `/goods/labels` retain receiving, PT and labels. Old `/goods/arrivals`, `/goods/receipts`, `/goods/accept`, `/goods/pt/prepare`, `/goods/pt/approvals` are bookmark redirects",
+        "migration_requirements": "Map arrival, claimed invoice, count, GRN, PT rows, number, cost basis, label jobs and approval evidence with source IDs.",
+        "acceptance_evidence": "Reconcile physical count and official value once; prove history and separate-person approval before removing separate screens or old write services.",
+        "removal_condition": "Retire with the store test run at real-store cutover (SO-22).",
+        "rule_id": "STORE-TEST-504"
+      },
+      {
+        "kind": "api_consumer",
         "key": "api_consumer:frontend/src/pages/PtPrepare.tsx:10772876aba7",
         "source": "frontend/src/pages/PtPrepare.tsx",
         "detail": {
@@ -209621,6 +210255,7 @@
             "module:outbound.posting",
             "module:outbound.views",
             "module:ptmapper.goods_rulebook_seed",
+            "module:ptmapper.pt_opening_services",
             "module:reporting.base",
             "module:reporting.exception_facts",
             "module:sell.management.commands.seed_sell_demo",
@@ -209765,6 +210400,7 @@
             "module:outbound.posting",
             "module:outbound.views",
             "module:ptmapper.goods_rulebook_seed",
+            "module:ptmapper.pt_opening_services",
             "module:reporting.base",
             "module:reporting.exception_facts",
             "module:sell.management.commands.seed_sell_demo",
@@ -210286,6 +210922,7 @@
             "module:outbound.posting",
             "module:outbound.views",
             "module:ptmapper.goods_rulebook_seed",
+            "module:ptmapper.pt_opening_services",
             "module:reporting.base",
             "module:reporting.exception_facts",
             "module:sell.management.commands.seed_sell_demo",
@@ -210430,6 +211067,7 @@
             "module:outbound.posting",
             "module:outbound.views",
             "module:ptmapper.goods_rulebook_seed",
+            "module:ptmapper.pt_opening_services",
             "module:reporting.base",
             "module:reporting.exception_facts",
             "module:sell.management.commands.seed_sell_demo",
@@ -211595,6 +212233,7 @@
             "module:outbound.posting",
             "module:outbound.views",
             "module:ptmapper.goods_rulebook_seed",
+            "module:ptmapper.pt_opening_services",
             "module:reporting.base",
             "module:reporting.exception_facts",
             "module:sell.management.commands.seed_sell_demo",
@@ -221073,6 +221712,7 @@
             "module:ptmapper.goods_vocab_views",
             "module:ptmapper.legacy_sales_services",
             "module:ptmapper.legacy_sales_views",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_services",
             "module:ptmapper.soh_views",
             "module:ptmapper.stock_sync_services",
@@ -221833,6 +222473,7 @@
             "module:ptmapper.goods_vocab_views",
             "module:ptmapper.legacy_sales_services",
             "module:ptmapper.legacy_sales_views",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_services",
             "module:ptmapper.soh_views",
             "module:ptmapper.stock_sync_services",
@@ -222145,6 +222786,7 @@
             "module:ptmapper.goods_vocab_views",
             "module:ptmapper.legacy_sales_services",
             "module:ptmapper.legacy_sales_views",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_services",
             "module:ptmapper.soh_views",
             "module:ptmapper.stock_sync_services",
@@ -222898,6 +223540,7 @@
             "module:ptmapper.goods_vocab_views",
             "module:ptmapper.legacy_sales_services",
             "module:ptmapper.legacy_sales_views",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_services",
             "module:ptmapper.soh_views",
             "module:ptmapper.stock_sync_services",
@@ -223212,6 +223855,7 @@
             "module:ptmapper.goods_vocab_views",
             "module:ptmapper.legacy_sales_services",
             "module:ptmapper.legacy_sales_views",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_services",
             "module:ptmapper.soh_views",
             "module:ptmapper.stock_sync_services",
@@ -223851,6 +224495,7 @@
             "module:ptmapper.goods_vocab_views",
             "module:ptmapper.legacy_sales_services",
             "module:ptmapper.legacy_sales_views",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_services",
             "module:ptmapper.soh_views",
             "module:ptmapper.stock_sync_services",
@@ -224165,6 +224810,7 @@
             "module:ptmapper.goods_vocab_views",
             "module:ptmapper.legacy_sales_services",
             "module:ptmapper.legacy_sales_views",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_services",
             "module:ptmapper.soh_views",
             "module:ptmapper.stock_sync_services",
@@ -224733,6 +225379,7 @@
             "module:ptmapper.goods_vocab_views",
             "module:ptmapper.legacy_sales_services",
             "module:ptmapper.legacy_sales_views",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_services",
             "module:ptmapper.soh_views",
             "module:ptmapper.stock_sync_services",
@@ -225682,6 +226329,7 @@
             "module:ptmapper.goods_vocab_views",
             "module:ptmapper.legacy_sales_services",
             "module:ptmapper.legacy_sales_views",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_services",
             "module:ptmapper.soh_views",
             "module:ptmapper.stock_sync_services",
@@ -226299,6 +226947,7 @@
             "module:ptmapper.goods_vocab_views",
             "module:ptmapper.legacy_sales_services",
             "module:ptmapper.legacy_sales_views",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_services",
             "module:ptmapper.soh_views",
             "module:ptmapper.stock_sync_services",
@@ -226971,6 +227620,7 @@
             "module:ptmapper.goods_vocab_views",
             "module:ptmapper.legacy_sales_services",
             "module:ptmapper.legacy_sales_views",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_services",
             "module:ptmapper.soh_views",
             "module:ptmapper.stock_sync_services",
@@ -227575,6 +228225,7 @@
             "module:ptmapper.goods_vocab_views",
             "module:ptmapper.legacy_sales_services",
             "module:ptmapper.legacy_sales_views",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_services",
             "module:ptmapper.soh_views",
             "module:ptmapper.stock_sync_services",
@@ -227895,6 +228546,7 @@
             "module:ptmapper.goods_vocab_views",
             "module:ptmapper.legacy_sales_services",
             "module:ptmapper.legacy_sales_views",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_services",
             "module:ptmapper.soh_views",
             "module:ptmapper.stock_sync_services",
@@ -228298,6 +228950,7 @@
             "module:ptmapper.goods_vocab_views",
             "module:ptmapper.legacy_sales_services",
             "module:ptmapper.legacy_sales_views",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_services",
             "module:ptmapper.soh_views",
             "module:ptmapper.stock_sync_services",
@@ -237761,6 +238414,7 @@
             "module:outbound.goods_soh_reconciliation",
             "module:outbound.goods_soh_views",
             "module:ptmapper.models",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_services",
             "module:ptmapper.soh_views",
             "module:ptmapper.stock_sync_services",
@@ -237869,6 +238523,7 @@
             "module:outbound.goods_soh_reconciliation",
             "module:outbound.goods_soh_views",
             "module:ptmapper.models",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_services",
             "module:ptmapper.soh_views",
             "module:ptmapper.stock_sync_services",
@@ -237970,6 +238625,7 @@
             "module:outbound.goods_soh_reconciliation",
             "module:outbound.goods_soh_views",
             "module:ptmapper.models",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_services",
             "module:ptmapper.soh_views",
             "module:ptmapper.stock_sync_services",
@@ -238077,6 +238733,7 @@
             "module:outbound.goods_soh_reconciliation",
             "module:outbound.goods_soh_views",
             "module:ptmapper.models",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_services",
             "module:ptmapper.soh_views",
             "module:ptmapper.stock_sync_services",
@@ -255997,7 +256654,8 @@
           "static_backend_importers": [
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.test_store_loader",
-            "module:ptmapper.goods_rulebook_seed"
+            "module:ptmapper.goods_rulebook_seed",
+            "module:ptmapper.pt_opening_services"
           ],
           "static_frontend_importers": [],
           "frontend_api_callsites": []
@@ -257686,6 +258344,7 @@
             "module:outbound.posting",
             "module:outbound.views",
             "module:ptmapper.goods_rulebook_seed",
+            "module:ptmapper.pt_opening_services",
             "module:reporting.base",
             "module:reporting.exception_facts",
             "module:sell.management.commands.seed_sell_demo",
@@ -257980,6 +258639,7 @@
             "module:ptmapper.goods_pt_views",
             "module:ptmapper.goods_vocab_views",
             "module:ptmapper.legacy_sales_views",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_services",
             "module:ptmapper.soh_views",
             "module:ptmapper.stock_sync_views",
@@ -259619,7 +260279,7 @@
             "GoodsPt.objects.filter(manifest_version__manifest=manifest).first",
             "Location.objects.get",
             "MasterVersion.objects.filter",
-            "MasterVersion.objects.filter(tenant_id=self.tenant.pk, kind='season', target_key=str(s.pk)).exists",
+            "MasterVersion.objects.filter(tenant_id=tenant.pk, kind='season', target_key=str(s.pk)).exists",
             "OfficialLine.objects.filter",
             "RegisteredTill.objects.filter",
             "RegisteredTill.objects.filter(store=store, active=True).exists",
@@ -259629,17 +260289,21 @@
             "Season.objects.get",
             "SiteGuard.objects.get",
             "SohImport.objects.filter",
-            "SohImport.objects.filter(tenant_id=self.tenant.pk, site=store, source_hash=sha256_hex(self.soh)).first",
+            "SohImport.objects.filter(tenant_id=self.tenant.pk, site=self.store, source_hash=sha256_hex(data)).first",
             "SubjectRevision.objects.filter",
             "SubjectRevision.objects.filter(tenant_id=run.tenant_id, family='master:season', subject_key=str(season.pk)).exists",
             "SubjectRevision.objects.filter(tenant_id=run.tenant_id, family='master:site', subject_key=str(store.pk)).exists",
             "User.objects.get",
+            "_in_force_payload(tenant.pk, 'tax_rates').get",
+            "_in_force_payload(tenant.pk, 'vocabulary', 'size').get",
             "brand_map.values",
             "by_name.get",
             "current.get",
             "holder.get",
+            "overrides.values",
             "payload.get",
             "r.source.get",
+            "row_hsn.values",
             "season_map.values",
             "session.events.values_list",
             "source.batches.filter",
@@ -259648,7 +260312,8 @@
             "source.rows.exclude(verification={}).exists",
             "source.rows.filter",
             "source.rows.filter(quantity__gt=0, exclusion_reason='').count",
-            "source.rows.filter(quantity__gt=0, exclusion_reason='').values_list"
+            "source.rows.filter(quantity__gt=0, exclusion_reason='').values_list",
+            "v.payload.get"
           ],
           "write_candidates": [
             "Brand.objects.get_or_create",
@@ -259682,7 +260347,8 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
-            "module:accounts.management.commands.load_test_store"
+            "module:accounts.management.commands.load_test_store",
+            "module:ptmapper.pt_opening_services"
           ],
           "static_frontend_importers": [],
           "frontend_api_callsites": []
@@ -259880,7 +260546,7 @@
             "GoodsPt.objects.filter(manifest_version__manifest=manifest).first",
             "Location.objects.get",
             "MasterVersion.objects.filter",
-            "MasterVersion.objects.filter(tenant_id=self.tenant.pk, kind='season', target_key=str(s.pk)).exists",
+            "MasterVersion.objects.filter(tenant_id=tenant.pk, kind='season', target_key=str(s.pk)).exists",
             "OfficialLine.objects.filter",
             "RegisteredTill.objects.filter",
             "RegisteredTill.objects.filter(store=store, active=True).exists",
@@ -259890,17 +260556,21 @@
             "Season.objects.get",
             "SiteGuard.objects.get",
             "SohImport.objects.filter",
-            "SohImport.objects.filter(tenant_id=self.tenant.pk, site=store, source_hash=sha256_hex(self.soh)).first",
+            "SohImport.objects.filter(tenant_id=self.tenant.pk, site=self.store, source_hash=sha256_hex(data)).first",
             "SubjectRevision.objects.filter",
             "SubjectRevision.objects.filter(tenant_id=run.tenant_id, family='master:season', subject_key=str(season.pk)).exists",
             "SubjectRevision.objects.filter(tenant_id=run.tenant_id, family='master:site', subject_key=str(store.pk)).exists",
             "User.objects.get",
+            "_in_force_payload(tenant.pk, 'tax_rates').get",
+            "_in_force_payload(tenant.pk, 'vocabulary', 'size').get",
             "brand_map.values",
             "by_name.get",
             "current.get",
             "holder.get",
+            "overrides.values",
             "payload.get",
             "r.source.get",
+            "row_hsn.values",
             "season_map.values",
             "session.events.values_list",
             "source.batches.filter",
@@ -259909,7 +260579,8 @@
             "source.rows.exclude(verification={}).exists",
             "source.rows.filter",
             "source.rows.filter(quantity__gt=0, exclusion_reason='').count",
-            "source.rows.filter(quantity__gt=0, exclusion_reason='').values_list"
+            "source.rows.filter(quantity__gt=0, exclusion_reason='').values_list",
+            "v.payload.get"
           ],
           "write_candidates": [
             "Brand.objects.get_or_create",
@@ -264612,6 +265283,7 @@
             "module:ptmapper.goods_rulebook_seed",
             "module:ptmapper.goods_vocab_views",
             "module:ptmapper.legacy_sales_parser",
+            "module:ptmapper.pt_opening",
             "module:ptmapper.soh_parser",
             "module:ptmapper.soh_services",
             "module:sell.services.online",
@@ -267731,6 +268403,8 @@
             "module:ptmapper.legacy_sales_services",
             "module:ptmapper.legacy_sales_views",
             "module:ptmapper.management.commands.load_goods_rulebook",
+            "module:ptmapper.pt_opening",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_parser",
             "module:ptmapper.soh_services",
             "module:ptmapper.soh_views",
@@ -268043,6 +268717,7 @@
             "module:outbound.size_balancing",
             "module:outbound.views",
             "module:ptmapper.management.commands.load_goods_rulebook",
+            "module:ptmapper.pt_opening_services",
             "module:reporting.gst_facts",
             "module:reporting.inventory_facts",
             "module:reporting.management.commands.make_brand_reports",
@@ -277456,6 +278131,7 @@
             "module:outbound.goods_counts",
             "module:outbound.transfers",
             "module:ptmapper.goods_rulebook_seed",
+            "module:ptmapper.pt_opening_services",
             "module:sell.services.dataset",
             "module:sell.services.online",
             "module:sell.views"
@@ -279341,6 +280017,7 @@
             "module:ptmapper.goods_vocab_views",
             "module:ptmapper.legacy_sales_services",
             "module:ptmapper.legacy_sales_views",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_services",
             "module:ptmapper.soh_views",
             "module:ptmapper.stock_sync_services",
@@ -280275,6 +280952,7 @@
             "module:outbound.size_balancing",
             "module:outbound.transfer_documents",
             "module:ptmapper.soh_services",
+            "module:ptmapper.soh_views",
             "module:ptmapper.stock_sync_services",
             "module:ptmapper.stock_sync_views",
             "module:reporting.base",
@@ -296033,6 +296711,7 @@
             "module:ptmapper.goods_canonical",
             "module:ptmapper.goods_pt_views",
             "module:ptmapper.legacy_sales_parser",
+            "module:ptmapper.pt_opening",
             "module:ptmapper.soh_parser",
             "module:reporting.base",
             "module:reporting.offer_return",
@@ -296828,6 +297507,261 @@
       },
       {
         "kind": "module",
+        "key": "module:ptmapper.pt_opening",
+        "source": "backend/ptmapper/pt_opening.py",
+        "detail": {
+          "imports": [
+            "core.canonical",
+            "core.refusals",
+            "ptmapper.goods_workbook",
+            "ptmapper.soh_parser"
+          ],
+          "read_candidates": [
+            "RENAME.get",
+            "cells.get",
+            "cells.values",
+            "entry.last.get",
+            "named.get",
+            "row.source.get"
+          ],
+          "write_candidates": [
+            "entry.mrp.add",
+            "entry.rate.add"
+          ],
+          "authorization_candidates": [],
+          "tags": []
+        },
+        "primary_id": "C05",
+        "owner": "SO-07",
+        "related_ids": [
+          "A00",
+          "C01",
+          "C06",
+          "C08"
+        ],
+        "lifecycle": "temporary_supported_legacy",
+        "data_ownership": "Tenant-owned goods receiving/PT evidence with legacy receiving history",
+        "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [
+            "module:ptmapper.soh_views"
+          ],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "source_module_static",
+          "source_module": "module:ptmapper.pt_opening",
+          "callback_component": null,
+          "static_imports": [
+            "core.canonical",
+            "core.refusals",
+            "ptmapper.goods_workbook",
+            "ptmapper.soh_parser"
+          ],
+          "local_component_keys": [
+            "module:core.canonical",
+            "module:core.refusals",
+            "module:ptmapper.goods_workbook",
+            "module:ptmapper.soh_parser"
+          ],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "source_file_static_candidates",
+          "read_candidates": [
+            "RENAME.get",
+            "cells.get",
+            "cells.values",
+            "entry.last.get",
+            "named.get",
+            "row.source.get"
+          ],
+          "write_candidates": [
+            "entry.mrp.add",
+            "entry.rate.add"
+          ],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "replacement": "`/goods/receive/*`, `/goods/pt-work`, `/goods/labels` retain receiving, PT and labels. Old `/goods/arrivals`, `/goods/receipts`, `/goods/accept`, `/goods/pt/prepare`, `/goods/pt/approvals` are bookmark redirects",
+        "migration_requirements": "Map arrival, claimed invoice, count, GRN, PT rows, number, cost basis, label jobs and approval evidence with source IDs.",
+        "acceptance_evidence": "Reconcile physical count and official value once; prove history and separate-person approval before removing separate screens or old write services.",
+        "removal_condition": "Retire with the store test run at real-store cutover (SO-22).",
+        "rule_id": "STORE-TEST-501"
+      },
+      {
+        "kind": "module",
+        "key": "module:ptmapper.pt_opening_services",
+        "source": "backend/ptmapper/pt_opening_services.py",
+        "detail": {
+          "imports": [
+            "accounts.goods_demo",
+            "accounts.models",
+            "accounts.principal",
+            "accounts.test_store_loader",
+            "core.refusals",
+            "core.tenancy",
+            "masters.goods_services",
+            "masters.models",
+            "ptmapper",
+            "ptmapper.soh_models",
+            "ptmapper.soh_services",
+            "ptmapper.stock_sync_services"
+          ],
+          "read_candidates": [
+            "(source.reconciliation or {}).get",
+            "SohImport.objects.filter",
+            "SohImport.objects.get",
+            "SohImport.objects.select_related",
+            "SohImport.objects.select_related('site').get",
+            "Store.objects.filter",
+            "User.objects.filter",
+            "User.objects.filter(human_id=human_id, is_active=True).first",
+            "current.get",
+            "included.count",
+            "included.values_list",
+            "source.rows.filter",
+            "source.rows.filter(quantity__gt=0).exclude",
+            "source.rows.filter(quantity__gt=0).exclude(exclusion_reason='').count",
+            "source.source_metadata.get",
+            "state.get",
+            "status(source).get"
+          ],
+          "write_candidates": [
+            "SohImport.objects.filter(pk=source_id).update"
+          ],
+          "authorization_candidates": [],
+          "tags": [
+            "service"
+          ]
+        },
+        "primary_id": "C05",
+        "owner": "SO-07",
+        "related_ids": [
+          "A00",
+          "C01",
+          "C06",
+          "C08"
+        ],
+        "lifecycle": "temporary_supported_legacy",
+        "data_ownership": "Tenant-owned goods receiving/PT evidence with legacy receiving history",
+        "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [
+            "module:ptmapper.soh_views"
+          ],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "source_module_static",
+          "source_module": "module:ptmapper.pt_opening_services",
+          "callback_component": null,
+          "static_imports": [
+            "accounts.goods_demo",
+            "accounts.models",
+            "accounts.principal",
+            "accounts.test_store_loader",
+            "core.refusals",
+            "core.tenancy",
+            "masters.goods_services",
+            "masters.models",
+            "ptmapper",
+            "ptmapper.soh_models",
+            "ptmapper.soh_services",
+            "ptmapper.stock_sync_services"
+          ],
+          "local_component_keys": [
+            "module:accounts.goods_demo",
+            "module:accounts.models",
+            "module:accounts.principal",
+            "module:accounts.test_store_loader",
+            "module:core.refusals",
+            "module:core.tenancy",
+            "module:masters.goods_services",
+            "module:masters.models",
+            "module:ptmapper.soh_models",
+            "module:ptmapper.soh_services",
+            "module:ptmapper.stock_sync_services"
+          ],
+          "candidate_model_keys": [
+            "model:accounts.AccessChange",
+            "model:accounts.ActorPolicy",
+            "model:accounts.LoginAttempt",
+            "model:accounts.Role",
+            "model:accounts.User",
+            "model:masters.Brand",
+            "model:masters.CategoryMargin",
+            "model:masters.Cohort",
+            "model:masters.Customer",
+            "model:masters.CustomerNumber",
+            "model:masters.GstSlab",
+            "model:masters.Gstin",
+            "model:masters.LegalEntity",
+            "model:masters.PriceChange",
+            "model:masters.Season",
+            "model:masters.Sku",
+            "model:masters.StaffTarget",
+            "model:masters.Store",
+            "model:masters.StoreTarget",
+            "model:ptmapper.SohImport",
+            "model:ptmapper.SohImportBatch",
+            "model:ptmapper.SohImportReview",
+            "model:ptmapper.SohImportRow"
+          ],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "source_file_static_candidates",
+          "read_candidates": [
+            "(source.reconciliation or {}).get",
+            "SohImport.objects.filter",
+            "SohImport.objects.get",
+            "SohImport.objects.select_related",
+            "SohImport.objects.select_related('site').get",
+            "Store.objects.filter",
+            "User.objects.filter",
+            "User.objects.filter(human_id=human_id, is_active=True).first",
+            "current.get",
+            "included.count",
+            "included.values_list",
+            "source.rows.filter",
+            "source.rows.filter(quantity__gt=0).exclude",
+            "source.rows.filter(quantity__gt=0).exclude(exclusion_reason='').count",
+            "source.source_metadata.get",
+            "state.get",
+            "status(source).get"
+          ],
+          "write_candidates": [
+            "SohImport.objects.filter(pk=source_id).update"
+          ],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "replacement": "`/goods/receive/*`, `/goods/pt-work`, `/goods/labels` retain receiving, PT and labels. Old `/goods/arrivals`, `/goods/receipts`, `/goods/accept`, `/goods/pt/prepare`, `/goods/pt/approvals` are bookmark redirects",
+        "migration_requirements": "Map arrival, claimed invoice, count, GRN, PT rows, number, cost basis, label jobs and approval evidence with source IDs.",
+        "acceptance_evidence": "Reconcile physical count and official value once; prove history and separate-person approval before removing separate screens or old write services.",
+        "removal_condition": "Retire with the store test run at real-store cutover (SO-22).",
+        "rule_id": "STORE-TEST-502"
+      },
+      {
+        "kind": "module",
         "key": "module:ptmapper.soh_models",
         "source": "backend/ptmapper/soh_models.py",
         "detail": {
@@ -296858,6 +297792,7 @@
             "module:outbound.goods_soh_reconciliation",
             "module:outbound.goods_soh_views",
             "module:ptmapper.models",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_services",
             "module:ptmapper.soh_views",
             "module:ptmapper.stock_sync_services",
@@ -296936,6 +297871,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.test_store_loader",
+            "module:ptmapper.pt_opening",
             "module:ptmapper.soh_services",
             "module:ptmapper.soh_views",
             "module:ptmapper.stock_sync_services",
@@ -297140,6 +298076,7 @@
             "module:outbound.goods_soh_reconciliation",
             "module:ptmapper.apps",
             "module:ptmapper.goods_manifest_services",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_views",
             "module:stockledger.goods_acceptance"
           ],
@@ -297480,11 +298417,15 @@
             "files.goods_services",
             "masters.goods_identity_services",
             "masters.models",
+            "masters.store_features",
             "outbound.goods_soh_models",
             "ptmapper",
+            "ptmapper.pt_opening",
+            "ptmapper.pt_opening_services",
             "ptmapper.soh_models",
             "ptmapper.soh_parser",
-            "ptmapper.soh_services"
+            "ptmapper.soh_services",
+            "ptmapper.stock_sync_services"
           ],
           "read_candidates": [
             "SohImport.objects.filter",
@@ -297493,11 +298434,14 @@
             "SohReconciliation.objects.filter(source_import=source).first",
             "Store.objects.filter",
             "Store.objects.filter(tenant_id=access.tenant_id, pk=site_id, is_active=True).exists",
+            "Store.objects.filter(tenant_id=access.tenant_id, pk=site_id, is_active=True).first",
             "includes.aggregate",
             "includes.count",
             "includes.exclude",
             "includes.exclude(verification={}).count",
+            "loading.get",
             "params.get",
+            "pt.get",
             "request.FILES.get",
             "request.data.get",
             "row.source.get",
@@ -297511,6 +298455,7 @@
             "source.rows.filter",
             "source.rows.filter(quantity__gt=0).exclude",
             "source.rows.filter(quantity__gt=0).exclude(exclusion_reason='').count",
+            "source.source_metadata.get",
             "source_rows.filter"
           ],
           "write_candidates": [
@@ -297552,11 +298497,15 @@
             "files.goods_services",
             "masters.goods_identity_services",
             "masters.models",
+            "masters.store_features",
             "outbound.goods_soh_models",
             "ptmapper",
+            "ptmapper.pt_opening",
+            "ptmapper.pt_opening_services",
             "ptmapper.soh_models",
             "ptmapper.soh_parser",
-            "ptmapper.soh_services"
+            "ptmapper.soh_services",
+            "ptmapper.stock_sync_services"
           ],
           "local_component_keys": [
             "module:accounts.goods_api",
@@ -297567,10 +298516,14 @@
             "module:files.goods_services",
             "module:masters.goods_identity_services",
             "module:masters.models",
+            "module:masters.store_features",
             "module:outbound.goods_soh_models",
+            "module:ptmapper.pt_opening",
+            "module:ptmapper.pt_opening_services",
             "module:ptmapper.soh_models",
             "module:ptmapper.soh_parser",
-            "module:ptmapper.soh_services"
+            "module:ptmapper.soh_services",
+            "module:ptmapper.stock_sync_services"
           ],
           "candidate_model_keys": [
             "model:files.EvidenceLink",
@@ -297612,11 +298565,14 @@
             "SohReconciliation.objects.filter(source_import=source).first",
             "Store.objects.filter",
             "Store.objects.filter(tenant_id=access.tenant_id, pk=site_id, is_active=True).exists",
+            "Store.objects.filter(tenant_id=access.tenant_id, pk=site_id, is_active=True).first",
             "includes.aggregate",
             "includes.count",
             "includes.exclude",
             "includes.exclude(verification={}).count",
+            "loading.get",
             "params.get",
+            "pt.get",
             "request.FILES.get",
             "request.data.get",
             "row.source.get",
@@ -297630,6 +298586,7 @@
             "source.rows.filter",
             "source.rows.filter(quantity__gt=0).exclude",
             "source.rows.filter(quantity__gt=0).exclude(exclusion_reason='').count",
+            "source.source_metadata.get",
             "source_rows.filter"
           ],
           "write_candidates": [
@@ -297743,13 +298700,17 @@
             "stockledger.ranges"
           ],
           "read_candidates": [
+            "CustodyLot.objects.filter",
+            "CustodyLot.objects.filter(tenant_id=store.tenant_id, initial_site_id=store.pk).exists",
             "JournalBatch.objects.filter",
             "JournalBatch.objects.filter(tenant_id=run.tenant_id, event_key=engine.event_key('sale', sale.idempotency_uuid)).first",
             "Location.objects.filter",
             "Location.objects.filter(tenant_id=store.tenant_id, site=store, kind=kind).order_by('created_at').first",
             "Origin.objects.filter",
+            "Origin.objects.filter(tenant_id=store.tenant_id, site_id=store.pk).exists",
             "Position.objects.filter",
             "Position.objects.filter(site_id=store.pk, boundary='physical').values_list",
+            "Position.objects.filter(tenant_id=store.tenant_id, site_id=store.pk, boundary='physical').exists",
             "QuantityLeg.objects.filter",
             "Sale.objects.filter",
             "StockSync.objects.filter",
@@ -297807,6 +298768,8 @@
           "static_backend_importers": [
             "module:ptmapper.legacy_sales_services",
             "module:ptmapper.legacy_sales_views",
+            "module:ptmapper.pt_opening_services",
+            "module:ptmapper.soh_views",
             "module:ptmapper.stock_sync_views"
           ],
           "static_frontend_importers": [],
@@ -297976,13 +298939,17 @@
         "data_access": {
           "basis": "source_file_static_candidates",
           "read_candidates": [
+            "CustodyLot.objects.filter",
+            "CustodyLot.objects.filter(tenant_id=store.tenant_id, initial_site_id=store.pk).exists",
             "JournalBatch.objects.filter",
             "JournalBatch.objects.filter(tenant_id=run.tenant_id, event_key=engine.event_key('sale', sale.idempotency_uuid)).first",
             "Location.objects.filter",
             "Location.objects.filter(tenant_id=store.tenant_id, site=store, kind=kind).order_by('created_at').first",
             "Origin.objects.filter",
+            "Origin.objects.filter(tenant_id=store.tenant_id, site_id=store.pk).exists",
             "Position.objects.filter",
             "Position.objects.filter(site_id=store.pk, boundary='physical').values_list",
+            "Position.objects.filter(tenant_id=store.tenant_id, site_id=store.pk, boundary='physical').exists",
             "QuantityLeg.objects.filter",
             "Sale.objects.filter",
             "StockSync.objects.filter",

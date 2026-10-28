@@ -19,9 +19,12 @@ from core.refusals import Refusal
 from files.goods_models import MAX_EVIDENCE_BYTES
 from files.goods_services import check_workbook, detect_media_type, stage_upload, XLSX
 from masters.models import Store
+from masters.store_features import is_real_store
 from masters.goods_identity_services import vocabulary
 from core.commands import database_now
+from ptmapper import pt_opening_services as quick
 from ptmapper import soh_services as services
+from ptmapper.pt_opening import evidence_workbook, parse_pt_files
 from ptmapper.soh_models import SohImport
 from ptmapper.soh_parser import parse_soh
 
@@ -135,6 +138,11 @@ def source_dto(access: AccessContext, source: SohImport) -> dict[str, Any]:
     if (existing_stock and reconciliation is None and source.state == "approved"
             and access.covers_all({"count.run"}, {(source.site_id, None)})):
         allowed.append("reconcile")
+    loading = quick.status(source)
+    if (not is_real_store(source.site) and source.state != "withdrawn" and loading.get("state") != "done"
+            and not quick.running(source) and "approve" in allowed
+            and str(access.human_id) not in {str(source.uploaded_by_id), str(source.prepared_by_id)}):
+        allowed.append("load")
     config = dict(source.configuration)
     if not protected:
         config = {key: value for key, value in config.items() if key in {"brand_mappings", "season_mappings", "size_mappings", "hsn_mappings", "cutoff_at"}}
@@ -144,6 +152,12 @@ def source_dto(access: AccessContext, source: SohImport) -> dict[str, Any]:
     metadata = {key: value for key, value in source.source_metadata.items() if key in {"sheet", "header_row", "row_count", "stocked_rows", "quantity", "zero_stock_rows", "negative_rows", "stock_mrp_paise", "rate_meaning", "columns"}}
     if financial:
         metadata.update({key: source.source_metadata[key] for key in ("source_amount_paise", "quantity_rate_paise", "source_rate_difference_paise") if key in source.source_metadata})
+    pt = source.source_metadata.get("pt_opening")
+    if isinstance(pt, dict):
+        metadata["pt_opening"] = {**pt, "conflicts": [conflict if protected else {k: v for k, v in conflict.items() if k != "rate_paise"}
+                                                       for conflict in pt.get("conflicts", [])]}
+    if source.source_metadata.get("stock_sync_top_up"):
+        metadata["stock_sync_top_up"] = True
     return {"id": str(source.pk), "record_contract": "goods-v1", "revision": source.revision, "state": source.state,
             "content_hash": source.reviewed_hash, "site_id": str(source.site_id), "source_name": source.source_name,
             "source_hash": source.source_hash, "source_evidence_id": str(source.source_evidence_id) if financial else None,
@@ -155,6 +169,7 @@ def source_dto(access: AccessContext, source: SohImport) -> dict[str, Any]:
                      "approval_request_id": str(source.approval_request_id) if source.approval_request_id else None,
                      "requires_inventory_reconciliation": existing_stock,
                      "stock_reconciliation_id": str(reconciliation.pk) if reconciliation else None,
+                     "quick_load": {key: value for key, value in loading.items() if key != "by"},
                      "field_access": {"readable_fields": (["cost"] if protected else []) + (["financial"] if financial else []),
                                       "writable_fields": (["cost"] if writable else []) + (["financial"] if writable and financial else [])},
                      "batches": [{"index": b.batch_index, "manifest_id": str(b.manifest_id), "row_count": b.row_count,
@@ -220,6 +235,81 @@ class SohImportUploadView(GoodsAPIView):
         dto = source_dto(access, _load(access, uuid.UUID(str(result.resource_id))))
         access.revalidate_delivery()
         return Response(dto, status=201)
+
+
+PT_UPLOAD_SCHEMA: dict[str, Any] = {"type": "object", "additionalProperties": False,
+    "required": ["files", "site_id", "command_id", "contract_version"], "properties": {
+        "files": {"type": "array", "items": {"type": "string", "format": "binary"}}, "site_id": {"type": "integer", "minimum": 1},
+        "command_id": {"type": "string", "format": "uuid"}, "contract_version": {"type": "string", "enum": ["goods-v1"]}}}
+
+
+class SohImportPtUploadView(GoodsAPIView):
+    """Store test run: one opening source from the store's KDPS PT workbooks (synthetic tenant only)."""
+
+    parser_classes = [MultiPartParser]
+
+    @extend_schema(operation_id="goods_v1_soh_import_pt_upload", request={"multipart/form-data": PT_UPLOAD_SCHEMA}, responses={201: SCHEMA})
+    def post(self, request: Request) -> Response:
+        from ptmapper.stock_sync_services import require_test_store
+
+        access = self.access(request)
+        site_id = parse_int_id(request.data.get("site_id"), "site_id")
+        access.require(services.STAGE, site_id=site_id)
+        store = Store.objects.filter(tenant_id=access.tenant_id, pk=site_id, is_active=True).first()
+        if store is None:
+            raise Refusal("NOT_FOUND", "That store was not found.")
+        require_test_store(store)
+        uploads = request.FILES.getlist("files")
+        if not uploads or sum(upload.size or 0 for upload in uploads) > 4 * MAX_EVIDENCE_BYTES:
+            raise Refusal("PT_SOURCE_INVALID", "Attach the store's PT workbooks (.xlsx), at most 80 MB together.", status=422)
+        files: list[tuple[str, bytes]] = []
+        for upload in uploads:
+            data = upload.read(MAX_EVIDENCE_BYTES + 1)
+            name = upload.name or "pt.xlsx"
+            if len(data) > MAX_EVIDENCE_BYTES or detect_media_type(data, name) != XLSX:
+                raise Refusal("PT_SOURCE_INVALID", f"{name} must be an .xlsx workbook of at most 20 MB (save .xls or .csv files as .xlsx).", status=422)
+            check_workbook(data)
+            files.append((name, data))
+        metadata, parsed, _problems = parse_pt_files(files)
+        evidence_bytes = evidence_workbook(parsed)
+        try:
+            command_id = uuid.UUID(str(request.data.get("command_id")))
+        except ValueError:
+            raise Refusal("INVALID_REQUEST", "Provide a command_id UUID.") from None
+        if request.data.get("contract_version") != "goods-v1":
+            raise Refusal("INVALID_REQUEST", "contract_version must be goods-v1.")
+        import hashlib
+        name = files[0][0] if len(files) == 1 else f"{len(files)} PT files"
+        evidence = stage_upload(access.principal(), command_id=uuid.uuid5(command_id, "source"), data=evidence_bytes,
+                                filename=f"PT opening - {name}.xlsx"[:200], kind="manifest",
+                                scope={"scope_kind": "sites", "site_ids": [site_id], "brand_ids": [], "sensitive_fields": ["cost", "financial"]},
+                                expected_sha256=hashlib.sha256(evidence_bytes).hexdigest(), contains_fields=["cost", "financial"])
+        meta = parse_meta({"command_id": str(command_id), "contract_version": "goods-v1"}, revision_bound=False)
+
+        def handler(run: CommandRun) -> CommandResult:
+            source = services.create_source(run, site_id=site_id, evidence=evidence, metadata=metadata, parsed=parsed)
+            return CommandResult(resource_type="soh_import", resource_id=str(source.pk), status_code=201)
+
+        result = self.run_command(request, access=access, action=services.STAGE, meta=meta,
+                                  business_input={"site_id": site_id, "source_hash": evidence.sha256,
+                                                  "files": [f["sha256"] for f in metadata["pt_opening"]["files"]]},
+                                  handler=handler, site_id=site_id, evidence_hashes=[evidence.sha256])
+        dto = source_dto(access, _load(access, uuid.UUID(str(result.resource_id))))
+        access.revalidate_delivery()
+        return Response(dto, status=201)
+
+
+class SohImportLoadView(GoodsAPIView):
+    """Store test run: the owner's one-click "Approve and load" (synthetic tenant only); progress on the source."""
+
+    @extend_schema(operation_id="goods_v1_soh_import_load", responses={202: SCHEMA})
+    def post(self, request: Request, pk: uuid.UUID) -> Response:
+        access = self.access(request)
+        source = _load(access, pk)
+        quick.start(access, source)
+        dto = source_dto(access, _load(access, pk))
+        access.revalidate_delivery()
+        return Response(dto, status=202)
 
 
 class SohImportDetailView(GoodsAPIView):
