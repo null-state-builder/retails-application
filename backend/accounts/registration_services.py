@@ -120,9 +120,13 @@ def resolve_registration_codes(data: dict[str, Any], previous: dict[str, Any] | 
 def demo_logins() -> list[dict[str, str]]:
     """This synthetic deployment's configured sign-in chips (``KDPS_DEMO_LOGINS``).
 
-    Only for logins active in the synthetic tenant: a stale or mistyped entry, and
-    any login of a real tenant, never reaches the public sign-in page.
+    Local development only (``DEBUG``): a deployed API never hands out a password,
+    whatever its environment says (owner decision, 28 Oct 2026). And only for
+    logins active in the synthetic tenant: a stale or mistyped entry, and any
+    login of a real tenant, never reaches the sign-in page.
     """
+    if not settings.DEBUG:
+        return []
     try:
         configured = json.loads(settings.KDPS_DEMO_LOGINS or "[]")
     except ValueError:

@@ -211,10 +211,10 @@ KDPS_STORE_FEATURE_DEMO_PROBES = (
     os.environ.get("KDPS_STORE_FEATURE_DEMO_PROBES", "1" if DEBUG else "0") == "1"
 )
 
-# One-tap sign-in chips for a synthetic (test) deployment, as JSON
-# `[{"label": ..., "email": ..., "password": ...}]`. The sign-in page shows them
-# to anyone, so only test passwords belong here. Ignored unless this
-# deployment's tenant is synthetic; a login that is not active there is left out.
+# One-tap sign-in chips for local development, as JSON
+# `[{"label": ..., "email": ..., "password": ...}]`. Ignored unless DEBUG is on
+# and this deployment's tenant is synthetic; a login that is not active there is
+# left out. A deployed site shows no chips.
 KDPS_DEMO_LOGINS = os.environ.get("KDPS_DEMO_LOGINS", "")
 
 # Setup > Audit Log (store operations ticket 02). Both are safe-side choices for

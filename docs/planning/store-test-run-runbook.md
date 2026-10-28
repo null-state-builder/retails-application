@@ -69,10 +69,11 @@ needs no change.
    Every new login gets its own random password, written only to
    `~/kdps-secrets/test-logins.txt` (mode 600; `sudo chown $USER` it if the
    container wrote it as root). `Synthetic@123` is not used on the server.
-6. **Sign-in chips:** the file's last line is a ready `KDPS_DEMO_LOGINS=...`
-   (the owner, Debanjan, both cashiers, Priyo, Tanmay and Mahender, but not the
-   preparer). Put it in `deploy/.env` and run `docker compose up -d api`.
-   Anyone who opens the site can then sign in as these people with one tap.
+   Hand each person their own password.
+6. **No sign-in chips on the server** (owner decision, 28 Oct 2026): delete any
+   `KDPS_DEMO_LOGINS` line from `deploy/.env`. The deployed API ignores it
+   anyway, and the deployed site shows no chips; everyone types their email and
+   password.
 7. **Switches** (`/setup/feature-switches`, as K D Singh): `tax-settings`,
    `sales-report` and `transfer-documents`.
 8. **Pair the counter** at `/setup/first-store` on the shop's browser.
@@ -137,7 +138,13 @@ export KDPS_REHEARSAL_DB=kdps_rehearsal_wardrobe   # in backend/, with the local
 .venv/bin/python manage.py load_test_store --setup ../docs/wardrobe-ratu-road/setup.json
 ```
 
-Locally every login uses `Synthetic@123`.
+Locally every login uses `Synthetic@123`. The sign-in chips show only on the
+local dev server; for The Wardrobe's, put this in `backend/.env` (the chips of
+a login that is not in the running database are left out):
+
+```bash
+KDPS_DEMO_LOGINS=[{"label":"Owner","email":"kdsingh@wardrobe.test","password":"Synthetic@123"}, ...]
+```
 
 ## Quick start from a legacy SOH (Vaishnavi, local only)
 

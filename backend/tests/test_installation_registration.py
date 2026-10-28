@@ -902,6 +902,7 @@ def _synthetic_bootstrap(email: str) -> Tenant:
 
 
 def test_public_demo_logins_are_only_active_logins_of_the_synthetic_deployment(settings: Any) -> None:
+    settings.DEBUG = True  # chips are a local-development aid
     settings.KDPS_DEMO_LOGINS = json.dumps([
         {"label": "Owner", "email": " SYN.OWNER@synthetic.demo ", "password": "pw-owner"},
         {"label": "Ghost", "email": "nobody@synthetic.demo", "password": "pw-ghost"},
@@ -915,6 +916,9 @@ def test_public_demo_logins_are_only_active_logins_of_the_synthetic_deployment(s
     assert state["demo_logins"] == [
         {"label": "Owner", "email": "SYN.OWNER@synthetic.demo", "password": "pw-owner"},
     ]
+    settings.DEBUG = False
+    assert public_state()["demo_logins"] == []  # a deployed API never hands out a password
+    settings.DEBUG = True
     User.objects.filter(email="syn.owner@synthetic.demo").update(is_active=False)
     assert public_state()["demo_logins"] == []
     settings.KDPS_DEMO_LOGINS = "{not json"
@@ -924,6 +928,7 @@ def test_public_demo_logins_are_only_active_logins_of_the_synthetic_deployment(s
 
 def test_real_registered_company_never_serves_demo_logins(proposal: dict[str, Any], settings: Any) -> None:
     register(proposal)
+    settings.DEBUG = True
     settings.KDPS_DEMO_LOGINS = json.dumps([
         {"label": "Owner", "email": proposal["owner"]["email"], "password": "anything"},
     ])

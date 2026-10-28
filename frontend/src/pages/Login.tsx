@@ -11,8 +11,10 @@ import "./Login.css";
 // The six initial roles (RBAC v1, 22 Sep 2026), in the sheet's column order,
 // as `seed_foundation` creates them. Every other seeded login in
 // `app/test_credentials.md` still signs in by typing its email; it just gets no
-// chip here. A synthetic deployment built another way (the store test run)
-// sends its own logins instead, since these accounts do not exist there.
+// chip here. A synthetic tenant built another way (the store test run) sends its
+// own logins instead (`KDPS_DEMO_LOGINS`), since these accounts do not exist there.
+// Chips are for the local dev server only: a built (deployed) site shows none.
+const SHOW_DEMO = import.meta.env.DEV;
 const DEMO: DemoLogin[] = [
   { label: "Owner", email: "owner@kdps.demo", password: "Owner@123" },
   { label: "Store person", email: "deo.manager@kdps.demo", password: "Store@123" },
@@ -147,7 +149,7 @@ export function Login() {
               <Link to="/signup">Register this company and first store</Link>
             </p>
           )}
-          {registration?.synthetic && (
+          {SHOW_DEMO && registration?.synthetic && (
             <div className="login-demo">
               <span>Demo logins</span>
               <div className="login-demo-chips">

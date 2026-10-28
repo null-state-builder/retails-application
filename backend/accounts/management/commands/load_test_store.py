@@ -12,13 +12,12 @@ named people from a file instead of the flags:
     python manage.py load_test_store --setup ../docs/wardrobe-ratu-road/setup.json
 
 ``--password-file`` gives every login this run creates its own random password
-and writes them (mode 600) with a ready ``KDPS_DEMO_LOGINS`` line; without it
-they use the synthetic test password.
+and writes them (mode 600); without it they use the synthetic test password.
+Sign-in chips are local only, so the server gets no ``KDPS_DEMO_LOGINS``.
 """
 
 from __future__ import annotations
 
-import json
 import os
 import secrets
 from pathlib import Path
@@ -72,27 +71,18 @@ class Command(BaseCommand):
         loader.run()
         owner = owner_user(tenants[0])
         if out is not None:
-            self._write_passwords(out, plan, loader.created, owner.email if owner else None)
+            self._write_passwords(out, loader.created)
         who = next((p.email for p in plan.people if p.email == loader.email("store")), loader.email("store"))
         self.stdout.write(self.style.SUCCESS(
             f"Done. Sign in as {who} to sell at {plan.store_code}; {owner.email if owner else 'the owner'} approves."))
 
-    def _write_passwords(self, out: Path, plan: Any, created: dict[str, str], owner_email: str | None) -> None:
-        """Append the new logins' passwords and a ``KDPS_DEMO_LOGINS`` line for the sign-in chips."""
+    def _write_passwords(self, out: Path, created: dict[str, str]) -> None:
+        """Append the new logins' passwords, one ``email<TAB>password`` per line."""
         if not created:
             self.stdout.write("No new logins, so no passwords were written.")
             return
-        chips: list[dict[str, str]] = []
-        owner_password = os.environ.get("KDPS_BOOTSTRAP_ADMIN_PASSWORD")
-        if owner_email and owner_password:
-            chips.append({"label": "Owner", "email": owner_email, "password": owner_password})
-        for person in plan.people:
-            if person.chip and person.email in created:
-                chips.append({"label": person.label, "email": person.email, "password": created[person.email]})
-        lines = [f"{email}\t{password}" for email, password in created.items()]
-        lines.append("KDPS_DEMO_LOGINS=" + json.dumps(chips, separators=(",", ":")))
         fd = os.open(out, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
         with os.fdopen(fd, "a") as handle:
-            handle.write("\n".join(lines) + "\n")
+            handle.write("".join(f"{email}\t{password}\n" for email, password in created.items()))
         os.chmod(out, 0o600)
         self.stdout.write(f"Passwords for {len(created)} new login(s) written to {out} (mode 600).")

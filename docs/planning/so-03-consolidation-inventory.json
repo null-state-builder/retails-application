@@ -24761,7 +24761,7 @@
     }
   ],
   "discovered": {
-    "checksum": "2be89f3f68ac5c9103c4c53e3ab2a56d6afb172a338e5f0842dcfa24f7b5f05e",
+    "checksum": "aa66cb82650791551e9654c0549bc25bcacecf669d402f8e852ef5f8dd81de79",
     "records": [
       {
         "kind": "api",
@@ -184582,8 +184582,7 @@
         "detail": {
           "module": "accounts.management.commands.load_test_store",
           "read_candidates": [
-            "Tenant.objects.filter",
-            "os.environ.get"
+            "Tenant.objects.filter"
           ],
           "write_candidates": [],
           "authorization_candidates": []
@@ -184643,8 +184642,7 @@
         "data_access": {
           "basis": "source_file_static_candidates",
           "read_candidates": [
-            "Tenant.objects.filter",
-            "os.environ.get"
+            "Tenant.objects.filter"
           ],
           "write_candidates": [],
           "model_fields": [],
@@ -257894,8 +257892,7 @@
             "masters.goods_models"
           ],
           "read_candidates": [
-            "Tenant.objects.filter",
-            "os.environ.get"
+            "Tenant.objects.filter"
           ],
           "write_candidates": [],
           "authorization_candidates": [],
@@ -257958,8 +257955,7 @@
         "data_access": {
           "basis": "source_file_static_candidates",
           "read_candidates": [
-            "Tenant.objects.filter",
-            "os.environ.get"
+            "Tenant.objects.filter"
           ],
           "write_candidates": [],
           "model_fields": [],
