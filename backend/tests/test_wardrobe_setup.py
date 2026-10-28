@@ -20,7 +20,7 @@ from accounts.goods_models import RoleAssignment
 from accounts.goods_setup import bootstrap_deployment
 from accounts.models import Role, User
 from accounts.registration_services import deployment_key
-from accounts.test_store_loader import Loader, OpeningDriver, access_for, plan_from_setup
+from accounts.test_store_loader import Loader, OpeningDriver, access_for, catalogue_config, plan_from_setup
 from accounts.unified_policy import role_actions
 from approvals.goods_models import ApprovalDecision
 from core.refusals import Refusal
@@ -35,6 +35,7 @@ from outbound.goods_transfer_views import (
 )
 from ptmapper import pt_opening_services as quick
 from ptmapper.pt_opening import evidence_workbook, parse_pt_files
+from ptmapper.soh_parser import SourceRow
 from sell.services.salespeople import active_salespeople
 from sell.models import RegisteredTill
 from sell.services.goods_stock import read_shelf
@@ -122,6 +123,28 @@ def test_the_named_people_open_the_store_from_its_pt_files(wardrobe: Any) -> Non
         source.refresh_from_db()
         assert quick.status(source)["state"] == "done", quick.status(source)
         assert sum(read_shelf(store).quantities.values()) == 2
+
+
+def test_legacy_season_spellings_become_the_two_seasons_a_year(wardrobe: Any) -> None:
+    tenant, store = wardrobe.tenant, wardrobe.store
+    spellings = ["AUTUMN WINTER(Oct-26)", "AW26", "AW-26", "AUTUMN WINTER(Jan-26)", "SS25", "", "CORE"]
+    rows = [SourceRow(n, f"k{n}", f"B{n}", "KILLER", 1, 219900, 137638,
+                      {"season": raw, "hsn": "62052000", "size": "M", "category": "CASUAL WEAR"})
+            for n, raw in enumerate(spellings, start=1)]
+    with tenant_context(tenant.pk):
+        owner = owner_user(tenant).human_id
+        config = catalogue_config(tenant, owner, [store], rows, cost="pt", log=lambda _line: None)
+        seasons = {raw: Season.objects.get(pk=config["season_mappings"][raw]) for raw in spellings}
+        assert {seasons[raw].code for raw in spellings[:3]} == {"AW-26"}
+        assert seasons["AW26"].name == "Autumn-Winter 2026"
+        assert seasons["AUTUMN WINTER(Jan-26)"].code == "AW-25"
+        assert seasons["AUTUMN WINTER(Jan-26)"].status == Season.Status.CLOSED
+        assert seasons["SS25"].code == "SS-25"
+        assert seasons[""].historical_unknown and seasons["CORE"].historical_unknown
+        assert set(config["unknown_season_sources"]) == {"", "CORE"}
+        before = Season.objects.count()
+        catalogue_config(tenant, owner, [store], rows, cost="pt", log=lambda _line: None)
+        assert Season.objects.count() == before  # a re-run creates no seasons
 
 
 def test_operations_head_reads_and_approves_transfers_and_counts_but_holds_no_money_or_setup(wardrobe: Any) -> None:

@@ -24720,7 +24720,7 @@
     {
       "id": "STORE-TEST-501",
       "kind": "module",
-      "key_regex": "^module:ptmapper\\.pt_opening$",
+      "key_regex": "^module:ptmapper\\.(pt_opening|legacy_season)$",
       "primary_id": "C05",
       "related_ids": [
         "A00",
@@ -24761,7 +24761,7 @@
     }
   ],
   "discovered": {
-    "checksum": "aa66cb82650791551e9654c0549bc25bcacecf669d402f8e852ef5f8dd81de79",
+    "checksum": "8b9ec605f57d44070fc7c4efbc59e8bbe0f183e49ec18e66c8b494f7140ea716",
     "records": [
       {
         "kind": "api",
@@ -260701,6 +260701,7 @@
             "ptmapper",
             "ptmapper.goods_manifest_services",
             "ptmapper.goods_models",
+            "ptmapper.legacy_season",
             "ptmapper.soh_models",
             "ptmapper.soh_parser",
             "ptmapper.soh_services",
@@ -260839,6 +260840,7 @@
             "ptmapper",
             "ptmapper.goods_manifest_services",
             "ptmapper.goods_models",
+            "ptmapper.legacy_season",
             "ptmapper.soh_models",
             "ptmapper.soh_parser",
             "ptmapper.soh_services",
@@ -260873,6 +260875,7 @@
             "module:outbound.transfer_authority",
             "module:ptmapper.goods_manifest_services",
             "module:ptmapper.goods_models",
+            "module:ptmapper.legacy_season",
             "module:ptmapper.soh_models",
             "module:ptmapper.soh_parser",
             "module:ptmapper.soh_services",
@@ -297665,6 +297668,68 @@
         "acceptance_evidence": "Reconcile before/after balances and preserve approval evidence. Later full SOH snapshots belong to C08/SO-08, using the retained goods count/correction journey; they must not replay opening balances or historical source movements. Pending dependencies: ptmapper.soh_services.requires_inventory_reconciliation and apply_batch initial-parent fence; outbound.goods_counts.start_count/current_declaration SiteGuard freeze and journal snapshot; C10/SO-09 registered-till pause, unresolved UUID outcomes and numbered-bill reconciliation; C06 retained stock journal/readers. Trading-store counts remain inactive until the separately approved R-INV-009/ST-INV-3/OQ-57 pause, source cutoff and independent delta review contracts have current evidence.",
         "removal_condition": "Retire with the store test run at real-store cutover (SO-22).",
         "rule_id": "STORE-TEST-118"
+      },
+      {
+        "kind": "module",
+        "key": "module:ptmapper.legacy_season",
+        "source": "backend/ptmapper/legacy_season.py",
+        "detail": {
+          "imports": [],
+          "read_candidates": [
+            "MONTHS.get"
+          ],
+          "write_candidates": [],
+          "authorization_candidates": [],
+          "tags": []
+        },
+        "primary_id": "C05",
+        "owner": "SO-07",
+        "related_ids": [
+          "A00",
+          "C01",
+          "C06",
+          "C08"
+        ],
+        "lifecycle": "temporary_supported_legacy",
+        "data_ownership": "Tenant-owned goods receiving/PT evidence with legacy receiving history",
+        "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [
+            "module:accounts.test_store_loader"
+          ],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "source_module_static",
+          "source_module": "module:ptmapper.legacy_season",
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "source_file_static_candidates",
+          "read_candidates": [
+            "MONTHS.get"
+          ],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "replacement": "`/goods/receive/*`, `/goods/pt-work`, `/goods/labels` retain receiving, PT and labels. Old `/goods/arrivals`, `/goods/receipts`, `/goods/accept`, `/goods/pt/prepare`, `/goods/pt/approvals` are bookmark redirects",
+        "migration_requirements": "Map arrival, claimed invoice, count, GRN, PT rows, number, cost basis, label jobs and approval evidence with source IDs.",
+        "acceptance_evidence": "Reconcile physical count and official value once; prove history and separate-person approval before removing separate screens or old write services.",
+        "removal_condition": "Retire with the store test run at real-store cutover (SO-22).",
+        "rule_id": "STORE-TEST-501"
       },
       {
         "kind": "module",
@@ -337171,6 +337236,85 @@
       },
       {
         "kind": "operational_file",
+        "key": "operational_file:scripts/normalize_pt_files.py",
+        "source": "scripts/normalize_pt_files.py",
+        "detail": {
+          "format": ".py",
+          "imports": [
+            "ptmapper.legacy_season",
+            "ptmapper.pt_opening"
+          ],
+          "read_candidates": [
+            "c.values",
+            "cells.values",
+            "changed.get",
+            "dropped.values",
+            "hsn_by.get",
+            "line['pt'].get",
+            "pt.get",
+            "row.get",
+            "soh.get",
+            "source.get"
+          ],
+          "write_candidates": [
+            "rates[line['barcode']].add",
+            "seasons[legacy, row['Season'] or 'unknown historical'].add",
+            "workbook.save"
+          ],
+          "authorization_candidates": []
+        },
+        "primary_id": "P00",
+        "owner": "SO-02",
+        "related_ids": [],
+        "lifecycle": "canonical",
+        "data_ownership": "Platform-owned configuration and infrastructure",
+        "authorization": "Platform exposure and operator authentication require separate review.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "declared_metadata_only",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "unknown",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "access_contract": {
+          "trace_status": "pending",
+          "actor_type": "unreviewed",
+          "required_action": "unreviewed",
+          "scope_source": "unreviewed",
+          "protected_fields": "unreviewed",
+          "delivery_recheck": "unreviewed",
+          "named_tests": [],
+          "reviewed_chain": "Static candidates do not establish runtime access coverage."
+        },
+        "replacement": "Supported platform endpoints with security review",
+        "migration_requirements": "No business transaction migration.",
+        "acceptance_evidence": "Platform exposure and deployment checks.",
+        "removal_condition": "Retain while required by deployment; remove only through platform change review.",
+        "rule_id": "platform-operational-files"
+      },
+      {
+        "kind": "operational_file",
         "key": "operational_file:scripts/proof.py",
         "source": "scripts/proof.py",
         "detail": {
@@ -337780,6 +337924,69 @@
         "acceptance_evidence": "docs/planning/kdps-first-store-qa-test-plan.md current revision-specific synthetic proof results; private .local/goal-alpha-20261003-*.log evidence.",
         "removal_condition": "Retain while required by deployment; remove only through platform change review.",
         "rule_id": "FIRST-STORE-099"
+      },
+      {
+        "kind": "operational_file",
+        "key": "operational_file:scripts/test_normalize_pt_files.py",
+        "source": "scripts/test_normalize_pt_files.py",
+        "detail": {
+          "format": ".py",
+          "imports": [],
+          "read_candidates": [],
+          "write_candidates": [
+            "workbook.save"
+          ],
+          "authorization_candidates": []
+        },
+        "primary_id": "P00",
+        "owner": "SO-02",
+        "related_ids": [],
+        "lifecycle": "canonical",
+        "data_ownership": "Platform-owned configuration and infrastructure",
+        "authorization": "Platform exposure and operator authentication require separate review.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "declared_metadata_only",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "unknown",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "access_contract": {
+          "trace_status": "pending",
+          "actor_type": "unreviewed",
+          "required_action": "unreviewed",
+          "scope_source": "unreviewed",
+          "protected_fields": "unreviewed",
+          "delivery_recheck": "unreviewed",
+          "named_tests": [],
+          "reviewed_chain": "Static candidates do not establish runtime access coverage."
+        },
+        "replacement": "Supported platform endpoints with security review",
+        "migration_requirements": "No business transaction migration.",
+        "acceptance_evidence": "Platform exposure and deployment checks.",
+        "removal_condition": "Retain while required by deployment; remove only through platform change review.",
+        "rule_id": "platform-operational-files"
       },
       {
         "kind": "operational_file",

@@ -12,3 +12,9 @@ frontend/dist/
 
 # Server secrets for deploy/compose.yaml
 deploy/.env
+
+# Store test run: real PT/SOH files and their normalised copies hold cost data.
+docs/wardrobe-ratu-road/PT FILE/
+docs/wardrobe-ratu-road/PT-files/
+docs/wardrobe-ratu-road/SOH/
+docs/wardrobe-ratu-road/normalized/

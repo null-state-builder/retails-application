@@ -11,9 +11,10 @@ directly.
 
 Test-only decisions, recorded on every record they touch:
 
-* sizes and seasons are taken as the legacy file spells them (one vocabulary
-  value / season per distinct text); a blank season is the deliberate unknown
-  historical season;
+* sizes are taken as the legacy file spells them (one vocabulary value per
+  distinct text); seasons are the two a year, ``SS-YY`` and ``AW-YY``
+  (``ptmapper.legacy_season``), and text naming no half-year is the deliberate
+  unknown historical season;
 * HSN comes from a keyword map over the legacy category (the file has no HSN);
 * the "physical verification" is the legacy quantity, not a count;
 * rows with no positive cost/MRP, or cost above MRP, are excluded with a reason.
@@ -57,6 +58,7 @@ from accounts.goods_demo import (
 )
 from core.commands import CommandResult, CommandRun, CommandSpec, execute_command
 from core.refusals import Refusal
+from ptmapper.legacy_season import normalize_season, season_name, season_order
 
 #: Keyword → HSN for the test tenant only (the legacy SOH carries no HSN).
 HSN_RULES: tuple[tuple[str, str], ...] = (
@@ -312,12 +314,22 @@ def catalogue_config(tenant: Any, owner_id: Any, sites: list[Any], rows: list[An
     brand_ids = sorted({int(v) for v in brand_map.values()})
     for site in sites:
         ensure_site_sbus(tenant.pk, site, brand_ids)
-    # Seasons: one per spelling; blank → the deliberate unknown historical season.
+    # Seasons: two a year, SS-YY and AW-YY (owner decision, 28 Oct 2026), whatever the
+    # legacy spelling; text naming no half-year → the deliberate unknown historical season.
     unknown = Season.objects.get(historical_unknown=True)
     season_map: dict[str, str] = {"": str(unknown.pk)}
+    unknown_sources = [""]
+    current = season_order(f"SS-{timezone.now().year % 100:02d}")
     for raw in sorted({str(r.source.get("season") or "").strip() for r in stocked} - {""}):
-        code = f"L-{hashlib.sha1(raw.encode()).hexdigest()[:10]}"
-        season, _ = Season.objects.get_or_create(code=code, defaults={"name": raw[:80]})
+        code = normalize_season(raw)
+        if code is None:
+            season_map[raw] = str(unknown.pk)
+            unknown_sources.append(raw)
+            continue
+        order = season_order(code)
+        season, _ = Season.objects.get_or_create(code=code, defaults={
+            "name": season_name(code), "sort_order": order,
+            "status": Season.Status.OPEN if order >= current else Season.Status.CLOSED})
         season_map[raw] = str(season.pk)
     _season_versions(tenant, [int(v) for v in season_map.values()])
     overrides: dict[str, dict[str, Any]] = {}
@@ -335,7 +347,7 @@ def catalogue_config(tenant: Any, owner_id: Any, sites: list[Any], rows: list[An
     categories = {str(r.source.get("category") or "") for r in stocked}
     return {"brand_mappings": brand_map, "season_mappings": season_map, "size_mappings": size_map,
             "hsn_mappings": {} if cost == "pt" else {c: _hsn(c) for c in categories}, "row_overrides": overrides,
-            "unknown_season_sources": [""], "identity_profile_id": str(identity.pk),
+            "unknown_season_sources": unknown_sources, "identity_profile_id": str(identity.pk),
             "profile_version_id": str(profile.pk), "rate_meaning": "reviewed_row_values" if cost == "pt" else "basic_ex_tax",
             "source_store_confirmed": True, "fresh_source_confirmed": True,
             "quality_note": note, "external_reconciliation_note": note}
@@ -610,7 +622,12 @@ class Loader:
 
     def _link(self, store: Any, warehouse: Any) -> None:
         from core.kernel_models import SubjectRevision
-        from masters.goods_services import append_master_version, latest_master_version, linked_warehouse_id, start_revision
+        from masters.goods_services import (
+            append_master_version,
+            latest_master_version,
+            linked_warehouse_id,
+            start_revision,
+        )
         from masters.goods_views import _site_fallback
 
         if linked_warehouse_id(store) == warehouse.pk:
@@ -665,7 +682,11 @@ class Loader:
     def named_people(self, warehouse: Any, store: Any) -> None:
         """The setup file's people: one login each, then each listed role over its sites."""
         from accounts import operations_head, warehouse_manager
-        from accounts.goods_setup import create_person, seed_role_assignment, service_principal
+        from accounts.goods_setup import (
+            create_person,
+            seed_role_assignment,
+            service_principal,
+        )
         from accounts.models import User
 
         now = timezone.now()
@@ -703,8 +724,13 @@ class Loader:
 
     def _salesperson(self, human: Any, store: Any, now: Any) -> None:
         """Mark the person's staff record as a salesperson placed at ``store`` (once), as People would."""
-        from accounts.goods_admin_services import (ACTION_STAFF_UPDATE, NO_PLACEMENT, StaffFields, placements,
-                                                   update_staff)
+        from accounts.goods_admin_services import (
+            ACTION_STAFF_UPDATE,
+            NO_PLACEMENT,
+            StaffFields,
+            placements,
+            update_staff,
+        )
         from accounts.goods_models import Staff
         from accounts.goods_setup import service_principal
 

@@ -89,44 +89,68 @@ Owner's process (28 Oct 2026): set up the store empty, open it from its PT files
 (no scanning, cost = P RATE), then bring it to the legacy SOH. Synthetic tenant
 only.
 
-1. **Upload the PT files (Debanjan):** at `/goods/opening`, pick The Wardrobe
-   and, under "Opening from PT files", choose every PT file sent to it (KDPS
-   22-column .xlsx; every sheet with the PT header is read; save .xls/.csv as
-   .xlsx first). The preview shows barcodes, pieces, value at MRP and rows that
-   will be left out (no MRP or P RATE, P RATE above MRP, bad HSN such as
-   `2707122`, no barcode) or need a look (one barcode with different MRPs: the
-   last row is used). A store person does not see the P RATE value.
-2. **Approve and load (K D Singh):** same screen, **Approve and load**. Brands,
-   sizes and seasons are mapped by their spelling (blank PT seasons go to the
-   unknown historical season), with each row's HSN and P RATE. Everything goes
-   onto the Floor. The card shows progress.
-3. **Match the legacy SOH (Debanjan):** export the SOH from the legacy software
-   **after** step 2 finished, then upload it at `/goods/stock-sync` with that
+1. **Normalise the PT files (on a laptop, before any upload):** the store's PT
+   files (152 bill workbooks, no Season column) and its SOH go through
+   `scripts/normalize_pt_files.py`, which writes one upload-ready workbook and a
+   report of every change:
+
+   ```bash
+   backend/.venv/bin/python scripts/normalize_pt_files.py --pt "docs/wardrobe-ratu-road/PT FILE" \
+     --soh docs/wardrobe-ratu-road/SOH/SOH_WARDROBE_28-10-2026.xlsx --out docs/wardrobe-ratu-road/normalized
+   ```
+
+   - A bill already read from another file is dropped (`lp1522.xlsx` repeats
+     bill S-1522).
+   - Item, brand, size, design, category, gender, fit, season and MRP come from
+     the SOH; quantity, P RATE (the latest bill's), HSN and tax from the PT.
+     Brands are not merged. An SOH MRP below cost keeps the PT's MRP.
+   - Seasons are two a year, `SS-YY` and `AW-YY` (owner decision, 28 Oct 2026;
+     `backend/ptmapper/legacy_season.py`): `AUTUMN WINTER(Oct-26)` → AW-26, an
+     autumn-winter label dated January–June → the winter before
+     (`AUTUMN WINTER(Jan-26)` → AW-25), `SS25`/`SS-25` → SS-25, a June date →
+     SS-25. Blank, `CORE` and `ALLSEASON` go to the unknown historical season.
+   - An HSN that is not 4, 6 or 8 digits takes the one most used by the same
+     brand and item.
+   - The script ends by reading its output with the upload's own reader; it
+     exits non-zero if any row would be left out. Re-run it whenever PT files
+     are added. The PT, SOH and normalised folders are git-ignored (cost data).
+2. **Upload the PT file (Debanjan):** at `/goods/opening`, pick The Wardrobe
+   and, under "Opening from PT files", choose `WARDROBE_PT_combined.xlsx` (the
+   upload takes at most 40 files; the one combined file replaces them). The
+   preview shows barcodes, pieces, value at MRP and any rows that would be left
+   out. A store person does not see the P RATE value.
+3. **Approve and load (K D Singh):** same screen, **Approve and load**. Brands
+   and sizes are mapped by their spelling; seasons go through the same SS-YY /
+   AW-YY rule, so the seasons are AW-26, AW-25, SS-26, SS-25... and unknown
+   historical. Each row's HSN and P RATE are used. Everything goes onto the
+   Floor. The card shows progress.
+4. **Match the legacy SOH (Debanjan):** export the SOH from the legacy software
+   **after** step 3 finished, and upload it as exported (its seasons go
+   through the same rule), then upload it at `/goods/stock-sync` with that
    export time. Sold pieces leave, extra pieces of known items are added, and
    barcodes with no PT are staged as new items.
    - An SOH exported before the PT load is refused (`SOH_BEFORE_STOCK`): it
      cannot see those items, and would bring them in a second time.
    - A wrong export time: **Discard** the preview and upload the same file
      again with the right time.
-4. **Load the new items (K D Singh):** **Approve and load** on "New items from
+5. **Load the new items (K D Singh):** **Approve and load** on "New items from
    the SOH sync" at `/goods/opening` (cost = SOH Rate). Stock then equals the
    SOH.
-5. **Sell** at `/sell` (Cashier 1 or 2), then follow "Each day" below.
+6. **Sell** at `/sell` (Cashier 1 or 2), then follow "Each day" below.
 
-Local rehearsal, 28 Oct 2026, with the real files (5 PT files and
-`SOH_WARDROBE_28-10-2026.xlsx`):
+Local rehearsal, 28 Oct 2026, with the real files (152 PT files normalised into
+one, and `SOH_WARDROBE_28-10-2026.xlsx` uploaded as exported):
 
 | Step | Result |
 | --- | --- |
-| PT preview | 303 barcodes, 362 pieces; 3 barcodes left out (bad HSN) |
-| PT load | 358 pieces of 300 barcodes; P RATE ₹6,42,276.80, MRP ₹9,69,488 |
-| SOH sync | 26 pieces out, 7 in; 5,000 new barcodes (13,339 pieces) staged |
-| Top-up load | about 7 minutes for 5,000 barcodes, one batch |
+| Normalise | 6,671 lines, 6,311 barcodes, 15,734 pieces; `lp1522.xlsx` dropped (37 lines); 6 HSN, 12 MRP and 11 P RATE fixes; reader self-check: 0 problems, 0 conflicts |
+| PT preview | 6,311 barcodes, 15,734 pieces, none left out; MRP ₹2,52,92,047, P RATE ₹1,57,55,304.17 |
+| PT load | about 8 minutes, two batches; 15,734 pieces on the floor |
+| Seasons | AW-26 10,956, AW-25 2,440, SS-26 1,794, SS-25 302, AW-23 8, AW-24 7, SS-24 4, unknown historical 223 pieces |
+| SOH sync | 2,089 pieces out, 2 in; 20 new barcodes (31 pieces) staged |
+| Top-up load | 31 pieces of 20 barcodes |
 | Stock after | 13,678 pieces of 5,279 barcodes, the SOH's own total |
-| One test sale | 13,677 pieces |
-
-A load counts as stopped after 30 minutes with no progress, so the batch
-reports each sub-step (manifest, PT, approvals, every 500 lines accepted).
+| One test sale | 8909342558205 at ₹3,199 (the SOH MRP; the PT said ₹2,999); 13,677 pieces |
 
 Run the same rehearsal locally, on a throwaway DB (never `kdps_local`):
 

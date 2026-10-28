@@ -64,17 +64,17 @@ The machine inventory assigns each mounted API method and URL module one primary
 `/api/health`, `/api/schema` and `/api/docs` are platform surfaces. The optional Django `/admin` exposes business and access models when enabled, so every discovered admin method is unresolved until SO-03/SO-02 proves it disabled in deployment or enforces the unified tenant, scope, field and write guards per model. Its presence in the P00 inventory is not access approval.
 
 <!-- BEGIN GENERATED SO-03 COVERAGE -->
-The [machine-readable inventory](so-03-consolidation-inventory.json) records every discovered entrypoint and component, its primary retirement owner, lifecycle, data ownership, authorization, callers, replacement, evidence and removal condition. Its structural checksum is `aa66cb82650791551e9654c0549bc25bcacecf669d402f8e852ef5f8dd81de79`. Temporary APIs without a statically named frontend consumer carry an explicit trace gate in the inventory. The counts below are generated from that same snapshot; they are coverage, not completion proof.
+The [machine-readable inventory](so-03-consolidation-inventory.json) records every discovered entrypoint and component, its primary retirement owner, lifecycle, data ownership, authorization, callers, replacement, evidence and removal condition. Its structural checksum is `8b9ec605f57d44070fc7c4efbc59e8bbe0f183e49ec18e66c8b494f7140ea716`. Temporary APIs without a statically named frontend consumer carry an explicit trace gate in the inventory. The counts below are generated from that same snapshot; they are coverage, not completion proof.
 
 | Retirement item / owner | Discovered surfaces by kind | Unresolved | Untraced temporary APIs |
 | --- | --- | ---: | ---: |
 | A00 · SO-03 | api: 36, api_consumer: 36, bookmark: 4, command: 6, middleware: 2, migration: 31, model: 13, module: 56, navigation: 2, screen: 3 | 9 | 0 |
-| P00 · SO-02 | api: 205, api_consumer: 13, command: 2, job_handler: 1, middleware: 9, migration: 12, model: 30, module: 46, navigation: 1, operational_file: 53, screen: 1 | 214 | 0 |
+| P00 · SO-02 | api: 205, api_consumer: 13, command: 2, job_handler: 1, middleware: 9, migration: 12, model: 30, module: 46, navigation: 1, operational_file: 55, screen: 1 | 214 | 0 |
 | C01 · SO-04 | api: 121, api_consumer: 131, bookmark: 5, command: 2, migration: 27, model: 34, module: 34, navigation: 11, screen: 12 | 10 | 12 |
 | C02 · SO-05 | api: 9, api_consumer: 7, command: 2, migration: 7, model: 4, module: 5, navigation: 2, screen: 2 | 0 | 2 |
 | C03 · SO-06 | api: 23, api_consumer: 20, bookmark: 4, command: 3, migration: 11, model: 9, module: 28, navigation: 11, scheduled_job: 2, screen: 12 | 11 | 0 |
 | C04 · SO-07 | api: 14, api_consumer: 12, bookmark: 2, migration: 13, model: 8, module: 18, navigation: 3, screen: 3 | 0 | 2 |
-| C05 · SO-07 | api: 57, api_consumer: 79, bookmark: 5, command: 2, migration: 32, model: 24, module: 45, navigation: 6, print_output: 2, screen: 6, subview: 1 | 14 | 0 |
+| C05 · SO-07 | api: 57, api_consumer: 79, bookmark: 5, command: 2, migration: 32, model: 24, module: 46, navigation: 6, print_output: 2, screen: 6, subview: 1 | 14 | 0 |
 | C06 · SO-08 | api: 51, api_consumer: 41, bookmark: 2, command: 1, migration: 31, model: 29, module: 30, navigation: 12, screen: 11 | 5 | 4 |
 | C07 · SO-08 | api: 49, api_consumer: 29, bookmark: 3, command: 2, migration: 26, model: 20, module: 29, navigation: 8, print_output: 2, screen: 13 | 4 | 12 |
 | C08 · SO-08 | api: 54, api_consumer: 43, bookmark: 4, command: 2, migration: 13, model: 23, module: 25, navigation: 7, scheduled_job: 2, screen: 14 | 2 | 15 |
