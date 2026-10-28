@@ -59,7 +59,8 @@ def review_counts(sync: StockSync) -> dict[str, Any]:
             "acknowledged": len(pairs) - open_rows}
 
 
-def dto(sync: StockSync, *, rows: bool = False) -> dict[str, Any]:
+def dto(sync: StockSync, *, rows: bool = False, summary: bool = False) -> dict[str, Any]:
+    """One sync. ``summary`` (the history list) skips the preview and review counts: each reads the store."""
     counts = sync.rows.aggregate(total=Count("id"), exceptions=Count("id", filter=Q(outcome="exception")),
                                  new_items=Count("id", filter=Q(outcome="new_item")))
     out: dict[str, Any] = {
@@ -74,9 +75,9 @@ def dto(sync: StockSync, *, rows: bool = False) -> dict[str, Any]:
         "top_up_import_id": str(sync.top_up_import_id) if sync.top_up_import_id else None,
         "allowed_actions": ["apply", "discard"] if sync.state == StockSync.State.PREVIEWED else [],
     }
-    if sync.state == StockSync.State.PREVIEWED:
+    if sync.state == StockSync.State.PREVIEWED and not summary:
         out["preview"] = services.preview(sync)
-    if sync.state == StockSync.State.APPLIED:
+    if sync.state == StockSync.State.APPLIED and not summary:
         out["review"] = review_counts(sync)
     if rows:
         out["rows"] = [_row(r) for r in sync.rows.order_by("category", "barcode").values(*ROW_FIELDS)[:DETAIL_ROWS]]
@@ -100,7 +101,7 @@ class LegacySyncOverviewView(GoodsAPIView):
         result = {"test_environment": not is_real_store(store),
                   "last_soh_cutoff": cutoff.isoformat() if cutoff else None,
                   "last_sales_date": last_sales.date_to.isoformat() if last_sales else None,
-                  "soh_syncs": [dto(sync) for sync in syncs], "sales_imports": [sales_dto(row) for row in sales]}
+                  "soh_syncs": [dto(sync, summary=True) for sync in syncs], "sales_imports": [sales_dto(row) for row in sales]}
         access.revalidate_delivery()
         return Response(result)
 
@@ -146,7 +147,8 @@ class StockSyncUploadView(GoodsAPIView):
                                   business_input={"site_id": site_id, "source_hash": evidence.sha256,
                                                   "cutoff_at": cutoff.isoformat()},
                                   handler=handler, site_id=site_id, evidence_hashes=[evidence.sha256])
-        body = dto(_load(access, uuid.UUID(str(result.resource_id))))
+        # The page opens the sync next (its preview reads the whole store), so the upload answers briefly.
+        body = dto(_load(access, uuid.UUID(str(result.resource_id))), summary=True)
         access.revalidate_delivery()
         return Response(body, status=201)
 
