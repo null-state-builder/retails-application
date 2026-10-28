@@ -43,7 +43,7 @@ from stockledger.goods_models import ActiveReservation
 from tests.first_store_goods import _publish_tenant_config, command
 from tests.test_first_store_goods_operations import operational_goods as operational_goods
 from tests.test_first_store_goods_operations import post, receiving_goods as receiving_goods, shelf, transfer_wire, wire
-from tests.test_pt_opening import pt_book, pt_row
+from tests.test_pt_opening import pt_book, pt_row, use_auto_decisions
 from tests.test_so03_denials import worlds as worlds
 
 pytestmark = pytest.mark.django_db
@@ -104,25 +104,49 @@ def test_setup_file_builds_one_store_its_warehouse_and_the_named_people(wardrobe
         assert sorted(row.display_name for row in active_salespeople(store)) == sellers
 
 
-def test_the_named_people_open_the_store_from_its_pt_files(wardrobe: Any) -> None:
+def test_the_setup_file_opens_the_store_with_no_second_person(wardrobe: Any) -> None:
+    from accounts.test_store_loader import OPENING_AUTO_FLAG, approval_policies, opening_auto_in_force
+
+    tenant = wardrobe.tenant
+    with tenant_context(tenant.pk):
+        opening = [v.payload for v in effective_at(tenant.pk, "approval", timezone.now())
+                   if v.payload.get("action") == "pt.approve.opening"]
+        assert opening and opening[-1][OPENING_AUTO_FLAG] is True  # "opening": {"approval": false}
+        owner_id = User.objects.get(email=OWNER).human_id
+        approval_policies(tenant, owner_id)  # a later load keeps the store's decision ...
+        assert opening_auto_in_force(tenant.pk)
+        approval_policies(tenant, owner_id, auto_opening=False)  # ... and turning approvals back on removes it
+        assert not opening_auto_in_force(tenant.pk)
+        transfer = [v.payload for v in effective_at(tenant.pk, "approval", timezone.now())
+                    if v.payload.get("action") == "pt.approve.transfer"]
+        assert transfer[-1][transfer_authority.AUTO_FLAG] is True  # the transfer decision is untouched
+
+
+def test_the_named_people_open_the_store_from_its_pt_files(wardrobe: Any, monkeypatch: pytest.MonkeyPatch) -> None:
+    from approvals.goods_models import ApprovalRequest
+    from core.outbox import drain
+
+    use_auto_decisions(monkeypatch)
     store = wardrobe.store
     with tenant_context(wardrobe.tenant.pk):
         metadata, rows, _problems = parse_pt_files([("1426.xlsx", pt_book({"Sheet1": [pt_row("K1", 2)]}))])
         debanjan = "debanjan@wardrobe.test"
         driver = OpeningDriver(store.tenant, store, stager=lambda: access_for(debanjan),
-                               preparer=lambda: access_for(debanjan), approver=lambda: access_for(OWNER),
-                               log=lambda _line: None)
+                               preparer=lambda: access_for(debanjan), log=lambda _line: None)
         source = driver.stage(evidence_workbook(rows), "PT opening.xlsx", metadata, rows)
-        for who in ("priyo@wardrobe.test", "cashier1@wardrobe.test"):
+        for who in ("priyo@wardrobe.test", "cashier1@wardrobe.test", OWNER):
             with pytest.raises(Refusal) as denied:
-                quick.check(access_for(who), source)
-            assert denied.value.code == "ACTION_DENIED", who  # only the owner approves an opening
-        stager, preparer, approver = quick.check(access_for(OWNER), source)
-        assert (stager, preparer, approver) == (debanjan, "preparer@wardrobe.test", OWNER)
-        quick.load(source.pk, stager=stager, preparer=preparer, approver=approver)
+                quick.request_load(access_for(who), source)
+            assert denied.value.code == "ACTION_DENIED", who  # the uploader loads; no approval to give
+        quick.request_load(access_for(debanjan), source)
+        drain(wardrobe.tenant.pk)
         source.refresh_from_db()
         assert quick.status(source)["state"] == "done", quick.status(source)
         assert sum(read_shelf(store).quantities.values()) == 2
+        preparer = User.objects.get(email="preparer@wardrobe.test").human_id
+        assert source.prepared_by_id == preparer  # the job acts as the store's opening preparer
+        makers = set(ApprovalRequest.objects.filter(site_id=store.pk).values_list("maker_id", flat=True))
+        assert makers == {preparer}
 
 
 def test_legacy_season_spellings_become_the_two_seasons_a_year(wardrobe: Any) -> None:
