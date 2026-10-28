@@ -82,6 +82,10 @@ SOH_REASON = "Store test run: legacy SOH quantity, not a physical count"
 PT_REASON = "Store test run: PT file quantity, not a physical count"
 
 
+#: On the ``pt.approve.opening`` policy: a test store's opening needs no second person
+#: (``ptmapper.opening_auto`` reads it; a setup file's ``opening.approval: false`` sets it).
+OPENING_AUTO_FLAG = "auto_approve_test_store_opening"
+
 #: Roles a setup file may name; scopes are "store", "warehouse", a list of both, or "all".
 SETUP_ROLES = frozenset({"owner", "store_person", "warehouse", "it_admin", "accounts", "brand_manager",
                          "warehouse_manager", "operations_head"})
@@ -120,6 +124,9 @@ class Plan:
     people: tuple[Person, ...] = ()
     #: False: a warehouse → store transfer needs no second person (``approval_policies``); None keeps what is in force.
     warehouse_to_store_approval: bool | None = None
+    #: False: a test store's opening (source, manifests, opening PTs) needs no second person
+    #: (``approval_policies(auto_opening=True)``); None keeps what is in force.
+    opening_approval: bool | None = None
 
 
 def plan_from_setup(path: Path) -> Plan:
@@ -150,11 +157,15 @@ def plan_from_setup(path: Path) -> Plan:
         raise Refusal("INVALID_REQUEST", "Name at least one store person at the store.")
     if not any(_is_preparer(person.email) for person in people):
         raise Refusal("INVALID_REQUEST", "Name an opening preparer login (an email whose name ends in 'preparer').")
+    opening = data.get("opening") or {}
+    if "approval" in opening and not isinstance(opening["approval"], bool):
+        raise Refusal("INVALID_REQUEST", "opening.approval must be true or false.")
     return Plan(store_code=store["code"], store_name=store["name"], warehouse_code=warehouse["code"],
                 warehouse_name=warehouse["name"], entity_code=entity["code"], entity_name=entity["name"],
                 pan=entity["pan"], state_code=entity["state_code"], state_name=entity["state_name"],
                 city=entity["city"], prefix=store["code"].lower(), people=tuple(people),
-                warehouse_to_store_approval=bool((data.get("transfers") or {}).get("warehouse_to_store_approval", True)))
+                warehouse_to_store_approval=bool((data.get("transfers") or {}).get("warehouse_to_store_approval", True)),
+                opening_approval=opening.get("approval"))
 
 
 def _is_preparer(email: str) -> bool:
@@ -353,19 +364,25 @@ def catalogue_config(tenant: Any, owner_id: Any, sites: list[Any], rows: list[An
             "quality_note": note, "external_reconciliation_note": note}
 
 
-def approval_policies(tenant: Any, owner_id: Any, *, auto_warehouse_to_store: bool | None = None) -> None:
+def approval_policies(tenant: Any, owner_id: Any, *, auto_warehouse_to_store: bool | None = None,
+                      auto_opening: bool | None = None) -> None:
     """The test tenant's approval routes: openings and receipts by the owner; transfers by the owner,
     a warehouse manager or an operations head (whichever roles exist).
 
     ``auto_warehouse_to_store`` (a setup file's ``transfers.warehouse_to_store_approval: false``) lets a
-    warehouse → store transfer through on submit; ``None`` keeps what is in force, so a later opening
-    load does not undo the store's decision.
+    warehouse → store transfer through on submit. ``auto_opening`` (``opening.approval: false``) marks
+    ``pt.approve.opening`` with ``OPENING_AUTO_FLAG``: a test store's opening source, manifests and
+    opening PTs are decided by their maker with no second person
+    (``approvals.goods_services.decide_without_second_person``). ``None`` keeps what is in force, so a
+    later opening load does not undo the store's decision.
     """
     from accounts.models import Role
     from outbound.transfer_authority import AUTO_FLAG
 
     if auto_warehouse_to_store is None:
         auto_warehouse_to_store = bool(_in_force_approval(tenant.pk, "pt.approve.transfer").get(AUTO_FLAG))
+    if auto_opening is None:
+        auto_opening = opening_auto_in_force(tenant.pk)
     custom = set(Role.objects.filter(tenant_id=tenant.pk, is_active=True,
                                      code__in=("warehouse_manager", "operations_head")).values_list("code", flat=True))
     transfer_roles = ["owner", *sorted(custom)]
@@ -376,7 +393,16 @@ def approval_policies(tenant: Any, owner_id: Any, *, auto_warehouse_to_store: bo
             "qty_max": 1_000_000, "value_max": "100000000000", "step_up": True, "unknown_value": "refuse"}
         if action == "pt.approve.transfer" and auto_warehouse_to_store:
             payload[AUTO_FLAG] = True
+        if action == "pt.approve.opening":
+            # Always explicit: republishing the plain payload would find the earlier seed of it
+            # and leave the flagged version in force, so approvals could not be turned back on.
+            payload[OPENING_AUTO_FLAG] = bool(auto_opening)
         _publish_tenant_config(tenant, owner_id, kind="approval", payload=payload, label=f"test-store-{action}")
+
+
+def opening_auto_in_force(tenant_id: Any) -> bool:
+    """Whether the ``pt.approve.opening`` policy in force lets a test store open with no second person."""
+    return bool(_in_force_approval(tenant_id, "pt.approve.opening").get(OPENING_AUTO_FLAG))
 
 
 def _in_force_approval(tenant_id: Any, action: str) -> dict[str, Any]:
@@ -426,19 +452,40 @@ def seed_command(tenant: Any, action: str, key: str, handler: Callable[[CommandR
     return holder.get("v")
 
 
-class OpeningDriver:
-    """Runs one staged opening source through every reviewed step, as three different people.
+class WaitingForApproval(Exception):
+    """A step needs a second person's decision: approvals are on for this store's openings."""
 
-    ``stager`` verifies (with the file quantity) and accepts onto the floor, ``preparer``
-    prepares, submits and drafts each opening PT, ``approver`` approves the source, each
-    manifest and each opening PT. Each is a callable returning a fresh session. Safe to
-    re-run: every step picks up where an interrupted run stopped.
+
+def _source(source_id: Any) -> Any:
+    from ptmapper.soh_models import SohImport
+
+    return SohImport.objects.get(pk=source_id)
+
+
+class OpeningDriver:
+    """Runs one staged opening source through every reviewed step, one step per ``next_step`` call.
+
+    ``stager`` records the file quantities and accepts onto the floor; ``preparer`` claims,
+    prepares, submits, applies each batch and drafts and submits each opening PT. Each is
+    a callable returning an access context. Every decision (source, each manifest, each
+    opening PT) goes to ``approver`` when one is given (``load_test_store --soh``: the
+    owner, a second person); without one the preparer, who made the request, asks for
+    ``approvals.goods_services.decide_without_second_person``, which the store's opening
+    policy allows or refuses (``WaitingForApproval``).
+
+    Nothing is carried between steps: each call reads the source, its batches, manifests
+    and PTs as they stand, so a crash or a restart resumes at the first unfinished step.
+    Command handlers are given ids and re-read (and re-lock) inside, so a retried
+    attempt never sees what a rolled-back one changed.
     """
 
     def __init__(self, tenant: Any, store: Any, *, stager: Callable[[], Any], preparer: Callable[[], Any],
-                 approver: Callable[[], Any], log: Callable[[str], None]) -> None:
+                 log: Callable[[str], None], approver: Callable[[], Any] | None = None,
+                 configure: Callable[[], dict[str, Any]] | None = None, note: str = PT_NOTE,
+                 reason: str = PT_REASON) -> None:
         self.tenant, self.store, self.log = tenant, store, log
         self.stager, self.preparer, self.approver = stager, preparer, approver
+        self.configure, self.note, self.reason = configure, note, reason
 
     def stage(self, data: bytes, filename: str, metadata: dict[str, Any], parsed: list[Any]) -> Any:
         from core.canonical import sha256_hex
@@ -459,124 +506,232 @@ class OpeningDriver:
         self.log(f"Source staged: {metadata['stocked_rows']} stocked rows, {metadata['quantity']} pieces.")
         return source
 
-    def _approve(self, request: Any) -> None:
-        from approvals.goods_services import decide
+    def run(self, source_id: Any) -> None:
+        """Every step until the source is on the floor (``WaitingForApproval`` if a decision is not ours)."""
+        while self.next_step(source_id) is not None:
+            pass
 
-        approver = self.approver()
-        act(approver, request.requested_action, lambda run: decide(
-            run, access=approver, request_id=request.pk, decision="approve",
-            reviewed_hash=request.reviewed_hash, reason_code=None))
-
-    def load(self, source: Any, config: dict[str, Any], *, note: str, reason: str,
-             step: Callable[[str], None] = lambda _text: None) -> None:
-        from approvals.goods_models import ApprovalRequest
-        from core.canonical import sha256_hex
-        from core.commands import database_now
-        from core.kernel_models import DocumentHead, OfficialLine
-        from files.goods_services import stage_upload
-        from masters.goods_models import Location, SiteGuard
-        from ptmapper import goods_manifest_services as manifests
+    def next_step(self, source_id: Any) -> str | None:
+        """Do the first unfinished step and say what it was; ``None`` once every batch is on the floor."""
         from ptmapper import soh_services
-        from ptmapper.goods_models import GoodsPt
-        from stockledger import goods_acceptance
 
-        store = self.store
-        guard = SiteGuard.objects.get(site=store)
+        source = _source(source_id)
+        if source.state == "withdrawn":
+            raise Refusal("SOH_SOURCE_WITHDRAWN", "This source was withdrawn.", status=409)
+        self._opening_ready()
+        if source.state == "uploaded":
+            return self._prepare(source)
+        if source.state == "review":
+            return self._verify_or_submit(source)
+        if source.state == "submitted":
+            request = source.approval_request
+            if request is None or request.state != "pending":
+                raise Refusal("STATE_CONFLICT", "The submitted source has no pending approval.", status=409)
+            self._decide(request.pk, "the source")
+            self.log("Source approved.")
+            return "Source approved"
+        if source.state not in {"approved", "applied"}:
+            raise Refusal("STATE_CONFLICT", f"The source is {source.state}; it cannot be loaded.", status=409)
+        included = source.rows.filter(quantity__gt=0, exclusion_reason="").count()
+        total = (included + soh_services.MAX_BATCH - 1) // soh_services.MAX_BATCH
+        for index in range(1, total + 1):
+            label = self._batch_step(source, index, total)
+            if label is not None:
+                return f"Batch {index} of {total}: {label}"
+        return None
+
+    # -- the source ------------------------------------------------------------
+
+    def _opening_ready(self) -> None:
+        from masters.goods_models import SiteGuard
+
+        guard = SiteGuard.objects.get(site=self.store)
         if not guard.opening_setup_ready:
             guard.opening_setup_ready = True
             guard.lifecycle = SiteGuard.Lifecycle.OPENING
             guard.save(update_fields=["opening_setup_ready", "lifecycle"])
-        source.refresh_from_db()
-        if source.state == "uploaded":
-            step("Preparing mappings and costs")
-            preparer = self.preparer()
-            source = act(preparer, soh_services.PREPARE, lambda run, s=source: soh_services.claim_preparation(run, preparer, s, s.revision))
-            note_bytes = _note_workbook(note)
-            evidence = stage_upload(preparer.principal(), command_id=uuid.uuid4(), data=note_bytes, filename="test-load-note.xlsx",
-                                    kind="other", scope={"scope_kind": "sites", "site_ids": [store.pk], "brand_ids": [],
-                                                         "sensitive_fields": ["cost", "financial"]},
-                                    expected_sha256=sha256_hex(note_bytes), contains_fields=["cost", "financial"])
-            # After every configuration the source pins took effect, and in the past.
-            import time
-            cutoff = max(timezone.now(), database_now())
-            while database_now() <= cutoff:
-                time.sleep(0.01)
-            full = {**config, "cutoff_at": cutoff.isoformat(), "valuation_evidence_id": str(evidence.pk),
-                    "reconciliation_evidence_id": str(evidence.pk)}
-            source = act(preparer, soh_services.PREPARE, lambda run, s=source: soh_services.prepare(run, preparer, s, full, s.revision))
-            self.log("Source prepared (mappings, costs, HSN).")
-        if source.state == "review" and not source.rows.exclude(verification={}).exists():
-            step("Recording quantities")
-            stager, preparer = self.stager(), self.preparer()
-            included = list(source.rows.filter(quantity__gt=0, exclusion_reason="").values_list("barcode", "quantity"))
-            obs = [{"barcode": b, "observed_qty": q, "observed_condition": "good", "reason": reason} for b, q in included]
-            for start in range(0, len(obs), 5000):
-                source.refresh_from_db()
-                chunk = obs[start:start + 5000]
-                source = act(stager, soh_services.STAGE, lambda run, c=chunk, s=source: soh_services.verify_rows(
-                    run, access=stager, source=s, observations=c, expected=s.revision))
-            source = act(preparer, soh_services.PREPARE, lambda run, s=source: soh_services.submit(run, preparer, s, s.revision))
-            self.log(f"Source verified ({len(obs)} rows) and submitted.")
-        source.refresh_from_db()
-        request: Any = source.approval_request
-        if request is not None and request.state == "pending":
-            step("Approving the source")
-            self._approve(request)
-            source.refresh_from_db()
-            self.log("Source approved.")
-        batches = (source.rows.filter(quantity__gt=0, exclusion_reason="").count() + soh_services.MAX_BATCH - 1) // soh_services.MAX_BATCH
-        floor = Location.objects.get(site=store, name="Floor")
-        for index in range(1, batches + 1):
-            # Each sub-step refreshes the progress record, so a long batch never looks stopped.
-            def batch_step(text: str, index: int = index) -> None:
-                step(f"Batch {index} of {batches}: {text}")
 
-            batch_step("making the opening manifest")
-            stager, preparer = self.stager(), self.preparer()
-            source.refresh_from_db()
-            batch = source.batches.filter(batch_index=index).first()
-            if batch is None:
-                batch = act(preparer, soh_services.PREPARE, lambda run, i=index, s=source, a=preparer: soh_services.apply_batch(run, a, s, i, s.revision))
-            manifest: Any = batch.manifest
-            pending = ApprovalRequest.objects.filter(subject_kind="manifest", subject_key=str(manifest.pk), state="pending").first()
-            if pending:
-                batch_step("approving the manifest")
-                self._approve(pending)
-            manifest.refresh_from_db()
-            pt: Any = GoodsPt.objects.filter(manifest_version__manifest=manifest).first()
-            if pt is None:
-                batch_step("opening the PT")
-                _identity, head, pt = act(preparer, "pt.prepare.opening", lambda run, m=manifest: manifests.create_opening_draft(
-                    run, manifest=m, profile_version_id=config["profile_version_id"], evidence_id=source.source_evidence_id))
-                act(preparer, "pt.prepare.opening", lambda run, h=head, g=pt: manifests.submit_opening(
-                    run, h, reviewed_hash=h.draft_revision.content_hash, goods_pt=g))
-            identity_id = pt.document_id
-            pending = ApprovalRequest.objects.filter(subject_kind="document", subject_key=str(identity_id), state="pending").first()
-            if pending:
-                batch_step("approving the PT")
-                self._approve(pending)
-            batch_step("putting stock on the floor")
-            version: Any = DocumentHead.objects.get(document_id=identity_id).live_version
-            session, _ = act(stager, "stock.accept", lambda run, v=version: goods_acceptance.open_session(run, site_id=store.pk, version_id=v.pk))
-            lines = list(OfficialLine.objects.filter(version=version).order_by("line_no"))
-            done = set(session.events.values_list("scan_key", flat=True)) if hasattr(session, "events") else set()
-            scans: list[dict[str, Any]] = []
-            for line in lines:
-                key = uuid.uuid5(version.pk, f"accept:{line.pk}")
-                if key in done:
-                    continue
-                payload = line.payload
-                mrp = payload.get("mrp_paise") or (payload.get("supplied") or {}).get("mrp_paise")
-                scans.append({"scan_key": str(key), "official_line_id": str(line.pk), "alias_value": payload["alias_as_used"],
-                              "observed_ticket_mrp_paise": str(mrp), "chosen_sku_id": str(payload["sku_id"]),
-                              "qty": int(payload["qty"]), "condition": "good", "location_id": str(floor.pk),
-                              "outcome": "accepted_good", "actual_at": timezone.now().isoformat()})
-            for start in range(0, len(scans), goods_acceptance.MAX_OBSERVATIONS):
-                batch_step(f"putting stock on the floor ({start} of {len(scans)} lines done)")
-                parsed_scans = goods_acceptance.parse_scans(scans[start:start + goods_acceptance.MAX_OBSERVATIONS])
-                session.refresh_from_db()
-                session = act(stager, "stock.accept", lambda run, c=parsed_scans, ss=session: goods_acceptance.scan(run, ss.pk, c, ss.revision))
-            self.log(f"Batch {index}/{batches}: manifest and opening PT approved, {len(lines)} lines accepted onto the floor.")
+    def _prepare(self, source: Any) -> str:
+        import time
+
+        from core.canonical import sha256_hex
+        from core.commands import database_now
+        from files.goods_services import stage_upload
+        from ptmapper import soh_services
+
+        preparer = self.preparer()
+        source_id, revision = source.pk, source.revision
+        if source.prepared_by_id is None:
+            act(preparer, soh_services.PREPARE, lambda run: soh_services.claim_preparation(
+                run, preparer, _source(source_id), revision))
+            return "Preparation claimed"
+        if self.configure is None:
+            raise Refusal("STATE_CONFLICT", "This source has no mappings yet and none were given.", status=409)
+        config = self.configure()
+        note_bytes = _note_workbook(self.note)
+        evidence = stage_upload(preparer.principal(), command_id=uuid.uuid4(), data=note_bytes, filename="test-load-note.xlsx",
+                                kind="other", scope={"scope_kind": "sites", "site_ids": [self.store.pk], "brand_ids": [],
+                                                     "sensitive_fields": ["cost", "financial"]},
+                                expected_sha256=sha256_hex(note_bytes), contains_fields=["cost", "financial"])
+        # After every configuration the source pins took effect, and in the past.
+        cutoff = max(timezone.now(), database_now())
+        while database_now() <= cutoff:
+            time.sleep(0.01)
+        full = {**config, "cutoff_at": cutoff.isoformat(), "valuation_evidence_id": str(evidence.pk),
+                "reconciliation_evidence_id": str(evidence.pk)}
+        act(preparer, soh_services.PREPARE, lambda run: soh_services.prepare(run, preparer, _source(source_id), full, revision))
+        self.log("Source prepared (mappings, costs, HSN).")
+        return "Mappings, costs and HSN prepared"
+
+    def _verify_or_submit(self, source: Any) -> str:
+        from ptmapper import soh_services
+
+        source_id, revision = source.pk, source.revision
+        included = source.rows.filter(quantity__gt=0, exclusion_reason="")
+        unverified = list(included.filter(verification={}).order_by("ordinal")
+                          .values_list("barcode", "quantity")[:soh_services.MAX_BATCH])
+        if unverified:
+            stager = self.stager()
+            observations = [{"barcode": b, "observed_qty": q, "observed_condition": "good", "reason": self.reason}
+                            for b, q in unverified]
+            act(stager, soh_services.STAGE, lambda run: soh_services.verify_rows(
+                run, stager, _source(source_id), observations, revision))
+            done, total = included.exclude(verification={}).count(), included.count()
+            self.log(f"Quantities recorded for {done} of {total} rows.")
+            return f"Quantities recorded ({done} of {total} rows)"
+        request = source.approval_request
+        if request is not None and request.state == "rejected" and request.revision == source.revision:
+            raise Refusal("SOH_SOURCE_REJECTED", "An approver rejected this source; withdraw it and upload a corrected one.",
+                          status=409)
+        preparer = self.preparer()
+        act(preparer, soh_services.PREPARE, lambda run: soh_services.submit(run, preparer, _source(source_id), revision))
+        self.log("Source submitted.")
+        return "Source submitted"
+
+    def _decide(self, request_id: Any, what: str) -> None:
+        """Approve one pending request: as ``approver``, else as its maker if the policy needs no second person."""
+        from importlib import import_module
+
+        from approvals.goods_models import ApprovalRequest
+        from approvals.goods_services import decide
+
+        request = ApprovalRequest.objects.get(pk=request_id)
+        action, reviewed_hash = request.requested_action, request.reviewed_hash
+        if self.approver is not None:
+            approver = self.approver()
+            act(approver, action, lambda run: decide(run, access=approver, request_id=request_id, decision="approve",
+                                                     reviewed_hash=reviewed_hash, reason_code=None))
+            return
+        auto = getattr(import_module("approvals.goods_services"), "decide_without_second_person", None)
+        if auto is None:
+            raise WaitingForApproval(f"Waiting for approval of {what}")
+        preparer = self.preparer()
+        try:
+            act(preparer, action, lambda run: auto(run, request_id))
+        except Refusal as exc:
+            if exc.code == "AUTO_APPROVAL_NOT_ALLOWED":
+                raise WaitingForApproval(f"Waiting for approval of {what}") from exc
+            raise
+
+    # -- one batch -------------------------------------------------------------
+
+    def _batch_step(self, source: Any, index: int, total: int) -> str | None:
+        from approvals.goods_models import ApprovalRequest
+        from core.kernel_models import DocumentHead
+        from ptmapper import goods_manifest_services as manifests
+        from ptmapper import soh_services
+        from ptmapper.goods_models import GoodsPt, OpeningManifest
+
+        batch = source.batches.filter(batch_index=index).first()
+        if batch is None:
+            preparer = self.preparer()
+            source_id, revision = source.pk, source.revision
+            act(preparer, soh_services.PREPARE, lambda run: soh_services.apply_batch(
+                run, preparer, _source(source_id), index, revision))
+            return "opening manifest made"
+        manifest = OpeningManifest.objects.get(pk=batch.manifest_id)
+        if manifest.approved_version_id is None:
+            pending = ApprovalRequest.objects.filter(subject_kind="manifest", subject_key=str(manifest.pk),
+                                                     state="pending").first()
+            if pending is None:
+                raise Refusal("STATE_CONFLICT", f"Batch {index}'s manifest is neither approved nor waiting for approval.",
+                              status=409)
+            self._decide(pending.pk, f"batch {index}'s opening manifest")
+            return "manifest approved"
+        pt = GoodsPt.objects.filter(manifest_version_id=manifest.approved_version_id).first()
+        if pt is None:
+            preparer = self.preparer()
+            manifest_id, profile = manifest.pk, source.configuration["profile_version_id"]
+            evidence_id = source.source_evidence_id
+            act(preparer, "pt.prepare.opening", lambda run: manifests.create_opening_draft(
+                run, manifest=OpeningManifest.objects.get(pk=manifest_id), profile_version_id=profile,
+                evidence_id=evidence_id))
+            return "opening PT drafted"
+        head = DocumentHead.objects.get(document_id=pt.document_id)
+        if head.state == DocumentHead.State.DRAFT:
+            preparer = self.preparer()
+            document_id, pt_id = pt.document_id, pt.pk
+            act(preparer, "pt.prepare.opening", lambda run: _submit_opening(run, document_id, pt_id))
+            return "opening PT submitted"
+        if head.state == DocumentHead.State.SUBMITTED:
+            pending = ApprovalRequest.objects.filter(subject_kind="document", subject_key=str(pt.document_id),
+                                                     state="pending").first()
+            if pending is None:
+                raise Refusal("STATE_CONFLICT", f"Batch {index}'s opening PT is submitted with no pending approval.",
+                              status=409)
+            self._decide(pending.pk, f"batch {index}'s opening PT")
+            return "opening PT approved"
+        if head.state != DocumentHead.State.OFFICIAL or head.live_version_id is None:
+            raise Refusal("STATE_CONFLICT", f"Batch {index}'s opening PT is {head.state}.", status=409)
+        return self._accept(head.live_version_id, index, total)
+
+    def _accept(self, version_id: Any, index: int, total: int) -> str | None:
+        """Accept onto the floor up to one scan request of the lines nobody has scanned yet."""
+        from core.kernel_models import OfficialLine
+        from masters.goods_models import Location
+        from stockledger import goods_acceptance
+        from stockledger.goods_models import AcceptanceEvent
+
+        scanned = set(AcceptanceEvent.objects.filter(official_line__version_id=version_id)
+                      .values_list("official_line_id", flat=True))
+        lines = list(OfficialLine.objects.filter(version_id=version_id).order_by("line_no"))
+        waiting = [line for line in lines if line.pk not in scanned]
+        if not waiting:
+            return None
+        stager, store_id = self.stager(), self.store.pk
+        floor = Location.objects.get(site=self.store, name="Floor")
+        session, _created = act(stager, "stock.accept", lambda run: goods_acceptance.open_session(
+            run, site_id=store_id, version_id=version_id))
+        session_id, session_revision = session.pk, session.revision
+        chunk = waiting[:goods_acceptance.MAX_OBSERVATIONS]
+        scans: list[dict[str, Any]] = []
+        for line in chunk:
+            payload = line.payload
+            mrp = payload.get("mrp_paise") or (payload.get("supplied") or {}).get("mrp_paise")
+            scans.append({"scan_key": str(uuid.uuid5(version_id, f"accept:{line.pk}")), "official_line_id": str(line.pk),
+                          "alias_value": payload["alias_as_used"], "observed_ticket_mrp_paise": str(mrp),
+                          "chosen_sku_id": str(payload["sku_id"]), "qty": int(payload["qty"]), "condition": "good",
+                          "location_id": str(floor.pk), "outcome": "accepted_good", "actual_at": timezone.now().isoformat()})
+        parsed = goods_acceptance.parse_scans(scans)
+        act(stager, "stock.accept", lambda run: goods_acceptance.scan(run, session_id, parsed, session_revision))
+        done = len(lines) - len(waiting) + len(chunk)
+        if done == len(lines):
+            self.log(f"Batch {index}/{total}: manifest and opening PT approved, {len(lines)} lines accepted onto the floor.")
+        return f"putting stock on the floor ({done} of {len(lines)} lines)"
+
+
+def _submit_opening(run: CommandRun, document_id: Any, goods_pt_id: Any) -> Any:
+    """Submit a draft opening PT, re-reading its head under lock (a retry never reuses a stale head)."""
+    from core.goods_documents import lock_heads
+    from core.kernel_models import DocumentHead
+    from ptmapper import goods_manifest_services as manifests
+    from ptmapper.goods_models import GoodsPt
+
+    head = lock_heads(run, [document_id]).get(document_id)
+    if head is None or head.state != DocumentHead.State.DRAFT or head.draft_revision is None:
+        raise Refusal("STATE_CONFLICT", "Only a draft opening PT can be submitted.", status=409)
+    goods_pt = GoodsPt.objects.select_related("manifest_version__manifest").get(pk=goods_pt_id)
+    return manifests.submit_opening(run, head, reviewed_hash=head.draft_revision.content_hash, goods_pt=goods_pt)
 
 
 class Loader:
@@ -768,9 +923,10 @@ class Loader:
         assert self.soh is not None
         driver = OpeningDriver(self.tenant, store, stager=lambda: access_for(self.email("store")),
                                preparer=lambda: access_for(self.email("preparer")),
-                               approver=lambda: access_for(owner_user(self.tenant).email), log=self.log)
+                               approver=lambda: access_for(owner_user(self.tenant).email), log=self.log,
+                               configure=lambda: config, note=TEST_NOTE, reason=SOH_REASON)
         source = driver.stage(self.soh, "legacy-soh.xlsx", metadata, rows)
-        driver.load(source, config, note=TEST_NOTE, reason=SOH_REASON)
+        driver.run(source.pk)
 
     def open_and_sell(self, warehouse: Any, store: Any) -> None:
         from accounts.goods_demo import OPS_TILL_COUNTER
@@ -816,9 +972,11 @@ class Loader:
             if is_real_store(store):
                 raise Refusal("TEST_TENANT_ONLY", "The test store loader runs only on a synthetic tenant.")
             self.people(warehouse, store)
-            if self.plan.warehouse_to_store_approval is not None:
+            transfer, opening = self.plan.warehouse_to_store_approval, self.plan.opening_approval
+            if transfer is not None or opening is not None:
                 approval_policies(self.tenant, self.owner_id,
-                                  auto_warehouse_to_store=not self.plan.warehouse_to_store_approval)
+                                  auto_warehouse_to_store=None if transfer is None else not transfer,
+                                  auto_opening=None if opening is None else not opening)
             if parsed is not None:
                 metadata, rows = parsed
                 config = catalogue_config(self.tenant, self.owner_id, [store, warehouse], rows, cost="soh", log=self.log)

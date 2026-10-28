@@ -19,7 +19,6 @@ from core.refusals import Refusal
 from files.goods_models import MAX_EVIDENCE_BYTES
 from files.goods_services import check_workbook, detect_media_type, stage_upload, XLSX
 from masters.models import Store
-from masters.store_features import is_real_store
 from masters.goods_identity_services import vocabulary
 from core.commands import database_now
 from ptmapper import pt_opening_services as quick
@@ -139,9 +138,7 @@ def source_dto(access: AccessContext, source: SohImport) -> dict[str, Any]:
             and access.covers_all({"count.run"}, {(source.site_id, None)})):
         allowed.append("reconcile")
     loading = quick.status(source)
-    if (not is_real_store(source.site) and source.state != "withdrawn" and loading.get("state") != "done"
-            and not quick.running(source) and "approve" in allowed
-            and str(access.human_id) not in {str(source.uploaded_by_id), str(source.prepared_by_id)}):
+    if quick.can_load(access, source):
         allowed.append("load")
     config = dict(source.configuration)
     if not protected:
@@ -288,6 +285,10 @@ class SohImportPtUploadView(GoodsAPIView):
 
         def handler(run: CommandRun) -> CommandResult:
             source = services.create_source(run, site_id=site_id, evidence=evidence, metadata=metadata, parsed=parsed)
+            # Openings with no second person (setup.json "opening": {"approval": false}): the upload starts the load.
+            if (quick.auto_opening(access.tenant_id) and source.state != "withdrawn"
+                    and quick.status(source).get("state") != "done"):
+                quick.enqueue(run, source.pk)
             return CommandResult(resource_type="soh_import", resource_id=str(source.pk), status_code=201)
 
         result = self.run_command(request, access=access, action=services.STAGE, meta=meta,
@@ -300,13 +301,16 @@ class SohImportPtUploadView(GoodsAPIView):
 
 
 class SohImportLoadView(GoodsAPIView):
-    """Store test run: the owner's one-click "Approve and load" (synthetic tenant only); progress on the source."""
+    """Store test run: (re)queue the source's opening load job (synthetic tenant only); progress on the source.
+
+    The uploader may always; an owner who approves openings may while they need approval.
+    """
 
     @extend_schema(operation_id="goods_v1_soh_import_load", responses={202: SCHEMA})
     def post(self, request: Request, pk: uuid.UUID) -> Response:
         access = self.access(request)
         source = _load(access, pk)
-        quick.start(access, source)
+        quick.request_load(access, source)
         dto = source_dto(access, _load(access, pk))
         access.revalidate_delivery()
         return Response(dto, status=202)

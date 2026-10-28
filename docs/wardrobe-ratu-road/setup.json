@@ -1,5 +1,5 @@
 {
-  "_note": "Store test run for The Wardrobe, Ratu Road (owner decisions 28 Oct 2026). Synthetic company and PAN; real people's names, test-only logins. The owner (K D Singh, kdsingh@wardrobe.test) is the deployment's bootstrap admin, so is not listed. Roles: owner, store_person, warehouse, it_admin, warehouse_manager, operations_head. Sites: store, warehouse or all. chip=false keeps a login off the sign-in page; salesperson=true places the person at the store and lists them on its till.",
+  "_note": "Store test run for The Wardrobe, Ratu Road (owner decisions 28 Oct 2026). Synthetic company and PAN; real people's names, test-only logins. The owner (K D Singh, kdsingh@wardrobe.test) is the deployment's bootstrap admin, so is not listed. Roles: owner, store_person, warehouse, it_admin, warehouse_manager, operations_head. Sites: store, warehouse or all. chip=false keeps a login off the sign-in page; salesperson=true places the person at the store and lists them on its till. opening.approval=false: the store opens from its PT files with no second person (alpha; recorded as NO_APPROVAL_REQUIRED decisions).",
   "entity": {
     "code": "syn-wardrobe",
     "name": "The Wardrobe Retail Pvt Ltd (synthetic)",
@@ -11,6 +11,7 @@
   "store": {"code": "WRR", "name": "The Wardrobe"},
   "warehouse": {"code": "RNC-WH", "name": "Warehouse Ranchi"},
   "transfers": {"warehouse_to_store_approval": false},
+  "opening": {"approval": false},
   "people": [
     {"email": "debanjan@wardrobe.test", "name": "Debanjan", "staff_code": "WRR-SM-01", "label": "Store manager", "salesperson": true,
      "roles": [{"role": "store_person", "sites": "store"}, {"role": "warehouse", "sites": "warehouse"}]},

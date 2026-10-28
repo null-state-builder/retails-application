@@ -20,7 +20,10 @@ from accounts.goods_demo import seed_working_calendar
 from accounts.goods_setup import bootstrap_deployment
 from accounts.models import User
 from accounts.registration_services import deployment_key
-from accounts.test_store_loader import Loader, OpeningDriver, Plan, access_for, act
+from accounts.test_store_loader import Loader, OpeningDriver, Plan, access_for, act, opening_auto_in_force
+from approvals.goods_models import ApprovalDecision
+from core.kernel_models import JobState, OutboxIntent
+from core.outbox import drain
 from core.refusals import Refusal
 from core.tenancy import tenant_context
 from files.goods_services import stage_upload
@@ -114,8 +117,34 @@ def test_reader_refuses_a_file_with_no_pt_sheet() -> None:
 # -- the store -----------------------------------------------------------------
 
 
-@pytest.fixture
-def store() -> Store:
+def stand_in_auto_decision(run: Any, request_id: Any) -> Any:
+    """``decide_without_second_person`` until the approvals change lands: the maker asks, the
+    test-store opening policy must carry the flag, and the tenant owner's decision is recorded."""
+    from accounts.goods_demo import owner_user
+    from accounts.test_store_loader import opening_auto_in_force
+    from approvals.goods_models import ApprovalRequest
+    from approvals.goods_services import decide
+    from masters.goods_models import Tenant
+
+    request = ApprovalRequest.objects.get(pk=request_id)
+    if str(request.maker_id) != str(run.principal.human_id):
+        raise Refusal("ACTION_DENIED", "Only the maker may ask for a decision with no second person.")
+    if not opening_auto_in_force(run.tenant_id):
+        raise Refusal("AUTO_APPROVAL_NOT_ALLOWED", "This opening needs a second person.")
+    owner = access_for(owner_user(Tenant.objects.get(pk=run.tenant_id)).email)
+    return act(owner, request.requested_action, lambda inner: decide(
+        inner, access=owner, request_id=request_id, decision="approve", reviewed_hash=request.reviewed_hash,
+        reason_code=None))
+
+
+def use_auto_decisions(monkeypatch: pytest.MonkeyPatch) -> None:
+    from approvals import goods_services
+
+    if not hasattr(goods_services, "decide_without_second_person"):
+        monkeypatch.setattr(goods_services, "decide_without_second_person", stand_in_auto_decision, raising=False)
+
+
+def build_store(*, approval: bool) -> Store:
     Season.objects.get_or_create(historical_unknown=True,
                                  defaults={"code": "UNKNOWN-HIST", "name": "Unknown historical season", "status": "closed"})
     tenant = bootstrap_deployment(deployment_key=deployment_key(), code="KDPS-TEST", name="KDPS Lifestyle (test)",
@@ -126,23 +155,47 @@ def store() -> Store:
         seed_working_calendar(tenant, User.objects.get(email=OWNER).human_id)
     plan = Plan(store_code="WRR", store_name="Wardrobe Ratu Road (test)", warehouse_code="RNC-WH",
                 warehouse_name="Warehouse Ranchi (test)", entity_code="syn-vas", entity_name="KDPS test entity",
-                pan="AAAVT4444D", state_code="20", state_name="Jharkhand (test)", city="Ranchi", prefix="wrr")
+                pan="AAAVT4444D", state_code="20", state_name="Jharkhand (test)", city="Ranchi", prefix="wrr",
+                opening_approval=approval)
     _warehouse, built = Loader(tenant, plan, None, lambda _line: None).run()
     with tenant_context(tenant.pk):
         assert sum(read_shelf(built).quantities.values()) == 0  # sell-ready, no stock yet
+        assert opening_auto_in_force(tenant.pk) is (not approval)
+    assert isinstance(built, Store)
     return built
+
+
+@pytest.fixture
+def store(monkeypatch: pytest.MonkeyPatch) -> Store:
+    """The alpha decision: a test store opens with no second person (setup ``opening.approval: false``)."""
+    use_auto_decisions(monkeypatch)
+    return build_store(approval=False)
+
+
+@pytest.fixture
+def approved_store(monkeypatch: pytest.MonkeyPatch) -> Store:
+    """Openings that still need an owner's approval."""
+    use_auto_decisions(monkeypatch)
+    return build_store(approval=True)
 
 
 def stage_pt(store: Store, files: list[tuple[str, bytes]], who: str = "wrr.store@synthetic.demo") -> SohImport:
     metadata, rows, _problems = parse_pt_files(files)
     driver = OpeningDriver(store.tenant, store, stager=lambda: access_for(who), preparer=lambda: access_for(who),
-                           approver=lambda: access_for(OWNER), log=lambda _line: None)
-    return driver.stage(evidence_workbook(rows), "PT opening.xlsx", metadata, rows)
+                           log=lambda _line: None)
+    source = driver.stage(evidence_workbook(rows), "PT opening.xlsx", metadata, rows)
+    assert isinstance(source, SohImport)
+    return source
+
+
+def uploader(source: SohImport) -> Any:
+    return quick.job_access(source.tenant_id, source.uploaded_by_id)
 
 
 def load(source: SohImport) -> dict[str, Any]:
-    stager, preparer, approver = quick.check(access_for(OWNER), source)
-    quick.load(source.pk, stager=stager, preparer=preparer, approver=approver)
+    """What the Load button does, then the goods worker."""
+    quick.request_load(uploader(source), source)
+    drain(source.tenant_id)
     source.refresh_from_db()
     return quick.status(source)
 
@@ -178,8 +231,9 @@ def test_pt_files_open_a_test_store_and_the_soh_brings_it_to_the_floor(store: St
         assert source.state == "applied"
 
         with pytest.raises(Refusal) as again:
-            quick.check(access_for(OWNER), source)
+            quick.request_load(uploader(source), source)
         assert again.value.code == "STATE_CONFLICT"  # loaded once
+        assert ApprovalDecision.objects.filter(request__site_id=store.pk).count() == 3  # source, manifest, PT
 
         sync = soh_sync(store, {"A1": 1, "A2": 4, "N1": 2})  # A1 sold 2, A2 two more found, N1 never in a PT
         assert sync.outcome["removed_qty"] == 2 and sync.outcome["added_qty"] == 2
@@ -189,22 +243,45 @@ def test_pt_files_open_a_test_store_and_the_soh_brings_it_to_the_floor(store: St
         assert sum(read_shelf(store).quantities.values()) == 5
 
 
-def test_load_needs_a_different_approving_owner_and_a_test_store(store: Store, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_the_uploader_loads_and_an_owner_only_while_openings_need_approval(
+        store: Store, monkeypatch: pytest.MonkeyPatch) -> None:
     with tenant_context(store.tenant_id):
         source = stage_pt(store, [("pt.xlsx", pt_book({"Sheet1": [pt_row("A1", 1)]}))])
-        with pytest.raises(Refusal) as denied:
-            quick.check(access_for("wrr.cashier@synthetic.demo"), source)
-        assert denied.value.code == "ACTION_DENIED"
-
-        own = stage_pt(store, [("own.xlsx", pt_book({"Sheet1": [pt_row("B1", 1)]}))], who=OWNER)
-        with pytest.raises(Refusal) as self_approval:
-            quick.check(access_for(OWNER), own)
-        assert self_approval.value.code == "SELF_APPROVAL"
+        for who in ("wrr.cashier@synthetic.demo", OWNER):  # not the uploader; no approval to give
+            with pytest.raises(Refusal) as denied:
+                quick.request_load(access_for(who), source)
+            assert denied.value.code == "ACTION_DENIED", who
+        assert quick.can_load(access_for("wrr.store@synthetic.demo"), source)
 
         monkeypatch.setattr(sync_services, "is_real_store", lambda _store: True)
         with pytest.raises(Refusal) as real:
-            quick.check(access_for(OWNER), source)
+            quick.request_load(uploader(source), source)
         assert real.value.code == "TEST_TENANT_ONLY"
+
+
+def test_with_approvals_on_the_load_waits_for_the_owner_and_resumes(approved_store: Store) -> None:
+    from approvals.goods_models import ApprovalRequest
+    from approvals.goods_services import decide
+
+    store = approved_store
+    with tenant_context(store.tenant_id):
+        source = stage_pt(store, [("pt.xlsx", pt_book({"Sheet1": [pt_row("A1", 2)]}))])
+        state = load(source)
+        assert state["state"] == "waiting_approval", state  # not a failure
+        assert state["step"] == "Waiting for approval of the source"
+        job = OutboxIntent.objects.get(kind=quick.JOB, subject_key=quick.subject(source.pk)).job
+        assert job.state == JobState.State.CONFIRMED
+        owner = access_for(OWNER)
+        assert quick.can_load(owner, source)  # the owner may resume while openings need approval
+        for _ in range(3):  # the source, the manifest, the opening PT
+            pending = ApprovalRequest.objects.get(site_id=store.pk, state="pending")
+            act(owner, pending.requested_action, lambda run, r=pending: decide(
+                run, access=owner, request_id=r.pk, decision="approve", reviewed_hash=r.reviewed_hash, reason_code=None))
+            quick.request_load(owner, source)
+            drain(store.tenant_id)
+            source.refresh_from_db()
+        assert quick.status(source)["state"] == "done", quick.status(source)
+        assert sum(read_shelf(store).quantities.values()) == 2
 
 
 def test_a_second_pt_opening_is_refused_once_the_store_has_stock(store: Store) -> None:
@@ -244,55 +321,241 @@ def test_a_batch_looks_its_barcodes_up_together_not_one_by_one(store: Store, mon
     assert queries <= 2  # was one per row (8 here, 5,000 in a full batch)
 
 
-# -- load_pt_opening (the same load from a server shell) ------------------------
+# -- resuming: every step is found from what is stored ----------------------------
 
 
-def test_load_pt_opening_stages_and_loads_then_resumes_nothing_twice(store: Store, tmp_path: Any) -> None:
+def steps_until(source: SohImport, label: str) -> None:
+    """Run the job's steps in-process up to and including the first one ending in ``label``."""
+    driver = quick.driver_for(source, log=lambda _line: None)
+    while True:
+        step = driver.next_step(source.pk)
+        assert step is not None, f"finished before {label!r}"
+        if step.endswith(label):
+            return
+
+
+def finish(source: SohImport) -> dict[str, Any]:
+    with quick.source_lock(source.pk) as taken:
+        assert taken
+        quick.drive(source.pk, budget=None)
+    source.refresh_from_db()
+    return quick.status(source)
+
+
+def test_a_draft_opening_pt_is_submitted_on_resume(store: Store) -> None:
+    from core.kernel_models import DocumentHead
+    from ptmapper.goods_models import GoodsPt
+
+    with tenant_context(store.tenant_id):
+        source = stage_pt(store, [("pt.xlsx", pt_book({"Sheet1": [pt_row("A1", 2), pt_row("A2", 1, size="L")]}))])
+        steps_until(source, "opening PT drafted")  # the 28 Oct server stopped here
+        pt = GoodsPt.objects.get(manifest_version__manifest__site=store)
+        assert DocumentHead.objects.get(document_id=pt.document_id).state == "draft"
+        state = finish(source)
+        assert state["state"] == "done", state
+        assert DocumentHead.objects.get(document_id=pt.document_id).state == "official"
+        assert sum(read_shelf(store).quantities.values()) == 3
+
+
+def test_a_half_verified_source_finishes_its_verification(store: Store) -> None:
+    from ptmapper import soh_services
+
+    with tenant_context(store.tenant_id):
+        source = stage_pt(store, [("pt.xlsx", pt_book({"Sheet1": [pt_row(f"V{n}", 1, size=f"S{n}") for n in range(3)]}))])
+        steps_until(source, "Mappings, costs and HSN prepared")
+        source.refresh_from_db()
+        preparer = quick.preparer_for(source)
+        act(preparer, soh_services.STAGE, lambda run: soh_services.verify_rows(
+            run, preparer, SohImport.objects.get(pk=source.pk),
+            [{"barcode": "V0", "observed_qty": 1, "observed_condition": "good", "reason": "partly counted"}],
+            source.revision))
+        state = finish(source)
+        assert state["state"] == "done", state
+        assert not source.rows.filter(quantity__gt=0, exclusion_reason="", verification={}).exists()
+        assert sum(read_shelf(store).quantities.values()) == 3
+
+
+def test_a_crash_before_acceptance_resumes_with_one_manifest_per_batch(
+        store: Store, monkeypatch: pytest.MonkeyPatch) -> None:
+    from stockledger import goods_acceptance
+
+    real = goods_acceptance.scan
+    crashes: list[int] = []
+
+    def crash_once(*args: Any, **kwargs: Any) -> Any:
+        if not crashes:
+            crashes.append(1)
+            raise RuntimeError("worker restarted")
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr(goods_acceptance, "scan", crash_once)
+    with tenant_context(store.tenant_id):
+        source = stage_pt(store, [("pt.xlsx", pt_book({"Sheet1": [pt_row("A1", 2), pt_row("A2", 1, size="L")]}))])
+        first = finish(source)
+        assert first["state"] == "failed" and first["error"].startswith("RuntimeError"), first
+        assert sum(read_shelf(store).quantities.values()) == 0
+        state = load(source)
+        assert state["state"] == "done", state
+        assert source.batches.count() == 1
+        assert sum(read_shelf(store).quantities.values()) == 3
+
+
+def test_a_rolled_back_opening_pt_submit_is_retried_on_a_fresh_head(
+        store: Store, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A serialization failure rolls back ``submit_opening`` and the command reruns the same handler.
+
+    Tests run inside one transaction, where ``execute_command`` does not retry, so the rollback
+    and rerun are made here; the handler must re-lock the head, not reuse the one the failed
+    attempt moved to "submitted" (the 28 Oct ``STATE_CONFLICT``).
+    """
+    from django.db import transaction
+
+    from accounts import test_store_loader as loader
+    from core.commands import execute_command as real_execute
+
+    class SerializationFailure(Exception):
+        pass
+
+    real_submit = loader._submit_opening
+    attempts: list[str] = []
+
+    def submit_then_fail_once(run: Any, document_id: Any, goods_pt_id: Any) -> Any:
+        result = real_submit(run, document_id, goods_pt_id)
+        attempts.append("submitted")
+        if len(attempts) == 1:
+            raise SerializationFailure("could not serialize access due to read/write dependencies")
+        return result
+
+    def execute_with_retry(principal: Any, spec: Any, handler: Any) -> Any:
+        try:
+            with transaction.atomic():
+                return real_execute(principal, spec, handler)
+        except SerializationFailure:
+            return real_execute(principal, spec, handler)
+
+    monkeypatch.setattr(loader, "_submit_opening", submit_then_fail_once)
+    monkeypatch.setattr("accounts.test_store_loader.execute_command", execute_with_retry)
+    with tenant_context(store.tenant_id):
+        state = load(stage_pt(store, [("pt.xlsx", pt_book({"Sheet1": [pt_row("A1", 2)]}))]))
+    assert attempts == ["submitted", "submitted"]
+    assert state["state"] == "done", state
+
+
+# -- the job --------------------------------------------------------------------
+
+
+def test_a_second_job_for_the_same_source_is_a_no_op(store: Store) -> None:
+    import psycopg
+    from django.db import connection
+
+    with tenant_context(store.tenant_id):
+        source = stage_pt(store, [("pt.xlsx", pt_book({"Sheet1": [pt_row("A1", 2)]}))])
+        intent = quick.request_load(uploader(source), source)
+        params = {**connection.get_connection_params(), "dbname": connection.settings_dict["NAME"]}
+        with psycopg.connect(**params) as other:  # another worker's session (advisory locks are per database)
+            other.execute("SELECT pg_advisory_lock(%s)", [quick._lock_key(source.pk)])
+            assert quick.running(source)
+            outcome = quick.run_load(intent)
+            assert (outcome.state, outcome.provider_ref) == ("confirmed", "already_loading")
+            source.refresh_from_db()
+            assert source.state == "uploaded" and not source.batches.exists()  # nothing done twice
+        outcome = quick.run_load(intent)
+        assert outcome.provider_ref == "done"
+
+
+def test_the_job_queues_its_continuation_when_its_time_is_up(store: Store, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(quick, "BUDGET", 0.0)
+    with tenant_context(store.tenant_id):
+        source = stage_pt(store, [("pt.xlsx", pt_book({"Sheet1": [pt_row("A1", 2)]}))])
+        intent = quick.request_load(uploader(source), source)
+        outcome = quick.run_load(intent)
+        assert outcome.state == "confirmed" and str(outcome.provider_ref).startswith("continues after")
+        follow = OutboxIntent.objects.get(request_key=uuid.uuid5(intent.request_key, "continue"))
+        assert follow.kind == quick.JOB and follow.job.state == JobState.State.PENDING
+        with pytest.raises(Refusal) as busy:
+            quick.request_load(uploader(source), source)  # a second Load while it runs
+        assert busy.value.code == "STATE_CONFLICT"
+        drain(store.tenant_id, rounds=60)
+        source.refresh_from_db()
+        jobs = [(j.intent.request_key == intent.request_key, j.state, j.attempts, j.error_code,
+                 [d.diagnostic for d in j.intent.deliveries.all()])
+                for j in JobState.objects.filter(intent__kind=quick.JOB).select_related("intent")]
+        assert quick.status(source)["state"] == "done", jobs
+        assert OutboxIntent.objects.filter(kind=quick.JOB, subject_key=quick.subject(source.pk)).count() > 3
+        assert sum(read_shelf(store).quantities.values()) == 2
+
+
+def test_uploading_pt_files_starts_the_opening(store: Store) -> None:
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    from rest_framework.test import APIRequestFactory, force_authenticate
+
+    from ptmapper.soh_views import SohImportPtUploadView
+
+    book = pt_book({"Sheet1": [pt_row("A1", 2), pt_row("A2", 1, size="L")]})
+    with tenant_context(store.tenant_id):
+        who = access_for("wrr.store@synthetic.demo")
+        request = APIRequestFactory().post("/api/goods-v1/ptmapper/soh-imports/pt-upload", {
+            "files": [SimpleUploadedFile("ratu road.xlsx", book)], "site_id": store.pk,
+            "command_id": str(uuid.uuid4()), "contract_version": "goods-v1"}, format="multipart")
+        force_authenticate(request, who.user, who.session)
+        response = SohImportPtUploadView.as_view()(request)
+        assert response.status_code == 201, response.data
+        assert response.data["data"]["quick_load"]["state"] == "running"
+        assert "load" not in response.data["allowed_actions"]  # already queued
+        drain(store.tenant_id)
+        source = SohImport.objects.get(pk=response.data["id"])
+        assert quick.status(source)["state"] == "done", quick.status(source)
+        assert sum(read_shelf(store).quantities.values()) == 3
+
+
+# -- open_test_store (the same load from a server shell) ------------------------
+
+
+def test_open_test_store_stages_loads_and_never_loads_twice(store: Store, tmp_path: Any) -> None:
     from django.core.management import CommandError, call_command
 
     path = tmp_path / "pt.xlsx"
     path.write_bytes(pt_book({"Sheet1": [pt_row("A1", 3), pt_row("A2", 2, size="L")]}))
     out = io.StringIO()
-    with pytest.raises(CommandError, match="needs --stager"):
-        call_command("load_pt_opening", "--store", store.code, "--pt", str(path))
-    with pytest.raises(CommandError, match="cannot also upload"):
-        call_command("load_pt_opening", "--store", store.code, "--pt", str(path), "--stager", OWNER)
-    call_command("load_pt_opening", "--store", store.code, "--pt", str(path), "--stager", "wrr.store@synthetic.demo",
-                 stdout=out)
-    assert "Done: 5 pieces on the floor" in out.getvalue()
+    call_command("open_test_store", "--store", store.code, "--pt", str(path), "--uploader", "wrr.store@synthetic.demo",
+                 "--foreground", stdout=out)
+    assert "Done: 5 pieces on the floor" in out.getvalue() and "all steps" in out.getvalue()
+    with pytest.raises(CommandError, match="0 open PT sources"):
+        call_command("open_test_store", "--store", store.code, "--uploader", "wrr.store@synthetic.demo")
     with tenant_context(store.tenant_id):
         assert sum(read_shelf(store).quantities.values()) == 5
         assert SohImport.objects.filter(site=store).count() == 1
-    with pytest.raises(CommandError, match="no PT source waiting"):
-        call_command("load_pt_opening", "--store", store.code)  # a loaded source is not loaded again
 
 
-def test_load_pt_opening_resumes_the_uploaded_source(store: Store) -> None:
-    from django.core.management import CommandError, call_command
+def test_open_test_store_queues_the_job_and_resumes_a_stopped_source(store: Store) -> None:
+    from django.core.management import call_command
 
     with tenant_context(store.tenant_id):
         source = stage_pt(store, [("pt.xlsx", pt_book({"Sheet1": [pt_row("A1", 2)]}))])
-        quick._record(source.pk, state="failed", error="RETRY_EXHAUSTED: busy")  # the web load that gave up
-    with pytest.raises(CommandError, match="already has a PT source"):
-        call_command("load_pt_opening", "--store", store.code, "--pt", __file__, "--stager", "wrr.store@synthetic.demo")
+        quick._record(source.pk, state="running", step="Batch 1 of 1")  # the 28 Oct thread that died
+        source.refresh_from_db()
+        assert quick.status(source)["state"] == "failed"  # no job and no shell holds it
     out = io.StringIO()
-    call_command("load_pt_opening", "--store", store.code, stdout=out)
-    assert "Done: 2 pieces on the floor" in out.getvalue()
+    call_command("open_test_store", "--store", store.code, "--uploader", "wrr.store@synthetic.demo", stdout=out)
+    assert "Load queued" in out.getvalue()
     with tenant_context(store.tenant_id):
+        drain(store.tenant_id)
         source.refresh_from_db()
         assert quick.status(source)["state"] == "done"
-        assert SohImport.objects.filter(site=store).count() == 1
+        assert sum(read_shelf(store).quantities.values()) == 2
 
 
-def test_load_pt_opening_keeps_the_page_guards(store: Store, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_open_test_store_keeps_the_guards(store: Store, monkeypatch: pytest.MonkeyPatch, tmp_path: Any) -> None:
     from django.core.management import CommandError, call_command
 
-    with tenant_context(store.tenant_id):
-        stage_pt(store, [("own.xlsx", pt_book({"Sheet1": [pt_row("B1", 1)]}))], who=OWNER)
-    with pytest.raises(CommandError, match="SELF_APPROVAL"):
-        call_command("load_pt_opening", "--store", store.code)
+    path = tmp_path / "pt.xlsx"
+    path.write_bytes(pt_book({"Sheet1": [pt_row("B1", 1)]}))
+    with pytest.raises(CommandError, match="No store NOPE"):
+        call_command("open_test_store", "--store", "NOPE", "--uploader", "wrr.store@synthetic.demo")
+    with pytest.raises(CommandError, match="No active login"):
+        call_command("open_test_store", "--store", store.code, "--uploader", "nobody@synthetic.demo")
+    with pytest.raises(CommandError, match="0 open PT sources"):
+        call_command("open_test_store", "--store", store.code, "--uploader", "wrr.store@synthetic.demo")
     monkeypatch.setattr(sync_services, "is_real_store", lambda _store: True)
     with pytest.raises(CommandError, match="TEST_TENANT_ONLY"):
-        call_command("load_pt_opening", "--store", store.code)
-    with pytest.raises(CommandError, match="No store NOPE"):
-        call_command("load_pt_opening", "--store", "NOPE")
+        call_command("open_test_store", "--store", store.code, "--pt", str(path), "--uploader", "wrr.store@synthetic.demo")

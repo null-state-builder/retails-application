@@ -1,9 +1,9 @@
 // Store test run (test tenant only): open a store from its PT files.
-// The store person uploads the store's KDPS PT workbooks; an owner checks the
-// preview and clicks "Approve and load". The server then runs the reviewed
-// opening path itself - mappings, cost = P RATE, the file quantities as the
-// count, approvals and acceptance onto the floor - so nothing is scanned.
-// The same button takes in the new items a nightly SOH sync stages.
+// The store person uploads the store's KDPS PT workbooks. A server job then runs
+// the reviewed opening path itself - mappings, cost = P RATE, the file
+// quantities as the count, approvals and acceptance onto the floor - so nothing
+// is scanned. With no second person needed (the store's setup) the upload starts
+// it; otherwise it waits for an owner's approval and "Load" resumes it.
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
@@ -27,7 +27,7 @@ interface PtSummary {
   problem_count: number;
 }
 interface QuickLoad {
-  state?: "running" | "done" | "failed";
+  state?: "running" | "done" | "failed" | "waiting_approval";
   step?: string;
   error?: string | null;
   log?: string[];
@@ -62,6 +62,7 @@ function status(source: Source): string {
   if (load.state === "done") return "Loaded – ready to sell";
   if (load.state === "running") return load.step ?? "Loading…";
   if (load.state === "failed") return "Load failed";
+  if (load.state === "waiting_approval") return load.step ?? "Waiting for approval";
   return source.state === "applied" ? "Loaded" : "Waiting for owner approval";
 }
 
@@ -119,13 +120,13 @@ export function PtOpeningPanel({ siteId }: { siteId: string }) {
     form.append("contract_version", "goods-v1");
     await api.post<Source>(`${BASE}/pt-upload`, form);
     setFiles([]);
-    setOk("PT files uploaded. An owner can now check the preview and load the stock.");
+    setOk("PT files uploaded. Loading starts on its own unless an approval is needed.");
     await refresh();
   }
 
   async function load(source: Source) {
     await stepUp.guarded(() => api.post<Source>(`${BASE}/${source.id}/load`, {}));
-    setOk("Loading started. This can take a few minutes; you can stay on this page.");
+    setOk("Loading started. This takes a minute or two; you can stay on this page.");
     await refresh();
   }
 
@@ -273,7 +274,11 @@ export function PtOpeningPanel({ siteId }: { siteId: string }) {
                 onClick={() => run(() => load(source))}
                 data-testid="pt-load"
               >
-                {progress.state === "failed" ? "Try loading again" : "Approve and load"}
+                {progress.state === "failed"
+                  ? "Try loading again"
+                  : progress.state === "waiting_approval"
+                    ? "Continue loading"
+                    : "Load"}
               </button>
             )}
           </article>
