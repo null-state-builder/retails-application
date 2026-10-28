@@ -325,10 +325,23 @@ def _ensure_working_locations(tenant_id: Any, site: Any) -> None:
     )
 
 
-def _owner_human_id(tenant: Any) -> Any:
+def owner_user(tenant: Any) -> Any:
+    """The synthetic tenant's owner login: ``syn.owner`` when seeded, else the first
+    active login holding an open all-sites owner assignment (the bootstrap admin)."""
+    from accounts.goods_models import RoleAssignment
     from accounts.models import User
 
     owner = User.objects.filter(email__iexact=f"syn.owner@{SYNTHETIC_DOMAIN}").first()
+    if owner is not None:
+        return owner
+    humans = RoleAssignment.objects.filter(
+        tenant_id=tenant.pk, role__code="owner", all_sites=True, effective_to__isnull=True, revoked_at__isnull=True
+    ).values_list("human_id", flat=True)
+    return User.objects.filter(human_id__in=humans, is_active=True).order_by("date_joined", "pk").first()
+
+
+def _owner_human_id(tenant: Any) -> Any:
+    owner = owner_user(tenant)
     if owner is None or owner.human_id is None:
         raise Refusal(
             "STATE_CONFLICT",
@@ -584,13 +597,12 @@ def seed_ops_till(tenant: Any, store: Any) -> Any:
     window is left empty: OPS-09 issues and renews the 24-hour authority an
     offline till bills under, and a seed has no business minting one.
     """
-    from accounts.models import User
     from sell.models import RegisteredTill
 
     existing = RegisteredTill.objects.filter(store=store, active=True).first()
     if existing is not None:
         return existing
-    owner = User.objects.filter(email__iexact=f"syn.owner@{SYNTHETIC_DOMAIN}").first()
+    owner = owner_user(store.tenant)
     if owner is None:
         raise Refusal(
             "STATE_CONFLICT", "The synthetic owner must be seeded before the till is registered."
@@ -604,7 +616,7 @@ def seed_ops_till(tenant: Any, store: Any) -> Any:
     )
 
 
-def seed_ops_selling(store: Any) -> None:
+def seed_ops_selling(store: Any, *, counters: bool = True) -> None:
     """What the ready store needs before its till can write a bill (idempotent).
 
     Two things, both of which the foundation seed gives every *legacy* selling
@@ -625,7 +637,7 @@ def seed_ops_selling(store: Any) -> None:
     from core.fiscal import financial_year, next_financial_year
     from sell.services.salespeople import ensure_salesperson
 
-    for code, name in (("S1", "Counter One"), ("S2", "Counter Two")):
+    for code, name in (("S1", "Counter One"), ("S2", "Counter Two")) if counters else ():
         ensure_salesperson(store, f"{store.code}-{code}", f"{name} ({store.code})")
     for fy in (financial_year(), next_financial_year()):
         for doc_type in ("SAL", "CRN", "SRT"):

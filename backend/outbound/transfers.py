@@ -1071,6 +1071,52 @@ def decide_approval(run: CommandRun, transfer_id: uuid.UUID, context: Any) -> di
     if completed + 1 < len(steps):
         return {"_approval_pending": True, "state": "submitted", "completed_steps": completed + 1,
                 "total_steps": len(steps)}
+    return _approve_and_reserve(run, transfer, pt_head, goods_pt, correction, reason)
+
+
+def approve_without_second_person(run: CommandRun, transfer_id: uuid.UUID) -> bool:
+    """Approve a just-submitted warehouse → store transfer whose pinned policy needs no second person.
+
+    Its own command after the submit (the submit's draft lines are only readable once that command
+    ends). Anything else - another route, a changed transfer, a stale pin - is left submitted for a
+    normal approval, so a failure here never loses the transfer.
+    """
+    from outbound import transfer_authority
+
+    transfer, head = _locked(run, transfer_id, site_locked=True)
+    if transfer.state != GoodsTransfer.State.SUBMITTED:
+        return False
+    request = transfer_authority.request_for(transfer)
+    if request.state != "pending" or not transfer_authority.auto_approves(transfer, request):
+        return False
+    if str(run.principal.human_id) != str(_submitter(transfer)):
+        raise Refusal("ACTION_DENIED", "Only the person who sent this transfer confirms it.", status=403)
+    goods_pt = _pt_of(transfer)
+    pt_head = lock_heads(run, [goods_pt.document_id])[goods_pt.document_id]
+    transfer_authority.validate(run, transfer, head, pt_head, request)
+    transfer_authority.record_auto(run, request)
+    _approve_and_reserve(run, transfer, pt_head, goods_pt, None, transfer_authority.AUTO_REASON, auto=True)
+    return True
+
+
+def _approve_and_reserve(
+    run: CommandRun,
+    transfer: GoodsTransfer,
+    pt_head: DocumentHead,
+    goods_pt: GoodsPt | None,
+    correction: Any,
+    reason: str | None,
+    *,
+    auto: bool = False,
+) -> dict[str, Any]:
+    """Officialise the transfer PT and reserve its exact pieces (P07): the effect of the last approval.
+
+    ``auto``: no second person approved - the pinned policy lets a warehouse → store
+    transfer through on submit (``transfer_authority.auto_approves``).
+    """
+    pre_pt = transfer.custody == PRE_PT
+    if correction is not None:
+        from outbound import transfer_excess
     lines: list[tuple[uuid.UUID, Mapping[str, Any]]] = _official_lines_from_draft(pt_head)
     engine.lock_lots(
         run,
@@ -1161,7 +1207,7 @@ def decide_approval(run: CommandRun, transfer_id: uuid.UUID, context: Any) -> di
                 "pt_version_id": str(version.pk),
                 "reason": reason,
             }
-        ),
+        ) | ({"auto": True} if auto else {}),
     )
     run.audit_subject_key = f"transfer:{transfer.pk}"
     run.audit_site_id = transfer.source_site_id

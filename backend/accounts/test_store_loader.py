@@ -24,11 +24,13 @@ Refuses unless the tenant is synthetic.
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import timedelta
+from pathlib import Path
 from typing import Any
 
 from django.utils import timezone
@@ -38,6 +40,7 @@ from accounts.goods_demo import (
     CATALOGUE_SIZES,
     SEED_REASON,
     SYNTHETIC_DOMAIN,
+    SYNTHETIC_PASSWORD,
     PersonaSpec,
     SiteSpec,
     _build_sites,
@@ -45,10 +48,12 @@ from accounts.goods_demo import (
     _ensure_working_locations,
     _open_ops_site,
     _owner_human_id,
+    owner_user,
     _publish_site_master_records,
     _publish_tenant_config as _publish_config,
     seed_goods_personas,
     seed_ops_selling,
+    seed_working_calendar,
 )
 from core.commands import CommandResult, CommandRun, CommandSpec, execute_command
 from core.refusals import Refusal
@@ -75,6 +80,27 @@ SOH_REASON = "Store test run: legacy SOH quantity, not a physical count"
 PT_REASON = "Store test run: PT file quantity, not a physical count"
 
 
+#: Roles a setup file may name; scopes are "store", "warehouse", a list of both, or "all".
+SETUP_ROLES = frozenset({"owner", "store_person", "warehouse", "it_admin", "accounts", "brand_manager",
+                         "warehouse_manager", "operations_head"})
+SITE_SCOPES = frozenset({"store", "warehouse"})
+
+
+@dataclass(frozen=True)
+class Person:
+    """One named login from a setup file (``--setup``)."""
+
+    email: str
+    name: str
+    staff_code: str
+    #: (role code, "all" or a tuple of "store"/"warehouse")
+    roles: tuple[tuple[str, str | tuple[str, ...]], ...]
+    label: str = ""
+    chip: bool = True
+    #: Placed at the store and listed on its till as someone who sells.
+    salesperson: bool = False
+
+
 @dataclass(frozen=True)
 class Plan:
     store_code: str
@@ -88,6 +114,50 @@ class Plan:
     state_name: str
     city: str
     prefix: str  # login prefix, e.g. "vas"
+    #: Named people from a setup file; empty means the ``{prefix}.store/cashier/...`` set.
+    people: tuple[Person, ...] = ()
+    #: False: a warehouse → store transfer needs no second person (``approval_policies``); None keeps what is in force.
+    warehouse_to_store_approval: bool | None = None
+
+
+def plan_from_setup(path: Path) -> Plan:
+    """Read a store setup file (see ``docs/wardrobe-ratu-road/setup.json``)."""
+    data = json.loads(path.read_text())
+    entity, store, warehouse = data["entity"], data["store"], data["warehouse"]
+    people: list[Person] = []
+    emails: set[str] = set()
+    for row in data["people"]:
+        email = str(row["email"]).strip().lower()
+        if email in emails:
+            raise Refusal("INVALID_REQUEST", f"{email} is listed twice.")
+        emails.add(email)
+        roles: list[tuple[str, str | tuple[str, ...]]] = []
+        for grant in row["roles"]:
+            role, sites = str(grant["role"]), grant["sites"]
+            if role not in SETUP_ROLES:
+                raise Refusal("INVALID_REQUEST", f"{email}: unknown role {role}.")
+            scope: str | tuple[str, ...] = "all" if sites == "all" else tuple([sites] if isinstance(sites, str) else sites)
+            if scope != "all" and (not scope or set(scope) - SITE_SCOPES):
+                raise Refusal("INVALID_REQUEST", f"{email}: sites must be store, warehouse or all.")
+            roles.append((role, scope))
+        people.append(Person(email=email, name=str(row["name"]), staff_code=str(row["staff_code"]),
+                             roles=tuple(roles), label=str(row.get("label") or row["name"]),
+                             chip=bool(row.get("chip", True)), salesperson=bool(row.get("salesperson", False))))
+    if not any(role == "store_person" and scope != "all" and "store" in scope
+               for person in people for role, scope in person.roles):
+        raise Refusal("INVALID_REQUEST", "Name at least one store person at the store.")
+    if not any(_is_preparer(person.email) for person in people):
+        raise Refusal("INVALID_REQUEST", "Name an opening preparer login (an email whose name ends in 'preparer').")
+    return Plan(store_code=store["code"], store_name=store["name"], warehouse_code=warehouse["code"],
+                warehouse_name=warehouse["name"], entity_code=entity["code"], entity_name=entity["name"],
+                pan=entity["pan"], state_code=entity["state_code"], state_name=entity["state_name"],
+                city=entity["city"], prefix=store["code"].lower(), people=tuple(people),
+                warehouse_to_store_approval=bool((data.get("transfers") or {}).get("warehouse_to_store_approval", True)))
+
+
+def _is_preparer(email: str) -> bool:
+    """The opening preparer login: its local part ends in ``preparer`` (``vas.preparer@``, ``preparer@``)."""
+    return email.split("@", 1)[0].lower().endswith("preparer")
 
 
 def _publish_tenant_config(tenant: Any, approver: Any, *, kind: str, payload: dict[str, Any], label: str) -> Any:
@@ -229,12 +299,7 @@ def catalogue_config(tenant: Any, owner_id: Any, sites: list[Any], rows: list[An
         "family": "fashion", "columns": [], "directions": ["both_supplied"], "allow_row_override": True,
         "rates_version_id": str(rates.pk), "tax_version_id": str(tax.pk),
         "opening_rules": {"season_required": True, "both_supplied": True}}, label="test-store-profile")
-    for action, roles in (("pt.approve.opening", ["owner"]), ("pt.approve.receipt", ["owner"]),
-                          ("pt.approve.transfer", ["owner", "warehouse_manager"])):
-        _publish_tenant_config(tenant, owner_id, kind="approval", payload={
-            "action": action, "roles": roles, "site_ids": [], "brand_ids": [], "require_distinct": True,
-            "qty_max": 1_000_000, "value_max": "100000000000", "step_up": True, "unknown_value": "refuse"},
-            label=f"test-store-{action}")
+    approval_policies(tenant, owner_id)
     # Brands: match by name, else create.
     by_name = {b.name.casefold(): b for b in Brand.objects.filter(tenant_id=tenant.pk)}
     brand_map: dict[str, str] = {}
@@ -274,6 +339,41 @@ def catalogue_config(tenant: Any, owner_id: Any, sites: list[Any], rows: list[An
             "profile_version_id": str(profile.pk), "rate_meaning": "reviewed_row_values" if cost == "pt" else "basic_ex_tax",
             "source_store_confirmed": True, "fresh_source_confirmed": True,
             "quality_note": note, "external_reconciliation_note": note}
+
+
+def approval_policies(tenant: Any, owner_id: Any, *, auto_warehouse_to_store: bool | None = None) -> None:
+    """The test tenant's approval routes: openings and receipts by the owner; transfers by the owner,
+    a warehouse manager or an operations head (whichever roles exist).
+
+    ``auto_warehouse_to_store`` (a setup file's ``transfers.warehouse_to_store_approval: false``) lets a
+    warehouse → store transfer through on submit; ``None`` keeps what is in force, so a later opening
+    load does not undo the store's decision.
+    """
+    from accounts.models import Role
+    from outbound.transfer_authority import AUTO_FLAG
+
+    if auto_warehouse_to_store is None:
+        auto_warehouse_to_store = bool(_in_force_approval(tenant.pk, "pt.approve.transfer").get(AUTO_FLAG))
+    custom = set(Role.objects.filter(tenant_id=tenant.pk, is_active=True,
+                                     code__in=("warehouse_manager", "operations_head")).values_list("code", flat=True))
+    transfer_roles = ["owner", *sorted(custom)]
+    for action, roles in (("pt.approve.opening", ["owner"]), ("pt.approve.receipt", ["owner"]),
+                          ("pt.approve.transfer", transfer_roles)):
+        payload: dict[str, Any] = {
+            "action": action, "roles": roles, "site_ids": [], "brand_ids": [], "require_distinct": True,
+            "qty_max": 1_000_000, "value_max": "100000000000", "step_up": True, "unknown_value": "refuse"}
+        if action == "pt.approve.transfer" and auto_warehouse_to_store:
+            payload[AUTO_FLAG] = True
+        _publish_tenant_config(tenant, owner_id, kind="approval", payload=payload, label=f"test-store-{action}")
+
+
+def _in_force_approval(tenant_id: Any, action: str) -> dict[str, Any]:
+    from core.commands import database_now
+    from masters.goods_config import effective_at
+
+    versions = [v for v in effective_at(tenant_id, "approval", database_now())
+                if isinstance(v.payload, dict) and v.payload.get("action") == action]
+    return dict(max(versions, key=lambda v: v.version).payload) if versions else {}
 
 
 def _season_versions(tenant: Any, season_ids: list[int]) -> None:
@@ -415,7 +515,11 @@ class OpeningDriver:
         batches = (source.rows.filter(quantity__gt=0, exclusion_reason="").count() + soh_services.MAX_BATCH - 1) // soh_services.MAX_BATCH
         floor = Location.objects.get(site=store, name="Floor")
         for index in range(1, batches + 1):
-            step(f"Batch {index} of {batches}: opening PT and putting stock on the floor")
+            # Each sub-step refreshes the progress record, so a long batch never looks stopped.
+            def batch_step(text: str, index: int = index) -> None:
+                step(f"Batch {index} of {batches}: {text}")
+
+            batch_step("making the opening manifest")
             stager, preparer = self.stager(), self.preparer()
             source.refresh_from_db()
             batch = source.batches.filter(batch_index=index).first()
@@ -424,10 +528,12 @@ class OpeningDriver:
             manifest: Any = batch.manifest
             pending = ApprovalRequest.objects.filter(subject_kind="manifest", subject_key=str(manifest.pk), state="pending").first()
             if pending:
+                batch_step("approving the manifest")
                 self._approve(pending)
             manifest.refresh_from_db()
             pt: Any = GoodsPt.objects.filter(manifest_version__manifest=manifest).first()
             if pt is None:
+                batch_step("opening the PT")
                 _identity, head, pt = act(preparer, "pt.prepare.opening", lambda run, m=manifest: manifests.create_opening_draft(
                     run, manifest=m, profile_version_id=config["profile_version_id"], evidence_id=source.source_evidence_id))
                 act(preparer, "pt.prepare.opening", lambda run, h=head, g=pt: manifests.submit_opening(
@@ -435,7 +541,9 @@ class OpeningDriver:
             identity_id = pt.document_id
             pending = ApprovalRequest.objects.filter(subject_kind="document", subject_key=str(identity_id), state="pending").first()
             if pending:
+                batch_step("approving the PT")
                 self._approve(pending)
+            batch_step("putting stock on the floor")
             version: Any = DocumentHead.objects.get(document_id=identity_id).live_version
             session, _ = act(stager, "stock.accept", lambda run, v=version: goods_acceptance.open_session(run, site_id=store.pk, version_id=v.pk))
             lines = list(OfficialLine.objects.filter(version=version).order_by("line_no"))
@@ -452,6 +560,7 @@ class OpeningDriver:
                               "qty": int(payload["qty"]), "condition": "good", "location_id": str(floor.pk),
                               "outcome": "accepted_good", "actual_at": timezone.now().isoformat()})
             for start in range(0, len(scans), goods_acceptance.MAX_OBSERVATIONS):
+                batch_step(f"putting stock on the floor ({start} of {len(scans)} lines done)")
                 parsed_scans = goods_acceptance.parse_scans(scans[start:start + goods_acceptance.MAX_OBSERVATIONS])
                 session.refresh_from_db()
                 session = act(stager, "stock.accept", lambda run, c=parsed_scans, ss=session: goods_acceptance.scan(run, ss.pk, c, ss.revision))
@@ -459,14 +568,25 @@ class OpeningDriver:
 
 
 class Loader:
-    def __init__(self, tenant: Any, plan: Plan, soh: bytes | None, log: Callable[[str], None]) -> None:
+    def __init__(self, tenant: Any, plan: Plan, soh: bytes | None, log: Callable[[str], None], *,
+                 password_for: Callable[[str], str] | None = None) -> None:
         self.tenant, self.plan, self.soh, self.log = tenant, plan, soh, log
         self.owner_id = _owner_human_id(tenant)
+        self.password_for = password_for or (lambda _email: SYNTHETIC_PASSWORD)
+        #: Logins this run created, with the password each was given.
+        self.created: dict[str, str] = {}
 
     def seed_command(self, action: str, key: str, handler: Callable[[CommandRun], Any]) -> Any:
         return seed_command(self.tenant, action, key, handler)
 
     def email(self, who: str) -> str:
+        """The login for a job: a setup file's named person, else ``{prefix}.{who}``."""
+        if self.plan.people:
+            if who == "preparer":
+                return next(p.email for p in self.plan.people if _is_preparer(p.email))
+            if who == "store":
+                return next(p.email for p in self.plan.people
+                            if any(r == "store_person" and s != "all" and "store" in s for r, s in p.roles))
         return f"{self.plan.prefix}.{who}@{SYNTHETIC_DOMAIN}"
 
     # -- steps -------------------------------------------------------------
@@ -508,6 +628,9 @@ class Loader:
         self.seed_command("link", f"{store.pk}:{warehouse.pk}", handler)
 
     def people(self, warehouse: Any, store: Any) -> None:
+        if self.plan.people:
+            self.named_people(warehouse, store)
+            return
         from accounts import warehouse_manager
         from accounts.goods_setup import seed_role_assignment
         from accounts.models import User
@@ -539,6 +662,68 @@ class Loader:
             warehouse_manager.assign(self.tenant, human, site_ids=[warehouse.pk, store.pk])
         self.log("People ready: store, cashier, warehouse, preparer and two warehouse managers.")
 
+    def named_people(self, warehouse: Any, store: Any) -> None:
+        """The setup file's people: one login each, then each listed role over its sites."""
+        from accounts import operations_head, warehouse_manager
+        from accounts.goods_setup import create_person, seed_role_assignment, service_principal
+        from accounts.models import User
+
+        now = timezone.now()
+        site_pk = {"store": store.pk, "warehouse": warehouse.pk}
+        for person in self.plan.people:
+            if not User.objects.filter(email__iexact=person.email).exists():
+                password = self.password_for(person.email)
+
+                def handler(run: CommandRun, person: Person = person, password: str = password) -> CommandResult:
+                    human, _user = create_person(run, email=person.email, display_name=person.name,
+                                                 staff_code=person.staff_code, password=password)
+                    return CommandResult(resource_type="human", resource_id=str(human.pk), status_code=201)
+
+                execute_command(service_principal(self.tenant.pk, "seed"), CommandSpec(
+                    action="seed.goods_persona",
+                    command_id=uuid.uuid5(self.tenant.deployment_key, f"test-store-person:{person.email}"),
+                    business_input={"staff_code": person.staff_code}), handler)
+                self.created[person.email] = password
+            human = User.objects.get(email__iexact=person.email).human
+            for role, scope in person.roles:
+                every = scope == "all"
+                sites = [] if every else sorted(site_pk[name] for name in scope)
+                if role == warehouse_manager.ROLE_CODE:
+                    warehouse_manager.assign(self.tenant, human, site_ids=sites or list(site_pk.values()))
+                elif role == operations_head.ROLE_CODE:
+                    operations_head.assign(self.tenant, human, site_ids=sites, all_sites=every)
+                elif every:
+                    self._tenant_wide(human, role, now)
+                else:
+                    seed_role_assignment(self.tenant, human, role, source_key=f"test-store:{person.email}:{role}",
+                                         site_ids=sites, all_brands=True, effective_from=now)
+            if person.salesperson:
+                self._salesperson(human, store, now)
+        self.log(f"People ready: {', '.join(p.name for p in self.plan.people)}.")
+
+    def _salesperson(self, human: Any, store: Any, now: Any) -> None:
+        """Mark the person's staff record as a salesperson placed at ``store`` (once), as People would."""
+        from accounts.goods_admin_services import (ACTION_STAFF_UPDATE, NO_PLACEMENT, StaffFields, placements,
+                                                   update_staff)
+        from accounts.goods_models import Staff
+        from accounts.goods_setup import service_principal
+
+        staff = Staff.objects.get(tenant_id=self.tenant.pk, human=human)
+        placed = placements([staff.pk]).get(staff.pk, NO_PLACEMENT).site_id == store.pk
+        if staff.salesperson and placed:
+            return
+        present = {"salesperson"} | (set() if placed else {"site_id", "effective_from"})
+        fields = StaffFields(present=frozenset(present), salesperson=True,
+                             site_id=None if placed else store.pk, effective_from=None if placed else now)
+
+        def handler(run: CommandRun) -> CommandResult:
+            update_staff(run, staff_id=staff.pk, expected_revision=None, fields=fields)
+            return CommandResult(resource_type="staff", resource_id=str(staff.pk))
+
+        execute_command(service_principal(self.tenant.pk, "seed"), CommandSpec(
+            action=ACTION_STAFF_UPDATE, command_id=uuid.uuid5(self.tenant.deployment_key, f"test-store-seller:{staff.pk}"),
+            business_input=fields.as_json(), site_id=store.pk), handler)
+
     def _tenant_wide(self, human: Any, role_code: str, now: Any) -> None:
         """One open all-sites, all-brands assignment of ``role_code``; a narrower open one is closed."""
         from accounts.goods_models import RoleAssignment
@@ -557,13 +742,12 @@ class Loader:
         assert self.soh is not None
         driver = OpeningDriver(self.tenant, store, stager=lambda: access_for(self.email("store")),
                                preparer=lambda: access_for(self.email("preparer")),
-                               approver=lambda: access_for(f"syn.owner@{SYNTHETIC_DOMAIN}"), log=self.log)
+                               approver=lambda: access_for(owner_user(self.tenant).email), log=self.log)
         source = driver.stage(self.soh, "legacy-soh.xlsx", metadata, rows)
         driver.load(source, config, note=TEST_NOTE, reason=SOH_REASON)
 
     def open_and_sell(self, warehouse: Any, store: Any) -> None:
         from accounts.goods_demo import OPS_TILL_COUNTER
-        from accounts.models import User
         from masters.goods_models import SiteGuard
         from sell.models import RegisteredTill
 
@@ -586,9 +770,10 @@ class Loader:
             guard.refresh_from_db()
         if not RegisteredTill.objects.filter(store=store, active=True).exists():
             RegisteredTill.objects.create(store=store, counter_id=OPS_TILL_COUNTER, active=True,
-                                          registered_by=User.objects.get(email__iexact=f"syn.owner@{SYNTHETIC_DOMAIN}"),
+                                          registered_by=owner_user(self.tenant),
                                           series_prefix=f"{store.code}-{OPS_TILL_COUNTER}")
-        seed_ops_selling(store)
+        # Named salespeople replace the placeholder "Counter One/Two" sellers.
+        seed_ops_selling(store, counters=not any(p.salesperson for p in self.plan.people))
         self.log(f"Opened for business: {warehouse.code} goods-ready; {store.code} goods- and sell-ready "
                  f"(lifecycle {guard.lifecycle}), counter {OPS_TILL_COUNTER} registered.")
 
@@ -599,10 +784,15 @@ class Loader:
 
         parsed = parse_soh(self.soh) if self.soh is not None else None
         with tenant_context(self.tenant.pk):
+            # Deadlines need an approved working calendar; idempotent on a tenant that has one.
+            seed_working_calendar(self.tenant, self.owner_id)
             warehouse, store = self.sites()
             if is_real_store(store):
                 raise Refusal("TEST_TENANT_ONLY", "The test store loader runs only on a synthetic tenant.")
             self.people(warehouse, store)
+            if self.plan.warehouse_to_store_approval is not None:
+                approval_policies(self.tenant, self.owner_id,
+                                  auto_warehouse_to_store=not self.plan.warehouse_to_store_approval)
             if parsed is not None:
                 metadata, rows = parsed
                 config = catalogue_config(self.tenant, self.owner_id, [store, warehouse], rows, cost="soh", log=self.log)

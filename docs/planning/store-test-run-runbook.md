@@ -1,55 +1,147 @@
-# Store test run runbook: Vaishnavi Singh More + linked warehouse
+# Store test run runbook: The Wardrobe, Ratu Road + its warehouse
 
 The legacy software is the real system. This one runs alongside it on a
-**synthetic test tenant** (see `store-test-run-decision.md`).
+**synthetic test tenant** (see `store-test-run-decision.md`). One store is
+functional: **The Wardrobe** (`WRR`, Ratu Road, Ranchi), with its linked
+warehouse **Warehouse Ranchi** (`RNC-WH`). Store, company and people come from
+[`docs/wardrobe-ratu-road/setup.json`](../wardrobe-ratu-road/setup.json).
 
-## Test server (VPS)
+## People
+
+| Person | Login (`@wardrobe.test`) | Role | Sites |
+| --- | --- | --- | --- |
+| K D Singh | `kdsingh` | owner + IT admin (bootstrap admin) | all |
+| Debanjan (store manager) | `debanjan` | store person; warehouse | store; warehouse |
+| Cashier 1, Cashier 2 | `cashier1`, `cashier2` | store person | store |
+| Priyo | `priyo` | operations head | all |
+| Tanmay, Mahender | `tanmay`, `mahender` | warehouse | warehouse |
+| (system) | `preparer` | warehouse + IT admin | prepares openings; no sign-in chip |
+
+- Debanjan and both cashiers are the store's salespeople (picked on each bill).
+- **Operations head** sees home, sell, stock and reports, approves transfers and
+  count differences, and has no money, setup or opening approval.
+- **Transfers:** warehouse → store needs **no approval**. Submitting asks for the
+  password again and the transfer is approved at once (reason
+  `NO_APPROVAL_REQUIRED`, named after the submitter), ready to dispatch. Any
+  other transfer (store → warehouse, corrections) waits for K D Singh or Priyo.
+- An opening needs three different people: the uploader (Debanjan), the
+  preparer (`preparer`, used by the server) and the approver (K D Singh).
+
+## Test server (VPS): rebuild for The Wardrobe
 
 The test runs on `https://kdps-pos.vercel.app` (Vercel), whose `/api` goes to
-the VPS (`deploy/README.md`). The VPS holds one **synthetic** tenant,
-`KDPS-TEST`, built once with:
+the VPS (`deploy/README.md`). The rebuild replaces the earlier Vaishnavi test
+data with a fresh DB that holds only The Wardrobe and its warehouse. Vercel
+needs no change.
+
+1. **Back up** and copy the dump off the server before going further:
+   ```bash
+   cd ~/kdps/deploy
+   mkdir -p ~/backups
+   docker compose exec -T db pg_dump -U kdps -Fc kdps > ~/backups/kdps-before-wardrobe-$(date +%F).dump
+   ```
+2. **Update the code:** `cd ~/kdps && git pull`.
+3. **Start empty** (irreversible; only once the dump is safe elsewhere):
+   ```bash
+   cd ~/kdps/deploy
+   docker compose down
+   docker volume rm kdps_pgdata kdps_appdata
+   docker compose up -d --build        # the API migrates the empty DB
+   ```
+4. **Tenant and owner** (choose K D Singh's password; it is not written anywhere
+   by the server):
+   ```bash
+   read -s KDPS_BOOTSTRAP_ADMIN_PASSWORD; export KDPS_BOOTSTRAP_ADMIN_PASSWORD
+   docker compose exec -T -e KDPS_BOOTSTRAP_ADMIN_PASSWORD api python manage.py bootstrap_deployment \
+     --synthetic --code KDPS-TEST --name "The Wardrobe (test)" \
+     --admin-email kdsingh@wardrobe.test --admin-name "K D Singh" --admin-staff-code OWN-01
+   ```
+5. **Store, warehouse and people** (about a minute; the working calendar,
+   approval policies, counter and salespeople are included):
+   ```bash
+   docker compose stop api
+   mkdir -p ~/kdps-secrets
+   docker compose run --rm --no-deps -e KDPS_BOOTSTRAP_ADMIN_PASSWORD \
+     -v ~/kdps/docs/wardrobe-ratu-road/setup.json:/setup/setup.json:ro -v ~/kdps-secrets:/out \
+     api python manage.py load_test_store --setup /setup/setup.json --password-file /out/test-logins.txt
+   docker compose start api
+   ```
+   Every new login gets its own random password, written only to
+   `~/kdps-secrets/test-logins.txt` (mode 600; `sudo chown $USER` it if the
+   container wrote it as root). `Synthetic@123` is not used on the server.
+6. **Sign-in chips:** the file's last line is a ready `KDPS_DEMO_LOGINS=...`
+   (the owner, Debanjan, both cashiers, Priyo, Tanmay and Mahender, but not the
+   preparer). Put it in `deploy/.env` and run `docker compose up -d api`.
+   Anyone who opens the site can then sign in as these people with one tap.
+7. **Switches** (`/setup/feature-switches`, as K D Singh): `tax-settings`,
+   `sales-report` and `transfer-documents`.
+8. **Pair the counter** at `/setup/first-store` on the shop's browser.
+9. **Open the store:** follow "Opening The Wardrobe" below.
+
+To restore the old data instead: `docker compose down`, remove the volumes,
+`up -d`, then `pg_restore -U kdps -d kdps --clean` the dump through
+`docker compose exec -T db`.
+
+## Opening The Wardrobe
+
+Owner's process (28 Oct 2026): set up the store empty, open it from its PT files
+(no scanning, cost = P RATE), then bring it to the legacy SOH. Synthetic tenant
+only.
+
+1. **Upload the PT files (Debanjan):** at `/goods/opening`, pick The Wardrobe
+   and, under "Opening from PT files", choose every PT file sent to it (KDPS
+   22-column .xlsx; every sheet with the PT header is read; save .xls/.csv as
+   .xlsx first). The preview shows barcodes, pieces, value at MRP and rows that
+   will be left out (no MRP or P RATE, P RATE above MRP, bad HSN such as
+   `2707122`, no barcode) or need a look (one barcode with different MRPs: the
+   last row is used). A store person does not see the P RATE value.
+2. **Approve and load (K D Singh):** same screen, **Approve and load**. Brands,
+   sizes and seasons are mapped by their spelling (blank PT seasons go to the
+   unknown historical season), with each row's HSN and P RATE. Everything goes
+   onto the Floor. The card shows progress.
+3. **Match the legacy SOH (Debanjan):** export the SOH from the legacy software
+   **after** step 2 finished, then upload it at `/goods/stock-sync` with that
+   export time. Sold pieces leave, extra pieces of known items are added, and
+   barcodes with no PT are staged as new items.
+   - An SOH exported before the PT load is refused (`SOH_BEFORE_STOCK`): it
+     cannot see those items, and would bring them in a second time.
+   - A wrong export time: **Discard** the preview and upload the same file
+     again with the right time.
+4. **Load the new items (K D Singh):** **Approve and load** on "New items from
+   the SOH sync" at `/goods/opening` (cost = SOH Rate). Stock then equals the
+   SOH.
+5. **Sell** at `/sell` (Cashier 1 or 2), then follow "Each day" below.
+
+Local rehearsal, 28 Oct 2026, with the real files (5 PT files and
+`SOH_WARDROBE_28-10-2026.xlsx`):
+
+| Step | Result |
+| --- | --- |
+| PT preview | 303 barcodes, 362 pieces; 3 barcodes left out (bad HSN) |
+| PT load | 358 pieces of 300 barcodes; P RATE ₹6,42,276.80, MRP ₹9,69,488 |
+| SOH sync | 26 pieces out, 7 in; 5,000 new barcodes (13,339 pieces) staged |
+| Top-up load | about 7 minutes for 5,000 barcodes, one batch |
+| Stock after | 13,678 pieces of 5,279 barcodes, the SOH's own total |
+| One test sale | 13,677 pieces |
+
+A load counts as stopped after 30 minutes with no progress, so the batch
+reports each sub-step (manifest, PT, approvals, every 500 lines accepted).
+
+Run the same rehearsal locally, on a throwaway DB (never `kdps_local`):
 
 ```bash
-cd ~/kdps/deploy
-docker compose exec -T -e KDPS_BOOTSTRAP_ADMIN_PASSWORD=... api python manage.py bootstrap_deployment \
-  --synthetic --code KDPS-TEST --name "KDPS Lifestyle (test)" \
-  --admin-email syn.owner@synthetic.demo --admin-name "Synthetic Company Owner" --admin-staff-code OWN-01
-# then: seed_working_calendar(tenant, owner) in `manage.py shell` (the loader needs a calendar)
-docker compose stop api
-docker compose run --rm --no-deps -v ~/soh:/soh api python manage.py load_test_store --soh /soh/<file>.xlsx
-docker compose start api
+export KDPS_REHEARSAL_DB=kdps_rehearsal_wardrobe   # in backend/, with the local Postgres up
+.venv/bin/python manage.py migrate
+.venv/bin/python manage.py bootstrap_deployment --synthetic --code KDPS-TEST --name "The Wardrobe (test)" \
+  --admin-email kdsingh@wardrobe.test --admin-name "K D Singh" --admin-staff-code OWN-01   # with KDPS_BOOTSTRAP_ADMIN_PASSWORD set
+.venv/bin/python manage.py load_test_store --setup ../docs/wardrobe-ratu-road/setup.json
 ```
 
-The bootstrap admin must be `syn.owner@synthetic.demo`: the loader approves as
-that owner. After the load, the feature switches `tax-settings`,
-`sales-report` and `transfer-documents`, a tax-settings version and the
-warehouse operator's staff placement were made through the API as the owner.
+Locally every login uses `Synthetic@123`.
 
-Every login has its own password, kept only in `~kdps/test-logins.txt` (mode
-600) on the server; `Synthetic@123` is not used there.
+## Quick start from a legacy SOH (Vaishnavi, local only)
 
-The sign-in page's demo chips sign straight in as these logins (one tap, no
-password typing). Their passwords come from `KDPS_DEMO_LOGINS` in
-`deploy/.env`, built from `test-logins.txt`, so anyone who opens the site can
-sign in to the test store. After rotating passwords, rebuild that line and run
-`docker compose up -d api`, or the chips fail to sign in.
-
-| Login (`@synthetic.demo`) | Role | Used for |
-| --- | --- | --- |
-| `syn.owner` | owner + IT admin | setup and every approval (SOH, opening top-ups, transfers) |
-| `vas.store` | store person | receive, accept, sell, the nightly SOH upload |
-| `vas.cashier` | store person | billing |
-| `vas.warehouse` | warehouse | warehouse operations |
-| `vas.whm1`, `vas.whm2` | warehouse manager | transfers: one drafts, the other approves |
-| `vas.preparer` | warehouse + IT admin | prepares the opening top-ups the SOH sync stages |
-
-The store bills in counter (`historical`) mode, as the loader leaves it, so
-the online-mode gates in `setup_store_test_run` (invoice prefix, sell policy,
-online bill series, online selling) stay open there by design.
-
-## Quick start: one command
-
-On a synthetic tenant, this builds the store `VAS-SGMR` and its linked
+The earlier test store. On a synthetic tenant, this builds the store `VAS-SGMR` and its linked
 warehouse `VAS-WH`, creates the people, and loads the legacy SOH through the
 reviewed opening path:
 
@@ -75,45 +167,6 @@ Test-only choices:
 
 It is safe to re-run. Stop the goods worker while it loads, because the large
 opening documents conflict with it.
-
-## A new test store from its PT files: Wardrobe Ratu Road
-
-Owner's process (28 Oct 2026): set up the store empty, open it from its PT files
-(no scanning, cost = P RATE), then bring it to the legacy SOH. Synthetic tenant
-only.
-
-1. **Set up the store (operator, once):**
-   ```bash
-   docker compose stop api
-   docker compose run --rm --no-deps api python manage.py load_test_store \
-     --store WRR --store-name "Wardrobe Ratu Road (test)" \
-     --warehouse RNC-WH --warehouse-name "Warehouse Ranchi (test)" --prefix wrr
-   docker compose start api
-   ```
-   This creates the store and its linked warehouse, the `wrr.*` logins (store,
-   cashier, warehouse, preparer, whm1, whm2) and the counter, and leaves the
-   store sell-ready with no stock. Add the `wrr.*` passwords to
-   `test-logins.txt` and `KDPS_DEMO_LOGINS`, then pair the counter at
-   `/setup/first-store`.
-2. **Upload the PT files (`wrr.store`):** at `/goods/opening`, pick the store and,
-   under "Opening from PT files", choose every PT file sent to it (KDPS
-   22-column .xlsx; every sheet with the PT header is read, so the multi-sheet
-   work book is fine; save .xls/.csv as .xlsx first). The preview shows
-   barcodes, pieces, value at MRP and P RATE, and rows that will be left out
-   (no MRP or P RATE, P RATE above MRP, bad HSN, no barcode) or need a look
-   (one barcode with different MRPs: the last row is used).
-3. **Approve and load (`syn.owner`):** same screen, **Approve and load**. The
-   server maps brands, sizes and seasons by their spelling, uses each row's HSN
-   and P RATE, records the PT quantity as the count, approves, and accepts
-   everything onto the Floor. It takes a few minutes; the card shows progress.
-   The uploader, the preparer (`wrr.preparer`) and the approver are three
-   different people.
-4. **Match the floor (`wrr.store`):** at `/goods/stock-sync`, upload the legacy
-   SOH with its export time. Sold pieces leave, extra pieces of known items are
-   added, and barcodes with no PT are staged as new items; load those with the
-   same **Approve and load** button at `/goods/opening` (cost = SOH Rate).
-   An SOH upload before step 3 is refused (`OPENING_REQUIRED`).
-5. **Sell** at `/sell`, then follow "Each day" below.
 
 ## One-time setup (by hand)
 
@@ -156,11 +209,14 @@ only.
   environment" badge.
 - **Day:**
   - Bill test sales. Receipts print "TEST – NOT A TAX INVOICE".
-  - Try transfers between the warehouse and the store: draft (manager A),
-    approve (manager B), dispatch, count and accept at the store.
+  - Try transfers: warehouse → store is drafted and submitted at the
+    warehouse (Tanmay or Mahender) with no approval, dispatched, then counted
+    and accepted at the store (Debanjan). A store → warehouse return waits for
+    K D Singh or Priyo to approve.
 - **Night** (`/goods/stock-sync`), once the legacy day is closed:
   - **Preferred:** export the legacy SOH and upload it as "SOH". Enter the
-    export time, review the preview, then choose **Apply**.
+    export time, review the preview, then choose **Apply**. New items it stages
+    need K D Singh's **Approve and load** at `/goods/opening`.
   - **Or:** upload the day's "Sale report".
   - Review the exceptions. New items appear in `/goods/opening` as a top-up
     for review.

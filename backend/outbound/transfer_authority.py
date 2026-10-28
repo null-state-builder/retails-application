@@ -11,7 +11,7 @@ from collections.abc import Iterable
 from datetime import datetime
 from typing import Any
 
-from approvals.goods_models import ApprovalRequest
+from approvals.goods_models import ApprovalDecision, ApprovalRequest
 from approvals.goods_policy import Amounts, _check_in_force, band_failure, pin
 from approvals.goods_services import DecisionContext, create_request, decide, register_subject_cells, register_subject_handler
 from core.canonical import content_hash
@@ -89,6 +89,49 @@ def submit(run: CommandRun, transfer: GoodsTransfer, head: DocumentHead, plan: D
         site_id=transfer.source_site_id, policy=policy, new_subject=new_subject,
         scope={"scope_kind": "sites", "site_ids": policy.basis["site_ids"], "brand_ids": brands},
         title="Review exact transfer pieces and both stores")
+
+
+#: Recorded on the decision when a warehouse → store transfer needs no second person.
+AUTO_REASON = "NO_APPROVAL_REQUIRED"
+AUTO_FLAG = "auto_approve_warehouse_to_store"
+
+
+def auto_route(transfer: GoodsTransfer) -> bool:
+    """A plain warehouse → store move: not corrective, quarantined or pre-PT custody."""
+    from outbound.transfers import HELD_CUSTODY
+
+    return (transfer.corrective_for_id is None and transfer.custody not in HELD_CUSTODY
+            and transfer.source_site.store_type == "warehouse" and transfer.destination_site.store_type == "store")
+
+
+def may_auto_approve(transfer: GoodsTransfer) -> bool:
+    """Could submitting this transfer approve it too? (The submit screen asks for a fresh password then.)"""
+    return auto_route(transfer) and ConfigVersion.objects.filter(
+        tenant_id=transfer.tenant_id, kind="approval", payload__action=ACTION, **{f"payload__{AUTO_FLAG}": True}
+    ).exists()
+
+
+def auto_approves(transfer: GoodsTransfer, request: ApprovalRequest) -> bool:
+    """The pinned single-step policy lets this warehouse → store transfer through with no second person.
+
+    Owner decision for The Wardrobe (28 Oct 2026); every other route keeps its distinct approver.
+    """
+    if not auto_route(transfer) or request.policy_version_id is None or len(request.policy_basis["steps"]) != 1:
+        return False
+    return bool(ConfigVersion.objects.get(pk=request.policy_version_id).payload.get(AUTO_FLAG))
+
+
+def record_auto(run: CommandRun, request: ApprovalRequest) -> None:
+    """Close the request as approved by its submitter, named as such, under the pinned policy."""
+    if run.principal.human_id is None:
+        raise Refusal("ACTION_DENIED", "A transfer is sent by a named person.")
+    request.state = ApprovalRequest.State.APPROVED
+    request.decided_at = run.now
+    request.save(update_fields=["state", "decided_at"])
+    run.record(ApprovalDecision(request_id=request.pk, checker_id=run.principal.human_id,
+                                outcome=ApprovalDecision.Outcome.APPROVED, reviewed_hash=request.reviewed_hash,
+                                reason_code=AUTO_REASON,
+                                result={"auto": True, "policy_version_id": str(request.policy_version_id)}))
 
 
 def request_for(transfer: GoodsTransfer) -> ApprovalRequest:

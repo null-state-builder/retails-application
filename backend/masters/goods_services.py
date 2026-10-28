@@ -1453,6 +1453,9 @@ CONFIG_SCHEMAS: dict[str, Checker] = {
             "value_max": _optional(_money),
             "step_up": _optional(_boolean),
             "unknown_value": _optional(_choice("refuse", "quantity_only")),
+            # Owner decision (The Wardrobe, 28 Oct 2026): a warehouse → store transfer
+            # is approved by its submitter, recorded as such (`outbound.transfers`).
+            "auto_approve_warehouse_to_store": _optional(_boolean),
         }
     ),
     "reasons": _object(
@@ -1735,6 +1738,11 @@ def _check_rules(  # noqa: C901 - one branch per configuration kind with cross-f
     if kind == "approval":
         if not payload["roles"] or any(not step["roles"] for step in payload.get("steps") or []):
             raise config_invalid("payload.roles", "every approval route needs explicit roles")
+        if payload.get("auto_approve_warehouse_to_store"):
+            if payload["action"] != "pt.approve.transfer":
+                raise config_invalid("payload.auto_approve_warehouse_to_store", "applies only to transfer approval")
+            if payload.get("steps"):
+                raise config_invalid("payload.auto_approve_warehouse_to_store", "needs a single-step route")
     if kind == "reasons":
         codes = [code["code"] for code in payload["codes"]]
         if len(set(codes)) != len(codes):

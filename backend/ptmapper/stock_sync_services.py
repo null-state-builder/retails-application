@@ -33,6 +33,9 @@ from dataclasses import replace
 from datetime import datetime, timedelta
 from typing import Any
 
+from django.db.models import Max
+from django.utils import timezone
+
 from core.commands import CommandRun, LockRank
 from core.documents import DocStatus
 from core.goods_documents import append_revision, new_document, officialise
@@ -41,6 +44,7 @@ from core.kernel_models import DocumentIdentity, OfficialLine
 from core.operational import LEGACY_SYNC_POSTING, ValuePair
 from core.refusals import Refusal
 from files.goods_models import EvidenceObject
+from masters.goods_identity_models import SkuAlias
 from masters.goods_models import Location
 from masters.models import Store
 from masters.store_features import is_real_store
@@ -92,6 +96,25 @@ def require_opening(store: Store) -> None:
                       status=409)
 
 
+def require_soh_after_stock(store: Store, cutoff_at: datetime, now: datetime) -> None:
+    """An SOH exported before some of the store's stock was loaded here cannot be matched to it.
+
+    The sync reads the store's barcodes as they stood at the export time. Items loaded later (an
+    opening or a top-up) would then look absent - never taken out - and come in again as new items,
+    doubling them. The store manager exports the SOH again instead.
+    """
+    held = {sku for sku in Position.objects.filter(tenant_id=store.tenant_id, site_id=store.pk, boundary="physical")
+            .values_list("sku_id", flat=True) if sku is not None}
+    late = (held - set(barcode_aliases(store, cutoff_at))) & set(barcode_aliases(store, now))
+    if not late:
+        return
+    since = SkuAlias.objects.filter(sku_id__in=late).aggregate(at=Max("effective_from"))["at"]
+    at = timezone.localtime(since).strftime("%d %b %Y, %H:%M") if since else "after the export"
+    raise Refusal("SOH_BEFORE_STOCK",
+                  f"This SOH was exported before {len(late)} of this store's items were loaded here (last at {at}). "
+                  "Export the SOH again now and upload that one.", status=409)
+
+
 def previous_cutoff(store: Store) -> datetime | None:
     last = (StockSync.objects.filter(tenant_id=store.tenant_id, site=store, state=StockSync.State.APPLIED)
             .order_by("-cutoff_at").first())
@@ -108,7 +131,13 @@ def create_sync(run: CommandRun, *, site_id: int, evidence: EvidenceObject, cuto
     # App and database clocks may differ slightly; a cutoff minutes ahead is a mistake.
     if cutoff_at > run.now + timedelta(minutes=5):
         raise Refusal("INVALID_REQUEST", "The SOH export time cannot be in the future.")
-    found = StockSync.objects.filter(tenant_id=run.tenant_id, site_id=site_id, source_hash=evidence.sha256).first()
+    require_soh_after_stock(stores[0], cutoff_at, run.now)
+    found = (StockSync.objects.filter(tenant_id=run.tenant_id, site_id=site_id, source_hash=evidence.sha256)
+             .exclude(state=StockSync.State.DISCARDED).first())
+    if found is not None and found.cutoff_at != cutoff_at:
+        raise Refusal("SOH_ALREADY_UPLOADED",
+                      f"This SOH is already uploaded as exported at {timezone.localtime(found.cutoff_at):%d %b %Y, %H:%M}. "
+                      "Discard that one to give it a different export time.", status=409)
     if found is not None:
         run.audit_after = {"stock_sync_id": str(found.pk), "unchanged": True}
         return found
@@ -363,6 +392,7 @@ def apply(run: CommandRun, sync: StockSync) -> StockSync:
     if after is not None and sync.cutoff_at <= after:
         raise Refusal("STOCK_SYNC_STALE",
                       f"A newer SOH (exported {after.isoformat()}) is already applied at this store.", status=409)
+    require_soh_after_stock(store, sync.cutoff_at, run.now)
     assert run.principal.human_id is not None
     batch = engine.Plan(LEGACY_SYNC_POSTING, uuid.uuid4(), engine.event_key(PURPOSE, sync.pk))
     reversed_ = _reverse_test_bills(run, batch, store, test_bills(store, after, sync.cutoff_at))

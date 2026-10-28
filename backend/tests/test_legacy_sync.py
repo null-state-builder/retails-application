@@ -119,12 +119,34 @@ def test_soh_missing_barcode_goes_to_zero_and_new_item_is_staged_for_review(onli
 
 def test_soh_older_than_the_last_applied_is_refused(online_goods: Any) -> None:
     proof = online_goods
+    earlier = timezone.now()
     apply_soh(proof, soh(proof, {proof.barcode: 3}))
-    stale = soh(proof, {proof.barcode: 2}, cutoff=timezone.now() - timedelta(hours=1))
+    stale = soh(proof, {proof.barcode: 2}, cutoff=earlier)
     with pytest.raises(Refusal) as refused:
         apply_soh(proof, stale)
     assert refused.value.code == "STOCK_SYNC_STALE"
     assert shelf(proof) == 3
+
+
+def test_soh_exported_before_the_stock_was_loaded_is_refused(online_goods: Any) -> None:
+    """Items loaded after the export would read as absent and come in again as new items."""
+    proof = online_goods
+    with pytest.raises(Refusal) as refused:
+        soh(proof, {proof.barcode: 3}, cutoff=timezone.now() - timedelta(days=30))
+    assert refused.value.code == "SOH_BEFORE_STOCK"
+    assert "Export the SOH again" in refused.value.message
+    assert not StockSync.objects.exists() and shelf(proof) == 3
+
+
+def test_a_discarded_soh_can_be_uploaded_again_with_another_export_time(online_goods: Any) -> None:
+    proof = online_goods
+    first = soh(proof, {proof.barcode: 3})
+    with pytest.raises(Refusal) as refused:
+        soh(proof, {proof.barcode: 3}, cutoff=first.cutoff_at + timedelta(minutes=1))
+    assert refused.value.code == "SOH_ALREADY_UPLOADED"
+    command(proof.manager, sync_services.ACTION, lambda run: sync_services.discard(run, first))
+    again = soh(proof, {proof.barcode: 3}, cutoff=first.cutoff_at + timedelta(minutes=1))
+    assert again.pk != first.pk and again.state == StockSync.State.PREVIEWED
 
 
 # -- Sales report ------------------------------------------------------------

@@ -68,15 +68,15 @@ def _email(human_id: Any) -> str:
 
 
 def _preparer_email(source: SohImport, exclude: set[str]) -> str:
-    """The store's opening preparer: the named one if preparation started, else a ``*.preparer`` test login."""
+    """The store's opening preparer: the named one if preparation started, else a ``*preparer@`` test login."""
     from accounts.models import User
-    from accounts.test_store_loader import access_for
+    from accounts.test_store_loader import _is_preparer, access_for
 
     if source.prepared_by_id is not None:
         return _email(source.prepared_by_id)
     for user in User.objects.filter(tenant_id=source.tenant_id, is_active=True,
-                                    email__iendswith=".preparer@synthetic.demo").order_by("email"):
-        if str(user.human_id) in exclude:
+                                    email__icontains="preparer@").order_by("email"):
+        if not _is_preparer(user.email) or str(user.human_id) in exclude:
             continue
         access = access_for(user.email)
         cells = {(source.site_id, None)}

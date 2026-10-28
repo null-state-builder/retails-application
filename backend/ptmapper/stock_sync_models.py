@@ -39,7 +39,9 @@ class StockSync(TenantOwned):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["tenant", "site", "source_hash"], name="uq_stock_sync_source"),
+            # A discarded upload does not hold its file: the same SOH can come back with the right export time.
+            models.UniqueConstraint(fields=["tenant", "site", "source_hash"], condition=~models.Q(state="discarded"),
+                                    name="uq_stock_sync_source"),
         ]
 
 

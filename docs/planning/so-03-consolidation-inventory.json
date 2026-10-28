@@ -24401,7 +24401,7 @@
     {
       "id": "STORE-TEST-107",
       "kind": "migration",
-      "key_regex": "^migration:ptmapper\\.migrations\\.0020_legacy_sync$",
+      "key_regex": "^migration:ptmapper\\.migrations\\.(0020_legacy_sync|0021_stock_sync_discarded_source)$",
       "primary_id": "C08",
       "lifecycle": "temporary_supported_legacy",
       "related_ids": [
@@ -24483,7 +24483,7 @@
     {
       "id": "STORE-TEST-113",
       "kind": "module",
-      "key_regex": "^module:accounts\\.warehouse_manager$",
+      "key_regex": "^module:accounts\\.(warehouse_manager|operations_head|custom_roles)$",
       "primary_id": "A00",
       "lifecycle": "canonical"
     },
@@ -24761,7 +24761,7 @@
     }
   ],
   "discovered": {
-    "checksum": "d1c90a7be9ae9ba2004c5bec0ecd2137fae9d2c3ce90c7de8151d79456f5b3f4",
+    "checksum": "2be89f3f68ac5c9103c4c53e3ab2a56d6afb172a338e5f0842dcfa24f7b5f05e",
     "records": [
       {
         "kind": "api",
@@ -35756,8 +35756,8 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
-            "module:accounts.unified_urls",
-            "module:accounts.warehouse_manager"
+            "module:accounts.custom_roles",
+            "module:accounts.unified_urls"
           ],
           "static_frontend_importers": [],
           "frontend_api_callsites": []
@@ -36318,8 +36318,8 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
-            "module:accounts.unified_urls",
-            "module:accounts.warehouse_manager"
+            "module:accounts.custom_roles",
+            "module:accounts.unified_urls"
           ],
           "static_frontend_importers": [],
           "frontend_api_callsites": []
@@ -36488,8 +36488,8 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
-            "module:accounts.unified_urls",
-            "module:accounts.warehouse_manager"
+            "module:accounts.custom_roles",
+            "module:accounts.unified_urls"
           ],
           "static_frontend_importers": [],
           "frontend_api_callsites": []
@@ -53921,6 +53921,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -55374,6 +55375,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -55534,6 +55536,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -55700,6 +55703,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -55860,6 +55864,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -56020,6 +56025,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -56180,6 +56186,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -56340,6 +56347,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -110234,6 +110242,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -113443,6 +113452,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -113603,6 +113613,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -113759,6 +113770,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -113915,6 +113927,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -114071,6 +114084,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -114231,6 +114245,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -114387,6 +114402,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -114543,6 +114559,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -114699,6 +114716,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -114855,6 +114873,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -115011,6 +115030,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -115167,6 +115187,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -115323,6 +115344,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -115479,6 +115501,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -115635,6 +115658,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -115791,6 +115815,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -115947,6 +115972,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -141522,8 +141548,8 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
-            "module:accounts.unified_urls",
-            "module:accounts.warehouse_manager"
+            "module:accounts.custom_roles",
+            "module:accounts.unified_urls"
           ],
           "static_frontend_importers": [],
           "frontend_api_callsites": [
@@ -141696,8 +141722,8 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
-            "module:accounts.unified_urls",
-            "module:accounts.warehouse_manager"
+            "module:accounts.custom_roles",
+            "module:accounts.unified_urls"
           ],
           "static_frontend_importers": [],
           "frontend_api_callsites": [
@@ -141870,8 +141896,8 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
-            "module:accounts.unified_urls",
-            "module:accounts.warehouse_manager"
+            "module:accounts.custom_roles",
+            "module:accounts.unified_urls"
           ],
           "static_frontend_importers": [],
           "frontend_api_callsites": [
@@ -184556,7 +184582,8 @@
         "detail": {
           "module": "accounts.management.commands.load_test_store",
           "read_candidates": [
-            "Tenant.objects.filter"
+            "Tenant.objects.filter",
+            "os.environ.get"
           ],
           "write_candidates": [],
           "authorization_candidates": []
@@ -184583,11 +184610,15 @@
           "source_module": "module:accounts.management.commands.load_test_store",
           "callback_component": null,
           "static_imports": [
+            "accounts.goods_demo",
             "accounts.test_store_loader",
+            "core.refusals",
             "masters.goods_models"
           ],
           "local_component_keys": [
+            "module:accounts.goods_demo",
             "module:accounts.test_store_loader",
+            "module:core.refusals",
             "module:masters.goods_models"
           ],
           "candidate_model_keys": [
@@ -184612,7 +184643,8 @@
         "data_access": {
           "basis": "source_file_static_candidates",
           "read_candidates": [
-            "Tenant.objects.filter"
+            "Tenant.objects.filter",
+            "os.environ.get"
           ],
           "write_candidates": [],
           "model_fields": [],
@@ -202607,6 +202639,80 @@
       },
       {
         "kind": "migration",
+        "key": "migration:ptmapper.migrations.0021_stock_sync_discarded_source",
+        "source": "backend/ptmapper/migrations/0021_stock_sync_discarded_source.py",
+        "detail": {
+          "dependencies": [
+            "('accounts', '0023_installationregistration')",
+            "('core', '0013_legacy_sync')",
+            "('files', '0004_evidencelink_tenant_evidenceobject_actor_and_more')",
+            "('masters', '0035_unknown_historical_season')",
+            "('ptmapper', '0020_legacy_sync')",
+            "('stockledger', '0025_legacy_sync_posting_kind')"
+          ],
+          "operations": [
+            "migrations.RemoveConstraint",
+            "migrations.AddConstraint"
+          ]
+        },
+        "primary_id": "C08",
+        "owner": "SO-08",
+        "related_ids": [
+          "A00",
+          "C05",
+          "C06",
+          "C10",
+          "C15"
+        ],
+        "lifecycle": "temporary_supported_legacy",
+        "data_ownership": "Tenant-owned goods counts with legacy store-linked count/correction history",
+        "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "declared_metadata_only",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [
+            "('accounts', '0023_installationregistration')",
+            "('core', '0013_legacy_sync')",
+            "('files', '0004_evidencelink_tenant_evidenceobject_actor_and_more')",
+            "('masters', '0035_unknown_historical_season')",
+            "('ptmapper', '0020_legacy_sync')",
+            "('stockledger', '0025_legacy_sync_posting_kind')"
+          ],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "schema_metadata",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [
+            "migrations.RemoveConstraint",
+            "migrations.AddConstraint"
+          ],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "replacement": "`/goods/counts/*` is the count target; `/stock-count/*` schedule, adjustments and write-offs, `/stock/vflips/*` become one controlled correction/count journey",
+        "migration_requirements": "Map snapshots, blind passes, recounts, variances, reasons, approval bands and corrections to one journal. Later full SOH snapshots belong to C08/SO-08 retained correction/count, never another opening. The narrow sole-online-alpha trading snapshot adapter is implemented in outbound.goods_soh_reconciliation with exact persisted pause/frontier, SITE-before-DOCUMENT lock order and actual concurrency denial proof. Initial-parent repeat protection is implemented in ptmapper.soh_services. Generic non-trading counts retain their existing gate. Only zero/reduction closure is supported; gains, encumbrances, nonordinary custody, offline frontiers and real-tenant acceptance remain inactive or pending. SohImport independently reviewed source and cutoff -> outbound.goods_soh_views Start/Detail/Mutation -> goods_soh_reconciliation begin/submit/cancel/_decide -> SiteGuard SITE lock before RegisteredTill DOCUMENT lock -> snapshot_pause_evidence persisted TillPause, allocation/frontier/reservation/UUID reconciliation -> frozen canonical GoodsStocktake book -> independent versioned count.review -> zero-close or P13 reduction at original origin cost -> retained journal and goods stock readers; access revalidation before commit and DTO delivery. Fresh source inputs, stable identity/governance, working set, book/journal watermark, count reasons and approval versions are rechecked. Full offline till reconciliation and gains/encumbered/nonordinary differences remain unsupported/inactive.",
+        "acceptance_evidence": "Reconcile before/after balances and preserve approval evidence. Later full SOH snapshots belong to C08/SO-08, using the retained goods count/correction journey; they must not replay opening balances or historical source movements. Pending dependencies: ptmapper.soh_services.requires_inventory_reconciliation and apply_batch initial-parent fence; outbound.goods_counts.start_count/current_declaration SiteGuard freeze and journal snapshot; C10/SO-09 registered-till pause, unresolved UUID outcomes and numbered-bill reconciliation; C06 retained stock journal/readers. Trading-store counts remain inactive until the separately approved R-INV-009/ST-INV-3/OQ-57 pause, source cutoff and independent delta review contracts have current evidence.",
+        "removal_condition": "Retire with the store test run at real-store cutover (SO-22).",
+        "rule_id": "STORE-TEST-107"
+      },
+      {
+        "kind": "migration",
         "key": "migration:reporting.migrations.0001_sales_report_copy",
         "source": "backend/reporting/migrations/0001_sales_report_copy.py",
         "detail": {
@@ -210225,6 +210331,7 @@
             "module:accounts.apps",
             "module:accounts.assignment_migration",
             "module:accounts.change_password",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_admin_views",
             "module:accounts.goods_demo",
@@ -210232,6 +210339,7 @@
             "module:accounts.goods_setup",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
+            "module:accounts.operations_head",
             "module:accounts.reconciliation_views",
             "module:accounts.registration_services",
             "module:accounts.serializers",
@@ -210370,6 +210478,7 @@
             "module:accounts.apps",
             "module:accounts.assignment_migration",
             "module:accounts.change_password",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_admin_views",
             "module:accounts.goods_demo",
@@ -210377,6 +210486,7 @@
             "module:accounts.goods_setup",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
+            "module:accounts.operations_head",
             "module:accounts.reconciliation_views",
             "module:accounts.registration_services",
             "module:accounts.serializers",
@@ -210506,11 +210616,14 @@
           "static_backend_importers": [
             "module:accounts.access_safeguards",
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
+            "module:accounts.goods_demo",
             "module:accounts.goods_setup",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
             "module:accounts.models",
+            "module:accounts.operations_head",
             "module:accounts.principal",
             "module:accounts.role_assignments",
             "module:accounts.sessions",
@@ -210652,11 +210765,14 @@
           "static_backend_importers": [
             "module:accounts.access_safeguards",
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
+            "module:accounts.goods_demo",
             "module:accounts.goods_setup",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
             "module:accounts.models",
+            "module:accounts.operations_head",
             "module:accounts.principal",
             "module:accounts.role_assignments",
             "module:accounts.sessions",
@@ -210892,6 +211008,7 @@
             "module:accounts.apps",
             "module:accounts.assignment_migration",
             "module:accounts.change_password",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_admin_views",
             "module:accounts.goods_demo",
@@ -210899,6 +211016,7 @@
             "module:accounts.goods_setup",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
+            "module:accounts.operations_head",
             "module:accounts.reconciliation_views",
             "module:accounts.registration_services",
             "module:accounts.serializers",
@@ -211037,6 +211155,7 @@
             "module:accounts.apps",
             "module:accounts.assignment_migration",
             "module:accounts.change_password",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_admin_views",
             "module:accounts.goods_demo",
@@ -211044,6 +211163,7 @@
             "module:accounts.goods_setup",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
+            "module:accounts.operations_head",
             "module:accounts.reconciliation_views",
             "module:accounts.registration_services",
             "module:accounts.serializers",
@@ -211193,11 +211313,14 @@
           "static_backend_importers": [
             "module:accounts.access_safeguards",
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
+            "module:accounts.goods_demo",
             "module:accounts.goods_setup",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
             "module:accounts.models",
+            "module:accounts.operations_head",
             "module:accounts.principal",
             "module:accounts.role_assignments",
             "module:accounts.sessions",
@@ -211377,11 +211500,14 @@
           "static_backend_importers": [
             "module:accounts.access_safeguards",
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
+            "module:accounts.goods_demo",
             "module:accounts.goods_setup",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
             "module:accounts.models",
+            "module:accounts.operations_head",
             "module:accounts.principal",
             "module:accounts.role_assignments",
             "module:accounts.sessions",
@@ -211549,11 +211675,14 @@
           "static_backend_importers": [
             "module:accounts.access_safeguards",
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
+            "module:accounts.goods_demo",
             "module:accounts.goods_setup",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
             "module:accounts.models",
+            "module:accounts.operations_head",
             "module:accounts.principal",
             "module:accounts.role_assignments",
             "module:accounts.sessions",
@@ -211701,11 +211830,14 @@
           "static_backend_importers": [
             "module:accounts.access_safeguards",
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
+            "module:accounts.goods_demo",
             "module:accounts.goods_setup",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
             "module:accounts.models",
+            "module:accounts.operations_head",
             "module:accounts.principal",
             "module:accounts.role_assignments",
             "module:accounts.sessions",
@@ -211856,11 +211988,14 @@
           "static_backend_importers": [
             "module:accounts.access_safeguards",
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
+            "module:accounts.goods_demo",
             "module:accounts.goods_setup",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
             "module:accounts.models",
+            "module:accounts.operations_head",
             "module:accounts.principal",
             "module:accounts.role_assignments",
             "module:accounts.sessions",
@@ -212017,11 +212152,14 @@
           "static_backend_importers": [
             "module:accounts.access_safeguards",
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
+            "module:accounts.goods_demo",
             "module:accounts.goods_setup",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
             "module:accounts.models",
+            "module:accounts.operations_head",
             "module:accounts.principal",
             "module:accounts.role_assignments",
             "module:accounts.sessions",
@@ -212203,6 +212341,7 @@
             "module:accounts.apps",
             "module:accounts.assignment_migration",
             "module:accounts.change_password",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_admin_views",
             "module:accounts.goods_demo",
@@ -212210,6 +212349,7 @@
             "module:accounts.goods_setup",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
+            "module:accounts.operations_head",
             "module:accounts.reconciliation_views",
             "module:accounts.registration_services",
             "module:accounts.serializers",
@@ -221468,6 +221608,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
@@ -221483,7 +221624,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.unified_policy",
-            "module:accounts.warehouse_manager",
             "module:approvals.goods_policy",
             "module:approvals.goods_services",
             "module:approvals.unified_authority",
@@ -221623,6 +221763,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_models",
@@ -221638,7 +221779,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
-            "module:accounts.warehouse_manager",
             "module:alerts.checks",
             "module:approvals.services",
             "module:approvals.unified_authority",
@@ -221950,6 +222090,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
@@ -221965,7 +222106,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.unified_policy",
-            "module:accounts.warehouse_manager",
             "module:approvals.goods_policy",
             "module:approvals.goods_services",
             "module:approvals.unified_authority",
@@ -222384,6 +222524,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_models",
@@ -222399,7 +222540,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
-            "module:accounts.warehouse_manager",
             "module:alerts.checks",
             "module:approvals.services",
             "module:approvals.unified_authority",
@@ -222697,6 +222837,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_models",
@@ -222712,7 +222853,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
-            "module:accounts.warehouse_manager",
             "module:alerts.checks",
             "module:approvals.services",
             "module:approvals.unified_authority",
@@ -223018,6 +223158,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
@@ -223033,7 +223174,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.unified_policy",
-            "module:accounts.warehouse_manager",
             "module:approvals.goods_policy",
             "module:approvals.goods_services",
             "module:approvals.unified_authority",
@@ -223195,6 +223335,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
@@ -223210,7 +223351,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.unified_policy",
-            "module:accounts.warehouse_manager",
             "module:approvals.goods_policy",
             "module:approvals.goods_services",
             "module:approvals.unified_authority",
@@ -223451,6 +223591,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_models",
@@ -223466,7 +223607,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
-            "module:accounts.warehouse_manager",
             "module:alerts.checks",
             "module:approvals.services",
             "module:approvals.unified_authority",
@@ -223766,6 +223906,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_models",
@@ -223781,7 +223922,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
-            "module:accounts.warehouse_manager",
             "module:alerts.checks",
             "module:approvals.services",
             "module:approvals.unified_authority",
@@ -224249,6 +224389,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
@@ -224264,7 +224405,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.unified_policy",
-            "module:accounts.warehouse_manager",
             "module:approvals.goods_policy",
             "module:approvals.goods_services",
             "module:approvals.unified_authority",
@@ -224406,6 +224546,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_models",
@@ -224421,7 +224562,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
-            "module:accounts.warehouse_manager",
             "module:alerts.checks",
             "module:approvals.services",
             "module:approvals.unified_authority",
@@ -224721,6 +224861,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_models",
@@ -224736,7 +224877,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
-            "module:accounts.warehouse_manager",
             "module:alerts.checks",
             "module:approvals.services",
             "module:approvals.unified_authority",
@@ -225080,6 +225220,7 @@
             "module:ptmapper.goods_rulebook_seed",
             "module:ptmapper.goods_vocab_views",
             "module:ptmapper.soh_services",
+            "module:ptmapper.stock_sync_services",
             "module:sell.services.goods_stock",
             "module:sell.services.online",
             "module:sell.services.special_orders",
@@ -225290,6 +225431,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_models",
@@ -225305,7 +225447,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
-            "module:accounts.warehouse_manager",
             "module:alerts.checks",
             "module:approvals.services",
             "module:approvals.unified_authority",
@@ -225610,6 +225751,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
@@ -225625,7 +225767,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.unified_policy",
-            "module:accounts.warehouse_manager",
             "module:approvals.goods_policy",
             "module:approvals.goods_services",
             "module:approvals.unified_authority",
@@ -225988,6 +226129,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
@@ -226003,7 +226145,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.unified_policy",
-            "module:accounts.warehouse_manager",
             "module:approvals.goods_policy",
             "module:approvals.goods_services",
             "module:approvals.unified_authority",
@@ -226240,6 +226381,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_models",
@@ -226255,7 +226397,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
-            "module:accounts.warehouse_manager",
             "module:alerts.checks",
             "module:approvals.services",
             "module:approvals.unified_authority",
@@ -226595,6 +226736,7 @@
             "module:ptmapper.goods_rulebook_seed",
             "module:ptmapper.goods_vocab_views",
             "module:ptmapper.soh_services",
+            "module:ptmapper.stock_sync_services",
             "module:sell.services.goods_stock",
             "module:sell.services.online",
             "module:sell.services.special_orders",
@@ -226703,6 +226845,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
@@ -226718,7 +226861,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.unified_policy",
-            "module:accounts.warehouse_manager",
             "module:approvals.goods_policy",
             "module:approvals.goods_services",
             "module:approvals.unified_authority",
@@ -226858,6 +227000,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_models",
@@ -226873,7 +227016,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
-            "module:accounts.warehouse_manager",
             "module:alerts.checks",
             "module:approvals.services",
             "module:approvals.unified_authority",
@@ -227186,6 +227328,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
@@ -227201,7 +227344,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.unified_policy",
-            "module:accounts.warehouse_manager",
             "module:approvals.goods_policy",
             "module:approvals.goods_services",
             "module:approvals.unified_authority",
@@ -227364,6 +227506,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
@@ -227379,7 +227522,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.unified_policy",
-            "module:accounts.warehouse_manager",
             "module:approvals.goods_policy",
             "module:approvals.goods_services",
             "module:approvals.unified_authority",
@@ -227531,6 +227673,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_models",
@@ -227546,7 +227689,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
-            "module:accounts.warehouse_manager",
             "module:alerts.checks",
             "module:approvals.services",
             "module:approvals.unified_authority",
@@ -227888,6 +228030,7 @@
             "module:ptmapper.goods_rulebook_seed",
             "module:ptmapper.goods_vocab_views",
             "module:ptmapper.soh_services",
+            "module:ptmapper.stock_sync_services",
             "module:sell.services.goods_stock",
             "module:sell.services.online",
             "module:sell.services.special_orders",
@@ -228030,6 +228173,7 @@
             "module:ptmapper.goods_rulebook_seed",
             "module:ptmapper.goods_vocab_views",
             "module:ptmapper.soh_services",
+            "module:ptmapper.stock_sync_services",
             "module:sell.services.goods_stock",
             "module:sell.services.online",
             "module:sell.services.special_orders",
@@ -228136,6 +228280,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_models",
@@ -228151,7 +228296,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
-            "module:accounts.warehouse_manager",
             "module:alerts.checks",
             "module:approvals.services",
             "module:approvals.unified_authority",
@@ -228457,6 +228601,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_models",
@@ -228472,7 +228617,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
-            "module:accounts.warehouse_manager",
             "module:alerts.checks",
             "module:approvals.services",
             "module:approvals.unified_authority",
@@ -228861,6 +229005,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_models",
@@ -228876,7 +229021,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
-            "module:accounts.warehouse_manager",
             "module:alerts.checks",
             "module:approvals.services",
             "module:approvals.unified_authority",
@@ -229209,6 +229353,7 @@
             "module:ptmapper.goods_rulebook_seed",
             "module:ptmapper.goods_vocab_views",
             "module:ptmapper.soh_services",
+            "module:ptmapper.stock_sync_services",
             "module:sell.services.goods_stock",
             "module:sell.services.online",
             "module:sell.services.special_orders",
@@ -229402,6 +229547,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
@@ -229417,7 +229563,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.unified_policy",
-            "module:accounts.warehouse_manager",
             "module:approvals.goods_policy",
             "module:approvals.goods_services",
             "module:approvals.unified_authority",
@@ -255808,6 +255953,187 @@
       },
       {
         "kind": "module",
+        "key": "module:accounts.custom_roles",
+        "source": "backend/accounts/custom_roles.py",
+        "detail": {
+          "imports": [
+            "accounts.floors",
+            "accounts.goods_admin_services",
+            "accounts.goods_models",
+            "accounts.goods_setup",
+            "accounts.models",
+            "accounts.rbac_matrix",
+            "accounts.sections",
+            "accounts.sessions",
+            "accounts.unified_admin",
+            "accounts.unified_policy",
+            "core.commands",
+            "core.refusals",
+            "core.tenancy",
+            "masters.goods_models",
+            "masters.models"
+          ],
+          "read_candidates": [
+            "(role.permissions_map or {}).get",
+            "LABELS.get",
+            "MasterVersion.objects.filter",
+            "MasterVersion.objects.filter(tenant_id=run.tenant_id, kind='role', target_key=self.code).exists",
+            "MasterVersion.objects.filter(tenant_id=tenant_id, kind='role', target_key=self.code, payload__has_key='role_policy').exists",
+            "Role.objects.filter",
+            "Role.objects.filter(tenant_id=run.tenant_id, code=self.code).first",
+            "Role.objects.filter(tenant_id=tenant.pk, code=self.code).first",
+            "Role.objects.get",
+            "RoleAssignment.objects.filter",
+            "RoleAssignment.objects.filter(tenant_id=run.tenant_id, role=row).values_list",
+            "Store.objects.filter",
+            "Store.objects.filter(tenant_id=tenant.pk, pk__in=sites).count",
+            "cell.get",
+            "sections.get"
+          ],
+          "write_candidates": [
+            "Role.objects.create",
+            "RoleAssignment.objects.create",
+            "row.save"
+          ],
+          "authorization_candidates": [],
+          "tags": []
+        },
+        "primary_id": "A00",
+        "owner": "SO-03",
+        "related_ids": [],
+        "lifecycle": "canonical",
+        "data_ownership": "Tenant-owned identity and policy with retained legacy authority evidence",
+        "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [
+            "module:accounts.operations_head",
+            "module:accounts.warehouse_manager"
+          ],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "source_module_static",
+          "source_module": "module:accounts.custom_roles",
+          "callback_component": null,
+          "static_imports": [
+            "accounts.floors",
+            "accounts.goods_admin_services",
+            "accounts.goods_models",
+            "accounts.goods_setup",
+            "accounts.models",
+            "accounts.rbac_matrix",
+            "accounts.sections",
+            "accounts.sessions",
+            "accounts.unified_admin",
+            "accounts.unified_policy",
+            "core.commands",
+            "core.refusals",
+            "core.tenancy",
+            "masters.goods_models",
+            "masters.models"
+          ],
+          "local_component_keys": [
+            "module:accounts.floors",
+            "module:accounts.goods_admin_services",
+            "module:accounts.goods_models",
+            "module:accounts.goods_setup",
+            "module:accounts.models",
+            "module:accounts.rbac_matrix",
+            "module:accounts.sections",
+            "module:accounts.sessions",
+            "module:accounts.unified_admin",
+            "module:accounts.unified_policy",
+            "module:core.commands",
+            "module:core.refusals",
+            "module:core.tenancy",
+            "module:masters.goods_models",
+            "module:masters.models"
+          ],
+          "candidate_model_keys": [
+            "model:accounts.AccessChange",
+            "model:accounts.ActorPolicy",
+            "model:accounts.AuthenticationFailure",
+            "model:accounts.HumanIdentity",
+            "model:accounts.LoginAttempt",
+            "model:accounts.Role",
+            "model:accounts.RoleAssignment",
+            "model:accounts.RoleGrant",
+            "model:accounts.SecurityGuard",
+            "model:accounts.ServerSession",
+            "model:accounts.Staff",
+            "model:accounts.StaffAssignment",
+            "model:accounts.User",
+            "model:masters.AliasRangeCounter",
+            "model:masters.Brand",
+            "model:masters.BrandIdentityBinding",
+            "model:masters.CategoryMargin",
+            "model:masters.Cohort",
+            "model:masters.ConfigDraft",
+            "model:masters.ConfigVersion",
+            "model:masters.Customer",
+            "model:masters.CustomerNumber",
+            "model:masters.EffectiveVersionPeriod",
+            "model:masters.GstSlab",
+            "model:masters.Gstin",
+            "model:masters.LegalEntity",
+            "model:masters.Location",
+            "model:masters.MasterVersion",
+            "model:masters.PriceChange",
+            "model:masters.Sbu",
+            "model:masters.Season",
+            "model:masters.SiteCapabilityEvent",
+            "model:masters.SiteGuard",
+            "model:masters.Sku",
+            "model:masters.StaffTarget",
+            "model:masters.Store",
+            "model:masters.StoreTarget",
+            "model:masters.Tenant"
+          ],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "source_file_static_candidates",
+          "read_candidates": [
+            "(role.permissions_map or {}).get",
+            "LABELS.get",
+            "MasterVersion.objects.filter",
+            "MasterVersion.objects.filter(tenant_id=run.tenant_id, kind='role', target_key=self.code).exists",
+            "MasterVersion.objects.filter(tenant_id=tenant_id, kind='role', target_key=self.code, payload__has_key='role_policy').exists",
+            "Role.objects.filter",
+            "Role.objects.filter(tenant_id=run.tenant_id, code=self.code).first",
+            "Role.objects.filter(tenant_id=tenant.pk, code=self.code).first",
+            "Role.objects.get",
+            "RoleAssignment.objects.filter",
+            "RoleAssignment.objects.filter(tenant_id=run.tenant_id, role=row).values_list",
+            "Store.objects.filter",
+            "Store.objects.filter(tenant_id=tenant.pk, pk__in=sites).count",
+            "cell.get",
+            "sections.get"
+          ],
+          "write_candidates": [
+            "Role.objects.create",
+            "RoleAssignment.objects.create",
+            "row.save"
+          ],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "replacement": "One /api/auth/* authority, effective scoped role assignments, AccessContext, People & Access and one policy editor",
+        "migration_requirements": "Link old users, grants and policy evidence to effective-dated tenant assignments and versioned policy.",
+        "acceptance_evidence": "Idempotent migration reconciliation, session invalidation, direct denial matrix and browser journeys.",
+        "removal_condition": "Retire old grant editors, access writes and direct permission bridges after every active access consumer is switched and history remains resolvable.",
+        "rule_id": "STORE-TEST-113"
+      },
+      {
+        "kind": "module",
         "key": "module:accounts.floors",
         "source": "backend/accounts/floors.py",
         "detail": {
@@ -255836,11 +256162,11 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.access_changes",
+            "module:accounts.custom_roles",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.serializers",
             "module:accounts.unified_admin",
             "module:accounts.views",
-            "module:accounts.warehouse_manager",
             "module:core.posting"
           ],
           "static_frontend_importers": [],
@@ -256066,9 +256392,10 @@
             "module:accounts.apps",
             "module:accounts.assignment_migration",
             "module:accounts.change_password",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_views",
+            "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
-            "module:accounts.warehouse_manager",
             "module:core.goods_administrative_history",
             "module:sell.services.salespeople"
           ],
@@ -256579,6 +256906,7 @@
         "source": "backend/accounts/goods_demo.py",
         "detail": {
           "imports": [
+            "accounts.goods_models",
             "accounts.goods_setup",
             "accounts.models",
             "core.canonical",
@@ -256607,6 +256935,8 @@
             "ProductSku.objects.filter(tenant_id=run.tenant_id, identity_key=key).first",
             "RegisteredTill.objects.filter",
             "RegisteredTill.objects.filter(store=store, active=True).first",
+            "RoleAssignment.objects.filter",
+            "RoleAssignment.objects.filter(tenant_id=tenant.pk, role__code='owner', all_sites=True, effective_to__isnull=True, revoked_at__isnull=True).values_list",
             "SiteGuard.objects.filter",
             "SiteGuard.objects.filter(site=store).first",
             "SiteGuard.objects.get",
@@ -256621,6 +256951,7 @@
             "User.objects.filter(email__iexact=email).first",
             "User.objects.filter(email__iexact=f'syn.owner@{SYNTHETIC_DOMAIN}').first",
             "User.objects.filter(email__iexact=persona.email).first",
+            "User.objects.filter(human_id__in=humans, is_active=True).order_by('date_joined', 'pk').first",
             "current.get",
             "holder.get",
             "sites.get"
@@ -256652,6 +256983,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.management.commands.load_test_store",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.test_store_loader",
             "module:ptmapper.goods_rulebook_seed",
@@ -256665,6 +256997,7 @@
           "source_module": "module:accounts.goods_demo",
           "callback_component": null,
           "static_imports": [
+            "accounts.goods_models",
             "accounts.goods_setup",
             "accounts.models",
             "core.canonical",
@@ -256685,6 +257018,7 @@
             "sell.services.salespeople"
           ],
           "local_component_keys": [
+            "module:accounts.goods_models",
             "module:accounts.goods_setup",
             "module:accounts.models",
             "module:core.canonical",
@@ -256707,8 +257041,16 @@
           "candidate_model_keys": [
             "model:accounts.AccessChange",
             "model:accounts.ActorPolicy",
+            "model:accounts.AuthenticationFailure",
+            "model:accounts.HumanIdentity",
             "model:accounts.LoginAttempt",
             "model:accounts.Role",
+            "model:accounts.RoleAssignment",
+            "model:accounts.RoleGrant",
+            "model:accounts.SecurityGuard",
+            "model:accounts.ServerSession",
+            "model:accounts.Staff",
+            "model:accounts.StaffAssignment",
             "model:accounts.User",
             "model:core.AuditEvent",
             "model:core.ChainHead",
@@ -256810,6 +257152,8 @@
             "ProductSku.objects.filter(tenant_id=run.tenant_id, identity_key=key).first",
             "RegisteredTill.objects.filter",
             "RegisteredTill.objects.filter(store=store, active=True).first",
+            "RoleAssignment.objects.filter",
+            "RoleAssignment.objects.filter(tenant_id=tenant.pk, role__code='owner', all_sites=True, effective_to__isnull=True, revoked_at__isnull=True).values_list",
             "SiteGuard.objects.filter",
             "SiteGuard.objects.filter(site=store).first",
             "SiteGuard.objects.get",
@@ -256824,6 +257168,7 @@
             "User.objects.filter(email__iexact=email).first",
             "User.objects.filter(email__iexact=f'syn.owner@{SYNTHETIC_DOMAIN}').first",
             "User.objects.filter(email__iexact=persona.email).first",
+            "User.objects.filter(human_id__in=humans, is_active=True).order_by('date_joined', 'pk').first",
             "current.get",
             "holder.get",
             "sites.get"
@@ -256891,11 +257236,14 @@
           "static_backend_importers": [
             "module:accounts.access_safeguards",
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
+            "module:accounts.goods_demo",
             "module:accounts.goods_setup",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
             "module:accounts.models",
+            "module:accounts.operations_head",
             "module:accounts.principal",
             "module:accounts.role_assignments",
             "module:accounts.sessions",
@@ -257072,13 +257420,13 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.management.commands.bootstrap_deployment",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.registration_services",
             "module:accounts.test_store_loader",
-            "module:accounts.warehouse_manager",
             "module:ptmapper.goods_rulebook_seed"
           ],
           "static_frontend_importers": [],
@@ -257540,11 +257888,14 @@
         "source": "backend/accounts/management/commands/load_test_store.py",
         "detail": {
           "imports": [
+            "accounts.goods_demo",
             "accounts.test_store_loader",
+            "core.refusals",
             "masters.goods_models"
           ],
           "read_candidates": [
-            "Tenant.objects.filter"
+            "Tenant.objects.filter",
+            "os.environ.get"
           ],
           "write_candidates": [],
           "authorization_candidates": [],
@@ -257574,11 +257925,15 @@
           "source_module": "module:accounts.management.commands.load_test_store",
           "callback_component": null,
           "static_imports": [
+            "accounts.goods_demo",
             "accounts.test_store_loader",
+            "core.refusals",
             "masters.goods_models"
           ],
           "local_component_keys": [
+            "module:accounts.goods_demo",
             "module:accounts.test_store_loader",
+            "module:core.refusals",
             "module:masters.goods_models"
           ],
           "candidate_model_keys": [
@@ -257603,7 +257958,8 @@
         "data_access": {
           "basis": "source_file_static_candidates",
           "read_candidates": [
-            "Tenant.objects.filter"
+            "Tenant.objects.filter",
+            "os.environ.get"
           ],
           "write_candidates": [],
           "model_fields": [],
@@ -258314,6 +258670,7 @@
             "module:accounts.apps",
             "module:accounts.assignment_migration",
             "module:accounts.change_password",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_admin_views",
             "module:accounts.goods_demo",
@@ -258321,6 +258678,7 @@
             "module:accounts.goods_setup",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.management.commands.setup_store_test_run",
+            "module:accounts.operations_head",
             "module:accounts.reconciliation_views",
             "module:accounts.registration_services",
             "module:accounts.serializers",
@@ -258411,6 +258769,88 @@
         "acceptance_evidence": "Idempotent migration reconciliation, session invalidation, direct denial matrix and browser journeys.",
         "removal_condition": "Retire old grant editors, access writes and direct permission bridges after every active access consumer is switched and history remains resolvable.",
         "rule_id": "S2057"
+      },
+      {
+        "kind": "module",
+        "key": "module:accounts.operations_head",
+        "source": "backend/accounts/operations_head.py",
+        "detail": {
+          "imports": [
+            "accounts.custom_roles",
+            "accounts.goods_models",
+            "accounts.models",
+            "accounts.sections"
+          ],
+          "read_candidates": [],
+          "write_candidates": [],
+          "authorization_candidates": [],
+          "tags": []
+        },
+        "primary_id": "A00",
+        "owner": "SO-03",
+        "related_ids": [],
+        "lifecycle": "canonical",
+        "data_ownership": "Tenant-owned identity and policy with retained legacy authority evidence",
+        "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [
+            "module:accounts.test_store_loader"
+          ],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "source_module_static",
+          "source_module": "module:accounts.operations_head",
+          "callback_component": null,
+          "static_imports": [
+            "accounts.custom_roles",
+            "accounts.goods_models",
+            "accounts.models",
+            "accounts.sections"
+          ],
+          "local_component_keys": [
+            "module:accounts.custom_roles",
+            "module:accounts.goods_models",
+            "module:accounts.models",
+            "module:accounts.sections"
+          ],
+          "candidate_model_keys": [
+            "model:accounts.AccessChange",
+            "model:accounts.ActorPolicy",
+            "model:accounts.AuthenticationFailure",
+            "model:accounts.HumanIdentity",
+            "model:accounts.LoginAttempt",
+            "model:accounts.Role",
+            "model:accounts.RoleAssignment",
+            "model:accounts.RoleGrant",
+            "model:accounts.SecurityGuard",
+            "model:accounts.ServerSession",
+            "model:accounts.Staff",
+            "model:accounts.StaffAssignment",
+            "model:accounts.User"
+          ],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "source_file_static_candidates",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "replacement": "One /api/auth/* authority, effective scoped role assignments, AccessContext, People & Access and one policy editor",
+        "migration_requirements": "Link old users, grants and policy evidence to effective-dated tenant assignments and versioned policy.",
+        "acceptance_evidence": "Idempotent migration reconciliation, session invalidation, direct denial matrix and browser journeys.",
+        "removal_condition": "Retire old grant editors, access writes and direct permission bridges after every active access consumer is switched and history remains resolvable.",
+        "rule_id": "STORE-TEST-113"
       },
       {
         "kind": "module",
@@ -258813,11 +259253,11 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_setup",
             "module:accounts.management.commands.dump_rbac_matrix",
             "module:accounts.management.commands.seed_foundation",
-            "module:accounts.registration_services",
-            "module:accounts.warehouse_manager"
+            "module:accounts.registration_services"
           ],
           "static_frontend_importers": [],
           "frontend_api_callsites": []
@@ -259703,9 +260143,11 @@
           "static_backend_importers": [
             "module:accounts.actions",
             "module:accounts.actor_policies",
+            "module:accounts.custom_roles",
             "module:accounts.floors",
             "module:accounts.management.commands.dump_rbac_matrix",
             "module:accounts.matrix",
+            "module:accounts.operations_head",
             "module:accounts.permissions",
             "module:accounts.principal",
             "module:accounts.rbac_matrix",
@@ -260131,13 +260573,13 @@
             "module:accounts.assignment_migration",
             "module:accounts.authentication",
             "module:accounts.change_password",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.principal",
             "module:accounts.schema_extensions",
             "module:accounts.session_payload",
             "module:accounts.unified_admin",
             "module:accounts.views",
-            "module:accounts.warehouse_manager",
             "module:masters.brand_identity",
             "module:masters.brand_reconciliation_views",
             "module:masters.goods_store_feature_views"
@@ -260236,10 +260678,12 @@
         "detail": {
           "imports": [
             "accounts",
+            "accounts.goods_admin_services",
             "accounts.goods_demo",
             "accounts.goods_models",
             "accounts.goods_setup",
             "accounts.models",
+            "accounts.operations_head",
             "accounts.principal",
             "accounts.warehouse_manager",
             "approvals.goods_models",
@@ -260257,6 +260701,7 @@
             "masters.goods_views",
             "masters.models",
             "masters.store_features",
+            "outbound.transfer_authority",
             "ptmapper",
             "ptmapper.goods_manifest_services",
             "ptmapper.goods_models",
@@ -260268,6 +260713,7 @@
             "stockledger.goods_acceptance"
           ],
           "read_candidates": [
+            "(data.get('transfers') or {}).get",
             "(payload.get('supplied') or {}).get",
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='document', subject_key=str(identity_id), state='pending').first",
@@ -260283,6 +260729,8 @@
             "OfficialLine.objects.filter",
             "RegisteredTill.objects.filter",
             "RegisteredTill.objects.filter(store=store, active=True).exists",
+            "Role.objects.filter",
+            "Role.objects.filter(tenant_id=tenant.pk, is_active=True, code__in=('warehouse_manager', 'operations_head')).values_list",
             "Role.objects.get",
             "RoleAssignment.objects.filter",
             "Season.objects.filter",
@@ -260290,22 +260738,30 @@
             "SiteGuard.objects.get",
             "SohImport.objects.filter",
             "SohImport.objects.filter(tenant_id=self.tenant.pk, site=self.store, source_hash=sha256_hex(data)).first",
+            "Staff.objects.get",
             "SubjectRevision.objects.filter",
             "SubjectRevision.objects.filter(tenant_id=run.tenant_id, family='master:season', subject_key=str(season.pk)).exists",
             "SubjectRevision.objects.filter(tenant_id=run.tenant_id, family='master:site', subject_key=str(store.pk)).exists",
+            "User.objects.filter",
+            "User.objects.filter(email__iexact=person.email).exists",
             "User.objects.get",
+            "_in_force_approval(tenant.pk, 'pt.approve.transfer').get",
             "_in_force_payload(tenant.pk, 'tax_rates').get",
             "_in_force_payload(tenant.pk, 'vocabulary', 'size').get",
             "brand_map.values",
             "by_name.get",
             "current.get",
+            "data.get",
             "holder.get",
             "overrides.values",
             "payload.get",
+            "placements([staff.pk]).get",
             "r.source.get",
+            "row.get",
             "row_hsn.values",
             "season_map.values",
             "session.events.values_list",
+            "site_pk.values",
             "source.batches.filter",
             "source.batches.filter(batch_index=index).first",
             "source.rows.exclude",
@@ -260323,6 +260779,7 @@
             "SecurityGuard.objects.get_or_create",
             "ServerSession.objects.create",
             "book.save",
+            "emails.add",
             "guard.save",
             "known.add",
             "open_rows.update",
@@ -260359,10 +260816,12 @@
           "callback_component": null,
           "static_imports": [
             "accounts",
+            "accounts.goods_admin_services",
             "accounts.goods_demo",
             "accounts.goods_models",
             "accounts.goods_setup",
             "accounts.models",
+            "accounts.operations_head",
             "accounts.principal",
             "accounts.warehouse_manager",
             "approvals.goods_models",
@@ -260380,6 +260839,7 @@
             "masters.goods_views",
             "masters.models",
             "masters.store_features",
+            "outbound.transfer_authority",
             "ptmapper",
             "ptmapper.goods_manifest_services",
             "ptmapper.goods_models",
@@ -260391,10 +260851,12 @@
             "stockledger.goods_acceptance"
           ],
           "local_component_keys": [
+            "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_models",
             "module:accounts.goods_setup",
             "module:accounts.models",
+            "module:accounts.operations_head",
             "module:accounts.principal",
             "module:accounts.warehouse_manager",
             "module:approvals.goods_models",
@@ -260412,6 +260874,7 @@
             "module:masters.goods_views",
             "module:masters.models",
             "module:masters.store_features",
+            "module:outbound.transfer_authority",
             "module:ptmapper.goods_manifest_services",
             "module:ptmapper.goods_models",
             "module:ptmapper.soh_models",
@@ -260535,6 +260998,7 @@
         "data_access": {
           "basis": "source_file_static_candidates",
           "read_candidates": [
+            "(data.get('transfers') or {}).get",
             "(payload.get('supplied') or {}).get",
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='document', subject_key=str(identity_id), state='pending').first",
@@ -260550,6 +261014,8 @@
             "OfficialLine.objects.filter",
             "RegisteredTill.objects.filter",
             "RegisteredTill.objects.filter(store=store, active=True).exists",
+            "Role.objects.filter",
+            "Role.objects.filter(tenant_id=tenant.pk, is_active=True, code__in=('warehouse_manager', 'operations_head')).values_list",
             "Role.objects.get",
             "RoleAssignment.objects.filter",
             "Season.objects.filter",
@@ -260557,22 +261023,30 @@
             "SiteGuard.objects.get",
             "SohImport.objects.filter",
             "SohImport.objects.filter(tenant_id=self.tenant.pk, site=self.store, source_hash=sha256_hex(data)).first",
+            "Staff.objects.get",
             "SubjectRevision.objects.filter",
             "SubjectRevision.objects.filter(tenant_id=run.tenant_id, family='master:season', subject_key=str(season.pk)).exists",
             "SubjectRevision.objects.filter(tenant_id=run.tenant_id, family='master:site', subject_key=str(store.pk)).exists",
+            "User.objects.filter",
+            "User.objects.filter(email__iexact=person.email).exists",
             "User.objects.get",
+            "_in_force_approval(tenant.pk, 'pt.approve.transfer').get",
             "_in_force_payload(tenant.pk, 'tax_rates').get",
             "_in_force_payload(tenant.pk, 'vocabulary', 'size').get",
             "brand_map.values",
             "by_name.get",
             "current.get",
+            "data.get",
             "holder.get",
             "overrides.values",
             "payload.get",
+            "placements([staff.pk]).get",
             "r.source.get",
+            "row.get",
             "row_hsn.values",
             "season_map.values",
             "session.events.values_list",
+            "site_pk.values",
             "source.batches.filter",
             "source.batches.filter(batch_index=index).first",
             "source.rows.exclude",
@@ -260590,6 +261064,7 @@
             "SecurityGuard.objects.get_or_create",
             "ServerSession.objects.create",
             "book.save",
+            "emails.add",
             "guard.save",
             "known.add",
             "open_rows.update",
@@ -260780,8 +261255,8 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
-            "module:accounts.unified_urls",
-            "module:accounts.warehouse_manager"
+            "module:accounts.custom_roles",
+            "module:accounts.unified_urls"
           ],
           "static_frontend_importers": [],
           "frontend_api_callsites": []
@@ -260967,6 +261442,7 @@
             "module:accounts.access_safeguards",
             "module:accounts.actor_policies",
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_setup",
             "module:accounts.management.commands.seed_foundation",
             "module:accounts.permissions",
@@ -260974,7 +261450,6 @@
             "module:accounts.registration_services",
             "module:accounts.session_payload",
             "module:accounts.unified_admin",
-            "module:accounts.warehouse_manager",
             "module:files.views",
             "module:finledger.access",
             "module:reporting.base",
@@ -261350,43 +261825,13 @@
         "source": "backend/accounts/warehouse_manager.py",
         "detail": {
           "imports": [
-            "accounts.floors",
-            "accounts.goods_admin_services",
+            "accounts.custom_roles",
             "accounts.goods_models",
-            "accounts.goods_setup",
             "accounts.models",
-            "accounts.rbac_matrix",
-            "accounts.sections",
-            "accounts.sessions",
-            "accounts.unified_admin",
-            "accounts.unified_policy",
-            "core.commands",
-            "core.refusals",
-            "core.tenancy",
-            "masters.goods_models",
-            "masters.models"
+            "accounts.sections"
           ],
-          "read_candidates": [
-            "(role.permissions_map or {}).get",
-            "MasterVersion.objects.filter",
-            "MasterVersion.objects.filter(tenant_id=run.tenant_id, kind='role', target_key=ROLE_CODE).exists",
-            "MasterVersion.objects.filter(tenant_id=tenant_id, kind='role', target_key=ROLE_CODE, payload__has_key='role_policy').exists",
-            "Role.objects.filter",
-            "Role.objects.filter(tenant_id=run.tenant_id, code=ROLE_CODE).first",
-            "Role.objects.filter(tenant_id=tenant.pk, code=ROLE_CODE).first",
-            "Role.objects.get",
-            "RoleAssignment.objects.filter",
-            "RoleAssignment.objects.filter(tenant_id=run.tenant_id, role=row).values_list",
-            "Store.objects.filter",
-            "Store.objects.filter(tenant_id=tenant.pk, pk__in=sites).count",
-            "cell.get",
-            "sections.get"
-          ],
-          "write_candidates": [
-            "Role.objects.create",
-            "RoleAssignment.objects.create",
-            "row.save"
-          ],
+          "read_candidates": [],
+          "write_candidates": [],
           "authorization_candidates": [],
           "tags": []
         },
@@ -261410,38 +261855,16 @@
           "source_module": "module:accounts.warehouse_manager",
           "callback_component": null,
           "static_imports": [
-            "accounts.floors",
-            "accounts.goods_admin_services",
+            "accounts.custom_roles",
             "accounts.goods_models",
-            "accounts.goods_setup",
             "accounts.models",
-            "accounts.rbac_matrix",
-            "accounts.sections",
-            "accounts.sessions",
-            "accounts.unified_admin",
-            "accounts.unified_policy",
-            "core.commands",
-            "core.refusals",
-            "core.tenancy",
-            "masters.goods_models",
-            "masters.models"
+            "accounts.sections"
           ],
           "local_component_keys": [
-            "module:accounts.floors",
-            "module:accounts.goods_admin_services",
+            "module:accounts.custom_roles",
             "module:accounts.goods_models",
-            "module:accounts.goods_setup",
             "module:accounts.models",
-            "module:accounts.rbac_matrix",
-            "module:accounts.sections",
-            "module:accounts.sessions",
-            "module:accounts.unified_admin",
-            "module:accounts.unified_policy",
-            "module:core.commands",
-            "module:core.refusals",
-            "module:core.tenancy",
-            "module:masters.goods_models",
-            "module:masters.models"
+            "module:accounts.sections"
           ],
           "candidate_model_keys": [
             "model:accounts.AccessChange",
@@ -261456,32 +261879,7 @@
             "model:accounts.ServerSession",
             "model:accounts.Staff",
             "model:accounts.StaffAssignment",
-            "model:accounts.User",
-            "model:masters.AliasRangeCounter",
-            "model:masters.Brand",
-            "model:masters.BrandIdentityBinding",
-            "model:masters.CategoryMargin",
-            "model:masters.Cohort",
-            "model:masters.ConfigDraft",
-            "model:masters.ConfigVersion",
-            "model:masters.Customer",
-            "model:masters.CustomerNumber",
-            "model:masters.EffectiveVersionPeriod",
-            "model:masters.GstSlab",
-            "model:masters.Gstin",
-            "model:masters.LegalEntity",
-            "model:masters.Location",
-            "model:masters.MasterVersion",
-            "model:masters.PriceChange",
-            "model:masters.Sbu",
-            "model:masters.Season",
-            "model:masters.SiteCapabilityEvent",
-            "model:masters.SiteGuard",
-            "model:masters.Sku",
-            "model:masters.StaffTarget",
-            "model:masters.Store",
-            "model:masters.StoreTarget",
-            "model:masters.Tenant"
+            "model:accounts.User"
           ],
           "frontend_api_callsites": [],
           "api_targets": [],
@@ -261491,27 +261889,8 @@
         },
         "data_access": {
           "basis": "source_file_static_candidates",
-          "read_candidates": [
-            "(role.permissions_map or {}).get",
-            "MasterVersion.objects.filter",
-            "MasterVersion.objects.filter(tenant_id=run.tenant_id, kind='role', target_key=ROLE_CODE).exists",
-            "MasterVersion.objects.filter(tenant_id=tenant_id, kind='role', target_key=ROLE_CODE, payload__has_key='role_policy').exists",
-            "Role.objects.filter",
-            "Role.objects.filter(tenant_id=run.tenant_id, code=ROLE_CODE).first",
-            "Role.objects.filter(tenant_id=tenant.pk, code=ROLE_CODE).first",
-            "Role.objects.get",
-            "RoleAssignment.objects.filter",
-            "RoleAssignment.objects.filter(tenant_id=run.tenant_id, role=row).values_list",
-            "Store.objects.filter",
-            "Store.objects.filter(tenant_id=tenant.pk, pk__in=sites).count",
-            "cell.get",
-            "sections.get"
-          ],
-          "write_candidates": [
-            "Role.objects.create",
-            "RoleAssignment.objects.create",
-            "row.save"
-          ],
+          "read_candidates": [],
+          "write_candidates": [],
           "model_fields": [],
           "schema_operations": [],
           "storage_markers": [],
@@ -265370,6 +265749,7 @@
             "module:accounts.apps",
             "module:accounts.assignment_migration",
             "module:accounts.change_password",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_admin_views",
             "module:accounts.goods_api",
@@ -265382,7 +265762,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.till_pin",
             "module:accounts.unified_admin",
-            "module:accounts.warehouse_manager",
             "module:alerts.goods_health",
             "module:alerts.goods_services",
             "module:alerts.goods_views",
@@ -268285,12 +268664,14 @@
             "module:accounts.assignment_migration",
             "module:accounts.authentication",
             "module:accounts.change_password",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_admin_views",
             "module:accounts.goods_api",
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
             "module:accounts.management.commands.bootstrap_deployment",
+            "module:accounts.management.commands.load_test_store",
             "module:accounts.principal",
             "module:accounts.reconciliation_views",
             "module:accounts.registration_services",
@@ -268300,7 +268681,6 @@
             "module:accounts.till_pin",
             "module:accounts.unified_admin",
             "module:accounts.views",
-            "module:accounts.warehouse_manager",
             "module:alerts.checks",
             "module:alerts.goods_health",
             "module:alerts.goods_services",
@@ -268676,6 +269056,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
             "module:accounts.management.commands.load_real_masters",
@@ -268689,7 +269070,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.till_pin",
             "module:accounts.views",
-            "module:accounts.warehouse_manager",
             "module:alerts.checks",
             "module:alerts.goods_views",
             "module:alerts.management.commands.check_alerts",
@@ -276758,6 +277138,7 @@
             "module:ptmapper.goods_rulebook_seed",
             "module:ptmapper.goods_vocab_views",
             "module:ptmapper.soh_services",
+            "module:ptmapper.stock_sync_services",
             "module:sell.services.goods_stock",
             "module:sell.services.online",
             "module:sell.services.special_orders",
@@ -277516,6 +277897,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
@@ -277531,7 +277913,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.unified_policy",
-            "module:accounts.warehouse_manager",
             "module:approvals.goods_policy",
             "module:approvals.goods_services",
             "module:approvals.unified_authority",
@@ -279928,6 +280309,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
             "module:accounts.goods_models",
@@ -279943,7 +280325,6 @@
             "module:accounts.test_store_loader",
             "module:accounts.unified_admin",
             "module:accounts.views",
-            "module:accounts.warehouse_manager",
             "module:alerts.checks",
             "module:approvals.services",
             "module:approvals.unified_authority",
@@ -287786,6 +288167,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -287915,6 +288297,7 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=transfers.APPROVE_ACTION).order_by('-created_at', '-id').first",
+            "GoodsTransfer.objects.get",
             "ProductSku.objects.filter",
             "ProductSku.objects.filter(pk__in={row['sku_id'] for row in rows}).values_list",
             "TransferDispatch.objects.filter",
@@ -291047,7 +291430,10 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=ACTION).order_by('-created_at', '-id').first",
+            "ConfigVersion.objects.filter",
+            "ConfigVersion.objects.filter(tenant_id=transfer.tenant_id, kind='approval', payload__action=ACTION, **{f'payload__{AUTO_FLAG}': True}).exists",
             "ConfigVersion.objects.get",
+            "ConfigVersion.objects.get(pk=request.policy_version_id).payload.get",
             "EffectiveVersionPeriod.objects.filter",
             "GoodsTransfer.objects.filter",
             "GoodsTransfer.objects.filter(pk=uuid.UUID(context.request.subject_key)).first",
@@ -291066,7 +291452,9 @@
           ],
           "write_candidates": [
             "cells.update",
-            "policy.basis.update"
+            "policy.basis.update",
+            "request.save",
+            "run.record"
           ],
           "authorization_candidates": [],
           "tags": []
@@ -291083,6 +291471,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.test_store_loader",
             "module:masters.goods_services",
             "module:outbound.apps",
             "module:outbound.goods_transfer_views",
@@ -291216,7 +291605,10 @@
           "read_candidates": [
             "ApprovalRequest.objects.filter",
             "ApprovalRequest.objects.filter(subject_kind='transfer', subject_key=str(transfer.pk), requested_action=ACTION).order_by('-created_at', '-id').first",
+            "ConfigVersion.objects.filter",
+            "ConfigVersion.objects.filter(tenant_id=transfer.tenant_id, kind='approval', payload__action=ACTION, **{f'payload__{AUTO_FLAG}': True}).exists",
             "ConfigVersion.objects.get",
+            "ConfigVersion.objects.get(pk=request.policy_version_id).payload.get",
             "EffectiveVersionPeriod.objects.filter",
             "GoodsTransfer.objects.filter",
             "GoodsTransfer.objects.filter(pk=uuid.UUID(context.request.subject_key)).first",
@@ -291235,7 +291627,9 @@
           ],
           "write_candidates": [
             "cells.update",
-            "policy.basis.update"
+            "policy.basis.update",
+            "request.save",
+            "run.record"
           ],
           "model_fields": [],
           "schema_operations": [],
@@ -298685,6 +299079,7 @@
             "core.operational",
             "core.refusals",
             "files.goods_models",
+            "masters.goods_identity_models",
             "masters.goods_models",
             "masters.models",
             "masters.store_features",
@@ -298711,10 +299106,14 @@
             "Position.objects.filter",
             "Position.objects.filter(site_id=store.pk, boundary='physical').values_list",
             "Position.objects.filter(tenant_id=store.tenant_id, site_id=store.pk, boundary='physical').exists",
+            "Position.objects.filter(tenant_id=store.tenant_id, site_id=store.pk, boundary='physical').values_list",
             "QuantityLeg.objects.filter",
             "Sale.objects.filter",
+            "SkuAlias.objects.filter",
+            "SkuAlias.objects.filter(sku_id__in=late).aggregate",
             "StockSync.objects.filter",
-            "StockSync.objects.filter(tenant_id=run.tenant_id, site_id=site_id, source_hash=evidence.sha256).first",
+            "StockSync.objects.filter(tenant_id=run.tenant_id, site_id=site_id, source_hash=evidence.sha256).exclude",
+            "StockSync.objects.filter(tenant_id=run.tenant_id, site_id=site_id, source_hash=evidence.sha256).exclude(state=StockSync.State.DISCARDED).first",
             "StockSync.objects.filter(tenant_id=store.tenant_id, site=store, state=StockSync.State.APPLIED).order_by('-cutoff_at').first",
             "Store.objects.filter",
             "bills.filter",
@@ -298788,6 +299187,7 @@
             "core.operational",
             "core.refusals",
             "files.goods_models",
+            "masters.goods_identity_models",
             "masters.goods_models",
             "masters.models",
             "masters.store_features",
@@ -298811,6 +299211,7 @@
             "module:core.operational",
             "module:core.refusals",
             "module:files.goods_models",
+            "module:masters.goods_identity_models",
             "module:masters.goods_models",
             "module:masters.models",
             "module:masters.store_features",
@@ -298863,18 +299264,23 @@
             "model:masters.EffectiveVersionPeriod",
             "model:masters.GstSlab",
             "model:masters.Gstin",
+            "model:masters.IdentityPick",
             "model:masters.LegalEntity",
             "model:masters.Location",
             "model:masters.MasterVersion",
             "model:masters.PriceChange",
+            "model:masters.ProductSku",
             "model:masters.Sbu",
             "model:masters.Season",
             "model:masters.SiteCapabilityEvent",
             "model:masters.SiteGuard",
             "model:masters.Sku",
+            "model:masters.SkuAlias",
+            "model:masters.SourceCrosswalk",
             "model:masters.StaffTarget",
             "model:masters.Store",
             "model:masters.StoreTarget",
+            "model:masters.Style",
             "model:masters.Tenant",
             "model:ptmapper.SohImport",
             "model:ptmapper.SohImportBatch",
@@ -298950,10 +299356,14 @@
             "Position.objects.filter",
             "Position.objects.filter(site_id=store.pk, boundary='physical').values_list",
             "Position.objects.filter(tenant_id=store.tenant_id, site_id=store.pk, boundary='physical').exists",
+            "Position.objects.filter(tenant_id=store.tenant_id, site_id=store.pk, boundary='physical').values_list",
             "QuantityLeg.objects.filter",
             "Sale.objects.filter",
+            "SkuAlias.objects.filter",
+            "SkuAlias.objects.filter(sku_id__in=late).aggregate",
             "StockSync.objects.filter",
-            "StockSync.objects.filter(tenant_id=run.tenant_id, site_id=site_id, source_hash=evidence.sha256).first",
+            "StockSync.objects.filter(tenant_id=run.tenant_id, site_id=site_id, source_hash=evidence.sha256).exclude",
+            "StockSync.objects.filter(tenant_id=run.tenant_id, site_id=site_id, source_hash=evidence.sha256).exclude(state=StockSync.State.DISCARDED).first",
             "StockSync.objects.filter(tenant_id=store.tenant_id, site=store, state=StockSync.State.APPLIED).order_by('-cutoff_at').first",
             "Store.objects.filter",
             "bills.filter",
@@ -351390,12 +351800,21 @@
         "owner": "SO-03"
       },
       {
-        "source": "backend/accounts/warehouse_manager.py",
+        "source": "backend/accounts/custom_roles.py",
         "reference": "import:accounts.goods_admin_services",
         "occurrences": 2,
         "disposition": "assignment_backed_adapter",
         "trace_status": "needs_resource_trace",
-        "reviewed_chain": "Store test run: reuses audit_values/record_version (role-policy MasterVersion evidence) and lock_person (assignment write lock) only. Authority is the unified RoleAssignment/Role policy read by AccessContext; no legacy grant or permission check is read or written.",
+        "reviewed_chain": "Store test run: tenant-defined roles (warehouse_manager, operations_head) reuse audit_values/record_version (role-policy MasterVersion evidence) and lock_person (assignment write lock) only. Authority is the unified RoleAssignment/Role policy read by AccessContext; no legacy grant or permission check is read or written.",
+        "owner": "SO-03"
+      },
+      {
+        "source": "backend/accounts/test_store_loader.py",
+        "reference": "import:accounts.goods_admin_services",
+        "occurrences": 1,
+        "disposition": "assignment_backed_adapter",
+        "trace_status": "needs_resource_trace",
+        "reviewed_chain": "Store test run (synthetic tenant): places a setup file's salespeople through update_staff, the same staff.update service People uses (staff record + primary StaffAssignment). Staff rows carry no authority; RoleAssignment does. No legacy grant or permission check is read or written.",
         "owner": "SO-03"
       }
     ],
