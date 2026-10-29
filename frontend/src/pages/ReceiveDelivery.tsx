@@ -25,7 +25,8 @@ import { useAuth } from "../auth/AuthContext";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { formatDateTime } from "../lib/format";
-import { Denied, hold, useGoodsFetch, type Page } from "../lib/goodsScreen";
+import { Denied, hold, useAllPages, useGoodsFetch, type Page } from "../lib/goodsScreen";
+import { useWideScreen } from "../lib/useWideScreen";
 import {
   RECEIVING_STEPS,
   STEP_HELP,
@@ -47,6 +48,8 @@ import { PtApprovePanel } from "./PtApprovals";
 import { LabelsPanel } from "./GoodsLabels";
 import { AcceptPanel } from "./GoodsAccept";
 import { ReturnedGoodsAcceptance } from "./ReturnedGoodsAcceptance";
+import { deliveryPath } from "./ReceiveInbox";
+import "./ReceiveDelivery.css";
 
 /** The rail never shows "done" as a step of its own: it is the end, not a
  *  thing anybody opens. */
@@ -196,6 +199,55 @@ function inboxUrl(kind: string, id: string, view: "pending" | "history"): string
   return `/goods-v1/inbound/inbox?${query.toString()}`;
 }
 
+/** The site's pending deliveries, beside the one open (mockup Receive Goods,
+ *  layout L): the next delivery is a click away instead of a trip back to the
+ *  inbox. The same scoped inbox read the Pending list makes; it opens nothing
+ *  the inbox would not. */
+function DeliveryQueue({ siteId, currentId }: { siteId: string; currentId: string }) {
+  const inbox = useAllPages<InboxItem>(
+    `/goods-v1/inbound/inbox?site=${encodeURIComponent(siteId)}&view=pending&limit=100`,
+  );
+  return (
+    <nav
+      className="card receive-queue"
+      aria-label="Pending deliveries"
+      data-testid="delivery-queue"
+    >
+      <p className="receive-queue-head">
+        Pending
+        {!inbox.loading && !inbox.failure && (
+          <span className="filter-chip-n">{inbox.items.length}</span>
+        )}
+      </p>
+      {inbox.loading && inbox.items.length === 0 ? (
+        <p className="muted receive-queue-note">Loading…</p>
+      ) : inbox.items.length === 0 ? (
+        <p className="muted receive-queue-note">Nothing else is on its way in.</p>
+      ) : (
+        <ul>
+          {inbox.items.map((row) => (
+            <li key={row.id}>
+              <Link
+                to={deliveryPath(row)}
+                className={`receive-queue-item${row.id === currentId ? " active" : ""}`}
+                aria-current={row.id === currentId ? "page" : undefined}
+              >
+                <span className="receive-queue-ref">{row.reference}</span>
+                <span className="receive-queue-meta">
+                  <span className={`chip chip-${row.next_step === "done" ? "green" : "amber"}`}>
+                    {STEP_LABEL[row.next_step]}
+                  </span>
+                  {formatDateTime(row.arrived_at)}
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
+    </nav>
+  );
+}
+
 /** One delivery's page, drawn afresh for each address: a link from one step to
  *  another record of the same delivery (the Count step's "Open the GRN") keeps
  *  the route but must not keep the step the person had open before it. */
@@ -210,6 +262,7 @@ function DeliveryPage() {
   const [params] = useSearchParams();
   const asked = params.get("step");
   const [showing, setShowing] = useState<ReceivingStep | null>(null);
+  const wide = useWideScreen();
 
   const pick = (rows: InboxItem[]) =>
     (recordFilter(kind, id) ? rows[0] : rows.find((row) => row.id === id)) ?? null;
@@ -326,16 +379,21 @@ function DeliveryPage() {
           </>
         }
       />
-      {item.kind !== "customer_return" && (
-        <StepRail item={item} showing={panelStep} onShow={setShowing} />
-      )}
-      <p className="lead" data-testid="delivery-step-help">
-        {STEP_HELP[step]}
-      </p>
-      {/* The record's own kind, whichever address opened it; the record itself
-          says which it is. */}
-      <div className="card section-card" data-testid={`delivery-panel-${recordKind}`}>
-        <StepPanel item={item} step={panelStep} />
+      <div className={wide ? "receive-split" : undefined}>
+        {wide && <DeliveryQueue siteId={item.site_id} currentId={item.id} />}
+        <div className="receive-work">
+          {item.kind !== "customer_return" && (
+            <StepRail item={item} showing={panelStep} onShow={setShowing} />
+          )}
+          <p className="lead" data-testid="delivery-step-help">
+            {STEP_HELP[step]}
+          </p>
+          {/* The record's own kind, whichever address opened it; the record itself
+              says which it is. */}
+          <div className="card section-card" data-testid={`delivery-panel-${recordKind}`}>
+            <StepPanel item={item} step={panelStep} />
+          </div>
+        </div>
       </div>
     </OperationsPage>
   );

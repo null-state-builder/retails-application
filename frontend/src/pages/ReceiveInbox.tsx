@@ -23,12 +23,14 @@ import { SearchBox } from "../components/SearchBox";
 import { formatDateTime } from "../lib/format";
 import { Field, hold, listState, useAllPages } from "../lib/goodsScreen";
 import {
+  RECEIVING_STEPS,
   STEP_HELP,
   STEP_LABEL,
   bookingProgress,
   ownerRoleName,
   transferReceivingPath,
   type InboxItem,
+  type ReceivingStep,
 } from "../lib/goodsReceiving";
 import { AcceptPanel } from "./GoodsAccept";
 
@@ -66,13 +68,25 @@ export function ReceiveInboxPage({ view = "pending" }: { view?: "pending" | "his
   const sites = useMemo(() => session?.sites ?? [], [session]);
   const [siteId, setSiteId] = useState<string>(sites[0]?.id ?? "");
   const [term, setTerm] = useState("");
+  const [stage, setStage] = useState<ReceivingStep | "">("");
 
   const site = siteId || sites[0]?.id || "";
   const canReceive = hold(session, "receive.arrival");
   const inbox = useAllPages<InboxItem>(
     site ? `/goods-v1/inbound/inbox?site=${site}&view=${view}&limit=100` : null,
   );
-  const rows = inbox.items.filter((item) => matches(item, term));
+  const searched = inbox.items.filter((item) => matches(item, term));
+  // Stage counts double as the filter (mockup Foundations): each chip's number
+  // is exactly what pressing it shows.
+  const stageCounts = RECEIVING_STEPS.map((step) => ({
+    step,
+    n: searched.filter((item) => item.next_step === step).length,
+  })).filter((s) => s.n > 0);
+  const rows = stage ? searched.filter((item) => item.next_step === stage) : searched;
+  const loaded = !inbox.loading && !inbox.failure && !inbox.denied;
+  const decisions = inbox.items.filter(
+    (item) => item.next_step === "discrepancies" || item.next_step === "pt_approve",
+  ).length;
 
   const state = listState(
     { loading: inbox.loading, failure: inbox.failure, empty: rows.length === 0 },
@@ -86,9 +100,21 @@ export function ReceiveInboxPage({ view = "pending" }: { view?: "pending" | "his
       <PageHeader
         title={view === "history" ? "History" : "Pending"}
         lead={
-          view === "history"
-            ? "Deliveries that reached accepted stock or were closed, newest first."
-            : "Everything on its way in to this site, and what each one is waiting on."
+          <>
+            {/* Said only once the inbox has answered: no guessed count. */}
+            {loaded && inbox.items.length > 0 && (
+              <b data-testid="inbox-count">
+                {view === "history"
+                  ? `${inbox.items.length.toLocaleString("en-IN")} put away or closed. `
+                  : `${inbox.items.length.toLocaleString("en-IN")} on the way in${
+                      decisions ? `, ${decisions} waiting for a decision` : ""
+                    }. `}
+              </b>
+            )}
+            {view === "history"
+              ? "Deliveries that reached accepted stock or were closed, newest first."
+              : "Everything on its way in to this site, and what each one is waiting on."}
+          </>
         }
         actions={
           view === "pending" && canReceive ? (
@@ -122,6 +148,31 @@ export function ReceiveInboxPage({ view = "pending" }: { view?: "pending" | "his
             </select>
           </Field>
         )}
+        {stageCounts.length > 1 && (
+          <div className="filter-chips" role="group" aria-label="Waiting on">
+            <button
+              type="button"
+              className="filter-chip"
+              aria-pressed={stage === ""}
+              onClick={() => setStage("")}
+              data-testid="inbox-stage-all"
+            >
+              All <span className="filter-chip-n">{searched.length}</span>
+            </button>
+            {stageCounts.map((s) => (
+              <button
+                key={s.step}
+                type="button"
+                className="filter-chip"
+                aria-pressed={stage === s.step}
+                onClick={() => setStage(stage === s.step ? "" : s.step)}
+                data-testid={`inbox-stage-${s.step}`}
+              >
+                {STEP_LABEL[s.step]} <span className="filter-chip-n">{s.n}</span>
+              </button>
+            ))}
+          </div>
+        )}
         <div className="spacer" />
         <SearchBox
           value={term}
@@ -134,7 +185,6 @@ export function ReceiveInboxPage({ view = "pending" }: { view?: "pending" | "his
 
       {inbox.denied ? (
         <div className="card section-card" data-testid="inbox-denied">
-          <p className="eyebrow">Not found</p>
           <h3 className="h3">There is no receiving inbox here for you</h3>
           <p className="lead">
             Either this site does not exist, or it is outside what you may see.

@@ -39,6 +39,24 @@ const DIRECTIONS = [
 
 type DirectionKey = (typeof DIRECTIONS)[number]["key"];
 
+/** The next step on a movement, in words, from where this site stands. Words
+ *  rather than a button: the list carries no per-row grant, so it says what
+ *  happens next and the record decides who may do it. */
+function nextStep(state: string, way: "in" | "out"): string {
+  switch (state) {
+    case "draft":
+      return way === "out" ? "Finish and submit" : "Being drafted";
+    case "submitted":
+      return "Waiting for approval";
+    case "approved":
+      return way === "out" ? "Pack and dispatch" : "Waiting for dispatch";
+    case "dispatching":
+      return way === "in" ? "Receive" : "On the road";
+    default:
+      return "—";
+  }
+}
+
 function siteLabel(sites: { id: string; code: string; name: string }[], id: string | null): string {
   if (!id) return "—";
   const found = sites.find((site) => String(site.id) === String(id));
@@ -160,7 +178,6 @@ export function TransfersPage() {
             </button>
           ))}
         </div>
-        <div className="spacer" />
         <SearchBox
           value={term}
           onChange={setTerm}
@@ -170,30 +187,34 @@ export function TransfersPage() {
         />
       </div>
 
-      {/* Stage filters, never the page's red: the one red here is New transfer. */}
-      <div className="toolbar transfers-chips" data-testid="transfers-chips">
+      {/* The stage counts are the filter (mockup Transfers): each tile's number
+          is exactly what pressing it shows. Never the page's red: the one red
+          here is New transfer. A count is shown only once the whole list is in. */}
+      <div
+        className="transfers-stages"
+        role="group"
+        aria-label="Stage"
+        data-testid="transfers-chips"
+      >
         {TRANSFER_FILTERS.map((chip) => (
           <button
             key={chip.key}
             type="button"
-            className="filter-chip"
+            className="transfers-stage"
             onClick={() => setFilter(chip.key)}
             aria-pressed={filter === chip.key}
             data-testid={`transfers-chip-${chip.key}`}
           >
-            {chip.label}
-            {counted && (
-              <span className="filter-chip-n">
-                {thisWay.filter((row) => matchesFilter(row, chip.key)).length}
-              </span>
-            )}
+            <span className="transfers-stage-label">{chip.label}</span>
+            <span className="transfers-stage-n">
+              {counted ? thisWay.filter((row) => matchesFilter(row, chip.key)).length : "—"}
+            </span>
           </button>
         ))}
       </div>
 
       {list.denied ? (
         <div className="card section-card" data-testid="transfers-denied">
-          <p className="eyebrow">Not found</p>
           <h3 className="h3">There are no transfers here for you</h3>
           <p className="lead">
             Either this site does not exist, or it is outside what you may see.
@@ -216,6 +237,7 @@ export function TransfersPage() {
                   <th className="num">Shipments</th>
                   <th className="num">On the road</th>
                   <th>Started</th>
+                  <th>Next step</th>
                 </tr>
               </thead>
               <tbody>
@@ -284,6 +306,9 @@ export function TransfersPage() {
                       <td className="num">{row.dispatch_count}</td>
                       <td className="num">{row.in_transit_qty}</td>
                       <td>{formatDateTime(row.created_at)}</td>
+                      <td className="transfers-next" data-testid={`transfer-next-${row.id}`}>
+                        {nextStep(row.state, way === "out" ? "out" : "in")}
+                      </td>
                     </tr>
                   );
                 })}

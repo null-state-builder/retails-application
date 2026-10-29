@@ -317,6 +317,13 @@ a {
 /* A filter you switch on and off (a stage, a status). Dashed while it is
    available, solid navy wash while it is applied, so an applied filter never
    looks like the page's one red action. Pair with aria-pressed. */
+/* A row of filter chips: stage or status counts that double as the filter. */
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
 .filter-chip {
   display: inline-flex;
   align-items: center;
