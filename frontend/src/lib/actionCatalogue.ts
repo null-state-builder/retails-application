@@ -189,6 +189,13 @@ const KIND_GUIDE: Record<string, KindGuide> = {
     title: "Opening stock has no purchase record",
     help: "Confirm on the opening stock screen that no older record exists.",
   },
+  // Store test run: one per applied legacy SOH sync. Stock already matches the
+  // SOH; the store manager checks each flagged row on Legacy sync.
+  stock_sync_review: {
+    topic: "stock",
+    title: "SOH sync needs review",
+    help: "Stock now matches the legacy SOH. Check each flagged row on Legacy sync and acknowledge it.",
+  },
   setup_configuration_invalid: {
     topic: "setup",
     title: "Store setup is missing or wrong",
