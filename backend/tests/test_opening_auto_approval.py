@@ -9,19 +9,18 @@ the same source.
 """
 from __future__ import annotations
 
+import io
 import time
+import uuid
 from decimal import Decimal
 from typing import Any
 
 import pytest
-
-import io
-import uuid
-
 from openpyxl import Workbook
 
 from accounts.goods_demo import _owner_human_id, _publish_tenant_config
-from accounts.test_store_loader import PT_NOTE, PT_REASON, OpeningDriver, access_for, act, catalogue_config
+from accounts.test_store_loader import (PT_NOTE, PT_REASON, OpeningDriver, WaitingForApproval, access_for, act,
+                                        catalogue_config)
 from alerts.goods_models import GoodsException
 from approvals import goods_services
 from approvals.goods_models import ApprovalDecision, ApprovalRequest
@@ -44,24 +43,25 @@ PREPARER = "wrr.preparer@synthetic.demo"
 
 
 class Stop(Exception):
-    """Ends a driver run at the first request of a given kind, leaving it pending."""
+    """Ends a driver run at the first request of a given subject kind, leaving it pending."""
 
 
 class AutoDriver(OpeningDriver):
-    """The opening as the job runs it: the preparer confirms each request it made."""
+    """The opening as the job runs it: no approver, so the preparer confirms each request it made
+    (``OpeningDriver._decide`` → ``decide_without_second_person``). ``stop_at`` names a subject
+    kind (``soh_import``, ``manifest``, ``document``) whose request is left pending."""
 
     stop_at: str | None = None
 
-    def _approve(self, request: Any) -> None:
-        if request.requested_action == self.stop_at and request.subject_kind == "document":
+    def _decide(self, request_id: Any, what: str) -> None:
+        if self.stop_at is not None and ApprovalRequest.objects.get(pk=request_id).subject_kind == self.stop_at:
             raise Stop
-        preparer = self.preparer()
-        act(preparer, request.requested_action, lambda run: decide_without_second_person(run, request.pk))
+        super()._decide(request_id, what)
 
 
-def driver(store: Store, stop_at: str | None = None) -> AutoDriver:
+def driver(store: Store, stop_at: str | None = None, configure: Any = None) -> AutoDriver:
     found = AutoDriver(store.tenant, store, stager=lambda: access_for(STORE_PERSON), preparer=lambda: access_for(PREPARER),
-                       approver=lambda: access_for(PREPARER), log=lambda _line: None)
+                       log=lambda _line: None, configure=configure, note=PT_NOTE, reason=PT_REASON)
     found.stop_at = stop_at
     return found
 
@@ -109,8 +109,14 @@ def config_for(store: Store, source: SohImport) -> dict[str, Any]:
 def run_opening(store: Store, source: SohImport, *, auto: bool = True, stop_at: str | None = None) -> dict[str, Any]:
     config = config_for(store, source)
     opening_policy(store, auto=auto)
-    driver(store, stop_at).load(source, config, note=PT_NOTE, reason=PT_REASON)
+    driver(store, stop_at, configure=lambda: config).run(source.pk)
     return config
+
+
+def waiting_code(waiting: pytest.ExceptionInfo[WaitingForApproval]) -> str | None:
+    """The refusal the driver turned into "waiting for approval"."""
+    cause = waiting.value.__cause__
+    return cause.code if isinstance(cause, Refusal) else None
 
 
 def requests_of(source: SohImport) -> list[ApprovalRequest]:
@@ -156,9 +162,9 @@ class _Now:
 def test_without_the_flag_each_step_waits_for_its_approver(store: Store) -> None:
     with tenant_context(store.tenant_id):
         source = stage(store, pt_book([pt_row("A1", 1)]))
-        with pytest.raises(Refusal) as refused:
+        with pytest.raises(WaitingForApproval) as waiting:
             run_opening(store, source, auto=False)
-        assert refused.value.code == "AUTO_APPROVAL_NOT_ALLOWED"
+        assert waiting_code(waiting) == "AUTO_APPROVAL_NOT_ALLOWED"
         source.refresh_from_db()
         assert source.approval_request is not None
         assert source.state == "submitted" and source.approval_request.state == "pending"
@@ -171,9 +177,9 @@ def test_a_real_store_never_skips_its_approver(store: Store, monkeypatch: pytest
     with tenant_context(store.tenant_id):
         source = stage(store, pt_book([pt_row("A1", 1)]))
         monkeypatch.setattr(store_features, "is_real_store", lambda _store: True)
-        with pytest.raises(Refusal) as refused:
+        with pytest.raises(WaitingForApproval) as waiting:
             run_opening(store, source)
-        assert refused.value.code == "AUTO_APPROVAL_NOT_ALLOWED"
+        assert waiting_code(waiting) == "AUTO_APPROVAL_NOT_ALLOWED"
         source.refresh_from_db()
         assert source.approval_request is not None and source.approval_request.state == "pending"
 
@@ -182,7 +188,7 @@ def test_only_the_maker_confirms(store: Store) -> None:
     with tenant_context(store.tenant_id):
         source = stage(store, pt_book([pt_row("A1", 1)]))
         with pytest.raises(Stop):
-            _stop_at_source(store, source)
+            run_opening(store, source, stop_at="soh_import")
         source.refresh_from_db()
         request = source.approval_request
         assert request is not None
@@ -201,24 +207,12 @@ def test_only_the_maker_confirms(store: Store) -> None:
         assert again.value.code == "STATE_CONFLICT"
 
 
-def _stop_at_source(store: Store, source: SohImport) -> None:
-    class SourceStop(AutoDriver):
-        def _approve(self, request: Any) -> None:
-            raise Stop
-
-    config = config_for(store, source)
-    opening_policy(store, auto=True)
-    SourceStop(store.tenant, store, stager=lambda: access_for(STORE_PERSON), preparer=lambda: access_for(PREPARER),
-               approver=lambda: access_for(PREPARER), log=lambda _line: None).load(
-        source, config, note=PT_NOTE, reason=PT_REASON)
-
-
 @pytest.mark.parametrize("change", ["flag_removed", "policy_replaced"])
 def test_a_policy_change_after_submission_stops_the_opening_pt(store: Store, change: str) -> None:
     with tenant_context(store.tenant_id):
         source = stage(store, pt_book([pt_row("A1", 2)]))
         with pytest.raises(Stop):
-            run_opening(store, source, stop_at="pt.approve.opening")
+            run_opening(store, source, stop_at="document")
         pending = ApprovalRequest.objects.get(requested_action="pt.approve.opening", state="pending")
         assert pending.policy_version_id is not None
         if change == "flag_removed":
