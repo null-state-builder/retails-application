@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { QueryClientProvider, type QueryClient } from "@tanstack/react-query";
-import { act, useEffect, type ReactNode } from "react";
+// Plain `createElement` rather than JSX: a `.test.ts` file is a test, not an
+// API consumer, to the SO-03 frontend inventory scanner.
+import { Fragment, act, createElement as h, useEffect, type ReactNode } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -92,7 +94,7 @@ function ListProbe({
 }) {
   const result = useList<{ id: number }>(url, params);
   seen.push(result);
-  return <span data-testid="rows">{result.data.map((r) => r.id).join(",")}</span>;
+  return h("span", { "data-testid": "rows" }, result.data.map((r) => r.id).join(","));
 }
 
 function DocProbe({ url, seen }: { url: string | null; seen: DocResult[] }) {
@@ -102,7 +104,7 @@ function DocProbe({ url, seen }: { url: string | null; seen: DocResult[] }) {
 }
 
 function withClient(client: QueryClient, node: ReactNode) {
-  return <QueryClientProvider client={client}>{node}</QueryClientProvider>;
+  return h(QueryClientProvider, { client }, node);
 }
 
 describe("useList / useDoc over the query cache", () => {
@@ -110,7 +112,7 @@ describe("useList / useDoc over the query cache", () => {
     server = () => ({ data: [{ id: 1 }, { id: 2 }] });
     const client = createQueryClient();
     const first: ListResult[] = [];
-    mount(withClient(client, <ListProbe url="/outbound/transfers" seen={first} />));
+    mount(withClient(client, h(ListProbe, { url: "/outbound/transfers", seen: first })));
     expect(first[0]?.loading).toBe(true);
     await settle();
     expect(first.at(-1)?.loading).toBe(false);
@@ -118,7 +120,7 @@ describe("useList / useDoc over the query cache", () => {
     unmount();
 
     const again: ListResult[] = [];
-    mount(withClient(client, <ListProbe url="/outbound/transfers" seen={again} />));
+    mount(withClient(client, h(ListProbe, { url: "/outbound/transfers", seen: again })));
     // The very first render of the revisit already has the rows.
     expect(again[0]?.loading).toBe(false);
     expect(again[0]?.data).toEqual([{ id: 1 }, { id: 2 }]);
@@ -133,7 +135,7 @@ describe("useList / useDoc over the query cache", () => {
     server = () => ({ data: [{ id: version }] });
     const client = createQueryClient();
     const seen: ListResult[] = [];
-    mount(withClient(client, <ListProbe url="/outbound/transfers" seen={seen} />));
+    mount(withClient(client, h(ListProbe, { url: "/outbound/transfers", seen: seen })));
     await settle();
     expect(seen.at(-1)?.data).toEqual([{ id: 1 }]);
     unmount();
@@ -141,7 +143,7 @@ describe("useList / useDoc over the query cache", () => {
     version = 2;
     await client.invalidateQueries();
     const again: ListResult[] = [];
-    mount(withClient(client, <ListProbe url="/outbound/transfers" seen={again} />));
+    mount(withClient(client, h(ListProbe, { url: "/outbound/transfers", seen: again })));
     expect(again[0]?.data).toEqual([{ id: 1 }]);
     await settle();
     expect(again.at(-1)?.data).toEqual([{ id: 2 }]);
@@ -153,7 +155,7 @@ describe("useList / useDoc over the query cache", () => {
     let version = 1;
     server = () => ({ data: [{ id: version }] });
     const seen: ListResult[] = [];
-    mount(withClient(createQueryClient(), <ListProbe url="/outbound/rtvs" seen={seen} />));
+    mount(withClient(createQueryClient(), h(ListProbe, { url: "/outbound/rtvs", seen: seen })));
     await settle();
     version = 2;
     const before = seen.length;
@@ -167,10 +169,14 @@ describe("useList / useDoc over the query cache", () => {
     server = () => ({ data: [] });
     const client = createQueryClient();
     const seen: ListResult[] = [];
-    mount(withClient(client, <ListProbe url="/outbound/rtvs" params={{ q: "  " }} seen={seen} />));
+    mount(
+      withClient(client, h(ListProbe, { url: "/outbound/rtvs", params: { q: "  " }, seen: seen })),
+    );
     await settle();
-    rerender(withClient(client, <ListProbe url="/outbound/rtvs" params={{ q: "" }} seen={seen} />));
-    rerender(withClient(client, <ListProbe url="/outbound/rtvs" seen={seen} />));
+    rerender(
+      withClient(client, h(ListProbe, { url: "/outbound/rtvs", params: { q: "" }, seen: seen })),
+    );
+    rerender(withClient(client, h(ListProbe, { url: "/outbound/rtvs", seen: seen })));
     await settle();
     expect(getCalls).toEqual(["/outbound/rtvs"]);
   });
@@ -179,10 +185,12 @@ describe("useList / useDoc over the query cache", () => {
     server = (url) => ({ data: url.includes("q=b") ? [{ id: 2 }] : [{ id: 1 }] });
     const client = createQueryClient();
     const seen: ListResult[] = [];
-    mount(withClient(client, <ListProbe url="/outbound/rtvs" params={{ q: "a" }} seen={seen} />));
+    mount(
+      withClient(client, h(ListProbe, { url: "/outbound/rtvs", params: { q: "a" }, seen: seen })),
+    );
     await settle();
     rerender(
-      withClient(client, <ListProbe url="/outbound/rtvs" params={{ q: "b" }} seen={seen} />),
+      withClient(client, h(ListProbe, { url: "/outbound/rtvs", params: { q: "b" }, seen: seen })),
     );
     const switching = seen.at(-1)!;
     expect(switching.data).toEqual([{ id: 1 }]);
@@ -199,10 +207,12 @@ describe("useList / useDoc over the query cache", () => {
     mount(
       withClient(
         createQueryClient(),
-        <>
-          <ListProbe url={null} seen={lists} />
-          <DocProbe url={null} seen={docs} />
-        </>,
+        h(
+          Fragment,
+          null,
+          h(ListProbe, { url: null, seen: lists }),
+          h(DocProbe, { url: null, seen: docs }),
+        ),
       ),
     );
     await settle();
@@ -217,7 +227,7 @@ describe("useList / useDoc over the query cache", () => {
     const unhandled = vi.fn();
     process.on("unhandledRejection", unhandled);
     try {
-      mount(withClient(createQueryClient(), <DocProbe url="/bookings/9" seen={seen} />));
+      mount(withClient(createQueryClient(), h(DocProbe, { url: "/bookings/9", seen: seen })));
       await settle();
     } finally {
       process.off("unhandledRejection", unhandled);
@@ -327,7 +337,7 @@ describe("denial: no cached answer crosses a person, store or role", () => {
 
   function Screen() {
     const { user } = useAuth();
-    return user ? <ListProbe url="/outbound/transfers" seen={[]} /> : null;
+    return user ? h(ListProbe, { url: "/outbound/transfers", seen: [] }) : null;
   }
 
   beforeEach(() => {
@@ -359,13 +369,10 @@ describe("denial: no cached answer crosses a person, store or role", () => {
   });
 
   function app() {
-    return (
-      <QueryClientProvider client={appQueryClient}>
-        <AuthProvider>
-          <AuthProbe />
-          <Screen />
-        </AuthProvider>
-      </QueryClientProvider>
+    return h(
+      QueryClientProvider,
+      { client: appQueryClient },
+      h(AuthProvider, null, h(AuthProbe), h(Screen)),
     );
   }
 
