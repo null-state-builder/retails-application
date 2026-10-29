@@ -220,7 +220,7 @@ export async function refreshNumbering(
 /** One line for the Till & Sync screen. */
 export function numberingNote(state: TillNumbering | null, today: Date = new Date()): string {
   if (!state) return "Not received yet - sync to find out.";
-  if (!state.on) return "Switched off - bills keep today's number";
+  if (!state.on) return "Off: bills keep today's number";
   const day = localDay(today);
   if (!newFormatApplies(state, day)) return `New format from ${state.new_format_from}`;
   const left = numbersLeft(state, day.slice(0, 7));

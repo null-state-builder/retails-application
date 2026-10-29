@@ -772,7 +772,20 @@ export class TillEngine {
       // window is evidence of.
       await renewAuthority(this.db, this.transport);
       // The new device resumes where the store's series actually stands, not at 1.
-      await reconcileRegister(this.db, this.transport);
+      const register = await reconcileRegister(this.db, this.transport);
+      // A replacement has already written the store's handover row on the server
+      // (`register_till`), so the drawer of receipts to key in is built here from
+      // the register just read rather than by asking for a second handover - one
+      // move, one row of evidence.
+      if (options.replace && register) {
+        const state: HandoverState = {
+          resume_from_seq: register.last_accepted_seq + 1,
+          unsynced_hint: register.holes,
+          hole_count: register.hole_count,
+          at: new Date().toISOString(),
+        };
+        await writeMeta(this.db, META.handover, state);
+      }
       await this.refresh();
     } finally {
       this.publish({ busy: false });
