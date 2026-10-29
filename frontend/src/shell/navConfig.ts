@@ -530,7 +530,10 @@ export const SECTIONS: NavSectionDef[] = [
         to: "/goods/transfers/requests",
         goodsActions: ["transfer.allocate"],
       },
-      { label: "Earlier transfer records", to: "/transfer", hidden: true },
+      // The legacy records are reached from the Transfers page (desktop redesign
+      // Q4), so the line leaves the menu only where Transfers is drawn: a login
+      // with the legacy grant and no goods one keeps its way in (SO-03 C07).
+      { label: "Earlier transfer records", to: "/transfer", shownBy: "/goods/transfers" },
       { label: "Send Stock", to: "/transfer/new", hidden: true },
       // Bulk-splits one arrived warehouse batch into a draft per destination
       // store — the grid Ops Head fills in once instead of raising the same
@@ -548,9 +551,9 @@ export const SECTIONS: NavSectionDef[] = [
     layer: "controls",
     items: [
       // The legacy count screens retire into the goods count journey (SO-03 C08):
-      // off the menu, routed and gated as before for bookmarks (desktop
-      // redesign Q4, 29 Oct 2026).
-      { label: "Count Sessions", to: "/stock-count", hidden: true },
+      // off the menu wherever Stock on hand is drawn, whose page keeps them as
+      // its "Earlier count records" tab (desktop redesign Q4, 29 Oct 2026).
+      { label: "Count Sessions", to: "/stock-count", shownBy: "/stock" },
       // Store operations ticket 35 (ST-INV-3): when each store's blind count is
       // due; drawn only where the scheduled-counts switch is on.
       { label: "Count Schedule", to: "/stock-count/schedule", storeFeature: "scheduled-counts" },
@@ -584,11 +587,13 @@ export const SECTIONS: NavSectionDef[] = [
       { label: "Returns", to: "/return-to-brand" },
       { label: "New Return", to: "/return-to-brand/new" },
       // Retained evidence uses its earlier projection and original section gate.
+      // The Stock page carries it as a tab, so the line leaves the menu only
+      // where Stock on hand is drawn: a Return to Brand login keeps its way in.
       {
         label: "Earlier damage records",
         to: "/inventory?tab=damage-history",
         deepLink: true,
-        hidden: true,
+        shownBy: "/stock",
       },
     ],
   },
@@ -1049,7 +1054,8 @@ export const SECTIONS: NavSectionDef[] = [
         dataGate: { section: "money", minCapability: "view" },
       },
       { label: "Stores", to: "/setup/stores" },
-      { label: "Brands", to: "/setup/brands" },
+      // "Brand list", not "Brands": Brands is a heading of its own (terms).
+      { label: "Brand list", to: "/setup/brands" },
       // The vendor master had no screen at all: vendors could only be created
       // through the API, and never corrected. Bookings, GRNs and every payable
       // hang off this row, so it belongs beside Brands (one vendor, many brands).
@@ -2173,8 +2179,11 @@ function menuOnly(section: VisibleSection): VisibleSection {
  *  it was moved to (`movedTo`), else the lead of the group its section reads
  *  under, else its own. The page crumb asks this, so the caption names the
  *  heading the person found the screen under. */
-export function menuSectionCode(item: NavItem & { section: string }): string {
-  if (item.movedTo) return item.movedTo;
+export function menuSectionCode(item: NavItem & { section: string }, drawn?: NavRow[]): string {
+  // Only where the stand-in is actually drawn: without it the line stayed in
+  // its own section, and the caption must say so.
+  if (item.movedTo && (!drawn || drawnItems(drawn).some((i) => i.movedHere && i.to === item.to)))
+    return item.movedTo;
   const group = DEFAULT_LAYOUT.filter(isGroupRow).find((g) => g.sections.includes(item.section));
   return group?.sections[0] ?? item.section;
 }
@@ -2196,10 +2205,51 @@ export function sidebarRows(
   // counter, so its sidebar leaves the counter-only lines out. Their URLs keep
   // their own gates and still explain themselves to whoever opens them.
   const counter = (user.stores?.length ?? 0) === 1;
-  const sections = visibleSections(user, goodsActions, featuresOn)
-    .map((s) => (counter ? s : { ...s, items: s.items.filter((i) => !i.counterOnly) }))
+  const roleCode = user.role?.code ?? "";
+  const sections = curatedSections(
+    visibleSections(user, goodsActions, featuresOn)
+      .map((s) => (counter ? s : { ...s, items: s.items.filter((i) => !i.counterOnly) }))
+      .filter((s) => s.items.length > 0),
+    roleCode,
+  );
+  return applyLayout(sections, roleCode);
+}
+
+/** Roles whose sidebar keeps a shorter list of lines than access alone gives
+ *  them. The store person reads the one sidebar, in its order and under its
+ *  headings, but only the lines the store's own arrangement named (store and
+ *  warehouse operations PRD §12): a cashier's grants reach PT work, labels,
+ *  partner billing and the back-office reports, which are not the counter's
+ *  work. Every URL keeps its own gate; this only shortens the menu. */
+const CURATED_LAYOUTS: Record<string, PersonaLayout> = { store_person: STORE_LAYOUT };
+
+/** Lines every curated list keeps whatever its layout names. */
+const ALWAYS_LISTED = new Set(["/roadmap"]);
+
+/** `sections` cut to the lines `roleCode`'s curated layout names, in the
+ *  sections that layout speaks for; any other section is left whole, so a
+ *  section granted later is never lost. Reads the access filter's output, so
+ *  it can only ever subtract. */
+export function curatedSections(sections: VisibleSection[], roleCode: string): VisibleSection[] {
+  const layout = CURATED_LAYOUTS[roleCode];
+  if (!layout) return sections;
+  const spoken = new Set<string>();
+  const kept = new Set(ALWAYS_LISTED);
+  for (const row of layout) {
+    if (typeof row === "string" || isGroupRow(row)) continue;
+    if (isStripRow(row)) {
+      spoken.add(row.section);
+      for (const tab of stripTabs(row, sections)) kept.add(tab.to);
+      continue;
+    }
+    for (const code of row.sections) spoken.add(code);
+    for (const tab of foldTabs(row, sections)) kept.add(tab.entry);
+  }
+  return sections
+    .map((s) =>
+      spoken.has(s.def.code) ? { ...s, items: s.items.filter((i) => kept.has(i.to)) } : s,
+    )
     .filter((s) => s.items.length > 0);
-  return applyLayout(sections, user.role?.code ?? "");
 }
 
 /** Where a signed-in person with no Home of their own lands: the first screen
@@ -2252,10 +2302,65 @@ export function isActiveFold(fold: NavFoldDef, pathname: string): boolean {
   return !!owner && fold.sections.includes(owner.section);
 }
 
+/** Every line a set of sidebar rows draws under a section heading. */
+function drawnItems(rows: NavRow[]): NavItem[] {
+  return rows.flatMap((r) => (r.kind === "section" ? r.section.items : []));
+}
+
+/** The one drawn line that lights at this URL, by its `to`, or null.
+ *
+ *  `isActiveItem` answers for the manifest; this answers for what the person's
+ *  sidebar actually draws, so a screen whose own line is not drawn still lights
+ *  the line that leads to it:
+ *  - the Stock page (`/inventory`) owns no line: its showing tab's entry lights,
+ *    else its first tab's (Stock on hand);
+ *  - a line dropped for its `shownBy` lights the line whose screen carries it
+ *    (Goods stock lights Stock on hand, Movement History lights Movements). */
+export function litLine(rows: NavRow[], pathname: string, search = ""): string | null {
+  const items = drawnItems(rows);
+  const direct = items.find((i) => isActiveItem(i, pathname));
+  if (direct) return direct.to;
+  const drawnTo = new Set(items.map((i) => i.to));
+  const fold = foldOwning(pathname);
+  if (fold) {
+    const slug = new URLSearchParams(search).get("tab");
+    const tab = fold.tabs.find((t) => t.slug === slug) ?? fold.tabs[0];
+    for (const entry of [tab?.entry, fold.tabs[0]?.entry]) {
+      if (!entry) continue;
+      if (drawnTo.has(entry)) return entry;
+      const host = itemOwning(entry.split("?")[0] ?? entry);
+      if (host && drawnTo.has(host.to)) return host.to;
+      if (host?.shownBy && drawnTo.has(host.shownBy)) return host.shownBy;
+    }
+    return null;
+  }
+  const lit = deepestUnder(pathname, (i) => !i.deepLink && !i.action && !i.hidden);
+  if (lit?.shownBy && drawnTo.has(lit.shownBy)) return lit.shownBy;
+  return null;
+}
+
+/** The key of the drawn row holding the line that lights at this URL, when the
+ *  rows are known: what the sidebar unfolds. */
+function rowHolding(rows: NavRow[], to: string | null): string | null {
+  if (!to) return null;
+  const row = rows.find((r) => r.kind === "section" && r.section.items.some((i) => i.to === to));
+  return row?.key ?? null;
+}
+
 /** The key of the sidebar row this person's screen is drawn under - a section
  *  code, or a fold's key. What the sidebar has to unfold to show where you are;
  *  a folded page draws as one link and so has nothing to unfold. */
-export function headingOwning(pathname: string, roleCode: string): string | null {
+export function headingOwning(
+  pathname: string,
+  roleCode: string,
+  rows?: NavRow[],
+  search = "",
+): string | null {
+  // Asked of the person's own rows when they are known: a moved line whose
+  // stand-in is not drawn stays under its own heading, and a screen with no
+  // drawn line of its own unfolds the row of the line that leads to it.
+  const held = rows && rowHolding(rows, litLine(rows, pathname, search));
+  if (held) return held;
   const layout = layoutFor(roleCode);
   const folds = layout.filter(isFoldRow);
   const here = folds.find((f) => isActiveFold(f, pathname));

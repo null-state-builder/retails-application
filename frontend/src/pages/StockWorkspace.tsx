@@ -6,11 +6,13 @@ import { OperationsPage } from "../components/OperationsPage";
 import { hold } from "../lib/goodsScreen";
 import { SearchBox } from "../components/SearchBox";
 import {
+  GOODS_STOCK_VIEWS,
   STOCK_VIEWS,
   stockBookmark,
   stockParams,
   stockSelection,
   stockView,
+  stockViewOpen,
 } from "../lib/stockWorkspace";
 import StockOnHand from "./StockOnHand";
 import CrossStoreSearch from "./CrossStoreSearch";
@@ -28,13 +30,13 @@ export function StockBookmark() {
 }
 
 /** The one switch between Stock on hand's views (desktop redesign Q3). A
- *  goods-journal view is offered only to a person holding `stock.view`, the
- *  grant its own screen answers to. */
+ *  goods-journal view is offered only to a person holding a grant its own
+ *  screen answers to (`stockViewOpen`). */
 export function StockViews() {
   const { session } = useAuth();
   const [params] = useSearchParams();
   const view = stockView(params);
-  const offered = STOCK_VIEWS.filter((v) => !v.goods || hold(session, "stock.view"));
+  const offered = STOCK_VIEWS.filter((v) => stockViewOpen(v.key, (g) => hold(session, g)));
   return (
     <div className="seg stock-views" aria-label="Stock view" data-testid="stock-workspace-views">
       {offered.map((v) => (
@@ -46,6 +48,7 @@ export function StockViews() {
             tab: "stock",
             view: v.key === "on-hand" ? "" : v.key,
             find: "",
+            goods_view: "",
           })}`}
           data-testid={`stock-workspace-view-${v.key}`}
         >
@@ -70,8 +73,13 @@ export function StockWorkspace() {
   };
   // The goods-journal views draw the goods stock screen itself, with its own
   // reads, filters and gate, under this page's switch.
-  if ((view === "in-transit" || view === "quarantine") && hold(session, "stock.view")) {
-    return <GoodsStockPage stockView={view} views={<StockViews />} />;
+  if (GOODS_STOCK_VIEWS.includes(view) && stockViewOpen(view, (g) => hold(session, g))) {
+    return (
+      <GoodsStockPage
+        stockView={view as "location" | "in-transit" | "quarantine"}
+        views={<StockViews />}
+      />
+    );
   }
   const scopedLabel = selection.store
     ? `${selection.store.code} · ${selection.store.name}`

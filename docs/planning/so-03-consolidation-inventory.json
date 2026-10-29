@@ -24797,6 +24797,14 @@
       "primary_id": "C03",
       "lifecycle": "canonical",
       "removal_condition": "Menu stand-in only (desktop redesign Q6): the route and gate stay with navigation:sell:/setup/settings."
+    },
+    {
+      "id": "DESKTOP-API-001",
+      "kind": "api_consumer",
+      "key_regex": "^api_consumer:frontend/src/pages/ReceiveDelivery\\.tsx:91a474062035$",
+      "primary_id": "C05",
+      "lifecycle": "canonical",
+      "removal_condition": "Pending-deliveries queue beside an open delivery (desktop redesign layout L): the same scoped GET /goods-v1/inbound/inbox?view=pending read as api_consumer:frontend/src/pages/ReceiveInbox.tsx:99d111f50388; it writes nothing and retires with the inbox."
     }
   ],
   "discovered": {

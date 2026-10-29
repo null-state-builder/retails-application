@@ -805,15 +805,23 @@ table.data tr:hover td {
 table.data th.num {
   text-align: right;
 }
-/* The header row stays in view while a long table scrolls inside its wrap. */
+/* A list page's table (`.table-wrap.capped`) scrolls inside the window with
+   its header row in view. Only list pages opt in: a report or a record keeps
+   one page scroll, and print never clips a table to the screen's height. */
 @media (min-width: 1024px) {
-  .table-wrap {
+  .table-wrap.capped {
     max-height: calc(100dvh - 200px);
   }
-  .table-wrap > table.data > thead th {
+  .table-wrap.capped > table.data > thead th {
     position: sticky;
     top: 0;
     z-index: 1;
+  }
+}
+@media print {
+  .table-wrap.capped {
+    max-height: none;
+    overflow: visible;
   }
 }
 /* A table wider than its card keeps its first column (store, brand, person)

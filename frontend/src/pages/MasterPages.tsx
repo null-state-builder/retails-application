@@ -491,6 +491,9 @@ export function StoreTargetsPage() {
                 stores" while the grid loads is a number nobody asked for. */}
             {stores.length > 0 &&
               !loading &&
+              // A grid that failed to load knows nothing about the year: the
+              // error below says so, and no total or "none set" is claimed.
+              !stale &&
               // A year with no target set has nothing committed to total: "₹0"
               // would read as a target of nought.
               (data.length === 0 ? (
@@ -708,7 +711,7 @@ export function BrandsPage() {
 
   return (
     <Screen
-      title="Brands"
+      title="Brand list"
       count={data.length}
       action={
         canEdit && (

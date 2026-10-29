@@ -15,11 +15,14 @@ import {
   gstParams,
   maskUnknownFigures,
 } from "../lib/gstReport";
-import type { GstColumn, GstFilters, GstRow, GstView } from "../lib/gstReport";
+import type { FigureSources, GstColumn, GstFilters, GstRow, GstView } from "../lib/gstReport";
 import { asOfText } from "../lib/salesReport";
 import "./Shared.css";
 
 type Payload = ApiRead<ApiSchemas["GstReport"]>;
+
+/** The rate a by-rate row stands for is its key, not a figure. */
+const GST_SOURCES: FigureSources = { keep: ["rate"] };
 
 const OFFLINE = "Reports need a connection. Reconnect to see or export this report.";
 
@@ -167,8 +170,10 @@ export function GstReportPage() {
   }
 
   const columns = data.columns as GstColumn[];
-  const rows = (data.rows as GstRow[]).map((row) => maskUnknownFigures(row, columns, data.missing));
-  const total = maskUnknownFigures(data.total as GstRow, columns, data.missing);
+  const rows = (data.rows as GstRow[]).map((row) =>
+    maskUnknownFigures(row, columns, data.missing, GST_SOURCES),
+  );
+  const total = maskUnknownFigures(data.total as GstRow, columns, data.missing, GST_SOURCES);
 
   return (
     <OperationsPage>

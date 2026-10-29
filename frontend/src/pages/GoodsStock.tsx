@@ -107,7 +107,7 @@ export function GoodsStockPage({
   damageWorkspace?: boolean;
   /** Drawn as a view of Stock on hand (desktop redesign Q3): the page keeps
    *  its own reads and gates, and the switch between views is `views`. */
-  stockView?: "in-transit" | "quarantine";
+  stockView?: "location" | "in-transit" | "quarantine";
   views?: ReactNode;
 }) {
   // The Quarantine view of Stock on hand is the damage workspace it replaced.
@@ -132,19 +132,24 @@ export function GoodsStockPage({
   // rather than building a request against `VIEW_PATH[undefined]`.
   const rawView = params.get("view");
   // As a view of Stock on hand, `?view=` names the Stock on hand view; finding
-  // physical stock to report as damaged is `?find=1` there instead.
+  // physical stock to report as damaged is `?find=1` there instead, and By
+  // location's own on-hand or availability is `?goods_view=`.
   const view = (
-    stockView === "in-transit"
-      ? "in-transit"
-      : stockView === "quarantine"
-        ? params.get("find") === "1"
-          ? "on-hand"
-          : "quarantine"
-        : rawView && rawView in VIEW_PATH
-          ? rawView
-          : damageWorkspace
-            ? "quarantine"
-            : "on-hand"
+    stockView === "location"
+      ? params.get("goods_view") === "availability"
+        ? "availability"
+        : "on-hand"
+      : stockView === "in-transit"
+        ? "in-transit"
+        : stockView === "quarantine"
+          ? params.get("find") === "1"
+            ? "on-hand"
+            : "quarantine"
+          : rawView && rawView in VIEW_PATH
+            ? rawView
+            : damageWorkspace
+              ? "quarantine"
+              : "on-hand"
   ) as ViewKind;
 
   function set(key: string, value: string) {
@@ -153,7 +158,10 @@ export function GoodsStockPage({
       next.set(key, value);
       next.delete("site");
       next.delete("store");
-      next.delete("scope");
+      // "All sites in scope" is kept as the page-wide all-stores choice, so the
+      // other Stock on hand views keep it when switched to.
+      if (value) next.delete("scope");
+      else next.set("scope", "all");
     } else if (value) next.set(key, value);
     else next.delete(key);
     setParams(next, { replace: true });
@@ -379,7 +387,9 @@ export function GoodsStockPage({
         <div className="toolbar">
           {(damageWorkspace
             ? (["quarantine", "on-hand"] as ViewKind[])
-            : (Object.keys(VIEW_PATH) as ViewKind[])
+            : stockView === "location"
+              ? (["on-hand", "availability"] as ViewKind[])
+              : (Object.keys(VIEW_PATH) as ViewKind[])
           ).map((v) => (
             <button
               key={v}
@@ -387,7 +397,9 @@ export function GoodsStockPage({
               onClick={() =>
                 stockView === "quarantine"
                   ? set("find", v === "on-hand" ? "1" : "")
-                  : set("view", v)
+                  : stockView === "location"
+                    ? set("goods_view", v === "on-hand" ? "" : v)
+                    : set("view", v)
               }
               data-testid={`stock-view-${v}`}
             >

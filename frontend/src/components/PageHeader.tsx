@@ -2,7 +2,16 @@ import { createContext, useContext } from "react";
 import type { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 
-import { SECTIONS, itemOwning, itemPath, menuSectionCode, normalizePath } from "../shell/navConfig";
+import { useAuth } from "../auth/AuthContext";
+import {
+  SECTIONS,
+  itemOwning,
+  itemPath,
+  menuSectionCode,
+  normalizePath,
+  sidebarRows,
+  type NavRow,
+} from "../shell/navConfig";
 
 // One header for every screen, captioned the way the sidebar addresses it (#87).
 //
@@ -15,11 +24,13 @@ import { SECTIONS, itemOwning, itemPath, menuSectionCode, normalizePath } from "
 // and `pageVocabulary.test.ts` fails the build if a page types one back.
 
 /** The section that owns `pathname`, and the screen inside it. */
-export function pageContext(pathname: string) {
+export function pageContext(pathname: string, drawn?: NavRow[]) {
   const item = itemOwning(pathname);
   // The heading the sidebar draws the screen under, which is not always the
-  // section that owns its gate (a moved line, a grouped section).
-  const section = item ? SECTIONS.find((s) => s.code === menuSectionCode(item)) : undefined;
+  // section that owns its gate (a moved line, a grouped section). Asked of the
+  // person's own rows when known: a moved line stays under its own heading
+  // for somebody whose sidebar does not draw where it moved to.
+  const section = item ? SECTIONS.find((s) => s.code === menuSectionCode(item, drawn)) : undefined;
   return { item, section };
 }
 
@@ -57,7 +68,12 @@ export function PageHeader({
   titleTestId?: string;
 }) {
   const { pathname } = useLocation();
-  const { item, section } = pageContext(pathname);
+  const auth = useAuth();
+  const user = auth?.user;
+  const drawn = user
+    ? sidebarRows(user, auth.session?.display_actions ?? [], auth.featuresOn)
+    : undefined;
+  const { item, section } = pageContext(pathname, drawn);
   const hosted = useContext(HostedPageContext);
   const heading = title ?? hosted?.title ?? item?.label ?? "";
   // The screen's own line is worth showing only when the title is something

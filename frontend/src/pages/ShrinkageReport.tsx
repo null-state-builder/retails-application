@@ -6,7 +6,7 @@ import { api, apiErrorMessage } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
 import { alignsRight, columnHeading, gstCell, maskUnknownFigures } from "../lib/gstReport";
-import type { GstColumn, GstRow } from "../lib/gstReport";
+import type { FigureSources, GstColumn, GstRow } from "../lib/gstReport";
 import { asOfText } from "../lib/salesReport";
 import {
   SHRINKAGE_GROUPINGS,
@@ -17,6 +17,12 @@ import type { ShrinkageFilters, ShrinkageGroupBy } from "../lib/shrinkageReport"
 import "./Shared.css";
 
 type Payload = ApiRead<ApiSchemas["ShrinkageReport"]>;
+
+/** The shares worked out against the sales copy this report also reads:
+ *  unknown, not nought, while that copy is missing (`SALES_NOT_BUILT`). */
+const SHRINKAGE_SOURCES: FigureSources = {
+  copies: { SALES: ["pieces_sold", "pieces_pct", "sales_paise", "cost_share_pct"] },
+};
 
 const OFFLINE = "Reports need a connection. Reconnect to see or export this report.";
 
@@ -156,9 +162,14 @@ export function ShrinkageReportPage() {
 
   const columns = data.columns as GstColumn[];
   const rows = (data.rows as unknown as GstRow[]).map((row) =>
-    maskUnknownFigures(row, columns, data.missing),
+    maskUnknownFigures(row, columns, data.missing, SHRINKAGE_SOURCES),
   );
-  const total = maskUnknownFigures(data.total as unknown as GstRow, columns, data.missing);
+  const total = maskUnknownFigures(
+    data.total as unknown as GstRow,
+    columns,
+    data.missing,
+    SHRINKAGE_SOURCES,
+  );
 
   return (
     <OperationsPage>

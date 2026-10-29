@@ -148,7 +148,7 @@ export function CustomerListPage() {
               : `${data.customers.length.toLocaleString("en-IN")} customers`}
             {data.truncated ? " - the most recent. Search to narrow it." : ""}
           </p>
-          <div className="table-wrap">
+          <div className="table-wrap capped">
             <table className="data" data-testid="customers-rows">
               <thead>
                 <tr>

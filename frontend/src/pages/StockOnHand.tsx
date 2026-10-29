@@ -110,13 +110,16 @@ const TABS: { key: Group; label: string }[] = [
 export function StockValue({
   paise,
   loading = false,
+  short = false,
 }: {
   paise: number | undefined;
   loading?: boolean;
+  /** Lakh and crore, for a summary tile. A table row keeps the exact value. */
+  short?: boolean;
 }) {
   // Still loading is not "Unavailable": that word is for a value this login
   // may not see.
-  if (typeof paise === "number") return <Money paise={paise} short />;
+  if (typeof paise === "number") return <Money paise={paise} short={short} />;
   return <span className="muted">{loading ? "Loading…" : "Unavailable"}</span>;
 }
 
@@ -340,7 +343,7 @@ export default function StockOnHand({
         {
           icon: IndianRupee,
           label: "Quarantine value",
-          value: <StockValue paise={quar?.summary.value_paise} loading={loading} />,
+          value: <StockValue paise={quar?.summary.value_paise} loading={loading} short />,
         },
         {
           icon: Layers,
@@ -357,7 +360,7 @@ export default function StockOnHand({
         {
           icon: IndianRupee,
           label: "Stock value",
-          value: <StockValue paise={data?.summary.value_paise} loading={loading} />,
+          value: <StockValue paise={data?.summary.value_paise} loading={loading} short />,
         },
         {
           icon: Layers,

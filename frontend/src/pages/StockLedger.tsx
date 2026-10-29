@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Boxes, IndianRupee, Layers, PackageCheck, ScrollText } from "lucide-react";
 
+import { useAuth } from "../auth/AuthContext";
+import { canAccess } from "../auth/routeAccess";
 import { api } from "../lib/api";
 import { Money } from "../lib/format";
 import { ListSearchBar } from "../components/SearchBox";
@@ -37,6 +39,10 @@ interface SummaryT {
 }
 
 export default function StockLedger() {
+  const { user, session, featuresOn } = useAuth();
+  // The empty ledger points at Movements only for someone who can open it.
+  const movementsOpen =
+    !!user && canAccess("/goods/movements", user, session?.display_actions ?? [], featuresOn);
   const [params] = useSearchParams();
   const docFilter = params.get("doc") || "";
   const [entries, setEntries] = useState<EntryT[]>([]);
@@ -137,8 +143,15 @@ export default function StockLedger() {
           ) : (
             <>
               This ledger has no postings for your stores. Goods received through Receive Goods are
-              recorded in the goods journal instead —{" "}
-              <Link to="/goods/movements">see Movements</Link>.
+              recorded in the goods journal instead
+              {movementsOpen ? (
+                <>
+                  {" "}
+                  — <Link to="/goods/movements">see Movements</Link>.
+                </>
+              ) : (
+                "."
+              )}
             </>
           )}
         </div>

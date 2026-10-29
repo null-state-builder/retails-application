@@ -220,7 +220,12 @@ function TrialBalancePanel({ canSeeMoney }: { canSeeMoney: boolean }) {
           color: balanced === null ? "var(--muted)" : balanced ? "var(--green)" : "var(--rust-ink)",
         }}
       >
-        {balanced === false ? <AlertTriangle size={20} /> : <CheckCircle2 size={20} />}
+        {/* No tick while the books are still being read: a tick is an answer. */}
+        {balanced === false ? (
+          <AlertTriangle size={20} />
+        ) : balanced ? (
+          <CheckCircle2 size={20} />
+        ) : null}
         <div style={{ display: "flex", flexDirection: "column" }}>
           <b>
             {balanced === null ? "Reading the books…" : balanced ? "Books tie" : "Out of balance"}

@@ -158,6 +158,12 @@
  * inside a column `.field` must not: there the basis becomes its height (the
  * 160px-tall boxes on Reservations, Special orders and Opening stock). In a
  * row, the labelled `.field` is the flex item and its control fills it. */
+/* A control wrapped in anything else (a picker, a label) keeps its width,
+ * but no flex-basis, which is meaningless outside the row. */
+.form-grid .input,
+.form-grid .select {
+  min-width: 160px;
+}
 .form-grid > .input,
 .form-grid > .select {
   min-width: 160px;

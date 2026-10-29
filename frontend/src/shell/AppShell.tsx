@@ -18,9 +18,9 @@ import { MailButton } from "./MailButton";
 import { ActionNeededButton, AlertsButton } from "./Notifications";
 import {
   headingOwning,
+  litLine,
   SECTIONS,
   isActiveFold,
-  isActiveItem,
   isOneLineRow,
   itemPath,
   sectionTabsFor,
@@ -298,7 +298,7 @@ function Sidebar({
   onNavigate: () => void;
 }) {
   const { user, session, featuresOn } = useAuth();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const [navOrder, setNavOrder] = useState<NavOrder>(() => readNavOrder());
   const [collapsed, setCollapsed] = useState<Record<string, true>>(() =>
     readCollapsed(user?.role?.code ?? ""),
@@ -340,8 +340,12 @@ function Sidebar({
   // Attendance is standing under Home. It runs on arrival only - never on the
   // fold itself - so a person can still fold the section they are standing in.
   const roleCode = user?.role?.code ?? "";
+  // Goods lines follow the session's current action grants (GSA-T02).
+  const rows = user ? sidebarRows(user, session?.display_actions ?? [], featuresOn) : [];
+  // The one drawn line that lights here, asked of the rows actually drawn.
+  const lit = litLine(rows, pathname, search);
+  const heading = headingOwning(pathname, roleCode, rows, search);
   useEffect(() => {
-    const heading = headingOwning(pathname, roleCode);
     if (!heading) return;
     setCollapsed((current) => {
       if (!current[heading]) return current;
@@ -350,11 +354,9 @@ function Sidebar({
       localStorage.setItem(NAV_COLLAPSED_KEY, JSON.stringify(next));
       return next;
     });
-  }, [pathname, roleCode]);
+  }, [heading, pathname]);
 
   if (!user) return null;
-  // Goods lines follow the session's current action grants (GSA-T02).
-  const rows = sidebarRows(user, session?.display_actions ?? [], featuresOn);
 
   function toggleSection(code: string) {
     setCollapsed((current) => {
@@ -468,7 +470,7 @@ function Sidebar({
             >
               <div className="rail-flyout-head">{s.label}</div>
               {items.map((it) => {
-                const active = isActiveItem(it, pathname);
+                const active = it.to === lit;
                 return (
                   <Link
                     key={it.to}
@@ -501,7 +503,7 @@ function Sidebar({
     // not a shaping: what a persona's sidebar *contains* is the layout's job
     // (`applyLayout` in the manifest), never this.
     const open = !collapsed[s.def.code];
-    const holdsActive = items.some((i) => isActiveItem(i, pathname));
+    const holdsActive = items.some((i) => i.to === lit);
     const row: NavRow = { kind: "section", key: s.def.code, section: s };
     const first = items[0];
     if (isOneLineRow(row) && first) {
@@ -511,7 +513,7 @@ function Sidebar({
         layer: s.def.layer,
         to: first.to,
         label: s.label,
-        active: isActiveItem(first, pathname),
+        active: first.to === lit,
         testId: `nav-${s.def.code}`,
       });
     }
@@ -538,7 +540,7 @@ function Sidebar({
         {open && (
           <div className="nav-items">
             {items.map((it) => {
-              const active = isActiveItem(it, pathname);
+              const active = it.to === lit;
               return (
                 <Link
                   key={it.to}

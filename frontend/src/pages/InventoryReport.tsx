@@ -6,7 +6,7 @@ import { api, apiErrorMessage } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
 import { alignsRight, columnHeading, gstCell, maskUnknownFigures } from "../lib/gstReport";
-import type { GstColumn, GstRow } from "../lib/gstReport";
+import type { FigureSources, GstColumn, GstRow } from "../lib/gstReport";
 import { asOfText } from "../lib/salesReport";
 import {
   INVENTORY_GROUPINGS,
@@ -18,6 +18,22 @@ import type { InventoryFilters, InventoryGroupBy, InventorySpan } from "../lib/i
 import "./Shared.css";
 
 type Payload = ApiRead<ApiSchemas["InventoryReport"]>;
+
+/** The columns worked out from the sales copy this report also reads: they are
+ *  unknown, not nought, while that copy is missing (`SALES_NOT_BUILT`). */
+const INVENTORY_SOURCES: FigureSources = {
+  copies: {
+    SALES: [
+      "sold",
+      "sell_through_pct",
+      "weekly_sales",
+      "weeks_cover",
+      "margin_paise",
+      "margin_pct",
+      "gmroi",
+    ],
+  },
+};
 
 const OFFLINE = "Reports need a connection. Reconnect to see or export this report.";
 
@@ -158,9 +174,14 @@ export function InventoryReportPage() {
 
   const columns = data.columns as GstColumn[];
   const rows = (data.rows as unknown as GstRow[]).map((row) =>
-    maskUnknownFigures(row, columns, data.missing),
+    maskUnknownFigures(row, columns, data.missing, INVENTORY_SOURCES),
   );
-  const total = maskUnknownFigures(data.total as unknown as GstRow, columns, data.missing);
+  const total = maskUnknownFigures(
+    data.total as unknown as GstRow,
+    columns,
+    data.missing,
+    INVENTORY_SOURCES,
+  );
 
   return (
     <OperationsPage>

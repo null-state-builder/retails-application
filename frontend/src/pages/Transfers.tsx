@@ -222,7 +222,7 @@ export function TransfersPage() {
         </div>
       ) : (
         (state ?? (
-          <div className="table-wrap">
+          <div className="table-wrap capped">
             <table className="data" data-testid="transfers-table">
               <caption className="sr-only">
                 Transfers touching this site, each with its direction, stage and what is on the

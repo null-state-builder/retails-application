@@ -58,23 +58,48 @@ export function gstParams(filters: GstFilters): Record<string, string> {
   return out;
 }
 
-/** True when a reporting copy this report reads has never been built: every
- *  figure is unknown then, however the server filled the rows. The server
- *  says so in `missing` as `NOT_BUILT`, or `<COPY>_NOT_BUILT` for a second copy. */
+/** True when the reporting copy a report is built from has never been built:
+ *  every figure is unknown then, however the server filled the rows. The
+ *  server says so in `missing` as `NOT_BUILT`. A second copy it also reads
+ *  says `<COPY>_NOT_BUILT`, which makes only that copy's figures unknown. */
 export function figuresUnknown(missing: readonly { code: string }[]): boolean {
-  return missing.some((m) => m.code === "NOT_BUILT" || m.code.endsWith("_NOT_BUILT"));
+  return missing.some((m) => m.code === "NOT_BUILT");
 }
 
-/** The row with every figure blanked while `figuresUnknown`, so `gstCell`
- *  prints a dash where the server sent a nought it could not know. */
+/** What a report tells `maskUnknownFigures` about its own columns. */
+export interface FigureSources {
+  /** Columns that tell rows apart and are never figures (the GST rate a
+   *  by-rate row stands for). Words and dates are always kept. */
+  keep?: readonly string[];
+  /** Per second copy, by the prefix of its `<COPY>_NOT_BUILT` code: the
+   *  columns worked out from it. */
+  copies?: Readonly<Record<string, readonly string[]>>;
+}
+
+/** The row with the figures nobody can know blanked, so `gstCell` prints a
+ *  dash where the server sent a nought: every figure while the main copy is
+ *  missing, else only the columns a missing second copy feeds. Words, dates
+ *  and `keep` columns are never blanked. */
 export function maskUnknownFigures<T extends GstRow>(
   row: T,
   columns: readonly GstColumn[],
   missing: readonly { code: string }[],
+  sources: FigureSources = {},
 ): T {
-  if (!figuresUnknown(missing)) return row;
+  const all = figuresUnknown(missing);
+  const fromCopies = new Set(
+    missing.flatMap((m) =>
+      m.code.endsWith("_NOT_BUILT")
+        ? (sources.copies?.[m.code.slice(0, -"_NOT_BUILT".length)] ?? [])
+        : [],
+    ),
+  );
+  if (!all && !fromCopies.size) return row;
   const out: GstRow = { ...row };
-  for (const c of columns) if (c.kind !== "text") out[c.key] = null;
+  for (const c of columns) {
+    if (c.kind === "text" || c.kind === "date" || sources.keep?.includes(c.key)) continue;
+    if (all || fromCopies.has(c.key)) out[c.key] = null;
+  }
   return out as T;
 }
 

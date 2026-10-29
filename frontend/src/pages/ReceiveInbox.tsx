@@ -82,7 +82,12 @@ export function ReceiveInboxPage({ view = "pending" }: { view?: "pending" | "his
     step,
     n: searched.filter((item) => item.next_step === step).length,
   })).filter((s) => s.n > 0);
-  const rows = stage ? searched.filter((item) => item.next_step === stage) : searched;
+  // A stage applies only while its chip is drawn: once a site change or a
+  // search leaves it with nothing (or leaves one stage, and so no chips), the
+  // list is the whole inbox again rather than an empty one with no way back.
+  const activeStage =
+    stageCounts.length > 1 && stageCounts.some((s) => s.step === stage) ? stage : "";
+  const rows = activeStage ? searched.filter((item) => item.next_step === activeStage) : searched;
   const loaded = !inbox.loading && !inbox.failure && !inbox.denied;
   const decisions = inbox.items.filter(
     (item) => item.next_step === "discrepancies" || item.next_step === "pt_approve",
@@ -137,7 +142,10 @@ export function ReceiveInboxPage({ view = "pending" }: { view?: "pending" | "his
               id="inbox-site"
               className="select"
               value={site}
-              onChange={(e) => setSiteId(e.target.value)}
+              onChange={(e) => {
+                setSiteId(e.target.value);
+                setStage("");
+              }}
               data-testid="inbox-site"
             >
               {sites.map((s) => (
@@ -153,7 +161,7 @@ export function ReceiveInboxPage({ view = "pending" }: { view?: "pending" | "his
             <button
               type="button"
               className="filter-chip"
-              aria-pressed={stage === ""}
+              aria-pressed={activeStage === ""}
               onClick={() => setStage("")}
               data-testid="inbox-stage-all"
             >
@@ -164,8 +172,8 @@ export function ReceiveInboxPage({ view = "pending" }: { view?: "pending" | "his
                 key={s.step}
                 type="button"
                 className="filter-chip"
-                aria-pressed={stage === s.step}
-                onClick={() => setStage(stage === s.step ? "" : s.step)}
+                aria-pressed={activeStage === s.step}
+                onClick={() => setStage(activeStage === s.step ? "" : s.step)}
                 data-testid={`inbox-stage-${s.step}`}
               >
                 {STEP_LABEL[s.step]} <span className="filter-chip-n">{s.n}</span>
@@ -192,7 +200,7 @@ export function ReceiveInboxPage({ view = "pending" }: { view?: "pending" | "his
         </div>
       ) : (
         (state ?? (
-          <div className="table-wrap">
+          <div className="table-wrap capped">
             <table className="data" data-testid="inbox-table">
               <caption className="sr-only">
                 Deliveries on their way in to this site, each with the step it is waiting on and the

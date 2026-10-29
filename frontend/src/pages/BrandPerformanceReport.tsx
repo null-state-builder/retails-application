@@ -19,11 +19,31 @@ import {
   gstCell,
   maskUnknownFigures,
 } from "../lib/gstReport";
-import type { GstColumn, GstRow } from "../lib/gstReport";
+import type { FigureSources, GstColumn, GstRow } from "../lib/gstReport";
 import { asOfText } from "../lib/salesReport";
 import "./Shared.css";
 
 type Payload = ApiRead<ApiSchemas["BrandPerformance"]>;
+
+/** The columns worked out from the second copies this report reads: unknown,
+ *  not nought, while that copy is missing (`STOCK_NOT_BUILT`,
+ *  `COMMISSION_NOT_BUILT`). Sales figures are the main copy's. */
+const BRAND_SOURCES: FigureSources = {
+  copies: {
+    STOCK: [
+      "received",
+      "sell_through_pct",
+      "on_hand",
+      "avg_age_days",
+      "dead_pieces",
+      "ended_pieces",
+      "aged_pct",
+      "stock_cost_paise",
+      "gmroi",
+    ],
+    COMMISSION: ["commission_paise", "earned_pct"],
+  },
+};
 
 const OFFLINE = "Reports need a connection. Reconnect to see or export this report.";
 
@@ -166,9 +186,14 @@ export function BrandPerformanceReportPage() {
 
   const columns = data.columns as GstColumn[];
   const rows = (data.rows as unknown as GstRow[]).map((row) =>
-    maskUnknownFigures(row, columns, data.missing),
+    maskUnknownFigures(row, columns, data.missing, BRAND_SOURCES),
   );
-  const total = maskUnknownFigures(data.total as unknown as GstRow, columns, data.missing);
+  const total = maskUnknownFigures(
+    data.total as unknown as GstRow,
+    columns,
+    data.missing,
+    BRAND_SOURCES,
+  );
   const estimates = data.estimate_fields;
 
   return (

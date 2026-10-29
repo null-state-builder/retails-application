@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { headingOwning, sidebarRows } from "./navConfig";
+import { headingOwning, litLine, menuSectionCode, NAV_ITEMS, sidebarRows } from "./navConfig";
 
 /** A login holding `codes` at `capability`, across `stores` stores. */
 function login(codes: string[], capability = "manage", stores = 2, role = "owner") {
@@ -80,9 +80,54 @@ describe("the one sidebar (desktop redesign, 29 Oct 2026)", () => {
   });
 
   it("keeps retiring legacy screens off the menu, still routed for bookmarks", () => {
-    const drawn = lines(sidebarRows(login(["transfer", "stock_count"])));
+    const grants = ["transfer.move"];
+    const drawn = lines(sidebarRows(login(["transfer", "stock_count", "stock"]), grants));
     for (const to of ["/transfer", "/transfer/new", "/transfer/in-transit", "/stock-count"])
       expect(drawn).not.toContain(to);
+  });
+
+  it("keeps a legacy line wherever the page that now links to it is not drawn", () => {
+    // Legacy grants, no goods ones: Transfers and Stock on hand are not drawn,
+    // so the earlier records keep their own lines.
+    const legacy = lines(sidebarRows(login(["transfer", "stock_count", "return_to_brand"])));
+    expect(legacy).toContain("/transfer");
+    expect(legacy).toContain("/stock-count");
+    expect(legacy).toContain("/inventory?tab=damage-history");
+    for (const to of ["/transfer/new", "/transfer/in-transit"]) expect(legacy).not.toContain(to);
+  });
+
+  it("lights the line that leads to a screen whose own line is not drawn", () => {
+    const rows = sidebarRows(login(["stock"]), ["stock.view", "movement.draft"]);
+    expect(lines(rows)).not.toContain("/goods/stock");
+    expect(litLine(rows, "/inventory", "?tab=stock&view=location")).toBe("/stock");
+    expect(litLine(rows, "/goods/stock", "")).toBe("/stock");
+    expect(litLine(rows, "/stock/history", "")).toBe("/goods/movements");
+    expect(headingOwning("/inventory", "store_person", rows, "?tab=stock")).toBe("stock");
+  });
+
+  it("captions a moved screen under Setup only where Setup draws it", () => {
+    const item = NAV_ITEMS.find((i) => i.to === "/money/partner-billing")!;
+    expect(menuSectionCode(item, sidebarRows(login(["money", "setup"])))).toBe("setup");
+    expect(menuSectionCode(item, sidebarRows(login(["money"])))).toBe("money");
+  });
+
+  it("gives the store person the store's own shorter list under the one sidebar", () => {
+    const grants = ["receive.arrival", "pt.prepare", "label.print"];
+    const store = sidebarRows(
+      login(["home", "receive_goods", "money", "reports"], "operate", 1, "store_person"),
+      grants,
+    );
+    const drawn = lines(store);
+    expect(drawn).toContain("/goods/receive");
+    expect(drawn).toContain("/roadmap");
+    for (const to of ["/goods/pt-work", "/goods/labels", "/money/partner-billing"])
+      expect(drawn).not.toContain(to);
+    // Another role with the same access keeps every line.
+    const manager = lines(
+      sidebarRows(login(["home", "receive_goods", "money"], "operate", 1, "store_manager"), grants),
+    );
+    expect(manager).toContain("/money/partner-billing");
+    expect(manager).toContain("/goods/labels");
   });
 
   it("draws every role the same rows: no persona strips or folds", () => {
