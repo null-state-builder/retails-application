@@ -9,6 +9,7 @@ import { isConnectionLost } from "../../lib/auditLog";
 import { CUSTOMERS_OFFLINE, searchQuery } from "../../lib/customerRights";
 import { formatDateTime } from "../../lib/format";
 import { withQuery } from "../../lib/query";
+import "../sell/Bills.css";
 
 type Listing = ApiRead<ApiSchemas["CustomerList"]>;
 
@@ -116,7 +117,7 @@ export function CustomerListPage() {
         </label>
         <button
           type="button"
-          className="btn btn-cta"
+          className="btn btn-primary"
           disabled={loading || offline}
           data-testid="customers-search-go"
           onClick={() => void load(term.trim())}
@@ -133,14 +134,18 @@ export function CustomerListPage() {
 
       {data && data.customers.length === 0 && (
         <p className="muted-cell" data-testid="customers-empty">
-          No customer at your stores matches that. Check the number, or search by name.
+          {searched.current
+            ? "No customer at your stores matches that. Check the number, or search by name."
+            : "No customer has bought at your stores yet."}
         </p>
       )}
 
       {data && data.customers.length > 0 && (
         <section className="card section-card">
-          <p className="eyebrow">
-            {data.customers.length === 1 ? "1 customer" : `${data.customers.length} customers`}
+          <p className="bills-count">
+            {data.customers.length === 1
+              ? "1 customer"
+              : `${data.customers.length.toLocaleString("en-IN")} customers`}
             {data.truncated ? " - the most recent. Search to narrow it." : ""}
           </p>
           <div className="table-wrap">
@@ -174,5 +179,45 @@ export function CustomerListPage() {
         </section>
       )}
     </div>
+  );
+}
+
+/** The most recent customers, beside an open customer's page (desktop
+ *  redesign, layout L): the next customer is one click away. The same scoped
+ *  read the list makes; it opens nothing the list would not. */
+export function CustomerQueue({ currentId }: { currentId: string }) {
+  const [rows, setRows] = useState<Listing["customers"] | null>(null);
+  useEffect(() => {
+    let live = true;
+    api
+      .get<Listing>(withQuery(CUSTOMERS_API, searchQuery("")))
+      .then((r) => live && setRows(r.data.customers))
+      .catch(() => live && setRows(null));
+    return () => {
+      live = false;
+    };
+  }, []);
+  if (!rows || rows.length === 0) return null;
+  return (
+    <nav className="card side-queue" aria-label="Recent customers" data-testid="customer-queue">
+      <p className="side-queue-head">Recent customers</p>
+      <ul>
+        {rows.map((row) => (
+          <li key={row.id}>
+            <Link
+              to={`/customers/${row.id}`}
+              className={`side-queue-item${String(row.id) === currentId ? " active" : ""}`}
+              aria-current={String(row.id) === currentId ? "page" : undefined}
+            >
+              <span className="side-queue-ref">{row.name || "No name held"}</span>
+              <span className="side-queue-meta">
+                <span className="mono">{row.mobile}</span>
+                {row.bills} {row.bills === 1 ? "bill" : "bills"}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }

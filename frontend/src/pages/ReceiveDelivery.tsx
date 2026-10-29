@@ -49,7 +49,6 @@ import { LabelsPanel } from "./GoodsLabels";
 import { AcceptPanel } from "./GoodsAccept";
 import { ReturnedGoodsAcceptance } from "./ReturnedGoodsAcceptance";
 import { deliveryPath } from "./ReceiveInbox";
-import "./ReceiveDelivery.css";
 
 /** The rail never shows "done" as a step of its own: it is the end, not a
  *  thing anybody opens. */
@@ -208,32 +207,28 @@ function DeliveryQueue({ siteId, currentId }: { siteId: string; currentId: strin
     `/goods-v1/inbound/inbox?site=${encodeURIComponent(siteId)}&view=pending&limit=100`,
   );
   return (
-    <nav
-      className="card receive-queue"
-      aria-label="Pending deliveries"
-      data-testid="delivery-queue"
-    >
-      <p className="receive-queue-head">
+    <nav className="card side-queue" aria-label="Pending deliveries" data-testid="delivery-queue">
+      <p className="side-queue-head">
         Pending
         {!inbox.loading && !inbox.failure && (
           <span className="filter-chip-n">{inbox.items.length}</span>
         )}
       </p>
       {inbox.loading && inbox.items.length === 0 ? (
-        <p className="muted receive-queue-note">Loading…</p>
+        <p className="muted side-queue-note">Loading…</p>
       ) : inbox.items.length === 0 ? (
-        <p className="muted receive-queue-note">Nothing else is on its way in.</p>
+        <p className="muted side-queue-note">Nothing else is on its way in.</p>
       ) : (
         <ul>
           {inbox.items.map((row) => (
             <li key={row.id}>
               <Link
                 to={deliveryPath(row)}
-                className={`receive-queue-item${row.id === currentId ? " active" : ""}`}
+                className={`side-queue-item${row.id === currentId ? " active" : ""}`}
                 aria-current={row.id === currentId ? "page" : undefined}
               >
-                <span className="receive-queue-ref">{row.reference}</span>
-                <span className="receive-queue-meta">
+                <span className="side-queue-ref">{row.reference}</span>
+                <span className="side-queue-meta">
                   <span className={`chip chip-${row.next_step === "done" ? "green" : "amber"}`}>
                     {STEP_LABEL[row.next_step]}
                   </span>
@@ -379,9 +374,9 @@ function DeliveryPage() {
           </>
         }
       />
-      <div className={wide ? "receive-split" : undefined}>
+      <div className={wide ? "queue-split" : undefined}>
         {wide && <DeliveryQueue siteId={item.site_id} currentId={item.id} />}
-        <div className="receive-work">
+        <div className="queue-work">
           {item.kind !== "customer_return" && (
             <StepRail item={item} showing={panelStep} onShow={setShowing} />
           )}

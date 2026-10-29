@@ -8,6 +8,7 @@
 // into the generic "denied" card, since it is a narrower thing than "you may
 // not see this": the quantity view of the very same rows is still open.
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { AlertTriangle, ChevronRight, History, ShieldAlert } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 
@@ -98,7 +99,19 @@ function buildUrl(base: string, params: Record<string, string | undefined>): str
   return `${base}${qs ? `?${qs}` : ""}`;
 }
 
-export function GoodsStockPage({ damageWorkspace = false }: { damageWorkspace?: boolean }) {
+export function GoodsStockPage({
+  damageWorkspace: damageTab = false,
+  stockView,
+  views,
+}: {
+  damageWorkspace?: boolean;
+  /** Drawn as a view of Stock on hand (desktop redesign Q3): the page keeps
+   *  its own reads and gates, and the switch between views is `views`. */
+  stockView?: "in-transit" | "quarantine";
+  views?: ReactNode;
+}) {
+  // The Quarantine view of Stock on hand is the damage workspace it replaced.
+  const damageWorkspace = damageTab || stockView === "quarantine";
   const { session, activeStore } = useAuth();
   const [params, setParams] = useSearchParams();
   // The daily entry starts at the active store. Explicit all-site and old
@@ -118,8 +131,20 @@ export function GoodsStockPage({ damageWorkspace = false }: { damageWorkspace?: 
   // An unrecognised `?view=` (a stale link, a typo) falls back to "on-hand"
   // rather than building a request against `VIEW_PATH[undefined]`.
   const rawView = params.get("view");
+  // As a view of Stock on hand, `?view=` names the Stock on hand view; finding
+  // physical stock to report as damaged is `?find=1` there instead.
   const view = (
-    rawView && rawView in VIEW_PATH ? rawView : damageWorkspace ? "quarantine" : "on-hand"
+    stockView === "in-transit"
+      ? "in-transit"
+      : stockView === "quarantine"
+        ? params.get("find") === "1"
+          ? "on-hand"
+          : "quarantine"
+        : rawView && rawView in VIEW_PATH
+          ? rawView
+          : damageWorkspace
+            ? "quarantine"
+            : "on-hand"
   ) as ViewKind;
 
   function set(key: string, value: string) {
@@ -228,22 +253,27 @@ export function GoodsStockPage({ damageWorkspace = false }: { damageWorkspace?: 
       data-testid={damageWorkspace ? "canonical-damage-workspace" : undefined}
     >
       <PageHeader
-        title={damageWorkspace ? "Damage & Quarantine" : "Stock"}
+        title={stockView ? "Stock" : damageWorkspace ? "Damage & Quarantine" : "Stock"}
         lead={
-          damageWorkspace
-            ? "Held and damaged stock from the inventory journal. Report damage from physical stock; a different authorised person reviews it."
-            : "Physical, valued and available quantities, with holds, reservations and reasons."
+          stockView === "in-transit"
+            ? "Stock that has left one site and not yet arrived at another, from the inventory journal."
+            : damageWorkspace
+              ? "Held and damaged stock from the inventory journal. Report damage from physical stock; a different authorised person reviews it."
+              : "Physical, valued and available quantities, with holds, reservations and reasons."
         }
         actions={
-          damageWorkspace &&
-          (hold(session, "movement.draft") || hold(session, "movement.approve")) ? (
-            <Link
-              className="btn btn-sm"
-              to={`/goods/movements${siteId ? `?site_id=${siteId}` : ""}`}
-            >
-              Movements &amp; damage reviews
-            </Link>
-          ) : undefined
+          <>
+            {views}
+            {damageWorkspace &&
+              (hold(session, "movement.draft") || hold(session, "movement.approve")) && (
+                <Link
+                  className="btn btn-sm"
+                  to={`/goods/movements${siteId ? `?site_id=${siteId}` : ""}`}
+                >
+                  Movements &amp; damage reviews
+                </Link>
+              )}
+          </>
         }
       />
 
@@ -345,21 +375,27 @@ export function GoodsStockPage({ damageWorkspace = false }: { damageWorkspace?: 
         </p>
       )}
 
-      <div className="toolbar">
-        {(damageWorkspace
-          ? (["quarantine", "on-hand"] as ViewKind[])
-          : (Object.keys(VIEW_PATH) as ViewKind[])
-        ).map((v) => (
-          <button
-            key={v}
-            className={`btn btn-sm${v === view ? " btn-active" : ""}`}
-            onClick={() => set("view", v)}
-            data-testid={`stock-view-${v}`}
-          >
-            {damageWorkspace && v === "on-hand" ? "Find physical stock to report" : VIEW_LABEL[v]}
-          </button>
-        ))}
-      </div>
+      {stockView !== "in-transit" && (
+        <div className="toolbar">
+          {(damageWorkspace
+            ? (["quarantine", "on-hand"] as ViewKind[])
+            : (Object.keys(VIEW_PATH) as ViewKind[])
+          ).map((v) => (
+            <button
+              key={v}
+              className={`btn btn-sm${v === view ? " btn-active" : ""}`}
+              onClick={() =>
+                stockView === "quarantine"
+                  ? set("find", v === "on-hand" ? "1" : "")
+                  : set("view", v)
+              }
+              data-testid={`stock-view-${v}`}
+            >
+              {damageWorkspace && v === "on-hand" ? "Find physical stock to report" : VIEW_LABEL[v]}
+            </button>
+          ))}
+        </div>
+      )}
 
       {damageWorkspace && (
         <p className="muted">Summary totals cover all stock in the selected scope.</p>
@@ -392,44 +428,40 @@ function SummaryPanel({ summary }: { summary: ReadState<StockSummary> }) {
   }
   if (summary.deniedAction || !summary.data) return null;
   const t = summary.data.totals;
+  // Tiles in the shared stat style (desktop redesign rule 6): grouped figures,
+  // and a dash for anything the server did not send.
+  const n = (v: number | string | null | undefined) =>
+    typeof v === "number" ? v.toLocaleString("en-IN") : (v ?? "—");
+  const tiles: [string, ReactNode][] = [
+    ["Physical", n(t.physical_qty)],
+    ["Valued", n(t.valued_qty)],
+    ["Unvalued", n(t.unvalued_qty)],
+    ["Available to sell", n(t.ats_qty)],
+    ["Available to transfer", n(t.transferable_qty)],
+    ["In transit", n(t.transit_qty)],
+  ];
   return (
-    <dl className="gr-facts" data-testid="stock-summary">
-      <div>
-        <dt>Physical</dt>
-        <dd>{t.physical_qty}</dd>
-      </div>
-      <div>
-        <dt>Valued</dt>
-        <dd>{t.valued_qty}</dd>
-      </div>
-      <div>
-        <dt>Unvalued</dt>
-        <dd>{t.unvalued_qty}</dd>
-      </div>
-      <div>
-        <dt>Available to sell</dt>
-        <dd>{t.ats_qty}</dd>
-      </div>
-      <div>
-        <dt>Available to transfer</dt>
-        <dd>{t.transferable_qty}</dd>
-      </div>
-      <div>
-        <dt>In transit</dt>
-        <dd>{t.transit_qty}</dd>
-      </div>
+    <div className="stat-grid" data-testid="stock-summary">
+      {tiles.map(([label, value]) => (
+        <div className="card stat-card" key={label}>
+          <div className="stat-value">{value}</div>
+          <div className="stat-label">{label}</div>
+        </div>
+      ))}
       {summary.data.basis !== "quantity" && (
-        <div>
-          <dt>Value</dt>
-          <dd data-testid="stock-summary-value">
+        <div className="card stat-card">
+          <div className="stat-value" data-testid="stock-summary-value">
             {t.value_paise !== undefined ? formatPaiseString(t.value_paise) : "Unknown"}
+          </div>
+          <div className="stat-label">
+            Value
             {t.value_completeness && t.value_completeness !== "complete"
               ? ` (${t.value_completeness})`
               : ""}
-          </dd>
+          </div>
         </div>
       )}
-    </dl>
+    </div>
   );
 }
 

@@ -4,7 +4,7 @@
 
 import { useMemo } from "react";
 import type { ReactElement } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
 import { canAccess } from "../auth/routeAccess";
@@ -50,6 +50,17 @@ export function InventoryPage() {
   const active = resolveFoldTab(tabs, params.get("tab"));
   const Panel = active ? PANELS[active.slug] : undefined;
 
+  // Damage & Quarantine is the Quarantine view of Stock on hand now (desktop
+  // redesign Q3); its tab keeps its gate, and an old link lands on the view.
+  if (active?.slug === "damage" && tabs.some((t) => t.slug === "stock")) {
+    return (
+      <Navigate
+        replace
+        to={`/inventory?${stockParams(params, { tab: "stock", view: "quarantine" })}`}
+      />
+    );
+  }
+
   // The route guard already refuses anyone with no tab, so this is the belt to
   // its braces - and it says so rather than rendering a blank page.
   if (!active || !Panel) {
@@ -65,6 +76,9 @@ export function InventoryPage() {
   // Page-level tabs, deliberately not the `.seg` pill strip the screens
   // themselves use for their own groupings: on Stock on Hand the two sit one
   // above the other, and two identical controls in a row read as an accident.
+  // "damage" is a view of Stock on hand, not a tab of its own, wherever the
+  // Stock tab is there to carry it.
+  const asView = tabs.some((t) => t.slug === "stock") ? new Set(["damage"]) : new Set<string>();
   const daily = new Set(["stock", "damage", "returns"]);
   const tabLink = (t: (typeof tabs)[number]) => (
     <Link
@@ -87,7 +101,9 @@ export function InventoryPage() {
         aria-label="Daily stock operations"
         data-testid="inventory-daily-tabs"
       >
-        <div className="page-tabs">{tabs.filter((tab) => daily.has(tab.slug)).map(tabLink)}</div>
+        <div className="page-tabs">
+          {tabs.filter((tab) => daily.has(tab.slug) && !asView.has(tab.slug)).map(tabLink)}
+        </div>
       </nav>
       <details
         className="inventory-strip-review"

@@ -5,9 +5,16 @@ import { PageHeader } from "../components/PageHeader";
 import { OperationsPage } from "../components/OperationsPage";
 import { hold } from "../lib/goodsScreen";
 import { SearchBox } from "../components/SearchBox";
-import { stockBookmark, stockParams, stockSelection, stockView } from "../lib/stockWorkspace";
+import {
+  STOCK_VIEWS,
+  stockBookmark,
+  stockParams,
+  stockSelection,
+  stockView,
+} from "../lib/stockWorkspace";
 import StockOnHand from "./StockOnHand";
 import CrossStoreSearch from "./CrossStoreSearch";
+import { GoodsStockPage } from "./GoodsStock";
 
 export interface StockWorkspaceFilter {
   storeId: string;
@@ -18,6 +25,35 @@ export interface StockWorkspaceFilter {
 export function StockBookmark() {
   const { pathname, search } = useLocation();
   return <Navigate replace to={stockBookmark(pathname, search)} />;
+}
+
+/** The one switch between Stock on hand's views (desktop redesign Q3). A
+ *  goods-journal view is offered only to a person holding `stock.view`, the
+ *  grant its own screen answers to. */
+export function StockViews() {
+  const { session } = useAuth();
+  const [params] = useSearchParams();
+  const view = stockView(params);
+  const offered = STOCK_VIEWS.filter((v) => !v.goods || hold(session, "stock.view"));
+  return (
+    <div className="seg stock-views" aria-label="Stock view" data-testid="stock-workspace-views">
+      {offered.map((v) => (
+        <Link
+          key={v.key}
+          className={`seg-btn ${view === v.key ? "active" : ""}`}
+          aria-current={view === v.key ? "page" : undefined}
+          to={`?${stockParams(params, {
+            tab: "stock",
+            view: v.key === "on-hand" ? "" : v.key,
+            find: "",
+          })}`}
+          data-testid={`stock-workspace-view-${v.key}`}
+        >
+          {v.label}
+        </Link>
+      ))}
+    </div>
+  );
 }
 
 export function StockWorkspace() {
@@ -32,6 +68,11 @@ export function StockWorkspace() {
     storeCode: selection.store?.code ?? "",
     query: q,
   };
+  // The goods-journal views draw the goods stock screen itself, with its own
+  // reads, filters and gate, under this page's switch.
+  if ((view === "in-transit" || view === "quarantine") && hold(session, "stock.view")) {
+    return <GoodsStockPage stockView={view} views={<StockViews />} />;
+  }
   const scopedLabel = selection.store
     ? `${selection.store.code} · ${selection.store.name}`
     : "All authorised stores";
@@ -83,27 +124,7 @@ export function StockWorkspace() {
           label="Search stock"
           testId="stock-workspace-search"
         />
-        <div
-          className="seg stock-views"
-          aria-label="Stock view"
-          data-testid="stock-workspace-views"
-        >
-          {(
-            [
-              ["on-hand", "On hand"],
-              ["availability", "Available by size"],
-            ] as const
-          ).map(([key, label]) => (
-            <Link
-              key={key}
-              className={`seg-btn ${view === key ? "active" : ""}`}
-              aria-current={view === key ? "page" : undefined}
-              to={`?${stockParams(params, { tab: "stock", view: key === "on-hand" ? "" : key })}`}
-            >
-              {label}
-            </Link>
-          ))}
-        </div>
+        <StockViews />
       </div>
       <p className="muted stock-scope" data-testid="stock-workspace-scope">
         {scopedLabel}. Totals include only the stock you may read; unavailable values are not zero.

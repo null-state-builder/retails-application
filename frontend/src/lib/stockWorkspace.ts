@@ -1,6 +1,16 @@
 import type { Store } from "../auth/AuthContext";
 
-export type StockWorkspaceView = "on-hand" | "availability";
+export type StockWorkspaceView = "on-hand" | "availability" | "in-transit" | "quarantine";
+
+/** The views Stock on hand offers (desktop redesign Q3): two read the stock
+ *  projection, two the goods journal. A goods view is offered only to a person
+ *  holding the goods grant its screen needs. */
+export const STOCK_VIEWS: { key: StockWorkspaceView; label: string; goods: boolean }[] = [
+  { key: "on-hand", label: "On hand", goods: false },
+  { key: "availability", label: "Available by size", goods: false },
+  { key: "in-transit", label: "In transit", goods: true },
+  { key: "quarantine", label: "Quarantine", goods: true },
+];
 export interface StockSelection {
   store: Store | null;
   invalid: boolean;
@@ -26,9 +36,11 @@ export function stockSelection(
 }
 
 export function stockView(params: URLSearchParams): StockWorkspaceView {
-  return params.get("view") === "availability" || params.get("tab") === "search"
-    ? "availability"
-    : "on-hand";
+  const view = params.get("view");
+  // The old Damage & Quarantine tab is the Quarantine view now.
+  if (params.get("tab") === "damage") return "quarantine";
+  if (view === "in-transit" || view === "quarantine") return view;
+  return view === "availability" || params.get("tab") === "search" ? "availability" : "on-hand";
 }
 
 /** Keep all filter intent when opening old stock bookmarks. Legacy search was
@@ -40,8 +52,7 @@ export function stockBookmark(pathname: string, search: string): string {
     params.set("view", "availability");
     if (!params.has("site") && !params.has("store")) params.set("scope", "all");
   } else if (params.get("view") === "quarantine") {
-    params.set("tab", "damage");
-    params.delete("view");
+    params.set("tab", "stock");
   } else {
     params.set("tab", "stock");
     if ((params.has("sku") || params.has("brand")) && !params.has("site") && !params.has("store")) {

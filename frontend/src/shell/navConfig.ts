@@ -201,6 +201,11 @@ export interface NavItem {
    *  the nearest line by path: the all-stores bill search is the second scope
    *  of Bills, though its address sits under Billing's. */
   menuAs?: string;
+  /** Another menu line, by its `to`, whose screen now carries this one
+   *  (desktop redesign Q3: Goods stock and Damage & Quarantine are views of
+   *  Stock on hand). This line leaves the menu wherever that line is drawn,
+   *  and only there, so nobody who cannot see it loses their way in. */
+  shownBy?: string;
 }
 
 /** Does this person also hold the section a moved screen's data answers to?
@@ -602,18 +607,20 @@ export const SECTIONS: NavSectionDef[] = [
         label: "Goods stock",
         to: "/goods/stock",
         goodsActions: ["stock.view", "stock.accept"],
+        shownBy: "/stock",
       },
       {
         label: "Damage & Quarantine",
         to: "/goods/stock?view=quarantine",
         deepLink: true,
         goodsActions: ["stock.view"],
+        shownBy: "/stock",
       },
       // Goods-v1 movements (ticket 12): bin moves, holds and releases at one
       // site. A goods-v1 line, for the reason given on "Vendor bookings".
       // Approvers are listed too: a release they decided is read here.
       {
-        label: "Goods movements",
+        label: "Movements",
         to: "/goods/movements",
         goodsActions: ["movement.draft", "movement.approve"],
       },
@@ -622,7 +629,9 @@ export const SECTIONS: NavSectionDef[] = [
       // exception — and carries quantities only, so it sits at the same `view`
       // rung a store person already holds on this section.
       { label: "Search Across Stores", to: "/stock/search", hidden: true },
-      { label: "Movement History", to: "/stock/history" },
+      // Folded into Movements (desktop redesign Q3): off the menu wherever
+      // Movements is drawn; Movements links to it as earlier history.
+      { label: "Movement History", to: "/stock/history", shownBy: "/goods/movements" },
       // Store operations ticket 12 (ST-CMP-3): the pieces here with no HSN, for
       // fixing; drawn only where the hsn-on-every-item switch is on.
       { label: "Items with no HSN", to: "/stock/missing-hsn", storeFeature: "hsn-on-every-item" },
@@ -2124,9 +2133,14 @@ function withoutMovedLines(rows: NavRow[]): NavRow[] {
       r.kind === "section" ? r.section.items.filter((i) => i.movedHere).map((i) => i.to) : [],
     ),
   );
+  const drawn = new Set(
+    rows.flatMap((r) => (r.kind === "section" ? r.section.items.map((i) => i.to) : [])),
+  );
   return rows.flatMap((r): NavRow[] => {
     if (r.kind !== "section") return [r];
-    const items = r.section.items.filter((i) => !(i.movedTo && standIns.has(i.to)));
+    const items = r.section.items.filter(
+      (i) => !(i.movedTo && standIns.has(i.to)) && !(i.shownBy && drawn.has(i.shownBy)),
+    );
     if (items.length === r.section.items.length) return [r];
     return items.length ? [{ ...r, section: { ...r.section, items } }] : [];
   });

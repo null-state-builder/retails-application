@@ -90,6 +90,7 @@ import { hold } from "../lib/goodsScreen";
 import { DamageReviewsPanel } from "./DamageReviews";
 import { RtvPanel, type PutawayLocation } from "./RtvPanel";
 import { useAuth } from "../auth/AuthContext";
+import { canAccess } from "../auth/routeAccess";
 import { OperationsPage, OperationsTable } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { formatDateTime, formatPaiseString } from "../lib/format";
@@ -153,7 +154,7 @@ const ADJUSTMENT_MODE_KIND: Partial<Record<Mode, string>> = {
 };
 
 export function GoodsMovementsPage() {
-  const { session } = useAuth();
+  const { user, session, featuresOn } = useAuth();
   const [params, setParams] = useSearchParams();
   const siteId = params.get("site_id") ?? "";
   const [text, setText] = useState(params.get("q") ?? "");
@@ -230,6 +231,15 @@ export function GoodsMovementsPage() {
       <PageHeader
         title="Movements"
         lead="Move exact quantities between locations at one site, put goods on hold, release a hold, and record evidenced adjustments for someone else to approve."
+        actions={
+          // Movement History is folded in here (desktop redesign Q3): the
+          // earlier stock ledger stays readable, for whoever its gate opens.
+          user && canAccess("/stock/history", user, session?.display_actions ?? [], featuresOn) ? (
+            <Link className="btn" to="/stock/history" data-testid="movements-earlier">
+              Earlier stock history
+            </Link>
+          ) : undefined
+        }
       />
 
       <div className="form-grid">
