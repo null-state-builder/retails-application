@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.2.0",
+    "@tanstack/react-query": "5.104.2",
     "axios": "^1.8.4",
     "dexie": "^4.0.11",
     "lucide-react": "^0.468.0",
@@ -38,6 +39,7 @@
     "eslint": "9.39.1",
     "eslint-plugin-react": "7.37.5",
     "eslint-plugin-react-hooks": "5.2.0",
+    "jsdom": "29.1.1",
     "openapi-typescript": "7.10.1",
     "prettier": "3.6.2",
     "sharp": "0.34.4",
