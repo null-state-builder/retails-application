@@ -153,15 +153,23 @@ run_cycle() {
     restart_at=$SECONDS
     "${DC[@]}" restart api
     wait_healthy
-    log "   api healthy again after $((SECONDS - restart_at)) s; waiting for the job to resume"
+    # The old worker may finish one more step during the container's stop grace, so wait
+    # for progress after the new container is up. A killed job resumes once its lease
+    # (120 s, core/outbox.py) runs out.
+    local healthy_at=$SECONDS healthy_step; healthy_step="$(ql step)"
+    log "   api healthy again after $((healthy_at - restart_at)) s at '$healthy_step'; waiting for the job to resume"
     resumed_at=""
     while kill -0 "$follower" 2>/dev/null; do
-      if [[ "$(ql step)" != "$restart_step" ]]; then resumed_at=$SECONDS; break; fi
+      if [[ "$(ql step)" != "$healthy_step" || "$(ql state)" == done ]]; then resumed_at=$SECONDS; break; fi
       sleep 2
     done
-    [[ -z "$resumed_at" ]] && resumed_at=$SECONDS
-    record "load resumed after an API restart" PASS \
-      "restart at '$restart_step' +$((restart_at - t0)) s; next step $((resumed_at - restart_at)) s later"
+    if [[ -n "$resumed_at" ]]; then
+      record "load resumed after an API restart" PASS \
+        "restart at '$restart_step' +$((restart_at - t0)) s; next step $((resumed_at - healthy_at)) s after healthy"
+    else
+      record "load resumed after an API restart" FAIL "no progress after the restart before the follower ended"
+    fi
+    echo "TIMING cycle=$n restart_to_progress_s=$((resumed_at - restart_at))" >> "$RESULTS"
   else
     record "load resumed after an API restart" FAIL "the load ended before batch 1 began; no restart done"
   fi
