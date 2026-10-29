@@ -5,9 +5,17 @@
    the header, and no card carries a margin of its own. */
 .till-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(300px, 30%, 360px);
+  grid-template-columns: minmax(0, 1fr) clamp(300px, 30%, 340px);
   gap: 16px;
   align-items: start;
+}
+
+/* One button size on this page: 13px type on a 36px button, so an action never
+   outweighs the line it acts on (the house 14px button sat above 13.5px row
+   titles and read louder than them). */
+.till-page .btn {
+  font-size: 13px;
+  min-height: 36px;
 }
 .till-main {
   display: flex;
@@ -77,138 +85,183 @@
 
 /* -- the status band ------------------------------------------------------- */
 
-/* The tone is carried by the left rule and the border, not a wash: a counter
-   that is fine all day should not sit under a green slab. */
+/* The tone is carried by the border and the sentence's icon, not a wash or a
+   stripe: a counter that is fine all day should not sit under a green slab. */
 .till-band {
   background: var(--surface);
   border: 1px solid var(--hairline);
-  border-left: 4px solid var(--green);
   border-radius: var(--radius);
   box-shadow: var(--shadow-rest);
-  padding: 20px 24px;
+  /* The cards' side padding, so Renew lands on the buttons' right edge. */
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 20px;
 }
 .till-band-amber {
   border-color: var(--amber-bd);
-  border-left-color: var(--amber);
 }
 .till-band-red {
   border-color: var(--red-bd);
-  border-left-color: var(--red);
 }
 
-.till-band-head {
+/* Under the ledger: the problems, then the sentence and the offline window. */
+.till-band-rest {
+  border-top: 1px solid var(--hairline);
+  padding-top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.till-band-foot {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   flex-wrap: wrap;
-  gap: 20px 40px;
+  gap: 12px 24px;
+}
+.till-band-foot > .till-alert,
+.till-band-foot > .till-said {
+  flex-basis: 100%;
 }
 .till-band-say {
-  flex: 1 1 260px;
+  flex: 1 1 280px;
   min-width: 0;
   max-width: 72ch;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
 }
-.till-band-say > * {
+.till-band-say p {
   margin: 0;
+}
+.till-band-icon {
+  flex: none;
+  margin-top: 1px;
+}
+.till-band-green .till-band-icon {
+  color: var(--green);
+}
+.till-band-amber .till-band-icon {
+  color: var(--amber);
+}
+.till-band-red .till-band-icon {
+  color: var(--red);
 }
 .till-band-sentence {
   font-size: 15px;
   font-weight: 600;
-  line-height: 1.45;
+  line-height: 1.4;
   color: var(--ink);
 }
 .till-band-meta {
-  margin-top: 4px;
-  font-size: 12.5px;
+  margin-top: 2px;
+  font-size: 13px;
   color: var(--muted);
 }
+.till-window {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-left: auto;
+}
+.till-window-text {
+  font-size: 13px;
+  color: var(--ink2);
+}
 
-/* The ledger: the next bill number, large, and the track behind it. */
+/* The ledger: the next bill number, large, and the flow beside it. */
 .till-ledger {
   display: flex;
   align-items: flex-end;
   flex-wrap: wrap;
-  gap: 16px 32px;
+  gap: 24px 56px;
 }
 .till-ledger-next {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 8px;
 }
 .till-ledger-label,
-.till-track-label {
-  font-size: 12px;
+.till-flow-label {
+  font-size: 13px;
   color: var(--muted);
 }
 .till-ledger-number {
-  font-size: 32px;
-  line-height: 1.1;
+  font-size: 34px;
+  line-height: 1;
   font-weight: 650;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
 
-/* Two stops on a rule: what head office has, what is still here. The rule
-   runs from the first value into the second, so the gap reads as a distance. */
-.till-track {
+/* Two stops joined by an arrow, in the order a bill travels: waiting here, then
+   accepted by head office. The arrow is the grid's middle track, drawn by the
+   list's own pseudo-elements so the markup stays a two-item list. */
+.till-flow {
   list-style: none;
-  margin: 0;
-  padding: 0 0 3px;
-  display: flex;
-  gap: 0;
+  margin: 0 0 0 auto;
+  padding: 0;
+  flex: 0 1 400px;
+  display: grid;
+  grid-template-columns: auto minmax(40px, 1fr) auto;
+  column-gap: 16px;
+  align-items: end;
 }
-.till-track-stop {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 12px 28px 0 0;
-  min-width: 120px;
-}
-.till-track-stop::before {
+.till-flow::before,
+.till-flow::after {
   content: "";
-  position: absolute;
-  top: 3px;
-  left: 0;
-  right: 0;
-  border-top: 2px solid var(--hairline);
+  grid-row: 1;
+  grid-column: 2;
+  align-self: end;
 }
-.till-track-stop::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
+/* The shaft sits on the middle of the 22px figures. */
+.till-flow::before {
+  border-top: 2px solid var(--line);
+  margin-bottom: 10px;
+}
+.till-flow::after {
+  justify-self: end;
   width: 8px;
   height: 8px;
-  border-radius: 50%;
-  background: var(--green);
+  border-top: 2px solid var(--line);
+  border-right: 2px solid var(--line);
+  transform: rotate(45deg);
+  margin: 0 1px 7px 0;
 }
-.till-track-stop:last-child {
-  padding-right: 0;
-}
-.till-track-stop:last-child::before {
-  right: auto;
-  width: 8px;
-}
-.till-track-waiting::before {
+.till-flow-waiting::before {
   border-top-style: dashed;
   border-top-color: var(--amber);
 }
-.till-track-waiting::after {
-  background: var(--amber);
+.till-flow-waiting::after {
+  border-color: var(--amber);
 }
-.till-track-value {
-  font-size: 18px;
+.till-flow-stop {
+  grid-row: 1;
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.till-flow-end {
+  grid-column: 3;
+  align-items: flex-end;
+  text-align: right;
+}
+.till-flow-value {
+  font-size: 22px;
+  line-height: 1;
   font-weight: 650;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
-.till-track-waiting .till-track-value {
+.till-flow-waiting .till-flow-here {
   color: var(--amber);
+}
+.till-flow-accepted {
+  color: var(--green);
 }
 
 /* Problems: one row each, worst first, its fix on the right. */
@@ -277,10 +330,17 @@
 /* -- cards in the main column --------------------------------------------- */
 
 .till-card {
-  padding: 18px 20px;
+  padding: 20px 24px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+}
+/* A card heading a clear step above the 14px row titles under it (the house
+   15px heading sat 1.5px above them). */
+.till-main .h3 {
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.3;
 }
 .till-card > * {
   margin: 0;
@@ -333,13 +393,13 @@
 .till-task {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 12px 0;
+  gap: 12px;
+  padding: 16px 0;
   border-top: 1px solid var(--hairline);
 }
 .till-task:first-child {
   border-top: none;
-  padding-top: 0;
+  padding-top: 4px;
 }
 .till-task:last-child {
   padding-bottom: 0;
@@ -348,26 +408,98 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 10px 20px;
+  gap: 12px 24px;
 }
 .till-task-body {
-  flex: 1 1 280px;
+  flex: 1 1 300px;
   min-width: 0;
   max-width: 72ch;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 .till-task-body > * {
   margin: 0;
 }
 .till-task-title {
-  font-size: 13.5px;
-  font-weight: 650;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--ink);
-  margin: 0 0 2px;
+  margin: 0;
 }
-.till-card .till-inline-state {
-  display: inline;
-  font-weight: 500;
-  margin-left: 4px;
+
+/* The control column: every row's button or switch on one right-hand edge and
+   at one width, so the buttons line up down the page instead of each being as
+   wide as its label. */
+.till-control {
+  flex: 0 0 auto;
+  min-width: 140px;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.till-control > .btn {
+  min-width: 140px;
+}
+
+/* An on/off setting: a 40 x 24 track inside a 44px hit area. */
+.till-switch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 44px;
+  margin: -4px -4px -4px 0;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-inner);
+  background: none;
+  cursor: pointer;
+}
+.till-switch:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 2px;
+}
+.till-switch-track {
+  position: relative;
+  display: block;
+  width: 40px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--line);
+  transition: background-color 0.15s ease;
+}
+.till-switch-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition:
+    transform 0.15s ease,
+    background-color 0.15s ease;
+}
+.till-switch[aria-checked="true"] .till-switch-track {
+  background: var(--navy);
+}
+.till-switch[aria-checked="true"] .till-switch-knob {
+  transform: translateX(16px);
+  background: var(--surface);
+}
+.till-switch-state {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink2);
+}
+@media (prefers-reduced-motion: reduce) {
+  .till-switch-track,
+  .till-switch-knob {
+    transition: none;
+  }
 }
 .till-task-form {
   display: flex;
@@ -429,7 +561,7 @@
 /* -- the facts rail -------------------------------------------------------- */
 
 .till-rail {
-  padding: 6px 20px;
+  padding: 4px 24px;
   display: flex;
   flex-direction: column;
   position: sticky;
@@ -438,7 +570,7 @@
 .till-facts {
   display: flex;
   flex-direction: column;
-  padding: 14px 0;
+  padding: 18px 0;
   border-top: 1px solid var(--hairline);
 }
 .till-facts:first-child {
@@ -447,52 +579,22 @@
 .till-facts > * {
   margin: 0;
 }
-.till-facts .till-alert,
-.till-facts .till-said {
-  margin: 6px 0;
-  font-size: 12.5px;
-}
 .till-facts-head {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 650;
   color: var(--ink);
-  margin: 0 0 6px;
+  margin: 0 0 8px;
 }
-.till-local summary {
-  display: grid;
-  grid-template-columns: var(--till-label-w, 108px) minmax(0, 1fr);
-  column-gap: 14px;
-  align-items: baseline;
-  cursor: pointer;
-  list-style: none;
+/* A section heading with its one button on the same line. */
+.till-facts-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 8px;
 }
-.till-local summary .till-facts-head {
+.till-facts-bar .till-facts-head {
   margin: 0;
-}
-.till-local summary::-webkit-details-marker {
-  display: none;
-}
-.till-local summary .till-facts-head::before {
-  content: "▸";
-  display: inline-block;
-  width: 14px;
-  color: var(--muted);
-  transition: transform 0.15s ease;
-}
-.till-local[open] summary .till-facts-head::before {
-  transform: rotate(90deg);
-}
-.till-local summary .muted-cell {
-  font-size: 12.5px;
-  line-height: 1.35;
-}
-.till-local[open] summary {
-  margin-bottom: 6px;
-}
-.till-local summary:focus-visible {
-  outline: 2px solid var(--navy);
-  outline-offset: 3px;
-  border-radius: 4px;
 }
 
 /* A fact: the label in a fixed column, the value on one shared edge beside it.
@@ -500,68 +602,42 @@
    between the two is weight and colour, so rules between rows are not needed. */
 .till-row {
   display: grid;
-  grid-template-columns: var(--till-label-w, 108px) minmax(0, 1fr);
-  column-gap: 14px;
+  grid-template-columns: var(--till-label-w, 112px) minmax(0, 1fr);
+  column-gap: 16px;
   align-items: baseline;
-  padding: 5px 0;
+  padding: 4px 0;
 }
 .till-row-label {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 400;
-  line-height: 1.35;
+  line-height: 1.4;
   color: var(--muted);
 }
 .till-row-value {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 600;
-  line-height: 1.35;
+  line-height: 1.4;
   color: var(--ink);
   text-align: left;
   font-variant-numeric: tabular-nums;
   overflow-wrap: anywhere;
 }
-.till-row-value .till-text-btn {
-  margin-top: 6px;
-}
-.till-row-stack {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-/* A quiet action inside the rail: text, not a box. */
-.till-text-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: none;
-  border: none;
-  padding: 2px 0;
-  font: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--navy);
-  cursor: pointer;
-  border-bottom: 1px dotted currentColor;
-  white-space: nowrap;
-}
-.till-text-btn:disabled {
-  color: var(--muted);
-  cursor: default;
-}
-.till-text-btn:focus-visible {
-  outline: 2px solid var(--navy);
-  outline-offset: 3px;
-  border-radius: 2px;
-}
 
 /* -- development ----------------------------------------------------------- */
 
+/* Fenced, not featured: a dashed outline on the page, no surface of its own. */
 .till-dev {
   border-style: dashed;
+  border-color: var(--line);
+  background: transparent;
+  box-shadow: none;
+  padding: 16px 24px;
+}
+.till-dev .till-task-title {
+  color: var(--ink2);
 }
 .till-dev-note {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--muted);
 }
 
@@ -580,13 +656,19 @@
 }
 @media (max-width: 560px) {
   .till-band {
-    padding: 16px;
+    padding: 18px 16px;
+  }
+  .till-card {
+    padding: 18px 16px;
   }
   .till-ledger-number {
     font-size: 26px;
   }
-  .till-track-stop {
-    min-width: 0;
-    padding-right: 20px;
+  .till-flow {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+  .till-window {
+    margin-left: 0;
   }
 }

@@ -1,15 +1,7 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import {
-  AlertTriangle,
-  Check,
-  HardDriveDownload,
-  RefreshCw,
-  Replace,
-  Volume2,
-  VolumeX,
-} from "lucide-react";
+import { AlertTriangle, Check, CircleCheck, HardDriveDownload, RefreshCw } from "lucide-react";
 
 import { PageHeader } from "../../components/PageHeader";
 import { useAuth } from "../../auth/AuthContext";
@@ -62,7 +54,7 @@ export default function TillPage() {
   if (!engine || !till) return <NoCounter reason={accessError} />;
 
   return (
-    <div className="page-pad">
+    <div className="page-pad till-page">
       <PageHeader
         actions={
           <div className="till-actions">
@@ -74,7 +66,7 @@ export default function TillPage() {
               disabled={till.busy}
               onClick={() => void engine.syncNow()}
             >
-              <RefreshCw size={15} className={till.busy ? "till-spin" : ""} />
+              <RefreshCw size={16} className={till.busy ? "till-spin" : ""} />
               {till.busy ? "Syncing…" : "Sync now"}
             </button>
           </div>
@@ -90,7 +82,7 @@ export default function TillPage() {
           <PersonalSettings engine={engine} muted={till.muted} />
           <TestBill />
         </div>
-        <FactsRail engine={engine} till={till} />
+        <FactsRail till={till} />
       </div>
     </div>
   );
@@ -243,45 +235,88 @@ function StatusBand({ engine, till }: { engine: TillEngine; till: TillSnapshot }
         ? "amber"
         : "green";
 
+  // The offline window is shown whenever there is one to renew, problems or not:
+  // a counter paused for a transfer still needs its window kept open.
+  const showWindow = registered && !till.authority.expired;
+
   return (
     <section className={`till-band till-band-${tone}`} data-testid="till-band" data-tone={tone}>
-      <div className="till-band-head">
-        <Ledger till={till} />
-        {problems.length === 0 && (
-          <div className="till-band-say">
-            <p className="till-band-sentence" data-testid="till-status-reason">
-              {headline(till)}
-            </p>
-            <p className="till-band-meta">
-              {till.syncedAt ? `Last synced ${formatDateTime(till.syncedAt)}.` : "Not synced yet."}
-            </p>
+      <Ledger till={till} />
+      <div className="till-band-rest">
+        {problems.length > 0 && (
+          <div className="till-problems">
+            {problems.map((p, i) => (
+              <div key={p.key} className={`till-problem till-problem-${p.tone}`}>
+                {p.node(i === 0)}
+              </div>
+            ))}
+          </div>
+        )}
+        {(problems.length === 0 || showWindow) && (
+          <div className="till-band-foot">
+            {problems.length === 0 && (
+              <div className="till-band-say">
+                {tone === "green" ? (
+                  <CircleCheck size={20} className="till-band-icon" aria-hidden="true" />
+                ) : (
+                  <AlertTriangle size={20} className="till-band-icon" aria-hidden="true" />
+                )}
+                <div>
+                  <p className="till-band-sentence" data-testid="till-status-reason">
+                    {headline(till)}
+                  </p>
+                  <p className="till-band-meta">
+                    {till.syncedAt
+                      ? `Last synced ${formatDateTime(till.syncedAt)}`
+                      : "Not synced yet"}
+                  </p>
+                </div>
+              </div>
+            )}
+            {showWindow && <BillingWindow engine={engine} till={till} />}
           </div>
         )}
       </div>
-      {problems.length > 0 && (
-        <div className="till-problems">
-          {problems.map((p, i) => (
-            <div key={p.key} className={`till-problem till-problem-${p.tone}`}>
-              {p.node(i === 0)}
-            </div>
-          ))}
-        </div>
-      )}
     </section>
   );
 }
 
 /** The band's sentence on a counter with nothing to fix. */
 function headline(till: TillSnapshot): string {
-  const base = till.status.colour === "green" ? "All bills sent." : till.status.reason;
-  const { authority } = till;
-  if (authority.known && !authority.expired && authority.until) {
-    return `${base} Offline billing open until ${formatDateTime(authority.until)}.`;
-  }
-  return base;
+  return till.status.colour === "green" ? "All bills sent." : till.status.reason;
 }
 
-/** The next bill number and the track behind it. */
+/** The offline window and its renewal, beside the sentence it qualifies. */
+function BillingWindow({ engine, till }: { engine: TillEngine; till: TillSnapshot }) {
+  const renewal = useOutcome();
+  const { authority } = till;
+  return (
+    <>
+      <div className="till-window">
+        <span className="till-window-text" data-testid="till-authority">
+          {authority.until
+            ? `Offline billing open until ${shortDateTime(authority.until)}`
+            : describeAuthority(authority)}
+        </span>
+        <button
+          type="button"
+          className="btn"
+          data-testid="till-renew"
+          disabled={till.busy || !till.online}
+          onClick={() =>
+            void renewal.run(() => engine.renew(), "Billing window renewed for another 24 hours.")
+          }
+        >
+          {till.busy ? "Renewing…" : "Renew"}
+        </button>
+      </div>
+      <Outcome failed={renewal.failed} said={renewal.said} id="till-registration" />
+    </>
+  );
+}
+
+/** The next bill number, and where the bills behind it are. Drawn left to right
+ *  the way a bill travels: from this counter to head office. */
 function Ledger({ till }: { till: TillSnapshot }) {
   const accepted = till.register?.last_accepted_seq;
   const waiting = till.pending;
@@ -293,16 +328,21 @@ function Ledger({ till }: { till: TillSnapshot }) {
           {till.nextNumber || "—"}
         </span>
       </div>
-      <ol className="till-track" aria-label="Where the bills are">
-        <li className="till-track-stop">
-          <span className="till-track-value">{accepted ?? "—"}</span>
-          <span className="till-track-label">
+      <ol
+        className={`till-flow${waiting ? " till-flow-waiting" : ""}`}
+        aria-label="Where the bills are"
+      >
+        <li className="till-flow-stop">
+          <span className="till-flow-label">Waiting on this counter</span>
+          <span className="till-flow-value till-flow-here">{waiting}</span>
+        </li>
+        <li className="till-flow-stop till-flow-end">
+          <span className="till-flow-label">
             {accepted === undefined ? "Head office not checked" : "Accepted by head office"}
           </span>
-        </li>
-        <li className={`till-track-stop${waiting ? " till-track-waiting" : ""}`}>
-          <span className="till-track-value">{waiting}</span>
-          <span className="till-track-label">Waiting on this counter</span>
+          <span className={`till-flow-value${accepted === undefined ? "" : " till-flow-accepted"}`}>
+            {accepted ?? "—"}
+          </span>
         </li>
       </ol>
     </div>
@@ -730,7 +770,7 @@ function TaskRow({
           <h3 className="till-task-title">{title}</h3>
           <p className="muted-cell">{text}</p>
         </div>
-        {!open && button}
+        {!open && button && <div className="till-control">{button}</div>}
       </div>
       {open && <div className="till-task-form">{children}</div>}
       {after}
@@ -756,7 +796,7 @@ function PauseTask({ engine, till }: { engine: TillEngine; till: TillSnapshot })
   if (till.allocationVersion === null) {
     return (
       <TaskRow
-        title="Pause billing for a transfer or count"
+        title="Pause for a transfer or count"
         open={false}
         text={
           <span data-testid="till-pause-none">
@@ -770,12 +810,12 @@ function PauseTask({ engine, till }: { engine: TillEngine; till: TillSnapshot })
   return (
     <TaskRow
       testId="till-pause"
-      title="Pause billing for a transfer or count"
+      title="Pause for a transfer or count"
       open={open}
       after={<Outcome failed={outcome.failed} said={outcome.said} id="till-pause" />}
       text={
         <span data-testid="till-pause-held">
-          All bills must be synced. Billing stays off until you resume.
+          All bills must be synced first. Billing stays off until you resume it.
         </span>
       }
       button={
@@ -883,7 +923,7 @@ function MoveTask({ engine, till }: { engine: TillEngine; till: TillSnapshot }) 
             outcome.setSaid("");
           }}
         >
-          <Replace size={15} /> Move the counter
+          Move the counter
         </button>
       }
     >
@@ -930,7 +970,7 @@ function PairTask({ engine, paired }: { engine: TillEngine; paired: boolean }) {
       text="Enter the one-time pairing code from Owner or Admin."
       button={
         <button type="button" className="btn" onClick={() => setOpen(true)}>
-          Enter pairing code
+          Enter code
         </button>
       }
     >
@@ -988,38 +1028,49 @@ function PersonalSettings({ engine, muted }: { engine: TillEngine; muted: boolea
  * The counter's noise, on or off (#247, grill Q8).
  *
  * Per counter rather than per person, because that is what it is about: one
- * till stands next to the music and another sits in a back office. Pressing it
- * plays the tone it is turning on, which is the only honest way to answer "is
- * the sound working?".
+ * till stands next to the music and another sits in a back office. Turning it
+ * on plays the tone it is turning on, which is the only honest way to answer
+ * "is the sound working?".
+ *
+ * A switch with its state beside it, not a button named after the opposite
+ * state: "Turn the sounds off" read as the setting and was the widest button
+ * on the page.
  */
 function ScanSounds({ engine, muted }: { engine: TillEngine; muted: boolean }) {
   return (
     <div className="till-task">
       <div className="till-task-line">
         <div className="till-task-body">
-          <h3 className="till-task-title">
-            Scan sounds{" "}
-            <span className="muted-cell till-inline-state" data-testid="till-sound-state">
-              {muted ? "Off" : "On"}
-            </span>
+          <h3 className="till-task-title" id="till-sound-title">
+            Scan sounds
           </h3>
-          <p className="muted-cell">Tick on a good scan, buzz on a problem. This counter only.</p>
+          <p className="muted-cell">
+            A tick on a good scan, a buzz on a problem. This counter only.
+          </p>
         </div>
-        <button
-          type="button"
-          className="btn"
-          data-testid="till-sound-toggle"
-          aria-pressed={!muted}
-          onClick={() => {
-            void engine.setMuted(!muted);
-            // Turning it back on plays the tick, so the answer to "did that
-            // work?" is the sound itself rather than a sentence about it.
-            if (muted) playTone("tick", false);
-          }}
-        >
-          {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
-          {muted ? "Turn the sounds on" : "Turn the sounds off"}
-        </button>
+        <div className="till-control">
+          <span className="till-switch-state" data-testid="till-sound-state" aria-hidden="true">
+            {muted ? "Off" : "On"}
+          </span>
+          <button
+            type="button"
+            role="switch"
+            className="till-switch"
+            data-testid="till-sound-toggle"
+            aria-checked={!muted}
+            aria-labelledby="till-sound-title"
+            onClick={() => {
+              void engine.setMuted(!muted);
+              // Turning it back on plays the tick, so the answer to "did that
+              // work?" is the sound itself rather than a sentence about it.
+              if (muted) playTone("tick", false);
+            }}
+          >
+            <span className="till-switch-track">
+              <span className="till-switch-knob" />
+            </span>
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -1108,7 +1159,7 @@ function CounterPin() {
             setSaid("");
           }}
         >
-          {hasPin ? "Change" : "Set a PIN"}
+          {hasPin ? "Change PIN" : "Set PIN"}
         </button>
       }
     >
@@ -1164,10 +1215,10 @@ function CounterPin() {
  * taken, and the rules the counter is billing by. Read off the same snapshot the
  * band uses - a second place to look, never a second source.
  */
-function FactsRail({ engine, till }: { engine: TillEngine; till: TillSnapshot }) {
+function FactsRail({ till }: { till: TillSnapshot }) {
   const identity = till.device?.identity ?? null;
   const registered = Boolean(identity?.registered);
-  const renewal = useOutcome();
+  const [allCounts, setAllCounts] = useState(false);
 
   return (
     <aside className="card till-rail" aria-label="Counter details">
@@ -1187,36 +1238,6 @@ function FactsRail({ engine, till }: { engine: TillEngine; till: TillSnapshot })
               value={identity?.series_prefix ?? ""}
               testId="till-series-prefix"
             />
-            {/* The renewal sits under the time it moves, inside the value
-                column, rather than on a line of its own. */}
-            <div className="till-row">
-              <span className="till-row-label">Offline billing</span>
-              <span className="till-row-value till-row-stack">
-                <span data-testid="till-authority">
-                  {till.authority.until && !till.authority.expired
-                    ? `Open until ${shortDateTime(till.authority.until)}`
-                    : describeAuthority(till.authority)}
-                </span>
-                {!till.authority.expired && (
-                  <button
-                    type="button"
-                    className="till-text-btn"
-                    data-testid="till-renew"
-                    disabled={till.busy || !till.online}
-                    onClick={() =>
-                      void renewal.run(
-                        () => engine.renew(),
-                        "Billing window renewed for another 24 hours.",
-                      )
-                    }
-                  >
-                    <RefreshCw size={13} className={till.busy ? "till-spin" : ""} />
-                    {till.busy ? "Renewing…" : "Renew"}
-                  </button>
-                )}
-              </span>
-            </div>
-            <Outcome failed={renewal.failed} said={renewal.said} id="till-registration" />
             <Row
               label="Stock version"
               value={
@@ -1285,29 +1306,37 @@ function FactsRail({ engine, till }: { engine: TillEngine; till: TillSnapshot })
         />
       </section>
 
-      <details className="till-facts till-local">
-        <summary>
-          <span className="till-facts-head">Local copy</span>
-          <span className="muted-cell">{localSummary(till)}</span>
-        </summary>
+      {/* Items and stock lines always show; the other counts behind a button,
+          since anything that is clicked on this page is a button. */}
+      <section className="till-facts">
+        <div className="till-facts-bar">
+          <h2 className="till-facts-head">Local copy</h2>
+          <button
+            type="button"
+            className="btn"
+            aria-expanded={allCounts}
+            aria-controls="till-local-more"
+            onClick={() => setAllCounts(!allCounts)}
+          >
+            {allCounts ? "Show less" : "Show all"}
+          </button>
+        </div>
         <Row label="Items" value={count(till.counts.items)} />
         <Row label="Stock lines" value={count(till.counts.stock)} />
-        <Row label="Offers" value={count(till.counts.offers)} />
-        <Row label="Salespeople" value={count(till.counts.salespeople)} />
-        <Row label="Managers" value={count(till.counts.managers)} />
-        <Row label="Customers" value={count(till.counts.customers)} />
-        <Row label="Tax slabs" value={count(till.counts.gstSlabs)} />
-      </details>
+        <div id="till-local-more" hidden={!allCounts}>
+          <Row label="Offers" value={count(till.counts.offers)} />
+          <Row label="Salespeople" value={count(till.counts.salespeople)} />
+          <Row label="Managers" value={count(till.counts.managers)} />
+          <Row label="Customers" value={count(till.counts.customers)} />
+          <Row label="Tax slabs" value={count(till.counts.gstSlabs)} />
+        </div>
+      </section>
     </aside>
   );
 }
 
-function localSummary(till: TillSnapshot): string {
-  return `${count(till.counts.items)} items, ${count(till.counts.stock)} stock lines`;
-}
-
-/** A date and time without the year when it is this year: the rail is narrow,
- *  and a window that closes tomorrow does not need "2026" to be read. */
+/** A date and time without the year when it is this year: a window that closes
+ *  tomorrow does not need "2026" to be read. */
 function shortDateTime(iso: string): string {
   const when = new Date(iso);
   return when.toLocaleString("en-IN", {
@@ -1436,17 +1465,25 @@ function TestBill() {
 
   return (
     <section className="card till-card till-dev">
-      <h2 className="h3">Development only</h2>
-      <p className="muted-cell">Queues a one-piece bill from the local price list and syncs it.</p>
-      <button
-        type="button"
-        className="btn"
-        data-testid="till-test-bill"
-        disabled={working}
-        onClick={() => void queueOne()}
-      >
-        {working ? "Queueing…" : "Queue a test bill"}
-      </button>
+      <div className="till-task-line">
+        <div className="till-task-body">
+          <h2 className="till-task-title">Development only</h2>
+          <p className="muted-cell">
+            Queues a one-piece bill from the local price list and syncs it.
+          </p>
+        </div>
+        <div className="till-control">
+          <button
+            type="button"
+            className="btn"
+            data-testid="till-test-bill"
+            disabled={working}
+            onClick={() => void queueOne()}
+          >
+            {working ? "Queueing…" : "Queue test bill"}
+          </button>
+        </div>
+      </div>
       {note && (
         <p className="till-dev-note" data-testid="till-test-bill-note">
           {note}
