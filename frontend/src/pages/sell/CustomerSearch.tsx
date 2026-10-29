@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { Printer, Search } from "lucide-react";
 
 import { PageHeader } from "../../components/PageHeader";
+import { EmptyState, ErrorState } from "../../components/States";
 import { api, apiErrorMessage } from "../../lib/api";
 import type { ApiRead, ApiSchemas } from "../../lib/api";
 import { withQuery } from "../../lib/query";
@@ -11,7 +12,9 @@ import { browserPrintAdapter } from "../../till/print";
 import { postedReceiptHtml } from "../../till/receipt";
 import { tenderWords } from "../../till/tender";
 import type { PostedBill } from "../../till/receipt";
+import { BillScope } from "./BillScope";
 import "./CustomerSearch.css";
+import "./Bills.css";
 
 // ---------------------------------------------------------------------------
 // Find a bill (#185, requirements E1 and E2)
@@ -142,7 +145,11 @@ export default function CustomerSearchPage() {
 
   return (
     <div className="page-pad">
-      <PageHeader lead="Find a bill by mobile number, name or bill number. Print it again - a past bill is never edited." />
+      <PageHeader
+        title="Bills"
+        lead="Any bill at your stores, by mobile number, name or bill number. A past bill is never edited: print it again."
+        actions={<BillScope />}
+      />
 
       <div className="card section-card find-bar" data-testid="find-bar">
         <div className="seg find-keys" role="group" aria-label="Search by">
@@ -182,7 +189,7 @@ export default function CustomerSearchPage() {
         </div>
         <button
           type="button"
-          className="btn btn-cta"
+          className="btn btn-primary"
           disabled={loading}
           data-testid="find-search"
           onClick={() => void search()}
@@ -190,83 +197,94 @@ export default function CustomerSearchPage() {
           <Search size={15} />
           {loading ? "Searching…" : "Search"}
         </button>
-        <Link className="btn" to="/sell" data-testid="find-back">
-          Back to billing
-        </Link>
       </div>
 
-      {error && (
-        <div className="warn-note" data-testid="find-error">
-          {error}
-        </div>
-      )}
+      {error && <ErrorState message={error} testId="find-error" />}
       {printProblem && (
         <div className="warn-note" data-testid="find-print-problem">
           {printProblem} The bill is unchanged - try again when the printer is ready.
         </div>
       )}
 
+      {rows === null && !error && (
+        <EmptyState testId="find-start">
+          Search by mobile number, customer name or bill number to find a bill.
+        </EmptyState>
+      )}
       {rows !== null && rows.length === 0 && !error && (
-        <div className="card section-card" data-testid="find-empty">
-          <p className="lead">
-            No bill at this store matches that. Check the number, or try the mobile the customer
-            gave at the counter.
-          </p>
-        </div>
+        <EmptyState testId="find-empty">
+          No bill matches that. Check the number, or try the mobile the customer gave at the
+          counter.
+        </EmptyState>
       )}
 
-      {rows !== null && rows.length > 0 && (
-        <div className="card section-card" data-testid="find-results">
-          <p className="eyebrow">
-            {rows.length === 1 ? "1 bill" : `${rows.length} bills`}
-            {/* The server caps the list rather than paging it: this is for
+      {/* The list and the open bill side by side, as on the counter's own list. */}
+      <div className={open ? "split-view" : undefined}>
+        {rows !== null && rows.length > 0 && (
+          <div className="card section-card" data-testid="find-results">
+            <p className="bills-count">
+              {rows.length === 1 ? "1 bill" : `${rows.length} bills`}
+              {/* The server caps the list rather than paging it: this is for
                 finding one customer's bill, not for exporting the day. */}
-            {rows.length === 50 ? " - the most recent 50. Narrow the search." : ""}
-          </p>
-          <table className="lines-table" data-testid="find-rows">
-            <thead>
-              <tr>
-                <th>Bill</th>
-                <th>When</th>
-                <th>Customer</th>
-                <th>What</th>
-                <th className="num">Total</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.id} data-testid={`find-row-${row.id}`}>
-                  <td className="mono">{row.doc_number || "not numbered"}</td>
-                  <td>{formatDateTime(row.billed_at)}</td>
-                  <td>
-                    {row.customer_name || "—"}
-                    {row.customer_mobile ? (
-                      <span className="lead"> · {row.customer_mobile}</span>
-                    ) : null}
-                  </td>
-                  <td>{row.lines_summary}</td>
-                  <td className="num">
-                    <Money paise={row.net_paise} />
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="btn"
-                      data-testid={`find-open-${row.id}`}
-                      onClick={() => void openBill(row)}
-                    >
-                      {open?.doc_number === row.doc_number ? "Close" : "Open"}
-                    </button>
-                  </td>
+              {rows.length === 50 ? " - the most recent 50. Narrow the search." : ""}
+            </p>
+            <table className="lines-table" data-testid="find-rows">
+              <thead>
+                <tr>
+                  <th>Bill</th>
+                  <th>When</th>
+                  <th>Customer</th>
+                  <th>What</th>
+                  <th className="num">Total</th>
+                  <th />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr
+                    key={row.id}
+                    className={`bills-row${open?.doc_number === row.doc_number ? " bills-row-open" : ""}`}
+                    data-testid={`find-row-${row.id}`}
+                    onClick={() => void openBill(row)}
+                  >
+                    <td className="mono">{row.doc_number || "not numbered"}</td>
+                    <td>{formatDateTime(row.billed_at)}</td>
+                    <td>
+                      {row.customer_name || "—"}
+                      {row.customer_mobile ? (
+                        <span className="lead"> · {row.customer_mobile}</span>
+                      ) : null}
+                    </td>
+                    <td>{row.lines_summary}</td>
+                    <td className="num">
+                      <Money paise={row.net_paise} />
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className="btn btn-sm"
+                        data-testid={`find-open-${row.id}`}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void openBill(row);
+                        }}
+                      >
+                        {open?.doc_number === row.doc_number ? "Close" : "Open"}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
-      {open && <BillDetail bill={open} onReprint={() => void reprint(open)} />}
+        {open && (
+          <div className="split-view-aside">
+            <BillDetail bill={open} onReprint={() => void reprint(open)} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -291,7 +309,7 @@ function BillDetail({ bill, onReprint }: { bill: PostedBill; onReprint: () => vo
         <div className="spacer" />
         <button
           type="button"
-          className="btn btn-primary"
+          className="btn btn-cta"
           data-testid="find-reprint"
           onClick={onReprint}
         >

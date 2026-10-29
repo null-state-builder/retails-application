@@ -197,6 +197,10 @@ export interface NavItem {
    *  login spanning several stores has no counter to bill or count from, so
    *  the line would open only an explanation. The URL keeps its own gate. */
   counterOnly?: true;
+  /** The menu line that lights while this screen is open, when that is not
+   *  the nearest line by path: the all-stores bill search is the second scope
+   *  of Bills, though its address sits under Billing's. */
+  menuAs?: string;
 }
 
 /** Does this person also hold the section a moved screen's data answers to?
@@ -285,7 +289,13 @@ export const SECTIONS: NavSectionDef[] = [
       // matrix working rather than a hole in it.
       // Find-bill remains a guarded route reached from the counter (F3), not a
       // second public Sell destination.
-      { label: "Customers", to: "/sell/customers", action: true, minCapability: "view" },
+      {
+        label: "Customers",
+        to: "/sell/customers",
+        action: true,
+        minCapability: "view",
+        menuAs: "/sell/bills",
+      },
       // The counter's own state: what it holds offline, and what it still owes
       // head office (#180). Listed after the screens a cashier uses all day,
       // because it is the page somebody opens when something looks wrong.
@@ -1245,6 +1255,8 @@ export function isActiveItem(item: NavItem, pathname: string): boolean {
   // that is - exactly as an `action` screen and a document with no line of its
   // own already do. Without this, hiding Price Book would leave the sidebar dark
   // for anyone who deep-linked to it.
+  const owner = itemOwning(pathname);
+  if (owner?.menuAs) return itemPath(item) === owner.menuAs;
   const lit = deepestUnder(pathname, (i) => !i.deepLink && !i.action && !i.hidden);
   return !!lit && itemPath(item) === itemPath(lit);
 }

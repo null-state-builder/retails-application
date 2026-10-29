@@ -375,6 +375,30 @@
   background: var(--scrim-modal);
 }
 
+/* On a desktop the open exception docks beside its list (layout L): the list
+ * keeps its place and the next row is one click away. */
+.an-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(380px, 40%);
+  gap: 16px;
+  align-items: start;
+}
+.exc-drawer.an-drawer.an-drawer-docked {
+  position: sticky;
+  top: 12px;
+  inset: auto;
+  z-index: auto;
+  width: auto;
+  max-height: calc(100dvh - 120px);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-rest);
+}
+.an-row-open {
+  background: var(--selection);
+  box-shadow: inset 3px 0 0 var(--rust);
+}
+
 /* A panel beside the list, not a block under eighty rows of it. */
 .exc-drawer.an-drawer {
   position: fixed;

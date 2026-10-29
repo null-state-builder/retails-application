@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Printer, RefreshCw, Replace, Search } from "lucide-react";
 
 import { PageHeader } from "../../components/PageHeader";
+import { EmptyState, ErrorState } from "../../components/States";
 import { OperationsPage, OperationsTable } from "../../components/OperationsPage";
 import { api, apiErrorMessage } from "../../lib/api";
 import type { ApiRead, ApiSchemas } from "../../lib/api";
@@ -24,6 +25,7 @@ import { tenderProofWords, tenderWords } from "../../till/tender";
 import { useTill } from "../../till/TillProvider";
 import { useTillWorld } from "../../till/useTillWorld";
 import type { QueuedBill } from "../../till/types";
+import { BillScope } from "./BillScope";
 import "./CustomerSearch.css";
 import "./Bills.css";
 
@@ -167,7 +169,11 @@ export default function BillsPage() {
 
   return (
     <OperationsPage>
-      <PageHeader lead="Today's bills at this counter, including any that have not gone in yet. A bill is never edited - print it again, or start an exchange from it." />
+      <PageHeader
+        title="Bills"
+        lead="Today's bills, including any not yet synced. A bill is never edited: print it again, or start an exchange from it."
+        actions={<BillScope />}
+      />
 
       <div className="card section-card bills-bar" data-testid="bills-bar">
         <div className="field">
@@ -232,16 +238,9 @@ export default function BillsPage() {
         >
           <RefreshCw size={15} /> Today
         </button>
-        <Link className="btn" to="/sell" data-testid="bills-back">
-          Back to billing
-        </Link>
       </div>
 
-      {error && (
-        <div className="warn-note" data-testid="bills-error">
-          {error}
-        </div>
-      )}
+      {error && <ErrorState message={error} testId="bills-error" />}
       {printProblem && (
         <div className="warn-note" data-testid="bills-print-problem">
           {printProblem} The bill is unchanged - try again when the printer is ready.
@@ -249,9 +248,9 @@ export default function BillsPage() {
       )}
 
       {rows !== null && rows.length === 0 && (
-        <div className="card section-card" data-testid="bills-empty">
-          <p className="lead">No bills in this range at this counter.</p>
-        </div>
+        <EmptyState testId="bills-empty">
+          {term.trim() ? "No bill in this range matches that." : "No bills in this range."}
+        </EmptyState>
       )}
 
       {/* The list and the open bill side by side on a desktop, so the next bill
@@ -259,7 +258,11 @@ export default function BillsPage() {
       <div className={open ? "split-view" : undefined}>
         {rows !== null && rows.length > 0 && (
           <div className="card section-card" data-testid="bills-results">
-            <p className="bills-count">{rows.length === 1 ? "1 bill" : `${rows.length} bills`}</p>
+            <p className="bills-count">
+              {rows.length === 1 ? "1 bill" : `${rows.length.toLocaleString("en-IN")} bills`}
+              {" · "}
+              <Money paise={rows.reduce((sum, r) => sum + r.net_paise, 0)} />
+            </p>
             <OperationsTable label="Bill history">
               <table className="lines-table" data-testid="bills-rows">
                 <thead>
@@ -277,10 +280,13 @@ export default function BillsPage() {
                   {rows.map((row) => (
                     <tr
                       key={row.doc_number}
-                      className={
-                        open?.row.doc_number === row.doc_number ? "bills-row-open" : undefined
-                      }
+                      className={`bills-row${
+                        open?.row.doc_number === row.doc_number ? " bills-row-open" : ""
+                      }`}
                       data-testid={`bills-row-${row.doc_number}`}
+                      // The row opens the bill beside the list; the button is
+                      // the same action for a keyboard.
+                      onClick={() => void openBill(row)}
                     >
                       <td className="mono">{row.doc_number || "not numbered"}</td>
                       <td>{formatDateTime(row.billed_at)}</td>
@@ -308,9 +314,12 @@ export default function BillsPage() {
                       <td>
                         <button
                           type="button"
-                          className="btn"
+                          className="btn btn-sm"
                           data-testid={`bills-open-${row.doc_number}`}
-                          onClick={() => void openBill(row)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void openBill(row);
+                          }}
                         >
                           {open?.row.doc_number === row.doc_number ? "Close" : "Open"}
                         </button>

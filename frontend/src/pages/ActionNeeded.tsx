@@ -64,28 +64,49 @@ export function ActionNeededPage() {
       : []),
   ];
 
+  // The count line says only what is known: until each block has answered,
+  // it says nothing rather than a number it would have to guess.
+  const known = chips.filter((c) => c.key !== "all");
+  const waiting = known.every((c) => c.n != null)
+    ? known.reduce((sum, c) => sum + (c.n ?? 0), 0)
+    : null;
+
   return (
     <div className="page-pad">
-      <PageHeader lead="Your to-do list. Approve what's waiting for you, and fix what went wrong. News that needs nothing from you is on Alerts." />
-
-      {chips.length > 2 && (
-        <div className="toolbar" role="tablist" aria-label="What to show">
-          {chips.map((c) => (
-            <button
-              key={c.key}
-              type="button"
-              role="tab"
-              aria-selected={show === c.key}
-              className={`btn btn-sm${show === c.key ? " btn-active" : ""}`}
-              onClick={() => choose(c.key)}
-              data-testid={`action-show-${c.key}`}
-            >
-              {c.label}
-              {c.n != null ? ` (${c.n})` : ""}
-            </button>
-          ))}
-        </div>
-      )}
+      <PageHeader
+        title="Action needed"
+        lead={
+          <>
+            {waiting != null && (
+              <b data-testid="action-waiting">
+                {waiting === 0 ? "Nothing waiting on you. " : `${waiting} waiting on you. `}
+              </b>
+            )}
+            Approve what is waiting for you, and fix what went wrong. News that needs nothing from
+            you is on Alerts.
+          </>
+        }
+        actions={
+          chips.length > 2 && (
+            <div className="seg" role="tablist" aria-label="What to show">
+              {chips.map((c) => (
+                <button
+                  key={c.key}
+                  type="button"
+                  role="tab"
+                  aria-selected={show === c.key}
+                  className={`seg-btn${show === c.key ? " active" : ""}`}
+                  onClick={() => choose(c.key)}
+                  data-testid={`action-show-${c.key}`}
+                >
+                  {c.label}
+                  {c.n != null ? ` ${c.n}` : ""}
+                </button>
+              ))}
+            </div>
+          )
+        }
+      />
 
       {/* Both blocks stay mounted, only hidden, so each chip keeps its count. */}
       {canSeeApprovals && (

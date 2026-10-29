@@ -63,6 +63,7 @@ import {
 } from "../components/ActionBits";
 import { useAuth, type GoodsSession } from "../auth/AuthContext";
 import { formatDateTime } from "../lib/format";
+import { useWideScreen } from "../lib/useWideScreen";
 import "./GoodsExceptions.css";
 
 type LiveStatus = "connecting" | "live" | "reconnecting" | "stopped";
@@ -397,6 +398,10 @@ export function ExceptionsPanel({
     openRows.find((row) => row.id === openId) ??
     (linked && linked.state === "open" ? linked : null);
 
+  // On a desktop the open exception sits beside its list (layout L); on a
+  // narrow window it is the drawer over the page, as before.
+  const docked = useWideScreen();
+
   if (denied) return <Denied what="exceptions" />;
 
   return (
@@ -459,26 +464,30 @@ export function ExceptionsPanel({
         </p>
       )}
 
-      <ExceptionGroups
-        loading={loading}
-        failure={failure}
-        groups={groups}
-        siteNames={siteNames}
-        myHumanId={myHumanId}
-        myRoles={myRoles}
-        onOpen={(id) => set("open", id)}
-      />
-
-      {selected && (
-        <ExceptionDrawer
-          exception={selected}
+      <div className={selected && docked ? "an-split" : undefined}>
+        <ExceptionGroups
+          loading={loading}
+          failure={failure}
+          groups={groups}
           siteNames={siteNames}
           myHumanId={myHumanId}
           myRoles={myRoles}
-          onClose={() => set("open", "")}
-          onChanged={reload}
+          openId={selected?.id ?? null}
+          onOpen={(id) => set("open", id)}
         />
-      )}
+
+        {selected && (
+          <ExceptionDrawer
+            exception={selected}
+            siteNames={siteNames}
+            myHumanId={myHumanId}
+            myRoles={myRoles}
+            docked={docked}
+            onClose={() => set("open", "")}
+            onChanged={reload}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -487,6 +496,8 @@ interface RowContext {
   siteNames: ReadonlyMap<string, string>;
   myHumanId: string | null;
   myRoles: readonly string[];
+  /** The exception open beside the list, so its row can say so. */
+  openId: string | null;
   onOpen: (id: string) => void;
 }
 
@@ -587,11 +598,15 @@ function ExceptionItem({
   siteNames,
   myHumanId,
   myRoles,
+  openId,
   onOpen,
 }: RowContext & { row: ExceptionRow; showCause: boolean }) {
   const resolution = resolutionFor(row);
   return (
-    <li className="an-row" data-testid={`exc-row-${row.id}`}>
+    <li
+      className={`an-row${openId === row.id ? " an-row-open" : ""}`}
+      data-testid={`exc-row-${row.id}`}
+    >
       <div className="an-row-main">
         <span className="an-doc" data-label="Document" title={row.subject_id}>
           <DocRef subjectId={row.subject_id} />
@@ -632,6 +647,7 @@ function ExceptionDrawer({
   siteNames,
   myHumanId,
   myRoles,
+  docked = false,
   onClose,
   onChanged,
 }: {
@@ -639,6 +655,8 @@ function ExceptionDrawer({
   siteNames: ReadonlyMap<string, string>;
   myHumanId: string | null;
   myRoles: readonly string[];
+  /** Beside the list rather than over it: no scrim, and not a modal. */
+  docked?: boolean;
   onClose: () => void;
   onChanged: () => void;
 }) {
@@ -703,11 +721,11 @@ function ExceptionDrawer({
 
   return (
     <>
-      <div className="an-scrim" onClick={onClose} aria-hidden />
+      {!docked && <div className="an-scrim" onClick={onClose} aria-hidden />}
       <aside
-        className="exc-drawer an-drawer"
-        role="dialog"
-        aria-modal="true"
+        className={`exc-drawer an-drawer${docked ? " an-drawer-docked" : ""}`}
+        role={docked ? "region" : "dialog"}
+        aria-modal={docked ? undefined : true}
         aria-labelledby="exc-drawer-title"
         data-testid="exc-drawer"
       >
