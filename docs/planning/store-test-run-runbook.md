@@ -19,13 +19,15 @@ warehouse **Warehouse Ranchi** (`RNC-WH`). Store, company and people come from
 
 - Debanjan and both cashiers are the store's salespeople (picked on each bill).
 - **Operations head** sees home, sell, stock and reports, approves transfers and
-  count differences, and has no money, setup or opening approval.
+  count differences, uploads PT and SOH files, and has no money, setup or
+  opening approval.
 - **Transfers:** warehouse → store needs **no approval**. Submitting asks for the
   password again and the transfer is approved at once (reason
   `NO_APPROVAL_REQUIRED`, named after the submitter), ready to dispatch. Any
   other transfer (store → warehouse, corrections) waits for K D Singh or Priyo.
-- An opening needs three different people: the uploader (Debanjan), the
-  preparer (`preparer`, used by the server) and the approver (K D Singh).
+- **Openings** need no approval during the alpha: the uploader (Debanjan, the
+  warehouse or Priyo) starts the load, and the `preparer` login records each
+  step as `NO_APPROVAL_REQUIRED`.
 
 ## Test server (VPS): rebuild for The Wardrobe
 
@@ -85,12 +87,16 @@ To restore the old data instead: `docker compose down`, remove the volumes,
 
 ## Opening The Wardrobe
 
-Owner's process (28 Oct 2026): set up the store empty, open it from its PT files
-(no scanning, cost = P RATE), then bring it to the legacy SOH. Synthetic tenant
-only.
+Owner's process (28–29 Oct 2026): set up the store empty, open it from its PT
+files (no scanning, cost = P RATE), then bring it to the legacy SOH. Synthetic
+tenant only. During the alpha an opening needs **no approval**: `setup.json`
+`"opening": {"approval": false}` publishes the `pt.approve.opening` policy with
+`auto_approve_test_store_opening`, so the upload queues the load and the
+`preparer` login records every decision as `NO_APPROVAL_REQUIRED` (no step-up).
+Republishing the policy without the flag turns approvals back on.
 
 1. **Normalise the PT files (on a laptop, before any upload):** the store's PT
-   files (152 bill workbooks, no Season column) and its SOH go through
+   files (bill workbooks, no Season column) and its SOH go through
    `scripts/normalize_pt_files.py`, which writes one upload-ready workbook and a
    report of every change:
 
@@ -114,70 +120,85 @@ only.
    - The script ends by reading its output with the upload's own reader; it
      exits non-zero if any row would be left out. Re-run it whenever PT files
      are added. The PT, SOH and normalised folders are git-ignored (cost data).
-2. **Upload the PT file (Debanjan):** at `/goods/opening`, pick The Wardrobe
-   and, under "Opening from PT files", choose `WARDROBE_PT_combined.xlsx` (the
-   upload takes at most 40 files; the one combined file replaces them). The
-   preview shows barcodes, pieces, value at MRP and any rows that would be left
-   out. A store person does not see the P RATE value.
-3. **Approve and load (K D Singh):** same screen, **Approve and load**. Brands
-   and sizes are mapped by their spelling; seasons go through the same SS-YY /
-   AW-YY rule, so the seasons are AW-26, AW-25, SS-26, SS-25... and unknown
-   historical. Each row's HSN and P RATE are used. Everything goes onto the
-   Floor. The card shows progress.
-4. **Match the legacy SOH (Debanjan):** export the SOH from the legacy software
-   **after** step 3 finished, and upload it as exported (its seasons go
-   through the same rule), then upload it at `/goods/stock-sync` with that
-   export time. Sold pieces leave, extra pieces of known items are added, and
-   barcodes with no PT are staged as new items.
-   - An SOH exported before the PT load is refused (`SOH_BEFORE_STOCK`): it
-     cannot see those items, and would bring them in a second time.
-   - A wrong export time: **Discard** the preview and upload the same file
-     again with the right time.
-5. **Load the new items (K D Singh):** **Approve and load** on "New items from
-   the SOH sync" at `/goods/opening` (cost = SOH Rate). Stock then equals the
-   SOH.
-6. **Sell** at `/sell` (Cashier 1 or 2), then follow "Each day" below.
+2. **Rehearse locally first** (Docker, never the server; `deploy/README.md`):
 
-**Or load the PT opening from the server shell** (no browser; the same reviewed
-path and the same progress on `/goods/opening`). It resumes the PT source
-Debanjan uploaded, including one whose web load failed or stopped:
+   ```bash
+   scripts/rehearse_store_opening.sh --twice
+   ```
 
-```bash
-docker compose exec -T api python manage.py load_pt_opening --store WRR
-```
+   It builds the server's stack from empty, opens the store from the combined
+   PT (restarting the API mid-load), syncs the SOH and checks the totals, twice.
+   Go on only when it ends `REHEARSAL PASSED` on the revision you will deploy.
+3. **On the server** (`cd ~/kdps/deploy`; each step needs the owner's go-ahead):
+   1. **Back up** and copy the dump off the server:
+      `docker compose exec -T db pg_dump -U kdps -Fc kdps > ~/backups/kdps-before-opening-$(date +%F).dump`
+   2. **Deploy:** `cd ~/kdps && git pull`, then `cd deploy && docker compose up -d --build`.
+      The API migrates on start; on a fresh database it shows `unhealthy` for
+      about 6 minutes. That is expected.
+   3. **Restore the pre-load dump** (the store and people, no stock), then
+      bring it to this revision's migrations:
+      ```bash
+      docker compose stop api
+      docker compose exec -T db dropdb -U kdps --force kdps
+      docker compose exec -T db createdb -U kdps kdps
+      docker compose exec -T db pg_restore -U kdps -d kdps --no-owner < /home/kdps/backups/kdps-before-pt-load-2026-10-28.dump
+      docker compose run --rm --no-deps api python manage.py migrate --noinput
+      ```
+   4. **Publish the no-approval flag:** re-run `load_test_store --setup` with
+      the API stopped, exactly as step 5 of the rebuild above, which ends by
+      starting the API. Existing logins keep their passwords.
+   5. **Open the store** (about 10–12 minutes) with the combined PT, as
+      Debanjan. The goods worker runs it as a durable job, so a restart or a
+      deploy mid-load only pauses it; `--wait` follows it and prints the totals:
+      ```bash
+      docker compose cp ~/WARDROBE_PT_combined.xlsx api:/tmp/WARDROBE_PT_combined.xlsx
+      docker compose exec -T api python manage.py open_test_store --store WRR \
+        --pt /tmp/WARDROBE_PT_combined.xlsx --uploader debanjan@wardrobe.test --wait
+      ```
+      Expect `Done: 15765 pieces on the floor at WRR (6331 barcodes, 0 left out)`.
+      The same file again is the same source and queues nothing. Without
+      `--pt` it resumes the store's open PT source.
+   6. **Sync the legacy SOH:** export a fresh SOH from the legacy software
+      **after** step 5 finished, and apply it with its real export time:
+      ```bash
+      EXPORTED_AT=2026-10-29T18:30+05:30   # the legacy export's real time, with its zone
+      docker compose cp ~/SOH.xlsx api:/tmp/SOH.xlsx
+      docker compose exec -T api python manage.py sync_soh --store WRR --soh /tmp/SOH.xlsx \
+        --exported-at "$EXPORTED_AT" --uploader debanjan@wardrobe.test --apply
+      ```
+      Stock is brought to the SOH (legacy is master). An export at or before
+      the last applied one is refused (`STOCK_SYNC_STALE`); the same file and
+      time again is a no-op.
+   7. **Review** the printed totals and the flagged rows with Debanjan: book
+      units equal the SOH total. Every difference is one row in one
+      `stock_sync_review` alert ("SOH sync needs review") for the store manager
+      at `/goods/stock-sync`, by category:
+      - `PT_ONLY`: in the PT, not in the SOH (sold or moved in legacy).
+      - `SOH_BELOW` / `SOH_ABOVE`: the SOH has fewer / more pieces.
+      - `SOH_ONLY`: in the SOH, in no PT. Flagged and **not sellable**; no item
+        or stock is created. It becomes real when a PT containing it is opened.
+      - `MRP_DIFFERS`: the SOH's MRP differs from the book's.
 
-With nothing uploaded yet, copy the combined file into the container and stage
-it as Debanjan: `--pt /tmp/WARDROBE_PT_combined.xlsx --stager debanjan@wardrobe.test`.
-The owner approves. Only the web step-up (the owner's password) is skipped; it
-still refuses a real store, a finished source and an owner who uploaded it.
-Each batch of 5,000 lines looks its barcodes up in one query, and each
-scan reads only its own line's acceptance evidence, so a fresh database with
-no planner statistics no longer slows it to a stop (the first
-server load, 28 Oct 2026, ran 32 minutes and failed `RETRY_EXHAUSTED`).
+      **Acknowledge** only marks a row seen; it changes no stock or item.
+      Sales made in legacy between the opening and the export show as
+      `SOH_BELOW`; that is expected. Then go or no-go, and **sell** at `/sell`.
 
-Local rehearsal, 28 Oct 2026, with the real files (152 PT files normalised into
-one, and `SOH_WARDROBE_28-10-2026.xlsx` uploaded as exported):
+**In the browser** the same steps run as Debanjan (or the warehouse, or Priyo):
+upload `WARDROBE_PT_combined.xlsx` at `/goods/opening` under "Opening from PT
+files" (at most 40 files; the one combined file replaces them) and the load
+starts by itself, with progress on the card; then upload the SOH with its
+export time at `/goods/stock-sync`. A later PT opens only barcodes the store
+does not have yet.
+
+Local rehearsal (`scripts/rehearse_store_opening.sh`), with the combined PT and
+`SOH_WARDROBE_28-10-2026.xlsx`:
 
 | Step | Result |
 | --- | --- |
-| Normalise | 6,671 lines, 6,311 barcodes, 15,734 pieces; `lp1522.xlsx` dropped (37 lines); 6 HSN, 12 MRP and 11 P RATE fixes; reader self-check: 0 problems, 0 conflicts |
-| PT preview | 6,311 barcodes, 15,734 pieces, none left out; MRP ₹2,52,92,047, P RATE ₹1,57,55,304.17 |
-| PT load | 2 min 33 s by `load_pt_opening` on a fresh database (was 10 min 47 s before the two lookup fixes), two batches; 15,734 pieces on the floor |
-| Seasons | AW-26 10,956, AW-25 2,440, SS-26 1,794, SS-25 302, AW-23 8, AW-24 7, SS-24 4, unknown historical 223 pieces |
-| SOH sync | 2,089 pieces out, 2 in; 20 new barcodes (31 pieces) staged |
-| Top-up load | 31 pieces of 20 barcodes |
-| Stock after | 13,678 pieces of 5,279 barcodes, the SOH's own total |
-| One test sale | 8909342558205 at ₹3,199 (the SOH MRP; the PT said ₹2,999); 13,677 pieces |
-
-Run the same rehearsal locally, on a throwaway DB (never `kdps_local`):
-
-```bash
-export KDPS_REHEARSAL_DB=kdps_rehearsal_wardrobe   # in backend/, with the local Postgres up
-.venv/bin/python manage.py migrate
-.venv/bin/python manage.py bootstrap_deployment --synthetic --code KDPS-TEST --name "The Wardrobe (test)" \
-  --admin-email kdsingh@wardrobe.test --admin-name "K D Singh" --admin-staff-code OWN-01   # with KDPS_BOOTSTRAP_ADMIN_PASSWORD set
-.venv/bin/python manage.py load_test_store --setup ../docs/wardrobe-ratu-road/setup.json
-```
+| PT | 6,331 barcodes, 15,765 pieces, none left out |
+| SOH | 13,678 pieces |
+| Flagged (barcodes / pieces) | `PT_ONLY` 1,052 / 1,317; `SOH_BELOW` 329 / 772; `SOH_ABOVE` 1 / 2; `SOH_ONLY` 0; `MRP_DIFFERS` 1 |
+| Stock after the sync | 13,678 pieces, the SOH's own total |
 
 Locally every login uses `Synthetic@123`. The sign-in chips show only on the
 local dev server; for The Wardrobe's, put this in `backend/.env` (the chips of
@@ -263,11 +284,10 @@ opening documents conflict with it.
     K D Singh or Priyo to approve.
 - **Night** (`/goods/stock-sync`), once the legacy day is closed:
   - **Preferred:** export the legacy SOH and upload it as "SOH". Enter the
-    export time, review the preview, then choose **Apply**. New items it stages
-    need K D Singh's **Approve and load** at `/goods/opening`.
+    export time, review the preview, then choose **Apply**.
   - **Or:** upload the day's "Sale report".
-  - Review the exceptions. New items appear in `/goods/opening` as a top-up
-    for review.
+  - Review and acknowledge the flagged rows ("SOH sync needs review"). SOH-only
+    barcodes stay flagged and unsellable until a PT containing them is opened.
   - Each SOH must be exported after the one applied before it
     (`STOCK_SYNC_STALE`); test bills since that one are put back first.
   - Any transfer still in transit at night is not in the legacy SOH. Finish
@@ -280,7 +300,11 @@ opening documents conflict with it.
 
 ## Reset
 
-- Stock: upload a fresh SOH.
-- Everything else: re-create the synthetic tenant.
+- **Reset = restore a `pg_dump`** (as in step 3.3 of "Opening The Wardrobe").
+  There is no per-store delete: documents, versions, stock postings and
+  approval evidence are append-only. Take a dump before every step you may
+  want to undo, and copy it off the server.
+- Stock that has drifted from legacy: sync a fresh SOH, not a reset.
+- Everything else: rebuild the synthetic tenant ("Test server (VPS)" above).
 
 The sync never touches a real tenant.
