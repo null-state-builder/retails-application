@@ -83,3 +83,25 @@ Back up nightly with `crontab -e`:
 
 Copy `~/backups` off the server regularly. A backup that only lives on the same
 VPS is lost with it.
+
+## Rehearsal (on a laptop, before touching the server)
+
+`deploy/compose.rehearsal.yaml` runs this same stack locally: the same Postgres 18
+and the same API image with its goods worker, no Caddy, the API on
+`127.0.0.1:58080` only, and its own volumes (project `kdps-rehearsal`). With the
+git-ignored PT and SOH files in `docs/wardrobe-ratu-road/` (or `REHEARSAL_PT` /
+`REHEARSAL_SOH` pointing at them):
+
+```bash
+scripts/rehearse_store_opening.sh --twice
+```
+
+It rebuilds from empty, bootstraps the synthetic tenant and The Wardrobe as the
+store test-run runbook does, takes a baseline dump, opens the store from the PT
+(restarting the API mid-load), re-uploads the same PT, syncs the SOH, repeats it,
+tries an older SOH, and runs `scripts/rehearsal_assert.py`; `--twice` restores the
+baseline and does it all again. It ends with a PASS/FAIL table and exits non-zero
+on any FAIL. Secrets go to `deploy/.env.rehearsal` (generated from
+`rehearsal.env.example`), dumps, logs and the synthetic logins to
+`.local/rehearsal/`; both are git-ignored. Remove it all with
+`docker compose -p kdps-rehearsal down -v`.
