@@ -6441,6 +6441,14 @@
       "gate": "Trace this dynamic/indirect call to a mounted API and test tenant, scope and field authority."
     },
     {
+      "id": "APP-CACHE-001",
+      "kind": "api_consumer",
+      "key_regex": "^api_consumer:frontend/src/lib/queryCache\\.ts:55ef662222bb$",
+      "primary_id": "P00",
+      "lifecycle": "unresolved",
+      "gate": "Shared GET fetcher behind useList/useDoc (app loading and caching plan, Phase 1); the URL is each screen's own. Read-only, in-memory, keyed by user/store/brand/roles and cleared on logout, expiry, store and role change. Trace each calling screen's URL to its mounted API, tenant, scope and field authority."
+    },
+    {
       "id": "S0819",
       "kind": "api_consumer",
       "key_regex": "^api_consumer:frontend/src/lib/mail\\.ts:1d17567b44e1$",
