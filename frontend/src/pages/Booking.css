@@ -13,47 +13,11 @@
   font-size: 11.5px;
 }
 
-/* booking / receive cards */
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
-  gap: 16px;
-}
-.bk-card {
-  padding: 18px 20px;
-  cursor: pointer;
-  transition:
-    box-shadow 0.15s,
-    transform 0.15s;
-}
-.bk-card:hover {
-  box-shadow: var(--shadow-hover);
-  transform: translateY(-1px);
-}
-.bk-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
 .bk-num {
   font-family: var(--mono);
   font-weight: 700;
   color: var(--navy);
   font-size: 14px;
-}
-.bk-brand {
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--ink);
-}
-.bk-meta {
-  font-size: 12.5px;
-  color: var(--muted);
-  margin-top: 2px;
-}
-.bk-prog {
-  margin-top: 14px;
 }
 .bk-prog-bar {
   height: 7px;
@@ -63,15 +27,8 @@
 }
 .bk-prog-fill {
   height: 100%;
-  background: var(--rust);
+  background: var(--navy);
   border-radius: 999px;
-}
-.bk-prog-meta {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: var(--muted);
-  margin-top: 6px;
 }
 
 /* line editor */
@@ -407,13 +364,6 @@
   color: var(--ink);
   margin-left: 6px;
 }
-.bk-chips {
-  margin-bottom: 16px;
-}
-.bk-chips .seg-btn .count {
-  margin-left: 6px;
-  opacity: 0.7;
-}
 .lines-table .line-cost {
   color: var(--muted);
   white-space: nowrap;
@@ -431,4 +381,58 @@
   gap: 10px;
   align-items: center;
   margin-bottom: 18px;
+}
+
+/* Bookings list (desktop redesign, layout L). */
+.bk-foot {
+  margin-top: 10px;
+  font-size: 13px;
+}
+.bk-prog-fill.over {
+  background: var(--rust);
+}
+
+/* Open-to-buy at the top of Bookings (mockup Booking): the tightest budgets. */
+.otb-strip {
+  padding: 14px 18px 16px;
+  margin-bottom: 16px;
+}
+.otb-strip-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+.otb-strip-head .spacer {
+  flex: 1;
+}
+.otb-strip-head .muted {
+  font-size: 13px;
+}
+.otb-strip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 14px 20px;
+}
+.otb-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.otb-tile-name {
+  font-weight: 650;
+  overflow-wrap: anywhere;
+}
+.otb-tile-left {
+  font-size: 18px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.otb-tile-left.over {
+  color: var(--rust-ink);
+}
+.otb-tile-meta {
+  font-size: 12.5px;
 }

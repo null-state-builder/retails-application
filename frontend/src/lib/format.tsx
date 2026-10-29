@@ -107,6 +107,17 @@ export function formatDateTime(iso: string): string {
   });
 }
 
+/** A calendar day (`YYYY-MM-DD`) in words, as the day it is in India: "3 Feb
+ *  2027". Read as a day, never as an instant, so no timezone moves it. */
+export function formatDay(ymd: string): string {
+  return new Date(`${ymd}T00:00:00+05:30`).toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 /** The single SKU-grain primitive: Brand · Style · Colour · Size — never style-only. */
 export function SkuLine({
   brand,

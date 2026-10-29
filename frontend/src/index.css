@@ -507,6 +507,10 @@ a {
 .queue-work {
   min-width: 0;
 }
+/* A whole page placed in the work column keeps the outer page's padding. */
+.queue-work > .page-pad {
+  padding: 0;
+}
 
 /* A compact queue of records beside the one open (layout L): the receiving
  * inbox beside a delivery, recent customers beside a profile. */

@@ -1,19 +1,12 @@
 // The pieces the one Bookings screen draws the same way for both booking
-// engines: the status chip, the list card, the booking page's header, tiles and
+// engines: the status chip, the booking page's header, tiles and
 // lines table, and the form's totals. Each takes plain, already-read facts, so
 // neither engine's page leaks its wire shape into the other (and neither reads
 // the other's API through here).
 import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
 
 import { PageHeader } from "./PageHeader";
-import {
-  arrivedPercent,
-  STATUS_TONE,
-  STATUS_WORD,
-  type BookingCard,
-  type BookingStatus,
-} from "../lib/bookingModel";
+import { STATUS_TONE, STATUS_WORD, type BookingStatus } from "../lib/bookingModel";
 import { formatINR } from "../lib/format";
 
 /** Paise as rupees, or a dash when nobody gave the figure (never ₹0). */
@@ -26,38 +19,6 @@ export function BookingStatusChip({ status }: { status: BookingStatus }) {
     <span className={`chip chip-${STATUS_TONE[status]} status-pill`} data-testid="booking-status">
       {STATUS_WORD[status]}
     </span>
-  );
-}
-
-/** One booking in the list, whichever engine holds it. */
-export function BookingCardLink({ card }: { card: BookingCard }) {
-  const pct = arrivedPercent(card.booked, card.arrived);
-  const meta = [card.vendor, card.season, card.store ? `→ ${card.store}` : ""].filter(Boolean);
-  return (
-    <Link
-      to={`/booking/${card.id}`}
-      className="card bk-card"
-      data-testid={`booking-card-${card.id}`}
-      data-engine={card.engine}
-    >
-      <div className="bk-card-top">
-        <span className="bk-num">{card.number ?? "No number yet"}</span>
-        <BookingStatusChip status={card.status} />
-      </div>
-      <div className="bk-brand">{card.brand}</div>
-      {meta.length > 0 && <div className="bk-meta">{meta.join(" · ")}</div>}
-      <div className="bk-prog">
-        <div className="bk-prog-bar">
-          <div className="bk-prog-fill" style={{ width: `${pct}%` }} />
-        </div>
-        <div className="bk-prog-meta">
-          <span data-testid="booking-card-progress">
-            {card.arrived} of {card.booked} received
-          </span>
-          <span>{card.expected ? `Expected ${card.expected}` : `${pct}%`}</span>
-        </div>
-      </div>
-    </Link>
   );
 }
 

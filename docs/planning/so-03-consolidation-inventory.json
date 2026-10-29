@@ -24805,6 +24805,14 @@
       "primary_id": "C05",
       "lifecycle": "canonical",
       "removal_condition": "Pending-deliveries queue beside an open delivery (desktop redesign layout L): the same scoped GET /goods-v1/inbound/inbox?view=pending read as api_consumer:frontend/src/pages/ReceiveInbox.tsx:99d111f50388; it writes nothing and retires with the inbox."
+    },
+    {
+      "id": "DESKTOP-API-002",
+      "kind": "api_consumer",
+      "key_regex": "^api_consumer:frontend/src/pages/OutboundRTV\\.tsx:1a8b65ffed1d$",
+      "primary_id": "C09",
+      "lifecycle": "canonical",
+      "removal_condition": "Open-returns queue beside an open return (desktop redesign layout L): the same scoped GET /outbound/rtvs read as api_consumer:frontend/src/pages/OutboundRTV.tsx:567acdc676fc; it writes nothing and retires with the list."
     }
   ],
   "discovered": {

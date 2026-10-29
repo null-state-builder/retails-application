@@ -33,7 +33,10 @@ import { Money } from "../lib/format";
 import { canCreateReturnToBrand, canWriteReturnToBrand } from "../lib/outbound-rbac";
 import { ScanScreen, type ScanResult, type ScanTarget } from "../components/ScanScreen";
 import { ApprovalPill, ApprovalTrail, isCleared, type ApprovalT } from "../components/approval";
-import { ListSearchBar } from "../components/SearchBox";
+import { SearchBox } from "../components/SearchBox";
+import { EmptyState } from "../components/States";
+import { INVENTORY_FOLD, foldTabsFor } from "../shell/navConfig";
+import { useWideScreen } from "../lib/useWideScreen";
 import "./Booking.css";
 import { PageHeader } from "../components/PageHeader";
 
@@ -225,16 +228,56 @@ interface TransferT {
 // List
 // ---------------------------------------------------------------------------
 
+/** Where a return stands, for the list's chips (mockup Return to Brand): a
+ *  draft is still in progress, a posted return waits for the brand's credit
+ *  note, and one with its credit note is done. */
+type RtvStage = "progress" | "owed" | "done" | "cancelled";
+
+function rtvStage(r: Pick<RTVT, "docstatus" | "credit_note">): RtvStage {
+  if (r.docstatus === 2) return "cancelled";
+  if (r.docstatus === 0) return "progress";
+  return r.credit_note ? "done" : "owed";
+}
+
+const RTV_FILTERS: { key: RtvStage | "all"; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "progress", label: "In progress" },
+  { key: "owed", label: "Credit note owed" },
+  { key: "done", label: "Done" },
+];
+
+/** How an empty chip says so: "No defective return is in progress." */
+const STAGE_EMPTY: Record<RtvStage, string> = {
+  progress: "is in progress",
+  owed: "is waiting for its credit note",
+  done: "has its credit note yet",
+  cancelled: "is cancelled",
+};
+
+const RETURN_TYPES = [
+  { key: "defective", label: "Defective / GR", icon: PackageMinus },
+  { key: "seasonal", label: "Season-end", icon: RotateCcw },
+] as const;
+
 export function RTVListPage() {
   const [params, setParams] = useSearchParams();
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user, session, featuresOn } = useAuth();
   const tab = params.get("type") === "seasonal" ? "seasonal" : "defective";
   const [q, setQ] = useState("");
+  const [stage, setStage] = useState<RtvStage | "all">("all");
   const { data, loading } = useList<RTVT>("/outbound/rtvs", { return_type: tab, q });
   // Reaching this section is not the same as being allowed to send stock back:
   // a store person opens the list and marks damage, and the warehouse is the
   // one who raises the return (#75).
   const mayCreate = canCreateReturnToBrand(user);
+  // The earlier damage records stay readable from here (desktop redesign Q4),
+  // for whoever the Stock page draws that tab for.
+  const earlierDamage =
+    !!user &&
+    foldTabsFor(INVENTORY_FOLD, user, session?.display_actions ?? [], featuresOn).some(
+      (t) => t.slug === "damage-history",
+    );
 
   function setTab(next: string) {
     setParams((p) => {
@@ -243,84 +286,142 @@ export function RTVListPage() {
     });
   }
 
+  const counts = {
+    all: data.length,
+    progress: data.filter((r) => rtvStage(r) === "progress").length,
+    owed: data.filter((r) => rtvStage(r) === "owed").length,
+    done: data.filter((r) => rtvStage(r) === "done").length,
+    cancelled: 0,
+  };
+  const rows = stage === "all" ? data : data.filter((r) => rtvStage(r) === stage);
+  // The kind as a word inside a sentence: "No defective returns yet."
+  const kind = tab === "seasonal" ? "season-end" : "defective";
+
   return (
     <div className="page-pad">
       <PageHeader
+        title="Returns to brands"
+        lead={
+          <>
+            {/* Said only once the list has answered: no guessed count. */}
+            {!loading && data.length > 0 && (
+              <b data-testid="rtv-count">
+                {counts.progress} in progress · {counts.owed} credit{" "}
+                {counts.owed === 1 ? "note" : "notes"} owed.{" "}
+              </b>
+            )}
+            Pieces going back to a brand, within its return allowance, until the brand&apos;s credit
+            note arrives.
+          </>
+        }
         actions={
-          mayCreate && (
-            <Link className="btn btn-cta" to="/return-to-brand/new" data-testid="new-rtv-btn">
-              <Plus size={16} /> New return
-            </Link>
-          )
+          <>
+            {earlierDamage && (
+              <Link className="btn" to="/inventory?tab=damage-history" data-testid="rtv-earlier">
+                Earlier damage records
+              </Link>
+            )}
+            {mayCreate && (
+              <Link className="btn btn-cta" to="/return-to-brand/new" data-testid="new-rtv-btn">
+                <Plus size={16} /> New return
+              </Link>
+            )}
+          </>
         }
       />
 
-      <div
-        className="mode-toggle"
-        data-testid="rtv-type-toggle"
-        style={{ maxWidth: 520, marginBottom: 18 }}
-      >
-        <button
-          type="button"
-          className={`mode-btn ${tab === "defective" ? "active" : ""}`}
-          onClick={() => setTab("defective")}
-          data-testid="rtv-tab-defective"
-        >
-          <PackageMinus size={16} /> Defective / GR
-        </button>
-        <button
-          type="button"
-          className={`mode-btn ${tab === "seasonal" ? "active" : ""}`}
-          onClick={() => setTab("seasonal")}
-          data-testid="rtv-tab-seasonal"
-        >
-          <RotateCcw size={16} /> Season-end
-        </button>
+      <div className="toolbar">
+        {/* Two kinds of return, both visible: a switch, not two big buttons. */}
+        <div className="seg" role="group" aria-label="Kind of return" data-testid="rtv-type-toggle">
+          {RETURN_TYPES.map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              type="button"
+              className={`seg-btn ${tab === key ? "active" : ""}`}
+              aria-pressed={tab === key}
+              onClick={() => setTab(key)}
+              data-testid={`rtv-tab-${key}`}
+            >
+              <Icon size={14} /> {label}
+            </button>
+          ))}
+        </div>
+        <div className="filter-chips" role="group" aria-label="Where it stands">
+          {RTV_FILTERS.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              className="filter-chip"
+              aria-pressed={stage === key}
+              onClick={() => setStage(key)}
+              data-testid={`rtv-filter-${key}`}
+            >
+              {label} <span className="filter-chip-n">{loading ? "—" : counts[key]}</span>
+            </button>
+          ))}
+        </div>
+        <div className="spacer" />
+        <SearchBox
+          value={q}
+          onChange={setQ}
+          placeholder="Return number or brand"
+          label="Search returns to brand"
+          testId="rtv-search"
+        />
       </div>
-
-      <ListSearchBar
-        value={q}
-        onChange={setQ}
-        placeholder="Search returns — doc number, brand"
-        label="Search returns to brand"
-        testId="rtv-search"
-        noun="return"
-        count={data.length}
-        loading={loading}
-      />
 
       {loading ? (
         <p className="lead">Loading…</p>
-      ) : data.length === 0 ? (
-        <div className="card section-card" data-testid="rtv-empty">
+      ) : rows.length === 0 ? (
+        <EmptyState
+          testId="rtv-empty"
+          action={
+            mayCreate && !q && stage === "all" ? (
+              <Link className="btn" to="/return-to-brand/new">
+                <Plus size={14} /> New return
+              </Link>
+            ) : undefined
+          }
+        >
           {q
-            ? `No ${RETURN_TYPE_LABEL[tab]?.toLowerCase() || tab} matches “${q}”.`
-            : `No ${RETURN_TYPE_LABEL[tab]?.toLowerCase() || tab} returns yet.`}
-        </div>
+            ? `No ${kind} return matches “${q}”.`
+            : stage === "all"
+              ? `No ${kind} returns yet.`
+              : `No ${kind} return ${STAGE_EMPTY[stage as RtvStage]}.`}
+        </EmptyState>
       ) : (
-        <div className="table-wrap">
+        <div className="table-wrap capped">
           <table className="data" data-testid="rtv-table">
+            <caption className="sr-only">
+              Returns to brands, each with its pieces, value, window, credit note and status.
+            </caption>
             <thead>
               <tr>
-                <th>Doc #</th>
+                <th>Return</th>
                 <th>Brand</th>
                 <th>Store</th>
                 <th>Logistics</th>
-                <th className="num">Pcs</th>
+                <th className="num">Pieces</th>
                 <th className="num">Value</th>
                 <th>Window</th>
                 <th>Credit note</th>
                 <th>Status</th>
-                <th>Date</th>
+                <th>Raised</th>
               </tr>
             </thead>
             <tbody>
-              {data.map((r) => (
-                <tr key={r.id} data-testid={`rtv-row-${r.id}`}>
+              {rows.map((r) => (
+                <tr
+                  key={r.id}
+                  data-testid={`rtv-row-${r.id}`}
+                  onClick={() => navigate(`/return-to-brand/${r.id}`)}
+                  style={{ cursor: "pointer" }}
+                >
                   <td>
                     <Link
                       to={`/return-to-brand/${r.id}`}
                       className="link-cell mono"
+                      onClick={(e) => e.stopPropagation()}
                       data-testid={`rtv-link-${r.id}`}
                     >
                       <b>{r.doc_number || `Draft #${r.id}`}</b>
@@ -335,10 +436,12 @@ export function RTVListPage() {
                     )}
                   </td>
                   <td>
-                    <b className="mono">{r.store_code}</b>
+                    <span className="mono">{r.store_code}</span>
                   </td>
                   <td>{r.logistics_route_label || routeLabel(r.logistics_route)}</td>
-                  <td className="num">{r.lines.reduce((s, l) => s + l.qty, 0)}</td>
+                  <td className="num">
+                    {r.lines.reduce((s, l) => s + l.qty, 0).toLocaleString("en-IN")}
+                  </td>
                   <td className="num">{r.value_paise ? <Money paise={r.value_paise} /> : "—"}</td>
                   <td>
                     {r.return_window_date ? (
@@ -354,8 +457,10 @@ export function RTVListPage() {
                       <span className="chip chip-green">
                         Received {fmtDate(r.credit_note.received_on)}
                       </span>
+                    ) : r.docstatus === 1 ? (
+                      <span className="chip chip-amber">Owed</span>
                     ) : (
-                      <span className="chip chip-grey">Pending</span>
+                      "—"
                     )}
                   </td>
                   <td>
@@ -369,6 +474,39 @@ export function RTVListPage() {
         </div>
       )}
     </div>
+  );
+}
+
+/** The returns still moving, beside the one being read (layout L): drafts and
+ *  posted returns still owed a credit note, newest first. The same scoped read
+ *  the list makes, both kinds together. */
+function RTVQueue({ currentId }: { currentId: string }) {
+  const { data, loading } = useList<RTVT>("/outbound/rtvs");
+  const open = data.filter((r) => ["progress", "owed"].includes(rtvStage(r)));
+  if (loading || open.length === 0) return null;
+  return (
+    <nav className="card side-queue" aria-label="Open returns" data-testid="rtv-queue">
+      <p className="side-queue-head">
+        Open returns <span className="filter-chip-n">{open.length}</span>
+      </p>
+      <ul>
+        {open.map((r) => (
+          <li key={r.id}>
+            <Link
+              to={`/return-to-brand/${r.id}`}
+              className={`side-queue-item${String(r.id) === currentId ? " active" : ""}`}
+              aria-current={String(r.id) === currentId ? "page" : undefined}
+            >
+              <span className="side-queue-ref">{r.brand_name || "Return"}</span>
+              <span className="side-queue-meta">
+                <span className="mono">{r.doc_number || `Draft #${r.id}`}</span>
+                {rtvStage(r) === "owed" ? "Credit note owed" : "In progress"}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }
 
@@ -986,8 +1124,23 @@ function CreditNoteCard({ rtv, writable }: { rtv: RTVT; writable: boolean }) {
   );
 }
 
+/** `/return-to-brand/<id>`, with the open returns beside it on a wide screen
+ *  (layout L). */
 export function RTVDetailPage() {
-  const { id } = useParams();
+  const { id = "" } = useParams();
+  const wide = useWideScreen();
+  if (!wide) return <RTVDetail id={id} />;
+  return (
+    <div className="page-pad queue-split">
+      <RTVQueue currentId={id} />
+      <div className="queue-work">
+        <RTVDetail id={id} />
+      </div>
+    </div>
+  );
+}
+
+function RTVDetail({ id }: { id: string }) {
   const { user } = useAuth();
   const { data: r, loading } = useDoc<RTVT>(`/outbound/rtvs/${id}`);
   const writable = canWriteReturnToBrand(user);

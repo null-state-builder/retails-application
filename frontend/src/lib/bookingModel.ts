@@ -188,7 +188,7 @@ export function cardMatches(card: BookingCard, query: string): boolean {
     .some((text) => (text as string).toLowerCase().includes(needle));
 }
 
-export type BookingFilter = "open" | "done" | "all";
+export type BookingFilter = "open" | "waiting" | "done" | "all";
 
 /** Newest first; the list's one order. */
 export function newestFirst(cards: BookingCard[]): BookingCard[] {
@@ -203,13 +203,21 @@ export function filterCards(
 ): { shown: BookingCard[]; counts: Record<BookingFilter, number> } {
   const found = newestFirst(cards.filter((card) => cardMatches(card, query)));
   const open = found.filter((card) => isOpenStatus(card.status));
-  const counts = { open: open.length, done: found.length - open.length, all: found.length };
+  const waiting = found.filter((card) => card.status === "waiting");
+  const counts = {
+    open: open.length,
+    waiting: waiting.length,
+    done: found.length - open.length,
+    all: found.length,
+  };
   const shown =
     filter === "open"
       ? open
-      : filter === "done"
-        ? found.filter((c) => !isOpenStatus(c.status))
-        : found;
+      : filter === "waiting"
+        ? waiting
+        : filter === "done"
+          ? found.filter((c) => !isOpenStatus(c.status))
+          : found;
   return { shown, counts };
 }
 
