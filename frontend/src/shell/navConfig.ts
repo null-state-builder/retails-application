@@ -184,6 +184,19 @@ export interface NavItem {
    *  that walked somebody without those into a refusal would be the sidebar
    *  lying about the API (#85). Break-glass passes, as everywhere. */
   dataGate?: { section: string; minCapability: Capability };
+  /** Drawn in another section's row (desktop redesign, 29 Oct 2026): the
+   *  section code whose `movedHere` deep link stands for this line. The item
+   *  keeps its route and its gate here; the sidebar drops this line only where
+   *  the person's sidebar actually draws the deep link, so nobody who can open
+   *  the screen loses their way to it. */
+  movedTo?: string;
+  /** The deep link that stands in for a `movedTo` line: it lights when the
+   *  moved screen is open, as the line it replaces would have. */
+  movedHere?: true;
+  /** Only for a login that is a counter - one store (`tillStoreCode`). A
+   *  login spanning several stores has no counter to bill or count from, so
+   *  the line would open only an explanation. The URL keeps its own gate. */
+  counterOnly?: true;
 }
 
 /** Does this person also hold the section a moved screen's data answers to?
@@ -229,7 +242,6 @@ export const SECTIONS: NavSectionDef[] = [
     layer: "home",
     items: [
       { label: "Dashboard", to: "/" },
-      { label: "Application roadmap", to: "/roadmap", hidden: true },
       // Home is split by one question, "do I have to do something?" (Anand,
       // 23 Sep 2026). Action Needed is yes: the approvals inbox beside the
       // goods exceptions, each block keeping its own gate. Everyone has the
@@ -246,6 +258,9 @@ export const SECTIONS: NavSectionDef[] = [
       // row and the checklist-missed alert (it is not one of Dashboard's tabs);
       // head office from this line. Only where store checklists are switched on.
       { label: "Today's Checklist", to: "/checklist", storeFeature: "store-checklists" },
+      // Planned screens are not menu lines (desktop redesign, 29 Oct 2026); the
+      // roadmap lists them instead, so it is a line of its own, last in Today.
+      { label: "Roadmap", to: "/roadmap" },
     ],
   },
   {
@@ -257,7 +272,7 @@ export const SECTIONS: NavSectionDef[] = [
       // The counter itself (#181). `operate` for the same reason Till & Sync
       // carries it: this screen bills, and every endpoint behind it is gated at
       // `sell: operate`.
-      { label: "Billing", to: "/sell", minCapability: "operate" },
+      { label: "Billing", to: "/sell", minCapability: "operate", counterOnly: true },
       // The day's bills, this counter's and head office's as one list (OPS-08,
       // store and warehouse operations PRD §9.2). `operate`, not the `view` the
       // customer search carries: it opens the counter's own database to show the
@@ -287,6 +302,7 @@ export const SECTIONS: NavSectionDef[] = [
         label: "Cash Count",
         to: "/sell/cash-count",
         minCapability: "operate",
+        counterOnly: true,
         storeFeature: "cash-count",
       },
       // Ticket 19 (ST-POS-4): the gift vouchers this store sold. `operate` like
@@ -301,7 +317,12 @@ export const SECTIONS: NavSectionDef[] = [
       // The card lives at the Setup address because it is a head-office dial,
       // but it is published under Sell: its API is `sell:manage`, and a user
       // who holds that permission need not hold Setup at all.
-      { label: "Counter Settings", to: "/setup/settings", minCapability: "manage" },
+      {
+        label: "Counter Settings",
+        to: "/setup/settings",
+        minCapability: "manage",
+        movedTo: "setup",
+      },
     ],
   },
   {
@@ -459,9 +480,15 @@ export const SECTIONS: NavSectionDef[] = [
           "opening.variance.approve",
           "pt.approve.opening",
         ],
+        movedTo: "setup",
       },
       // Store test run (test tenant only): the nightly legacy SOH / sales sync.
-      { label: "Legacy sync", to: "/goods/stock-sync", goodsActions: ["opening.import.stage"] },
+      {
+        label: "Legacy sync",
+        to: "/goods/stock-sync",
+        goodsActions: ["opening.import.stage"],
+        movedTo: "setup",
+      },
     ],
   },
   {
@@ -488,15 +515,15 @@ export const SECTIONS: NavSectionDef[] = [
         to: "/goods/transfers/requests",
         goodsActions: ["transfer.allocate"],
       },
-      { label: "Earlier transfer records", to: "/transfer" },
-      { label: "Send Stock", to: "/transfer/new" },
+      { label: "Earlier transfer records", to: "/transfer", hidden: true },
+      { label: "Send Stock", to: "/transfer/new", hidden: true },
       // Bulk-splits one arrived warehouse batch into a draft per destination
       // store — the grid Ops Head fills in once instead of raising the same
       // transfer by hand, store by store (#229's stub, rebuilt on the existing
       // engine rather than a posting module of its own).
-      { label: "Distribution", to: "/transfer/distribution" },
-      { label: "Stock Request", to: "/transfer/requests" },
-      { label: "In-Transit", to: "/transfer/in-transit" },
+      { label: "Distribution", to: "/transfer/distribution", hidden: true },
+      { label: "Stock Request", to: "/transfer/requests", hidden: true },
+      { label: "In-Transit", to: "/transfer/in-transit", hidden: true },
     ],
   },
   {
@@ -505,7 +532,10 @@ export const SECTIONS: NavSectionDef[] = [
     icon: ClipboardCheck,
     layer: "controls",
     items: [
-      { label: "Count Sessions", to: "/stock-count" },
+      // The legacy count screens retire into the goods count journey (SO-03 C08):
+      // off the menu, routed and gated as before for bookmarks (desktop
+      // redesign Q4, 29 Oct 2026).
+      { label: "Count Sessions", to: "/stock-count", hidden: true },
       // Store operations ticket 35 (ST-INV-3): when each store's blind count is
       // due; drawn only where the scheduled-counts switch is on.
       { label: "Count Schedule", to: "/stock-count/schedule", storeFeature: "scheduled-counts" },
@@ -514,15 +544,20 @@ export const SECTIONS: NavSectionDef[] = [
       // matches the book. A goods-v1 line, for the reason given on "Vendor
       // bookings"; reviewers are listed too, since the variance is theirs.
       {
-        label: "Goods counts",
+        label: "Stock counts",
         to: "/goods/counts",
         goodsActions: ["count.run", "count.review"],
       },
       // Corrections live where they are caused: a count is what produces them.
       // Both are writes gated on `stock_count: operate` server-side, so the
       // link must not open for a role the API will refuse (#94).
-      { label: "Adjustments", to: "/stock-count/adjustments", minCapability: "operate" },
-      { label: "Write-offs", to: "/stock-count/writeoffs", minCapability: "operate" },
+      {
+        label: "Adjustments",
+        to: "/stock-count/adjustments",
+        minCapability: "operate",
+        hidden: true,
+      },
+      { label: "Write-offs", to: "/stock-count/writeoffs", minCapability: "operate", hidden: true },
     ],
   },
   {
@@ -534,7 +569,12 @@ export const SECTIONS: NavSectionDef[] = [
       { label: "Returns", to: "/return-to-brand" },
       { label: "New Return", to: "/return-to-brand/new" },
       // Retained evidence uses its earlier projection and original section gate.
-      { label: "Earlier damage records", to: "/inventory?tab=damage-history", deepLink: true },
+      {
+        label: "Earlier damage records",
+        to: "/inventory?tab=damage-history",
+        deepLink: true,
+        hidden: true,
+      },
     ],
   },
   {
@@ -624,7 +664,7 @@ export const SECTIONS: NavSectionDef[] = [
       // `money`, which Owner and Accounts already hold, and putting it behind
       // Setup's `sell: manage` rung (as it briefly was) walled Owner out of a
       // screen the API itself lets them read and write.
-      { label: "Partner Billing", to: "/money/partner-billing" },
+      { label: "Partner Billing", to: "/money/partner-billing", movedTo: "setup" },
       { label: "Partner Dues", to: "/money/partner-dues" },
       // The B2B bills head office still owes an e-invoice reference (#187).
       //
@@ -950,6 +990,45 @@ export const SECTIONS: NavSectionDef[] = [
         to: "/setup/monitoring",
         goodsActions: ["ops.health.view", "export.run", "audit.view"],
       },
+      // Screens other sections own, drawn here because they are setting-up
+      // rather than daily work (desktop redesign Q6, 29 Oct 2026). Each keeps
+      // its route and its gate in its own section; these lines carry the same
+      // gate, so they show only to whoever that section would have shown them
+      // to (`movedTo` drops the original line where these are drawn).
+      {
+        label: "Counter Settings",
+        to: "/setup/settings",
+        deepLink: true,
+        movedHere: true,
+        dataGate: { section: "sell", minCapability: "manage" },
+      },
+      {
+        label: "Opening stock",
+        to: "/goods/opening",
+        deepLink: true,
+        movedHere: true,
+        goodsActions: [
+          "opening.import.stage",
+          "pt.prepare.opening",
+          "opening.manifest.approve",
+          "opening.variance.approve",
+          "pt.approve.opening",
+        ],
+      },
+      {
+        label: "Legacy sync",
+        to: "/goods/stock-sync",
+        deepLink: true,
+        movedHere: true,
+        goodsActions: ["opening.import.stage"],
+      },
+      {
+        label: "Partner Billing",
+        to: "/money/partner-billing",
+        deepLink: true,
+        movedHere: true,
+        dataGate: { section: "money", minCapability: "view" },
+      },
       { label: "Stores", to: "/setup/stores" },
       { label: "Brands", to: "/setup/brands" },
       // The vendor master had no screen at all: vendors could only be created
@@ -966,7 +1045,12 @@ export const SECTIONS: NavSectionDef[] = [
       { label: "Feature Switches", to: "/setup/feature-switches" },
       // The demo probe's screen: drawn only while the demo probe feature is on
       // where the person works, and the probe exists only in development.
-      { label: "Feature check (demo)", to: "/setup/feature-check", storeFeature: "demo-probe" },
+      {
+        label: "Feature check (demo)",
+        to: "/setup/feature-check",
+        storeFeature: "demo-probe",
+        hidden: true,
+      },
       // Store operations ST-OPS-3 (ticket 02): the read-only audit log. Opens for
       // the existing `audit.view` grant only, and only while the audit log is
       // switched on where the person works; the server enforces both.
@@ -1156,7 +1240,7 @@ export function itemOwning(pathname: string): (NavItem & { section: string }) | 
  *  booking document keeps Bookings lit — so the sidebar never goes dark under
  *  you. Letting React Router answer this instead lit every ancestor too. */
 export function isActiveItem(item: NavItem, pathname: string): boolean {
-  if (item.deepLink || item.action || item.hidden) return false;
+  if ((item.deepLink && !item.movedHere) || item.action || item.hidden) return false;
   // A hidden entry is not a menu line, so standing on it lights the nearest one
   // that is - exactly as an `action` screen and a document with no line of its
   // own already do. Without this, hiding Price Book would leave the sidebar dark
@@ -1290,20 +1374,34 @@ export interface NavStripDef {
   goodsTabs?: string[];
 }
 
-/** One row of a persona's sidebar: a section code, a fold, or a strip. */
-export type LayoutRow = string | NavFoldDef | NavStripDef;
+/** Several sections drawn under one sidebar heading, their lines in order
+ *  (desktop redesign, 29 Oct 2026: Customer Orders under Customers, Stock
+ *  Count under Stock). Presentation only: every line has already passed its own
+ *  section's gate, so a group can only ever draw what its sections would have
+ *  drawn one by one. The first section present lends the row its icon, layer
+ *  and key. */
+export interface NavGroupDef {
+  group: string;
+  /** Section codes, in display order. */
+  sections: string[];
+}
 
-/** Is this layout row a strip? A fold names several `sections`; a strip names
- *  the one `section` it is. The two predicates are each other's complement over
- *  the non-string rows, and every place that has to tell the shapes apart calls
- *  one of them rather than re-writing the test. */
+/** One row of a persona's sidebar: a section code, a fold, a strip or a group. */
+export type LayoutRow = string | NavFoldDef | NavStripDef | NavGroupDef;
+
+/** Is this layout row a strip? A strip names the one `section` it is. */
 export function isStripRow(row: LayoutRow): row is NavStripDef {
   return typeof row !== "string" && "section" in row;
 }
 
+/** Is this layout row a group of sections under one heading? */
+export function isGroupRow(row: LayoutRow): row is NavGroupDef {
+  return typeof row !== "string" && "group" in row;
+}
+
 /** Is this layout row a fold? */
 export function isFoldRow(row: LayoutRow): row is NavFoldDef {
-  return typeof row !== "string" && !isStripRow(row);
+  return typeof row !== "string" && !isStripRow(row) && !isGroupRow(row);
 }
 
 /** The rows, top to bottom. A section held but named nowhere here is still
@@ -1337,6 +1435,8 @@ export const INVENTORY_FOLD: NavFoldDef = {
     // Ticket 34: drawn only where the size-balancing switch is on (its entry's gate).
     { slug: "balance", label: "Size Balancing", entry: "/stock/size-balancing" },
     { slug: "damage", label: "Damage & Quarantine", entry: "/goods/stock?view=quarantine" },
+    // History stays readable from the page (SO-03: retained records remain
+    // readable until retention permits), even with these off the menu.
     {
       slug: "damage-history",
       label: "Earlier damage records",
@@ -1487,7 +1587,7 @@ export const UNIVERSAL_STRIPS: NavStripDef[] = [OFFERS_STRIP];
 // Alerts stay in the manifest as Home's own items; they are simply not one of
 // Dashboard's tabs, so they stay reachable by URL and from the bell, never from
 // this row.
-const STORE_LAYOUT: PersonaLayout = [
+export const STORE_LAYOUT: PersonaLayout = [
   { section: "home", label: "Today", tabs: ["/"] },
   SELL_STRIP,
   // Store operations ticket 16 (PRD §5.1): Customers, its own row after Sell,
@@ -1551,7 +1651,7 @@ const STORE_LAYOUT: PersonaLayout = [
 // every non-persona login draws them. Sections the PRD does not name at all -
 // Stock Count, Return to Brand, Setup - are not listed here and are appended
 // after these rows by `applyLayout`, in the server's order, exactly as before.
-const WAREHOUSE_LAYOUT: PersonaLayout = [
+export const WAREHOUSE_LAYOUT: PersonaLayout = [
   "home",
   BOOKING_STRIP,
   WAREHOUSE_RECEIVE_STRIP,
@@ -1563,36 +1663,33 @@ const WAREHOUSE_LAYOUT: PersonaLayout = [
   "hrms",
 ];
 
-/** Role code → its sidebar arrangement. Absent ⇒ the flat list. The one store
- *  role (`store_person`, RBAC v1) draws the store's screen; what it may do on it
- *  is what the server grants, and the layout does not need to know about that. */
-export const PERSONA_LAYOUTS: Record<string, PersonaLayout> = {
-  store_person: STORE_LAYOUT,
-  warehouse: WAREHOUSE_LAYOUT,
-  // The tenant's Warehouse manager policy (backend `accounts/warehouse_manager.py`)
-  // is the warehouse persona with approval and store oversight; Sell and Setup,
-  // which it may view, are appended by `applyLayout` in the server's order.
-  warehouse_manager: WAREHOUSE_LAYOUT,
-};
+/** Role code → its sidebar arrangement. Absent ⇒ `DEFAULT_LAYOUT`.
+ *
+ *  Empty since the desktop redesign (Q9, 29 Oct 2026): every role reads one
+ *  sidebar, in one order, with the screens listed under their headings. The
+ *  store and warehouse arrangements above (strips, the Inventory fold) are kept
+ *  as definitions - the Inventory page still draws its fold's tabs - but no
+ *  persona's sidebar is built from them. What a person sees is still decided
+ *  by access alone; this only stops each persona arranging it differently. */
+export const PERSONA_LAYOUTS: Record<string, PersonaLayout> = {};
 
-// Everyone else - Owner, Accounts, Brand Manager, Admin - reads the store operations
-// PRD §5.1 menu: its fourteen rows in its order, each section still expanded as a
-// plain heading. Only Stock differs from the flat list: Stock, Stock Count and
-// Return to Brand are one row, the same fold the store has. A section the person
-// holds that is named nowhere here is still appended, in the server's order
+// The one sidebar (desktop redesign audit §4, decided 29 Oct 2026), most
+// frequent first. Customer Orders reads under Customers and Stock Count under
+// Stock, each line keeping its own section's gate. A section the person holds
+// that is named nowhere here is still appended, in the server's order
 // (`applyLayout`), so retuned access never loses a section.
 export const DEFAULT_LAYOUT: PersonaLayout = [
   "home",
   "sell",
-  "customers",
-  "customer_orders",
+  { group: "customers", sections: ["customers", "customer_orders"] },
   "receive_goods",
   "transfer",
-  INVENTORY_FOLD,
+  { group: "stock", sections: ["stock", "stock_count"] },
+  "return_to_brand",
   "booking",
+  "offers_price",
   "money",
   "brands",
-  "offers_price",
   "reports",
   "hrms",
   "setup",
@@ -1605,7 +1702,10 @@ export function layoutFor(roleCode: string): PersonaLayout {
 
 /** Every fold any persona is drawn, once. */
 const FOLDS: NavFoldDef[] = [
-  ...new Set([...Object.values(PERSONA_LAYOUTS).flat(), ...DEFAULT_LAYOUT].filter(isFoldRow)),
+  ...new Set([
+    INVENTORY_FOLD,
+    ...[...Object.values(PERSONA_LAYOUTS).flat(), ...DEFAULT_LAYOUT].filter(isFoldRow),
+  ]),
 ];
 
 /** A fold's key, in the same namespace as a section code - which is why it is
@@ -1935,6 +2035,21 @@ export function applyLayout(sections: VisibleSection[], roleCode: string): NavRo
       if (drawn?.items.length) rows.push({ kind: "section", key: row, section: drawn });
       continue;
     }
+    if (isGroupRow(row)) {
+      for (const code of row.sections) spokenFor.add(code);
+      const members = row.sections.flatMap((code) => {
+        const s = byCode.get(code);
+        return s ? [menuOnly(s)] : [];
+      });
+      const lead = members[0];
+      const items = members.flatMap((m) => m.items);
+      // The heading is the first section's: its icon, its layer, its server
+      // label. Lines are each member's own, already through its own gate.
+      if (lead && items.length) {
+        rows.push({ kind: "section", key: lead.def.code, section: { ...lead, items } });
+      }
+      continue;
+    }
     if (isStripRow(row)) {
       // A strip speaks for its section whether or not any tab survives: the
       // head is gone from this persona's sidebar either way.
@@ -1985,7 +2100,24 @@ export function applyLayout(sections: VisibleSection[], roleCode: string): NavRo
     if (!drawn.items.length) continue;
     rows.push({ kind: "section", key: s.def.code, section: drawn });
   }
-  return rows;
+  return withoutMovedLines(rows);
+}
+
+/** A `movedTo` line leaves its own section's row wherever the person's sidebar
+ *  draws its `movedHere` stand-in, and only there: someone who cannot see the
+ *  heading it moved to keeps the line where it was. */
+function withoutMovedLines(rows: NavRow[]): NavRow[] {
+  const standIns = new Set(
+    rows.flatMap((r) =>
+      r.kind === "section" ? r.section.items.filter((i) => i.movedHere).map((i) => i.to) : [],
+    ),
+  );
+  return rows.flatMap((r): NavRow[] => {
+    if (r.kind !== "section") return [r];
+    const items = r.section.items.filter((i) => !(i.movedTo && standIns.has(i.to)));
+    if (items.length === r.section.items.length) return [r];
+    return items.length ? [{ ...r, section: { ...r.section, items } }] : [];
+  });
 }
 
 /** Planned pages keep their own guarded URLs and roadmap entries. They do not
@@ -2005,8 +2137,20 @@ export function dailySections(sections: VisibleSection[], roleCode: string): Vis
  *  the line. Every sidebar row is built here, so there is nowhere else for a
  *  hidden entry to leak back onto the menu. */
 function menuOnly(section: VisibleSection): VisibleSection {
-  const items = section.items.filter((i) => !i.hidden);
+  // Planned screens are not menu lines for anybody (desktop redesign Q2): the
+  // roadmap lists them, and their URLs still open the planned page.
+  const items = section.items.filter((i) => !i.hidden && !i.planned);
   return items.length === section.items.length ? section : { ...section, items };
+}
+
+/** The sidebar heading a screen is drawn under, as a section code: the section
+ *  it was moved to (`movedTo`), else the lead of the group its section reads
+ *  under, else its own. The page crumb asks this, so the caption names the
+ *  heading the person found the screen under. */
+export function menuSectionCode(item: NavItem & { section: string }): string {
+  if (item.movedTo) return item.movedTo;
+  const group = DEFAULT_LAYOUT.filter(isGroupRow).find((g) => g.sections.includes(item.section));
+  return group?.sections[0] ?? item.section;
 }
 
 /** The whole sidebar for one signed-in person: what they may see, arranged the
@@ -2017,11 +2161,19 @@ export function sidebarRows(
     role?: { code?: string } | null;
     navigation: string[];
     sections?: { code: string; label?: string; capability: string }[];
+    stores?: readonly unknown[];
   },
   goodsActions: readonly string[] = [],
   featuresOn: ReadonlySet<string> = NO_STORE_FEATURES,
 ): NavRow[] {
-  return applyLayout(visibleSections(user, goodsActions, featuresOn), user.role?.code ?? "");
+  // A counter is one store (`tillStoreCode`): a login spanning several has no
+  // counter, so its sidebar leaves the counter-only lines out. Their URLs keep
+  // their own gates and still explain themselves to whoever opens them.
+  const counter = (user.stores?.length ?? 0) === 1;
+  const sections = visibleSections(user, goodsActions, featuresOn)
+    .map((s) => (counter ? s : { ...s, items: s.items.filter((i) => !i.counterOnly) }))
+    .filter((s) => s.items.length > 0);
+  return applyLayout(sections, user.role?.code ?? "");
 }
 
 /** Where a signed-in person with no Home of their own lands: the first screen
@@ -2084,8 +2236,16 @@ export function headingOwning(pathname: string, roleCode: string): string | null
   if (here) return foldKey(here);
   const strip = stripOwning(pathname, roleCode);
   if (strip) return stripKey(strip);
+  // A moved screen unfolds the heading it was moved to; the group a section
+  // belongs to answers for it, since the group is the row that is drawn.
+  const groupOf = (code: string) =>
+    layout.filter(isGroupRow).find((g) => g.sections.includes(code))?.sections[0] ?? code;
   for (const section of SECTIONS) {
-    if (section.items.some((i) => isActiveItem(i, pathname))) return section.code;
+    if (section.items.some((i) => i.movedHere && isActiveItem(i, pathname)))
+      return groupOf(section.code);
+  }
+  for (const section of SECTIONS) {
+    if (section.items.some((i) => isActiveItem(i, pathname))) return groupOf(section.code);
   }
   return null;
 }

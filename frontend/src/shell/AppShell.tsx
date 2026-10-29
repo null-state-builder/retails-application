@@ -18,6 +18,7 @@ import { MailButton } from "./MailButton";
 import { ActionNeededButton, AlertsButton } from "./Notifications";
 import {
   headingOwning,
+  SECTIONS,
   isActiveFold,
   isActiveItem,
   isOneLineRow,
@@ -247,13 +248,22 @@ function readNavOrder(): NavOrder {
  *  pushed Money, Reports and Setup below the fold on a laptop: the sidebar was
  *  a list to scroll rather than a map to read. Folding is the ERP norm for a
  *  reason. Everything stays open by default, so nobody loses a link they had. */
-function readCollapsed(): Record<string, true> {
+function readCollapsed(roleCode: string): Record<string, true> {
   try {
-    return JSON.parse(localStorage.getItem(NAV_COLLAPSED_KEY) || "{}") as Record<string, true>;
+    const saved = localStorage.getItem(NAV_COLLAPSED_KEY);
+    if (saved) return JSON.parse(saved) as Record<string, true>;
   } catch {
     return {};
   }
+  // A store person's first sidebar opens on the day's work and folds the rest
+  // (desktop redesign Q9): the same sidebar as every role, not a different one.
+  if (roleCode !== "store_person") return {};
+  return Object.fromEntries(
+    SECTIONS.filter((s) => !STORE_OPEN_SECTIONS.includes(s.code)).map((s) => [s.code, true]),
+  ) as Record<string, true>;
 }
+
+const STORE_OPEN_SECTIONS = ["home", "sell", "customers"];
 
 /** Rail state, remembered on this device (device-scoped, not per-person - the
  *  issue's own AC, over `design.md`'s "new localStorage key" and the grill's
@@ -290,7 +300,9 @@ function Sidebar({
   const { user, session, featuresOn } = useAuth();
   const { pathname } = useLocation();
   const [navOrder, setNavOrder] = useState<NavOrder>(() => readNavOrder());
-  const [collapsed, setCollapsed] = useState<Record<string, true>>(() => readCollapsed());
+  const [collapsed, setCollapsed] = useState<Record<string, true>>(() =>
+    readCollapsed(user?.role?.code ?? ""),
+  );
   const [dragged, setDragged] = useState<DraggedItem>(null);
   const [railCollapsed, setRailCollapsed] = useState<boolean>(() => readRailCollapsed());
   // Which multi-item section's flyout is open, by section code, or none. Only

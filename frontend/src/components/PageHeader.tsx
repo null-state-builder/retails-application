@@ -2,7 +2,7 @@ import { createContext, useContext } from "react";
 import type { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 
-import { SECTIONS, itemOwning, itemPath, normalizePath } from "../shell/navConfig";
+import { SECTIONS, itemOwning, itemPath, menuSectionCode, normalizePath } from "../shell/navConfig";
 
 // One header for every screen, captioned the way the sidebar addresses it (#87).
 //
@@ -17,7 +17,9 @@ import { SECTIONS, itemOwning, itemPath, normalizePath } from "../shell/navConfi
 /** The section that owns `pathname`, and the screen inside it. */
 export function pageContext(pathname: string) {
   const item = itemOwning(pathname);
-  const section = item ? SECTIONS.find((s) => s.code === item.section) : undefined;
+  // The heading the sidebar draws the screen under, which is not always the
+  // section that owns its gate (a moved line, a grouped section).
+  const section = item ? SECTIONS.find((s) => s.code === menuSectionCode(item)) : undefined;
   return { item, section };
 }
 

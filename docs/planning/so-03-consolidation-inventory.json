@@ -24758,6 +24758,45 @@
       ],
       "lifecycle": "temporary_supported_legacy",
       "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
+    },
+    {
+      "id": "DESKTOP-NAV-001",
+      "kind": "navigation",
+      "key_regex": "^navigation:setup:/goods/opening$",
+      "primary_id": "C01",
+      "lifecycle": "canonical",
+      "removal_condition": "Menu stand-in only (desktop redesign Q6): the route and gate stay with navigation:receive_goods:/goods/opening."
+    },
+    {
+      "id": "DESKTOP-NAV-002",
+      "kind": "navigation",
+      "key_regex": "^navigation:setup:/goods/stock\\-sync$",
+      "primary_id": "C08",
+      "related_ids": [
+        "A00",
+        "C05",
+        "C06",
+        "C10",
+        "C15"
+      ],
+      "lifecycle": "temporary_supported_legacy",
+      "removal_condition": "Retire with navigation:receive_goods:/goods/stock-sync and the store test run at real-store cutover (SO-22)."
+    },
+    {
+      "id": "DESKTOP-NAV-003",
+      "kind": "navigation",
+      "key_regex": "^navigation:setup:/money/partner\\-billing$",
+      "primary_id": "C13",
+      "lifecycle": "canonical",
+      "removal_condition": "Menu stand-in only (desktop redesign Q6): the route and gate stay with navigation:money:/money/partner-billing."
+    },
+    {
+      "id": "DESKTOP-NAV-004",
+      "kind": "navigation",
+      "key_regex": "^navigation:setup:/setup/settings$",
+      "primary_id": "C03",
+      "lifecycle": "canonical",
+      "removal_condition": "Menu stand-in only (desktop redesign Q6): the route and gate stay with navigation:sell:/setup/settings."
     }
   ],
   "discovered": {

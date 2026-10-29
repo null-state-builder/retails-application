@@ -10,10 +10,11 @@
 // server's answers; this screen shows them and opens the record where the work
 // actually happens.
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowDownLeft, ArrowUpRight, Plus } from "lucide-react";
 
 import { useAuth } from "../auth/AuthContext";
+import { canAccess } from "../auth/routeAccess";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { SearchBox } from "../components/SearchBox";
@@ -45,7 +46,7 @@ function siteLabel(sites: { id: string; code: string; name: string }[], id: stri
 }
 
 export function TransfersPage() {
-  const { session } = useAuth();
+  const { user, session, featuresOn } = useAuth();
   const navigate = useNavigate();
   const sites = useMemo(() => session?.sites ?? [], [session]);
   const [siteId, setSiteId] = useState<string>(sites[0]?.id ?? "");
@@ -90,13 +91,23 @@ export function TransfersPage() {
         title="Transfers"
         lead="Stock moving between this site and another, in both directions, with the stage each movement has reached."
         actions={
-          <button
-            className="btn btn-cta"
-            onClick={() => setDrafting((open) => !open)}
-            data-testid="transfers-new"
-          >
-            <Plus size={14} /> New transfer
-          </button>
+          <>
+            {/* The legacy records are off the menu (desktop redesign Q4) but
+                stay readable until they retire (SO-03 C07): this is their way
+                in, for whoever their own gate opens. */}
+            {user && canAccess("/transfer", user, session?.display_actions ?? [], featuresOn) && (
+              <Link className="btn" to="/transfer" data-testid="transfers-earlier">
+                Earlier transfer records
+              </Link>
+            )}
+            <button
+              className="btn btn-cta"
+              onClick={() => setDrafting((open) => !open)}
+              data-testid="transfers-new"
+            >
+              <Plus size={14} /> New transfer
+            </button>
+          </>
         }
       />
 
