@@ -1,0 +1,30 @@
+# Local rehearsal of the server: the same Postgres 18 and the same API image
+# (backend/Dockerfile, start.sh runs the API and the goods worker), with no Caddy,
+# the API on 127.0.0.1 only, and its own volumes (the project name keeps them apart).
+#
+#   docker compose -p kdps-rehearsal --env-file deploy/.env.rehearsal \
+#     -f deploy/compose.yaml -f deploy/compose.rehearsal.yaml up -d --build
+#
+# scripts/rehearse_store_opening.sh drives it end to end (see deploy/README.md).
+# The PT and SOH files hold cost data and are git-ignored; they are mounted
+# read-only. Point REHEARSAL_PT / REHEARSAL_SOH elsewhere to use other copies.
+
+services:
+  api:
+    # Replaces the server's deploy/.env (which a laptop does not have), not added to it.
+    env_file: !override .env.rehearsal
+    environment:
+      # Plain HTTP on loopback: no secure cookies, and the health check host.
+      KDPS_COOKIE_SECURE: "0"
+    ports:
+      - "127.0.0.1:${REHEARSAL_API_PORT:-58080}:8000"
+    volumes:
+      - ${REHEARSAL_PT:-../docs/wardrobe-ratu-road/normalized/WARDROBE_PT_combined.xlsx}:/rehearsal/data/WARDROBE_PT_combined.xlsx:ro
+      - ${REHEARSAL_SOH:-../docs/wardrobe-ratu-road/SOH/SOH_WARDROBE_28-10-2026.xlsx}:/rehearsal/data/SOH_WARDROBE.xlsx:ro
+      - ../docs/wardrobe-ratu-road/setup.json:/rehearsal/setup.json:ro
+      - ../scripts/rehearsal_assert.py:/rehearsal/rehearsal_assert.py:ro
+      - ${REHEARSAL_OUT:-../.local/rehearsal}/secrets:/rehearsal/out
+
+  caddy:
+    # No HTTPS front in the rehearsal: Caddy only starts with --profile server-only.
+    profiles: ["server-only"]
