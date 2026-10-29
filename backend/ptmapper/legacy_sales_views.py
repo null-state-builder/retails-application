@@ -7,6 +7,7 @@ import uuid
 from typing import Any
 
 from django.db.models import Count, Q
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework.parsers import MultiPartParser
 from rest_framework.request import Request
@@ -81,7 +82,8 @@ class LegacySalesListView(GoodsAPIView):
 class LegacySalesUploadView(GoodsAPIView):
     parser_classes = [MultiPartParser]
 
-    @extend_schema(operation_id="goods_v1_legacy_sales_upload", responses={201: dict})
+    @extend_schema(operation_id="goods_v1_legacy_sales_upload", request={"multipart/form-data": OpenApiTypes.OBJECT},
+                   responses={201: dict})
     def post(self, request: Request) -> Response:
         access = self.access(request)
         site_id = parse_int_id(request.data.get("site_id"), "site_id")
@@ -122,7 +124,7 @@ class LegacySalesDetailView(GoodsAPIView):
 
 
 class LegacySalesMutationView(GoodsAPIView):
-    @extend_schema(operation_id="goods_v1_legacy_sales_mutate", responses={200: dict})
+    @extend_schema(operation_id="goods_v1_legacy_sales_mutate", request=OpenApiTypes.OBJECT, responses={200: dict})
     def post(self, request: Request, pk: uuid.UUID, operation: str) -> Response:
         access = self.access(request)
         source = _load(access, pk)

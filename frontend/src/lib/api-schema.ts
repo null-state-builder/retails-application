@@ -4419,7 +4419,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Freeze the exact source pieces into the transfer PT and send it for approval. Reserves nothing. Opens an `approval_pending` exception (`TRANSFER_APPROVAL`, subject `transfer:{id}`) at the sending site in the shared centre, which the approval resolves. An ordinary transfer freezes only accepted, good, unheld, unreserved pieces; a quarantine transfer only recorded pieces held in the source's quarantine and reserved to nobody - each pool is closed to the other. A pre-PT custody transfer (goods ticket 13E) freezes, per GRN line and oldest first, damaged pieces of that GRN held in the source's quarantine under a damage hold, with no PT coverage or value basis and reserved to nobody, onto the transfer's own document - no transfer PT is made - and each line keeps the GRN's evidence with its value `unknown`. Refusals: STATE_CONFLICT (not a draft), INSUFFICIENT_ELIGIBLE_STOCK (not enough eligible pieces in the transfer's pool), NOT_FOUND, ACTION_DENIED. */
+        /** @description Freeze the exact source pieces into the transfer PT and send it for approval. Reserves nothing. Opens an `approval_pending` exception (`TRANSFER_APPROVAL`, subject `transfer:{id}`) at the sending site in the shared centre, which the approval resolves. An ordinary transfer freezes only accepted, good, unheld, unreserved pieces; a quarantine transfer only recorded pieces held in the source's quarantine and reserved to nobody - each pool is closed to the other. A pre-PT custody transfer (goods ticket 13E) freezes, per GRN line and oldest first, damaged pieces of that GRN held in the source's quarantine under a damage hold, with no PT coverage or value basis and reserved to nobody, onto the transfer's own document - no transfer PT is made - and each line keeps the GRN's evidence with its value `unknown`. Refusals: STATE_CONFLICT (not a draft), INSUFFICIENT_ELIGIBLE_STOCK (not enough eligible pieces in the transfer's pool), NOT_FOUND, ACTION_DENIED. Where the pinned policy sets `auto_approve_warehouse_to_store` (a warehouse → its store, ordinary custody), the sender confirms their password and the transfer is approved by them straight after, recorded as `NO_APPROVAL_REQUIRED`; if that step is refused the transfer stays submitted. */
         post: operations["goods_v1_outbound_transfers_submit"];
         delete?: never;
         options?: never;
@@ -4767,6 +4767,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/goods-v1/ptmapper/legacy-sales": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        get: operations["goods_v1_legacy_sales_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goods-v1/ptmapper/legacy-sales/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        get: operations["goods_v1_legacy_sales_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goods-v1/ptmapper/legacy-sales/{id}/{operation}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        post: operations["goods_v1_legacy_sales_mutate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goods-v1/ptmapper/legacy-sales/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        post: operations["goods_v1_legacy_sales_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goods-v1/ptmapper/legacy-sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Both nightly options for one store: SOH replaces and sales-report imports. */
+        get: operations["goods_v1_legacy_sync_overview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/goods-v1/ptmapper/opening-manifests": {
         parameters: {
             query?: never;
@@ -5020,6 +5105,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/goods-v1/ptmapper/soh-imports/{id}/load": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description Store test run: (re)queue the source's opening load job (synthetic tenant only); progress on the source.
+         *
+         *     The uploader may always; an owner who approves openings may while they need approval.
+         */
+        post: operations["goods_v1_soh_import_load"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/goods-v1/ptmapper/soh-imports/{id}/rows": {
         parameters: {
             query?: never;
@@ -5037,6 +5143,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/goods-v1/ptmapper/soh-imports/pt-upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Store test run: one opening source from the store's KDPS PT workbooks (synthetic tenant only). */
+        post: operations["goods_v1_soh_import_pt_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/goods-v1/ptmapper/soh-imports/upload": {
         parameters: {
             query?: never;
@@ -5048,6 +5171,96 @@ export interface paths {
         put?: never;
         /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
         post: operations["goods_v1_soh_import_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goods-v1/ptmapper/stock-syncs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        get: operations["goods_v1_stock_sync_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goods-v1/ptmapper/stock-syncs/{id}/{operation}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        post: operations["goods_v1_stock_sync_mutate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goods-v1/ptmapper/stock-syncs/{id}/rows": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description The flagged rows of one sync, a page at a time, with counts per category.
+         *
+         *     ``?category=`` narrows to one category (``MRP_DIFFERS`` means every row whose
+         *     MRP differs); ``?review_state=open|acknowledged`` to one review state.
+         */
+        get: operations["goods_v1_stock_sync_rows"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goods-v1/ptmapper/stock-syncs/{id}/rows/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Mark flagged rows reviewed. It changes no stock and no item: that is the SOH's job. */
+        post: operations["goods_v1_stock_sync_rows_acknowledge"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/goods-v1/ptmapper/stock-syncs/upload": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Base for goods-v1 endpoints: session auth, closed errors, one command. */
+        post: operations["goods_v1_stock_sync_upload"];
         delete?: never;
         options?: never;
         head?: never;
@@ -14258,6 +14471,9 @@ export interface components {
             pending_confirmation: boolean;
             message: string;
             synthetic: boolean;
+            demo_logins: {
+                [key: string]: string;
+            }[];
             options: unknown;
         };
         ReportGrouping: {
@@ -65014,6 +65230,134 @@ export interface operations {
             };
         };
     };
+    goods_v1_legacy_sales_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_legacy_sales_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_legacy_sales_mutate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                operation: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+                "application/x-www-form-urlencoded": {
+                    [key: string]: unknown;
+                };
+                "multipart/form-data": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_legacy_sales_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_legacy_sync_overview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
     goods_v1_ptmapper_opening_manifests_retrieve: {
         parameters: {
             query?: never;
@@ -67293,6 +67637,71 @@ export interface operations {
             };
         };
     };
+    goods_v1_soh_import_load: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        record_contract: "goods-v1";
+                        revision: number;
+                        state: string;
+                        content_hash?: string;
+                        site_id: string;
+                        source_name: string;
+                        source_hash: string;
+                        /** Format: uuid */
+                        source_evidence_id?: string | null;
+                        allowed_actions: string[];
+                        data: {
+                            metadata?: {
+                                [key: string]: unknown;
+                            };
+                            configuration?: {
+                                [key: string]: unknown;
+                            };
+                            included_rows?: number;
+                            included_quantity?: number;
+                            excluded_stocked_rows?: number;
+                            verified_rows?: number;
+                            batch_count?: number;
+                            /** Format: uuid */
+                            approval_request_id?: string | null;
+                            requires_inventory_reconciliation?: boolean;
+                            /** Format: uuid */
+                            stock_reconciliation_id?: string | null;
+                            field_access?: {
+                                readable_fields: string[];
+                                writable_fields: string[];
+                            };
+                            batches?: {
+                                index?: number;
+                                /** Format: uuid */
+                                manifest_id?: string;
+                                row_count?: number;
+                                quantity?: number;
+                                manifest_state?: string;
+                            }[];
+                        };
+                    };
+                };
+            };
+        };
+    };
     goods_v1_soh_import_rows: {
         parameters: {
             query?: never;
@@ -67316,6 +67725,80 @@ export interface operations {
                         next_cursor?: string | null;
                         total?: number;
                         revision?: number;
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_soh_import_pt_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    files: string[];
+                    site_id: number;
+                    /** Format: uuid */
+                    command_id: string;
+                    /** @enum {string} */
+                    contract_version: "goods-v1";
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: uuid */
+                        id: string;
+                        /** @enum {string} */
+                        record_contract: "goods-v1";
+                        revision: number;
+                        state: string;
+                        content_hash?: string;
+                        site_id: string;
+                        source_name: string;
+                        source_hash: string;
+                        /** Format: uuid */
+                        source_evidence_id?: string | null;
+                        allowed_actions: string[];
+                        data: {
+                            metadata?: {
+                                [key: string]: unknown;
+                            };
+                            configuration?: {
+                                [key: string]: unknown;
+                            };
+                            included_rows?: number;
+                            included_quantity?: number;
+                            excluded_stocked_rows?: number;
+                            verified_rows?: number;
+                            batch_count?: number;
+                            /** Format: uuid */
+                            approval_request_id?: string | null;
+                            requires_inventory_reconciliation?: boolean;
+                            /** Format: uuid */
+                            stock_reconciliation_id?: string | null;
+                            field_access?: {
+                                readable_fields: string[];
+                                writable_fields: string[];
+                            };
+                            batches?: {
+                                index?: number;
+                                /** Format: uuid */
+                                manifest_id?: string;
+                                row_count?: number;
+                                quantity?: number;
+                                manifest_state?: string;
+                            }[];
+                        };
                     };
                 };
             };
@@ -67392,6 +67875,150 @@ export interface operations {
                                 manifest_state?: string;
                             }[];
                         };
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_stock_sync_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_stock_sync_mutate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                operation: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+                "application/x-www-form-urlencoded": {
+                    [key: string]: unknown;
+                };
+                "multipart/form-data": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_stock_sync_rows: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_stock_sync_rows_acknowledge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+                "application/x-www-form-urlencoded": {
+                    [key: string]: unknown;
+                };
+                "multipart/form-data": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    goods_v1_stock_sync_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
                     };
                 };
             };
