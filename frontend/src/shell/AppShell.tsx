@@ -691,7 +691,7 @@ export function AppShell({ children, room }: { children: ReactNode; room?: Room 
   );
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY));
-    return Number.isFinite(saved) && saved >= MIN_SIDEBAR && saved <= MAX_SIDEBAR ? saved : 258;
+    return Number.isFinite(saved) && saved >= MIN_SIDEBAR && saved <= MAX_SIDEBAR ? saved : 240;
   });
 
   // The drag in progress, or null. Holding it as state means the listeners are

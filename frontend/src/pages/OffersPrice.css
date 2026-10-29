@@ -42,7 +42,7 @@
   line-height: 1.1;
 }
 .kpi-value.rust {
-  color: var(--rust);
+  color: var(--rust-ink);
 }
 .kpi-note {
   font-size: 12px;
@@ -54,7 +54,7 @@
 .price-head {
   display: flex;
   flex-wrap: wrap;
-  gap: 26px;
+  gap: 16px;
   align-items: flex-start;
 }
 .price-figure {

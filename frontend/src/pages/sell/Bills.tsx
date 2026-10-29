@@ -211,7 +211,7 @@ export default function BillsPage() {
         </div>
         <button
           type="button"
-          className="btn btn-cta"
+          className="btn btn-primary"
           disabled={loading}
           data-testid="bills-search"
           onClick={() => void load()}
@@ -254,73 +254,85 @@ export default function BillsPage() {
         </div>
       )}
 
-      {rows !== null && rows.length > 0 && (
-        <div className="card section-card" data-testid="bills-results">
-          <p className="eyebrow">{rows.length === 1 ? "1 bill" : `${rows.length} bills`}</p>
-          <OperationsTable label="Bill history">
-            <table className="lines-table" data-testid="bills-rows">
-              <thead>
-                <tr>
-                  <th>Bill</th>
-                  <th>When</th>
-                  <th>Customer</th>
-                  <th>Paid with</th>
-                  <th className="num">Total</th>
-                  <th>Sync</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.doc_number} data-testid={`bills-row-${row.doc_number}`}>
-                    <td className="mono">{row.doc_number || "not numbered"}</td>
-                    <td>{formatDateTime(row.billed_at)}</td>
-                    <td>
-                      {row.customer_name || "—"}
-                      {row.customer_mobile ? (
-                        <span className="lead"> · {row.customer_mobile}</span>
-                      ) : null}
-                    </td>
-                    <td>{tenderSummary(row)}</td>
-                    <td className="num">
-                      <Money paise={row.net_paise} />
-                    </td>
-                    <td>
-                      {row.synced ? (
-                        <span className="chip" data-testid="bills-synced">
-                          Synced
-                        </span>
-                      ) : (
-                        <span className="chip chip-amber" data-testid="bills-unsynced">
-                          Not yet synced
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        className="btn"
-                        data-testid={`bills-open-${row.doc_number}`}
-                        onClick={() => void openBill(row)}
-                      >
-                        {open?.row.doc_number === row.doc_number ? "Close" : "Open"}
-                      </button>
-                    </td>
+      {/* The list and the open bill side by side on a desktop, so the next bill
+          is one click away instead of a scroll back up past the one just read. */}
+      <div className={open ? "split-view" : undefined}>
+        {rows !== null && rows.length > 0 && (
+          <div className="card section-card" data-testid="bills-results">
+            <p className="bills-count">{rows.length === 1 ? "1 bill" : `${rows.length} bills`}</p>
+            <OperationsTable label="Bill history">
+              <table className="lines-table" data-testid="bills-rows">
+                <thead>
+                  <tr>
+                    <th>Bill</th>
+                    <th>When</th>
+                    <th>Customer</th>
+                    <th>Paid with</th>
+                    <th className="num">Total</th>
+                    <th>Sync</th>
+                    <th />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </OperationsTable>
-        </div>
-      )}
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr
+                      key={row.doc_number}
+                      className={
+                        open?.row.doc_number === row.doc_number ? "bills-row-open" : undefined
+                      }
+                      data-testid={`bills-row-${row.doc_number}`}
+                    >
+                      <td className="mono">{row.doc_number || "not numbered"}</td>
+                      <td>{formatDateTime(row.billed_at)}</td>
+                      <td>
+                        {row.customer_name || "—"}
+                        {row.customer_mobile ? (
+                          <span className="lead"> · {row.customer_mobile}</span>
+                        ) : null}
+                      </td>
+                      <td>{tenderSummary(row)}</td>
+                      <td className="num">
+                        <Money paise={row.net_paise} />
+                      </td>
+                      <td>
+                        {row.synced ? (
+                          <span className="chip" data-testid="bills-synced">
+                            Synced
+                          </span>
+                        ) : (
+                          <span className="chip chip-amber" data-testid="bills-unsynced">
+                            Not yet synced
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        <button
+                          type="button"
+                          className="btn"
+                          data-testid={`bills-open-${row.doc_number}`}
+                          onClick={() => void openBill(row)}
+                        >
+                          {open?.row.doc_number === row.doc_number ? "Close" : "Open"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </OperationsTable>
+          </div>
+        )}
 
-      {open && (
-        <BillDetail
-          bill={open}
-          onReprint={() => void reprint(open)}
-          onExchange={() => exchange(open.row)}
-        />
-      )}
+        {open && (
+          <div className="split-view-aside">
+            <BillDetail
+              bill={open}
+              onReprint={() => void reprint(open)}
+              onExchange={() => exchange(open.row)}
+            />
+          </div>
+        )}
+      </div>
     </OperationsPage>
   );
 }

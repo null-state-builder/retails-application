@@ -89,7 +89,7 @@
 
 .operations-page .operations-table-scroll th,
 .operations-page .operations-table-scroll td {
-  padding: 12px 16px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--hairline);
   text-align: left;
 }
@@ -97,9 +97,15 @@
 .operations-page .operations-table-scroll th {
   background: var(--inner);
   color: var(--muted);
-  font-size: 11.5px;
-  font-weight: 700;
+  font-size: 12.5px;
+  font-weight: 650;
   white-space: nowrap;
+  text-transform: none;
+  letter-spacing: 0;
+  border-bottom-color: var(--line);
+}
+.operations-page .operations-table-scroll tbody tr:hover td {
+  background: var(--row-hover);
 }
 
 .operations-page .operations-table-scroll .num {
@@ -148,4 +154,14 @@
     padding: 20px 16px;
     max-height: calc(100dvh - 32px);
   }
+}
+
+/* Transfers: the direction switch sits on the filter row's baseline, and the
+   stage chips sit close under it. */
+.operations-page .toolbar > .transfers-direction {
+  margin-top: 0;
+  align-self: flex-end;
+}
+.operations-page .transfers-chips {
+  gap: 6px;
 }

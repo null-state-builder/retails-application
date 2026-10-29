@@ -155,8 +155,8 @@
   padding: 18px 28px;
   font-size: 24px;
   border-radius: var(--radius);
-  border: 1px solid var(--navy);
-  background: var(--navy);
+  border: 1px solid var(--navy-fill);
+  background: var(--navy-fill);
   color: #fff;
   cursor: pointer;
 }

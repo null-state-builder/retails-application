@@ -10,7 +10,7 @@
   align-items: center;
   gap: 4px;
   cursor: pointer;
-  border: 1px solid var(--rule, #e7dfd3);
+  border: 1px solid var(--line, #e0d6c8);
   border-radius: 6px;
   background: var(--field-bg);
   padding: 0 6px;
@@ -98,10 +98,10 @@
 }
 .cbx-option.selected {
   font-weight: 700;
-  color: var(--rust, #c4623f);
+  color: var(--rust-ink, #a94f2e);
 }
 .cbx-option.suggested {
-  color: var(--rust, #b45309);
+  color: var(--rust-ink, #a94f2e);
 }
 .cbx-empty,
 .cbx-more {

@@ -8,6 +8,7 @@
   flex-wrap: wrap;
   align-items: flex-end;
   gap: 10px;
+  padding: 12px 14px;
 }
 .bills-bar .field {
   margin: 0;
@@ -16,6 +17,20 @@
 .bills-search {
   flex: 1 1 240px;
   min-width: 200px;
+}
+
+.bills-count {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--muted);
+}
+/* The bill that is open beside the list. */
+.bills-row-open td {
+  background: var(--selection);
+}
+.bills-row-open td:first-child {
+  box-shadow: inset 3px 0 0 var(--rust);
 }
 
 /* What a bill was paid with, and how each part of it was proved. Laid out as
@@ -38,5 +53,5 @@
 }
 .bills-tender-proof {
   color: var(--caption);
-  font-size: 11px;
+  font-size: 12px;
 }

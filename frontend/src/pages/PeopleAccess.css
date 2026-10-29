@@ -57,14 +57,14 @@
 }
 
 .pa-row:hover {
-  background: var(--surface-hover, rgba(127, 127, 127, 0.08));
+  background: var(--row-hover);
 }
 
 .pa-tabs {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
-  border-bottom: 1px solid var(--border, #e2e2e2);
+  border-bottom: 1px solid var(--hairline);
   margin-bottom: 16px;
 }
 
@@ -81,7 +81,7 @@
 
 .pa-tab.active {
   opacity: 1;
-  border-bottom-color: var(--accent, currentColor);
+  border-bottom-color: var(--rust);
   font-weight: 600;
 }
 
@@ -90,7 +90,7 @@
 }
 
 .pa-check-group {
-  border: 1px solid var(--border, #e2e2e2);
+  border: 1px solid var(--line);
   border-radius: 8px;
   padding: 8px 10px;
   display: flex;

@@ -57,7 +57,7 @@
 /* ------------------------------------------------------ Sections, stacks */
 
 .an-section {
-  margin-top: 26px;
+  margin-top: 16px;
 }
 
 .an-section-head {
@@ -189,7 +189,7 @@
   height: 36px;
   max-width: 240px;
   padding: 0 10px;
-  border: 1px solid var(--sidebar-border);
+  border: 1px solid var(--line);
   border-radius: var(--radius-inner);
   background: var(--surface);
   color: var(--ink);
@@ -356,7 +356,7 @@
   padding: 8px 0;
   background: none;
   border: none;
-  color: var(--rust);
+  color: var(--rust-ink);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -388,7 +388,7 @@
   border-left: 1px solid var(--hairline);
   border-radius: 0;
   box-shadow: var(--drawer-shadow);
-  padding: 20px 22px;
+  padding: 16px 18px;
   gap: 12px;
 }
 
@@ -510,11 +510,9 @@
 
 .an-day-head {
   margin: 0 0 8px;
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 700;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  color: var(--caption);
+  color: var(--muted);
 }
 
 .an-notes-list,

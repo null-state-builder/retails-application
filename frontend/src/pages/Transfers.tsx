@@ -62,9 +62,15 @@ export function TransfersPage() {
     site ? `/goods-v1/outbound/transfers?site=${site}&limit=100` : null,
   );
 
-  const rows = list.items
+  const thisWay = list.items.filter(
+    (row) => direction === "both" || directionOf(row, site) === direction,
+  );
+  // How many of this direction's movements each stage chip holds. Only once the
+  // whole list is in: a count of a list still loading, or one that failed, is
+  // not a zero, so the chips then show no number at all.
+  const counted = !list.loading && !list.failure && !list.denied;
+  const rows = thisWay
     .filter((row) => matchesFilter(row, filter))
-    .filter((row) => direction === "both" || directionOf(row, site) === direction)
     .filter((row) => {
       if (!term.trim()) return true;
       const hay = [row.number ?? "", TRANSFER_STATE_LABEL[row.state] ?? row.state]
@@ -123,21 +129,26 @@ export function TransfersPage() {
             </select>
           </Field>
         )}
-        <Field id="transfers-direction" label="Direction">
-          <select
-            id="transfers-direction"
-            className="select"
-            value={direction}
-            onChange={(e) => setDirection(e.target.value as DirectionKey)}
-            data-testid="transfers-direction"
-          >
-            {DIRECTIONS.map((d) => (
-              <option key={d.key} value={d.key}>
-                {d.label}
-              </option>
-            ))}
-          </select>
-        </Field>
+        {/* Three choices, all visible: a switch, not a dropdown to open. */}
+        <div
+          className="seg transfers-direction"
+          role="group"
+          aria-label="Direction"
+          data-testid="transfers-direction"
+        >
+          {DIRECTIONS.map((d) => (
+            <button
+              key={d.key}
+              type="button"
+              className={`seg-btn ${direction === d.key ? "active" : ""}`}
+              aria-pressed={direction === d.key}
+              onClick={() => setDirection(d.key)}
+              data-testid={`transfers-direction-${d.key}`}
+            >
+              {d.label}
+            </button>
+          ))}
+        </div>
         <div className="spacer" />
         <SearchBox
           value={term}
@@ -148,16 +159,23 @@ export function TransfersPage() {
         />
       </div>
 
-      <div className="toolbar" data-testid="transfers-chips">
+      {/* Stage filters, never the page's red: the one red here is New transfer. */}
+      <div className="toolbar transfers-chips" data-testid="transfers-chips">
         {TRANSFER_FILTERS.map((chip) => (
           <button
             key={chip.key}
-            className={`btn btn-sm${filter === chip.key ? " btn-cta" : ""}`}
+            type="button"
+            className="filter-chip"
             onClick={() => setFilter(chip.key)}
             aria-pressed={filter === chip.key}
             data-testid={`transfers-chip-${chip.key}`}
           >
             {chip.label}
+            {counted && (
+              <span className="filter-chip-n">
+                {thisWay.filter((row) => matchesFilter(row, chip.key)).length}
+              </span>
+            )}
           </button>
         ))}
       </div>

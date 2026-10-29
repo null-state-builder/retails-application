@@ -2,6 +2,10 @@
    Locked navy/rust palette + semantic status + five-layer bands, on a warm
    paper canvas. Every visual decision is a token here. System fonts only;
    ui-monospace for IDs / vouchers / money.
+   DESKTOP REVISION (29 Oct 2026): same hues; secondary text, captions, amber
+   and grey status text darkened to pass WCAG AA 4.5:1, and two new roles —
+   --rust-ink (rust used as text) and --cta (the red fill under white text).
+   Rust and brand red stay as they were for fills, borders and the wordmark.
    DARK MODE: every color must be a token; dark overrides live in the single
    `html[data-theme="dark"]` block below. Never hardcode a hex outside :root. */
 :root {
@@ -11,25 +15,30 @@
   --sidebar: #f1ece4; /* warm beige rail */
   --sidebar-border: #e4dccf;
   --hairline: #ece4d9; /* card & divider borders on warm surfaces */
+  --line: #e0d6c8; /* field, table-header and filter outlines: one step firmer */
   --inner: #f6f1ea; /* inner box wash */
 
   /* brand & structural (locked) */
   --navy: #1f2d4d;
   --navy2: #2c3e63;
   --rust: #c4623f;
+  --rust-ink: #a94f2e; /* rust as text: 5.1:1 on paper (rust itself is 3.8:1) */
+  --rust-fill: #a94f2e; /* rust as a solid under white text: 5.4:1 */
   --rust-soft: #e8a07f;
-  --brand-red: #e53e35; /* reserved: wordmark, login, ONE key CTA / screen */
+  --brand-red: #e53e35; /* reserved: wordmark, login art, badges */
+  --cta: #d1372e; /* the ONE key CTA / screen: white text 5.0:1 (brand red 4.1:1) */
 
   /* text */
   --ink: #222222;
-  --muted: #837a6e; /* warm secondary */
-  --caption: #9a8f80;
+  --ink2: #3d3832; /* labels and menu text: quieter than ink, never faint */
+  --muted: #6b6257; /* warm secondary: 5.6:1 on paper (was #837a6e, 3.9:1) */
+  --caption: #776d61; /* 4.7:1 on paper (was #9a8f80, 3.0:1) */
 
   /* semantic status (locked) */
   --green: #1f7a4d;
   --green-bg: #e7f4ee;
   --green-bd: #bfe3cf;
-  --amber: #9a6700;
+  --amber: #8a5c00; /* 5.3:1 on --amber-bg (was #9a6700, 4.4:1) */
   --amber-bg: #fdf3da;
   --amber-bd: #eddca8;
   --blue: #1e5fa8;
@@ -41,7 +50,7 @@
   --red: #a32a2a;
   --red-bg: #fde8e8;
   --red-bd: #f1c4c4;
-  --grey: #837a6e;
+  --grey: #6b6257;
   --grey-bg: #efeae3;
   --grey-bd: #e4dccf;
 
@@ -64,13 +73,13 @@
   --band-ai-bg: #f3edfb;
   --band-ai-bd: #e2d6f4;
 
-  --radius: 16px;
-  --radius-inner: 11px;
+  --radius: 12px;
+  --radius-inner: 8px;
   --shadow-rest: 0 3px 14px rgba(20, 30, 60, 0.06);
   --shadow-hover: 0 8px 26px rgba(20, 30, 60, 0.11);
 
-  --sidebar-w: 258px;
-  --topbar-h: 60px;
+  --sidebar-w: 240px;
+  --topbar-h: 56px;
   --mono: ui-monospace, Menlo, Consolas, "SFMono-Regular", monospace;
 
   /* bridge tokens — light values are byte-identical to literals swept below,
@@ -121,12 +130,14 @@ html[data-theme="dark"] {
   --sidebar: #1a1814;
   --sidebar-border: #38322a;
   --hairline: #363028;
+  --line: #443d33;
   --inner: #302b25;
 
   /* text — warm off-whites */
   --ink: #ece7df;
+  --ink2: #d8d0c4;
   --muted: #a89d8e;
-  --caption: #8d8375;
+  --caption: #998e7f; /* was #8d8375, 4.5:1 on dark paper */
 
   /* brand split: text roles brighten; fills stay dark under white text */
   --navy: #a6b6dc;
@@ -135,9 +146,12 @@ html[data-theme="dark"] {
   --navy-fill-hover: #46598c;
   --navy-rgb: 166, 182, 220;
   --rust: #e07b52;
+  --rust-ink: #ec8d66;
+  --rust-fill: #9a4a2b; /* stays dark so white text keeps 6.2:1 */
   --rust-soft: #b06a4a;
   --rust-rgb: 224, 123, 82;
   --brand-red: #ff5a4f;
+  --cta: #d1372e; /* white text needs the same dark red in both themes */
   /* --hero-navy intentionally NOT overridden — login hero stays deep navy */
 
   /* semantic status ×6 */
@@ -213,7 +227,7 @@ body,
 body {
   background: var(--paper);
   color: var(--ink);
-  font-size: 15px;
+  font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
@@ -237,14 +251,15 @@ a {
 
 /* headings per the type scale */
 .h1 {
-  font-size: 30px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--navy);
-  letter-spacing: -0.3px;
+  letter-spacing: -0.2px;
+  line-height: 1.2;
   margin: 0;
 }
 .h2 {
-  font-size: 21px;
+  font-size: 19px;
   font-weight: 700;
   color: var(--ink);
   margin: 0;
@@ -254,9 +269,9 @@ a {
   border-left: 4px solid var(--rust);
 }
 .h3 {
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--navy2);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
   margin: 0;
 }
 .eyebrow {
@@ -264,7 +279,7 @@ a {
   font-weight: 700;
   letter-spacing: 0.7px;
   text-transform: uppercase;
-  color: var(--rust);
+  color: var(--rust-ink);
 }
 /* The screen a document belongs to, in the header caption — a breadcrumb, so
    getting back to the list is a click and not a browser button. */
@@ -276,8 +291,76 @@ a {
 .crumb-link:hover {
   opacity: 0.8;
 }
+/* The page header's caption (PageHeader): where the screen sits in the menu,
+   read as a breadcrumb in sentence case, not a rust shout above the title. */
+.page-crumb {
+  margin: 0 0 3px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.page-crumb .crumb-link {
+  color: var(--ink2);
+}
+/* A filter you switch on and off (a stage, a status). Dashed while it is
+   available, solid navy wash while it is applied, so an applied filter never
+   looks like the page's one red action. Pair with aria-pressed. */
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px dashed var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.filter-chip:hover {
+  border-color: var(--navy2);
+}
+.filter-chip[aria-pressed="true"] {
+  border-style: solid;
+  border-color: var(--navy2);
+  background: rgba(var(--navy-rgb), 0.08);
+  color: var(--navy);
+}
+.filter-chip-n {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.filter-chip[aria-pressed="true"] .filter-chip-n {
+  color: var(--navy);
+}
+/* A list beside the record it opens: the desktop's width shows both at once.
+   Collapses to one column below 1100px. */
+.split-view {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(360px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.split-view > * {
+  min-width: 0;
+}
+.split-view-aside {
+  position: sticky;
+  top: 16px;
+}
+@media (max-width: 1100px) {
+  .split-view {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .split-view-aside {
+    position: static;
+  }
+}
 .lead {
-  font-size: 15px;
+  font-size: 14px;
   color: var(--muted);
 }
 
@@ -287,10 +370,10 @@ a {
   align-items: center;
   gap: 8px;
   justify-content: center;
-  border: 1px solid var(--sidebar-border);
+  border: 1px solid var(--line);
   background: var(--surface);
   color: var(--ink);
-  padding: 9px 15px;
+  padding: 8px 14px;
   border-radius: var(--radius-inner);
   font-size: 14px;
   font-weight: 600;
@@ -333,15 +416,15 @@ a {
   background: var(--navy-fill);
 }
 .btn-cta {
-  background: var(--brand-red);
-  border-color: var(--brand-red);
+  background: var(--cta);
+  border-color: var(--cta);
   color: #fff;
 }
 .btn-cta:hover {
   filter: brightness(0.95);
 }
 .btn-cta:disabled:hover {
-  background: var(--brand-red);
+  background: var(--cta);
 }
 .btn-block {
   width: 100%;
@@ -357,7 +440,7 @@ a {
 .btn-active {
   background: var(--inner);
   border-color: var(--rust);
-  color: var(--rust);
+  color: var(--rust-ink);
 }
 .btn-active:hover {
   background: var(--inner);
@@ -370,15 +453,15 @@ a {
   gap: 6px;
 }
 .field label {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--muted);
+  color: var(--ink2);
 }
 /* The sentence under a control that says what it means — what "not given" is,
    or why a value is required. A form primitive beside `.field`, not one
    screen's decoration (goods-v1 `Field`, lib/goodsScreen.tsx). */
 .goods-hint {
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--muted);
   line-height: 1.4;
 }
@@ -397,8 +480,8 @@ a {
 }
 .input {
   width: 100%;
-  padding: 12px 14px;
-  border: 1px solid var(--sidebar-border);
+  padding: 9px 12px;
+  border: 1px solid var(--line);
   border-radius: var(--radius-inner);
   font-size: 15px;
   background: var(--surface);
@@ -420,7 +503,7 @@ a {
   gap: 5px;
   padding: 3px 10px;
   border-radius: 999px;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.2px;
   border: 1px solid transparent;
@@ -473,7 +556,7 @@ a {
 }
 .chip-pick:hover {
   border-color: var(--rust);
-  color: var(--rust);
+  color: var(--rust-ink);
 }
 .muted-cell {
   color: var(--caption);
@@ -536,19 +619,20 @@ table.data {
   border-collapse: collapse;
   font-size: 13.5px;
 }
+/* Sentence-case headers and 38px rows: about half as many rows again fit on a
+   1080p screen, and the header reads as a label rather than a shout. */
 table.data th {
   text-align: left;
-  padding: 12px 18px;
+  padding: 9px 14px;
   background: var(--inner);
   color: var(--muted);
-  font-weight: 700;
-  font-size: 11.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  border-bottom: 1px solid var(--hairline);
+  font-weight: 650;
+  font-size: 12.5px;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--line);
 }
 table.data td {
-  padding: 13px 18px;
+  padding: 9px 14px;
   border-bottom: 1px solid var(--hairline);
 }
 table.data tr:last-child td {
@@ -563,7 +647,7 @@ table.data tr:hover td {
 }
 
 .page-pad {
-  padding: 28px 32px;
+  padding: 20px 28px 40px;
   width: 100%;
   box-sizing: border-box;
 }

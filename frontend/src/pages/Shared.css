@@ -22,14 +22,27 @@
 .kdps-scroll {
   overflow-x: auto;
 }
+/* Wide enough to keep each column on one line, narrow enough to fit a 1366px
+   desktop beside the menu; past that it scrolls inside its own box. */
 .kdps-table {
-  min-width: 1500px;
-  font-size: 12.5px;
+  min-width: 1080px;
+  font-size: 13.5px;
 }
 .kdps-table th {
   white-space: nowrap;
-  font-size: 10.5px;
-  letter-spacing: 0.3px;
+  font-size: 12.5px;
+}
+/* On a desktop the header row stays in view while a long table scrolls in its
+   own box, so a column's name is never a scroll away from its numbers. */
+@media (min-width: 1024px) {
+  .kdps-scroll {
+    max-height: calc(100dvh - 240px);
+  }
+  .kdps-scroll .kdps-table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
 }
 .kdps-table td {
   white-space: nowrap;
@@ -38,42 +51,44 @@
 /* Stock Ledger — summary cards */
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 14px;
-  margin-top: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
 }
 .stat-card {
-  padding: 16px 18px;
+  padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 .stat-value {
-  font-size: 26px;
-  font-weight: 800;
-  color: var(--ink, #1f2d4d);
-  line-height: 1.1;
+  font-size: 23px;
+  font-weight: 700;
+  color: var(--navy);
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
 }
 .stat-label {
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--muted);
 }
 
 /* Segmented control (Stock on Hand grouping) */
 .seg {
   display: inline-flex;
-  gap: 4px;
-  padding: 4px;
-  margin-top: 16px;
-  background: var(--inner, #f4efe7);
-  border: 1px solid var(--hairline, #e7dfd3);
-  border-radius: 12px;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 3px;
+  margin-top: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-inner);
 }
 .seg-btn {
   border: 0;
   background: transparent;
-  padding: 7px 16px;
-  border-radius: 9px;
+  padding: 6px 14px;
+  border-radius: 6px;
   font-size: 13px;
   font-weight: 600;
   color: var(--muted);
@@ -91,6 +106,28 @@
 .seg-btn.active {
   background: var(--navy-fill);
   color: #fff;
+}
+
+/* Stock: the grouping strip and the search share one row under the totals,
+   and the view switch sits at the right end of the workspace's filter row. */
+.onhand-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 14px;
+}
+.onhand-controls > .seg,
+.onhand-controls > .filter-bar,
+.filter-bar > .stock-views {
+  margin-top: 0;
+}
+.filter-bar > .stock-views {
+  margin-left: auto;
+}
+.stock-scope {
+  margin: 10px 0 0;
+  font-size: 13px;
 }
 
 /* Stock ledger pagination footer */
@@ -157,7 +194,7 @@
     color 0.15s;
 }
 .toggle-chip:hover {
-  border-color: var(--rust);
+  border-color: var(--navy2);
   color: var(--ink);
 }
 .toggle-chip.active {

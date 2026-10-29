@@ -70,7 +70,7 @@ export function PageHeader({
       {hosted?.tabs}
       <div className="toolbar">
         <div>
-          <p className="eyebrow" data-testid="page-crumb">
+          <p className="page-crumb" data-testid="page-crumb">
             {hosted?.crumb ?? section?.label}
             {showScreen && (
               <>
@@ -81,7 +81,7 @@ export function PageHeader({
               </>
             )}
           </p>
-          <h1 className="h1 h2-rust" data-testid={titleTestId ?? "page-title"}>
+          <h1 className="h1" data-testid={titleTestId ?? "page-title"}>
             {heading}
           </h1>
           {lead && <p className="lead">{lead}</p>}

@@ -1,16 +1,26 @@
+/* Greeting on the left, the one control on the right: the header is one row,
+   so the cards start higher on a desktop screen. */
 .home-greet {
-  margin-bottom: 22px;
+  margin-bottom: 16px;
   position: relative;
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.home-greet-text {
+  flex: 1 1 420px;
+  min-width: 0;
 }
 .home-greet .lead {
-  margin-top: 6px;
+  margin-top: 4px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 .dash-config-btn {
-  margin-top: 12px;
+  margin-top: 0;
 }
 .ctx-chip {
   font-size: 12px;
@@ -23,7 +33,7 @@
 }
 
 .sample-tag {
-  font-size: 9.5px;
+  font-size: 10.5px;
   font-weight: 800;
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -36,15 +46,15 @@
   vertical-align: middle;
 }
 
-/* KPI tiles */
+/* KPI tiles: as many to a row as the desktop is wide, not a fixed three. */
 .kpi-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-bottom: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
 }
 .kpi {
-  padding: 18px 20px;
+  padding: 12px 14px;
   transition:
     box-shadow 0.15s,
     transform 0.15s;
@@ -59,17 +69,17 @@
 .kpi-top {
   display: flex;
   align-items: center;
-  gap: 9px;
-  margin-bottom: 12px;
+  gap: 8px;
+  margin-bottom: 6px;
 }
 .kpi-grip {
   margin-left: auto;
   color: var(--caption);
 }
 .kpi-ic {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
   background: var(--inner);
   border: 1px solid var(--hairline);
   color: var(--navy);
@@ -79,12 +89,12 @@
   flex: none;
 }
 .kpi-label {
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--muted);
 }
 .kpi-value {
-  font-size: 27px;
+  font-size: 24px;
   font-weight: 700;
   color: var(--navy);
   letter-spacing: -0.3px;
@@ -92,53 +102,53 @@
 .kpi-sub {
   font-size: 12.5px;
   color: var(--muted);
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 /* two-column layout */
 .home-cols {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 18px;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+  gap: 16px;
   align-items: start;
 }
 .home-stack {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
 }
 
 /* panels */
 .panel {
-  padding: 18px 20px;
+  padding: 16px 18px;
 }
 .panel-head {
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 .panel-head .eyebrow {
   margin-bottom: 2px;
 }
 .net-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
 }
 .net-cell {
   background: var(--inner);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-inner);
-  padding: 13px 14px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 .net-num {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   color: var(--navy);
 }
 .net-label {
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--muted);
 }
 .net-foot {
@@ -197,7 +207,7 @@
 /* tinted bands */
 .band {
   border-radius: var(--radius);
-  padding: 17px 19px;
+  padding: 14px 16px;
 }
 .band-edge {
   background: var(--band-edge-bg);
@@ -252,19 +262,20 @@
   padding: 9px 12px;
 }
 
-/* quick actions */
+/* quick actions: a row of wide buttons, icon beside the word, rather than
+   tall tiles that spend a third of the screen on three words. */
 .quick-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  margin-bottom: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
 }
 .quick-btn {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 10px;
-  padding: 22px 12px;
+  gap: 12px;
+  padding: 10px 14px;
   background: var(--surface);
   border: 1px solid var(--hairline);
   border-radius: var(--radius);
@@ -273,6 +284,7 @@
   font-size: 14.5px;
   font-weight: 700;
   color: var(--navy);
+  text-align: left;
   transition:
     box-shadow 0.15s,
     transform 0.15s;
@@ -282,9 +294,9 @@
   transform: translateY(-1px);
 }
 .quick-ic {
-  width: 50px;
-  height: 50px;
-  border-radius: 13px;
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
   background: var(--inner);
   border: 1px solid var(--hairline);
   display: flex;
@@ -293,19 +305,17 @@
   color: var(--navy);
 }
 .quick-cta .quick-ic {
-  background: var(--brand-red);
-  border-color: var(--brand-red);
+  background: var(--cta);
+  border-color: var(--cta);
   color: #fff;
 }
 .quick-cta {
-  color: var(--brand-red);
+  color: var(--cta);
 }
 
 @media (max-width: 1040px) {
-  .kpi-row,
-  .quick-grid,
   .net-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   /* minmax(0, ...) not plain 1fr: a 1fr track never shrinks below its widest
      content, so one unwrappable row would push the page off a phone screen. */

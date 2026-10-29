@@ -81,19 +81,19 @@ export function InventoryPage() {
   );
   const reviewTabs = tabs.filter((tab) => !daily.has(tab.slug));
   const strip = (
-    <div data-testid="inventory-tabs">
-      <nav aria-label="Daily stock operations" data-testid="inventory-daily-tabs">
-        <p className="eyebrow">Daily stock operations</p>
+    <div className="inventory-strip" data-testid="inventory-tabs">
+      <nav
+        className="inventory-strip-daily"
+        aria-label="Daily stock operations"
+        data-testid="inventory-daily-tabs"
+      >
         <div className="page-tabs">{tabs.filter((tab) => daily.has(tab.slug)).map(tabLink)}</div>
-        {tabs.some((tab) => tab.slug === "assigned-counts") && (
-          <p className="muted" data-testid="inventory-assigned-counts-inactive">
-            Blind counts freeze sales and stock movements. Trading stores must sync and pause their
-            online counter before starting; a different authorised person approves the reviewed
-            result before closure. Count schedules and earlier evidence are in Review &amp; history.
-          </p>
-        )}
       </nav>
-      <details open={!daily.has(active.slug)} data-testid="inventory-review-tabs">
+      <details
+        className="inventory-strip-review"
+        open={!daily.has(active.slug)}
+        data-testid="inventory-review-tabs"
+      >
         <summary>Review &amp; history</summary>
         <div className="page-tabs">
           {reviewTabs.map(tabLink)}
@@ -104,6 +104,13 @@ export function InventoryPage() {
           )}
         </div>
       </details>
+      {active.slug === "assigned-counts" && (
+        <p className="muted inventory-strip-note" data-testid="inventory-assigned-counts-inactive">
+          Blind counts freeze sales and stock movements. Trading stores must sync and pause their
+          online counter before starting; a different authorised person approves the reviewed result
+          before closure. Count schedules and earlier evidence are in Review &amp; history.
+        </p>
+      )}
     </div>
   );
 

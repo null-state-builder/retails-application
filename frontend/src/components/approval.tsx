@@ -160,7 +160,7 @@ export function ApprovalSteps({
           {i > 0 && <ChevronRight size={12} style={{ color: "var(--muted)" }} aria-hidden />}
           <span
             className={`chip chip-${STEP_TONE[step.state]}`}
-            style={{ fontSize: 11.5 }}
+            style={{ fontSize: 12 }}
             data-testid={`approval-step-${step.order}`}
             title={
               step.state === "done"

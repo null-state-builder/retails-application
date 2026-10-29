@@ -394,23 +394,6 @@ export default function StockOnHand({
         />
       )}
 
-      {/* Hosted on Inventory, Quarantine is a tab of its own and the strip is
-          only the three groupings - or nothing at all, on the damage tab. */}
-      {groupings.length > 1 && (
-        <div className="seg" data-testid="onhand-tabs">
-          {groupings.map((t) => (
-            <button
-              key={t.key}
-              className={`seg-btn ${group === t.key ? "active" : ""}`}
-              onClick={() => setGroup(t.key)}
-              data-testid={`onhand-tab-${t.key}`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      )}
-
       {flash && (
         <div className="ok-note" data-testid="onhand-flash">
           <CheckCircle2 size={16} /> {flash}
@@ -441,17 +424,37 @@ export default function StockOnHand({
         </p>
       )}
 
-      {!isQuar && !workspace && (
-        <div className="filter-bar" data-testid="onhand-search-bar">
-          <SearchBox
-            value={q}
-            onChange={setQ}
-            placeholder="Search or scan — style, barcode, brand"
-            label="Search stock"
-            testId="onhand-search"
-          />
-        </div>
-      )}
+      {/* The totals first, then how to cut the list and what to look for, on one
+          row: a desktop has the width, and the table starts higher. */}
+      <div className="onhand-controls">
+        {/* Hosted on Inventory, Quarantine is a tab of its own and the strip is
+            only the three groupings - or nothing at all, on the damage tab. */}
+        {groupings.length > 1 && (
+          <div className="seg" data-testid="onhand-tabs">
+            {groupings.map((t) => (
+              <button
+                key={t.key}
+                className={`seg-btn ${group === t.key ? "active" : ""}`}
+                onClick={() => setGroup(t.key)}
+                data-testid={`onhand-tab-${t.key}`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
+        {!isQuar && !workspace && (
+          <div className="filter-bar" data-testid="onhand-search-bar">
+            <SearchBox
+              value={q}
+              onChange={setQ}
+              placeholder="Search or scan — style, barcode, brand"
+              label="Search stock"
+              testId="onhand-search"
+            />
+          </div>
+        )}
+      </div>
 
       {!isQuar && deepFilter && (
         <div className="filter-bar" data-testid="onhand-deep-filter">

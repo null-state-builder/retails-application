@@ -1,17 +1,18 @@
-/* The in-page search box (#102). Deliberately the top bar's pill, one size
-   down: the same control doing the same job in a narrower place, so a store
-   person recognises it without being told. Every colour is a token, so dark
-   mode needs no rule of its own. */
+/* The in-page search box (#102). Deliberately the top bar's search box, one
+   size down: the same control doing the same job in a narrower place, so a
+   store person recognises it without being told. It follows the top bar into
+   the desktop redesign (a field outline, not a pill). Every colour is a token,
+   so dark mode needs no rule of its own. */
 
 .searchbox {
   display: flex;
   align-items: center;
   gap: 9px;
-  background: var(--inner);
-  border: 1px solid var(--hairline);
-  border-radius: 999px;
-  padding: 8px 15px;
-  color: var(--caption);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-inner);
+  padding: 8px 12px;
+  color: var(--muted);
   flex: 1 1 260px;
   min-width: 0;
   max-width: 420px;

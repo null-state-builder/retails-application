@@ -1,7 +1,7 @@
 /* Cash Count (ticket 41). House tokens only, like Till & Sync beside it. */
 
 .cash-card {
-  padding: 18px 20px;
+  padding: 16px 18px;
   margin-bottom: 18px;
 }
 .cash-card .h3 {
@@ -15,7 +15,7 @@
 .cash-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 28px;
+  gap: 16px;
   margin-bottom: 14px;
 }
 .cash-sub {

@@ -13,7 +13,7 @@
  */
 
 .day-panel {
-  padding: 18px 20px;
+  padding: 16px 18px;
   margin-bottom: 18px;
 }
 .day-panel-head {
@@ -35,11 +35,9 @@
 }
 
 .day-picker-label {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 12.5px;
+  font-weight: 650;
   color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
 }
 
 .day-picker .input {
@@ -75,7 +73,7 @@
 
 /* The UPI tile's only control: visibility, not a gate (#241). */
 .day-upi-split {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--muted);
 }
 

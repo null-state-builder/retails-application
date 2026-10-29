@@ -9,12 +9,12 @@
    the quick-action row and the two-column layout below already use; the Today
    card carried nothing, so it butted onto whatever followed it. */
 .dash-block {
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 
 /* Today: four tiles, not the three-wide network grid. */
 .today-grid {
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 .collect-row {
   display: flex;
@@ -28,7 +28,7 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--muted);
 }
 .collect-cell b {
@@ -51,7 +51,7 @@
   background: var(--inner);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-inner);
-  padding: 11px 14px;
+  padding: 9px 12px;
   cursor: pointer;
   transition:
     border-color 0.15s,
@@ -106,11 +106,9 @@
   align-items: center;
   gap: 7px;
   margin: 0 0 8px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  color: var(--caption);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink2);
 }
 .live-head:not(:first-of-type) {
   margin-top: 18px;
@@ -177,10 +175,10 @@
   width: 100%;
   min-height: 3px;
   border-radius: 6px 6px 2px 2px;
-  background: linear-gradient(180deg, var(--rust), var(--navy-fill));
+  background: var(--navy-fill);
 }
 .spark-tick {
-  font-size: 10.5px;
+  font-size: 11.5px;
   color: var(--caption);
   white-space: nowrap;
   padding-bottom: 8px;

@@ -2,7 +2,7 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
   flex-wrap: wrap;
 }
 .toolbar .spacer {
@@ -82,21 +82,25 @@
 }
 .lines-table th {
   text-align: left;
-  padding: 9px 10px;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  font-weight: 650;
+  white-space: nowrap;
   color: var(--muted);
-  border-bottom: 1px solid var(--hairline);
+  background: var(--inner);
+  border-bottom: 1px solid var(--line);
 }
 .lines-table td {
-  padding: 6px 8px;
+  padding: 7px 12px;
   border-bottom: 1px solid var(--hairline);
+}
+.lines-table tbody tr:hover td {
+  background: var(--row-hover);
 }
 .lines-table input {
   width: 100%;
-  padding: 8px 10px;
-  border: 1px solid var(--sidebar-border);
+  padding: 7px 10px;
+  border: 1px solid var(--line);
   border-radius: 8px;
   font-size: 13.5px;
   background: var(--surface);
@@ -116,8 +120,8 @@
 }
 
 .section-card {
-  padding: 22px 24px;
-  margin-bottom: 18px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
 }
 .form-row {
   display: grid;
@@ -126,8 +130,8 @@
 }
 .select {
   width: 100%;
-  padding: 11px 12px;
-  border: 1px solid var(--sidebar-border);
+  padding: 9px 12px;
+  border: 1px solid var(--line);
   border-radius: var(--radius-inner);
   font-size: 14px;
   background: var(--surface);
@@ -163,9 +167,9 @@
   background: var(--amber-bg);
   border: 1px solid var(--amber-bd);
   color: var(--amber);
-  border-radius: 10px;
+  border-radius: var(--radius-inner);
   padding: 10px 13px;
-  font-size: 13px;
+  font-size: 13.5px;
   margin-top: 12px;
 }
 /* base `.ok-note` lives in Shared.css (StockOnHand imports both); only its
@@ -184,8 +188,8 @@
 }
 .filter-bar {
   display: flex;
-  gap: 10px;
-  margin-top: 14px;
+  gap: 8px;
+  margin-top: 12px;
   flex-wrap: wrap;
   align-items: center;
 }
@@ -213,7 +217,7 @@
 }
 .qty-stepper button:hover:not(:disabled) {
   background: rgba(var(--rust-rgb), 0.12);
-  color: var(--rust);
+  color: var(--rust-ink);
 }
 .qty-stepper button:disabled {
   opacity: 0.4;
@@ -252,9 +256,9 @@
   width: 100%;
   max-width: 760px;
   background: var(--surface);
-  border-radius: 18px;
+  border-radius: var(--radius);
   box-shadow: var(--shadow-hover);
-  padding: 26px 28px;
+  padding: 20px 22px;
 }
 .modal-head {
   display: flex;
@@ -271,7 +275,7 @@
   margin-top: 14px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--rust);
+  color: var(--rust-ink);
 }
 .mode-toggle {
   display: flex;

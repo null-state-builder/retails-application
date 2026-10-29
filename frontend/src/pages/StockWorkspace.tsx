@@ -83,25 +83,29 @@ export function StockWorkspace() {
           label="Search stock"
           testId="stock-workspace-search"
         />
+        <div
+          className="seg stock-views"
+          aria-label="Stock view"
+          data-testid="stock-workspace-views"
+        >
+          {(
+            [
+              ["on-hand", "On hand"],
+              ["availability", "Available by size"],
+            ] as const
+          ).map(([key, label]) => (
+            <Link
+              key={key}
+              className={`seg-btn ${view === key ? "active" : ""}`}
+              aria-current={view === key ? "page" : undefined}
+              to={`?${stockParams(params, { tab: "stock", view: key === "on-hand" ? "" : key })}`}
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
       </div>
-      <div className="seg" aria-label="Stock view" data-testid="stock-workspace-views">
-        {(
-          [
-            ["on-hand", "On hand"],
-            ["availability", "Available by size"],
-          ] as const
-        ).map(([key, label]) => (
-          <Link
-            key={key}
-            className={`seg-btn ${view === key ? "active" : ""}`}
-            aria-current={view === key ? "page" : undefined}
-            to={`?${stockParams(params, { tab: "stock", view: key === "on-hand" ? "" : key })}`}
-          >
-            {label}
-          </Link>
-        ))}
-      </div>
-      <p className="muted" data-testid="stock-workspace-scope">
+      <p className="muted stock-scope" data-testid="stock-workspace-scope">
         {scopedLabel}. Totals include only the stock you may read; unavailable values are not zero.
       </p>
       {selection.invalid ? (

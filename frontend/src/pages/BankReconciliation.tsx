@@ -54,7 +54,7 @@ const STATUS_META: Record<
   { label: string; color: string; icon: typeof CheckCircle2 }
 > = {
   matched: { label: "Matched", color: "var(--green)", icon: CheckCircle2 },
-  review: { label: "Needs review", color: "var(--rust)", icon: AlertTriangle },
+  review: { label: "Needs review", color: "var(--rust-ink)", icon: AlertTriangle },
   unmatched: { label: "Unmatched", color: "var(--red)", icon: XCircle },
   ignored: { label: "Ignored", color: "var(--muted)", icon: HelpCircle },
 };

@@ -24,11 +24,11 @@
   flex: 0 0 auto;
 }
 .scan-head-mode {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  background: var(--rust);
+  background: var(--rust-fill);
   color: #fff;
   border-radius: 4px;
   padding: 3px 8px;
@@ -102,13 +102,13 @@
   font-weight: 600;
 }
 .scan-last.ok {
-  color: #2e7d32;
+  color: var(--green);
 }
 .scan-last.bad {
-  color: #c62828;
+  color: var(--red);
 }
 .scan-last.flag {
-  color: var(--rust);
+  color: var(--rust-ink);
 }
 
 /* ---- good / damaged mode switch (receive only, #71) ---- */
@@ -121,7 +121,7 @@
 .scan-mode {
   flex: 1 1 0;
   height: 46px;
-  border-radius: 10px;
+  border-radius: var(--radius-inner);
   border: 1px solid var(--line, rgba(var(--navy-rgb), 0.3));
   background: transparent;
   color: var(--ink);
@@ -139,7 +139,7 @@
   color: #fff;
 }
 .scan-mode.danger.active {
-  background: var(--rust);
+  background: var(--rust-fill);
   border-color: var(--rust);
 }
 
@@ -213,23 +213,23 @@
   font-weight: 600;
 }
 .scan-line.done .counts {
-  color: #2e7d32;
+  color: var(--green);
 }
 .scan-line.over .counts {
-  color: var(--rust);
+  color: var(--rust-ink);
 }
 .scan-line .tick {
-  color: #2e7d32;
+  color: var(--green);
   display: flex;
 }
 .scan-line .scan-line-flag {
-  color: var(--rust);
+  color: var(--rust-ink);
 }
 .scan-line.extra {
   background: rgba(var(--rust-rgb), 0.07);
 }
 .scan-line.extra .counts {
-  color: var(--rust);
+  color: var(--rust-ink);
 }
 
 /* ---- footer ---- */
@@ -247,7 +247,7 @@
 .scan-undo {
   flex: 0 0 auto;
   padding: 0 16px;
-  border-radius: 10px;
+  border-radius: var(--radius-inner);
   border: 1px solid var(--line, rgba(var(--navy-rgb), 0.3));
   background: transparent;
   color: var(--ink);
@@ -261,7 +261,7 @@
   flex: 1 1 auto;
   height: 54px;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-inner);
   background: var(--navy-fill);
   color: #fff;
   font-size: 17px;
@@ -285,7 +285,7 @@
   padding: 8px 12px;
   border-radius: 8px;
   background: rgba(var(--rust-rgb), 0.12);
-  color: var(--rust);
+  color: var(--rust-ink);
   font-size: 13px;
   font-weight: 600;
   text-align: center;
@@ -299,7 +299,7 @@
   padding: 8px 12px;
   border-radius: 8px;
   background: rgba(198, 40, 40, 0.14);
-  color: #c62828;
+  color: var(--red);
   font-size: 13px;
   font-weight: 600;
   text-align: center;

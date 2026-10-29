@@ -210,7 +210,7 @@ function TrialBalancePanel({ canSeeMoney }: { canSeeMoney: boolean }) {
           borderRadius: 12,
           marginBottom: 12,
           background: balanced ? "rgba(var(--green-rgb), 0.08)" : "rgba(var(--rust-rgb), 0.10)",
-          color: balanced ? "var(--green)" : "var(--rust)",
+          color: balanced ? "var(--green)" : "var(--rust-ink)",
         }}
       >
         {balanced ? <CheckCircle2 size={20} /> : <AlertTriangle size={20} />}
@@ -577,14 +577,16 @@ export function Home() {
   return (
     <div className="page-pad home">
       <header className="home-greet">
-        <h1 className="h1" data-testid="greeting">
-          {greeting()}, {name}
-        </h1>
-        <p className="lead">
-          {today} · here's your {variant === "store" || variant === "warehouse" ? "shift" : "day"}{" "}
-          at a glance
-          <span className="ctx-chip">{ctx}</span>
-        </p>
+        <div className="home-greet-text">
+          <h1 className="h1" data-testid="greeting">
+            {greeting()}, {name}
+          </h1>
+          <p className="lead">
+            {today} · here's your {variant === "store" || variant === "warehouse" ? "shift" : "day"}{" "}
+            at a glance
+            <span className="ctx-chip">{ctx}</span>
+          </p>
+        </div>
         <button
           className="btn btn-sm dash-config-btn"
           onClick={() => setConfigOpen(true)}

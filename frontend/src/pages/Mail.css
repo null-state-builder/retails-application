@@ -79,7 +79,7 @@
 .mail-row-when {
   margin-left: auto;
   flex: none;
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--muted);
 }
 .mail-row-subject {
@@ -157,7 +157,7 @@
 }
 .mail-attachment:hover {
   border-color: var(--rust);
-  color: var(--rust);
+  color: var(--rust-ink);
 }
 .mail-attachment-size {
   color: var(--muted);
@@ -171,7 +171,7 @@
   width: 100%;
   margin-top: 14px;
   border: 1px solid var(--hairline);
-  border-radius: 10px;
+  border-radius: var(--radius-inner);
   background: var(--mail-paper);
 }
 /* A plain-text body. `pre` for the line breaks, which a plain-text mail means
@@ -183,7 +183,7 @@
   margin-top: 14px;
   padding: 14px 16px;
   border: 1px solid var(--hairline);
-  border-radius: 10px;
+  border-radius: var(--radius-inner);
   background: var(--inner);
   color: var(--ink);
   font:
@@ -228,7 +228,7 @@
   width: 100%;
   padding: 9px 12px;
   border: 1px solid var(--hairline);
-  border-radius: 9px;
+  border-radius: var(--radius-inner);
   background: var(--inner);
   color: var(--ink);
   font: inherit;
@@ -253,7 +253,7 @@
 .mail-error {
   margin: 0;
   font-size: 12.5px;
-  color: var(--brand-red);
+  color: var(--red);
 }
 
 .mail-warn {
@@ -290,8 +290,10 @@
   gap: 6px;
   color: var(--muted);
 }
+/* Red as text takes the semantic --red, not --cta: --cta stays one dark red in
+   both themes for white text, and as text on the dark surface it is near 3:1. */
 .mail-disconnect:hover {
-  color: var(--brand-red);
+  color: var(--red);
 }
 .mail-disconnect-confirm {
   display: flex;

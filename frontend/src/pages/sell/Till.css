@@ -37,14 +37,14 @@
   background: var(--red-bg);
   border: 1px solid var(--red-bd);
   color: var(--red);
-  border-radius: 10px;
+  border-radius: var(--radius-inner);
   padding: 10px 13px;
   font-size: 13px;
   margin: 0 0 16px;
 }
 
 .till-halt {
-  padding: 18px 20px;
+  padding: 16px 18px;
   margin-bottom: 18px;
   border-color: var(--red-bd);
 }
@@ -66,10 +66,10 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
-  margin-bottom: 22px;
+  margin-bottom: 16px;
 }
 .till-card {
-  padding: 18px 20px;
+  padding: 16px 18px;
 }
 .till-card .h3 {
   margin-bottom: 12px;
@@ -108,7 +108,7 @@
    button - rather than a full-width one, because it is set once and then left
    alone, and it is not what a person opens this page to look at. */
 .till-pin-card {
-  margin-top: 22px;
+  margin-top: 16px;
   max-width: 420px;
 }
 .till-pin-card .muted-cell {
@@ -131,7 +131,7 @@
    and for the same reason: it is one switch somebody sets when the counter is
    installed, not something a shift opens this page to look at. */
 .till-sound-card {
-  margin-top: 22px;
+  margin-top: 16px;
   max-width: 420px;
 }
 .till-sound-card .muted-cell {
@@ -157,7 +157,7 @@
 /* The two recovery cards (#189). Full width and above the counts, because a
    counter that cannot bill is not something to scroll past. */
 .till-recover {
-  padding: 18px 20px;
+  padding: 16px 18px;
   margin-bottom: 18px;
   border-color: var(--red-bd);
 }
@@ -178,7 +178,7 @@
 }
 
 .till-handover {
-  padding: 18px 20px;
+  padding: 16px 18px;
   margin-bottom: 18px;
 }
 .till-handover .h3 {
@@ -203,7 +203,7 @@
 }
 
 .till-reentry {
-  margin-top: 20px;
+  margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid var(--hairline);
 }
@@ -245,7 +245,7 @@
 }
 
 .till-dev {
-  margin-top: 22px;
+  margin-top: 16px;
   border-style: dashed;
 }
 .till-dev .muted-cell {
