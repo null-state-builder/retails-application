@@ -107,16 +107,22 @@ const TABS: { key: Group; label: string }[] = [
   { key: "quarantine", label: "Quarantine" },
 ];
 
-export function StockValue({ paise }: { paise: number | undefined }) {
-  return typeof paise === "number" ? (
-    <Money paise={paise} />
-  ) : (
-    <span className="muted">Unavailable</span>
-  );
+export function StockValue({
+  paise,
+  loading = false,
+}: {
+  paise: number | undefined;
+  loading?: boolean;
+}) {
+  // Still loading is not "Unavailable": that word is for a value this login
+  // may not see.
+  if (typeof paise === "number") return <Money paise={paise} short />;
+  return <span className="muted">{loading ? "Loading…" : "Unavailable"}</span>;
 }
 
-export function stockQuantity(value: number | undefined, loading: boolean): number | string {
-  return value !== undefined ? value : loading ? "Loading…" : "Unavailable";
+export function stockQuantity(value: number | undefined, loading: boolean): string {
+  if (value !== undefined) return value.toLocaleString("en-IN");
+  return loading ? "Loading…" : "Unavailable";
 }
 
 /** Which half of this screen to draw when it is hosted on the Inventory page
@@ -334,7 +340,7 @@ export default function StockOnHand({
         {
           icon: IndianRupee,
           label: "Quarantine value",
-          value: <StockValue paise={quar?.summary.value_paise} />,
+          value: <StockValue paise={quar?.summary.value_paise} loading={loading} />,
         },
         {
           icon: Layers,
@@ -351,7 +357,7 @@ export default function StockOnHand({
         {
           icon: IndianRupee,
           label: "Stock value",
-          value: <StockValue paise={data?.summary.value_paise} />,
+          value: <StockValue paise={data?.summary.value_paise} loading={loading} />,
         },
         {
           icon: Layers,

@@ -489,11 +489,17 @@ export function StoreTargetsPage() {
               : "Set at head office; shown here for reference. "}
             {/* No total until there is something to total. "committed across 0
                 stores" while the grid loads is a number nobody asked for. */}
-            {stores.length > 0 && !loading && (
-              <>
-                FY {fy} committed {totalOf}: <b>{formatINR(fyTotal)}</b>.
-              </>
-            )}
+            {stores.length > 0 &&
+              !loading &&
+              // A year with no target set has nothing committed to total: "₹0"
+              // would read as a target of nought.
+              (data.length === 0 ? (
+                <>No target is set for FY {fy} yet.</>
+              ) : (
+                <>
+                  FY {fy} committed {totalOf}: <b>{formatINR(fyTotal)}</b>.
+                </>
+              ))}
           </span>
         }
         actions={

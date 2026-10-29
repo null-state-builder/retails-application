@@ -6,7 +6,13 @@ import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
 import { GIFT_VIEWS, defaultGiftFilters, giftParams } from "../lib/giftReport";
 import type { GiftFilters, GiftView } from "../lib/giftReport";
-import { alignsRight, blobErrorMessage, gstCell } from "../lib/gstReport";
+import {
+  alignsRight,
+  blobErrorMessage,
+  columnHeading,
+  gstCell,
+  maskUnknownFigures,
+} from "../lib/gstReport";
 import type { GstColumn, GstRow } from "../lib/gstReport";
 import { asOfText } from "../lib/salesReport";
 import "./Shared.css";
@@ -161,8 +167,8 @@ export function GiftStockReportPage() {
   }
 
   const columns = data.columns as GstColumn[];
-  const rows = data.rows as GstRow[];
-  const total = data.total as GstRow;
+  const rows = (data.rows as GstRow[]).map((row) => maskUnknownFigures(row, columns, data.missing));
+  const total = maskUnknownFigures(data.total as GstRow, columns, data.missing);
 
   return (
     <div className="page-pad">
@@ -265,7 +271,7 @@ export function GiftStockReportPage() {
           </p>
         ) : (
           <div className="table-wrap">
-            <table className="data" data-testid="gift-table">
+            <table className="data freeze-first" data-testid="gift-table">
               <thead>
                 <tr>
                   {columns.map((c) => (
@@ -274,7 +280,7 @@ export function GiftStockReportPage() {
                       className={alignsRight(c.kind) ? "num" : undefined}
                       data-testid={`gift-col-${c.key}`}
                     >
-                      {c.label}
+                      {columnHeading(c.label)}
                     </th>
                   ))}
                 </tr>

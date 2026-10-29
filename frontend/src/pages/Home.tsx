@@ -76,7 +76,7 @@ const DASH_VISIBLE_KEY = "kdps-dashboard-card-visible";
 /** A count that has not arrived yet is "…", not zero — an empty ledger and an
  *  unanswered request must not look the same. */
 function num(value: number | null, suffix = ""): React.ReactNode {
-  return value === null ? "…" : `${value}${suffix}`;
+  return value === null ? "…" : `${value.toLocaleString("en-IN")}${suffix}`;
 }
 
 function Kpi({
@@ -193,7 +193,9 @@ function TrialBalancePanel({ canSeeMoney }: { canSeeMoney: boolean }) {
     loadBooksHealth(canSeeMoney, setH, () => setDenied(true));
   }, [canSeeMoney]);
   if (!canSeeMoney || denied) return null;
-  const balanced = h?.balanced ?? true;
+  // Not "Books tie" before the books have been read: an unread state is not a
+  // balanced one.
+  const balanced = h?.balanced ?? null;
   return (
     <div className="card panel" data-testid="trial-balance-panel">
       <div className="panel-head">
@@ -209,32 +211,39 @@ function TrialBalancePanel({ canSeeMoney }: { canSeeMoney: boolean }) {
           padding: "12px 14px",
           borderRadius: 12,
           marginBottom: 12,
-          background: balanced ? "rgba(var(--green-rgb), 0.08)" : "rgba(var(--rust-rgb), 0.10)",
-          color: balanced ? "var(--green)" : "var(--rust-ink)",
+          background:
+            balanced === null
+              ? "var(--inner)"
+              : balanced
+                ? "rgba(var(--green-rgb), 0.08)"
+                : "rgba(var(--rust-rgb), 0.10)",
+          color: balanced === null ? "var(--muted)" : balanced ? "var(--green)" : "var(--rust-ink)",
         }}
       >
-        {balanced ? <CheckCircle2 size={20} /> : <AlertTriangle size={20} />}
+        {balanced === false ? <AlertTriangle size={20} /> : <CheckCircle2 size={20} />}
         <div style={{ display: "flex", flexDirection: "column" }}>
-          <b>{balanced ? "Books tie" : "Out of balance"}</b>
+          <b>
+            {balanced === null ? "Reading the books…" : balanced ? "Books tie" : "Out of balance"}
+          </b>
           <span style={{ fontSize: 13, opacity: 0.85 }}>
             Trial balance{" "}
             <b className="mono">
-              <Money paise={h?.trial_balance_paise ?? 0} />
+              <Money paise={h?.trial_balance_paise} />
             </b>{" "}
-            · {h?.voucher_count ?? 0} vouchers · {h?.leg_count ?? 0} legs
+            · {h?.voucher_count ?? "—"} vouchers · {h?.leg_count ?? "—"} legs
           </span>
         </div>
       </div>
       <div className="net-grid">
         <div className="net-cell">
           <span className="net-num mono">
-            <Money paise={h?.assets_paise ?? 0} short />
+            <Money paise={h?.assets_paise} short />
           </span>
           <span className="net-label">Stock, cash & clearing</span>
         </div>
         <div className="net-cell">
           <span className="net-num mono">
-            <Money paise={h?.liabilities_paise ?? 0} short />
+            <Money paise={h?.liabilities_paise} short />
           </span>
           <span className="net-label">Payables, tax & contra</span>
         </div>
@@ -421,7 +430,7 @@ export function Home() {
     if (canSeeMoney) {
       api
         .get("/finledger/vendor/ageing")
-        .then((r) => setPayablePaise(r.data.total_due_paise ?? 0))
+        .then((r) => setPayablePaise(r.data.total_due_paise ?? null))
         .catch(() => undefined);
     }
   }, [canSeeMoney]);
@@ -435,7 +444,7 @@ export function Home() {
         label: "Stock on hand",
         value: onHand === null ? "…" : <Money paise={onHand.value_paise} short />,
         sub: onHand
-          ? `${onHand.units_on_hand} pcs · ${onHand.lines} SKU lines`
+          ? `${onHand.units_on_hand.toLocaleString("en-IN")} pcs · ${onHand.lines.toLocaleString("en-IN")} SKU lines`
           : "From the stock ledger",
         purpose:
           "Stock value at book cost, from the stock ledger — the units and lines behind it are on Stock on Hand.",

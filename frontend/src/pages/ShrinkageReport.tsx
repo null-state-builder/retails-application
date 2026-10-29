@@ -5,7 +5,7 @@ import { PageHeader } from "../components/PageHeader";
 import { api, apiErrorMessage } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
-import { alignsRight, gstCell } from "../lib/gstReport";
+import { alignsRight, columnHeading, gstCell, maskUnknownFigures } from "../lib/gstReport";
 import type { GstColumn, GstRow } from "../lib/gstReport";
 import { asOfText } from "../lib/salesReport";
 import {
@@ -155,8 +155,10 @@ export function ShrinkageReportPage() {
   }
 
   const columns = data.columns as GstColumn[];
-  const rows = data.rows as unknown as GstRow[];
-  const total = data.total as unknown as GstRow;
+  const rows = (data.rows as unknown as GstRow[]).map((row) =>
+    maskUnknownFigures(row, columns, data.missing),
+  );
+  const total = maskUnknownFigures(data.total as unknown as GstRow, columns, data.missing);
 
   return (
     <OperationsPage>
@@ -264,7 +266,7 @@ export function ShrinkageReportPage() {
           </p>
         ) : (
           <div className="table-wrap">
-            <table className="data" data-testid="shrinkage-table">
+            <table className="data freeze-first" data-testid="shrinkage-table">
               <thead>
                 <tr>
                   {columns.map((c) => (
@@ -273,7 +275,7 @@ export function ShrinkageReportPage() {
                       className={alignsRight(c.kind) ? "num" : undefined}
                       data-testid={`shrinkage-col-${c.key}`}
                     >
-                      {c.label}
+                      {columnHeading(c.label)}
                     </th>
                   ))}
                 </tr>

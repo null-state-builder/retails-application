@@ -128,7 +128,7 @@ export default function CashLedger() {
         <div className="card stat-card">
           <Wallet size={18} style={{ color: "var(--rust)" }} />
           <div className="stat-value mono" data-testid="cl-total">
-            <Money paise={summary?.total_paise ?? 0} />
+            <Money paise={summary?.total_paise} />
           </div>
           <div className="stat-label">Total cash on hand (₹)</div>
         </div>

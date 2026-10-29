@@ -5,6 +5,7 @@
 // one, by the server, in its own words.
 
 import { PageHeader } from "../components/PageHeader";
+import { StoreGate } from "../components/StoreGate";
 import { StoreDashboard } from "./StoreDashboard";
 import "./Home.css";
 
@@ -12,7 +13,9 @@ export function StoreDashboardPage() {
   return (
     <div className="page-pad home">
       <PageHeader lead="One store's day: what it sold, what is waiting on somebody, what is in the shop now and the week behind it." />
-      <StoreDashboard />
+      <StoreGate purpose="the day's sales, what is waiting and what is in the shop">
+        <StoreDashboard />
+      </StoreGate>
     </div>
   );
 }

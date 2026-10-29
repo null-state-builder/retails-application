@@ -245,6 +245,17 @@ a {
 .mono {
   font-family: var(--mono);
 }
+/* Tile figures read in the sans face with tabular figures, never monospace:
+ * mono is for IDs and barcodes (mockup Foundations). A long amount wraps
+ * inside its tile instead of running out of it. */
+:is(.stat-value, .kpi-value, .net-num).mono,
+:is(.stat-value, .kpi-value, .net-num) .mono {
+  font-family: inherit;
+}
+:is(.stat-value, .kpi-value, .net-num) {
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
 ::selection {
   background: var(--selection);
 }
@@ -274,12 +285,13 @@ a {
   color: var(--ink);
   margin: 0;
 }
+/* A section label inside a card. Sentence case in ink, never uppercase rust
+ * (desktop redesign audit, rule 1): the copy is already written in sentence
+ * case, so every one of its uses follows from this rule. */
 .eyebrow {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.7px;
-  text-transform: uppercase;
-  color: var(--rust-ink);
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink2);
 }
 /* The screen a document belongs to, in the header caption — a breadcrumb, so
    getting back to the list is a click and not a browser button. */
@@ -423,8 +435,15 @@ a {
 .btn-cta:hover {
   filter: brightness(0.95);
 }
+/* A disabled main action is plainly unavailable, not a pale red wash that
+   still reads as the thing to press. */
+.btn-cta:disabled,
 .btn-cta:disabled:hover {
-  background: var(--cta);
+  background: var(--inner);
+  border-color: var(--line);
+  color: var(--muted);
+  opacity: 1;
+  filter: none;
 }
 .btn-block {
   width: 100%;
@@ -452,6 +471,12 @@ a {
   flex-direction: column;
   gap: 6px;
 }
+/* A field is a column: nothing inside it may take a flex-basis, or the basis
+ * becomes its height. Row rules elsewhere (`.searchbox`, `.form-grid`) size
+ * the field, never the control within it. */
+.field > :is(.input, .select, .searchbox, textarea, input, select) {
+  flex: 0 0 auto;
+}
 .field label {
   font-size: 13px;
   font-weight: 600;
@@ -464,6 +489,59 @@ a {
   font-size: 12.5px;
   color: var(--muted);
   line-height: 1.4;
+}
+/* Shared empty and error lines (components/States.tsx). */
+.state-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  border-radius: var(--radius-inner);
+  font-size: 14px;
+}
+.state-empty {
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  color: var(--muted);
+}
+.state-error {
+  background: var(--red-bg);
+  border: 1px solid var(--red-bd);
+  color: var(--red);
+}
+.state-line > span {
+  flex: 1 1 240px;
+}
+/* The no-access state (auth/AccessDenied.tsx). */
+.access-denied {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  color: var(--navy);
+}
+.access-denied .lead {
+  margin: 6px 0 14px;
+  max-width: 72ch;
+}
+/* The inline store picker a one-store screen shows instead of an error
+ * (components/StoreGate.tsx). */
+.store-gate {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  color: var(--navy);
+}
+.store-gate-body {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+.store-gate-body .muted {
+  margin-top: 2px;
+}
+.store-gate-field {
+  flex: 0 1 320px;
 }
 /* Reachable by a screen reader, invisible on screen: the name of a control
    whose visible label is its row and column (a grid of checkboxes). */
@@ -641,9 +719,39 @@ table.data tr:last-child td {
 table.data tr:hover td {
   background: var(--row-hover);
 }
+/* Numbers right-aligned in the sans face with tabular figures (mockup
+   Foundations): monospace is for IDs and barcodes only. */
 .num {
   text-align: right;
-  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+table.data th.num {
+  text-align: right;
+}
+/* The header row stays in view while a long table scrolls inside its wrap. */
+@media (min-width: 1024px) {
+  .table-wrap {
+    max-height: calc(100dvh - 200px);
+  }
+  .table-wrap > table.data > thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+}
+/* A table wider than its card keeps its first column (store, brand, person)
+   in view while the figures scroll sideways. */
+.table-wrap > table.data.freeze-first :is(th, td):first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--surface);
+  box-shadow: 1px 0 0 var(--hairline);
+}
+.table-wrap > table.data.freeze-first thead th:first-child {
+  z-index: 2;
+  background: var(--inner);
 }
 
 .page-pad {

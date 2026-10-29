@@ -23,8 +23,16 @@ export function formatINR(paise: number, opts: { short?: boolean } = {}): string
   return `${sign}₹${grouped}`;
 }
 
-export function Money({ paise, short }: { paise: number; short?: boolean }) {
-  return <span className="tabular">{formatINR(paise, short === undefined ? {} : { short })}</span>;
+export function Money({ paise, short }: { paise: number | null | undefined; short?: boolean }) {
+  // Not loaded, not known: a dash, never ₹0.
+  if (paise === null || paise === undefined) return <span className="tabular">—</span>;
+  if (!short) return <span className="tabular">{formatINR(paise)}</span>;
+  // A tile shows lakhs and crores; the exact amount is one hover away.
+  return (
+    <span className="tabular" title={formatINR(paise)}>
+      {formatINR(paise, { short })}
+    </span>
+  );
 }
 
 /** Render a rupee decimal string the server already computed ("72450.00") as

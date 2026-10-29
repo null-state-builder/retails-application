@@ -124,7 +124,7 @@ export function SellPolicySettingsPage() {
               </button>
             </div>
           )}
-          {error && <p className="warn-note">{error}</p>}
+          {loaded && error && <p className="warn-note">{error}</p>}
           {saved && <p className="ok-note">{saved}</p>}
         </section>
       ) : (

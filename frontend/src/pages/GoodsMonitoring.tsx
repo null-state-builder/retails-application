@@ -292,7 +292,12 @@ function ExportPanel() {
             data-testid="mon-export-value"
           />
         </Field>
-        <button className="btn btn-cta" type="submit" disabled={busy} data-testid="mon-export-run">
+        <button
+          className="btn btn-primary"
+          type="submit"
+          disabled={busy}
+          data-testid="mon-export-run"
+        >
           Ask for the file
         </button>
       </form>
@@ -381,7 +386,7 @@ function CommandLookup() {
           />
         </Field>
         <button
-          className="btn btn-cta"
+          className="btn btn-primary"
           type="submit"
           disabled={!commandId.trim()}
           data-testid="mon-command-look"

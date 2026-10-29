@@ -5,7 +5,7 @@ import { PageHeader } from "../components/PageHeader";
 import { api, apiErrorMessage } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
-import { alignsRight, gstCell } from "../lib/gstReport";
+import { alignsRight, columnHeading, gstCell, maskUnknownFigures } from "../lib/gstReport";
 import type { GstColumn, GstRow } from "../lib/gstReport";
 import { asOfText } from "../lib/salesReport";
 import {
@@ -157,8 +157,10 @@ export function StaffPerformanceReportPage() {
   }
 
   const columns = data.columns as GstColumn[];
-  const rows = data.rows as unknown as GstRow[];
-  const total = data.total as unknown as GstRow;
+  const rows = (data.rows as unknown as GstRow[]).map((row) =>
+    maskUnknownFigures(row, columns, data.missing),
+  );
+  const total = maskUnknownFigures(data.total as unknown as GstRow, columns, data.missing);
 
   return (
     <OperationsPage>
@@ -249,7 +251,7 @@ export function StaffPerformanceReportPage() {
           </p>
         ) : (
           <div className="table-wrap">
-            <table className="data" data-testid="staff-table">
+            <table className="data freeze-first" data-testid="staff-table">
               <thead>
                 <tr>
                   {columns.map((c) => (
@@ -258,7 +260,7 @@ export function StaffPerformanceReportPage() {
                       className={alignsRight(c.kind) ? "num" : undefined}
                       data-testid={`staff-col-${c.key}`}
                     >
-                      {c.label}
+                      {columnHeading(c.label)}
                     </th>
                   ))}
                 </tr>
@@ -475,7 +477,7 @@ function TargetEditor({
       )}
       {targets && targets.people.length > 0 && (
         <div className="table-wrap">
-          <table className="data" data-testid="staff-targets-table">
+          <table className="data freeze-first" data-testid="staff-targets-table">
             <thead>
               <tr>
                 <th>Salesperson</th>

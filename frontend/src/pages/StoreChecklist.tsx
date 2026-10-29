@@ -21,6 +21,7 @@ import { dueByText, opensPath, progressText, tickKey } from "../lib/storeCheckli
 import { newUuid } from "../till/uuid";
 import "./Shared.css";
 import "./StoreChecklist.css";
+import { StoreGate } from "../components/StoreGate";
 
 type Payload = ApiRead<ApiSchemas["ChecklistToday"]>;
 type List = Payload["lists"][number];
@@ -384,9 +385,11 @@ export function StoreChecklistPage() {
         title="Today's checklist"
         lead="The store's lists due today, and anything from the last few days whose time passed before it was ticked. Tick each item when it is done, with a photo if you want one."
       />
-      <div className="card section-card" data-testid="checklist-page">
-        <StoreChecklist store={store} />
-      </div>
+      <StoreGate purpose="the lists due today" bypass={Boolean(store)}>
+        <div className="card section-card" data-testid="checklist-page">
+          <StoreChecklist store={store} />
+        </div>
+      </StoreGate>
     </div>
   );
 }

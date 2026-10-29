@@ -67,7 +67,7 @@ function templateOptions(rows: ResourceDTO<LabelConfigData>[]): TemplateOption[]
 export function GoodsLabelsPage() {
   const [params, setParams] = useSearchParams();
   return (
-    <div className="labels-layout">
+    <div className="page-pad labels-layout">
       <PageHeader
         title="Print labels"
         lead="Print a scannable Code 128 label for an official PT line, record what the printer actually did, and reprint only what is still missing."

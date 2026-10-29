@@ -154,14 +154,29 @@
   gap: 10px;
   align-items: center;
 }
-.form-grid .input,
-.form-grid .select {
+/* Only a control sitting directly in the row takes a flex-basis. A control
+ * inside a column `.field` must not: there the basis becomes its height (the
+ * 160px-tall boxes on Reservations, Special orders and Opening stock). In a
+ * row, the labelled `.field` is the flex item and its control fills it. */
+.form-grid > .input,
+.form-grid > .select {
   min-width: 160px;
   flex: 1 1 160px;
   max-width: 280px;
 }
-.wide-form .input,
-.wide-form .select {
+.form-grid > .field {
+  flex: 1 1 200px;
+  min-width: 160px;
+  max-width: 340px;
+}
+.form-grid > .field :is(.input, .select) {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+.wide-form > .input,
+.wide-form > .select,
+.wide-form > .field {
   max-width: 340px;
 }
 .check-row {

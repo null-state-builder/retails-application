@@ -67,18 +67,27 @@ export default function StockLedger() {
     ]).finally(() => setLoading(false));
   }, [docFilter, page, q]);
 
+  // Unknown is a dash, never a nought: before the summary arrives, and when
+  // this ledger holds no postings for these stores (their stock is kept in
+  // the goods journal, so a net of 0 here would misstate what is on hand).
+  const ledgerEmpty = summary !== null && summary.entries === 0;
+  const known = summary !== null && !ledgerEmpty;
   const cards = useMemo(
     () => [
-      { icon: ScrollText, label: "Ledger entries", value: summary?.entries ?? 0 },
-      { icon: Boxes, label: "Net units on hand", value: summary?.net_qty ?? 0 },
+      { icon: ScrollText, label: "Ledger entries", value: summary ? summary.entries : "—" },
+      { icon: Boxes, label: "Net units on hand", value: summary && known ? summary.net_qty : "—" },
       {
         icon: IndianRupee,
         label: "Net stock value (₹)",
-        value: <Money paise={summary?.net_value_paise ?? 0} />,
+        value: summary && known ? <Money paise={summary.net_value_paise} /> : "—",
       },
-      { icon: Layers, label: "Distinct SKUs", value: summary?.distinct_skus ?? 0 },
+      {
+        icon: Layers,
+        label: "Distinct SKUs",
+        value: summary && known ? summary.distinct_skus : "—",
+      },
     ],
-    [summary],
+    [summary, known],
   );
 
   return (
@@ -123,9 +132,15 @@ export default function StockLedger() {
         <p className="lead">Loading…</p>
       ) : entries.length === 0 ? (
         <div className="card section-card" data-testid="stock-empty">
-          {q
-            ? `No movement matches “${q}”.`
-            : "No stock postings yet. Post a PT file from Patna (PT Mapper → Push into system) to write the first inward."}
+          {q ? (
+            `No movement matches “${q}”.`
+          ) : (
+            <>
+              This ledger has no postings for your stores. Goods received through Receive Goods are
+              recorded in the goods journal instead —{" "}
+              <Link to="/goods/movements">see Movements</Link>.
+            </>
+          )}
         </div>
       ) : (
         <div className="table-wrap kdps-scroll" style={{ marginTop: 16 }}>

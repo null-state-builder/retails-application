@@ -58,6 +58,32 @@ export function gstParams(filters: GstFilters): Record<string, string> {
   return out;
 }
 
+/** True when a reporting copy this report reads has never been built: every
+ *  figure is unknown then, however the server filled the rows. The server
+ *  says so in `missing` as `NOT_BUILT`, or `<COPY>_NOT_BUILT` for a second copy. */
+export function figuresUnknown(missing: readonly { code: string }[]): boolean {
+  return missing.some((m) => m.code === "NOT_BUILT" || m.code.endsWith("_NOT_BUILT"));
+}
+
+/** The row with every figure blanked while `figuresUnknown`, so `gstCell`
+ *  prints a dash where the server sent a nought it could not know. */
+export function maskUnknownFigures<T extends GstRow>(
+  row: T,
+  columns: readonly GstColumn[],
+  missing: readonly { code: string }[],
+): T {
+  if (!figuresUnknown(missing)) return row;
+  const out: GstRow = { ...row };
+  for (const c of columns) if (c.kind !== "text") out[c.key] = null;
+  return out as T;
+}
+
+/** A column's heading on screen: the server writes "(Rs)" for the Excel
+ *  export; the screen shows the rupee sign. */
+export function columnHeading(label: string): string {
+  return label.replace(/\s*\(Rs\)/g, " (₹)");
+}
+
 /** One cell in words. Absent is a dash, never a nought or an empty box. */
 export function gstCell(value: unknown, kind: CellKind): string {
   if (value === null || value === undefined || value === "") return "—";
@@ -67,7 +93,7 @@ export function gstCell(value: unknown, kind: CellKind): string {
     case "rate":
       return `${Number(value)}%`;
     case "number":
-      return String(Number(value));
+      return Number(value).toLocaleString("en-IN");
     case "date":
       return new Date(`${String(value)}T00:00:00+05:30`).toLocaleDateString("en-IN", {
         timeZone: "Asia/Kolkata",

@@ -9,9 +9,11 @@ import {
   GST_VIEWS,
   alignsRight,
   blobErrorMessage,
+  columnHeading,
   defaultGstFilters,
   gstCell,
   gstParams,
+  maskUnknownFigures,
 } from "../lib/gstReport";
 import type { GstColumn, GstFilters, GstRow, GstView } from "../lib/gstReport";
 import { asOfText } from "../lib/salesReport";
@@ -165,8 +167,8 @@ export function GstReportPage() {
   }
 
   const columns = data.columns as GstColumn[];
-  const rows = data.rows as GstRow[];
-  const total = data.total as GstRow;
+  const rows = (data.rows as GstRow[]).map((row) => maskUnknownFigures(row, columns, data.missing));
+  const total = maskUnknownFigures(data.total as GstRow, columns, data.missing);
 
   return (
     <OperationsPage>
@@ -275,7 +277,7 @@ export function GstReportPage() {
           </p>
         ) : (
           <div className="table-wrap">
-            <table className="data" data-testid="gst-table">
+            <table className="data freeze-first" data-testid="gst-table">
               <thead>
                 <tr>
                   {columns.map((c) => (
@@ -284,7 +286,7 @@ export function GstReportPage() {
                       className={alignsRight(c.kind) ? "num" : undefined}
                       data-testid={`gst-col-${c.key}`}
                     >
-                      {c.label}
+                      {columnHeading(c.label)}
                     </th>
                   ))}
                 </tr>

@@ -12,7 +12,13 @@ import {
   isEstimate,
 } from "../lib/brandPerformance";
 import type { BrandPerformanceFilters, BrandPerformanceGroupBy } from "../lib/brandPerformance";
-import { alignsRight, blobErrorMessage, gstCell } from "../lib/gstReport";
+import {
+  alignsRight,
+  blobErrorMessage,
+  columnHeading,
+  gstCell,
+  maskUnknownFigures,
+} from "../lib/gstReport";
 import type { GstColumn, GstRow } from "../lib/gstReport";
 import { asOfText } from "../lib/salesReport";
 import "./Shared.css";
@@ -159,8 +165,10 @@ export function BrandPerformanceReportPage() {
   }
 
   const columns = data.columns as GstColumn[];
-  const rows = data.rows as unknown as GstRow[];
-  const total = data.total as unknown as GstRow;
+  const rows = (data.rows as unknown as GstRow[]).map((row) =>
+    maskUnknownFigures(row, columns, data.missing),
+  );
+  const total = maskUnknownFigures(data.total as unknown as GstRow, columns, data.missing);
   const estimates = data.estimate_fields;
 
   return (
@@ -276,7 +284,7 @@ export function BrandPerformanceReportPage() {
           </p>
         ) : (
           <div className="table-wrap">
-            <table className="data" data-testid="brand-performance-table">
+            <table className="data freeze-first" data-testid="brand-performance-table">
               <thead>
                 <tr>
                   {columns.map((c) => (
@@ -286,7 +294,7 @@ export function BrandPerformanceReportPage() {
                       data-testid={`brand-performance-col-${c.key}`}
                       data-estimate={isEstimate(c.key, estimates) ? "true" : undefined}
                     >
-                      {c.label}
+                      {columnHeading(c.label)}
                     </th>
                   ))}
                 </tr>

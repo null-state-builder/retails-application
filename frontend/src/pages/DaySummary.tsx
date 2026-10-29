@@ -21,6 +21,7 @@ import { OperationsPage } from "../components/OperationsPage";
 import { useAuth } from "../auth/AuthContext";
 import { tillToday } from "../till/pricing";
 import "./DaySummary.css";
+import { StorePicker, useNeedsStore } from "../components/StoreGate";
 
 /** `GET /api/store/cash-summary`. */
 interface SummaryT {
@@ -264,7 +265,24 @@ function ClearPanel({ flag, onDone }: { flag: FlagT; onDone: () => void }) {
   );
 }
 
+const DAY_LEAD =
+  "What the counter took, and what the day left open. Read-only - the day is agreed at store close.";
+
 export default function DaySummary() {
+  // Nothing to read until there is one store: no request, and no red error
+  // beside a "Loading…" that never ends.
+  const needsStore = useNeedsStore();
+  if (needsStore)
+    return (
+      <OperationsPage>
+        <PageHeader lead={DAY_LEAD} />
+        <StorePicker purpose="the day's takings and open exceptions" />
+      </OperationsPage>
+    );
+  return <DaySummaryScreen />;
+}
+
+function DaySummaryScreen() {
   const { activeStore } = useAuth();
   const [params, setParams] = useSearchParams();
   // The store's own day, not the browser's UTC one - the same helper the till
@@ -317,7 +335,7 @@ export default function DaySummary() {
   return (
     <OperationsPage>
       <PageHeader
-        lead="What the counter took, and what the day left open. Read-only - the day is agreed at store close."
+        lead={DAY_LEAD}
         actions={
           <button className="btn" data-testid="day-retry" disabled={loading} onClick={load}>
             <RefreshCw size={15} /> Read again

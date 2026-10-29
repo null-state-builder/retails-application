@@ -674,7 +674,11 @@ export function PickerField({
 }) {
   return (
     <Field id={id} label={label} hint={hint}>
-      {!disabled && (
+      {/* One control where one is enough: the select alone holds a list that
+          fits its first page (and its type-ahead finds a name). The search box
+          appears only when the list is paged, or a search is already running,
+          so it can still be cleared. */}
+      {!disabled && (picker.hasMore || picker.query.trim() !== "") && (
         <SearchBox
           value={picker.query}
           onChange={picker.setQuery}

@@ -145,12 +145,12 @@ export default function CustomerSearchPage() {
       <PageHeader lead="Find a bill by mobile number, name or bill number. Print it again - a past bill is never edited." />
 
       <div className="card section-card find-bar" data-testid="find-bar">
-        <div className="find-keys" role="group" aria-label="Search by">
+        <div className="seg find-keys" role="group" aria-label="Search by">
           {KEYS.map((option) => (
             <button
               key={option.key}
               type="button"
-              className={`btn${key === option.key ? " btn-cta" : ""}`}
+              className={`seg-btn${key === option.key ? " active" : ""}`}
               aria-pressed={key === option.key}
               data-testid={`find-key-${option.key}`}
               onClick={() => {
@@ -291,7 +291,7 @@ function BillDetail({ bill, onReprint }: { bill: PostedBill; onReprint: () => vo
         <div className="spacer" />
         <button
           type="button"
-          className="btn btn-cta"
+          className="btn btn-primary"
           data-testid="find-reprint"
           onClick={onReprint}
         >

@@ -9,9 +9,8 @@
   padding: 14px 16px;
   margin-bottom: 16px;
 }
+/* The search-by switch is a `.seg`: it chooses a mode, it is not an action. */
 .find-keys {
-  display: flex;
-  gap: 8px;
   flex-wrap: wrap;
 }
 .find-field {

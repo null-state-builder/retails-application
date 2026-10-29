@@ -190,33 +190,33 @@ export default function VendorLedger() {
         <div className="card stat-card">
           <IndianRupee size={18} style={{ color: "var(--rust)" }} />
           <div className="stat-value mono">
-            <Money paise={balances?.total_payable_paise ?? 0} />
+            <Money paise={balances?.total_payable_paise} />
           </div>
           <div className="stat-label">Total payable (₹)</div>
         </div>
         <div className="card stat-card">
           <Users size={18} style={{ color: "var(--rust)" }} />
-          <div className="stat-value mono">{balances?.vendors_with_dues ?? 0}</div>
+          <div className="stat-value mono">{balances?.vendors_with_dues ?? "—"}</div>
           <div className="stat-label">Vendors with dues</div>
         </div>
         <div className="card stat-card">
           <TimerReset size={18} style={{ color: "var(--amber)" }} />
           <div className="stat-value mono" data-testid="vl-ageing-0-30">
-            <Money paise={ageing?.bucket_0_30_paise ?? 0} />
+            <Money paise={ageing?.bucket_0_30_paise} />
           </div>
           <div className="stat-label">0–30 days (₹)</div>
         </div>
         <div className="card stat-card">
           <TimerReset size={18} style={{ color: "var(--rust)" }} />
           <div className="stat-value mono" data-testid="vl-ageing-31-60">
-            <Money paise={ageing?.bucket_31_60_paise ?? 0} />
+            <Money paise={ageing?.bucket_31_60_paise} />
           </div>
           <div className="stat-label">31–60 days (₹)</div>
         </div>
         <div className="card stat-card">
           <AlertTriangle size={18} style={{ color: "var(--red)" }} />
           <div className="stat-value mono" data-testid="vl-ageing-60-plus">
-            <Money paise={ageing?.bucket_60_plus_paise ?? 0} />
+            <Money paise={ageing?.bucket_60_plus_paise} />
           </div>
           <div className="stat-label">60+ days (₹)</div>
         </div>

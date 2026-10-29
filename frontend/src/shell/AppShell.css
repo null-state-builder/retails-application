@@ -331,8 +331,6 @@ body.sidebar-resizing .sidebar-resizer::after {
 .rail-flyout-head {
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
   color: var(--caption);
   padding: 8px 10px 6px;
 }
@@ -395,6 +393,11 @@ body.sidebar-resizing .sidebar-resizer::after {
 }
 .topbar-logo-mark {
   display: none;
+}
+/* The traced logo draws its needle in near-black, which vanishes on the dark
+   top bar. In dark mode it takes the ink token; the ribbon keeps its colours. */
+html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
+  fill: var(--ink);
 }
 /* Baseline B1: a synthetic tenant says so on every screen, beside the logo. */
 .test-env-badge {
@@ -594,8 +597,6 @@ body.sidebar-resizing .sidebar-resizer::after {
   margin: 10px 0 2px;
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
   color: var(--caption);
 }
 /* The Action Needed popup's two blocks. One shape, two colours: navy for
@@ -942,8 +943,6 @@ body.sidebar-resizing .sidebar-resizer::after {
 .dropdown-head {
   font-size: 11px;
   font-weight: 700;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
   color: var(--caption);
   padding: 8px 12px 6px;
 }
