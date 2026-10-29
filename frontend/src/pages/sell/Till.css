@@ -1,10 +1,22 @@
 /* Till & Sync (#180). House tokens only - no colour is spelled out here, so the
    dark theme's one override block keeps working without touching this file. */
 
+/* One rhythm for the page: every card, alert and table under the header sits
+   16px from the next, and no card carries a margin of its own. */
+.till-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.till-stack > * {
+  margin: 0;
+}
+
 .till-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 .till-actions .btn {
   display: inline-flex;
@@ -40,39 +52,115 @@
   border-radius: var(--radius-inner);
   padding: 10px 13px;
   font-size: 13px;
-  margin: 0 0 16px;
+  margin: 0;
 }
 
 .till-halt {
-  padding: 16px 18px;
-  margin-bottom: 18px;
   border-color: var(--red-bd);
-}
-.till-halt .h3 {
-  margin-bottom: 6px;
 }
 .till-halt-why {
   font-size: 14px;
   color: var(--ink);
-  margin: 0 0 8px;
 }
-.till-halt .muted-cell {
-  font-size: 12.5px;
+
+/* Every card: the same padding, and the same 12px between its heading, its
+   sentence, its field and its buttons. */
+.till-card {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.till-card > * {
+  margin: 0;
+}
+.till-card .muted-cell {
   display: block;
-  margin-bottom: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.till-card .field {
+  margin: 0;
+}
+.till-card > .btn {
+  align-self: flex-start;
+}
+.till-card .till-row + .till-actions,
+.till-card .till-row + .ok-note,
+.till-card .till-row + .till-alert {
+  margin-top: 4px;
+}
+
+/* A reason box and its button on one line. */
+.till-inline-form {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.till-inline-form .field {
+  flex: 1 1 260px;
+  max-width: 460px;
+}
+
+.till-summary {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+.till-tile {
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.till-tile-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+.till-tile-value {
+  font-size: 18px;
+  font-weight: 650;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+.till-tile-amber .till-tile-value {
+  color: var(--amber);
+}
+.till-tile-red {
+  border-color: var(--red-bd);
+}
+.till-tile-red .till-tile-value {
+  color: var(--red);
 }
 
 .till-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
-  margin-bottom: 16px;
+  align-items: start;
 }
-.till-card {
-  padding: 16px 18px;
+
+.till-cols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 32px;
 }
-.till-card .h3 {
-  margin-bottom: 12px;
+.till-col-head {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 2px;
+}
+
+.till-settings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  align-items: start;
 }
 
 .till-row {
@@ -97,52 +185,26 @@
   text-align: right;
 }
 
+.till-queue {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.till-queue > * {
+  margin: 0;
+}
 .till-queue-heading {
   display: flex;
   align-items: center;
   gap: 9px;
-  margin-bottom: 10px;
 }
 
-/* The manager's own counter PIN (#182). A narrow card - two short boxes and a
-   button - rather than a full-width one, because it is set once and then left
-   alone, and it is not what a person opens this page to look at. */
-.till-pin-card {
-  margin-top: 16px;
-  max-width: 420px;
-}
-.till-pin-card .muted-cell {
-  display: block;
-  font-size: 12.5px;
-  margin-bottom: 4px;
-}
-.till-pin-card .field {
-  margin-top: 12px;
-}
-.till-pin-card .btn {
-  margin-top: 14px;
-}
-.till-pin-card .ok-note,
-.till-pin-card .till-alert {
-  margin-top: 12px;
-}
-
-/* The scan tones (#247, grill Q8). The same narrow shape as the PIN card above,
-   and for the same reason: it is one switch somebody sets when the counter is
-   installed, not something a shift opens this page to look at. */
-.till-sound-card {
-  margin-top: 16px;
-  max-width: 420px;
-}
-.till-sound-card .muted-cell {
-  display: block;
-  font-size: 12.5px;
-}
+/* Scan sounds and the PIN sit side by side in .till-settings; set once, so
+   they come last. */
 .till-sound-row {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-top: 14px;
   flex-wrap: wrap;
 }
 .till-sound-row .btn {
@@ -150,15 +212,10 @@
   align-items: center;
   gap: 7px;
 }
-.till-sound-row .muted-cell {
-  margin: 0;
-}
 
-/* The two recovery cards (#189). Full width and above the counts, because a
-   counter that cannot bill is not something to scroll past. */
+/* The recovery cards (#189) sit above the counts, because a counter that
+   cannot bill is not something to scroll past. */
 .till-recover {
-  padding: 16px 18px;
-  margin-bottom: 18px;
   border-color: var(--red-bd);
 }
 .till-recover .h3 {
@@ -166,54 +223,42 @@
   align-items: center;
   gap: 8px;
   color: var(--red);
-  margin-bottom: 8px;
-}
-.till-recover .muted-cell {
-  display: block;
-  font-size: 12.5px;
-  margin-bottom: 14px;
-}
-.till-recover .till-alert {
-  margin-bottom: 12px;
 }
 
-.till-handover {
-  padding: 16px 18px;
-  margin-bottom: 18px;
-}
-.till-handover .h3 {
-  margin-bottom: 8px;
-}
-.till-handover .muted-cell {
-  display: block;
-  font-size: 12.5px;
-  margin-bottom: 12px;
-}
 .till-handover .field {
   max-width: 460px;
-  margin-bottom: 12px;
 }
 .till-handover-actions {
   display: flex;
   gap: 10px;
 }
-.till-handover .till-alert,
-.till-handover .ok-note {
-  margin-top: 12px;
-}
 
+.till-handover-ask,
 .till-reentry {
-  margin-top: 16px;
-  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.till-handover-ask > *,
+.till-reentry > * {
+  margin: 0;
+}
+.till-handover-ask .field {
+  max-width: 460px;
+}
+.till-handover-ask .btn,
+.till-reentry > .btn {
+  align-self: flex-start;
+}
+.till-reentry {
+  padding-top: 14px;
   border-top: 1px solid var(--hairline);
 }
 .till-reentry .h3 {
   font-size: 15px;
-  margin-bottom: 6px;
 }
 .till-reentry-list {
   list-style: none;
-  margin: 0 0 14px;
   padding: 0;
   max-width: 460px;
 }
@@ -245,22 +290,22 @@
 }
 
 .till-dev {
-  margin-top: 16px;
   border-style: dashed;
 }
-.till-dev .muted-cell {
-  display: block;
-  font-size: 12.5px;
-  margin-bottom: 12px;
+.till-dev .btn {
+  align-self: flex-start;
 }
 .till-dev-note {
   font-size: 12.5px;
   color: var(--muted);
-  margin: 10px 0 0;
 }
 
 @media (max-width: 1100px) {
-  .till-grid {
+  .till-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .till-grid,
+  .till-cols {
     grid-template-columns: 1fr;
   }
 }

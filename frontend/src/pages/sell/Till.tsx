@@ -61,7 +61,7 @@ export default function TillPage() {
   return (
     <div className="page-pad">
       <PageHeader
-        lead="What this counter holds offline, and what it still owes head office."
+        lead="Bills offline and sends them to head office."
         actions={
           <div className="till-actions">
             <SyncLight />
@@ -79,207 +79,262 @@ export default function TillPage() {
         }
       />
 
-      {till.status.colour !== "green" && (
-        <p
-          className={till.status.colour === "red" ? "till-alert" : "warn-note"}
-          data-testid="till-status-reason"
-        >
-          {till.status.colour === "red" && <AlertTriangle size={15} />}
-          {till.status.reason}
-        </p>
-      )}
-
-      {/* The page has already narrowed both to non-null, so the recovery cards
-          take them as props rather than reaching for the context again - one
-          way in, and no optional chaining over a value that cannot be null. */}
-      {till.storageLost && <RecoverCounter engine={engine} busy={till.busy} />}
-
-      {till.legacyStorageQuarantined && (
-        <section className="card" role="status">
-          <h3>Earlier counter data needs review</h3>
-          <p>
-            This browser contains an earlier store-label cache. Its bills and stock are preserved
-            and have not been uploaded or copied into this counter. Ask Owner or Admin to reconcile
-            it against the original tenant and device before recovering any bills.
-          </p>
-        </section>
-      )}
-
-      <Registration engine={engine} till={till} />
-
-      <Handover engine={engine} till={till} />
-
-      <PauseForTransfer engine={engine} till={till} />
-
-      {till.onlineAlpha && (
-        <section className="card">
-          <h3>{till.devicePaired ? "Counter pairing" : "Pair this browser"}</h3>
-          <p>Enter the one-time counter pairing code supplied by Owner or Admin.</p>
-          <label>
-            Pairing code{" "}
-            <input
-              type="password"
-              value={pairingCode}
-              onChange={(event) => setPairingCode(event.target.value)}
-              autoComplete="off"
-            />
-          </label>
-          <button
-            className="btn btn-primary"
-            onClick={() =>
-              void engine
-                .pairDevice(pairingCode)
-                .then(() => {
-                  setPairingCode("");
-                  setPairingMessage("This browser is paired.");
-                })
-                .catch((error) => setPairingMessage(String(error.message)))
-            }
+      <div className="till-stack">
+        {till.status.colour !== "green" && (
+          <p
+            className={till.status.colour === "red" ? "till-alert" : "warn-note"}
+            data-testid="till-status-reason"
           >
-            Pair counter
-          </button>
-          <p role="status">{pairingMessage}</p>
-        </section>
-      )}
-      {till.halt && (
-        <div className="card till-halt" data-testid="till-halt">
-          <h2 className="h3">Bill {till.halt.doc_number} was not accepted</h2>
-          <p className="till-halt-why">{till.halt.message}</p>
-          <p className="muted-cell">
-            Nothing has been lost - the bill is still here, and every bill behind it is waiting on
-            this one. Selling continues on the next number. Refused at{" "}
-            {formatDateTime(till.halt.at)} · {till.halt.code}
+            {till.status.colour === "red" && <AlertTriangle size={15} />}
+            {till.status.reason}
           </p>
-          <button
-            type="button"
-            className="btn"
-            data-testid="till-halt-retry"
-            onClick={() => void engine.retryHalted()}
-          >
-            Try this bill again
-          </button>
+        )}
+
+        {/* The page has already narrowed both to non-null, so the recovery cards
+            take them as props rather than reaching for the context again - one
+            way in, and no optional chaining over a value that cannot be null. */}
+        {till.storageLost && <RecoverCounter engine={engine} busy={till.busy} />}
+
+        {till.legacyStorageQuarantined && (
+          <section className="card till-card till-recover" role="status">
+            <h2 className="h3">
+              <AlertTriangle size={16} /> Earlier counter data needs review
+            </h2>
+            <p className="muted-cell">
+              This browser holds bills and stock from an earlier store cache. They are kept and not
+              uploaded. Ask Owner or Admin to reconcile them before recovering any bills.
+            </p>
+          </section>
+        )}
+
+        {till.halt && (
+          <div className="card till-card till-halt" data-testid="till-halt">
+            <h2 className="h3">Bill {till.halt.doc_number} was not accepted</h2>
+            <p className="till-halt-why">{till.halt.message}</p>
+            <p className="muted-cell">
+              The bill is kept. Later bills wait behind it; new bills carry on. Refused at{" "}
+              {formatDateTime(till.halt.at)} · {till.halt.code}
+            </p>
+            <div className="till-actions">
+              <button
+                type="button"
+                className="btn"
+                data-testid="till-halt-retry"
+                onClick={() => void engine.retryHalted()}
+              >
+                Try this bill again
+              </button>
+            </div>
+          </div>
+        )}
+
+        <Summary till={till} />
+
+        {/* Shown only while something is waiting: an empty queue is already the
+            0 in the summary above, and a heading over nothing is noise. */}
+        {till.queue.length > 0 && (
+          <section className="till-queue">
+            <h2 className="h3 till-queue-heading">
+              Waiting to sync <span className="chip">{till.pending}</span>
+            </h2>
+            <div className="table-wrap">
+              <table className="data" data-testid="till-queue">
+                <thead>
+                  <tr>
+                    <th>Bill</th>
+                    <th>Billed at</th>
+                    <th>Lines</th>
+                    <th className="num">Net</th>
+                    <th className="num">Tries</th>
+                    <th>Last answer</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {till.queue.map((bill) => (
+                    <tr key={bill.idempotency_uuid}>
+                      <td>{bill.doc_number}</td>
+                      <td>{formatDateTime(bill.billed_at)}</td>
+                      <td>{bill.lines.length}</td>
+                      <td className="num">
+                        <Money paise={bill.totals.net_paise} />
+                      </td>
+                      <td className="num">{bill.attempts}</td>
+                      <td className="muted-cell">{bill.last_error || "not tried yet"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        <div className="till-grid">
+          <Registration engine={engine} till={till} />
+
+          <section className="card till-card">
+            <h2 className="h3">Head office</h2>
+            {till.register ? (
+              <>
+                <Row label="Financial year" value={till.register.fy} />
+                <Row
+                  label="Last bill accepted"
+                  value={String(till.register.last_accepted_seq)}
+                  testId="till-register-last"
+                />
+                <Row
+                  label="Bill series open"
+                  value={till.register.series_open ? "Yes" : "No - bills will not sync"}
+                />
+                <Row
+                  label="Missing bill numbers"
+                  value={
+                    till.register.hole_count
+                      ? `${till.register.hole_count} (${till.register.holes.slice(0, 8).join(", ")}${
+                          till.register.hole_count > 8 ? "…" : ""
+                        })`
+                      : "None"
+                  }
+                />
+              </>
+            ) : (
+              <p className="muted-cell">Not checked yet. Sync to find out.</p>
+            )}
+          </section>
         </div>
-      )}
 
-      <div className="till-grid">
         <section className="card till-card">
-          <h2 className="h3">This counter</h2>
-          <Row label="Store" value={till.storeCode} />
-          <Row label="Next bill number" value={till.nextNumber} testId="till-next-number" />
-          <Row
-            label="Price list last synced"
-            value={till.syncedAt ? formatDateTime(till.syncedAt) : "Never"}
-          />
-          <Row label="Connection" value={till.online ? "Online" : "Offline"} />
+          <h2 className="h3">On this counter</h2>
+          <div className="till-cols">
+            <div>
+              <h3 className="till-col-head">Data</h3>
+              <Row label="Items" value={String(till.counts.items)} />
+              <Row label="Stock lines" value={String(till.counts.stock)} />
+              <Row label="Offers" value={String(till.counts.offers)} />
+              <Row label="Salespeople" value={String(till.counts.salespeople)} />
+              <Row label="Managers" value={String(till.counts.managers)} />
+              <Row label="Customers" value={String(till.counts.customers)} />
+              <Row label="Tax slabs" value={String(till.counts.gstSlabs)} />
+            </div>
+            <div>
+              <h3 className="till-col-head">Rules</h3>
+              <Row
+                label="Tax settings"
+                value={taxSettingsNote(till.taxSettings)}
+                testId="till-tax-settings"
+              />
+              <Row
+                label="Invoice numbers"
+                value={numberingNote(till.numbering)}
+                testId="till-invoice-numbers"
+              />
+              <Row
+                label="Offline limits"
+                value={till.onlineOnlyRefusals ? "No B2B bills or credit notes offline" : "Off"}
+                testId="till-online-only"
+              />
+              <Row
+                label="Manager PIN"
+                value={till.managerPinRules ? "Another manager's PIN, never the cashier's" : "Off"}
+                testId="till-manager-pin"
+              />
+            </div>
+          </div>
         </section>
 
-        <section className="card till-card">
-          <h2 className="h3">Head office has</h2>
-          {till.register ? (
-            <>
-              <Row label="Financial year" value={till.register.fy} />
-              <Row
-                label="Last bill accepted"
-                value={String(till.register.last_accepted_seq)}
-                testId="till-register-last"
-              />
-              <Row
-                label="Bill series open"
-                value={till.register.series_open ? "Yes" : "No - bills will not sync"}
-              />
-              <Row
-                label="Numbers never received"
-                value={
-                  till.register.hole_count
-                    ? `${till.register.hole_count} (${till.register.holes.slice(0, 8).join(", ")}${
-                        till.register.hole_count > 8 ? "…" : ""
-                      })`
-                    : "None"
+        <PauseForTransfer engine={engine} till={till} />
+
+        <Handover engine={engine} till={till} />
+
+        {till.onlineAlpha && (
+          <section className="card till-card">
+            <h2 className="h3">{till.devicePaired ? "Counter pairing" : "Pair this browser"}</h2>
+            <p className="muted-cell">Enter the one-time pairing code from Owner or Admin.</p>
+            <div className="till-inline-form">
+              <label className="field">
+                <span>Pairing code</span>
+                <input
+                  className="input"
+                  type="password"
+                  value={pairingCode}
+                  onChange={(event) => setPairingCode(event.target.value)}
+                  autoComplete="off"
+                />
+              </label>
+              <button
+                className="btn btn-primary"
+                onClick={() =>
+                  void engine
+                    .pairDevice(pairingCode)
+                    .then(() => {
+                      setPairingCode("");
+                      setPairingMessage("This browser is paired.");
+                    })
+                    .catch((error) => setPairingMessage(String(error.message)))
                 }
-              />
-            </>
-          ) : (
-            <p className="muted-cell">Not asked yet - sync to find out.</p>
-          )}
-        </section>
+              >
+                Pair counter
+              </button>
+            </div>
+            {pairingMessage && <p role="status">{pairingMessage}</p>}
+          </section>
+        )}
 
-        <section className="card till-card">
-          <h2 className="h3">Held locally</h2>
-          <Row label="Pieces (barcode × season)" value={String(till.counts.items)} />
-          <Row label="Stock rows" value={String(till.counts.stock)} />
-          <Row label="Offers" value={String(till.counts.offers)} />
-          <Row label="Salespeople" value={String(till.counts.salespeople)} />
-          <Row label="Managers who can authorise" value={String(till.counts.managers)} />
-          <Row label="Tax slabs" value={String(till.counts.gstSlabs)} />
-          <Row
-            label="Tax settings"
-            value={taxSettingsNote(till.taxSettings)}
-            testId="till-tax-settings"
-          />
-          <Row
-            label="Invoice numbers"
-            value={numberingNote(till.numbering)}
-            testId="till-invoice-numbers"
-          />
-          <Row
-            label="Offline refusals"
-            value={till.onlineOnlyRefusals ? "On: offline, no B2B bill and no credit note" : "Off"}
-            testId="till-online-only"
-          />
-          <Row
-            label="Manager PIN"
-            value={
-              till.managerPinRules ? "On: another manager's own PIN, never the cashier's" : "Off"
-            }
-            testId="till-manager-pin"
-          />
-          <Row label="Customers known" value={String(till.counts.customers)} />
-        </section>
-      </div>
-
-      <h2 className="h3 till-queue-heading">
-        Waiting to sync <span className="chip">{till.pending}</span>
-      </h2>
-      {till.queue.length === 0 ? (
-        <p className="muted-cell" data-testid="till-queue-empty">
-          Nothing waiting. Every bill this counter has printed is with head office.
-        </p>
-      ) : (
-        <div className="table-wrap">
-          <table className="data" data-testid="till-queue">
-            <thead>
-              <tr>
-                <th>Bill</th>
-                <th>Billed at</th>
-                <th>Lines</th>
-                <th className="num">Net</th>
-                <th className="num">Tries</th>
-                <th>Last answer</th>
-              </tr>
-            </thead>
-            <tbody>
-              {till.queue.map((bill) => (
-                <tr key={bill.idempotency_uuid}>
-                  <td>{bill.doc_number}</td>
-                  <td>{formatDateTime(bill.billed_at)}</td>
-                  <td>{bill.lines.length}</td>
-                  <td className="num">
-                    <Money paise={bill.totals.net_paise} />
-                  </td>
-                  <td className="num">{bill.attempts}</td>
-                  <td className="muted-cell">{bill.last_error || "not tried yet"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="till-settings">
+          <ScanSounds engine={engine} muted={till.muted} />
+          <CounterPin />
         </div>
-      )}
-
-      <ScanSounds engine={engine} muted={till.muted} />
-      <CounterPin />
-      <TestBill />
+        <TestBill />
+      </div>
     </div>
   );
+}
+
+/** The four things a cashier opens this page to check, read off the snapshot the
+ *  cards below already show - a second place to look, never a second source. */
+function Summary({ till }: { till: TillSnapshot }) {
+  return (
+    <div className="till-summary" data-testid="till-summary">
+      <Tile label="Next bill" value={till.nextNumber || "—"} />
+      <Tile
+        label="Waiting to sync"
+        value={String(till.pending)}
+        tone={till.pending ? "amber" : undefined}
+      />
+      <Tile
+        label="Offline billing"
+        value={windowLeft(till.authority)}
+        tone={till.authority.expired ? "red" : undefined}
+      />
+      <Tile label="Last synced" value={till.syncedAt ? formatDateTime(till.syncedAt) : "Never"} />
+    </div>
+  );
+}
+
+function Tile({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone?: "amber" | "red" | undefined;
+}) {
+  return (
+    <div className={`card till-tile${tone ? ` till-tile-${tone}` : ""}`}>
+      <span className="till-tile-label">{label}</span>
+      <span className="till-tile-value">{value}</span>
+    </div>
+  );
+}
+
+/** The billing window in a tile's few words. `describeAuthority` keeps the
+ *  sentence other screens print. */
+function windowLeft(state: TillSnapshot["authority"]): string {
+  if (!state.known) return "No window";
+  if (state.expired) return "Expired";
+  const hours = Math.floor(state.remainingMs / 3_600_000);
+  if (hours >= 1) return `About ${hours} h left`;
+  return `About ${Math.max(1, Math.round(state.remainingMs / 60_000))} min left`;
 }
 
 /**
@@ -338,7 +393,9 @@ function Registration({ engine, till }: { engine: TillEngine; till: TillSnapshot
 
   return (
     <section className="card till-card" data-testid="till-registration">
-      <h2 className="h3">This device as the counter</h2>
+      <h2 className="h3">Counter</h2>
+      <Row label="Store" value={till.storeCode} />
+      <Row label="Connection" value={till.online ? "Online" : "Offline"} />
       <Row
         label="Registered"
         value={registered ? `Yes · counter ${identity?.counter_id}` : "No"}
@@ -354,16 +411,14 @@ function Registration({ engine, till }: { engine: TillEngine; till: TillSnapshot
           <Row
             label="Billing window"
             value={
-              till.authority.until
-                ? `${describeAuthority(till.authority)} (until ${formatDateTime(
-                    till.authority.until,
-                  )})`
+              till.authority.until && !till.authority.expired
+                ? `Open until ${formatDateTime(till.authority.until)}`
                 : describeAuthority(till.authority)
             }
             testId="till-authority"
           />
           <Row
-            label="Stock version held"
+            label="Stock version"
             value={
               identity?.working_set_version === null || identity?.working_set_version === undefined
                 ? "—"
@@ -375,15 +430,13 @@ function Registration({ engine, till }: { engine: TillEngine; till: TillSnapshot
       )}
       {!registered && (
         <p className="muted-cell" data-testid="till-not-registered">
-          This machine is not the store&rsquo;s registered counter. Until it is, it numbers bills
-          the way this store always has and has no 24-hour offline window of its own.
+          Not this store&rsquo;s counter. No 24-hour offline window.
         </p>
       )}
       {till.authority.expired && (
         <p className="till-alert" data-testid="till-authority-expired">
           <AlertTriangle size={15} />
-          {AUTHORITY_EXPIRED}. Every bill already taken is safe and still queued; this counter
-          cannot start a new one until it renews.
+          {AUTHORITY_EXPIRED}. Saved bills are safe. Renew to bill again.
         </p>
       )}
       {failed && (
@@ -436,12 +489,11 @@ function Registration({ engine, till }: { engine: TillEngine; till: TillSnapshot
       {mayRegister && replacing && (
         <div className="till-handover-ask" data-testid="till-replace-ask">
           <p className="muted-cell">
-            The new device gets its own counter number, so no bill it prints can read the same as
-            one the old machine printed. Bills the old machine never sent stay missing until
-            somebody keys them in from their printed copies.
+            This device gets a new counter number. Unsent bills from the old one must be keyed in
+            from the printed copies.
           </p>
           <label className="field">
-            <span>Why is the counter moving?</span>
+            <span>Reason</span>
             <input
               value={reason}
               data-testid="till-replace-reason"
@@ -488,18 +540,13 @@ function RecoverCounter({ engine, busy }: { engine: TillEngine; busy: boolean })
   }
 
   return (
-    <section className="card till-recover" data-testid="till-recover">
+    <section className="card till-card till-recover" data-testid="till-recover">
       <h2 className="h3">
         <AlertTriangle size={16} /> This counter lost its local data
       </h2>
-      <p className="till-halt-why">
-        The browser cleared what this till had stored - the price list, and the bill number it was
-        on. Nothing that had already synced is lost, but this device does not know where the
-        store&rsquo;s bill numbers have got to, so it will not take a bill until it has asked.
-      </p>
       <p className="muted-cell">
-        Recovering takes the whole price list again and asks head office how far this store&rsquo;s
-        bills have got. The next bill number will move; the screen will say what it moved to.
+        This browser lost the counter&rsquo;s data. Synced bills are safe. Recover to fetch the
+        price list and the latest bill number before billing.
       </p>
       {failed && (
         <p className="till-alert" data-testid="till-recover-failed">
@@ -570,15 +617,14 @@ function Handover({ engine, till }: { engine: TillEngine; till: TillSnapshot }) 
   }
 
   return (
-    <section className="card till-handover" data-testid="till-handover">
-      <h2 className="h3">Register handover</h2>
+    <section className="card till-card till-handover" data-testid="till-handover">
+      <h2 className="h3">Move counter to this machine</h2>
 
       {mayHandOver && !asking && (
         <>
           <p className="muted-cell">
-            Use this when the counter machine has been replaced or will not come back. This device
-            takes over the store&rsquo;s bill numbers, and whatever the old machine printed but
-            never sent is listed here to be keyed back in from the printed copies.
+            Use when the counter machine is replaced or broken. Bills it never sent are listed here
+            to key in again.
           </p>
           <button
             type="button"
@@ -597,12 +643,8 @@ function Handover({ engine, till }: { engine: TillEngine; till: TillSnapshot }) 
 
       {mayHandOver && asking && (
         <>
-          <p className="muted-cell">
-            Say what happened. It is recorded against your name, and it is what explains the gap in
-            this store&rsquo;s bill numbers to whoever asks later.
-          </p>
           <div className="field">
-            <label htmlFor="till-handover-reason">Why is the counter moving?</label>
+            <label htmlFor="till-handover-reason">Reason (recorded with your name)</label>
             <input
               id="till-handover-reason"
               className="input"
@@ -697,21 +739,13 @@ function PaperReentry({
     <div className="till-reentry" data-testid="till-reentry">
       <h3 className="h3">Bills to key in from the printed copies</h3>
       <p className="muted-cell">
-        Handed over {formatDateTime(handover.at)}. These numbers were printed on the old machine and
-        never reached head office. Find each printed copy and enter it again under the same number -
-        the customer keeps the one they have.
-        {stillHidden > 0 && (
-          <>
-            {" "}
-            {stillHidden} more are missing than can be listed at once; they appear here as these are
-            entered and sync.
-          </>
-        )}
+        Handed over {formatDateTime(handover.at)}. Key in each printed bill under its own number.
+        {stillHidden > 0 && <> {stillHidden} more appear as these sync.</>}
       </p>
 
       {listed.length === 0 ? (
         <p className="muted-cell" data-testid="till-reentry-none">
-          Nothing left to enter - head office has every bill this list named.
+          Nothing left to enter.
         </p>
       ) : (
         <ul className="till-reentry-list">
@@ -784,22 +818,19 @@ function PauseForTransfer({ engine, till }: { engine: TillEngine; till: TillSnap
 
   return (
     <section className="card till-card" data-testid="till-pause">
-      <h2 className="h3">Pause for a transfer or reviewed stock count</h2>
+      <h2 className="h3">Pause billing</h2>
       {pause && (
         <>
           <p className="till-alert" data-testid="till-pause-state" data-stage={pause.stage}>
             <AlertTriangle size={15} />
             {pause.stage === "pausing"
-              ? "Billing is paused, but head office has not confirmed the release yet."
+              ? "Billing paused. Waiting for head office to release the stock."
               : pause.stage === "resuming"
-                ? "Billing stays paused until a fresh stock copy has arrived."
-                : "Billing is paused and the stock is released. A transfer or reviewed stock count can proceed once its other checks pass."}
+                ? "Billing paused until a fresh stock copy arrives."
+                : "Billing paused. Stock released for the transfer or count."}
           </p>
-          <p className="muted-cell">Reason: {pause.reason}</p>
           <p className="muted-cell" data-testid="till-pause-warning">
-            Resume once the transfer or stock count is complete, or you no longer need it. A stock
-            count freezes billing until it is approved or cancelled. Resuming before a transfer or
-            count starts requires a new pause before it can proceed.
+            Reason: {pause.reason}. Resume when the transfer or count is done.
           </p>
           <div className="till-actions">
             {pause.stage === "pausing" && (
@@ -811,7 +842,7 @@ function PauseForTransfer({ engine, till }: { engine: TillEngine; till: TillSnap
                 onClick={() =>
                   void run(
                     () => engine.pauseForTransfer(pause.reason),
-                    "Released. Continue the transfer or reviewed stock count after its other checks pass.",
+                    "Stock released. Continue the transfer or count.",
                   )
                 }
               >
@@ -823,9 +854,7 @@ function PauseForTransfer({ engine, till }: { engine: TillEngine; till: TillSnap
               className="btn btn-cta"
               data-testid="till-pause-resume"
               disabled={busy}
-              onClick={() =>
-                void run(() => engine.resume(), "Billing is back on, with a fresh stock copy.")
-              }
+              onClick={() => void run(() => engine.resume(), "Billing resumed with fresh stock.")}
             >
               {busy ? "Working…" : "Resume billing"}
             </button>
@@ -834,44 +863,43 @@ function PauseForTransfer({ engine, till }: { engine: TillEngine; till: TillSnap
       )}
       {!pause && allocationVersion === null && (
         <p className="muted-cell" data-testid="till-pause-none">
-          This counter is holding no stock. A reviewed stock count still requires a recorded pause
-          and a fully reconciled bill frontier.
+          This counter holds no stock. A stock count still needs a pause with every bill synced.
         </p>
       )}
       {!pause && allocationVersion !== null && (
         <>
           <p className="muted-cell" data-testid="till-pause-held">
-            This counter holds the store&rsquo;s stock (working set {allocationVersion}). Before a
-            transfer or reviewed stock count, pause billing. Every bill must have synced first.
-            Billing stays paused, even if the line drops or the browser restarts, until you resume
-            it here.
+            Pause before a stock transfer or stock count. All bills must be synced. Billing stays
+            off until you resume.
           </p>
-          <div className="field">
-            <label htmlFor="till-pause-reason">Why is billing being paused?</label>
-            <input
-              id="till-pause-reason"
-              className="input"
-              data-testid="till-pause-reason"
-              autoComplete="off"
-              disabled={busy}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-            />
+          <div className="till-inline-form">
+            <div className="field">
+              <label htmlFor="till-pause-reason">Reason</label>
+              <input
+                id="till-pause-reason"
+                className="input"
+                data-testid="till-pause-reason"
+                autoComplete="off"
+                disabled={busy}
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+              />
+            </div>
+            <button
+              type="button"
+              className="btn btn-cta"
+              data-testid="till-pause-go"
+              disabled={busy || !reason.trim()}
+              onClick={() =>
+                void run(
+                  () => engine.pauseForTransfer(reason),
+                  "Paused. Continue the transfer or count.",
+                )
+              }
+            >
+              {busy ? "Working…" : "Pause billing"}
+            </button>
           </div>
-          <button
-            type="button"
-            className="btn btn-cta"
-            data-testid="till-pause-go"
-            disabled={busy || !reason.trim()}
-            onClick={() =>
-              void run(
-                () => engine.pauseForTransfer(reason),
-                "Paused and released. Continue the transfer or reviewed stock count after its other checks pass.",
-              )
-            }
-          >
-            {busy ? "Working…" : "Pause billing and release the stock"}
-          </button>
         </>
       )}
       {failed && (
@@ -930,7 +958,7 @@ function CounterPin() {
       setPin("");
       setPassword("");
       setHasPin(true);
-      setSaid("Your counter PIN is set. This does not grant approval authority.");
+      setSaid("Your counter PIN is set.");
     } catch (error) {
       setFailed(apiErrorMessage(error));
     } finally {
@@ -943,12 +971,12 @@ function CounterPin() {
       <h2 className="h3">Your counter PIN</h2>
       <p className="muted-cell">
         {hasPin
-          ? "You have one. Setting a new one replaces it everywhere on the next sync."
-          : "Set your personal counter PIN. Approval actions require their own authorised review."}
+          ? "You have a PIN. A new one replaces it on the next sync."
+          : "Your PIN for manager approvals at the counter."}
       </p>
 
       <div className="field">
-        <label htmlFor="till-pin-new">New PIN (4 to 6 digits)</label>
+        <label htmlFor="till-pin-new">New PIN (4–6 digits)</label>
         <input
           id="till-pin-new"
           className="input"
@@ -1017,9 +1045,7 @@ function ScanSounds({ engine, muted }: { engine: TillEngine; muted: boolean }) {
     <section className="card till-card till-sound-card">
       <h2 className="h3">Scan sounds</h2>
       <p className="muted-cell">
-        A short tick when a scan puts a piece on the bill, and a different, lower buzz when it does
-        not - an unknown tag, or a piece still waiting to be told which season it is. Set on this
-        counter, and it stays set.
+        Tick on a good scan, buzz on a problem. Set for this counter only.
       </p>
       <div className="till-sound-row">
         <button
@@ -1038,7 +1064,7 @@ function ScanSounds({ engine, muted }: { engine: TillEngine; muted: boolean }) {
           {muted ? "Turn the sounds on" : "Turn the sounds off"}
         </button>
         <span className="muted-cell" data-testid="till-sound-state">
-          {muted ? "Silent." : "This counter ticks and buzzes."}
+          {muted ? "Off" : "On"}
         </span>
       </div>
     </section>
@@ -1145,10 +1171,7 @@ function TestBill() {
   return (
     <section className="card till-card till-dev">
       <h2 className="h3">Development only</h2>
-      <p className="muted-cell">
-        Numbers one piece from the local price list at its ticket price, queues it, and lets the
-        sync engine take it to the server - the whole spine, without the billing screen.
-      </p>
+      <p className="muted-cell">Queues a one-piece bill from the local price list and syncs it.</p>
       <button
         type="button"
         className="btn"
