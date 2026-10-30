@@ -35,6 +35,7 @@ import type { SwitcherOption } from "./unitSwitcher";
 import { usePositionedPopover } from "./usePositionedPopover";
 import { useDensity } from "../theme/density";
 import { useRoutePrefetch } from "./useRoutePrefetch";
+import { useSessionWarmup } from "./useSessionWarmup";
 import "./AppShell.css";
 
 const SIDEBAR_WIDTH_KEY = "kdps-sidebar-width";
@@ -701,6 +702,8 @@ export function SectionTabsProvider({ children }: { children: ReactNode }) {
 
 export function AppShell({ children, room }: { children: ReactNode; room?: Room }) {
   const { activeStore, activeBrand, session } = useAuth();
+  // Sign-in bootstrap and landing-screen warm-up (caching plan Phase 2).
+  useSessionWarmup();
   const testEnvironment = Boolean(session?.test_environment);
   const { pathname: shellPath } = useLocation();
   // The print adapter is not a React consumer, so it reads the flag from here.

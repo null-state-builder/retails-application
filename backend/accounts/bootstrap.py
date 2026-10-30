@@ -182,7 +182,7 @@ BOOTSTRAP_RESPONSE: dict[str, Any] = {
 
 
 class BootstrapView(APIView):
-    """E003: one round trip of reference masters and action-needed counts.
+    """Sign-in bootstrap: one round trip of reference masters and action-needed counts.
 
     Authorises nothing itself beyond being signed in; each block is gated by its
     own endpoint (see the module docstring). A temporary-password session is

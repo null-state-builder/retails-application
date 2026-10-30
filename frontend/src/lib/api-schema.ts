@@ -488,6 +488,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/bootstrap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description Sign-in bootstrap: one round trip of reference masters and action-needed counts.
+         *
+         *     Authorises nothing itself beyond being signed in; each block is gated by its
+         *     own endpoint (see the module docstring). A temporary-password session is
+         *     refused by the session authentication like any business read.
+         */
+        get: operations["auth_bootstrap_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/change-password": {
         parameters: {
             query?: never;
@@ -20310,6 +20333,67 @@ export interface operations {
                 content: {
                     "application/json": {
                         [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
+    auth_bootstrap_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @enum {string} */
+                        contract_version: "bootstrap-v1";
+                        ref_version: string;
+                        /** @description Each key is the exact frontend URL (without /api) of an existing endpoint; each value is that endpoint's 200 answer for this caller. A block the endpoint would refuse is absent. */
+                        blocks: {
+                            [key: string]: unknown;
+                        };
+                        /** @description Action-needed counts; a source the caller may not read is absent. */
+                        counts: {
+                            [key: string]: number;
+                        };
+                    };
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
+                    };
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        code?: string;
+                        error?: string;
+                        details?: {
+                            [key: string]: unknown;
+                        };
+                        retryable?: boolean;
                     };
                 };
             };
