@@ -84,6 +84,29 @@ Back up nightly with `crontab -e`:
 Copy `~/backups` off the server regularly. A backup that only lives on the same
 VPS is lost with it.
 
+## Frontend build stamp
+
+Each frontend build is stamped with a build id, and the back office throws away
+any copy of reference data it saved on the device under a different build. The
+id comes from `KDPS_BUILD_ID`, else Vercel's `VERCEL_GIT_COMMIT_SHA` (set
+automatically on Vercel), else the local git commit, else only the package
+version. A frontend built anywhere else without `.git` (a server-side or Docker
+build) must set `KDPS_BUILD_ID`, for example to the commit being deployed:
+`KDPS_BUILD_ID=$(git rev-parse --short=12 HEAD) yarn build`. Without it, every
+such build shares one stamp and a new deploy can show the previous build's saved
+copy until it is refreshed.
+
+## Revalidated reads (304)
+
+The back office's hottest reads answer with an `ETag` and `Cache-Control:
+no-store, private`, and the app sends `If-None-Match` itself, so a refresh that
+finds nothing changed is a `304` with no body (`backend/core/conditional_get.py`).
+Caddy's `encode` and Vercel's `/api` rewrite must pass `ETag` and
+`If-None-Match` through; the API also accepts an ETag that Caddy marked with its
+encoding (`"…-gzip"`). To check after a deploy, open the back office, reload a
+screen such as Setup → Stores, and look for `304` on `/api/masters/stores` in
+the browser's network panel.
+
 ## Rehearsal (on a laptop, before touching the server)
 
 `deploy/compose.rehearsal.yaml` runs this same stack locally: the same Postgres 18
