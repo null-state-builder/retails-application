@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 
 import { Note } from "../components/Note";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
-import { apiErrorMessage, typedApi } from "../lib/api";
+import { apiErrorMessage } from "../lib/api";
+import { useCachedGet } from "../lib/cachedQuery";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 
 type Payload = ApiRead<ApiSchemas["MissingHsn"]>;
@@ -18,25 +19,12 @@ type Payload = ApiRead<ApiSchemas["MissingHsn"]>;
  *  and reissue that PT with the HSN from the brand's invoice. Read-only; only
  *  stores in the person's own scope, and only where the switch is on. */
 export function MissingHsnPage() {
-  const [data, setData] = useState<Payload | null>(null);
   const [siteId, setSiteId] = useState<number | null>(null);
-  const [error, setError] = useState("");
-
-  const load = useCallback(async (site: number | null) => {
-    setError("");
-    try {
-      const response = await typedApi.get("/goods-v1/sell/missing-hsn", {
-        params: site ? { site_id: site } : {},
-      });
-      setData(response.data as Payload);
-    } catch (reason) {
-      setError(apiErrorMessage(reason));
-    }
-  }, []);
-
-  useEffect(() => {
-    void load(siteId);
-  }, [load, siteId]);
+  // From the shared cache: a revisit shows the last answer at once and
+  // refreshes it behind it.
+  const read = useCachedGet<Payload>("/goods-v1/sell/missing-hsn", { params: { site_id: siteId } });
+  const data = read.data ?? null;
+  const error = read.error !== null ? apiErrorMessage(read.error) : "";
 
   return (
     <OperationsPage>

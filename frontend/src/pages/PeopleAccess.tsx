@@ -18,6 +18,7 @@ import { useSearchParams } from "react-router-dom";
 
 import type { paths } from "../lib/api-schema";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
+import { useCachedGet } from "../lib/cachedQuery";
 import {
   Denied,
   Feedback,
@@ -134,18 +135,9 @@ function useAdminMeta() {
 // its own tiny fetch rather than stretching `useGoodsFetch`'s resource shape
 // to fit.
 function useResourceListRaw<T>(url: string) {
-  const [value, setValue] = useState<T | null>(null);
-  useEffect(() => {
-    let live = true;
-    api
-      .get<T>(url)
-      .then((r) => live && setValue(r.data))
-      .catch(() => undefined);
-    return () => {
-      live = false;
-    };
-  }, [url]);
-  return { value };
+  // Shared cache: a failure leaves the names unresolved, as before.
+  const { data } = useCachedGet<T>(url);
+  return { value: data ?? null };
 }
 
 function siteName(meta: AdminMeta | null, siteId: string | null): string {
