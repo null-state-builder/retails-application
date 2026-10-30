@@ -16,6 +16,8 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const srcDir = join(root, "src");
 const args = new Set(process.argv.slice(2));
 const print = (line = "") => process.stdout.write(`${line}\n`);
+// Piping into `head` closes stdout early; that is not an error.
+process.stdout.on("error", (e) => (e.code === "EPIPE" ? process.exit(0) : Promise.reject(e)));
 
 // v2 type scale (tokens.json, type.note). Anything else is off-scale.
 const SCALE = new Set([12, 13, 14, 16, 20, 24, 32, 44, 56]);
