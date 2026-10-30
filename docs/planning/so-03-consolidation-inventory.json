@@ -20959,6 +20959,34 @@
       "lifecycle": "canonical"
     },
     {
+      "id": "APP-CACHE-201",
+      "kind": "middleware",
+      "key_regex": "^middleware:core\\.conditional_get\\.ConditionalApiGetMiddleware$",
+      "primary_id": "P00",
+      "related_ids": [
+        "C01",
+        "C04",
+        "C06",
+        "C15"
+      ],
+      "lifecycle": "canonical",
+      "gate": "ETag/304 transport layer for the back office's hottest reads (app loading and caching plan, Phase 3); module APP-CACHE-202. Runs after the view: never authorises, scopes or writes anything, touches only a 200 JSON answer on its exact path allowlist, and keeps it no-store, private. When SO-04/SO-07/SO-08/SO-14 move one of those screens' URLs, move the path in CONDITIONAL_PATHS with it; tests/test_conditional_get.py proves 304, change, cross-caller and denial behaviour."
+    },
+    {
+      "id": "APP-CACHE-202",
+      "kind": "module",
+      "key_regex": "^module:core\\.conditional_get$",
+      "primary_id": "P00",
+      "related_ids": [
+        "C01",
+        "C04",
+        "C06",
+        "C15"
+      ],
+      "lifecycle": "canonical",
+      "gate": "Module behind APP-CACHE-201 (caching plan Phase 3). The ETag is a digest of the exact body the view rendered for the caller, mixed with tenant, user and the X-KDPS-Unit/X-KDPS-Brand headers, computed after authorisation; a refused or non-200 answer is never touched. Path allowlist: the bootstrap's masters/vendors readers (C01/C04), /api/auth/bootstrap, the approvals/alerts inboxes (C15) and legacy stock on-hand/summary (C06). Move a path with its screen when SO-04/SO-07/SO-08/SO-14 retire it."
+    },
+    {
       "id": "F0001",
       "kind": "api_consumer",
       "key_regex": "^api_consumer:frontend/src/pages/GoodsMonitoring\\.tsx:d82480d79d62$",
@@ -25358,7 +25386,7 @@
     }
   ],
   "discovered": {
-    "checksum": "0e10c705303af1ab263de0d2032a03c02bbbf899a66a39cd2522f1d62a25ac50",
+    "checksum": "5146c0432304cf8229e558c5b8cf12cf2135c63c09422367ec07604e7f0b3bb3",
     "records": [
       {
         "kind": "api",
@@ -191533,6 +191561,76 @@
       },
       {
         "kind": "middleware",
+        "key": "middleware:core.conditional_get.ConditionalApiGetMiddleware",
+        "source": "backend/core/conditional_get.py",
+        "detail": {
+          "callable": "core.conditional_get.ConditionalApiGetMiddleware",
+          "module": "core.conditional_get",
+          "position": 11
+        },
+        "primary_id": "P00",
+        "owner": "SO-02",
+        "related_ids": [
+          "C01",
+          "C04",
+          "C06",
+          "C15"
+        ],
+        "lifecycle": "canonical",
+        "data_ownership": "Platform-owned configuration and infrastructure",
+        "authorization": "Platform exposure and operator authentication require separate review.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "source_module_static",
+          "source_module": "module:core.conditional_get",
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "source_file_static_candidates",
+          "read_candidates": [
+            "request.META.get",
+            "request.headers.get",
+            "response.get"
+          ],
+          "write_candidates": [
+            "digest.update"
+          ],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "access_contract": {
+          "trace_status": "pending",
+          "actor_type": "unreviewed",
+          "required_action": "unreviewed",
+          "scope_source": "unreviewed",
+          "protected_fields": "unreviewed",
+          "delivery_recheck": "unreviewed",
+          "named_tests": [],
+          "reviewed_chain": "Static candidates do not establish runtime access coverage."
+        },
+        "replacement": "Supported platform endpoints with security review",
+        "migration_requirements": "No business transaction migration.",
+        "acceptance_evidence": "Platform exposure and deployment checks.",
+        "removal_condition": "Retain while required by deployment; remove only through platform change review.",
+        "rule_id": "APP-CACHE-201"
+      },
+      {
+        "kind": "middleware",
         "key": "middleware:corsheaders.middleware.CorsMiddleware",
         "source": "backend/config/settings.py",
         "detail": {
@@ -270813,6 +270911,74 @@
         "acceptance_evidence": "Platform exposure and deployment checks.",
         "removal_condition": "Retain while required by deployment; remove only through platform change review.",
         "rule_id": "S2114"
+      },
+      {
+        "kind": "module",
+        "key": "module:core.conditional_get",
+        "source": "backend/core/conditional_get.py",
+        "detail": {
+          "imports": [],
+          "read_candidates": [
+            "request.META.get",
+            "request.headers.get",
+            "response.get"
+          ],
+          "write_candidates": [
+            "digest.update"
+          ],
+          "authorization_candidates": [],
+          "tags": []
+        },
+        "primary_id": "P00",
+        "owner": "SO-02",
+        "related_ids": [
+          "C01",
+          "C04",
+          "C06",
+          "C15"
+        ],
+        "lifecycle": "canonical",
+        "data_ownership": "Platform-owned configuration and infrastructure",
+        "authorization": "Platform exposure and operator authentication require separate review.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "source_module_static",
+          "source_module": "module:core.conditional_get",
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "source_file_static_candidates",
+          "read_candidates": [
+            "request.META.get",
+            "request.headers.get",
+            "response.get"
+          ],
+          "write_candidates": [
+            "digest.update"
+          ],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "replacement": "Supported platform endpoints with security review",
+        "migration_requirements": "No business transaction migration.",
+        "acceptance_evidence": "Platform exposure and deployment checks.",
+        "removal_condition": "Retain while required by deployment; remove only through platform change review.",
+        "rule_id": "APP-CACHE-202"
       },
       {
         "kind": "module",
