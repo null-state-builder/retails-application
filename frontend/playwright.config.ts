@@ -3,7 +3,12 @@ import { fileURLToPath } from "node:url";
 
 export default defineConfig({
   testDir: "./browser",
-  testIgnore: ["manager-workspace.spec.ts", "first-store-*.spec.ts"],
+  testIgnore: [
+    "manager-workspace.spec.ts",
+    "first-store-*.spec.ts",
+    // Screenshots of a running rehearsal app, not a pass/fail test: see playwright.visual.config.ts.
+    "visual-baseline.spec.ts",
+  ],
   fullyParallel: false,
   forbidOnly: true,
   retries: process.env.CI ? 1 : 0,
