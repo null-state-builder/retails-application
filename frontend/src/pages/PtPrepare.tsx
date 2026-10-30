@@ -53,6 +53,7 @@ import {
   type Page,
   type ResourceDTO,
 } from "../lib/goodsScreen";
+import { useCachedQuery } from "../lib/cachedQuery";
 import { apiErrorIssues, type ApiIssue } from "../lib/goodsAcceptance";
 import {
   coverableQty,
@@ -166,6 +167,7 @@ function pinnableVersionId(config: ConfigSummary): string | null {
 
 /** The evidence kind a brand's own file is uploaded as: the one upload that
  *  also takes .xls, .xlsb and .csv (Anand, 23 September 2026). */
+const NO_LINES: GridLine[] = [];
 const BRAND_FILE_KIND = "pt_brand";
 const BRAND_FILE_TYPES = ".xlsx,.xls,.xlsb,.csv";
 
@@ -672,32 +674,35 @@ export function PtEditor({ ptId, onClose }: { ptId: string; onClose?: () => void
 
   // E099 pages lines at 500 (design §5.8); "every current row must be
   // reviewed before submit" (GSA-T06) means every row, not only the first
-  // page a naive read would stop at, so the rest are fetched eagerly.
-  const [extraLines, setExtraLines] = useState<GridLine[]>([]);
-  useEffect(() => {
-    let cancelled = false;
-    setExtraLines([]);
-    let next = doc.doc?.data.lines.next_cursor ?? null;
-    if (!next) return;
-    (async () => {
+  // page a naive read would stop at, so the rest are fetched eagerly — through
+  // the shared cache (memory only), keyed by the first page's own identity
+  // (revision and content hash), so a PT reopened unchanged shows every line
+  // at once, and a fresh load, a save or a reload after a conflict reads the
+  // rest again. Never the previous revision's lines standing in.
+  const firstNext = doc.doc?.data.lines.next_cursor ?? null;
+  const restRead = useCachedQuery<GridLine[]>(
+    // The variant (below) keeps this apart from the first page's own entry.
+    firstNext ? `/goods-v1/ptmapper/files/${ptId}` : null,
+    async (_url, { signal }) => {
       const collected: GridLine[] = [];
-      while (next && !cancelled) {
+      let next: string | null = firstNext;
+      while (next) {
         const res: { data: ResourceDTO<PtData> } = await api.get<ResourceDTO<PtData>>(
           `/goods-v1/ptmapper/files/${ptId}`,
-          { params: { line_cursor: next } },
+          { params: { line_cursor: next }, signal },
         );
         collected.push(...(res.data.data.lines.items as GridLine[]));
         next = res.data.data.lines.next_cursor;
       }
-      if (!cancelled) setExtraLines(collected);
-    })();
-    return () => {
-      cancelled = true;
-    };
-    // Re-run whenever the loaded first page's own identity changes (a fresh
-    // load, a save, a reload after conflict) — never on `extraLines` itself.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ptId, doc.doc?.revision, doc.doc?.content_hash, doc.doc?.data.lines.next_cursor]);
+      return collected;
+    },
+    {
+      kind: "doc",
+      keepPrevious: false,
+      variant: `rest:${firstNext ?? ""}:${doc.doc?.revision ?? ""}:${doc.doc?.content_hash ?? ""}`,
+    },
+  );
+  const extraLines = restRead.data ?? NO_LINES;
 
   const lines = useMemo(
     () => [...((doc.doc?.data.lines.items ?? []) as GridLine[]), ...extraLines],

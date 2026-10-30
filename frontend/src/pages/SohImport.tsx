@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
+import { RefreshFailed } from "../components/RefreshFailed";
 import { useCachedGet } from "../lib/cachedQuery";
 import { rupeesToPaiseString, sha256Hex } from "../lib/goodsPt";
 import { formatPaiseString, paiseStringToRupees } from "../lib/format";
@@ -183,6 +184,9 @@ async function allPages<T>(path: string): Promise<T[]> {
 }
 
 const NO_SOURCES: Source[] = [];
+const NO_ROWS: SourceRow[] = [];
+
+type RowsPage = { items: SourceRow[]; next_cursor: string | null };
 
 export function SohImportPanel({ siteId }: { siteId: string }) {
   const { session } = useAuth();
@@ -195,8 +199,6 @@ export function SohImportPanel({ siteId }: { siteId: string }) {
   const [valuationFile, setValuationFile] = useState<File | null>(null);
   const [reconciliationFile, setReconciliationFile] = useState<File | null>(null);
   const [withdrawReason, setWithdrawReason] = useState("");
-  const [rows, setRows] = useState<SourceRow[]>([]);
-  const [rowCursor, setRowCursor] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [includeCatalogue, setIncludeCatalogue] = useState(false);
   const [basicValues, setBasicValues] = useState<Record<string, string>>({});
@@ -233,33 +235,27 @@ export function SohImportPanel({ siteId }: { siteId: string }) {
 
   useEffect(() => {
     setSelected(null);
-    setRows([]);
     setGroups({});
     setChoices({});
     setConfig(blankConfiguration());
   }, [siteId]);
 
-  useEffect(() => {
-    if (!selected) return;
-    let active = true;
-    const id = selected.id;
-    api
-      .get<{ items: SourceRow[]; next_cursor: string | null }>(
-        `${base}/${id}/rows?stocked=${includeCatalogue ? "0" : "1"}&q=${encodeURIComponent(search)}`,
-      )
-      .then((r) => {
-        if (active) {
-          setRows(r.data.items);
-          setRowCursor(r.data.next_cursor);
-        }
-      })
-      .catch((e: unknown) => {
-        if (active) setError(apiErrorMessage(e));
-      });
-    return () => {
-      active = false;
-    };
-  }, [selected, search, includeCatalogue]);
+  // The opened source's rows, first page through the shared cache (memory
+  // only, never on the device): reopening a source or going back to a search
+  // shows its rows at once and reads them again behind. "Next rows" replaces
+  // them with a later page, kept only while that first page stands.
+  const rowsRead = useCachedGet<RowsPage>(
+    selected
+      ? `${base}/${selected.id}/rows?stocked=${includeCatalogue ? "0" : "1"}&q=${encodeURIComponent(search)}`
+      : null,
+  );
+  const [laterRows, setLaterRows] = useState<{ basis: RowsPage; page: RowsPage } | null>(null);
+  const rowsPage =
+    rowsRead.data && laterRows?.basis === rowsRead.data ? laterRows.page : rowsRead.data;
+  const rows = rowsPage?.items ?? NO_ROWS;
+  const rowCursor = rowsPage?.next_cursor ?? null;
+  const rowsFailure =
+    rowsRead.error != null && !rowsRead.data ? apiErrorMessage(rowsRead.error) : "";
 
   async function open(source: Source) {
     setSelected(source);
@@ -494,7 +490,9 @@ export function SohImportPanel({ siteId }: { siteId: string }) {
         inventory.
       </p>
       <Feedback
-        error={error || (sourcesRead.error ? apiErrorMessage(sourcesRead.error) : "")}
+        error={
+          error || (sourcesRead.error ? apiErrorMessage(sourcesRead.error) : "") || rowsFailure
+        }
         ok={ok}
       />
       {stepUp.dialog}
@@ -636,6 +634,13 @@ export function SohImportPanel({ siteId }: { siteId: string }) {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
+              <RefreshFailed
+                error={rowsRead.error}
+                shown={Boolean(rowsRead.data)}
+                updatedAt={rowsRead.updatedAt}
+                onRetry={rowsRead.reload}
+                testId="soh-rows-refresh-failed"
+              />
               <div className="table-wrap" role="region" aria-label="SOH source rows" tabIndex={0}>
                 <table className="table">
                   <thead>
@@ -722,11 +727,11 @@ export function SohImportPanel({ siteId }: { siteId: string }) {
                   className="btn btn-sm"
                   onClick={() =>
                     run(async () => {
-                      const r = await api.get<{ items: SourceRow[]; next_cursor: string | null }>(
+                      const basis = rowsRead.data;
+                      const r = await api.get<RowsPage>(
                         `${base}/${selected.id}/rows?stocked=${includeCatalogue ? "0" : "1"}&q=${encodeURIComponent(search)}&cursor=${encodeURIComponent(rowCursor)}`,
                       );
-                      setRows(r.data.items);
-                      setRowCursor(r.data.next_cursor);
+                      if (basis) setLaterRows({ basis, page: r.data });
                     })
                   }
                 >

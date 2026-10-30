@@ -236,3 +236,17 @@ describe("a write refreshes what is on screen in every family", () => {
     stores.unsubscribe();
   });
 });
+
+describe("screens newly read through the cache", () => {
+  it("keeps history, the audit log, SOH rows and PT lines in memory only", () => {
+    for (const url of [
+      "/goods-v1/history/site/s1",
+      "/goods-v1/masters/audit-log?person=7&store=11",
+      "/goods-v1/ptmapper/soh-imports/9/rows?stocked=1&q=",
+      "/goods-v1/ptmapper/files/4?line_cursor=c2",
+    ]) {
+      expect(isPersistableUrl(url)).toBe(false);
+      expect(staleTimeFor(url, "list")).not.toBe(STALE_TIME.reference);
+    }
+  });
+});

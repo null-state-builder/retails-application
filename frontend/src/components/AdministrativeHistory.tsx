@@ -13,7 +13,9 @@ import {
   historyPath,
   type HistorySubjectKind,
 } from "../lib/administrativeHistory";
+import { useCachedGet } from "../lib/cachedQuery";
 import { Note } from "./Note";
+import { RefreshFailed } from "./RefreshFailed";
 import { Section } from "./Section";
 
 type AdministrativeHistoryOperation =
@@ -70,45 +72,71 @@ export function AdministrativeHistory({
   /** A link shown under one event, e.g. to the privileged change a review acknowledges. */
   eventLink?: (event: AdministrativeHistoryEvent) => { to: string; label: string } | null;
 }) {
-  const [items, setItems] = useState<AdministrativeHistoryEvent[]>([]);
-  const [next, setNext] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  // The newest page through the shared cache (keyed by person, store and
+  // role): a history opened before shows at once and is read again behind it.
+  // Older pages are fetched on demand and kept only while that first page
+  // stands; a new first page (a refresh, another subject) starts them over.
+  const read = useCachedGet<AdministrativeHistoryPage>(historyPath(subjectKind, subjectId), {
+    keepPrevious: false,
+  });
+  const first = read.data;
+  const [older, setOlder] = useState<{
+    basis: AdministrativeHistoryPage;
+    items: AdministrativeHistoryEvent[];
+    next: string | null;
+  } | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState("");
+  const [moreError, setMoreError] = useState("");
   const requestGeneration = useRef(0);
+  const extra = first && older?.basis === first ? older : null;
+  const items = first ? [...first.items, ...(extra?.items ?? [])] : [];
+  const next = extra ? extra.next : (first?.next_cursor ?? null);
+  const loading = read.loading;
+  const error = !first && read.error != null ? apiErrorMessage(read.error) : "";
 
-  async function load(cursor: string | null, append: boolean) {
+  async function loadMore(cursor: string) {
+    if (!first) return;
     const generation = ++requestGeneration.current;
-    if (append) setLoadingMore(true);
-    else setLoading(true);
-    setError("");
+    setLoadingMore(true);
+    setMoreError("");
     try {
       const response = await api.get<AdministrativeHistoryPage>(
         historyPath(subjectKind, subjectId),
-        { params: cursor ? { cursor } : undefined },
+        { params: { cursor } },
       );
       if (generation !== requestGeneration.current) return;
-      setItems((current) => (append ? [...current, ...response.data.items] : response.data.items));
-      setNext(response.data.next_cursor);
+      setOlder({
+        basis: first,
+        items: [...(extra?.items ?? []), ...response.data.items],
+        next: response.data.next_cursor,
+      });
     } catch (e) {
       if (generation !== requestGeneration.current) return;
-      setError(apiErrorMessage(e));
+      setMoreError(apiErrorMessage(e));
     } finally {
-      if (generation === requestGeneration.current) {
-        setLoading(false);
-        setLoadingMore(false);
-      }
+      if (generation === requestGeneration.current) setLoadingMore(false);
     }
   }
 
-  useEffect(() => {
-    void load(null, false);
-    return () => {
-      // Cleanup runs before the next subject effect: an old response can no
-      // longer paint over the replacement history while React changes props.
+  // A changed subject or refresh key: an older page still in flight must not
+  // paint over the replacement history.
+  useEffect(
+    () => () => {
       requestGeneration.current += 1;
-    };
-  }, [subjectKind, subjectId, refreshKey]);
+    },
+    [subjectKind, subjectId, refreshKey],
+  );
+
+  // The caller says the subject changed (a save, a retire): read it again now,
+  // with what is shown kept on screen meanwhile. Not on first sight: that read
+  // is the cache's own.
+  const { reload } = read;
+  const lastRefresh = useRef(refreshKey);
+  useEffect(() => {
+    if (lastRefresh.current === refreshKey) return;
+    lastRefresh.current = refreshKey;
+    reload();
+  }, [refreshKey, reload]);
 
   return (
     <Section
@@ -120,6 +148,13 @@ export function AdministrativeHistory({
       }
       testId={testId}
     >
+      <RefreshFailed
+        error={read.error}
+        shown={Boolean(first)}
+        updatedAt={read.updatedAt}
+        onRetry={reload}
+        testId={`${testId}-refresh-failed`}
+      />
       {loading ? (
         <p className="lead">Loading history…</p>
       ) : error ? (
@@ -153,10 +188,11 @@ export function AdministrativeHistory({
           ))}
         </ol>
       )}
-      {next && (
+      {moreError && <Note tone="error">{moreError}</Note>}
+      {next && !loading && !error && (
         <button
           className="btn btn-sm"
-          onClick={() => void load(next, true)}
+          onClick={() => void loadMore(next)}
           disabled={loadingMore}
           data-testid={`${testId}-more`}
         >

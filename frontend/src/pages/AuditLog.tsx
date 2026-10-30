@@ -2,8 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { PageHeader } from "../components/PageHeader";
 import { Note } from "../components/Note";
+import { RefreshFailed } from "../components/RefreshFailed";
+import { UpdatedAgo } from "../components/UpdatedAgo";
 import { Status } from "../components/Status";
 import { api, apiErrorMessage } from "../lib/api";
+import { useCachedGet } from "../lib/cachedQuery";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import {
   NO_FILTERS,
@@ -29,63 +32,97 @@ const OFFLINE = "The audit log needs a connection. Reconnect to see or export it
  *  what, when, where, and the values before and after. Read-only: there is no
  *  control that changes an entry, and the server has no route that would. The
  *  server decides which stores, people and values this reader sees - cost and
- *  margin never reach a store role's screen at all. It reads live data only, so
- *  offline it says it needs a connection instead of showing a stale copy as
- *  current. */
+ *  margin never reach a store role's screen at all.
+ *
+ *  The newest page for the filters is read through the shared cache (memory
+ *  only, keyed by person, store and role; never saved on the device): a log
+ *  seen before shows at once, says how old it is, and is read again behind it.
+ *  Offline it still says it needs a connection. Older pages are fetched on
+ *  demand and kept only while that newest page stands. */
 export function AuditLogPage() {
   const [filters, setFilters] = useState<AuditFilters>(NO_FILTERS);
-  const [data, setData] = useState<Payload | null>(null);
-  const [items, setItems] = useState<Entry[]>([]);
-  const [error, setError] = useState("");
+  const [commandError, setError] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
-  // The browser says it is online, but the last request got no answer at all.
-  const [lost, setLost] = useState(false);
-  const [busy, setBusy] = useState(false);
+  // The browser says it is online, but a request (an export, an older page)
+  // got no answer at all.
+  const [commandLost, setLost] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [older, setOlder] = useState<{
+    basis: Payload;
+    items: Entry[];
+    next: string | null;
+  } | null>(null);
   const request = useRef(0);
 
-  const load = useCallback(async (wanted: AuditFilters, cursor?: string) => {
+  const read = useCachedGet<Payload>("/goods-v1/masters/audit-log", {
+    params: filterParams(filters),
+  });
+  const first = read.data ?? null;
+  const extra = first && !read.loading && older?.basis === first ? older : null;
+  const data: Payload | null = first
+    ? { ...first, next_cursor: extra ? extra.next : first.next_cursor }
+    : null;
+  const items: Entry[] = first ? [...first.items, ...(extra?.items ?? [])] : [];
+  const readLost = read.error != null && isConnectionLost(read.error);
+  const lost = commandLost || readLost;
+  const readFailure = read.error != null && !readLost && !first ? apiErrorMessage(read.error) : "";
+  const error = commandError || readFailure;
+  const busy = read.loading || loadingMore;
+  const { reload } = read;
+
+  useEffect(() => {
+    if (read.updatedAt) setLost(false);
+  }, [read.updatedAt]);
+
+  const load = useCallback(() => {
     if (!navigator.onLine) {
       setOnline(false);
       return;
     }
+    setError("");
+    setLost(false);
+    reload();
+  }, [reload]);
+
+  async function loadOlder(cursor: string) {
+    if (!navigator.onLine) {
+      setOnline(false);
+      return;
+    }
+    if (!first) return;
     const mine = ++request.current;
-    setBusy(true);
+    setLoadingMore(true);
     setError("");
     try {
       const response = await api.get<Payload>("/goods-v1/masters/audit-log", {
-        params: { ...filterParams(wanted), ...(cursor ? { cursor } : {}) },
+        params: { ...filterParams(filters), cursor },
       });
       if (mine !== request.current) return;
       setLost(false);
-      // A cursor page carries no filter choices: keep the first page's.
-      setData((current) =>
-        cursor && current
-          ? {
-              ...response.data,
-              stores: current.stores,
-              people: current.people,
-              record_types: current.record_types,
-            }
-          : response.data,
-      );
-      setItems((current) => (cursor ? [...current, ...response.data.items] : response.data.items));
+      setOlder({
+        basis: first,
+        items: [...(extra?.items ?? []), ...response.data.items],
+        next: response.data.next_cursor,
+      });
     } catch (reason) {
       if (mine !== request.current) return;
       if (isConnectionLost(reason)) setLost(true);
       else setError(apiErrorMessage(reason));
     } finally {
-      if (mine === request.current) setBusy(false);
+      if (mine === request.current) setLoadingMore(false);
     }
-  }, []);
+  }
 
+  // New filters: an older page still in flight belongs to the old ones.
   useEffect(() => {
-    void load(filters);
-  }, [filters, load]);
+    request.current += 1;
+    setLoadingMore(false);
+  }, [filters]);
 
   useEffect(() => {
     const up = () => {
       setOnline(true);
-      void load(filters);
+      load();
     };
     const down = () => setOnline(false);
     window.addEventListener("online", up);
@@ -94,7 +131,7 @@ export function AuditLogPage() {
       window.removeEventListener("online", up);
       window.removeEventListener("offline", down);
     };
-  }, [filters, load]);
+  }, [load]);
 
   function set(key: keyof AuditFilters, value: string) {
     setFilters((current) => ({ ...current, [key]: value }));
@@ -139,7 +176,7 @@ export function AuditLogPage() {
             className="btn btn-sm"
             data-testid="audit-log-retry"
             disabled={busy}
-            onClick={() => void load(filters)}
+            onClick={() => load()}
           >
             Try again
           </button>
@@ -171,8 +208,22 @@ export function AuditLogPage() {
       <PageHeader
         title="Audit Log"
         lead="Every recorded change at your stores: who, what, when, where, and the values before and after. Entries cannot be changed or deleted."
+        actions={
+          <UpdatedAgo
+            updatedAt={read.updatedAt}
+            fetching={read.fetching}
+            testId="audit-log-updated"
+          />
+        }
       />
       {offlineNote}
+      <RefreshFailed
+        error={readLost ? null : read.error}
+        shown
+        updatedAt={read.updatedAt}
+        onRetry={load}
+        testId="audit-log-refresh-failed"
+      />
       <div className="toolbar" data-testid="audit-log-filters">
         <label className="field">
           <span>Person</span>
@@ -302,7 +353,7 @@ export function AuditLogPage() {
           className="btn"
           data-testid="audit-log-more"
           disabled={disabled}
-          onClick={() => void load(filters, data.next_cursor ?? undefined)}
+          onClick={() => data.next_cursor && void loadOlder(data.next_cursor)}
         >
           Show older entries
         </button>
