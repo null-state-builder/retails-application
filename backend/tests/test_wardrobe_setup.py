@@ -220,7 +220,7 @@ def test_a_warehouse_to_store_transfer_needs_no_second_person(operational_goods:
     request = transfer_authority.request_for(transfer)
     decision = ApprovalDecision.objects.get(request=request, outcome="approved")
     assert request.state == "approved" and decision.reason_code == transfer_authority.AUTO_REASON
-    assert decision.checker_id == proof.manager.human_id and decision.result["auto"] is True
+    assert decision.checker_id == proof.manager.human_id and (decision.result or {}).get("auto") is True
 
     response = post(TransferPreparationOpenView, proof.manager, wire(), pk=transfer.pk)
     assert response.status_code == 201, response.data

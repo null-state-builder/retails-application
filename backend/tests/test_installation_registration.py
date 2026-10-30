@@ -894,11 +894,12 @@ def test_genesis_adopts_the_unknown_historical_season_and_tax_rules_may_be_switc
 def _synthetic_bootstrap(email: str) -> Tenant:
     from accounts.registration_services import deployment_key
 
-    return bootstrap_deployment(
+    tenant: Tenant = bootstrap_deployment(
         deployment_key=deployment_key(), code="SYN-DEMO", name="Synthetic demo", timezone_name="Asia/Kolkata",
         currency="INR", locale="en-IN", synthetic=True, admin_email=email, admin_name="Synthetic Owner",
         admin_staff_code="SYN-OWN", admin_password="Bootstrap@123",
     )
+    return tenant
 
 
 def test_public_demo_logins_are_only_active_logins_of_the_synthetic_deployment(settings: Any) -> None:

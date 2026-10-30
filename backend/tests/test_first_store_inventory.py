@@ -18,7 +18,7 @@ from accounts.sessions import issue_session, revoke_session
 from outbound.views import CrossLocationStockSearchView
 from search.views import GlobalSearchView
 from sell.views import OnlineFinaliseView
-from stockledger import on_hand_projection, views
+from stockledger import goods_reads, on_hand_projection, views
 from stockledger.goods_models import JournalBatch, Position
 from stockledger.models import StockOnHand
 from stockledger.views import StockAvailabilityView, StockOnHandView
@@ -190,7 +190,7 @@ def test_full_cost_inventory_builds_only_the_asked_store_once(
     proof = online_goods
     built: list[str] = []
     loads: list[frozenset[int]] = []
-    original_rows, original_load = on_hand_projection.reads.on_hand_rows, on_hand_projection.reads.load
+    original_rows, original_load = goods_reads.on_hand_rows, goods_reads.load
 
     def counted_rows(query: Any, snap: Any = None) -> Any:
         built.append(query.basis)
@@ -200,8 +200,8 @@ def test_full_cost_inventory_builds_only_the_asked_store_once(
         loads.append(frozenset(query.site_ids))
         return original_load(query, **kwargs)
 
-    monkeypatch.setattr(on_hand_projection.reads, "on_hand_rows", counted_rows)
-    monkeypatch.setattr(on_hand_projection.reads, "load", counted_load)
+    monkeypatch.setattr(goods_reads, "on_hand_rows", counted_rows)
+    monkeypatch.setattr(goods_reads, "load", counted_load)
     site = proof.world.sites[0]
     response = _read(proof, owner=True, params={"store": site.code})
     assert response.status_code == 200 and response.data["summary"]["value_paise"] == 150000
