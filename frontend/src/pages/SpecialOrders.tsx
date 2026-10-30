@@ -15,6 +15,7 @@ import { EmptyState, Loading } from "../components/States";
 import { Status } from "../components/Status";
 import type { StatusTone } from "../components/Status";
 import { api, apiErrorMessage } from "../lib/api";
+import { useCachedGet } from "../lib/cachedQuery";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
 import { formatDateTime, formatINR } from "../lib/format";
@@ -65,14 +66,14 @@ export function SpecialOrdersPage() {
     (activeStore?.store_type === "store" ? activeStore.code : "") ||
     (stores.length === 1 ? (stores[0]?.code ?? "") : "");
 
-  const [listing, setListing] = useState<Listing | null>(null);
   const [draft, setDraft] = useState<SpecialOrderDraft>(emptyDraft);
   const [query, setQuery] = useState("");
   const [shown, setShown] = useState<SpecialOrder | null>(null);
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
-  const [lost, setLost] = useState(false);
+  // When a request last went unanswered; a list read after it clears it.
+  const [lostAt, setLostAt] = useState(0);
   const [busy, setBusy] = useState(false);
   // One order's identity across retries: a dropped connection after the server
   // saved it replays the same order instead of taking a second.
@@ -80,7 +81,6 @@ export function SpecialOrdersPage() {
   // The same for each step tap, per order: kept only while the answer is lost,
   // so a later, separate attempt is judged afresh.
   const attempts = useRef(new Map<string, string>());
-  const request = useRef(0);
   // The open order is in the URL, so back, refresh and a shared link reopen
   // it; the form and the list's filter are this visit's.
   const [params] = useSearchParams();
@@ -88,38 +88,29 @@ export function SpecialOrdersPage() {
   const [adding, setAdding] = useState(false);
   const [filter, setFilter] = useState<string>("open");
 
-  const load = useCallback(
-    async (q: string) => {
-      if (!store) return;
-      if (!navigator.onLine) {
-        setOnline(false);
-        return;
-      }
-      const mine = ++request.current;
-      try {
-        const l = await api.get<Listing>(SPECIAL_ORDERS_API, {
-          params: q ? { store, q } : { store },
-        });
-        if (mine !== request.current) return;
-        setLost(false);
-        setListing(l.data);
-      } catch (reason) {
-        if (mine !== request.current) return;
-        if (isConnectionLost(reason)) setLost(true);
-        else setError(apiErrorMessage(reason));
-      }
-    },
-    [store],
-  );
-
-  useEffect(() => {
-    void load("");
-  }, [load]);
+  // The store's list, from the shared cache: a revisit shows the last list
+  // at once and refreshes it behind it. A search is part of the URL.
+  const read = useCachedGet<Listing>(store ? SPECIAL_ORDERS_API : null, {
+    params: { store, q: query.trim() },
+  });
+  const { reload } = read;
+  // Only this store's list: another store's stays off screen while this one loads.
+  const listing = read.data && read.data.store === store ? read.data : null;
+  const readLost = read.error !== null && isConnectionLost(read.error);
+  const lost = readLost || lostAt > (read.updatedAt ?? 0);
+  const readError = read.error !== null && !readLost ? apiErrorMessage(read.error) : "";
+  const load = useCallback(() => {
+    if (!navigator.onLine) {
+      setOnline(false);
+      return;
+    }
+    reload();
+  }, [reload]);
 
   useEffect(() => {
     const up = () => {
       setOnline(true);
-      void load(query);
+      load();
     };
     const down = () => setOnline(false);
     window.addEventListener("online", up);
@@ -128,7 +119,7 @@ export function SpecialOrdersPage() {
       window.removeEventListener("online", up);
       window.removeEventListener("offline", down);
     };
-  }, [load, query]);
+  }, [load]);
 
   /** One write. A dropped connection keeps everything as typed and the command's
    *  identity; any answer from the server - saved or refused - ends that command. */
@@ -150,7 +141,7 @@ export function SpecialOrdersPage() {
       return response.data;
     } catch (reason) {
       if (isConnectionLost(reason)) {
-        setLost(true);
+        setLostAt(Date.now());
       } else {
         answered();
         setError(apiErrorMessage(reason));
@@ -176,7 +167,7 @@ export function SpecialOrdersPage() {
     setDraft(emptyDraft());
     setShown(made.voucher ? made : null);
     setDone(`Taken as ${made.ref}. Order it as a transfer request or a booking line below.`);
-    await load(query);
+    load();
   }
 
   const step: Send = async (order, name, body, said) => {
@@ -190,18 +181,14 @@ export function SpecialOrdersPage() {
     );
     if (!after) return;
     setDone(said(after));
-    await load(query);
+    load();
   };
 
   /** A search looks across every stage, so what it finds is on screen. */
-  const search = useCallback(
-    (term: string) => {
-      setQuery(term);
-      if (term.trim()) setFilter("");
-      void load(term.trim());
-    },
-    [load],
-  );
+  const search = useCallback((term: string) => {
+    setQuery(term);
+    if (term.trim()) setFilter("");
+  }, []);
 
   const offline = !online || lost;
   const writable = !offline && !busy;
@@ -240,7 +227,6 @@ export function SpecialOrdersPage() {
               value={store}
               onChange={(e) => {
                 setPicked(e.target.value);
-                setListing(null);
               }}
             >
               <option value="">Choose a store</option>
@@ -263,7 +249,7 @@ export function SpecialOrdersPage() {
                   type="button"
                   className="btn btn-sm"
                   data-testid="special-orders-retry"
-                  onClick={() => void load(query)}
+                  onClick={() => load()}
                 >
                   Try again
                 </button>
@@ -273,9 +259,9 @@ export function SpecialOrdersPage() {
             {SPECIAL_ORDER_OFFLINE}
           </Note>
         )}
-        {error && (
+        {(error || readError) && (
           <Note tone="error" testId="special-orders-error">
-            {error}
+            {error || readError}
           </Note>
         )}
         {done && (
@@ -284,7 +270,9 @@ export function SpecialOrdersPage() {
           </Note>
         )}
         {!store && <EmptyState>Choose a store to see its special orders.</EmptyState>}
-        {store && !listing && !offline && !error && <Loading label="Loading special orders" />}
+        {store && !listing && !offline && !error && !readError && (
+          <Loading label="Loading special orders" />
+        )}
 
         {shown?.voucher && <Voucher order={shown} onClose={() => setShown(null)} />}
 

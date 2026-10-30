@@ -15,6 +15,7 @@ import { EmptyState, Loading } from "../components/States";
 import { Status } from "../components/Status";
 import type { StatusTone } from "../components/Status";
 import { api, apiErrorMessage } from "../lib/api";
+import { useCachedGet } from "../lib/cachedQuery";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
 import { formatINR } from "../lib/format";
@@ -61,8 +62,6 @@ export function ReservationsPage() {
     (activeStore?.store_type === "store" ? activeStore.code : "") ||
     (stores.length === 1 ? (stores[0]?.code ?? "") : "");
 
-  const [listing, setListing] = useState<Listing | null>(null);
-  const [terms, setTerms] = useState<Terms | null>(null);
   const [draft, setDraft] = useState<ReservationDraft>(emptyDraft);
   const [scan, setScan] = useState("");
   const [query, setQuery] = useState("");
@@ -70,7 +69,8 @@ export function ReservationsPage() {
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
-  const [lost, setLost] = useState(false);
+  // When a request last went unanswered; a list read after it clears it.
+  const [lostAt, setLostAt] = useState(0);
   const [busy, setBusy] = useState(false);
   // One reservation's identity across retries: a dropped connection after the
   // server saved it replays the same reservation instead of making a second.
@@ -78,7 +78,6 @@ export function ReservationsPage() {
   // The same for a cancel or refund tap, per reservation: kept only while the
   // answer is lost, so a later, separate attempt is judged afresh.
   const attempts = useRef(new Map<string, string>());
-  const request = useRef(0);
   // The open reservation is in the URL, so back, refresh and a shared link
   // reopen it; the form and the list's filter are this visit's.
   const [params] = useSearchParams();
@@ -86,40 +85,38 @@ export function ReservationsPage() {
   const [adding, setAdding] = useState(false);
   const [filter, setFilter] = useState<string>("active");
 
-  const load = useCallback(
-    async (q: string) => {
-      if (!store) return;
-      if (!navigator.onLine) {
-        setOnline(false);
-        return;
-      }
-      const mine = ++request.current;
-      try {
-        const [l, t] = await Promise.all([
-          api.get<Listing>(RESERVATIONS_API, { params: q ? { store, q } : { store } }),
-          api.get<Terms>(`${RESERVATIONS_API}/terms`, { params: { store } }),
-        ]);
-        if (mine !== request.current) return;
-        setLost(false);
-        setListing(l.data);
-        setTerms(t.data);
-      } catch (reason) {
-        if (mine !== request.current) return;
-        if (isConnectionLost(reason)) setLost(true);
-        else setError(apiErrorMessage(reason));
-      }
-    },
-    [store],
-  );
-
-  useEffect(() => {
-    void load("");
-  }, [load]);
+  // The store's list, from the shared cache: a revisit shows the last list
+  // at once and refreshes it behind it. A search is part of the URL.
+  const read = useCachedGet<Listing>(store ? RESERVATIONS_API : null, {
+    params: { store, q: query.trim() },
+  });
+  const { reload } = read;
+  // The store's terms: never another store's standing in while these load.
+  const termsRead = useCachedGet<Terms>(store ? `${RESERVATIONS_API}/terms` : null, {
+    params: { store },
+    keepPrevious: false,
+  });
+  const { reload: reloadTerms } = termsRead;
+  const terms = termsRead.data ?? null;
+  // Only this store's list: another store's stays off screen while this one loads.
+  const listing = read.data && read.data.store === store ? read.data : null;
+  const failed = read.error ?? termsRead.error;
+  const readLost = failed !== null && isConnectionLost(failed);
+  const lost = readLost || lostAt > (read.updatedAt ?? 0);
+  const readError = failed !== null && !readLost ? apiErrorMessage(failed) : "";
+  const load = useCallback(() => {
+    if (!navigator.onLine) {
+      setOnline(false);
+      return;
+    }
+    reload();
+    reloadTerms();
+  }, [reload, reloadTerms]);
 
   useEffect(() => {
     const up = () => {
       setOnline(true);
-      void load(query);
+      load();
     };
     const down = () => setOnline(false);
     window.addEventListener("online", up);
@@ -128,17 +125,13 @@ export function ReservationsPage() {
       window.removeEventListener("online", up);
       window.removeEventListener("offline", down);
     };
-  }, [load, query]);
+  }, [load]);
 
   /** A search looks across every status, so what it finds is on screen. */
-  const search = useCallback(
-    (term: string) => {
-      setQuery(term);
-      if (term.trim()) setFilter("");
-      void load(term.trim());
-    },
-    [load],
-  );
+  const search = useCallback((term: string) => {
+    setQuery(term);
+    if (term.trim()) setFilter("");
+  }, []);
 
   /** One write. A dropped connection keeps everything as typed and the command's
    *  identity; any answer from the server - saved or refused - ends that command. */
@@ -160,7 +153,7 @@ export function ReservationsPage() {
       return response.data;
     } catch (reason) {
       if (isConnectionLost(reason)) {
-        setLost(true);
+        setLostAt(Date.now());
       } else {
         answered();
         setError(apiErrorMessage(reason));
@@ -186,7 +179,7 @@ export function ReservationsPage() {
     setDraft(emptyDraft());
     setShown(made);
     setDone(`Reserved as ${made.ref}. Collect by ${dayText(made.collect_by)}.`);
-    await load(query);
+    load();
   }
 
   async function cancel(r: Reservation, by: "customer" | "store") {
@@ -199,7 +192,7 @@ export function ReservationsPage() {
     if (!after) return;
     setShown(null);
     setDone(`${after.ref} cancelled. The pieces are back on sale. Advance: ${advanceText(after)}.`);
-    await load(query);
+    load();
   }
 
   async function refund(r: Reservation) {
@@ -213,7 +206,7 @@ export function ReservationsPage() {
     setDone(
       `${after.ref}: ${advanceText(after)} by ${after.voucher?.mode.toUpperCase() ?? "cash"}.`,
     );
-    await load(query);
+    load();
   }
 
   function attemptId(key: string): string {
@@ -242,7 +235,7 @@ export function ReservationsPage() {
             type="button"
             className="btn btn-sm"
             data-testid="reservations-retry"
-            onClick={() => void load(query)}
+            onClick={() => load()}
           >
             Try again
           </button>
@@ -287,7 +280,6 @@ export function ReservationsPage() {
               value={store}
               onChange={(e) => {
                 setPicked(e.target.value);
-                setListing(null);
               }}
             >
               <option value="">Choose a store</option>
@@ -300,9 +292,9 @@ export function ReservationsPage() {
           </label>
         )}
         {offlineNote}
-        {error && (
+        {(error || readError) && (
           <Note tone="error" testId="reservations-error">
-            {error}
+            {error || readError}
           </Note>
         )}
         {done && (
@@ -311,7 +303,9 @@ export function ReservationsPage() {
           </Note>
         )}
         {!store && <EmptyState>Choose a store to see its reservations.</EmptyState>}
-        {store && !listing && !offline && !error && <Loading label="Loading reservations" />}
+        {store && !listing && !offline && !error && !readError && (
+          <Loading label="Loading reservations" />
+        )}
 
         {shown?.voucher && <Voucher reservation={shown} onClose={() => setShown(null)} />}
 
