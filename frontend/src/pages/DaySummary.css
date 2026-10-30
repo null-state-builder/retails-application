@@ -35,8 +35,8 @@
 }
 
 .day-picker-label {
-  font-size: 12.5px;
-  font-weight: 650;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--muted);
 }
 
@@ -62,8 +62,8 @@
 }
 
 .day-num {
-  font-size: 19px;
-  font-weight: 700;
+  font-size: 20px;
+  font-weight: 600;
   color: var(--navy);
 }
 .day-label {
@@ -97,7 +97,7 @@
 }
 
 .day-count b {
-  font-size: 15px;
+  font-size: 14px;
   color: var(--navy);
 }
 
@@ -114,7 +114,7 @@
    head so nobody has to infer it from an empty list. */
 .day-flags-scope {
   margin: 6px 0 0;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 
 .flag-list {
@@ -143,7 +143,7 @@
   align-items: center;
   gap: 9px;
   flex-wrap: wrap;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 
 .flag-ic {
@@ -156,7 +156,7 @@
 }
 
 .flag-bill {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--navy);
   text-decoration: underline;
 }
@@ -170,7 +170,7 @@
 /* What the person who cleared it said. Quoted in the markup, italic here, so it
    reads as somebody's sentence rather than as another machine finding. */
 .flag-note {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--caption);
   font-style: italic;
   margin: 5px 0 0;
@@ -190,11 +190,11 @@
   flex: 1 1 220px;
   min-width: 180px;
   padding: 6px 10px;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 .flag-clear .btn {
   padding: 6px 10px;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 
 /* The refusal, full width under the row it belongs to, so it cannot squeeze the

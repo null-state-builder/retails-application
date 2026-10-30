@@ -9,7 +9,7 @@
 }
 
 .customer-facts dt {
-  color: var(--muted, #667);
+  color: var(--muted);
 }
 
 .customer-facts dd {

@@ -38,7 +38,7 @@
 .search-hit-title {
   font-family: var(--mono);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--ink);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -64,7 +64,7 @@
 
 .search-hit-mrp {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--navy);
 }
 
@@ -77,7 +77,7 @@
 
 .search-note {
   padding: 9px 12px;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--muted);
 }
 

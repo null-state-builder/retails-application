@@ -51,7 +51,7 @@
 }
 
 .pa-layout .form-grid .field label {
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--muted);
 }
@@ -91,7 +91,7 @@
 
 .pa-check-group {
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   padding: 8px 10px;
   display: flex;
   flex-wrap: wrap;

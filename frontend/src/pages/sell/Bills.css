@@ -22,7 +22,7 @@
 .bills-count {
   margin: 0 0 8px;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 600;
   color: var(--muted);
 }
 /* The bill that is open beside the list. */

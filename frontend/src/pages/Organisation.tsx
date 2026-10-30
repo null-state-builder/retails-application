@@ -376,7 +376,7 @@ function EntitiesPanel({
                     <b className="mono">{row.data.code}</b>
                   </td>
                   <td>{row.data.name}</td>
-                  <td className="mono" style={{ fontSize: 12.5 }}>
+                  <td className="mono" style={{ fontSize: 12 }}>
                     {row.data.pan || "—"}
                   </td>
                   <td>
@@ -792,9 +792,7 @@ function operationsFor(type: string): readonly string[] {
 }
 
 function LinkedWarehouseName({ id }: { id: string | null }) {
-  const { doc, loading } = useResourceDoc<SiteData>(
-    id ? `/goods-v1/masters/stores/${id}` : null,
-  );
+  const { doc, loading } = useResourceDoc<SiteData>(id ? `/goods-v1/masters/stores/${id}` : null);
   if (!id) return <div>None</div>;
   if (loading) return <div>Loading…</div>;
   return <div>{doc ? `${doc.data.name} (${doc.data.code})` : `Site ${id}`}</div>;

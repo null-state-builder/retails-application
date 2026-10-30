@@ -18,14 +18,14 @@
 }
 .eoss-prog-bar {
   height: 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: var(--inner);
   overflow: hidden;
   position: relative;
 }
 .eoss-prog-fill {
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: var(--rust);
 }
 .eoss-prog-target {
@@ -45,7 +45,7 @@
 }
 
 .eoss-reason {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--muted);
   max-width: 320px;
   display: block;

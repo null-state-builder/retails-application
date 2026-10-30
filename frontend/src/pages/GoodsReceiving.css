@@ -23,7 +23,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--navy2);
   margin: 14px 0 6px;
@@ -80,14 +80,14 @@
 }
 
 .gr-layout .gr-facts dt {
-  font-size: 12.5px;
-  font-weight: 650;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--muted);
 }
 
 .gr-layout .gr-facts dd {
   margin: 2px 0 0;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -119,12 +119,12 @@
 }
 
 .gr-layout .gr-mismatch {
-  background: color-mix(in srgb, var(--amber, #f59e0b) 12%, transparent);
+  background: color-mix(in srgb, var(--amber) 12%, transparent);
 }
 
 .gr-layout .gr-warning {
-  border: 1px solid color-mix(in srgb, var(--amber, #f59e0b) 60%, var(--sidebar-border));
-  background: color-mix(in srgb, var(--amber, #f59e0b) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--amber) 60%, var(--sidebar-border));
+  background: color-mix(in srgb, var(--amber) 8%, transparent);
   border-radius: var(--radius-inner);
   padding: 12px 14px;
   margin: 14px 0;
@@ -138,7 +138,7 @@
 
 .gr-layout .gr-exceptions,
 .gr-layout .gr-history {
-  font-size: 13.5px;
+  font-size: 14px;
   padding-left: 18px;
   margin: 6px 0 0;
 }
@@ -176,7 +176,7 @@
 
 .gr-layout .gr-total-n {
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
 }
@@ -210,8 +210,8 @@
 }
 
 .gr-layout .gr-big {
-  font-size: 30px;
-  font-weight: 700;
+  font-size: 32px;
+  font-weight: 600;
   text-align: center;
   padding: 10px 6px;
   height: auto;
@@ -252,7 +252,7 @@
   gap: 8px;
   padding: 7px 4px;
   cursor: pointer;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 
 .gr-layout .gr-condition span {
@@ -269,7 +269,7 @@
   border-top: 1px solid var(--sidebar-border);
   margin-top: 14px;
   padding-top: 12px;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 
 .gr-layout .gr-issue p {

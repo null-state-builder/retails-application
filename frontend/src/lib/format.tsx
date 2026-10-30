@@ -173,8 +173,8 @@ export function CommercialBadge({ label }: { label: string }) {
 export function Stat({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
-      <div style={{ fontSize: 12.5, color: "var(--muted)", fontWeight: 600 }}>{label}</div>
-      <div style={{ fontSize: 18, fontWeight: 700, marginTop: 2 }} className="tabular">
+      <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 20, fontWeight: 600, marginTop: 2 }} className="tabular">
         {value}
       </div>
     </div>

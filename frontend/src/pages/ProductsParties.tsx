@@ -505,7 +505,7 @@ function SimpleMasterPanel<T extends { code: string; name: string }>({
                   </td>
                   <td>{row.data.name}</td>
                   {extras.map((extra) => (
-                    <td key={extra.key} className="mono" style={{ fontSize: 12.5 }}>
+                    <td key={extra.key} className="mono" style={{ fontSize: 12 }}>
                       {String((row.data as Record<string, unknown>)[extra.key] ?? "") || "—"}
                     </td>
                   ))}
@@ -883,7 +883,7 @@ function StyleDetail({
                   <td>
                     <SkuAttributeCells attrs={row.data.attrs} profile={profile} />
                   </td>
-                  <td className="mono" style={{ fontSize: 12.5 }}>
+                  <td className="mono" style={{ fontSize: 12 }}>
                     {row.data.profile_version_id
                       ? `pinned to ${pinnedLabel(configs.items, row.data.profile_version_id) ?? row.data.profile_version_id}`
                       : "Unknown"}
@@ -1344,7 +1344,7 @@ function SkusPanel({ search }: { search: string }) {
                 <tr key={row.id} data-testid={`sku-row-${row.id}`}>
                   <td className="mono">{styleCode(row.data.style_id)}</td>
                   <td>{describeAttrs(row.data.attrs, new Map())}</td>
-                  <td className="mono" style={{ fontSize: 12.5 }}>
+                  <td className="mono" style={{ fontSize: 12 }}>
                     {row.data.profile_version_id
                       ? `pinned to ${pinnedLabel(configs.items, row.data.profile_version_id) ?? row.data.profile_version_id}`
                       : "Unknown"}

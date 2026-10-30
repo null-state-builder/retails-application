@@ -259,7 +259,7 @@ export default function CashLedger() {
                   </td>
                   <td
                     className="num mono"
-                    style={{ fontWeight: 700, color: e.amount < 0 ? "var(--rust)" : "inherit" }}
+                    style={{ fontWeight: 600, color: e.amount < 0 ? "var(--rust)" : "inherit" }}
                   >
                     <Money paise={e.amount} />
                   </td>

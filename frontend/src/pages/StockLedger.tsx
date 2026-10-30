@@ -194,7 +194,7 @@ export default function StockLedger() {
                   <td>{e.season}</td>
                   <td
                     className="num"
-                    style={{ color: e.qty < 0 ? "var(--red)" : "inherit", fontWeight: 700 }}
+                    style={{ color: e.qty < 0 ? "var(--red)" : "inherit", fontWeight: 600 }}
                   >
                     {e.qty}
                   </td>

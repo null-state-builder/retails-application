@@ -74,6 +74,11 @@
   --radius-inner: var(--radius-control); /* v1 alias */
   --shadow-rest: none; /* v2: nothing in the page flow has a shadow */
   --shadow-hover: var(--shadow-float);
+  /* Rings drawn with box-shadow. Focus is rust, like --focus-ring; the ok and
+     error halos sit round a status dot or the scan bar. */
+  --focus-halo: 0 0 0 2px var(--rust-glow);
+  --halo-ok: 0 0 0 3px var(--green-bg);
+  --halo-error: 0 0 0 3px var(--red-bg);
 
   --sidebar-w: 240px;
   --topbar-h: 56px;
@@ -378,15 +383,15 @@ a {
 /* headings per the type scale */
 .h1 {
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--navy);
   letter-spacing: -0.2px;
   line-height: 1.2;
   margin: 0;
 }
 .h2 {
-  font-size: 19px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 600;
   color: var(--ink);
   margin: 0;
 }
@@ -395,8 +400,8 @@ a {
   border-left: 4px solid var(--rust);
 }
 .h3 {
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 600;
   color: var(--ink);
   margin: 0;
 }
@@ -405,7 +410,7 @@ a {
  * case, so every one of its uses follows from this rule. */
 .eyebrow {
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 600;
   color: var(--ink2);
 }
 /* The screen a document belongs to, in the header caption — a breadcrumb, so
@@ -446,7 +451,7 @@ a {
   min-height: 32px;
   padding: 0 12px;
   border: 1px dashed var(--line);
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: transparent;
   color: var(--ink2);
   font-size: 13px;
@@ -464,7 +469,7 @@ a {
 }
 .filter-chip-n {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--muted);
 }
 .filter-chip[aria-pressed="true"] .filter-chip-n {
@@ -622,7 +627,7 @@ a {
    or why a value is required. A form primitive beside `.field`, not one
    screen's decoration (goods-v1 `Field`, lib/goodsScreen.tsx). */
 .goods-hint {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--muted);
   line-height: 1.4;
 }
@@ -662,7 +667,7 @@ a {
   margin: 0;
   padding: 4px 14px 8px;
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 600;
   color: var(--ink2);
 }
 .side-queue-note {
@@ -687,7 +692,7 @@ a {
   box-shadow: inset 3px 0 0 var(--rust);
 }
 .side-queue-ref {
-  font-weight: 650;
+  font-weight: 600;
   overflow-wrap: anywhere;
 }
 .side-queue-meta {
@@ -695,7 +700,7 @@ a {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--muted);
 }
 
@@ -770,7 +775,7 @@ a {
   padding: 9px 12px;
   border: 1px solid var(--line);
   border-radius: var(--radius-inner);
-  font-size: 15px;
+  font-size: 14px;
   background: var(--surface);
   color: var(--ink);
   transition:
@@ -779,8 +784,8 @@ a {
 }
 .input:focus {
   outline: none;
-  border-color: var(--navy);
-  box-shadow: 0 0 0 3px rgba(var(--navy-rgb), 0.12);
+  border-color: var(--focus-ring);
+  box-shadow: var(--focus-halo);
 }
 
 /* chips — one primitive, tone-driven */
@@ -789,9 +794,9 @@ a {
   align-items: center;
   gap: 5px;
   padding: 3px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.2px;
   border: 1px solid transparent;
   background: var(--grey-bg);
@@ -862,11 +867,11 @@ a {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 .sku-line b {
   color: var(--ink);
-  font-weight: 700;
+  font-weight: 600;
 }
 .sku-sep {
   color: var(--caption);
@@ -874,9 +879,9 @@ a {
 .sku-chip {
   background: var(--inner);
   border: 1px solid var(--hairline);
-  border-radius: 5px;
+  border-radius: var(--radius-control);
   padding: 1px 7px;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--muted);
 }
@@ -904,7 +909,7 @@ a {
 table.data {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 /* Sentence-case headers and 38px rows: about half as many rows again fit on a
    1080p screen, and the header reads as a label rather than a shout. */
@@ -913,8 +918,8 @@ table.data th {
   padding: 9px 14px;
   background: var(--inner);
   color: var(--muted);
-  font-weight: 650;
-  font-size: 12.5px;
+  font-weight: 600;
+  font-size: 12px;
   white-space: nowrap;
   border-bottom: 1px solid var(--line);
 }
@@ -964,7 +969,7 @@ table.data th.num {
   left: 0;
   z-index: 1;
   background: var(--surface);
-  box-shadow: 1px 0 0 var(--hairline);
+  box-shadow: var(--pin-shadow);
 }
 .table-wrap > table.data.freeze-first thead th:first-child {
   z-index: 2;

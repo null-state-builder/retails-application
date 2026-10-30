@@ -10,7 +10,7 @@
 
 .reservation-card {
   border: 1px solid var(--hairline);
-  border-radius: 8px;
+  border-radius: var(--radius-box);
   padding: 12px;
   min-width: 0;
   overflow-wrap: anywhere;

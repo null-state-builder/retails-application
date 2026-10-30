@@ -324,7 +324,7 @@ export function StoresPage() {
                       {s.state_name}
                     </span>
                   </td>
-                  <td className="mono" style={{ fontSize: 12.5 }}>
+                  <td className="mono" style={{ fontSize: 12 }}>
                     {s.gstin_number}
                   </td>
                   <td>
@@ -1551,7 +1551,7 @@ export function VendorsPage() {
                   </td>
                   <td>{v.name}</td>
                   <td>{v.city || "—"}</td>
-                  <td className="mono" style={{ fontSize: 12.5 }}>
+                  <td className="mono" style={{ fontSize: 12 }}>
                     {v.gstin || "—"}
                   </td>
                   <td>

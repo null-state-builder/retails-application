@@ -20,7 +20,7 @@
 }
 
 .exceptions-layout .h3 {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--navy2);
   margin: 0;
@@ -82,7 +82,7 @@
 
 .exc-live-on .exc-live-dot {
   background: var(--green);
-  box-shadow: 0 0 0 2px var(--green-bg);
+  box-shadow: var(--halo-ok);
 }
 
 .exc-live-reconnecting {

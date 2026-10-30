@@ -209,7 +209,7 @@ function TrialBalancePanel({ canSeeMoney }: { canSeeMoney: boolean }) {
           gap: 12,
           alignItems: "center",
           padding: "12px 14px",
-          borderRadius: 12,
+          borderRadius: "var(--radius-box)",
           marginBottom: 12,
           background:
             balanced === null

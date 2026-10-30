@@ -187,7 +187,7 @@ function StatusPill({ status }: { status: string }) {
 function Signed({ n }: { n: number }) {
   return (
     <span
-      style={{ color: n < 0 ? "var(--red)" : n > 0 ? "var(--green)" : undefined, fontWeight: 700 }}
+      style={{ color: n < 0 ? "var(--red)" : n > 0 ? "var(--green)" : undefined, fontWeight: 600 }}
     >
       {n > 0 ? "+" : ""}
       {n}

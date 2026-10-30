@@ -161,7 +161,7 @@ export function DailyCashPage() {
                       <td
                         className="num mono"
                         style={{
-                          fontWeight: 700,
+                          fontWeight: 600,
                           color: e.amount >= 0 ? "var(--green)" : "var(--red)",
                         }}
                       >

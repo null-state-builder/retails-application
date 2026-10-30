@@ -22,8 +22,8 @@
 }
 
 .searchbox:focus-within {
-  border-color: var(--navy);
-  box-shadow: 0 0 0 3px rgba(var(--navy-rgb), 0.12);
+  border-color: var(--focus-ring);
+  box-shadow: var(--focus-halo);
 }
 
 .searchbox input {

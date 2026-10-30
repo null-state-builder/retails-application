@@ -20,17 +20,17 @@
   gap: 10px;
   padding: 12px 14px;
   background: var(--navy-fill);
-  color: #fff;
+  color: var(--on-fill);
   flex: 0 0 auto;
 }
 .scan-head-mode {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   background: var(--rust-fill);
-  color: #fff;
-  border-radius: 4px;
+  color: var(--on-fill);
+  border-radius: var(--radius-control);
   padding: 3px 8px;
 }
 .scan-head-doc {
@@ -38,7 +38,7 @@
 }
 .scan-head-doc .doc {
   font-family: var(--mono, ui-monospace, monospace);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 14px;
   white-space: nowrap;
   overflow: hidden;
@@ -52,7 +52,7 @@
   margin-left: auto;
   background: none;
   border: none;
-  color: #fff;
+  color: var(--on-fill);
   cursor: pointer;
   padding: 8px;
   display: flex;
@@ -67,10 +67,10 @@
   transition: background 120ms ease;
 }
 .scan-target.flash-ok {
-  background: rgba(46, 125, 50, 0.18);
+  background: var(--green-bg);
 }
 .scan-target.flash-bad {
-  background: rgba(198, 40, 40, 0.22);
+  background: var(--red-bg);
 }
 /* Accepted, but flagged (damaged / extra) — its own colour, so the operator can
    tell "in, but not clean" from "in" without reading a word. */
@@ -78,14 +78,14 @@
   background: rgba(var(--rust-rgb), 0.18);
 }
 .scan-count {
-  font-size: 72px;
-  font-weight: 800;
+  font-size: 56px;
+  font-weight: 600;
   line-height: 1;
   font-variant-numeric: tabular-nums;
   color: var(--navy);
 }
 .scan-count .of {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 600;
   color: var(--ink-soft, var(--ink));
   opacity: 0.6;
@@ -125,8 +125,8 @@
   border: 1px solid var(--line, rgba(var(--navy-rgb), 0.3));
   background: transparent;
   color: var(--ink);
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -136,7 +136,7 @@
 .scan-mode.active {
   background: var(--navy-fill);
   border-color: var(--navy-fill);
-  color: #fff;
+  color: var(--on-fill);
 }
 .scan-mode.danger.active {
   background: var(--rust-fill);
@@ -162,11 +162,11 @@
 .scan-notes-input {
   width: 100%;
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   border: 1px solid var(--line, rgba(var(--navy-rgb), 0.3));
   background: var(--card, transparent);
   color: var(--ink);
-  font-size: 15px;
+  font-size: 14px;
 }
 
 /* invisible wedge-capture input — keeps focus, swallows scanner keystrokes */
@@ -194,7 +194,7 @@
 }
 .scan-line .code {
   font-family: var(--mono, ui-monospace, monospace);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 14px;
 }
 .scan-line .meta {
@@ -204,8 +204,8 @@
 .scan-line .counts {
   margin-left: auto;
   font-variant-numeric: tabular-nums;
-  font-weight: 700;
-  font-size: 18px;
+  font-weight: 600;
+  font-size: 20px;
   white-space: nowrap;
 }
 .scan-line .counts .exp {
@@ -263,9 +263,9 @@
   border: none;
   border-radius: var(--radius-inner);
   background: var(--navy-fill);
-  color: #fff;
-  font-size: 17px;
-  font-weight: 700;
+  color: var(--on-fill);
+  font-size: 16px;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -283,7 +283,7 @@
   bottom: calc(78px + env(safe-area-inset-bottom, 0px));
   margin: 0 14px;
   padding: 8px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-box);
   background: rgba(var(--rust-rgb), 0.12);
   color: var(--rust-ink);
   font-size: 13px;
@@ -297,8 +297,8 @@
   bottom: calc(78px + env(safe-area-inset-bottom, 0px));
   margin: 0 14px;
   padding: 8px 12px;
-  border-radius: 8px;
-  background: rgba(198, 40, 40, 0.14);
+  border-radius: var(--radius-box);
+  background: var(--red-bg);
   color: var(--red);
   font-size: 13px;
   font-weight: 600;
@@ -315,19 +315,19 @@
 .scan-manual input {
   flex: 1;
   padding: 10px 12px;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   border: 1px solid var(--line, rgba(var(--navy-rgb), 0.3));
   background: var(--card, transparent);
   color: var(--ink);
   font-family: var(--mono, ui-monospace, monospace);
-  font-size: 15px;
+  font-size: 14px;
 }
 .scan-manual button {
   padding: 0 16px;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   border: none;
   background: var(--navy-fill);
-  color: #fff;
+  color: var(--on-fill);
   font-weight: 600;
   cursor: pointer;
 }

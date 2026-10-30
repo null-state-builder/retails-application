@@ -81,6 +81,14 @@ How the KDPS Design Language v2 moves from the design artifacts into `frontend/`
 
 ### Phase 2: literal sweep (2 days, one PR per area)
 
+**Done 30 Oct 2026.** `frontend/scripts/codemods/type-v2.mjs` rewrote 485 declarations in 42 stylesheets (areas: shell, components, sell, pages). It decided 93 of them from the selector, marking each one "judged" (`--judged` lists them): sizes 15–19px became 14 or 16 for text and headings, and 20 for amounts; 7–10px corners became `radius-control` for controls and `radius-box` for containers. Then, by hand:
+
+- **Shadows:** the 11 shadows became `--shadow-float`, `--pin-shadow`, or the new `--focus-halo`, `--halo-ok` and `--halo-error`. Input focus is rust, like `--focus-ring`.
+- **Colours:** white text became `--on-fill`, hex fallbacks inside `var()` were dropped, and the scan flashes use `--green-bg` and `--red-bg`.
+- **Inline styles:** inline sizes, weights and radii in 14 components moved onto the scale.
+
+`check-design-tokens.mjs` now reports 4 findings, all on purpose: label paper and print rules (`GoodsLabels.css`, `TagPrint.css`, the print block in `AppShell.css`) and the text on the login's navy panel.
+
 A codemod (`scripts/codemods/type-v2.mjs`) with a dry-run diff, applied per area: shell, sell, goods, stock, reports, setup.
 
 | From                                | To                                           | Note                                                   |

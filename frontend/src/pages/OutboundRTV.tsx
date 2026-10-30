@@ -534,7 +534,7 @@ function CapMeter({ cap, thisReturnPaise }: { cap: CapT; thisReturnPaise: number
       <div
         style={{
           height: 10,
-          borderRadius: 6,
+          borderRadius: "var(--radius-control)",
           background: "var(--line)",
           overflow: "hidden",
           margin: "10px 0 8px",

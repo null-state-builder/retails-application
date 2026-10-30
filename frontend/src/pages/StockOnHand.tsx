@@ -580,7 +580,7 @@ export default function StockOnHand({
                       <td>{l.color}</td>
                       <td>{l.size}</td>
                       <td>{f.store_code}</td>
-                      <td className="num" style={{ fontWeight: 700 }}>
+                      <td className="num" style={{ fontWeight: 600 }}>
                         {l.qty}
                       </td>
                       <td>{f.created_by_name || "—"}</td>
@@ -646,7 +646,7 @@ export default function StockOnHand({
                     <td>{r.size}</td>
                     <td>{r.season}</td>
                     <td>{r.store_code}</td>
-                    <td className="num" style={{ fontWeight: 700 }}>
+                    <td className="num" style={{ fontWeight: 600 }}>
                       {r.qty}
                     </td>
                     <td className="num mono">
@@ -751,7 +751,7 @@ export default function StockOnHand({
                       <td className="num">{r.skus}</td>
                     </>
                   )}
-                  <td className="num" style={{ fontWeight: 700 }}>
+                  <td className="num" style={{ fontWeight: 600 }}>
                     {r.net_qty}
                   </td>
                   <td className="num mono">

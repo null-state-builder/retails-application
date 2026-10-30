@@ -56,7 +56,7 @@ body.sidebar-resizing .sidebar {
 }
 .nav::-webkit-scrollbar-thumb {
   background: rgba(var(--navy-rgb), 0.16);
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   border: 2px solid transparent;
   background-clip: content-box;
 }
@@ -85,7 +85,7 @@ body.sidebar-resizing .sidebar {
   width: 2px;
   height: 52px;
   transform: translateY(-50%);
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: transparent;
   transition: background-color 0.15s;
 }
@@ -136,7 +136,7 @@ body.sidebar-resizing .sidebar-resizer::after {
   gap: 10px;
   padding: 4px 10px;
   min-height: 38px;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   position: relative;
   transition:
     background-color 0.12s,
@@ -194,7 +194,7 @@ body.sidebar-resizing .sidebar-resizer::after {
 .nav-grouplink.active {
   background: rgba(var(--rust-rgb), 0.14);
   color: var(--rust-ink);
-  font-weight: 700;
+  font-weight: 600;
 }
 .nav-grouplink.active .nav-ic {
   color: var(--rust) !important;
@@ -213,11 +213,11 @@ body.sidebar-resizing .sidebar-resizer::after {
 .nav-item {
   display: flex;
   align-items: center;
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--ink2);
   padding: 6px 10px;
   min-height: 32px;
-  border-radius: 7px;
+  border-radius: var(--radius-control);
   transition:
     background-color 0.12s,
     color 0.12s;
@@ -232,7 +232,7 @@ body.sidebar-resizing .sidebar-resizer::after {
 .nav-item.active {
   background: rgba(var(--rust-rgb), 0.14);
   color: var(--rust-ink);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* ---------- icon rail (#230) ----------
@@ -255,7 +255,7 @@ body.sidebar-resizing .sidebar-resizer::after {
   padding: 4px 0;
   border: 0;
   background: transparent;
-  border-radius: 10px;
+  border-radius: var(--radius-box);
   cursor: pointer;
   position: relative;
 }
@@ -319,7 +319,7 @@ body.sidebar-resizing .sidebar-resizer::after {
   flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--hairline);
-  border-radius: 14px;
+  border-radius: var(--radius-overlay);
   box-shadow: var(--shadow-hover);
   padding: 7px;
   overflow-y: auto;
@@ -329,8 +329,8 @@ body.sidebar-resizing .sidebar-resizer::after {
   min-height: 34px;
 }
 .rail-flyout-head {
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--caption);
   padding: 8px 10px 6px;
 }
@@ -404,11 +404,11 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   flex: none;
   padding: 3px 8px;
   border: 1px solid var(--amber-bd);
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: var(--amber-bg);
   color: var(--amber);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
 }
 /* Sizing lives on .search-wrap (GlobalSearch.css) — it anchors the results
@@ -451,7 +451,7 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   position: relative;
   width: 40px;
   height: 40px;
-  border-radius: 9px;
+  border-radius: var(--radius-control);
   border: 1px solid transparent;
   background: transparent;
   color: var(--ink2);
@@ -482,11 +482,11 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   min-width: 17px;
   height: 17px;
   padding: 0 4px;
-  border-radius: 9px;
+  border-radius: var(--radius-control);
   background: var(--cta);
-  color: #fff;
-  font-size: 10.5px;
-  font-weight: 800;
+  color: var(--on-fill);
+  font-size: 12px;
+  font-weight: 600;
   line-height: 17px;
   text-align: center;
   border: 1.5px solid var(--surface);
@@ -515,7 +515,7 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--hairline);
-  border-radius: 14px;
+  border-radius: var(--radius-overlay);
   box-shadow: var(--shadow-hover);
   overflow: hidden;
 }
@@ -528,19 +528,19 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   flex: none;
   padding: 12px 14px 9px;
   border-bottom: 1px solid var(--hairline);
-  font-size: 13.5px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--ink);
 }
 .bell-title-count {
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
-  border-radius: 9px;
+  border-radius: var(--radius-control);
   background: var(--cta);
-  color: #fff;
-  font-size: 10.5px;
-  font-weight: 800;
+  color: var(--on-fill);
+  font-size: 12px;
+  font-weight: 600;
   line-height: 18px;
   text-align: center;
 }
@@ -566,8 +566,8 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   align-items: center;
   gap: 6px;
   margin: 0 0 3px;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   letter-spacing: 0.3px;
   text-transform: uppercase;
   color: var(--caption);
@@ -580,23 +580,23 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
 }
 .bell-value {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--ink);
 }
 .bell-row-title {
   margin: 0;
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--ink);
 }
 .bell-row-meta {
   margin: 2px 0 0;
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--muted);
 }
 .bell-day-head {
   margin: 10px 0 2px;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--caption);
 }
 /* The Action Needed popup's two blocks. One shape, two colours: navy for
@@ -606,7 +606,7 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   margin: 6px 0 10px;
   border: 1px solid var(--hairline);
   border-left: 3px solid var(--card-tone);
-  border-radius: 10px;
+  border-radius: var(--radius-box);
   background: var(--inner);
   overflow: hidden;
 }
@@ -625,7 +625,7 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   width: 28px;
   height: 28px;
   flex: none;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   color: var(--card-tone);
   background: color-mix(in srgb, var(--card-tone) 14%, transparent);
 }
@@ -636,22 +636,22 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
 }
 .bell-card-name h3 {
   margin: 0;
-  font-size: 13.5px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--ink);
 }
 .bell-card-hint {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--muted);
 }
 .bell-card-count {
   margin-left: auto;
   min-width: 22px;
   padding: 1px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   text-align: center;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   color: var(--card-tone);
   background: color-mix(in srgb, var(--card-tone) 14%, transparent);
 }
@@ -680,14 +680,14 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   flex: 1;
 }
 .bell-item-what {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ink);
 }
 .bell-item-times {
   margin-left: 6px;
   white-space: nowrap;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--card-tone);
 }
 .bell-item-why {
@@ -698,7 +698,7 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   white-space: nowrap;
 }
 .bell-item-meta {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--caption);
 }
 .bell-item .bell-value {
@@ -708,9 +708,9 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
 .bell-due {
   flex: none;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--muted);
   border: 1px solid var(--hairline);
@@ -726,7 +726,7 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   gap: 6px;
   margin: 0;
   padding: 4px 12px 12px;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--muted);
 }
 .bell-card-all {
@@ -750,7 +750,7 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
 .bell-all {
   display: block;
   padding: 9px 4px 4px;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--rust-ink);
 }
@@ -769,8 +769,8 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   border: none;
   background: transparent;
   cursor: pointer;
-  font-size: 12.5px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--caption);
 }
 .bell-history-toggle:hover {
@@ -785,10 +785,10 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   flex: 1;
   padding: 5px 6px;
   border: 1px solid var(--hairline);
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: var(--inner);
   cursor: pointer;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--muted);
 }
@@ -799,7 +799,7 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   background: rgba(var(--rust-rgb), 0.12);
   border-color: var(--rust);
   color: var(--rust-ink);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* ---------- switcher / dropdowns ---------- */
@@ -815,7 +815,7 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   border-radius: var(--radius-inner);
   padding: 8px 12px;
   cursor: pointer;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--navy);
   transition: background-color 0.15s;
@@ -885,20 +885,20 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   min-width: 268px;
   background: var(--surface);
   border: 1px solid var(--hairline);
-  border-radius: 14px;
+  border-radius: var(--radius-overlay);
   box-shadow: var(--shadow-hover);
   padding: 7px;
 }
 .avatar {
   width: 34px;
   height: 34px;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: var(--navy-fill);
-  color: #fff;
+  color: var(--on-fill);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 13px;
   flex: none;
 }
@@ -909,12 +909,12 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   text-align: left;
 }
 .user-name {
-  font-size: 13.5px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--ink);
 }
 .user-role {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--muted);
 }
 
@@ -931,7 +931,7 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   min-width: 268px;
   background: var(--surface);
   border: 1px solid var(--hairline);
-  border-radius: 14px;
+  border-radius: var(--radius-overlay);
   box-shadow: var(--shadow-hover);
   padding: 7px;
   overflow: hidden;
@@ -941,8 +941,8 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   right: 0;
 }
 .dropdown-head {
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--caption);
   padding: 8px 12px 6px;
 }
@@ -956,8 +956,8 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   border: none;
   background: transparent;
   cursor: pointer;
-  border-radius: 9px;
-  font-size: 13.5px;
+  border-radius: var(--radius-box);
+  font-size: 14px;
   color: var(--ink);
   text-align: left;
   transition: background-color 0.12s;
@@ -968,12 +968,12 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
 .dropdown-item.active {
   background: rgba(var(--rust-rgb), 0.12);
   color: var(--rust-ink);
-  font-weight: 700;
+  font-weight: 600;
 }
 /* The store code, beside the name rather than inside it. */
 .dropdown-hint {
   font-family: var(--mono);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--caption);
 }
@@ -987,7 +987,7 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   padding: 8px 12px 10px;
 }
 .dropdown-theme > span {
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--muted);
   font-weight: 600;
 }
@@ -997,7 +997,7 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   padding: 3px;
   background: var(--inner);
   border: 1px solid var(--hairline);
-  border-radius: 999px;
+  border-radius: var(--radius-round);
 }
 .theme-seg-btn {
   display: inline-flex;
@@ -1006,7 +1006,7 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   border: 1px solid transparent;
   background: transparent;
   color: var(--muted);
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   padding: 5px 10px;
   font-size: 12px;
   font-weight: 600;
@@ -1235,12 +1235,12 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
 }
 .page-tab {
   padding: 7px 14px;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--muted);
   background: var(--surface);
   border: 1px solid var(--hairline);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   transition:
     color 0.15s,
     background-color 0.15s,
@@ -1254,7 +1254,7 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   color: var(--rust-ink);
   background: rgba(var(--rust-rgb), 0.12);
   border-color: var(--rust);
-  font-weight: 700;
+  font-weight: 600;
 }
 /* ---------- mail: the top-bar popup only ----------
    Reuses the bell's popup shell wholesale — `.bell-popup`, `.bell-list`,
@@ -1289,8 +1289,8 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   border-bottom: 1px solid var(--hairline);
 }
 .mail-pop-title {
-  font-size: 13.5px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--ink);
 }
 .mail-pop-address {
@@ -1299,7 +1299,7 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--muted);
 }
 .mail-connect {
@@ -1369,11 +1369,11 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   list-style: none;
   cursor: pointer;
   padding: 7px 12px;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ink2);
   border: 1px dashed var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-box);
 }
 .inventory-strip-review > summary::-webkit-details-marker {
   display: none;

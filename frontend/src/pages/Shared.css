@@ -4,10 +4,10 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--green-bg, #e9f5ec);
-  border: 1px solid var(--green-bd, #bfe0c8);
-  color: var(--green, #2e7d4f);
-  border-radius: 10px;
+  background: var(--green-bg);
+  border: 1px solid var(--green-bd);
+  color: var(--green);
+  border-radius: var(--radius-box);
   padding: 10px 13px;
   font-size: 13px;
   margin-top: 12px;
@@ -21,11 +21,11 @@
    desktop beside the menu; past that it scrolls inside its own box. */
 .kdps-table {
   min-width: 1080px;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 .kdps-table th {
   white-space: nowrap;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 /* On a desktop the header row stays in view while a long table scrolls in its
    own box, so a column's name is never a scroll away from its numbers. */
@@ -57,8 +57,8 @@
   gap: 4px;
 }
 .stat-value {
-  font-size: 23px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 600;
   color: var(--navy);
   line-height: 1.15;
   font-variant-numeric: tabular-nums;
@@ -83,7 +83,7 @@
   border: 0;
   background: transparent;
   padding: 6px 14px;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   font-size: 13px;
   font-weight: 600;
   color: var(--muted);
@@ -100,7 +100,7 @@
 }
 .seg-btn.active {
   background: var(--navy-fill);
-  color: #fff;
+  color: var(--on-fill);
 }
 
 /* Stock: the grouping strip and the search share one row under the totals,
@@ -133,11 +133,11 @@
   padding: 12px 4px 2px;
 }
 .pager-info {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--muted);
 }
 .pager-page {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--ink);
   font-weight: 600;
 }
@@ -186,7 +186,7 @@
   gap: 8px;
   font-size: 13px;
   color: var(--muted);
-  font-weight: 700;
+  font-weight: 600;
   min-height: 42px;
 }
 .toggle-grid {
@@ -198,11 +198,11 @@
 .toggle-chip {
   border: 1px solid var(--hairline);
   background: var(--surface);
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   padding: 7px 12px;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--muted);
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   transition:
     background-color 0.15s,
@@ -216,5 +216,5 @@
 .toggle-chip.active {
   background: var(--navy-fill);
   border-color: var(--navy-fill);
-  color: #fff;
+  color: var(--on-fill);
 }

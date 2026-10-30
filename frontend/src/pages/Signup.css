@@ -93,7 +93,7 @@
 }
 .signup-hint {
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.4;
 }
 .signup-field-error {
@@ -144,16 +144,16 @@
 .signup-code-preview > span:first-child {
   color: var(--muted);
   font-weight: 600;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 .signup code {
   font-family: var(--mono);
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
 }
 .signup-code-note {
   color: var(--caption);
-  font-size: 12.5px;
+  font-size: 12px;
 }
 .signup-code-toggle {
   display: flex;
@@ -194,7 +194,7 @@
 }
 .signup-values dt {
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
 }
 .signup-values dd {
@@ -514,7 +514,7 @@
   gap: 8px;
   padding: 10px;
   border: 1px solid var(--hairline);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   background: transparent;
   color: inherit;
   text-align: left;
@@ -550,7 +550,7 @@
   border-color: var(--green-bd);
   background: var(--green-bg);
   color: var(--green);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 @media (max-width: 900px) {
@@ -563,7 +563,7 @@
     padding: 20px 16px 40px;
   }
   .signup h1 {
-    font-size: 26px;
+    font-size: 24px;
     line-height: 1.25;
   }
   .signup-section,

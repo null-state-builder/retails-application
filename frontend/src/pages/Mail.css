@@ -56,7 +56,7 @@
   border-bottom: 1px solid var(--hairline);
   background: transparent;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
 }
 .mail-row:hover {
   background: var(--inner);
@@ -83,7 +83,7 @@
   color: var(--muted);
 }
 .mail-row-subject {
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--ink);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -100,7 +100,7 @@
    men with a colour vision deficiency, and this is the app's busiest signal. */
 .mail-row.unread .mail-row-from,
 .mail-row.unread .mail-row-subject {
-  font-weight: 700;
+  font-weight: 600;
 }
 .mail-row.unread {
   border-left: 2px solid var(--rust);
@@ -116,7 +116,7 @@
 }
 .mail-reader-subject {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   color: var(--ink);
   flex: 1;
 }
@@ -128,7 +128,7 @@
 }
 .mail-reader-meta {
   margin: 6px 0 0;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--muted);
 }
 .mail-reader-when {
@@ -148,10 +148,10 @@
   gap: 6px;
   padding: 6px 11px;
   border: 1px solid var(--hairline);
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: var(--inner);
   cursor: pointer;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--ink);
 }
@@ -208,7 +208,7 @@
   align-items: center;
   gap: 10px;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--ink);
 }
 .mail-composer-from {
@@ -232,7 +232,7 @@
   background: var(--inner);
   color: var(--ink);
   font: inherit;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 .mail-field::placeholder {
   color: var(--caption);
@@ -252,7 +252,7 @@
 }
 .mail-error {
   margin: 0;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--red);
 }
 

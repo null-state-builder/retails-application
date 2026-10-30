@@ -66,14 +66,14 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--navy2);
   margin: 0 0 6px;
 }
 
 .cfg-layout .h5 {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ink);
   margin: 12px 0 4px;
@@ -106,7 +106,7 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  font-size: 13.5px;
+  font-size: 14px;
   padding: 4px 0;
 }
 
@@ -132,7 +132,7 @@
   gap: 8px;
   padding: 10px 0;
   border-bottom: 1px solid var(--sidebar-border);
-  font-size: 13.5px;
+  font-size: 14px;
 }
 
 .cfg-layout .cfg-wizard-item:last-child {
@@ -204,12 +204,12 @@
   gap: 8px;
 }
 .cfg-layout .cfg-sect-label {
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--muted);
 }
 .cfg-layout .cfg-sect-count {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--caption);
   font-variant-numeric: tabular-nums;
 }
@@ -341,7 +341,7 @@
   background: transparent;
   color: var(--muted);
   padding: 6px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -368,7 +368,7 @@
   gap: 14px;
 }
 .cfg-layout .cfg-tz label {
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--muted);
 }
@@ -424,7 +424,7 @@
   min-width: 0;
 }
 .cfg-layout .cfg-summary dt {
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--muted);
   margin-bottom: 3px;
@@ -514,9 +514,9 @@
   max-width: 100%;
   padding: 3px 3px 3px 12px;
   border: 1px solid var(--hairline);
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: var(--inner);
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--ink);
 }
 .cfg-layout .cfg-entries li span {
@@ -532,7 +532,7 @@
   width: 24px;
   height: 24px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: transparent;
   color: var(--muted);
   cursor: pointer;

@@ -22,7 +22,7 @@
   border-radius: 50%;
   border: 1px solid var(--hairline);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .product-lists .pl-steps li.now {
   color: var(--ink);
@@ -31,12 +31,12 @@
 .product-lists .pl-steps li.now .pl-step-n {
   background: var(--navy-fill);
   border-color: var(--navy-fill);
-  color: #fff;
+  color: var(--on-fill);
 }
 .product-lists .pl-steps li.done .pl-step-n {
-  background: var(--green-bg, #e9f5ec);
-  border-color: var(--green-bd, #bfe0c8);
-  color: var(--green, #2e7d4f);
+  background: var(--green-bg);
+  border-color: var(--green-bd);
+  color: var(--green);
 }
 .product-lists .pl-drop {
   display: flex;
@@ -94,11 +94,11 @@
   align-items: center;
   gap: 10px;
   cursor: pointer;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 .product-lists .pl-sub {
   margin: 12px 0 6px;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--muted);
 }
 .product-lists .chip-pick[disabled] {
@@ -146,10 +146,10 @@
   display: flex;
   flex-direction: column;
   margin-right: auto;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--muted);
 }
 .product-lists .pl-done-list {
   margin: 8px 0 14px 18px;
-  font-size: 13.5px;
+  font-size: 14px;
 }

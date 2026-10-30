@@ -318,7 +318,7 @@ export function AdjustmentDetailPage() {
                 <td
                   className="num"
                   style={{
-                    fontWeight: 700,
+                    fontWeight: 600,
                     color:
                       l.adj_qty < 0 ? "var(--red)" : l.adj_qty > 0 ? "var(--green)" : undefined,
                   }}

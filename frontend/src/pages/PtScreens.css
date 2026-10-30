@@ -27,7 +27,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--navy2);
   margin: 14px 0 6px;
@@ -44,19 +44,19 @@
 }
 
 .pt-layout .gr-facts dt {
-  font-size: 12.5px;
-  font-weight: 650;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--muted);
 }
 
 .pt-layout .gr-facts dd {
   margin: 2px 0 0;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
 }
 
 .pt-layout .gr-history {
-  font-size: 13.5px;
+  font-size: 14px;
   padding-left: 18px;
   margin: 6px 0 0;
 }
@@ -81,7 +81,7 @@
 
 .pt-layout .pt-start-path {
   border: 1px solid var(--sidebar-border);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   padding: 12px;
 }
 
@@ -118,7 +118,7 @@
 }
 
 .pt-layout tr.pt-row-dirty {
-  outline: 2px solid var(--rust, #b45309);
+  outline: 2px solid var(--rust);
   outline-offset: -2px;
 }
 
@@ -133,7 +133,7 @@
 .pt-layout .pt-issue-chips ul {
   margin: 6px 0 0;
   padding-left: 16px;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 
 .pt-layout .pt-actions {
@@ -165,7 +165,7 @@
 
 .pt-approvals-queue {
   border: 1px solid var(--sidebar-border);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   padding: 12px;
 }
 
@@ -182,7 +182,7 @@
   width: 100%;
   text-align: left;
   border: 1px solid transparent;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   padding: 8px;
   background: none;
   display: flex;

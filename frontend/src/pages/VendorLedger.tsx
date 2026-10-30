@@ -332,7 +332,7 @@ export default function VendorLedger() {
                   </td>
                   <td className="mono">{b.vendor_code}</td>
                   <td className="num">{b.entries}</td>
-                  <td className="num mono" style={{ fontWeight: 700 }}>
+                  <td className="num mono" style={{ fontWeight: 600 }}>
                     <Money paise={b.outstanding_paise} />
                   </td>
                 </tr>
@@ -389,7 +389,7 @@ export default function VendorLedger() {
                   >
                     <Money paise={r.bucket_60_plus_paise} />
                   </td>
-                  <td className="num mono" style={{ fontWeight: 800 }}>
+                  <td className="num mono" style={{ fontWeight: 600 }}>
                     <Money paise={r.total_due_paise} />
                   </td>
                 </tr>
@@ -447,7 +447,7 @@ export default function VendorLedger() {
                   </td>
                   <td
                     className="num mono"
-                    style={{ fontWeight: 700, color: e.amount < 0 ? "var(--rust)" : "inherit" }}
+                    style={{ fontWeight: 600, color: e.amount < 0 ? "var(--rust)" : "inherit" }}
                   >
                     <Money paise={e.amount} />
                   </td>

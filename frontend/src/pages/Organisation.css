@@ -37,9 +37,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 12.5px;
-  font-weight: 650;
-  color: var(--muted, #6b7280);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
   margin: 0 0 6px;
 }
 
@@ -61,9 +61,9 @@
   border: none;
   background: none;
   padding: 7px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   cursor: pointer;
-  font-size: 13.5px;
+  font-size: 14px;
   color: inherit;
 }
 
@@ -78,7 +78,7 @@
 }
 
 .org-nav-item .org-nav-sub {
-  color: var(--muted, #6b7280);
+  color: var(--muted);
   font-size: 12px;
   margin-left: auto;
 }
@@ -95,9 +95,9 @@
   border: none;
   background: none;
   padding: 9px 14px;
-  font-size: 13.5px;
+  font-size: 14px;
   cursor: pointer;
-  color: var(--muted, #6b7280);
+  color: var(--muted);
   border-bottom: 2px solid transparent;
   white-space: nowrap;
 }
@@ -120,7 +120,7 @@
   gap: 8px;
   padding: 6px 0;
   border-bottom: 1px solid var(--hairline);
-  font-size: 13.5px;
+  font-size: 14px;
 }
 
 .org-check-row:last-child {
@@ -142,10 +142,10 @@
   align-items: center;
   gap: 6px;
   padding: 5px 0;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 
 .org-loc-lock {
-  color: var(--muted, #6b7280);
+  color: var(--muted);
   flex: 0 0 auto;
 }
