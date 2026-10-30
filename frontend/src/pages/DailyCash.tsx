@@ -5,8 +5,7 @@
 // the Cash Ledger already lists (`/money/cash`); this just slices one day
 // and keeps in/out apart instead of netting them into one running balance.
 import { useState } from "react";
-import { ArrowDownRight, ArrowUpRight, Scale } from "lucide-react";
-
+import { KpiStrip } from "../components/KpiStrip";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { Money } from "../lib/format";
@@ -79,29 +78,35 @@ export function DailyCashPage() {
         <p className="muted-cell">Could not load.</p>
       ) : (
         <>
-          <div className="stat-grid">
-            <div className="card stat-card">
-              <ArrowDownRight size={18} style={{ color: "var(--green)" }} />
-              <div className="stat-value mono" data-testid="dc-money-in">
-                <Money paise={data.money_in_paise} />
-              </div>
-              <div className="stat-label">Money in</div>
-            </div>
-            <div className="card stat-card">
-              <ArrowUpRight size={18} style={{ color: "var(--red)" }} />
-              <div className="stat-value mono" data-testid="dc-money-out">
-                <Money paise={data.money_out_paise} />
-              </div>
-              <div className="stat-label">Money out</div>
-            </div>
-            <div className="card stat-card">
-              <Scale size={18} style={{ color: "var(--rust)" }} />
-              <div className="stat-value mono" data-testid="dc-net">
-                <Money paise={data.net_paise} />
-              </div>
-              <div className="stat-label">Net for the day</div>
-            </div>
-          </div>
+          <KpiStrip
+            label="The day"
+            items={[
+              {
+                label: "Money in",
+                value: (
+                  <span className="mono" data-testid="dc-money-in">
+                    <Money paise={data.money_in_paise} />
+                  </span>
+                ),
+              },
+              {
+                label: "Money out",
+                value: (
+                  <span className="mono" data-testid="dc-money-out">
+                    <Money paise={data.money_out_paise} />
+                  </span>
+                ),
+              },
+              {
+                label: "Net for the day",
+                value: (
+                  <span className="mono" data-testid="dc-net">
+                    <Money paise={data.net_paise} />
+                  </span>
+                ),
+              },
+            ]}
+          />
           <div className="table-wrap" style={{ marginBottom: 24 }}>
             <table className="data" data-testid="daily-cash-accounts-table">
               <thead>

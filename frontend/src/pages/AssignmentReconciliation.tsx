@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { Note } from "../components/Note";
+import { Section } from "../components/Section";
 import { Denied, useGoodsFetch } from "../lib/goodsScreen";
 
 interface ReviewPerson {
@@ -37,17 +39,12 @@ export function AssignmentReconciliationPanel() {
   );
   if (report.denied) return <Denied what="access reconciliation" />;
   return (
-    <section className="card section-card" data-testid="assignment-reconciliation">
-      <h2>Review access migration</h2>
+    <Section heading="Review access migration" testId="assignment-reconciliation">
       <p>
         Review proposed roles, scope and exclusions before cutover. Resolve identity and assignment
         issues in each person’s record. Unsupported responsibilities remain inactive.
       </p>
-      {report.failure && (
-        <p className="warn-note" role="alert">
-          {report.failure}
-        </p>
-      )}
+      {report.failure && <Note tone="error">{report.failure}</Note>}
       {report.loading ? (
         <p>Loading review…</p>
       ) : (
@@ -131,6 +128,6 @@ export function AssignmentReconciliationPanel() {
           Next page
         </button>
       </div>
-    </section>
+    </Section>
   );
 }

@@ -183,13 +183,6 @@
   font-size: 13px;
 }
 
-/* Ticket 07B: more pieces than the PT covers. Amber, like the stock
-   limitation note: a thing to act on, not an error in what was typed. */
-.accept-layout .acc-extra {
-  border-color: color-mix(in srgb, var(--amber) 60%, var(--sidebar-border));
-  background: color-mix(in srgb, var(--amber) 6%, transparent);
-}
-
 .accept-layout .acc-extra-refs {
   display: flex;
   flex-wrap: wrap;

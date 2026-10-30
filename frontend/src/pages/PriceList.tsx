@@ -15,10 +15,15 @@
 //     act on.
 
 import { useState } from "react";
-import { History, IndianRupee, Printer, Search, Tag } from "lucide-react";
+import { History, Printer } from "lucide-react";
 
+import { LeadFigure } from "../components/KpiStrip";
+import { Note } from "../components/Note";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
+import { EmptyState } from "../components/States";
+import { Status } from "../components/Status";
 import { api, apiErrorMessage } from "../lib/api";
 import { useDoc } from "../lib/hooks";
 import { TagPrintModal } from "./TagPrint";
@@ -98,9 +103,7 @@ export function PriceListPage() {
 
       <div className="toolbar">
         <label className="field" style={{ maxWidth: 320 }}>
-          <span className="eyebrow">
-            <Search size={13} /> Barcode, style, item or brand
-          </span>
+          <span>Barcode, style, item or brand</span>
           <input
             className="input"
             value={term}
@@ -110,7 +113,7 @@ export function PriceListPage() {
           />
         </label>
         <label className="field" style={{ maxWidth: 200 }}>
-          <span className="eyebrow">Priced as on</span>
+          <span>Priced as on</span>
           <input
             type="date"
             className="input"
@@ -133,7 +136,7 @@ export function PriceListPage() {
           </button>
         )}
         {data && (
-          <span className="chip chip-grey" data-testid="price-count">
+          <span className="chip" data-testid="price-count">
             {data.count} piece{data.count === 1 ? "" : "s"}
             {data.truncated ? " (first page)" : ""}
           </span>
@@ -143,12 +146,9 @@ export function PriceListPage() {
       {loading ? (
         <p className="lead">Loading…</p>
       ) : !data || data.rows.length === 0 ? (
-        <div className="card section-card" data-testid="price-empty">
-          <p className="eyebrow">
-            <Tag size={15} /> Nothing matches
-          </p>
+        <EmptyState heading="Nothing matches" testId="price-empty">
           No piece answers to that. Try a barcode, a style code or a brand.
-        </div>
+        </EmptyState>
       ) : (
         <div className="table-wrap">
           <table className="data" data-testid="price-table">
@@ -176,36 +176,31 @@ export function PriceListPage() {
                     />
                   </td>
                   <td>
-                    <p className="eyebrow">{row.brand || "(unbranded)"}</p>
                     {row.design} {row.color} {row.size}
-                    <span className="muted-cell mono" style={{ display: "block" }}>
-                      {row.barcode}
+                    <span className="sub">
+                      {row.brand || "(unbranded)"} · <span className="mono">{row.barcode}</span>
                     </span>
                   </td>
                   <td>{row.season || "—"}</td>
                   <td className="num tabular">{money(row.cost_paise)}</td>
                   <td className="num tabular">
                     {money(row.mrp_then_paise ?? row.mrp_paise)}
-                    {row.moved_since && (
-                      <span className="muted-cell" style={{ display: "block" }}>
-                        now {money(row.mrp_paise)}
-                      </span>
-                    )}
+                    {row.moved_since && <span className="sub">now {money(row.mrp_paise)}</span>}
                   </td>
                   <td className="num tabular">{row.margin_pct ? `${row.margin_pct}%` : "—"}</td>
                   <td>
                     {row.no_discount ? (
-                      <span className="chip chip-red" data-testid={`price-nod-${row.barcode}`}>
+                      <Status tone="red" testId={`price-nod-${row.barcode}`}>
                         never discounted
-                      </span>
+                      </Status>
                     ) : (
                       <span className="muted-cell">yes</span>
                     )}
                   </td>
-                  <td>
+                  <td className="act">
                     <button
                       type="button"
-                      className="btn"
+                      className="btn btn-sm"
                       onClick={() => setOpen(row.barcode)}
                       data-testid={`price-open-${row.barcode}`}
                     >
@@ -284,12 +279,12 @@ function PriceDetail({
       <div className="modal" onClick={(e) => e.stopPropagation()} data-testid="price-detail">
         <div className="modal-head">
           <div>
-            <p className="eyebrow">
-              <Tag size={14} /> {data?.brand || "Piece"} · {barcode}
-            </p>
             <h2 className="h2">
               {data ? `${data.design} ${data.color} ${data.size}`.trim() : "Loading…"}
             </h2>
+            <p className="muted-cell">
+              {data?.brand || "Piece"} · <span className="mono">{barcode}</span>
+            </p>
           </div>
           <button type="button" className="btn" onClick={onClose} data-testid="price-close">
             Close
@@ -301,18 +296,15 @@ function PriceDetail({
         ) : (
           <>
             <div className="price-head">
+              <LeadFigure
+                label="Ticket now"
+                value={<span data-testid="price-figure">{money(data.mrp_paise)}</span>}
+              >
+                landed at {money(data.cost_paise)}
+                {data.margin_pct ? ` · ${data.margin_pct}% on the ticket, before GST` : ""}
+              </LeadFigure>
               <div>
-                <p className="eyebrow">Ticket now</p>
-                <p className="price-figure" data-testid="price-figure">
-                  {money(data.mrp_paise)}
-                </p>
-                <p className="price-sub">
-                  landed at {money(data.cost_paise)}
-                  {data.margin_pct ? ` · ${data.margin_pct}% on the ticket, before GST` : ""}
-                </p>
-              </div>
-              <div>
-                <p className="eyebrow">Cohorts holding it</p>
+                <h3 className="h3">Cohorts holding it</h3>
                 {data.cohorts.length === 0 ? (
                   <p className="price-sub">None inwarded yet.</p>
                 ) : (
@@ -326,10 +318,7 @@ function PriceDetail({
               </div>
             </div>
 
-            <div className="card section-card" style={{ marginTop: 18 }}>
-              <p className="eyebrow">
-                <IndianRupee size={13} /> Move the ticket
-              </p>
+            <Section heading="Move the ticket" level={3} ruled>
               <div className="form-row">
                 <label className="field">
                   New ticket ₹
@@ -366,60 +355,55 @@ function PriceDetail({
                 the refusal says the figure it is refusing against.
               </p>
               {error && (
-                <div className="warn-note" data-testid="reprice-error">
+                <Note tone="error" testId="reprice-error">
                   {error}
-                </div>
+                </Note>
               )}
               {done && (
-                <div className="ai-note" data-testid="reprice-done">
+                <Note tone="success" role="status" testId="reprice-done">
                   {done}
+                </Note>
+              )}
+            </Section>
+
+            <Section heading="Every movement of this ticket" level={3} ruled>
+              {data.history.length === 0 ? (
+                <p className="hint" data-testid="price-trail-empty">
+                  Nothing recorded yet. The trail starts the first time this ticket moves — a PT
+                  that re-states the same figure is not a price change.
+                </p>
+              ) : (
+                <div className="table-wrap">
+                  <table className="data" data-testid="price-trail">
+                    <thead>
+                      <tr>
+                        <th>From</th>
+                        <th>Was → became</th>
+                        <th>Why</th>
+                        <th>Who</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.history.map((change) => (
+                        <tr key={change.id}>
+                          <td>{change.effective_from}</td>
+                          <td className="tabular">
+                            <span className="trail-from">{money(change.from_paise)}</span> →{" "}
+                            <b>{money(change.to_paise)}</b>
+                          </td>
+                          <td>
+                            {change.source_label}
+                            {change.doc_number ? ` · ${change.doc_number}` : ""}
+                            {change.reason ? <span className="sub">{change.reason}</span> : null}
+                          </td>
+                          <td>{change.changed_by_name || "system"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
-            </div>
-
-            <p className="eyebrow" style={{ marginTop: 18 }}>
-              <History size={13} /> Every movement of this ticket
-            </p>
-            {data.history.length === 0 ? (
-              <p className="hint" data-testid="price-trail-empty">
-                Nothing recorded yet. The trail starts the first time this ticket moves — a PT that
-                re-states the same figure is not a price change.
-              </p>
-            ) : (
-              <div className="table-wrap">
-                <table className="data" data-testid="price-trail">
-                  <thead>
-                    <tr>
-                      <th>From</th>
-                      <th>Was → became</th>
-                      <th>Why</th>
-                      <th>Who</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.history.map((change) => (
-                      <tr key={change.id}>
-                        <td>{change.effective_from}</td>
-                        <td className="tabular">
-                          <span className="trail-from">{money(change.from_paise)}</span> →{" "}
-                          <b>{money(change.to_paise)}</b>
-                        </td>
-                        <td>
-                          {change.source_label}
-                          {change.doc_number ? ` · ${change.doc_number}` : ""}
-                          {change.reason ? (
-                            <span className="muted-cell" style={{ display: "block" }}>
-                              {change.reason}
-                            </span>
-                          ) : null}
-                        </td>
-                        <td>{change.changed_by_name || "system"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            </Section>
           </>
         )}
       </div>

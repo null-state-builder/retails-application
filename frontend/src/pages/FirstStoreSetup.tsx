@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 
 import { PageHeader } from "../components/PageHeader";
+import { Note } from "../components/Note";
+import { Status } from "../components/Status";
 import { api, apiErrorMessage } from "../lib/api";
 import "./FirstStoreSetup.css";
 
@@ -128,38 +130,41 @@ function Step({
       <div className="fss-node" aria-hidden="true">
         {state === "clear" ? <Tick /> : n}
       </div>
-      <section className="card fss-body" aria-labelledby={`fss-step-${n}`}>
+      <section className="box fss-body" aria-labelledby={`fss-step-${n}`}>
         <div className="fss-body-head">
           <h2 id={`fss-step-${n}`}>
             <span className="sr-only">Step {n}: </span>
             {title}
           </h2>
-          {state === "clear" && <span className="chip chip-green">Checks passed</span>}
+          {state === "clear" && <Status tone="green">Checks passed</Status>}
           {state === "open" && (
-            <span className="chip chip-amber">
+            <Status tone="amber">
               {failing.length === 1 ? "1 check open" : `${failing.length} checks open`}
-            </span>
+            </Status>
           )}
-          {state === null && <span className="chip">Checking…</span>}
+          {state === null && <Status>Checking…</Status>}
         </div>
         <p className="fss-summary">{summary}</p>
         <div className="fss-who" aria-label="Who does this">
           {who.map((w) => (
-            <span key={w} className="chip chip-navy">
+            <span key={w} className="chip">
               {w}
             </span>
           ))}
         </div>
         {failing.length > 0 && (
           <div className="fss-blockers">
-            <p>Still blocking trading</p>
-            <ul>
-              {failing.map((c) => (
-                <li key={c.key}>
-                  <strong>{label(c.key)}:</strong> {c.reason ?? "required configuration is missing"}
-                </li>
-              ))}
-            </ul>
+            <Note tone="warn">
+              <strong>Still blocking trading</strong>
+              <ul>
+                {failing.map((c) => (
+                  <li key={c.key}>
+                    <strong>{label(c.key)}:</strong>{" "}
+                    {c.reason ?? "required configuration is missing"}
+                  </li>
+                ))}
+              </ul>
+            </Note>
           </div>
         )}
         {children}
@@ -222,23 +227,19 @@ export function FirstStoreSetupPage() {
           </button>
         }
       />
-      {error && (
-        <p className="warn-note" role="alert">
-          {error}
-        </p>
-      )}
+      {error && <Note tone="error">{error}</Note>}
       {!setup ? (
         !error && <p className="lead">Loading your registered company…</p>
       ) : (
         <>
-          <section className="card fss-store" aria-label="Store">
+          <section className="box fss-store" aria-label="Store">
             <div className="fss-store-head">
               <h2 className="fss-store-name">{setup.summary.store.name}</h2>
               <span className="fss-store-code">{setup.summary.store.code}</span>
               {setup.setup_complete ? (
-                <span className="chip chip-green">Selling approved</span>
+                <Status tone="green">Selling approved</Status>
               ) : (
-                <span className="chip chip-amber">Trading inactive</span>
+                <Status tone="amber">Trading inactive</Status>
               )}
             </div>
             <p className="fss-store-sub">

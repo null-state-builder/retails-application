@@ -90,7 +90,7 @@ function SizesFor({ mobile, online }: { mobile: string; online: boolean }) {
   return (
     <section className="bill-consent" data-testid="saved-sizes">
       <div className="bill-customer-heading">
-        <p className="eyebrow">Saved sizes</p>
+        <h3 className="heading">Saved sizes</h3>
         <span>Learned from this customer's bills</span>
       </div>
       {problem ? (

@@ -13,7 +13,7 @@ export function BillDiscountChip({ plus, locked }: { plus: Plus; locked: boolean
   return (
     <section className="plus-card" data-testid="plus-discount">
       <header className="plus-head">
-        <h3 className="eyebrow">Bill discount</h3>
+        <h3 className="heading">Bill discount</h3>
         <span className="plus-ruling">Needs a ruling</span>
       </header>
       <button

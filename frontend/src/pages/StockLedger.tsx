@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Boxes, IndianRupee, Layers, PackageCheck, ScrollText } from "lucide-react";
+import { PackageCheck } from "lucide-react";
 
 import { useAuth } from "../auth/AuthContext";
 import { canAccess } from "../auth/routeAccess";
@@ -9,7 +9,10 @@ import { Money } from "../lib/format";
 import { ListSearchBar } from "../components/SearchBox";
 import "./Booking.css";
 import "./Shared.css";
+import { KpiStrip, type Kpi } from "../components/KpiStrip";
 import { PageHeader } from "../components/PageHeader";
+import { EmptyState } from "../components/States";
+import { Note } from "../components/Note";
 
 interface EntryT {
   id: number;
@@ -78,17 +81,15 @@ export default function StockLedger() {
   // the goods journal, so a net of 0 here would misstate what is on hand).
   const ledgerEmpty = summary !== null && summary.entries === 0;
   const known = summary !== null && !ledgerEmpty;
-  const cards = useMemo(
+  const cards = useMemo<Kpi[]>(
     () => [
-      { icon: ScrollText, label: "Ledger entries", value: summary ? summary.entries : "—" },
-      { icon: Boxes, label: "Net units on hand", value: summary && known ? summary.net_qty : "—" },
+      { label: "Ledger entries", value: summary ? summary.entries : "—" },
+      { label: "Net units on hand", value: summary && known ? summary.net_qty : "—" },
       {
-        icon: IndianRupee,
         label: "Net stock value (₹)",
         value: summary && known ? <Money paise={summary.net_value_paise} /> : "—",
       },
       {
-        icon: Layers,
         label: "Distinct SKUs",
         value: summary && known ? summary.distinct_skus : "—",
       },
@@ -107,20 +108,14 @@ export default function StockLedger() {
         }
       />
 
-      <div className="stat-grid" data-testid="stock-summary">
-        {cards.map((c) => (
-          <div className="card stat-card" key={c.label}>
-            <c.icon size={18} style={{ color: "var(--rust)" }} />
-            <div className="stat-value mono">{c.value}</div>
-            <div className="stat-label">{c.label}</div>
-          </div>
-        ))}
+      <div data-testid="stock-summary">
+        <KpiStrip items={cards} label="Ledger summary" />
       </div>
 
       {docFilter && (
-        <div className="ai-note" data-testid="stock-doc-filter" style={{ marginTop: 12 }}>
+        <Note testId="stock-doc-filter">
           Showing entries for voucher <b className="mono">{docFilter}</b>.
-        </div>
+        </Note>
       )}
 
       <ListSearchBar
@@ -137,7 +132,7 @@ export default function StockLedger() {
       {loading ? (
         <p className="lead">Loading…</p>
       ) : entries.length === 0 ? (
-        <div className="card section-card" data-testid="stock-empty">
+        <EmptyState testId="stock-empty">
           {q ? (
             `No movement matches “${q}”.`
           ) : (
@@ -154,7 +149,7 @@ export default function StockLedger() {
               )}
             </>
           )}
-        </div>
+        </EmptyState>
       ) : (
         <div className="table-wrap kdps-scroll" style={{ marginTop: 16 }}>
           <table className="data kdps-table" data-testid="stock-entries-table">
@@ -179,11 +174,7 @@ export default function StockLedger() {
               {entries.map((e) => (
                 <tr key={e.id} data-testid={`stock-entry-${e.id}`}>
                   <td className="mono">{e.doc_number}</td>
-                  <td>
-                    <span className={`chip chip-${e.kind === "pt_inward" ? "green" : "red"}`}>
-                      {e.kind_label}
-                    </span>
-                  </td>
+                  <td>{e.kind_label}</td>
                   <td>{e.store_code}</td>
                   <td className="mono">{e.sku_code}</td>
                   <td>{e.brand}</td>

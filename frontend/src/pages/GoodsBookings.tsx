@@ -38,6 +38,7 @@ import {
   type BookingProgress,
 } from "../lib/goodsReceiving";
 import { useAuth } from "../auth/AuthContext";
+import { Note } from "../components/Note";
 import {
   BookingLinesTable,
   BookingPageHeader,
@@ -605,7 +606,7 @@ export function GoodsBookingDetail({ bookingId }: { bookingId: string }) {
   // record on screen — tearing the panels down mid-reload would also take the
   // message that says what just happened, and whatever was half-typed with it.
   if (doc.loading && !doc.doc) return <p className="muted">Loading…</p>;
-  if (doc.failure) return <div className="warn-note">{doc.failure}</div>;
+  if (doc.failure) return <Note tone="error">{doc.failure}</Note>;
   if (!doc.doc) return <Denied what="booking" />;
 
   const booking = doc.doc;

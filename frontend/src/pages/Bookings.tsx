@@ -18,7 +18,9 @@ import { FileUp, Plus, Send, Sparkles, Trash2, XCircle } from "lucide-react";
 
 import { useAuth } from "../auth/AuthContext";
 import { SearchBox } from "../components/SearchBox";
-import { EmptyState } from "../components/States";
+import { Note } from "../components/Note";
+import { Box, Section } from "../components/Section";
+import { EmptyState, ErrorState } from "../components/States";
 import { canAccess } from "../auth/routeAccess";
 import { useWideScreen } from "../lib/useWideScreen";
 import { isOver, type OtbBudget, type OtbList } from "../lib/openToBuy";
@@ -62,6 +64,7 @@ import {
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import "./Booking.css";
+import { SegmentedControl } from "../components/SegmentedControl";
 
 interface BookingT extends LegacyBookingRow {
   season_name: string;
@@ -201,7 +204,7 @@ export function BookingsPage() {
         />
       </div>
 
-      {failure && <div className="warn-note">{failure}</div>}
+      {failure && <Note tone="error">{failure}</Note>}
       {loading ? (
         <p className="lead">Loading…</p>
       ) : shown.length === 0 ? (
@@ -314,15 +317,16 @@ function OpenToBuyStrip() {
     .sort((a, b) => Number(a.open_to_buy_paise) - Number(b.open_to_buy_paise))
     .slice(0, 6);
   return (
-    <section className="card otb-strip" aria-label="Open-to-buy" data-testid="bookings-otb">
-      <div className="otb-strip-head">
-        <h3 className="h3">Open-to-buy</h3>
-        <span className="muted">Budget at cost, less open bookings and goods received</span>
-        <div className="spacer" />
+    <Section
+      heading="Open-to-buy"
+      testId="bookings-otb"
+      aside={
         <Link to="/booking/open-to-buy" data-testid="bookings-otb-all">
           {budgets.length > shown.length ? `All ${budgets.length} budgets` : "Budgets"}
         </Link>
-      </div>
+      }
+    >
+      <p className="muted">Budget at cost, less open bookings and goods received</p>
       <div className="otb-strip-grid">
         {shown.map((b) => {
           const budget = Number(b.budget_paise);
@@ -362,7 +366,7 @@ function OpenToBuyStrip() {
           );
         })}
       </div>
-    </section>
+    </Section>
   );
 }
 
@@ -374,7 +378,7 @@ function BookingQueue({ currentId }: { currentId: string }) {
   const { shown } = filterCards(cards, "open", "");
   if (loading || shown.length === 0) return null;
   return (
-    <nav className="card side-queue" aria-label="Open bookings" data-testid="booking-queue">
+    <nav className="box side-queue" aria-label="Open bookings" data-testid="booking-queue">
       <p className="side-queue-head">
         Open bookings <span className="filter-chip-n">{shown.length}</span>
       </p>
@@ -759,11 +763,8 @@ export function BookingNewPage() {
       <PageHeader title="New booking" />
 
       {canLegacy && (
-        <div className="card section-card">
-          <p className="eyebrow">Optional · The vendor's document</p>
-          <h3 className="h3" style={{ marginBottom: 12 }}>
-            Upload it and the lines are filled in for you
-          </h3>
+        <Section heading="The vendor's document (optional)">
+          <p className="lead">Upload it and the lines are filled in for you.</p>
           <label className="dropzone" data-testid="booking-dropzone">
             <input
               type="file"
@@ -784,22 +785,17 @@ export function BookingNewPage() {
               </span>
             )}
           </label>
-          {aiNote && (
-            <div className="ai-note" data-testid="ai-note">
-              <Sparkles size={14} /> {aiNote}
-            </div>
-          )}
+          {aiNote && <Note testId="ai-note">{aiNote}</Note>}
           {warn && (
-            <div className="warn-note" data-testid="ai-warn">
+            <Note tone="warn" testId="ai-warn">
               {warn}
-            </div>
+            </Note>
           )}
-        </div>
+        </Section>
       )}
 
-      <div className="card section-card">
-        <p className="eyebrow">The booking</p>
-        <div className="form-row" style={{ marginTop: 10 }}>
+      <Section heading="The booking" ruled={canLegacy}>
+        <div className="form-row">
           <div className="field">
             <label htmlFor="gb-destination">Store (where the goods go)</label>
             <select
@@ -923,23 +919,21 @@ export function BookingNewPage() {
             </>
           )}
         </div>
-      </div>
+      </Section>
 
-      <div className="card section-card">
-        <div className="toolbar" style={{ marginBottom: 10 }}>
-          <div>
-            <p className="eyebrow">Lines</p>
-            <h3 className="h3">What is booked</h3>
-          </div>
-          <div className="spacer" />
+      <Section
+        heading="What is booked"
+        ruled
+        aside={
           <button
-            className="btn"
+            className="btn btn-sm"
             onClick={() => setLines((l) => [...l, emptyLine()])}
             data-testid="gb-add-line"
           >
             <Plus size={15} /> Add line
           </button>
-        </div>
+        }
+      >
         {showCost && (
           <p className="hint" style={{ marginBottom: 10 }}>
             Cost per piece is a guide only. The PT still sets the cost that counts.
@@ -954,9 +948,9 @@ export function BookingNewPage() {
           />
         ))}
         {curveNote && (
-          <p className="ok-note" role="status" data-testid="gb-curve-filled">
+          <Note tone="success" role="status" testId="gb-curve-filled">
             {curveNote}
-          </p>
+          </Note>
         )}
         <div className="lines-scroll">
           <table className="lines-table" data-testid="gb-draft-lines">
@@ -1119,16 +1113,12 @@ export function BookingNewPage() {
           mrpPaise={totals.mrpPaise}
           showCost={showCost}
         />
-      </div>
+      </Section>
 
       {error && (
-        <div
-          className="warn-note"
-          style={{ maxWidth: 560, marginBottom: 12 }}
-          data-testid="gb-error"
-        >
+        <Note tone="error" testId="gb-error">
           {error}
-        </div>
+        </Note>
       )}
       <button
         className="btn btn-primary btn-lg"
@@ -1195,16 +1185,13 @@ function EndBooking({ booking, onDone }: { booking: BookingT; onDone: () => void
   }
 
   return (
-    <div className="card section-card" style={{ marginBottom: 18 }} data-testid="end-booking-panel">
+    <Box style={{ marginBottom: 18 }} data-testid="end-booking-panel">
       <div className="toolbar" style={{ marginBottom: 10 }}>
-        <div>
-          <p className="eyebrow">Ending this booking</p>
-          <h3 className="h3">
-            {action === "cancel"
-              ? "Cancel — nothing has arrived"
-              : `Close early — ${booking.open_qty} piece(s) will not come`}
-          </h3>
-        </div>
+        <h3 className="h3">
+          {action === "cancel"
+            ? "Cancel — nothing has arrived"
+            : `Close early — ${booking.open_qty} piece(s) will not come`}
+        </h3>
         <div className="spacer" />
         <button
           className="btn btn-sm"
@@ -1214,26 +1201,23 @@ function EndBooking({ booking, onDone }: { booking: BookingT; onDone: () => void
           Keep it open
         </button>
       </div>
-      <div className="seg" style={{ marginBottom: 10 }}>
-        <button
-          className={`seg-btn ${action === "close" ? "active" : ""}`}
-          onClick={() => setAction("close")}
-          data-testid="end-action-close"
-        >
-          Close early
-        </button>
-        <button
-          className={`seg-btn ${action === "cancel" ? "active" : ""}`}
-          onClick={() => setAction("cancel")}
-          disabled={!nothingReceived}
-          title={
-            nothingReceived ? undefined : "Goods have already arrived — close it early instead"
-          }
-          data-testid="end-action-cancel"
-        >
-          Cancel
-        </button>
-      </div>
+      <SegmentedControl
+        label="How it ends"
+        value={action}
+        onChange={setAction}
+        options={[
+          { value: "close", label: "Close early", testId: "end-action-close" },
+          {
+            value: "cancel",
+            label: "Cancel",
+            testId: "end-action-cancel",
+            disabled: !nothingReceived,
+            title: nothingReceived
+              ? undefined
+              : "Goods have already arrived — close it early instead",
+          },
+        ]}
+      />
       <input
         className="input"
         placeholder="Why is this booking ending? (e.g. season over, vendor sent 60 pcs short)"
@@ -1242,9 +1226,9 @@ function EndBooking({ booking, onDone }: { booking: BookingT; onDone: () => void
         data-testid="end-booking-reason"
       />
       {error && (
-        <div className="warn-note" style={{ marginTop: 10 }} data-testid="end-booking-error">
+        <Note tone="error" testId="end-booking-error">
           {error}
-        </div>
+        </Note>
       )}
       <button
         className="btn btn-danger"
@@ -1259,7 +1243,7 @@ function EndBooking({ booking, onDone }: { booking: BookingT; onDone: () => void
             ? "Cancel this booking"
             : "Close this booking early"}
       </button>
-    </div>
+    </Box>
   );
 }
 
@@ -1293,9 +1277,9 @@ function SendBookingForApproval({ booking, onDone }: { booking: BookingT; onDone
         <Send size={15} /> {saving ? "Sending…" : "Send to Owner for approval"}
       </button>
       {error && (
-        <span className="warn-note" data-testid="booking-send-error">
+        <Note tone="error" testId="booking-send-error">
           {error}
-        </span>
+        </Note>
       )}
     </>
   );
@@ -1311,9 +1295,11 @@ function LegacyBookingDetail({ id }: { id: string }) {
   if (error) {
     return (
       <OperationsPage>
-        <div className="card section-card" data-testid="booking-missing">
-          That booking was not found.
-        </div>
+        <ErrorState
+          heading="That booking was not found."
+          message={apiErrorMessage(error)}
+          testId="booking-missing"
+        />
       </OperationsPage>
     );
   }
@@ -1368,19 +1354,17 @@ function LegacyBookingDetail({ id }: { id: string }) {
       )}
 
       {b.status === "submitted" && (
-        <div className="card section-card" data-testid="booking-waiting-note">
-          <p className="eyebrow">Waiting for the Owner</p>
-          <p className="lead">
-            It is on the Owner's Action Needed. Goods cannot be received against it until the Owner
-            approves it.
-          </p>
-        </div>
+        <Note testId="booking-waiting-note">
+          <b>Waiting for the Owner.</b> It is on the Owner's Action Needed. Goods cannot be received
+          against it until the Owner approves it.
+        </Note>
       )}
 
       {ended && (
-        <div className="card section-card" data-testid="booking-ended-note">
-          <p className="eyebrow">{b.status === "cancelled" ? "Cancelled" : "Closed early"}</p>
-          <h3 className="h3">{b.close_reason || "No reason recorded"}</h3>
+        <Section
+          heading={`${b.status === "cancelled" ? "Cancelled" : "Closed early"}: ${b.close_reason || "No reason recorded"}`}
+          testId="booking-ended-note"
+        >
           <p className="lead">
             {b.closed_by_name ? `${b.closed_by_name} · ` : ""}
             {b.closed_at ? new Date(b.closed_at).toLocaleString("en-IN") : ""}
@@ -1388,7 +1372,7 @@ function LegacyBookingDetail({ id }: { id: string }) {
               ? ` · ${b.open_qty} piece(s) did not come`
               : ""}
           </p>
-        </div>
+        </Section>
       )}
 
       <BookingTiles

@@ -8,6 +8,7 @@ import { Link, Navigate, useSearchParams } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
 import { canAccess } from "../auth/routeAccess";
+import { Note } from "../components/Note";
 import { HostedPageContext } from "../components/PageHeader";
 import { INVENTORY_FOLD, foldTabsFor, resolveFoldTab } from "../shell/navConfig";
 import { BrokenSizesPage } from "./BrokenSizes";
@@ -66,18 +67,18 @@ export function InventoryPage() {
   if (!active || !Panel) {
     return (
       <div className="page-pad">
-        <p className="warn-note" data-testid="inventory-no-tabs">
+        <Note tone="warn" testId="inventory-no-tabs">
           You have no inventory screens on your account.
-        </p>
+        </Note>
       </div>
     );
   }
 
-  // Page-level tabs, deliberately not the `.seg` pill strip the screens
-  // themselves use for their own groupings: on Stock on Hand the two sit one
-  // above the other, and two identical controls in a row read as an accident.
-  // "damage" is a view of Stock on hand, not a tab of its own, wherever the
-  // Stock tab is there to carry it.
+  // Page-level places: each one changes the route, so they are links drawn as a
+  // `.seg` (design system v2, decision 5), the current one marked with
+  // aria-current. Rust marks only "where you are" in the shell's nav, never
+  // these. "damage" is a view of Stock on hand, not a tab of its own, wherever
+  // the Stock tab is there to carry it.
   const asView = tabs.some((t) => t.slug === "stock") ? new Set(["damage"]) : new Set<string>();
   const daily = new Set(["stock", "damage", "returns"]);
   const tabLink = (t: (typeof tabs)[number]) => (
@@ -86,7 +87,7 @@ export function InventoryPage() {
       // A goods-v1 line opens its own screen (GSA-T02); only a panel tab
       // stays on this page.
       to={t.link ? t.entry : `/inventory?${stockParams(params, { tab: t.slug })}`}
-      className={`page-tab ${t.slug === active.slug ? "active" : ""}`}
+      className={`seg-btn${t.slug === active.slug ? " active" : ""}`}
       aria-current={t.slug === active.slug ? "page" : undefined}
       data-testid={`inventory-tab-${t.slug}`}
     >
@@ -101,7 +102,7 @@ export function InventoryPage() {
         aria-label="Daily stock operations"
         data-testid="inventory-daily-tabs"
       >
-        <div className="page-tabs">
+        <div className="seg">
           {tabs.filter((tab) => daily.has(tab.slug) && !asView.has(tab.slug)).map(tabLink)}
         </div>
       </nav>
@@ -111,10 +112,10 @@ export function InventoryPage() {
         data-testid="inventory-review-tabs"
       >
         <summary>Review &amp; history</summary>
-        <div className="page-tabs">
+        <div className="seg">
           {reviewTabs.map(tabLink)}
           {user && canAccess("/roadmap", user, session?.display_actions ?? [], featuresOn) && (
-            <Link className="page-tab" to="/roadmap">
+            <Link className="seg-btn" to="/roadmap">
               Application roadmap
             </Link>
           )}

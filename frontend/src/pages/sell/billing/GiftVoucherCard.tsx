@@ -149,7 +149,7 @@ export function GiftVoucherCard({
   return (
     <section className="bill-consent" data-testid="gift-voucher-card">
       <div className="bill-customer-heading">
-        <p className="eyebrow">Gift vouchers</p>
+        <h3 className="heading">Gift vouchers</h3>
       </div>
       {held.map((voucher) => (
         <div key={voucher.number} className="bill-consent-note" data-testid="gift-voucher-held">

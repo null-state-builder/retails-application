@@ -42,7 +42,7 @@ export function pageContext(pathname: string, drawn?: NavRow[]) {
  *  - that no menu entry owns, leaving them titleless. Passed through context
  *  rather than as props, so folding a screen never means editing it. */
 export interface HostedPage {
-  /** The eyebrow: the folded page's own name. */
+  /** The crumb: the folded page's own name. */
   crumb: string;
   /** The showing tab's name, which is this screen's title. */
   title: string;

@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { ScanBarcode, X } from "lucide-react";
 
+import { Status } from "../../../components/Status";
 import { formatINR, Money } from "../../../lib/format";
 import { clampManualDiscount, qtyFrom } from "../../../till/cart";
 import type { CartLine, PricedLine } from "../../../till/cart";
@@ -270,7 +271,7 @@ function SplitRow({
       <td />
       <td colSpan={8}>
         <div className="bill-split">
-          <span className="eyebrow">Split</span>
+          <span className="bill-label">Split</span>
           <label>
             {firstName}
             <input
@@ -333,9 +334,9 @@ function SplitRow({
             </span>
           )}
           {problem && (
-            <span className="warn-note" data-testid={`bill-split-problem-${line.line_no}`}>
+            <Status tone="amber" testId={`bill-split-problem-${line.line_no}`}>
               {problem}
-            </span>
+            </Status>
           )}
           <button
             type="button"
@@ -455,7 +456,7 @@ function ItemIdentityCell({
             className="bill-item-popover"
             style={{ top: at.top, bottom: at.bottom, left: at.left, maxHeight: at.maxHeight }}
           >
-            <p className="eyebrow">Item details &middot; line {line.line_no}</p>
+            <h3 className="heading">Item details &middot; line {line.line_no}</h3>
 
             {line.design && (
               <div className="bill-item-popover-row">
@@ -612,11 +613,11 @@ function DiscountCell({ line, locked, onEdit }: CellProps) {
         />
       </span>
       {needsCorrection && (
-        <span className="warn-note" data-testid={`bill-disc-correction-${line.line_no}`}>
+        <Status tone="amber" testId={`bill-disc-correction-${line.line_no}`}>
           {lockedOnOffer
             ? "Remove this manual discount: Head Office has turned offer stacking off."
             : `Reduce this discount to ${formatINR(allowedPaise)}: Head Office's limit is ${line.cap_percent}%.`}
-        </span>
+        </Status>
       )}
       {/* Information, not a gate - and deliberately so. The rulebook (#183) does
           obey this flag: no offer, of any layer, reaches a no-discount piece.

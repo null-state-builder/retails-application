@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { Download } from "lucide-react";
+
+import { KpiStrip } from "../components/KpiStrip";
+import type { Kpi } from "../components/KpiStrip";
+import { Note } from "../components/Note";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
 import { SegmentedControl } from "../components/SegmentedControl";
+import { EmptyState, Loading } from "../components/States";
 import { api, apiErrorMessage } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
@@ -125,30 +132,38 @@ export function GstReportPage() {
 
   const disabled = !online || busy;
   const offlineNote = (!online || lost) && (
-    <p className="warn-note" data-testid="gst-offline" role="status">
-      {OFFLINE}
-      {online && (
-        <>
-          {" "}
+    <Note
+      tone="warn"
+      role="status"
+      testId="gst-offline"
+      action={
+        online && (
           <button
             type="button"
-            className="btn"
+            className="btn btn-sm"
             data-testid="gst-retry"
             disabled={busy}
             onClick={() => void load(filters)}
           >
             Try again
           </button>
-        </>
-      )}
-    </p>
+        )
+      }
+    >
+      {OFFLINE}
+    </Note>
+  );
+  const errorNote = error && (
+    <Note tone="error" testId="gst-error">
+      {error}
+    </Note>
   );
   const notAFiling = (
-    <p className="warn-note" data-testid="gst-not-a-filing">
+    <Note tone="warn" testId="gst-not-a-filing">
       <strong>Prepared for filing, not a filing.</strong>{" "}
       {data?.not_a_filing ??
         "Nothing here is sent to the GST portal, and the CA checks it before anything is filed."}
-    </p>
+    </Note>
   );
   const lead =
     "Outward supplies by rate and HSN, B2B and B2C, credit notes, IRN status, and the documents issued and cancelled for GSTR-1 Table 13.";
@@ -157,15 +172,11 @@ export function GstReportPage() {
     return (
       <OperationsPage>
         <PageHeader title="GST" lead={lead} />
-        {notAFiling}
-        {offlineNote}
-        {error ? (
-          <p className="warn-note" data-testid="gst-error">
-            {error}
-          </p>
-        ) : (
-          online && !lost && <p>Loading the GST report…</p>
-        )}
+        <div className="page">
+          {notAFiling}
+          {offlineNote}
+          {error ? errorNote : online && !lost && <Loading label="Loading the GST report" />}
+        </div>
       </OperationsPage>
     );
   }
@@ -175,88 +186,79 @@ export function GstReportPage() {
     maskUnknownFigures(row, columns, data.missing, GST_SOURCES),
   );
   const total = maskUnknownFigures(data.total as GstRow, columns, data.missing, GST_SOURCES);
+  const view = GST_VIEWS.find((v) => v.key === filters.view)?.label ?? "By rate";
+  const kpis = totalKpis(columns, total, KPI_KEYS, "gst");
+
+  // The period and the store, in the header where the page's own controls go:
+  // the filters choose what every figure below is about.
+  const filterBar = (
+    <div className="page-head-actions" data-testid="gst-filters">
+      <label>
+        <span className="sr-only">Store</span>
+        <select
+          className="input"
+          style={{ width: "auto" }}
+          data-testid="gst-filter-store"
+          value={filters.store}
+          disabled={disabled}
+          onChange={(event) => set("store", event.target.value)}
+        >
+          <option value="">All my stores</option>
+          {data.store_options.map((s) => (
+            <option key={s.id} value={s.code}>
+              {s.name} ({s.code})
+            </option>
+          ))}
+        </select>
+      </label>
+      <label>
+        <span className="sr-only">From</span>
+        <input
+          className="input"
+          type="date"
+          style={{ width: "auto" }}
+          data-testid="gst-filter-from"
+          value={filters.date_from}
+          disabled={disabled}
+          onChange={(event) => set("date_from", event.target.value)}
+        />
+      </label>
+      <span className="muted-cell" aria-hidden="true">
+        to
+      </span>
+      <label>
+        <span className="sr-only">To</span>
+        <input
+          className="input"
+          type="date"
+          style={{ width: "auto" }}
+          data-testid="gst-filter-to"
+          value={filters.date_to}
+          disabled={disabled}
+          onChange={(event) => set("date_to", event.target.value)}
+        />
+      </label>
+      <button
+        type="button"
+        className="btn"
+        data-testid="gst-export"
+        disabled={disabled}
+        onClick={() => void exportWorkbook()}
+      >
+        <Download size={16} aria-hidden="true" /> Export to Excel
+      </button>
+    </div>
+  );
 
   return (
     <OperationsPage>
-      <PageHeader title="GST" lead={lead} />
-      {notAFiling}
-      {offlineNote}
-      <section className="card section-card">
-        <div className="toolbar" data-testid="gst-filters">
-          <label className="field">
-            <span>Store</span>
-            <select
-              className="input"
-              data-testid="gst-filter-store"
-              value={filters.store}
-              disabled={disabled}
-              onChange={(event) => set("store", event.target.value)}
-            >
-              <option value="">All my stores</option>
-              {data.store_options.map((s) => (
-                <option key={s.id} value={s.code}>
-                  {s.name} ({s.code})
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>From</span>
-            <input
-              className="input"
-              type="date"
-              data-testid="gst-filter-from"
-              value={filters.date_from}
-              disabled={disabled}
-              onChange={(event) => set("date_from", event.target.value)}
-            />
-          </label>
-          <label className="field">
-            <span>To</span>
-            <input
-              className="input"
-              type="date"
-              data-testid="gst-filter-to"
-              value={filters.date_to}
-              disabled={disabled}
-              onChange={(event) => set("date_to", event.target.value)}
-            />
-          </label>
-          <button
-            type="button"
-            className="btn btn-primary"
-            data-testid="gst-export"
-            disabled={disabled}
-            onClick={() => void exportWorkbook()}
-          >
-            Export to Excel
-          </button>
-        </div>
-        <SegmentedControl
-          label="View"
-          testId="gst-views"
-          disabled={disabled}
-          value={filters.view as GstView}
-          options={GST_VIEWS.map((v) => ({
-            value: v.key as GstView,
-            label: v.label,
-            testId: `gst-view-${v.key}`,
-          }))}
-          onChange={(next) => set("view", next)}
-        />
-        <p className="muted-cell" data-testid="gst-as-of">
-          {asOfText(data.as_of)}
-          {data.as_of &&
-            ` · the copy is brought up to date every ${data.refreshed_every_minutes} minutes`}
-          {` · ${data.stores.map((s) => s.code).join(", ")} · ${data.date_from} to ${data.date_to}`}
-        </p>
-        {error && (
-          <p className="warn-note" data-testid="gst-error">
-            {error}
-          </p>
-        )}
+      <PageHeader title="GST" lead={lead} actions={filterBar} />
+      <div className="page">
+        {notAFiling}
+        {offlineNote}
+        {errorNote}
         {data.missing.length > 0 && (
-          <div className="warn-note" data-testid="gst-missing">
+          <Note tone="warn" testId="gst-missing">
             <strong>Not included, or to check</strong>
             <ul>
               {data.missing.map((m) => (
@@ -265,50 +267,120 @@ export function GstReportPage() {
                 </li>
               ))}
             </ul>
-          </div>
+          </Note>
         )}
-        {rows.length === 0 ? (
-          <p className="muted-cell" data-testid="gst-empty">
-            {busy ? "Loading…" : "Nothing in this view for this period at these stores."}
-          </p>
-        ) : (
-          <div className="table-wrap">
-            <table className="data freeze-first" data-testid="gst-table">
-              <thead>
-                <tr>
-                  {columns.map((c) => (
-                    <th
-                      key={c.key}
-                      className={alignsRight(c.kind) ? "num" : undefined}
-                      data-testid={`gst-col-${c.key}`}
-                    >
-                      {columnHeading(c.label)}
-                    </th>
+        {rows.length > 0 && kpis.length > 0 && (
+          <KpiStrip items={kpis} label="The period in figures" />
+        )}
+
+        <Section
+          heading={view}
+          ruled={rows.length > 0 && kpis.length > 0}
+          aside={
+            <p className="muted-cell" data-testid="gst-as-of" style={{ margin: 0 }}>
+              {asOfText(data.as_of)}
+              {data.as_of &&
+                ` · the copy is brought up to date every ${data.refreshed_every_minutes} minutes`}
+              {` · ${data.stores.map((s) => s.code).join(", ")} · ${data.date_from} to ${data.date_to}`}
+            </p>
+          }
+        >
+          {/* The view swaps the whole table, so it is a SegmentedControl. */}
+          <SegmentedControl<GstView>
+            label="View"
+            testId="gst-views"
+            value={filters.view as GstView}
+            disabled={disabled}
+            onChange={(next) => set("view", next)}
+            options={GST_VIEWS.map((v) => ({
+              value: v.key as GstView,
+              label: v.label,
+              testId: `gst-view-${v.key}`,
+            }))}
+          />
+          {rows.length === 0 ? (
+            <EmptyState testId="gst-empty">
+              {busy ? "Loading…" : "Nothing in this view for this period at these stores."}
+            </EmptyState>
+          ) : (
+            <div className="table-wrap">
+              <table className="data freeze-first" data-testid="gst-table">
+                <thead>
+                  <tr>
+                    {columns.map((c, index) => (
+                      <th
+                        key={c.key}
+                        scope="col"
+                        className={cellClass(c, index) || undefined}
+                        data-testid={`gst-col-${c.key}`}
+                      >
+                        {columnHeading(c.label)}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row, index) => (
+                    <GstTableRow key={String(row.key ?? index)} row={row} columns={columns} />
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row, index) => (
-                  <GstTableRow key={String(row.key ?? index)} row={row} columns={columns} />
-                ))}
-              </tbody>
-              <tfoot>
-                <GstTableRow row={total} columns={columns} total />
-              </tfoot>
-            </table>
-          </div>
-        )}
-        <details className="muted-cell" data-testid="gst-basis">
-          <summary>How these figures are worked out (formula {data.formula_version})</summary>
-          <ul>
-            {data.basis.map((line) => (
-              <li key={line}>{line}</li>
-            ))}
-          </ul>
-        </details>
-      </section>
+                </tbody>
+                <tfoot>
+                  <GstTableRow row={total} columns={columns} total />
+                </tfoot>
+              </table>
+            </div>
+          )}
+          <details className="muted-cell" data-testid="gst-basis">
+            <summary>How these figures are worked out (formula {data.formula_version})</summary>
+            <ul>
+              {data.basis.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </details>
+        </Section>
+      </div>
     </OperationsPage>
   );
+}
+
+/** The totals the strip states, in this order, when the view has them: what
+ *  Accounts files for the period. */
+const KPI_KEYS = ["taxable_paise", "igst_paise", "cgst_paise", "sgst_paise", "tax_paise"];
+
+/** Column priority (v2 Table): the net figures always show; the invoice and
+ *  credit-note amounts behind them, and the IRN itself, come in on wider
+ *  screens (the spreadsheet always has every column). */
+const PRIORITY: Partial<Record<string, "p2" | "p3">> = {
+  invoice_taxable_paise: "p2",
+  invoice_tax_paise: "p2",
+  credit_taxable_paise: "p2",
+  credit_tax_paise: "p2",
+  irn: "p3",
+};
+
+/** A cell's classes: figures right-aligned; the first column never hides. */
+function cellClass(c: GstColumn, index: number, figure = "num"): string {
+  return [alignsRight(c.kind) ? figure : "", index > 0 ? (PRIORITY[c.key] ?? "") : ""]
+    .filter(Boolean)
+    .join(" ");
+}
+
+/** The total row's figures as a KpiStrip, from what the table already holds. */
+function totalKpis(
+  columns: GstColumn[],
+  total: GstRow,
+  keys: readonly string[],
+  prefix: string,
+): Kpi[] {
+  return keys
+    .map((key) => columns.find((c) => c.key === key))
+    .filter((c): c is GstColumn => c !== undefined && total[c.key] !== undefined)
+    .map((c) => ({
+      label: columnHeading(c.label),
+      value: gstCell(total[c.key], c.kind),
+      testId: `${prefix}-kpi-${c.key}`,
+    }));
 }
 
 function GstTableRow({
@@ -330,7 +402,7 @@ function GstTableRow({
         return (
           <td
             key={c.key}
-            className={alignsRight(c.kind) ? "num tabular" : undefined}
+            className={cellClass(c, index, "num tabular") || undefined}
             data-testid={`gst-cell-${c.key}`}
           >
             {total && index === 0 ? <strong>{text}</strong> : text}

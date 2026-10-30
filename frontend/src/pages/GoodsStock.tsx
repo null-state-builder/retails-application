@@ -731,7 +731,7 @@ export function GoodsOriginJourneyPage() {
     <OperationsPage className="stock-layout">
       <PageHeader title="Origin journey" lead="The published events on this origin, in order." />
       {journey.deniedAction && <Denied what="origin" />}
-      {journey.failure && <p className="warn-note">{journey.failure}</p>}
+      {journey.failure && <Note tone="error">{journey.failure}</Note>}
       {journey.loading && <span className="muted">Loading…</span>}
       {!journey.loading &&
         !journey.deniedAction &&

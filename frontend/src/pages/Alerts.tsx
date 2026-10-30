@@ -29,6 +29,7 @@ import {
   fmtAlertWhen,
   type AlertT,
 } from "../components/alert";
+import { Status } from "../components/Status";
 
 export function AlertsPage() {
   const { user, session } = useAuth();
@@ -90,9 +91,7 @@ function DeadlineAlerts() {
             <AlertTitle alert={a} />
             <span className="an-note-where"> · {alertWhere(a)}</span>
           </span>
-          <span className={`chip chip-${daysLeftTone(a.days_left)}`}>
-            {daysLeftLabel(a.days_left)}
-          </span>
+          <Status tone={daysLeftTone(a.days_left)}>{daysLeftLabel(a.days_left)}</Status>
           <span className="an-note-time">Raised {fmtAlertWhen(a.created_at)}</span>
         </li>
       ))}

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Status, type StatusTone } from "../components/Status";
 
 /** Render integer paise as INR with Indian Lakh/Crore grouping. Never floats on
  *  any write path — this is display only (the value is computed once server-side). */
@@ -141,10 +142,10 @@ export function SkuLine({
   );
 }
 
-const STATUS_TONE: Record<string, string> = {
+const STATUS_TONE: Record<string, StatusTone> = {
   open: "green",
   eoss: "amber",
-  closed: "navy",
+  closed: "grey",
   ok: "green",
   matched: "green",
   pending: "amber",
@@ -153,21 +154,14 @@ const STATUS_TONE: Record<string, string> = {
   ai: "purple",
 };
 
-export function StatusChip({ status, tone }: { status: string; tone?: string }) {
-  const t = tone ?? STATUS_TONE[status.toLowerCase()] ?? "navy";
-  return <span className={`chip chip-${t}`}>{status}</span>;
+/** A state as a dot and a word (design system v2 `Status`). */
+export function StatusChip({ status, tone }: { status: string; tone?: StatusTone | undefined }) {
+  return <Status tone={tone ?? STATUS_TONE[status.toLowerCase()] ?? "grey"}>{status}</Status>;
 }
 
+/** The commercial model is a kind, not a state: a plain tag. */
 export function CommercialBadge({ label }: { label: string }) {
-  const tone =
-    label === "Outright"
-      ? "navy"
-      : label === "Correction"
-        ? "blue"
-        : label === "SOR"
-          ? "amber"
-          : "purple";
-  return <span className={`chip chip-${tone}`}>{label}</span>;
+  return <span className="chip">{label}</span>;
 }
 
 export function Stat({ label, value }: { label: string; value: ReactNode }) {

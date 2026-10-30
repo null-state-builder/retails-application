@@ -182,7 +182,7 @@ export function CustomerStrip({
     <>
       <section className="bill-rail-section bill-customer-card">
         <div className="bill-customer-heading">
-          <p className="eyebrow">Customer</p>
+          <h3 className="heading">Customer</h3>
           <span>Optional</span>
         </div>
         {/* Side by side rather than stacked: the rail has to hold this card and
@@ -242,14 +242,14 @@ export function CustomerStrip({
             disabled={locked}
             onClick={() => setAskedForGstin(true)}
           >
-            <span className="eyebrow">Tax invoice (GSTIN)</span>
+            <span className="bill-label">Tax invoice (GSTIN)</span>
             <span className="bill-gstin-hint">Need a GST business bill?</span>
             <ChevronDown size={16} aria-hidden="true" />
           </button>
         ) : (
           <>
             <div className="bill-gstin-head">
-              <span className="eyebrow">Tax invoice (GSTIN)</span>
+              <span className="bill-label">Tax invoice (GSTIN)</span>
               {/* Closing the disclosure on a bill that carries a registration
                   *clears* it rather than hiding it. "Not a business bill" is a
                   statement about the bill, and a GSTIN still riding along
@@ -322,7 +322,7 @@ export function CustomerStrip({
         createPortal(
           <div
             ref={float.popoverRef}
-            className="card section-card bill-customer-float"
+            className="box bill-customer-float"
             data-testid="bill-customer-float"
             // Applied whole, never field by field - see `PopoverPlacement`.
             // The mobile field sits low on the rail, so this list is normally
@@ -336,7 +336,7 @@ export function CustomerStrip({
                     Ranchi), so most of what a counter sees under a number was
                     billed at some other shop, and a label saying otherwise
                     tells the cashier something untrue about their own store. */}
-                <p className="eyebrow">Billed before</p>
+                <h3 className="heading">Billed before</h3>
                 <div className="bill-customer-rows">
                   {rows.map((row) => (
                     <button

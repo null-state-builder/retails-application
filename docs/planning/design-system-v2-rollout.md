@@ -198,6 +198,23 @@ Not seen on screen with data, because the demo cashier gets "No access" or the r
 - Turn `check-design-tokens.mjs` into a CI failure.
 - Update `docs/planning/ui-notes/design-language.md` to point at the design system artifact as the source.
 
+**Done 30 Oct 2026.**
+
+- **Tokens:** `--radius`, `--radius-inner`, `--shadow-rest` and `--shadow-hover` are gone. `--print-paper` and `--print-ink` cover labels, tags and receipts. `yarn check:design-tokens` is strict and runs in `npm run verify`, at 0 findings.
+- **Pages:** all 133 files that still carried v1 patterns now use the v2 vocabulary:
+  - page parts are Sections or Boxes;
+  - states are `Status`;
+  - notes are `Note`;
+  - eyebrows are folded into headings;
+  - tablists and `.mode-btn` strips are `SegmentedControl`, or `a.seg-btn` links where they change the route.
+  - `StatusChip`, the sync light and the alert days-left now render `Status`. Kinds such as store type and commercial model are plain chips.
+  - The shared section tabs are links with the rust underline on the page you are on.
+- **SegmentedControl:** each option can now be disabled on its own (Bookings' Cancel).
+- **Retired CSS:** `.card`, `.panel`, `.eyebrow`, `.warn-note`, `.ok-note`, `.login-error`, `.ai-note`, `.till-alert`, `.h2-rust`, `.chip-green/amber/red/purple`, `.chip-pick`, `.mode-btn`, `.bk-tile*` and `.otb-strip*`. Kept on purpose: `.chip-blue` for offer tags on bill lines and `.chip-navy` for the SKU filter tag.
+- **Buttons:** fixed by the rule wherever they broke it. Delete, cancel and withdraw are `btn-danger`; approvals and hand-overs that commit no money or stock are navy.
+- **Seen on screen:** as the owner, People and access, Inventory, Home, Organisation, Product lists, Feature switches, Transfers and Bookings. Not seen: the reports, Petty cash and Brand terms, because the rehearsal owner gets "No access" there.
+- **Day close** (`/sell/day-close`) was built alongside, with its board. It has five steps (bills synced, held bills cleared, cash counted, summary checked, and close with a manager's PIN), plus today's totals and what stays open. The backend is in `sell` (`DayClose`, `services/day_close.py`), and the screen sits behind the cash-count store switch.
+
 ## Checks on every change
 
 - **Code checks:** `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm test`.

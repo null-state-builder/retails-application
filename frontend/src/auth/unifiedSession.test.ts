@@ -110,9 +110,7 @@ describe("unified session", () => {
   it("ranks owner and admin above the shop-floor personas", () => {
     expect(shellRole(["store_person", "owner"])).toBe("owner");
     expect(shellRole(["warehouse", "it_admin"])).toBe("it_admin");
-    expect(shellRole(["store_person", "warehouse", "warehouse_manager"])).toBe(
-      "warehouse_manager",
-    );
+    expect(shellRole(["store_person", "warehouse", "warehouse_manager"])).toBe("warehouse_manager");
     expect(shellRole(["warehouse", "accounts"])).toBeNull();
     expect(shellRole([])).toBeNull();
   });

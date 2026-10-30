@@ -224,7 +224,12 @@ function DeliveryQueue({ siteId, currentId }: { siteId: string; currentId: strin
     `/goods-v1/inbound/inbox?site=${encodeURIComponent(siteId)}&view=pending&limit=100`,
   );
   return (
-    <nav className="card side-queue" aria-label="Pending deliveries" data-testid="delivery-queue">
+    <nav
+      className="box side-queue"
+      style={{ padding: "var(--space-8) 0" }}
+      aria-label="Pending deliveries"
+      data-testid="delivery-queue"
+    >
       <p className="side-queue-head">
         Pending
         {!inbox.loading && !inbox.failure && (

@@ -6,7 +6,6 @@
 }
 
 .fss-store {
-  padding: 18px;
   margin: 8px 0 16px;
 }
 .fss-store-head {
@@ -143,7 +142,6 @@
 }
 
 .fss-body {
-  padding: 16px 18px;
   min-width: 0;
 }
 .fss-body-head {
@@ -227,19 +225,9 @@
 /* what the server still blocks on */
 .fss-blockers {
   margin: 16px 0 0;
-  padding: 12px 14px;
-  border: 1px solid var(--amber-bd);
-  background: var(--amber-bg);
-  border-radius: var(--radius-control);
-}
-.fss-blockers p {
-  margin: 0 0 6px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--amber);
 }
 .fss-blockers ul {
-  margin: 0;
+  margin: 6px 0 0;
   padding-left: 18px;
   font-size: 14px;
   line-height: 1.5;
@@ -276,9 +264,6 @@
 }
 
 @media (max-width: 640px) {
-  .fss-store {
-    padding: 18px;
-  }
   .fss-step {
     grid-template-columns: 30px 1fr;
     column-gap: 12px;
@@ -291,9 +276,6 @@
   .fss-step:not(:last-child)::before {
     left: 14px;
     top: 34px;
-  }
-  .fss-body {
-    padding: 16px;
   }
 }
 

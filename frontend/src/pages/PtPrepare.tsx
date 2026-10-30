@@ -39,17 +39,7 @@ import type {
   ClipboardEvent as ReactClipboardEvent,
   KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import {
-  AlertTriangle,
-  ArrowLeft,
-  CheckCircle2,
-  Download,
-  RefreshCw,
-  Save,
-  Send,
-  Upload,
-  Wand2,
-} from "lucide-react";
+import { ArrowLeft, Download, RefreshCw, Save, Send, Upload, Wand2 } from "lucide-react";
 
 import { api, apiErrorCode, apiErrorMessage, goodsMeta } from "../lib/api";
 import {
@@ -132,6 +122,9 @@ import {
 } from "../lib/ptGrid";
 import { useAuth } from "../auth/AuthContext";
 import { Combobox } from "../components/Combobox";
+import { Note } from "../components/Note";
+import { Box, Section } from "../components/Section";
+import { Status } from "../components/Status";
 import { formatPaiseString, paiseStringToRupees } from "../lib/format";
 import "./PtScreens.css";
 import "./PtGrid.css";
@@ -226,7 +219,7 @@ export function GrnStart({
 
   if (doc.denied) return <Denied what="goods receipt" />;
   if (doc.loading && !doc.doc) return <p className="muted">Loading…</p>;
-  if (doc.failure) return <div className="warn-note">{doc.failure}</div>;
+  if (doc.failure) return <Note tone="error">{doc.failure}</Note>;
   if (!doc.doc) return <Denied what="goods receipt" />;
 
   const coverage = doc.doc.data;
@@ -305,15 +298,15 @@ export function GrnStart({
         damaged, wrong, unidentified, or an undecided excess — are never offered here.
       </p>
       {uncoveredTotal === 0 && (
-        <div className="warn-note" data-testid="pt-grn-nothing-uncovered">
+        <Note tone="warn" testId="pt-grn-nothing-uncovered">
           Every good piece on this receipt is already covered by a live PT. There is nothing left
           for an ordinary PT to prepare.
-        </div>
+        </Note>
       )}
 
       <Feedback error={error} ok="" />
 
-      <div className="card section-card pt-start-card">
+      <div className="pt-start-card">
         <div className="form-grid">
           <Field
             id="pt-start-profile"
@@ -1202,7 +1195,7 @@ export function PtEditor({ ptId, onClose }: { ptId: string; onClose?: () => void
 
   if (doc.denied) return <Denied what="PT" />;
   if (doc.loading && !doc.doc) return <p className="muted">Loading…</p>;
-  if (doc.failure) return <div className="warn-note">{doc.failure}</div>;
+  if (doc.failure) return <Note tone="error">{doc.failure}</Note>;
   if (!doc.doc) return <Denied what="PT" />;
 
   const pt = doc.doc;
@@ -1238,7 +1231,7 @@ export function PtEditor({ ptId, onClose }: { ptId: string; onClose?: () => void
       )}
       <div className="ptg-head">
         <h3 className="h3">{pt.number ?? `PT ${ptId.slice(0, 8)}`}</h3>
-        <span className={`chip chip-${state === "draft" ? "amber" : "green"}`}>{state}</span>
+        <Status tone={state === "draft" ? "amber" : "green"}>{state}</Status>
         {source && (
           <span className="chip" data-testid="pt-source">
             {source === "brand_upload"
@@ -1249,9 +1242,9 @@ export function PtEditor({ ptId, onClose }: { ptId: string; onClose?: () => void
           </span>
         )}
         {dirty && (
-          <span className="chip chip-red" data-testid="pt-editor-unsaved">
+          <Status tone="red" testId="pt-editor-unsaved">
             Unsaved changes
-          </span>
+          </Status>
         )}
         <span className="ptg-spacer" />
         <button className="btn btn-sm" onClick={exportWorkbook} data-testid="pt-export">
@@ -1263,22 +1256,24 @@ export function PtEditor({ ptId, onClose }: { ptId: string; onClose?: () => void
       </div>
 
       <Feedback error={error} ok={ok} />
-      {choices.failure && <div className="warn-note">{choices.failure}</div>}
+      {choices.failure && <Note tone="warn">{choices.failure}</Note>}
 
       {submitIssues.length > 0 && (
-        <ul className="warn-note" data-testid="pt-submit-issues">
-          {submitIssues.map((problem, index) => (
-            <li key={`${problem.code}-${problem.line_key ?? index}`}>
-              {/^Row \d/.test(problem.message ?? "") ? "" : rowLabel(lines, problem.line_key)}
-              {problem.message ?? problem.code}
-              {problem.field ? ` (${problem.field})` : ""}
-            </li>
-          ))}
-        </ul>
+        <Note tone="error" testId="pt-submit-issues">
+          <ul>
+            {submitIssues.map((problem, index) => (
+              <li key={`${problem.code}-${problem.line_key ?? index}`}>
+                {/^Row \d/.test(problem.message ?? "") ? "" : rowLabel(lines, problem.line_key)}
+                {problem.message ?? problem.code}
+                {problem.field ? ` (${problem.field})` : ""}
+              </li>
+            ))}
+          </ul>
+        </Note>
       )}
 
       {canReissue && (
-        <div className="card section-card pt-start-card" data-testid="pt-reissue-card">
+        <Box className="pt-start-card" data-testid="pt-reissue-card">
           <p className="pt-hint">
             Reissue keeps this PT's number, starts a new version from its last frozen lines, and
             needs fresh review and a fresh, distinct approval before it values anything again.
@@ -1299,7 +1294,7 @@ export function PtEditor({ ptId, onClose }: { ptId: string; onClose?: () => void
           >
             Reissue
           </button>
-        </div>
+        </Box>
       )}
 
       {compare && (
@@ -1530,14 +1525,11 @@ export function PtEditor({ ptId, onClose }: { ptId: string; onClose?: () => void
                   </td>
                   <td className="ptg-fz ptg-fz-rev">
                     {line.reviewed && !rowDirty ? (
-                      <span
-                        className="chip chip-green"
-                        data-testid={`pt-reviewed-${line.line_key}`}
-                      >
+                      <Status tone="green" testId={`pt-reviewed-${line.line_key}`}>
                         Reviewed
-                      </span>
+                      </Status>
                     ) : pendingReviews[line.line_key] ? (
-                      <span className="chip chip-amber">Marked</span>
+                      <Status tone="amber">Marked</Status>
                     ) : (
                       <button
                         className="btn btn-sm"
@@ -1651,11 +1643,13 @@ export function PtEditor({ ptId, onClose }: { ptId: string; onClose?: () => void
         </button>
       </div>
       {!readOnly && blockers.length > 0 && (
-        <ul className="warn-note ptg-blockers" data-testid="pt-submit-blockers">
-          {blockers.map((reason) => (
-            <li key={reason}>{reason}</li>
-          ))}
-        </ul>
+        <Note tone="warn" testId="pt-submit-blockers">
+          <ul className="ptg-blockers">
+            {blockers.map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        </Note>
       )}
     </div>
   );
@@ -1843,13 +1837,13 @@ function ItemCell({
   return (
     <div className="ptg-item" data-testid={`pt-item-${line.line_key}`} data-status={status}>
       {status === "matched" && (
-        <span className="chip chip-green" title={line.alias_as_used ?? undefined}>
-          Item found
+        <span title={line.alias_as_used ?? undefined}>
+          <Status tone="green">Item found</Status>
         </span>
       )}
       {status === "new_item" && (
         <>
-          <span className="chip chip-amber">New item</span>
+          <Status tone="amber">New item</Status>
           {canPropose && (
             <button
               className="btn btn-sm"
@@ -1863,22 +1857,22 @@ function ItemCell({
         </>
       )}
       {status === "proposed" && (
-        <span className="chip chip-blue" data-testid={`pt-item-proposed-${line.line_key}`}>
+        <Status tone="blue" testId={`pt-item-proposed-${line.line_key}`}>
           Proposed — save to use it
-        </span>
+        </Status>
       )}
       {status === "waiting" && (
-        <span className="chip chip-amber" data-testid={`pt-item-waiting-${line.line_key}`}>
+        <Status tone="amber" testId={`pt-item-waiting-${line.line_key}`}>
           New item – waiting for confirmation
-        </span>
+        </Status>
       )}
       {status === "rejected" && (
-        <span className="chip chip-red" data-testid={`pt-item-rejected-${line.line_key}`}>
+        <Status tone="red" testId={`pt-item-rejected-${line.line_key}`}>
           New item rejected – {itemRejectReasonLabel(line.item_rejected?.reason_code)}
-        </span>
+        </Status>
       )}
-      {status === "ambiguous" && <span className="chip chip-red">Several items match</span>}
-      {status === "none" && <span className="chip chip-red">No item</span>}
+      {status === "ambiguous" && <Status tone="red">Several items match</Status>}
+      {status === "none" && <Status tone="red">No item</Status>}
       {rowIssues.length > 0 && (
         <details className="ptg-row-issues" data-testid={`pt-issues-${line.line_key}`}>
           <summary>{rowIssues.length} to fix</summary>
@@ -2009,9 +2003,8 @@ function ComparePanel({
     }
   });
   return (
-    <div className="warn-note ptg-compare" data-testid="pt-compare">
-      <AlertTriangle size={14} />
-      <div>
+    <Note tone="warn" testId="pt-compare">
+      <div className="ptg-compare">
         <p>
           This PT changed on the server while you were editing. Choose which version to keep — your
           edits stay local until you save again, and either choice needs a fresh review.
@@ -2045,7 +2038,7 @@ function ComparePanel({
           </button>
         </div>
       </div>
-    </div>
+    </Note>
   );
 }
 
@@ -2055,15 +2048,17 @@ function ComparePanel({
 
 function ReconciliationPanel({ reconciliation }: { reconciliation: PtReconciliation }) {
   return (
-    <div className="card section-card pt-reconciliation" data-testid="pt-reconciliation">
-      <h4 className="gr-h4">
-        <CheckCircle2 size={15} /> Reconciliation against the receipt
-      </h4>
-      <p className={reconciliation.passed ? "ok-note" : "warn-note"}>
+    <Section
+      heading="Reconciliation against the receipt"
+      ruled
+      className="pt-reconciliation"
+      testId="pt-reconciliation"
+    >
+      <Note tone={reconciliation.passed ? "success" : "warn"}>
         {reconciliation.passed
           ? "Every proposed line reconciles against what the receipt counted."
           : "This PT does not fully reconcile — see the gap named below."}
-      </p>
+      </Note>
       <table className="data" data-testid="pt-reconciliation-lines">
         <thead>
           <tr>
@@ -2094,11 +2089,11 @@ function ReconciliationPanel({ reconciliation }: { reconciliation: PtReconciliat
         </tbody>
       </table>
       {reconciliation.totals.proposed_qty > reconciliation.totals.counted_qty && (
-        <p className="warn-note" data-testid="pt-recon-gap">
+        <Note tone="warn" testId="pt-recon-gap">
           Gap: {reconciliation.totals.proposed_qty - reconciliation.totals.counted_qty} piece(s)
           proposed above what the receipt counted.
-        </p>
+        </Note>
       )}
-    </div>
+    </Section>
   );
 }

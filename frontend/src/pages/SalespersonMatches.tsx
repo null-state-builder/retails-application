@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
 import { api, apiErrorMessage, goodsMeta, typedApi } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 
@@ -60,7 +62,7 @@ export function SalespersonMatchesPage() {
     return (
       <div className="page-pad">
         <PageHeader title="Salesperson Matches" />
-        {error ? <p className="warn-note">{error}</p> : <p>Loading salesperson matches…</p>}
+        {error ? <Note tone="error">{error}</Note> : <p>Loading salesperson matches…</p>}
       </div>
     );
   }
@@ -82,20 +84,19 @@ export function SalespersonMatchesPage() {
         </p>
       )}
       {error && (
-        <p className="warn-note" data-testid="matches-error">
+        <Note tone="error" testId="matches-error">
           {error}
-        </p>
+        </Note>
       )}
       {saved && (
-        <p className="ok-note" data-testid="matches-saved">
+        <Note tone="success" role="status" testId="matches-saved">
           {saved}
-        </p>
+        </Note>
       )}
 
-      <section className="card section-card">
-        <h2 className="h3" data-testid="matches-unmatched-count">
-          Unmatched: {data.unmatched}
-        </h2>
+      <Section
+        heading={<span data-testid="matches-unmatched-count">Unmatched: {data.unmatched}</span>}
+      >
         {unmatched.length === 0 ? (
           <p className="muted-cell" data-testid="matches-none-unmatched">
             Every old salesperson is matched to a staff record.
@@ -127,7 +128,7 @@ export function SalespersonMatchesPage() {
                       <td>{row.name}</td>
                       <td className="num">{row.lines}</td>
                       <td>{row.reason}</td>
-                      <td>
+                      <td className="act">
                         {data.can_resolve ? (
                           <span className="toolbar">
                             <select
@@ -149,7 +150,7 @@ export function SalespersonMatchesPage() {
                             </select>
                             <button
                               type="button"
-                              className="btn btn-primary"
+                              className="btn btn-primary btn-sm"
                               data-testid={`match-resolve-${row.id}`}
                               disabled={busy || !picked[row.id]}
                               onClick={() => void resolve(row)}
@@ -168,10 +169,9 @@ export function SalespersonMatchesPage() {
             </div>
           </>
         )}
-      </section>
+      </Section>
 
-      <section className="card section-card">
-        <h2 className="h3">Matched</h2>
+      <Section heading="Matched" ruled>
         {matched.length === 0 ? (
           <p className="muted-cell">Nothing is matched yet.</p>
         ) : (
@@ -204,7 +204,7 @@ export function SalespersonMatchesPage() {
             </table>
           </div>
         )}
-      </section>
+      </Section>
     </div>
   );
 }

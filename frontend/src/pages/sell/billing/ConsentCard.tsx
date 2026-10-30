@@ -177,7 +177,7 @@ function ConsentFor({
   return (
     <section className="bill-consent" data-testid="consent-card">
       <div className="bill-customer-heading">
-        <p className="eyebrow">Consent</p>
+        <h3 className="heading">Consent</h3>
         <span>The customer answers on the display</span>
       </div>
       <dl className="bill-consent-rows">

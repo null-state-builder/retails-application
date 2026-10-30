@@ -17,6 +17,7 @@ import { Navigate, useSearchParams } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
 import { PageHeader } from "../components/PageHeader";
+import { SegmentedControl } from "../components/SegmentedControl";
 import { holdsGoodsApprovals } from "../lib/actionCatalogue";
 import { ApprovalsList } from "./Approvals";
 import { canSeeExceptions as holdsExceptions, ExceptionsPanel } from "./GoodsExceptions";
@@ -88,22 +89,17 @@ export function ActionNeededPage() {
         }
         actions={
           chips.length > 2 && (
-            <div className="seg" role="tablist" aria-label="What to show">
-              {chips.map((c) => (
-                <button
-                  key={c.key}
-                  type="button"
-                  role="tab"
-                  aria-selected={show === c.key}
-                  className={`seg-btn${show === c.key ? " active" : ""}`}
-                  onClick={() => choose(c.key)}
-                  data-testid={`action-show-${c.key}`}
-                >
-                  {c.label}
-                  {c.n != null ? ` ${c.n}` : ""}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl
+              label="What to show"
+              value={show}
+              onChange={choose}
+              options={chips.map((c) => ({
+                value: c.key,
+                label: c.label,
+                count: c.n,
+                testId: `action-show-${c.key}`,
+              }))}
+            />
           )
         }
       />

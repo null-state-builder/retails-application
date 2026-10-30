@@ -178,10 +178,10 @@ export function ManagerPin({
         </ul>
 
         {managers.length === 0 ? (
-          <p className="warn-note" data-testid="bill-pin-nobody">
+          <Note tone="warn" testId="bill-pin-nobody">
             No manager of this store has a counter PIN yet. One is set from Till &amp; Sync, by the
             manager themselves - and only somebody who may approve selling here can hold one.
-          </p>
+          </Note>
         ) : (
           <>
             <div className="field">
@@ -210,9 +210,9 @@ export function ManagerPin({
               </Note>
             )}
             {waiting && (
-              <p className="warn-note" data-testid="bill-pin-waiting">
+              <Note tone="warn" testId="bill-pin-waiting">
                 Too many wrong PINs. This waits half a minute before it will take another.
-              </p>
+              </Note>
             )}
             <p className="muted-cell">{footnote}</p>
             <button

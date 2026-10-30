@@ -78,6 +78,7 @@ import {
   type RangeKey,
 } from "./bellModel";
 import { useMobileNavExclusion } from "./MobileNavContext";
+import { Status } from "../components/Status";
 
 /** Anyone who decides an approval says so here, so the bell can recount.
  *
@@ -297,9 +298,7 @@ function AlertsFeed({
             <li key={a.id} className="bell-row" data-testid={`bell-alert-${a.id}`}>
               <p className="bell-row-head">
                 <AlertTriangle size={12} /> {a.kind_label}
-                <span className={`chip chip-${daysLeftTone(a.days_left)}`}>
-                  {daysLeftLabel(a.days_left)}
-                </span>
+                <Status tone={daysLeftTone(a.days_left)}>{daysLeftLabel(a.days_left)}</Status>
               </p>
               {/* Into the full screen, not the document behind the alert: the
                   popup is a reader and a launcher (grill s2), and `/alerts` is

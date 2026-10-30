@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
+import { Note } from "../components/Note";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
+import { Status, type StatusTone } from "../components/Status";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
 import {
-  STAGE_CHIP,
   commandIdFor,
   STAGE_LABEL,
   lineDraft,
@@ -19,6 +21,16 @@ import {
   type Pending,
 } from "../lib/debitNotes";
 import { Money, formatDateTime } from "../lib/format";
+
+/** A note's stage as a status word: waiting, done, sent back or closed. */
+const STAGE_TONE: Record<DebitNote["stage"], StatusTone> = {
+  draft: "amber",
+  waiting: "amber",
+  approved: "green",
+  rejected: "red",
+  issued: "green",
+  cancelled: "grey",
+};
 
 const PAGE_API = "/goods-v1/inbound/debit-notes";
 const PAGE_PATH = "/money/debit-notes";
@@ -47,7 +59,6 @@ function pieces(note: DebitNote): number {
  *  what; this page only offers what it allows. */
 export function DebitNotesPage() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [show, setShow] = useState<Show>("open");
   const [list, setList] = useState<DebitNoteList | null>(null);
   const [note, setNote] = useState<DebitNote | null>(null);
@@ -174,54 +185,63 @@ export function DebitNotesPage() {
         lead="Debit notes to vendors for pieces invoiced but never received. Accounts reviews and issues them; the Owner approves them in the approvals inbox."
       />
       {offline && (
-        <p className="warn-note" data-testid="dn-offline" role="status">
-          {OFFLINE}
-          {online && (
-            <>
-              {" "}
+        <Note
+          tone="warn"
+          testId="dn-offline"
+          role="status"
+          action={
+            online && (
               <button
                 type="button"
-                className="btn"
+                className="btn btn-sm"
                 data-testid="dn-retry"
                 onClick={() => void load()}
               >
                 Try again
               </button>
-            </>
-          )}
-        </p>
+            )
+          }
+        >
+          {OFFLINE}
+        </Note>
       )}
       {error && (
-        <p className="warn-note" data-testid="dn-error">
+        <Note tone="error" testId="dn-error">
           {error}
-        </p>
+        </Note>
       )}
       {done && (
-        <p className="ok-note" data-testid="dn-done">
+        <Note tone="success" role="status" testId="dn-done">
           {done}
-        </p>
+        </Note>
       )}
 
       {note && (
-        <section className="card section-card" data-testid="dn-detail">
-          <div className="toolbar">
-            <h2 className="h3">{note.number ?? `Draft debit note ${note.id}`}</h2>
-            <span className={`chip ${STAGE_CHIP[note.stage]}`} data-testid="dn-stage">
-              {STAGE_LABEL[note.stage]}
-            </span>
-            <Link className="btn" to={PAGE_PATH} data-testid="dn-close">
+        <Section
+          heading={
+            <>
+              {note.number ?? `Draft debit note ${note.id}`}{" "}
+              <Status tone={STAGE_TONE[note.stage]} testId="dn-stage">
+                {STAGE_LABEL[note.stage]}
+              </Status>
+            </>
+          }
+          aside={
+            <Link className="btn btn-sm" to={PAGE_PATH} data-testid="dn-close">
               Back to the list
             </Link>
-          </div>
+          }
+          testId="dn-detail"
+        >
           <p data-testid="dn-next">{nextStep(note)}</p>
           {!note.switched_on && note.stage !== "issued" && note.stage !== "cancelled" && (
-            <p className="warn-note" data-testid="dn-switched-off">
+            <Note tone="warn" testId="dn-switched-off">
               Debit notes are switched off at {note.site.name}. The note stays here, but nothing new
               can be done to it until Admin switches them on again in Setup, Feature Switches. It
               can still be cancelled.
-            </p>
+            </Note>
           )}
-          <dl className="facts" data-testid="dn-facts">
+          <dl className="dl" data-testid="dn-facts">
             <dt>To the vendor</dt>
             <dd>
               {note.vendor.name}
@@ -292,7 +312,7 @@ export function DebitNotesPage() {
                       <td className="num" data-testid="dn-line-cost">
                         {line.cost_from === "invoice" || !editing ? (
                           line.unit_cost_paise === null ? (
-                            <span className="chip chip-amber">Not known</span>
+                            <Status tone="amber">Not known</Status>
                           ) : (
                             <>
                               <Money paise={Number(line.unit_cost_paise)} />
@@ -399,11 +419,13 @@ export function DebitNotesPage() {
           </p>
 
           {note.missing.length > 0 && (
-            <ul className="warn-note" data-testid="dn-missing">
-              {note.missing.map((m, i) => (
-                <li key={`${m.code}-${m.line_key ?? i}`}>{m.message}</li>
-              ))}
-            </ul>
+            <Note tone="warn" testId="dn-missing">
+              <ul>
+                {note.missing.map((m, i) => (
+                  <li key={`${m.code}-${m.line_key ?? i}`}>{m.message}</li>
+                ))}
+              </ul>
+            </Note>
           )}
 
           {note.approval && (
@@ -432,9 +454,9 @@ export function DebitNotesPage() {
             </label>
           )}
           {review.bad.length > 0 && (
-            <p className="warn-note" data-testid="dn-bad-cost">
+            <Note tone="warn" testId="dn-bad-cost">
               A cost per piece is rupees, for example 260 or 260.50.
-            </p>
+            </Note>
           )}
 
           <div className="toolbar">
@@ -499,7 +521,7 @@ export function DebitNotesPage() {
               />
               <button
                 type="button"
-                className="btn"
+                className="btn btn-danger"
                 data-testid="dn-cancel"
                 disabled={!writable || !cancelReason.trim()}
                 onClick={() =>
@@ -514,12 +536,13 @@ export function DebitNotesPage() {
               </button>
             </div>
           )}
-        </section>
+        </Section>
       )}
 
-      <section className="card section-card">
-        <div className="toolbar">
-          <h2 className="h3">Notes</h2>
+      <Section
+        heading="Notes"
+        ruled={!!note}
+        aside={
           <label className="field">
             <span>Show</span>
             <select
@@ -535,7 +558,8 @@ export function DebitNotesPage() {
               ))}
             </select>
           </label>
-        </div>
+        }
+      >
         {!list ? (
           <p className="muted-cell">{offline ? "" : "Loading…"}</p>
         ) : list.notes.length === 0 ? (
@@ -569,23 +593,20 @@ export function DebitNotesPage() {
                       <Money paise={Number(row.total_paise)} />
                     </td>
                     <td>
-                      <span className={`chip ${STAGE_CHIP[row.stage]}`}>
-                        {STAGE_LABEL[row.stage]}
-                      </span>
+                      <Status tone={STAGE_TONE[row.stage]}>{STAGE_LABEL[row.stage]}</Status>
                     </td>
-                    <td>
-                      <button
-                        type="button"
-                        className="btn"
+                    <td className="act">
+                      <Link
+                        className="btn btn-sm"
+                        to={`${PAGE_PATH}/${row.id}`}
                         data-testid={`dn-open-${row.id}`}
                         onClick={() => {
                           setError("");
                           setDone("");
-                          navigate(`${PAGE_PATH}/${row.id}`);
                         }}
                       >
                         Open
-                      </button>
+                      </Link>
                     </td>
                   </tr>
                 ))}
@@ -593,7 +614,7 @@ export function DebitNotesPage() {
             </table>
           </div>
         )}
-      </section>
+      </Section>
     </OperationsPage>
   );
 }

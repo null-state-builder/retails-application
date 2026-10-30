@@ -16,6 +16,8 @@ export interface SegmentOption<T extends string> {
   ariaLabel?: string | undefined;
   title?: string | undefined;
   testId?: string | undefined;
+  /** This option alone cannot be chosen now; say why in `title`. */
+  disabled?: boolean | undefined;
 }
 
 export function SegmentedControl<T extends string>({
@@ -48,7 +50,7 @@ export function SegmentedControl<T extends string>({
           aria-label={o.ariaLabel}
           title={o.title}
           data-testid={o.testId}
-          disabled={disabled}
+          disabled={disabled || o.disabled}
           onClick={() => o.value !== value && onChange(o.value)}
         >
           {o.label}

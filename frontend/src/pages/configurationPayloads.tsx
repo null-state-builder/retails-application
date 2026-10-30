@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Plus, Trash2 } from "lucide-react";
 
+import { Note } from "../components/Note";
 import { formatPaiseString, paiseStringToRupees, rupeesToPaise } from "../lib/format";
 import { Field } from "../lib/goodsScreen";
 
@@ -214,7 +215,12 @@ export function TaxRatesEditor({ value, onChange }: EditorProps) {
         the slabs inside a rule.
       </p>
       {rules.map((rule, ruleIndex) => (
-        <div className="card section-card" key={ruleIndex} data-testid={`tax-rule-${ruleIndex}`}>
+        <div
+          className="box"
+          style={{ marginBottom: "var(--space-12)" }}
+          key={ruleIndex}
+          data-testid={`tax-rule-${ruleIndex}`}
+        >
           <div className="form-grid wide-form">
             <Field id={`tax-hsn-${ruleIndex}`} label="HSN">
               <input
@@ -782,10 +788,10 @@ export function BarcodeRangeEditor({ value, onChange }: EditorProps) {
 export function ReadOnlyPayload({ value, kind }: { value: Payload; kind: string }): ReactNode {
   return (
     <div data-testid="payload-readonly">
-      <p className="warn-note">
+      <Note tone="warn">
         This screen has no form for {kind} configuration yet, so it is shown as it stands and cannot
         be changed here.
-      </p>
+      </Note>
       <pre className="mono" style={{ overflowX: "auto", fontSize: 12 }}>
         {JSON.stringify(value, null, 2)}
       </pre>

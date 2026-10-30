@@ -26,15 +26,14 @@
 .eoss-prog-fill {
   height: 100%;
   border-radius: var(--radius-round);
-  background: var(--rust);
+  background: var(--navy);
 }
 .eoss-prog-target {
   position: absolute;
   top: -2px;
   bottom: -2px;
   width: 2px;
-  background: var(--navy);
-  opacity: 0.55;
+  background: var(--grey);
 }
 .eoss-prog-meta {
   display: flex;

@@ -102,7 +102,7 @@
 
 /* ------------------------------------------------------------------ Counts */
 
-/* House `.card.stat-card` tiles; only the overdue tone is particular here. */
+/* House `.stat-card` tiles; only the overdue tone is particular here. */
 .exc-count-overdue .stat-value {
   color: var(--red);
 }

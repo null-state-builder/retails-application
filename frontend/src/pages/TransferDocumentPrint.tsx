@@ -13,6 +13,7 @@ import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Printer, RotateCcw } from "lucide-react";
 
 import { useAuth } from "../auth/AuthContext";
+import { Note } from "../components/Note";
 import { api, apiErrorCode, apiErrorMessage } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
 import { formatDateTime, formatPaiseString } from "../lib/format";
@@ -34,7 +35,7 @@ const OFFLINE =
 function Party({ label, party }: { label: string; party: TransferDocument["source"] }) {
   return (
     <div data-testid={`document-${label.toLowerCase()}`}>
-      <p className="eyebrow">{label}</p>
+      <h2 className="heading">{label}</h2>
       <p>
         <strong>{party.legal_name}</strong>
         <br />
@@ -177,31 +178,41 @@ export function TransferDocumentPage() {
         </button>
       </div>
       {offline && (
-        <p className="warn-note pt-print-hide" data-testid="document-offline" role="status">
-          {OFFLINE}{" "}
-          {online && (
-            <button
-              type="button"
-              className="btn btn-sm"
-              onClick={() => void load()}
-              data-testid="document-retry"
-            >
-              <RotateCcw size={14} /> Try again
-            </button>
-          )}
-        </p>
+        <div className="pt-print-hide">
+          <Note
+            tone="warn"
+            role="status"
+            testId="document-offline"
+            action={
+              online && (
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => void load()}
+                  data-testid="document-retry"
+                >
+                  <RotateCcw size={14} /> Try again
+                </button>
+              )
+            }
+          >
+            {OFFLINE}
+          </Note>
+        </div>
       )}
       {error && (
-        <p className="warn-note pt-print-hide" data-testid="document-error">
-          {error}
-        </p>
+        <div className="pt-print-hide">
+          <Note tone="error" testId="document-error">
+            {error}
+          </Note>
+        </div>
       )}
       {!document ? (
         <p className="muted">{offline || error ? "" : "Loading…"}</p>
       ) : (
         <article data-testid="transfer-document" data-kind={document.kind}>
           {testEnvironment && <TestMark where="top" />}
-          <p className="eyebrow">
+          <p className="muted">
             {document.kind === "tax_invoice"
               ? "Tax invoice · stock transfer between registrations"
               : "Delivery challan · stock transfer, not a sale"}
@@ -230,10 +241,10 @@ export function TransferDocumentPage() {
             <Party label="To" party={document.destination} />
           </div>
           {!document.values_shown && (
-            <p className="warn-note" data-testid="document-values-hidden">
+            <Note tone="warn" testId="document-values-hidden">
               The values and tax on this document are shown only to a login allowed to see cost. Ask
               head office to print it with values.
-            </p>
+            </Note>
           )}
           <div className="table-wrap">
             <table className="data" data-testid="document-lines">

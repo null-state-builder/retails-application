@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
+import { Note } from "../components/Note";
+import { Section } from "../components/Section";
+import { Status } from "../components/Status";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
-import { STAGE_CHIP, STAGE_LABEL, nextStep, type OtbCheck } from "../lib/openToBuy";
-import { OversTable } from "./OpenToBuy";
+import { STAGE_LABEL, nextStep, type OtbCheck } from "../lib/openToBuy";
+import { OversTable, stageTone } from "./OpenToBuy";
 
 /** What open-to-buy says about one draft booking (ticket 39), on the booking page.
  *
@@ -83,42 +86,48 @@ export function OpenToBuyPanel({
 
   if (lost && !check) {
     return (
-      <p className="warn-note" data-testid="otb-panel-offline" role="status">
-        Open-to-buy cannot be read without a connection.{" "}
-        <button type="button" className="btn" onClick={() => void load()}>
-          Try again
-        </button>
-      </p>
+      <Note
+        tone="warn"
+        testId="otb-panel-offline"
+        role="status"
+        action={
+          <button type="button" className="btn btn-sm" onClick={() => void load()}>
+            Try again
+          </button>
+        }
+      >
+        Open-to-buy cannot be read without a connection.
+      </Note>
     );
   }
   if (!check || !check.applies) return null;
 
   return (
-    <section className="card section-card" data-testid="otb-panel">
-      <div className="toolbar">
-        <h2 className="h3">Open-to-buy</h2>
-        <span
-          className={`chip ${check.over ? (STAGE_CHIP[check.stage] ?? "") : "chip-green"}`}
-          data-testid="otb-panel-stage"
-        >
+    <Section
+      heading="Open-to-buy"
+      ruled
+      testId="otb-panel"
+      aside={
+        <Status tone={check.over ? stageTone(check.stage) : "green"} testId="otb-panel-stage">
           {check.over ? (STAGE_LABEL[check.stage] ?? check.stage) : "Within open-to-buy"}
-        </span>
-      </div>
+        </Status>
+      }
+    >
       <p data-testid="otb-panel-next">{nextStep(check)}</p>
       {lost && (
-        <p className="warn-note" data-testid="otb-panel-offline" role="status">
+        <Note tone="warn" testId="otb-panel-offline" role="status">
           The connection dropped. Nothing was lost; press again when it is back.
-        </p>
+        </Note>
       )}
       {error && (
-        <p className="warn-note" data-testid="otb-panel-error">
+        <Note tone="error" testId="otb-panel-error">
           {error}
-        </p>
+        </Note>
       )}
       {done && (
-        <p className="ok-note" data-testid="otb-panel-done">
+        <Note tone="success" role="status" testId="otb-panel-done">
           {done}
-        </p>
+        </Note>
       )}
       {check.over && (
         <OversTable overs={check.overs} budgets={check.budgets} testId="otb-panel-overs" />
@@ -150,6 +159,6 @@ export function OpenToBuyPanel({
           </Link>
         )}
       </div>
-    </section>
+    </Section>
   );
 }

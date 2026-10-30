@@ -365,10 +365,6 @@
   align-items: flex-start;
 }
 
-.ptg .ptg-item .chip {
-  font-size: 12px;
-}
-
 .ptg .ptg-row-issues summary {
   cursor: pointer;
   font-size: 12px;
@@ -401,7 +397,7 @@
 
 .ptg .ptg-blockers {
   margin: 0;
-  padding: 10px 12px 10px 28px;
+  padding-left: 18px;
   font-size: 13px;
 }
 

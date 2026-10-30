@@ -21,6 +21,7 @@ import { Check, ClipboardList, Tags, X } from "lucide-react";
 
 import { useAuth } from "../auth/AuthContext";
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import { formatDateTime } from "../lib/format";
 import {
@@ -52,7 +53,6 @@ import {
   type ItemProposal,
   type MappingChoice,
   type PtSummary,
-  type PtWorkTab,
 } from "../lib/ptWork";
 import { GrnStart, PtEditor } from "./PtPrepare";
 import { PtApprovePanel } from "./PtApprovals";
@@ -293,8 +293,7 @@ function NewItems() {
   }
 
   return (
-    <div className="card section-card" data-testid="rules-new-items">
-      <h4 className="gr-h4">New items waiting for confirmation</h4>
+    <Section heading="New items waiting for confirmation" testId="rules-new-items">
       {stepUp.dialog}
       <Feedback error={error} ok={ok} />
       {listState(
@@ -390,7 +389,7 @@ function NewItems() {
           </table>
         </div>
       )}
-    </div>
+    </Section>
   );
 }
 
@@ -458,7 +457,10 @@ function MappingRules() {
     `${row.source_key ?? "—"} (${row.dimension}, ${issuerLabel(row.issuer_key, brandName)})`;
 
   return (
-    <div data-testid="pt-work-rules">
+    <div
+      style={{ display: "flex", flexDirection: "column", gap: "var(--space-24)" }}
+      data-testid="pt-work-rules"
+    >
       <h3 className="h3">
         <Tags size={15} /> Mapping rules
       </h3>
@@ -493,8 +495,11 @@ function MappingRules() {
         </p>
       )}
 
-      <div className="card section-card" data-testid="rules-proposals">
-        <h4 className="gr-h4">Proposed, waiting for the product-master owner</h4>
+      <Section
+        heading="Proposed, waiting for the product-master owner"
+        ruled
+        testId="rules-proposals"
+      >
         {listState(
           {
             loading: proposals.loading,
@@ -564,10 +569,9 @@ function MappingRules() {
             </table>
           </div>
         )}
-      </div>
+      </Section>
 
-      <div className="card section-card" data-testid="rules-review">
-        <h4 className="gr-h4">Words no rule settles yet</h4>
+      <Section heading="Words no rule settles yet" ruled testId="rules-review">
         {listState(
           { loading: review.loading, failure: review.failure, empty: review.items.length === 0 },
           "Every word seen so far has a rule or a proposal.",
@@ -614,7 +618,7 @@ function MappingRules() {
             </table>
           </div>
         )}
-      </div>
+      </Section>
     </div>
   );
 }
@@ -633,10 +637,6 @@ export function PtWorkPage() {
   const asked = ptId || grnId ? "prepare" : params.get("tab");
   const tab = resolvePtWorkTab(shown, asked);
 
-  function show(next: PtWorkTab) {
-    setParams(next === "prepare" ? {} : { tab: next });
-  }
-
   return (
     <div className="page-pad">
       <PageHeader lead="Preparing, approving and the rules that map brands' words to KDPS values." />
@@ -644,21 +644,26 @@ export function PtWorkPage() {
         <Denied what="PT work" />
       ) : (
         <>
-          <div className="page-tabs" role="tablist" data-testid="pt-work-tabs">
+          {/* Each tab is its own address (?tab=), so the strip is links (decision 5). */}
+          <nav
+            className="seg"
+            style={{ marginBottom: "var(--space-16)" }}
+            aria-label="PT work"
+            data-testid="pt-work-tabs"
+          >
             {PT_WORK_TABS.filter((entry) => shown.includes(entry.tab)).map((entry) => (
-              <button
+              <Link
                 key={entry.tab}
-                role="tab"
-                aria-selected={entry.tab === tab}
-                className={`page-tab ${entry.tab === tab ? "active" : ""}`}
-                onClick={() => show(entry.tab)}
+                to={ptWorkPath({ tab: entry.tab })}
+                aria-current={entry.tab === tab ? "page" : undefined}
+                className={`seg-btn${entry.tab === tab ? " active" : ""}`}
                 data-testid={`pt-work-tab-${entry.tab}`}
               >
                 {entry.label}
-              </button>
+              </Link>
             ))}
-          </div>
-          <div className="pt-layout pt-layout-wide" role="tabpanel">
+          </nav>
+          <div className="pt-layout pt-layout-wide">
             {tab === "prepare" &&
               (ptId ? (
                 <PtEditor ptId={ptId} onClose={() => setParams({})} />

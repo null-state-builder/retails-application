@@ -19,6 +19,7 @@ import { CheckCircle2, ShieldCheck, XCircle } from "lucide-react";
 
 import { api, apiErrorMessage } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
+import { Note } from "../components/Note";
 import { ListSearchBar } from "../components/SearchBox";
 import { TopicChip } from "../components/ActionBits";
 import { useList } from "../lib/hooks";
@@ -113,9 +114,9 @@ export function ApprovalsList({
   return (
     <>
       {error && (
-        <div className="login-error" style={{ maxWidth: 520 }} data-testid="approvals-error">
+        <Note tone="error" testId="approvals-error">
           {error}
-        </div>
+        </Note>
       )}
 
       <ListSearchBar

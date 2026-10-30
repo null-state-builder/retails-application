@@ -14,6 +14,8 @@ import { useState } from "react";
 import { Check, ExternalLink, Plus, Send, Sparkles, Trash2 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
+import { Note } from "../components/Note";
+import { Section } from "../components/Section";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import { Feedback, Field, hold, useStepUp } from "../lib/goodsScreen";
 import type { ResourceDTO } from "../lib/goodsScreen";
@@ -176,13 +178,13 @@ function AllowedValues({
 
   if (!dimension) return null;
   return (
-    <fieldset className="card section-card" data-testid={testid}>
+    <fieldset className="box" style={{ marginTop: "var(--space-12)" }} data-testid={testid}>
       <legend>Values allowed for {dimension}</legend>
       {read.failure ? (
-        <p className="warn-note" data-testid={`${testid}-failure`}>
+        <Note tone="error" testId={`${testid}-failure`}>
           The approved {dimension} vocabulary could not be read, so this list cannot be chosen yet:{" "}
           {read.failure}
-        </p>
+        </Note>
       ) : (
         <>
           <label className="check-row">
@@ -742,206 +744,203 @@ export function ProfileWizard() {
       <h3 className="h3">
         <Sparkles size={15} /> Set up a PT profile
       </h3>
-      <p className="warn-note" data-testid="wiz-draft-warning">
+      <Note tone="warn" testId="wiz-draft-warning">
         The fashion layout offered here is a <b>starting draft</b> — a shape to edit, not approved
         tenant configuration and not anyone's real rates or vocabulary. Nothing takes effect until a
         second person approves each version.
-      </p>
+      </Note>
       <Feedback error={error} ok={ok} />
       {stepUp.dialog}
 
-      <section className="card section-card" data-testid="wiz-step-vocabulary">
-        <h4 className="h4">1 · Vocabulary</h4>
-        <p className="lead">
-          The closed lists a SKU is described by. A size list carries an explicit Free Size value,
-          so "free size" is a size and not a missing one.
-        </p>
-        <WizardItem
-          testid="size"
-          title="Size vocabulary"
-          kind="vocabulary"
-          line={sizeLine}
-          loading={loading}
-          state={stateOf(sizeLine)}
-          canDraft={canDraft}
-          busy={busy}
-          onCreate={(kind, payload) => createDraft(kind, payload, vocabularies.reload)}
-          onOpen={(kind, id) => setParams({ kind, draft: id })}
-          onSubmit={(line) => submitDraft(line, vocabularies.reload)}
-          starting={() => ({
-            dimension: SIZE_DIMENSION,
-            values: FASHION_SIZES,
-            effective_from: new Date().toISOString(),
-          })}
-        />
-        <WizardItem
-          testid="colour"
-          title="Colour vocabulary"
-          kind="vocabulary"
-          line={colourLine}
-          loading={loading}
-          state={stateOf(colourLine)}
-          canDraft={canDraft}
-          busy={busy}
-          onCreate={(kind, payload) => createDraft(kind, payload, vocabularies.reload)}
-          onOpen={(kind, id) => setParams({ kind, draft: id })}
-          onSubmit={(line) => submitDraft(line, vocabularies.reload)}
-          starting={() => ({
-            dimension: COLOUR_DIMENSION,
-            values: FASHION_COLOURS,
-            effective_from: new Date().toISOString(),
-          })}
-        />
-      </section>
-
-      <section className="card section-card" data-testid="wiz-step-identity">
-        <h4 className="h4">2 · What identifies a SKU</h4>
-        <p className="lead">
-          The starting draft allows every approved size and colour. Open it to narrow either list to
-          the values this family actually uses — that choice is part of the draft, and the approver
-          sees it.
-        </p>
-        <WizardItem
-          testid="identity"
-          title={`SKU identity profile · ${FASHION_FAMILY}`}
-          kind="identity_profile"
-          line={identityLine}
-          loading={loading}
-          state={stateOf(identityLine)}
-          canDraft={canDraft}
-          busy={busy}
-          onCreate={(kind, payload) => createDraft(kind, payload, identity.reload)}
-          onOpen={(kind, id) => setParams({ kind, draft: id })}
-          onSubmit={(line) => submitDraft(line, identity.reload)}
-          blocked={
-            !vocabularyReady
-              ? "Both vocabularies have to be approved and in force first — a profile may only name governed vocabulary."
-              : valuesUnread?.failure
-                ? `The approved values could not be read, and this draft would allow every one of them: ${valuesUnread.failure}`
-                : valuesUnread?.loading
-                  ? "Reading the approved values this profile would allow…"
-                  : undefined
-          }
-          starting={() => ({
-            family: FASHION_FAMILY,
-            distinguishing_dimensions: [COLOUR_DIMENSION],
-            size_dimension: SIZE_DIMENSION,
-            colour_dimension: COLOUR_DIMENSION,
-            grade_dimension: null,
-            allowed_size_values: [],
-            allowed_colour_values: [],
-            allowed_grade_values: [],
-          })}
-        />
-      </section>
-
-      <section className="card section-card" data-testid="wiz-step-money">
-        <h4 className="h4">3 · Rates and tax</h4>
-        <WizardItem
-          testid="rates"
-          title="Rates"
-          kind="rates"
-          line={ratesLine}
-          loading={loading}
-          state={stateOf(ratesLine)}
-          canDraft={canDraft}
-          busy={busy}
-          onCreate={(kind, payload) => createDraft(kind, payload, rates.reload)}
-          onOpen={(kind, id) => setParams({ kind, draft: id })}
-          onSubmit={(line) => submitDraft(line, rates.reload)}
-          starting={() => ({ transport_pct: "0.00", pricing_margin_pct: "0.00" })}
-        />
-        <WizardItem
-          testid="tax"
-          title="Tax rules"
-          kind="tax_rates"
-          line={taxLine}
-          loading={loading}
-          state={stateOf(taxLine)}
-          canDraft={canDraft}
-          busy={busy}
-          onCreate={(kind, payload) => createDraft(kind, payload, taxes.reload)}
-          onOpen={(kind, id) => setParams({ kind, draft: id })}
-          onSubmit={(line) => submitDraft(line, taxes.reload)}
-          starting={() => ({
-            currency: "INR",
-            hsn_rules: [
-              {
-                hsn: "6109",
-                effective_from: new Date().toISOString(),
-                slabs: [
-                  {
-                    lower_paise: "0",
-                    upper_paise: "100000",
-                    lower_inclusive: true,
-                    upper_inclusive: true,
-                    input_pct: "5.00",
-                    output_pct: "5.00",
-                  },
-                  {
-                    lower_paise: "100000",
-                    upper_paise: null,
-                    lower_inclusive: false,
-                    upper_inclusive: false,
-                    input_pct: "12.00",
-                    output_pct: "12.00",
-                  },
-                ],
-              },
-            ],
-          })}
-        />
-      </section>
-
-      <section className="card section-card" data-testid="wiz-step-columns">
-        <h4 className="h4">4 · PT columns and direction</h4>
-        <WizardItem
-          testid="profile"
-          title={`PT profile · ${FASHION_FAMILY}`}
-          kind="profile"
-          line={profileLine}
-          loading={loading}
-          state={stateOf(profileLine)}
-          canDraft={canDraft}
-          busy={busy}
-          onCreate={(kind, payload) => createDraft(kind, payload, profiles.reload)}
-          onOpen={(kind, id) => setParams({ kind, draft: id })}
-          onSubmit={(line) => submitDraft(line, profiles.reload)}
-          blocked={
-            identityReady && moneyReady
-              ? undefined
-              : "A PT profile may only name approved rates and tax versions, and its family needs an approved identity profile."
-          }
-          starting={() => ({
-            family: FASHION_FAMILY,
-            columns: fashionColumns(),
-            directions: ["base_to_ticket", "both_supplied"],
-            allow_row_override: false,
-            rates_version_id: ratesVersion?.version.id ?? "",
-            tax_version_id: taxVersion?.version.id ?? "",
-            opening_rules: { season_required: true, both_supplied: true },
-          })}
-        />
-      </section>
-
-      <WizardPreview
-        profileLine={profileLine}
-        ratesLine={ratesLine}
-        taxLine={taxLine}
-        identityLine={identityLine}
-      />
-
-      <section className="card section-card" data-testid="wiz-step-submit">
-        <h4 className="h4">6 · Send it for approval</h4>
-        {profileLine ? (
-          <p className="lead" data-testid="wiz-submit-state">
-            The PT profile is {stateWords(stateOf(profileLine)).toLowerCase()}. Open it to change a
-            backdated start or review what it affects.
+      <div className="page">
+        <Section level={3} heading="1 · Vocabulary" testId="wiz-step-vocabulary">
+          <p className="lead">
+            The closed lists a SKU is described by. A size list carries an explicit Free Size value,
+            so "free size" is a size and not a missing one.
           </p>
-        ) : (
-          <p className="muted">There is no PT profile draft to send yet.</p>
-        )}
-      </section>
+          <WizardItem
+            testid="size"
+            title="Size vocabulary"
+            kind="vocabulary"
+            line={sizeLine}
+            loading={loading}
+            state={stateOf(sizeLine)}
+            canDraft={canDraft}
+            busy={busy}
+            onCreate={(kind, payload) => createDraft(kind, payload, vocabularies.reload)}
+            onOpen={(kind, id) => setParams({ kind, draft: id })}
+            onSubmit={(line) => submitDraft(line, vocabularies.reload)}
+            starting={() => ({
+              dimension: SIZE_DIMENSION,
+              values: FASHION_SIZES,
+              effective_from: new Date().toISOString(),
+            })}
+          />
+          <WizardItem
+            testid="colour"
+            title="Colour vocabulary"
+            kind="vocabulary"
+            line={colourLine}
+            loading={loading}
+            state={stateOf(colourLine)}
+            canDraft={canDraft}
+            busy={busy}
+            onCreate={(kind, payload) => createDraft(kind, payload, vocabularies.reload)}
+            onOpen={(kind, id) => setParams({ kind, draft: id })}
+            onSubmit={(line) => submitDraft(line, vocabularies.reload)}
+            starting={() => ({
+              dimension: COLOUR_DIMENSION,
+              values: FASHION_COLOURS,
+              effective_from: new Date().toISOString(),
+            })}
+          />
+        </Section>
+
+        <Section level={3} heading="2 · What identifies a SKU" ruled testId="wiz-step-identity">
+          <p className="lead">
+            The starting draft allows every approved size and colour. Open it to narrow either list
+            to the values this family actually uses — that choice is part of the draft, and the
+            approver sees it.
+          </p>
+          <WizardItem
+            testid="identity"
+            title={`SKU identity profile · ${FASHION_FAMILY}`}
+            kind="identity_profile"
+            line={identityLine}
+            loading={loading}
+            state={stateOf(identityLine)}
+            canDraft={canDraft}
+            busy={busy}
+            onCreate={(kind, payload) => createDraft(kind, payload, identity.reload)}
+            onOpen={(kind, id) => setParams({ kind, draft: id })}
+            onSubmit={(line) => submitDraft(line, identity.reload)}
+            blocked={
+              !vocabularyReady
+                ? "Both vocabularies have to be approved and in force first — a profile may only name governed vocabulary."
+                : valuesUnread?.failure
+                  ? `The approved values could not be read, and this draft would allow every one of them: ${valuesUnread.failure}`
+                  : valuesUnread?.loading
+                    ? "Reading the approved values this profile would allow…"
+                    : undefined
+            }
+            starting={() => ({
+              family: FASHION_FAMILY,
+              distinguishing_dimensions: [COLOUR_DIMENSION],
+              size_dimension: SIZE_DIMENSION,
+              colour_dimension: COLOUR_DIMENSION,
+              grade_dimension: null,
+              allowed_size_values: [],
+              allowed_colour_values: [],
+              allowed_grade_values: [],
+            })}
+          />
+        </Section>
+
+        <Section level={3} heading="3 · Rates and tax" ruled testId="wiz-step-money">
+          <WizardItem
+            testid="rates"
+            title="Rates"
+            kind="rates"
+            line={ratesLine}
+            loading={loading}
+            state={stateOf(ratesLine)}
+            canDraft={canDraft}
+            busy={busy}
+            onCreate={(kind, payload) => createDraft(kind, payload, rates.reload)}
+            onOpen={(kind, id) => setParams({ kind, draft: id })}
+            onSubmit={(line) => submitDraft(line, rates.reload)}
+            starting={() => ({ transport_pct: "0.00", pricing_margin_pct: "0.00" })}
+          />
+          <WizardItem
+            testid="tax"
+            title="Tax rules"
+            kind="tax_rates"
+            line={taxLine}
+            loading={loading}
+            state={stateOf(taxLine)}
+            canDraft={canDraft}
+            busy={busy}
+            onCreate={(kind, payload) => createDraft(kind, payload, taxes.reload)}
+            onOpen={(kind, id) => setParams({ kind, draft: id })}
+            onSubmit={(line) => submitDraft(line, taxes.reload)}
+            starting={() => ({
+              currency: "INR",
+              hsn_rules: [
+                {
+                  hsn: "6109",
+                  effective_from: new Date().toISOString(),
+                  slabs: [
+                    {
+                      lower_paise: "0",
+                      upper_paise: "100000",
+                      lower_inclusive: true,
+                      upper_inclusive: true,
+                      input_pct: "5.00",
+                      output_pct: "5.00",
+                    },
+                    {
+                      lower_paise: "100000",
+                      upper_paise: null,
+                      lower_inclusive: false,
+                      upper_inclusive: false,
+                      input_pct: "12.00",
+                      output_pct: "12.00",
+                    },
+                  ],
+                },
+              ],
+            })}
+          />
+        </Section>
+
+        <Section level={3} heading="4 · PT columns and direction" ruled testId="wiz-step-columns">
+          <WizardItem
+            testid="profile"
+            title={`PT profile · ${FASHION_FAMILY}`}
+            kind="profile"
+            line={profileLine}
+            loading={loading}
+            state={stateOf(profileLine)}
+            canDraft={canDraft}
+            busy={busy}
+            onCreate={(kind, payload) => createDraft(kind, payload, profiles.reload)}
+            onOpen={(kind, id) => setParams({ kind, draft: id })}
+            onSubmit={(line) => submitDraft(line, profiles.reload)}
+            blocked={
+              identityReady && moneyReady
+                ? undefined
+                : "A PT profile may only name approved rates and tax versions, and its family needs an approved identity profile."
+            }
+            starting={() => ({
+              family: FASHION_FAMILY,
+              columns: fashionColumns(),
+              directions: ["base_to_ticket", "both_supplied"],
+              allow_row_override: false,
+              rates_version_id: ratesVersion?.version.id ?? "",
+              tax_version_id: taxVersion?.version.id ?? "",
+              opening_rules: { season_required: true, both_supplied: true },
+            })}
+          />
+        </Section>
+
+        <WizardPreview
+          profileLine={profileLine}
+          ratesLine={ratesLine}
+          taxLine={taxLine}
+          identityLine={identityLine}
+        />
+
+        <Section level={3} heading="6 · Send it for approval" ruled testId="wiz-step-submit">
+          {profileLine ? (
+            <p className="lead" data-testid="wiz-submit-state">
+              The PT profile is {stateWords(stateOf(profileLine)).toLowerCase()}. Open it to change
+              a backdated start or review what it affects.
+            </p>
+          ) : (
+            <p className="muted">There is no PT profile draft to send yet.</p>
+          )}
+        </Section>
+      </div>
     </div>
   );
 }
@@ -972,8 +971,7 @@ function WizardPreview({
   const margin = str(ratesLine?.data.payload.pricing_margin_pct);
 
   return (
-    <section className="card section-card" data-testid="wiz-step-preview">
-      <h4 className="h4">5 · What this will do</h4>
+    <Section level={3} heading="5 · What this will do" ruled testId="wiz-step-preview">
       {!profileLine ? (
         <p className="muted" data-testid="wiz-preview-empty">
           Nothing to preview until there is a PT profile draft.
@@ -1056,6 +1054,6 @@ function WizardPreview({
           )}
         </>
       )}
-    </section>
+    </Section>
   );
 }

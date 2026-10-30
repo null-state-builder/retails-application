@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
+import { Note } from "../components/Note";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
+import { Status } from "../components/Status";
 import { api, apiErrorCode, apiErrorMessage, goodsMeta } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
@@ -133,23 +136,26 @@ export function StockAgeingPage() {
 
   const disabled = !online || busy;
   const offlineNote = (!online || lost) && (
-    <p className="warn-note" data-testid="ageing-offline" role="status">
-      {OFFLINE}
-      {online && (
-        <>
-          {" "}
+    <Note
+      tone="warn"
+      testId="ageing-offline"
+      role="status"
+      action={
+        online && (
           <button
             type="button"
-            className="btn"
+            className="btn btn-sm"
             data-testid="ageing-retry"
             disabled={busy}
             onClick={() => void load(siteId)}
           >
             Try again
           </button>
-        </>
-      )}
-    </p>
+        )
+      }
+    >
+      {OFFLINE}
+    </Note>
   );
   const header = (
     <PageHeader
@@ -158,9 +164,9 @@ export function StockAgeingPage() {
     />
   );
   const errorNote = (error || refused) && (
-    <p className="warn-note" data-testid="ageing-error">
+    <Note tone="error" testId="ageing-error">
       {error || refused}
-    </p>
+    </Note>
   );
 
   if (!data) {
@@ -192,11 +198,11 @@ export function StockAgeingPage() {
       {offlineNote}
       {errorNote}
       {saved && (
-        <p className="ok-note" data-testid="ageing-saved">
+        <Note tone="success" role="status" testId="ageing-saved">
           {saved}
-        </p>
+        </Note>
       )}
-      <section className="card section-card">
+      <section className="section">
         <div className="toolbar">
           <label className="field">
             <span>Store</span>
@@ -225,13 +231,13 @@ export function StockAgeingPage() {
           <span className="muted-cell">As of {dayText(data.today)}</span>
         </div>
         {!data.goods_records ? (
-          <p className="warn-note" data-testid="ageing-legacy">
+          <Note tone="warn" testId="ageing-legacy">
             This store's stock is not on the goods records yet, so it cannot be aged.
-          </p>
+          </Note>
         ) : data.rows.length === 0 ? (
-          <p className="ok-note" data-testid="ageing-empty">
+          <Note tone="success" testId="ageing-empty">
             No stock at this store.
-          </p>
+          </Note>
         ) : (
           data.groups
             .filter((group) => group.qty > 0)
@@ -309,7 +315,7 @@ function AgeingGroupTable({
                 </td>
                 <td>{row.last_sale_on ? dayText(row.last_sale_on) : "None"}</td>
                 <td data-testid="ageing-age">
-                  {row.aged && <span className="chip chip-amber">Aged</span>} {ageText(row)}
+                  {row.aged && <Status tone="amber">Aged</Status>} {ageText(row)}
                 </td>
               </tr>
             ))}
@@ -346,8 +352,7 @@ function SeasonEnds({
   const listed = seasons.filter((season) => !season.historical_unknown);
   if (listed.length === 0) return null;
   return (
-    <section className="card section-card" data-testid="ageing-seasons">
-      <h3 className="section-title">Season end dates</h3>
+    <Section heading="Season end dates" ruled testId="ageing-seasons">
       <p className="muted-cell">
         Stock of a season counts as aged from the day the season ended.
         {canSet
@@ -396,7 +401,7 @@ function SeasonEnds({
                     <td>
                       <button
                         type="button"
-                        className="btn"
+                        className="btn btn-sm"
                         data-testid={`ageing-season-save-${season.code}`}
                         disabled={disabled || !value || value === season.ended_on}
                         onClick={() => void save(season, value)}
@@ -406,7 +411,7 @@ function SeasonEnds({
                       {season.ended_on && (
                         <button
                           type="button"
-                          className="btn"
+                          className="btn btn-sm"
                           data-testid={`ageing-season-clear-${season.code}`}
                           disabled={disabled}
                           onClick={() => void save(season, null)}
@@ -422,6 +427,6 @@ function SeasonEnds({
           </tbody>
         </table>
       </div>
-    </section>
+    </Section>
   );
 }

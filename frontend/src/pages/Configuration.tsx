@@ -53,6 +53,8 @@ import { IdentityProfileEditor, PtProfileEditor } from "./ProfileWizard";
 import { FirstStoreConfigScope, FirstStorePolicyEditor } from "./firstStoreConfiguration";
 import { useAuth } from "../auth/AuthContext";
 import { PageHeader } from "../components/PageHeader";
+import { Note } from "../components/Note";
+import { Status, type StatusTone } from "../components/Status";
 import { formatDateTime } from "../lib/format";
 import { scopeLabel, summarizeConfiguration } from "./configurationSummary";
 import "./Configuration.css";
@@ -165,7 +167,7 @@ const BLANK_PAYLOAD: Record<string, Payload> = {
 };
 
 export function versionChip(version: VersionState): ReactNode {
-  const tone =
+  const tone: StatusTone =
     version.state === "effective"
       ? "green"
       : version.state === "scheduled"
@@ -173,7 +175,7 @@ export function versionChip(version: VersionState): ReactNode {
         : version.state === "ended"
           ? "grey"
           : "red";
-  return <span className={`chip chip-${tone}`}>{version.state}</span>;
+  return <Status tone={tone}>{version.state}</Status>;
 }
 
 const DRAFT_STATE_LABEL: Record<string, string> = {
@@ -183,9 +185,10 @@ const DRAFT_STATE_LABEL: Record<string, string> = {
 };
 
 function draftChip(state: string): ReactNode {
-  const tone = state === "approved" ? "green" : state === "submitted" ? "amber" : "grey";
+  const tone: StatusTone =
+    state === "approved" ? "green" : state === "submitted" ? "amber" : "grey";
   const label = DRAFT_STATE_LABEL[state] ?? state.charAt(0).toUpperCase() + state.slice(1);
-  return <span className={`chip chip-${tone}`}>{label}</span>;
+  return <Status tone={tone}>{label}</Status>;
 }
 
 /** An RFC3339 instant as a `datetime-local` control wants it, and back. */
@@ -265,7 +268,7 @@ function ImpactPanel({
   onReview: (next: Set<string>) => void;
 }) {
   return (
-    <div className="card section-card cfg-impact" data-testid="config-impact">
+    <div className="box cfg-impact" data-testid="config-impact">
       <h4 className="h4">
         <CalendarClock size={15} /> This start is in the past
       </h4>
@@ -509,12 +512,12 @@ function DraftPanel({
       <Feedback error={error} ok={ok} />
       {stepUp.dialog}
       {!canDraft && (
-        <p className="warn-note">You may read this configuration, but not draft a change to it.</p>
+        <Note tone="warn">You may read this configuration, but not draft a change to it.</Note>
       )}
       {(loaded?.data.versions ?? []).length > 0 && (
         <VersionsTable versions={loaded?.data.versions ?? []} />
       )}
-      <div className="card section-card">
+      <div className="cfg-part">
         <div className="cfg-two cfg-dates">
           <Field
             id="config-from"
@@ -551,13 +554,13 @@ function DraftPanel({
           </Field>
         </div>
         {(dateError || backdate?.blocked) && (
-          <p className="warn-note" data-testid="config-date-refusal">
+          <Note tone="error" testId="config-date-refusal">
             {dateError || backdate?.blocked?.message}
             {(backdate?.blocked?.issues ?? []).map((issue) => ` ${issue.message}.`).join("")}
-          </p>
+          </Note>
         )}
       </div>
-      <div className="card section-card">
+      <div className="cfg-part">
         {["approval", "sell_policy", "workflow", "notifications"].includes(kind) && (
           <FirstStoreConfigScope value={scope} onChange={setScope} locked={Boolean(loaded)} />
         )}
@@ -659,11 +662,7 @@ function KindPanel({
           const summary = summarizeConfiguration(kind, line.data.payload);
           const request = sentBy.get(line.id);
           return (
-            <div
-              className="card section-card cfg-line"
-              key={line.id}
-              data-testid={`config-line-${line.id}`}
-            >
+            <div className="cfg-line" key={line.id} data-testid={`config-line-${line.id}`}>
               <div className="cfg-line-head">
                 <div className="cfg-line-title">
                   {draftChip(line.state)}
@@ -808,13 +807,13 @@ function ApprovalsPanel() {
                     <td>{row.requested_at ? formatDateTime(row.requested_at) : "—"}</td>
                     <td>
                       {ownWork ? (
-                        <span className="warn-note" data-testid={`config-approval-self-${row.id}`}>
+                        <Status tone="amber" testId={`config-approval-self-${row.id}`}>
                           You prepared this, so you cannot approve it. Someone else has to.
-                        </span>
+                        </Status>
                       ) : (
                         <>
                           <button
-                            className="btn btn-cta btn-sm"
+                            className="btn btn-primary btn-sm"
                             onClick={() => decide(row, "approve")}
                             disabled={busy}
                             data-testid={`config-approve-${row.id}`}

@@ -10,24 +10,7 @@
 }
 
 .planned-card {
-  padding: 18px;
   max-width: 720px;
-}
-
-.planned-medallion {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-box);
-  background: var(--inner);
-  border: 1px solid var(--hairline);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 18px;
-}
-
-.planned-card .h3 {
-  margin-bottom: 12px;
 }
 
 .planned-list {
@@ -42,26 +25,7 @@
   margin: 6px 0;
 }
 
-.planned-list li::marker {
-  color: var(--rust);
-}
-
-.planned-notes {
-  margin-top: 16px;
-  padding: 16px 18px;
-  border-radius: var(--radius-control);
-  background: var(--inner);
-  border: 1px solid var(--hairline);
-}
-
-.planned-notes-head {
-  margin: 0 0 8px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
-}
-
-.planned-notes p:not(.planned-notes-head) {
+.planned-notes p {
   margin: 0;
   font-size: 14px;
   line-height: 1.65;
@@ -69,7 +33,7 @@
 }
 
 /* Each caveat is its own point — run them together and they read as one blur. */
-.planned-notes p:not(.planned-notes-head) + p {
+.planned-notes p + p {
   margin-top: 10px;
 }
 

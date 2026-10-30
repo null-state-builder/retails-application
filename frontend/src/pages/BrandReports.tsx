@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
 import { api, apiErrorCode, apiErrorMessage } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
@@ -152,23 +154,26 @@ export function BrandReportsPage() {
 
   const disabled = !online || busy;
   const offlineNote = (!online || lost) && (
-    <p className="warn-note" data-testid="brand-reports-offline" role="status">
-      {OFFLINE}
-      {online && (
-        <>
-          {" "}
+    <Note
+      tone="warn"
+      testId="brand-reports-offline"
+      role="status"
+      action={
+        online && (
           <button
             type="button"
-            className="btn"
+            className="btn btn-sm"
             data-testid="brand-reports-retry"
             disabled={busy}
             onClick={() => void load(store, month)}
           >
             Try again
           </button>
-        </>
-      )}
-    </p>
+        )
+      }
+    >
+      {OFFLINE}
+    </Note>
   );
   const lead =
     "Each brand's Sale and SOH report for a store and month, in the brand's own layout. Last month's are made by themselves; any can be made now.";
@@ -179,9 +184,9 @@ export function BrandReportsPage() {
         <PageHeader title="Brand Reports" lead={lead} />
         {offlineNote}
         {error ? (
-          <p className="warn-note" data-testid="brand-reports-error">
+          <Note tone="error" testId="brand-reports-error">
             {error}
-          </p>
+          </Note>
         ) : (
           online && !lost && <p>Loading the brand reports…</p>
         )}
@@ -194,37 +199,37 @@ export function BrandReportsPage() {
     <div className="page-pad">
       <PageHeader title="Brand Reports" lead={lead} />
       {offlineNote}
-      <section className="card section-card">
-        <div className="toolbar" data-testid="brand-reports-filters">
-          <label className="field">
-            <span>Store</span>
-            <select
-              className="input"
-              data-testid="brand-reports-store"
-              value={store}
-              disabled={disabled}
-              onChange={(event) => setStore(event.target.value)}
-            >
-              <option value="">All my stores</option>
-              {data.store_options.map((s) => (
-                <option key={s.id} value={s.code}>
-                  {s.name} ({s.code})
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>Month</span>
-            <input
-              className="input"
-              type="month"
-              data-testid="brand-reports-month"
-              value={month}
-              disabled={disabled}
-              onChange={(event) => event.target.value && setMonth(event.target.value)}
-            />
-          </label>
-        </div>
+      <div className="toolbar" data-testid="brand-reports-filters">
+        <label className="field">
+          <span>Store</span>
+          <select
+            className="input"
+            data-testid="brand-reports-store"
+            value={store}
+            disabled={disabled}
+            onChange={(event) => setStore(event.target.value)}
+          >
+            <option value="">All my stores</option>
+            {data.store_options.map((s) => (
+              <option key={s.id} value={s.code}>
+                {s.name} ({s.code})
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span>Month</span>
+          <input
+            className="input"
+            type="month"
+            data-testid="brand-reports-month"
+            value={month}
+            disabled={disabled}
+            onChange={(event) => event.target.value && setMonth(event.target.value)}
+          />
+        </label>
+      </div>
+      <Section heading="By brand">
         <p className="muted-cell" data-testid="brand-reports-as-of">
           {`Sales: ${asOfText(data.sale_as_of)} · Stock: ${asOfText(data.soh_as_of)}`}
           {` · the copies are brought up to date every ${data.refreshed_every_minutes} minutes`}
@@ -232,12 +237,12 @@ export function BrandReportsPage() {
           {data.running && " (the month is still running)"}
         </p>
         {error && (
-          <p className="warn-note" data-testid="brand-reports-error">
+          <Note tone="error" testId="brand-reports-error">
             {error}
-          </p>
+          </Note>
         )}
         {data.missing.length > 0 && (
-          <div className="warn-note" data-testid="brand-reports-missing">
+          <Note tone="warn" testId="brand-reports-missing">
             <strong>Not included, or to check</strong>
             <ul>
               {data.missing.map((m) => (
@@ -246,7 +251,7 @@ export function BrandReportsPage() {
                 </li>
               ))}
             </ul>
-          </div>
+          </Note>
         )}
         {!onePicked && (
           <p className="muted-cell" data-testid="brand-reports-pick-store">
@@ -296,12 +301,12 @@ export function BrandReportsPage() {
                         );
                       })}
                     </td>
-                    <td>
+                    <td className="act">
                       {KINDS.map((kind) => (
                         <button
                           key={kind}
                           type="button"
-                          className="btn"
+                          className="btn btn-sm"
                           data-testid={`brand-reports-make-${kind}`}
                           disabled={disabled || !onePicked || making !== ""}
                           onClick={() => void make(b, kind, b.layouts[kind].file_type)}
@@ -382,10 +387,9 @@ export function BrandReportsPage() {
             missing data.
           </p>
         </details>
-      </section>
+      </Section>
 
-      <section className="card section-card" data-testid="brand-reports-kept">
-        <h2>Made at month end</h2>
+      <Section heading="Made at month end" ruled testId="brand-reports-kept">
         {data.runs.length === 0 && data.files.length === 0 ? (
           <p className="muted-cell" data-testid="brand-reports-kept-none">
             {data.running
@@ -428,10 +432,10 @@ export function BrandReportsPage() {
                         )}
                       </td>
                       <td className="num tabular">{count(f.rows)}</td>
-                      <td>
+                      <td className="act">
                         <button
                           type="button"
-                          className="btn"
+                          className="btn btn-sm"
                           data-testid="brand-reports-kept-take"
                           disabled={disabled}
                           onClick={() => void takeKept(f)}
@@ -446,7 +450,7 @@ export function BrandReportsPage() {
             </div>
           </>
         )}
-      </section>
+      </Section>
 
       <LayoutEditor
         online={online}
@@ -518,16 +522,15 @@ function LayoutEditor({
 
   if (!layouts || !draft || !startingPoint) {
     return (
-      <section className="card section-card" data-testid="brand-layouts">
-        <h2>Layouts</h2>
+      <Section heading="Layouts" ruled testId="brand-layouts">
         {error ? (
-          <p className="warn-note" data-testid="brand-layouts-error">
+          <Note tone="error" testId="brand-layouts-error">
             {error}
-          </p>
+          </Note>
         ) : (
           <p className="muted-cell">Loading the layouts…</p>
         )}
-      </section>
+      </Section>
     );
   }
 
@@ -601,8 +604,7 @@ function LayoutEditor({
 
   const locked = !editable || saving;
   return (
-    <section className="card section-card" data-testid="brand-layouts">
-      <h2>Layouts</h2>
+    <Section heading="Layouts" ruled testId="brand-layouts">
       <p className="muted-cell">
         A brand with no layout of its own uses the company standard: the KDPS Sale and SOH sheets.
         {!editable && " Only Accounts can change a layout."}
@@ -727,7 +729,7 @@ function LayoutEditor({
         </label>
       </div>
 
-      <h3>Title lines</h3>
+      <h3 className="h3">Title lines</h3>
       <p className="muted-cell">
         Can name {layouts.placeholders.map((p) => `{${p.key}}`).join(", ")}; in capitals (
         {"{BRAND}"}) the value is written in capitals.
@@ -786,7 +788,7 @@ function LayoutEditor({
         </button>
       )}
 
-      <h3>Columns, in order</h3>
+      <h3 className="h3">Columns, in order</h3>
       <div className="table-wrap">
         <table className="data" data-testid="brand-layouts-columns">
           <thead>
@@ -951,19 +953,15 @@ function LayoutEditor({
         </div>
       )}
       {error && (
-        <p className="warn-note" data-testid="brand-layouts-error">
+        <Note tone="error" testId="brand-layouts-error">
           {error}
-        </p>
+        </Note>
       )}
       {note && (
-        <p
-          className={note.ok ? "ok-note" : "warn-note"}
-          data-testid="brand-layouts-note"
-          role="status"
-        >
+        <Note tone={note.ok ? "success" : "warn"} testId="brand-layouts-note" role="status">
           {note.text}
-        </p>
+        </Note>
       )}
-    </section>
+    </Section>
   );
 }

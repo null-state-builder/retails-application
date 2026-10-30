@@ -42,6 +42,8 @@ import {
   X,
 } from "lucide-react";
 
+import { Note } from "../components/Note";
+import { Status } from "../components/Status";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import {
   Denied,
@@ -263,11 +265,11 @@ function CounterForm({ grn, onDone }: { grn: ResourceDTO<GrnCoverage>; onDone: (
         </Field>
       </div>
       {lineIssues.length > 0 && (
-        <div className="warn-note" data-testid="gg-c-refusal">
+        <Note tone="warn" testId="gg-c-refusal">
           {lineIssues.map((problem, index) => (
             <p key={index}>{problem.message ?? problem.code}</p>
           ))}
-        </div>
+        </Note>
       )}
       <button
         className="btn btn-primary btn-sm"
@@ -1137,9 +1139,9 @@ function ApprovalsPanel({ grn, onDone }: { grn: ResourceDTO<GrnCoverage>; onDone
                     <td>{row.requested_at ? formatDateTime(row.requested_at) : "—"}</td>
                     <td>
                       {ownWork ? (
-                        <span className="warn-note" data-testid={`gg-approval-self-${row.id}`}>
+                        <Status tone="amber" testId={`gg-approval-self-${row.id}`}>
                           You asked for this, so you cannot decide it.
-                        </span>
+                        </Status>
                       ) : (
                         <>
                           <button
@@ -1251,7 +1253,7 @@ export function GrnPanel({
   // record on screen — tearing the panels down mid-reload would also take the
   // message that says what just happened, and whatever was half-typed with it.
   if (doc.loading && !doc.doc) return <p className="muted">Loading…</p>;
-  if (doc.failure) return <div className="warn-note">{doc.failure}</div>;
+  if (doc.failure) return <Note tone="error">{doc.failure}</Note>;
   if (!doc.doc) return <Denied what="goods receipt" />;
 
   const grn = doc.doc;
@@ -1262,7 +1264,7 @@ export function GrnPanel({
     <div data-testid="gg-detail">
       <div className="toolbar">
         <h3 className="h3">{grn.number ?? `Receipt ${grn.id.slice(0, 8)}`}</h3>
-        <span className="chip chip-green">Issued</span>
+        <Status tone="green">Issued</Status>
         <div className="spacer" />
         {onClose && (
           <button className="btn btn-sm" onClick={onClose} data-testid="gg-detail-close">
@@ -1401,9 +1403,12 @@ export function GrnPanel({
             <b>{entry.kind === "grn" ? "Counted and issued" : "Counter-GRN"}</b>
             {entry.number ? ` ${entry.number}` : ""} — {formatDateTime(entry.recorded_at)}
             {entry.kind === "counter_grn" && (
-              <span className={`chip chip-${entry.state === "approved" ? "green" : "amber"}`}>
-                {entry.state === "approved" ? "Approved" : "Waiting for a second person"}
-              </span>
+              <>
+                {" "}
+                <Status tone={entry.state === "approved" ? "green" : "amber"}>
+                  {entry.state === "approved" ? "Approved" : "Waiting for a second person"}
+                </Status>
+              </>
             )}
             <ul>
               {entry.lines.map((line, index) => (
@@ -1521,6 +1526,7 @@ export function HeldGoodsView({ grn }: { grn: ResourceDTO<GrnCoverage> }) {
   const coverage = grn.data;
   const excess = useMemo(() => excessByLine(coverage), [coverage]);
   const mine = useMemo(() => exceptionsFor(exceptions.value, grn.id), [exceptions.value, grn.id]);
+  const due = mine[0] ? (mine[0].due_at ? formatDateTime(mine[0].due_at) : NO_DUE_DATE) : NOT_GIVEN;
   const heldLines = coverage.lines.items.filter(
     (line) => line.uncovered_qty > 0 || line.held_qty > 0,
   );
@@ -1557,15 +1563,7 @@ export function HeldGoodsView({ grn }: { grn: ResourceDTO<GrnCoverage> }) {
                     <td className="num">{line.held_qty}</td>
                     <td>{reasons.join("; ")}</td>
                     <td>{mine[0]?.owner_role ?? NOT_GIVEN}</td>
-                    <td>
-                      {mine[0] ? (
-                        <span className={mine[0].overdue ? "warn-note" : ""}>
-                          {mine[0].due_at ? formatDateTime(mine[0].due_at) : NO_DUE_DATE}
-                        </span>
-                      ) : (
-                        NOT_GIVEN
-                      )}
-                    </td>
+                    <td>{mine[0]?.overdue ? <Status tone="amber">{due}</Status> : due}</td>
                   </tr>
                 );
               })}
@@ -1635,7 +1633,7 @@ export function DispositionPanel({ grnId }: { grnId: string }) {
 
   if (doc.denied) return <Denied what="goods receipt" />;
   if (doc.loading && !doc.doc) return <p className="muted">Loading…</p>;
-  if (doc.failure) return <div className="warn-note">{doc.failure}</div>;
+  if (doc.failure) return <Note tone="error">{doc.failure}</Note>;
   if (!doc.doc) return <Denied what="goods receipt" />;
 
   return (

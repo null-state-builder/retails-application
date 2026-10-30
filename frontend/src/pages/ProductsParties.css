@@ -118,3 +118,8 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* v2: a SKU form under a style sits on the page, spaced from what is above. */
+.pp-layout .pp-part {
+  margin-top: 16px;
+}

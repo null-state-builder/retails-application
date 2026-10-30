@@ -38,7 +38,10 @@ import {
   type EffectiveProfile,
 } from "../lib/goodsConfig";
 import { useAuth } from "../auth/AuthContext";
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
+import { Status, type StatusTone } from "../components/Status";
 import { Switch } from "../components/Switch";
 import { BrandReconciliationPanel } from "./BrandReconciliation";
 import "./ProductsParties.css";
@@ -144,8 +147,8 @@ function nowIso(): string {
 }
 
 function stateChip(state: string): ReactNode {
-  const tone = state === "effective" ? "green" : state === "pending" ? "amber" : "red";
-  return <span className={`chip chip-${tone}`}>{state}</span>;
+  const tone: StatusTone = state === "effective" ? "green" : state === "pending" ? "amber" : "red";
+  return <Status tone={tone}>{state}</Status>;
 }
 
 // --------------------------------------------------------------------------
@@ -425,7 +428,11 @@ function SimpleMasterPanel<T extends { code: string; name: string }>({
       <Feedback error={error} ok={ok} />
       {stepUp.dialog}
       {canEdit && open && (
-        <div className="card section-card" data-testid={`${testid}-editor`}>
+        <div
+          className="box"
+          style={{ marginBottom: "var(--space-16)" }}
+          data-testid={`${testid}-editor`}
+        >
           <div className="toolbar" style={{ marginBottom: 12 }}>
             <h3 className="h3">
               {editing ? `Edit ${noun.toLowerCase()}` : `Create ${noun.toLowerCase()}`}
@@ -660,7 +667,7 @@ function StylesPanel({
       <Feedback error={error} ok={ok} />
       {stepUp.dialog}
       {canManage && open && (
-        <div className="card section-card" data-testid="style-editor">
+        <div className="box" style={{ marginBottom: "var(--space-16)" }} data-testid="style-editor">
           <div className="toolbar" style={{ marginBottom: 12 }}>
             <h3 className="h3">Create style</h3>
             <div className="spacer" />
@@ -669,10 +676,10 @@ function StylesPanel({
             </button>
           </div>
           {!profilesLoading && families.length === 0 && (
-            <p className="warn-note" data-testid="style-no-profile">
+            <Note tone="warn" testId="style-no-profile">
               No SKU identity profile is approved and in force yet, so a style has no family to
               belong to. Set one up under Configuration first.
-            </p>
+            </Note>
           )}
           <div className="form-grid wide-form">
             <Field id="style-brand" label="Brand">
@@ -822,10 +829,10 @@ function StyleDetail({
         Family {style.data.profile_family}. {stateChip(style.state)}
       </p>
       {profile === null ? (
-        <p className="warn-note" data-testid="style-detail-no-profile">
+        <Note tone="warn" testId="style-detail-no-profile">
           No approved SKU identity profile is in force for this family, so no SKU can be created
           against it yet.
-        </p>
+        </Note>
       ) : (
         <p className="muted" data-testid="style-pinned-profile">
           New SKUs pin <b>{pinnedLabel(configs.items, profile.versionId) ?? profile.versionId}</b>{" "}
@@ -936,7 +943,7 @@ function SkuDiscountRule({ row, onChanged }: { row: ResourceDTO<SkuData>; onChan
       ) : (
         <span>{row.data.no_discount ? "No discounts" : "Policy discounts allowed"}</span>
       )}
-      {error && <p className="warn-note">{error}</p>}
+      {error && <Note tone="error">{error}</Note>}
       {stepUp.dialog}
     </>
   );
@@ -997,8 +1004,7 @@ function SingleSkuForm({
   const missing = dimensions.filter((d) => d.required && !values[d.name]);
 
   return (
-    <div className="card section-card" data-testid="sku-single-form">
-      <h4 className="h4">Add one SKU</h4>
+    <Section level={3} heading="Add one SKU" className="pp-part" testId="sku-single-form">
       <p className="lead">
         These are the attributes the approved identity profile governs for this family.
       </p>
@@ -1026,7 +1032,7 @@ function SingleSkuForm({
       >
         <Save size={15} /> Create SKU
       </button>
-    </div>
+    </Section>
   );
 }
 
@@ -1174,18 +1180,17 @@ function CombinationsGrid({
 
   if (!payload.colour_dimension) {
     return (
-      <div className="card section-card" data-testid="combo-grid">
-        <p className="warn-note">
+      <div data-testid="combo-grid">
+        <Note tone="info">
           This identity profile has no colour dimension, so there is no size × colour grid to fill.
           Add SKUs one at a time instead.
-        </p>
+        </Note>
       </div>
     );
   }
 
   return (
-    <div className="card section-card" data-testid="combo-grid">
-      <h4 className="h4">Combinations that exist</h4>
+    <Section level={3} heading="Combinations that exist" className="pp-part" testId="combo-grid">
       <p className="lead">
         Tick the size and colour combinations this style is actually made in, review the list, then
         create them. Nothing is created that you have not ticked.
@@ -1303,7 +1308,7 @@ function CombinationsGrid({
           </button>
         </>
       )}
-    </div>
+    </Section>
   );
 }
 
@@ -1451,7 +1456,7 @@ function AliasesPanel({ search }: { search: string }) {
       <Feedback error={error} ok={ok} />
       {stepUp.dialog}
       {canManage && open && (
-        <div className="card section-card" data-testid="alias-editor">
+        <div className="box" style={{ marginBottom: "var(--space-16)" }} data-testid="alias-editor">
           <div className="toolbar" style={{ marginBottom: 12 }}>
             <h3 className="h3">Add alias</h3>
             <div className="spacer" />
@@ -1668,7 +1673,11 @@ function CrosswalksPanel({ search }: { search: string }) {
       <Feedback error={error} ok={ok} />
       {stepUp.dialog}
       {open && (
-        <div className="card section-card" data-testid="crosswalk-editor">
+        <div
+          className="box"
+          style={{ marginBottom: "var(--space-16)" }}
+          data-testid="crosswalk-editor"
+        >
           <div className="toolbar" style={{ marginBottom: 12 }}>
             <h3 className="h3">New mapping</h3>
             <div className="spacer" />
@@ -1892,7 +1901,7 @@ function LookupPanel() {
         shows both and asks — it never picks one, and it never joins two articles together.
       </p>
       <Feedback error={error} ok={ok} />
-      <div className="card section-card">
+      <div className="box">
         <div className="form-grid wide-form">
           <Field id="lookup-value" label="Code">
             <input
@@ -1971,9 +1980,9 @@ function LookupPanel() {
         </button>
       </div>
       {result && result.result === "unknown" && (
-        <p className="warn-note" data-testid="lookup-unknown">
+        <Note tone="info" testId="lookup-unknown">
           No SKU is known by this code here and now.
-        </p>
+        </Note>
       )}
       {result && result.candidates.length > 0 && (
         <div data-testid="lookup-candidates">
@@ -1990,7 +1999,7 @@ function LookupPanel() {
           <div className="pp-candidates">
             {result.candidates.map((candidate) => (
               <div
-                className="card section-card"
+                className="box"
                 key={candidate.sku_id}
                 data-testid={`lookup-candidate-${candidate.sku_id}`}
               >

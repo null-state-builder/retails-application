@@ -579,3 +579,15 @@
   padding-bottom: 8px;
   text-align: right;
 }
+
+/* v2: the parts of a draft and the lines of a kind sit on the page, divided by
+ * a hairline rather than each held in a card. */
+.cfg-layout .cfg-part,
+.cfg-layout .cfg-line {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+}
+.cfg-layout .cfg-impact {
+  margin-top: 16px;
+}

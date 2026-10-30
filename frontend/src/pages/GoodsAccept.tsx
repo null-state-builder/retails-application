@@ -54,7 +54,10 @@ import {
   type ScanInput,
 } from "../lib/goodsAcceptance";
 import { useAuth } from "../auth/AuthContext";
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
+import { Status } from "../components/Status";
 import { formatDateTime, formatPaiseString } from "../lib/format";
 import { deliveryStepPath } from "../lib/goodsReceiving";
 import { roleLabel } from "../lib/goodsExceptions";
@@ -216,8 +219,7 @@ export function AcceptPanel({
         </Field>
       </div>
 
-      <div className="card section-card" data-testid="accept-waiting">
-        <h3 className="h3">{heading}</h3>
+      <Section heading={heading} testId="accept-waiting">
         {listState(
           { loading: waiting.loading, failure: waiting.failure, empty: waitingHere.length === 0 },
           "Nothing at this site is waiting to be accepted.",
@@ -243,7 +245,7 @@ export function AcceptPanel({
             ))}
           </ul>
         )}
-      </div>
+      </Section>
     </div>
   );
 }
@@ -515,10 +517,10 @@ function SessionPanel({
       )}
       <Feedback error={error} ok="" />
       {completed && (
-        <div className="ok-note" data-testid="accept-completed">
+        <Note tone="success" role="status" testId="accept-completed">
           Session completed.{" "}
           {remaining > 0 ? `${remaining} piece(s) stay open, not written off.` : ""}
-        </div>
+        </Note>
       )}
 
       <h3 className="h3">Pending official lines</h3>
@@ -588,13 +590,9 @@ function SessionPanel({
                 <td>{CONDITION_LABEL[g.condition]}</td>
                 <td className="num">{g.qty}</td>
                 <td>
-                  {g.recordedQty > 0 && (
-                    <span className="chip chip-green">{g.recordedQty} recorded</span>
-                  )}
-                  {g.pendingQty > 0 && (
-                    <span className="chip chip-amber">{g.pendingQty} pending</span>
-                  )}
-                  {g.errorQty > 0 && <span className="chip chip-red">{g.errorQty} failed</span>}
+                  {g.recordedQty > 0 && <Status tone="green">{g.recordedQty} recorded</Status>}{" "}
+                  {g.pendingQty > 0 && <Status tone="amber">{g.pendingQty} pending</Status>}{" "}
+                  {g.errorQty > 0 && <Status tone="red">{g.errorQty} failed</Status>}
                 </td>
               </tr>
             ))}
@@ -621,16 +619,18 @@ function SessionPanel({
       )}
 
       {showExtra ? (
-        <ExtraPiecesPanel
-          doc={doc}
-          found={extra}
-          onDoc={onDoc}
-          stepUp={stepUp}
-          onClose={() => {
-            setShowExtra(false);
-            setExtra(null);
-          }}
-        />
+        <div style={{ marginTop: "var(--space-24)" }}>
+          <ExtraPiecesPanel
+            doc={doc}
+            found={extra}
+            onDoc={onDoc}
+            stepUp={stepUp}
+            onClose={() => {
+              setShowExtra(false);
+              setExtra(null);
+            }}
+          />
+        </div>
       ) : (
         <button
           className="btn btn-sm"
@@ -642,54 +642,55 @@ function SessionPanel({
       )}
 
       {canComplete && (
-        <div className="card section-card">
-          <h3 className="h3">Complete session</h3>
-          <Feedback error={completeError} ok="" />
-          {remaining > 0 ? (
-            confirmingComplete ? (
-              <div>
-                <p className="lead">
-                  {remaining} piece(s) are still not accepted. They stay visible and are not written
-                  off.
-                </p>
-                <ul>
-                  {doc.data.lines.items
-                    .filter((l) => l.remaining_qty > 0)
-                    .map((l) => (
-                      <li key={l.official_line_id}>
-                        {l.alias_as_used ?? l.line_key}: {l.remaining_qty} left
-                      </li>
-                    ))}
-                </ul>
+        <div style={{ marginTop: "var(--space-24)" }}>
+          <Section heading="Complete session" ruled level={3}>
+            <Feedback error={completeError} ok="" />
+            {remaining > 0 ? (
+              confirmingComplete ? (
+                <div>
+                  <p className="lead">
+                    {remaining} piece(s) are still not accepted. They stay visible and are not
+                    written off.
+                  </p>
+                  <ul>
+                    {doc.data.lines.items
+                      .filter((l) => l.remaining_qty > 0)
+                      .map((l) => (
+                        <li key={l.official_line_id}>
+                          {l.alias_as_used ?? l.line_key}: {l.remaining_qty} left
+                        </li>
+                      ))}
+                  </ul>
+                  <button
+                    className="btn btn-cta"
+                    onClick={() => complete(true)}
+                    data-testid="accept-complete-confirm"
+                  >
+                    <PackageCheck size={14} /> Complete anyway
+                  </button>
+                  <button className="btn btn-sm" onClick={() => setConfirmingComplete(false)}>
+                    Cancel
+                  </button>
+                </div>
+              ) : (
                 <button
                   className="btn btn-cta"
-                  onClick={() => complete(true)}
-                  data-testid="accept-complete-confirm"
+                  onClick={() => setConfirmingComplete(true)}
+                  data-testid="accept-complete"
                 >
-                  <PackageCheck size={14} /> Complete anyway
+                  Complete
                 </button>
-                <button className="btn btn-sm" onClick={() => setConfirmingComplete(false)}>
-                  Cancel
-                </button>
-              </div>
+              )
             ) : (
               <button
                 className="btn btn-cta"
-                onClick={() => setConfirmingComplete(true)}
+                onClick={() => complete(false)}
                 data-testid="accept-complete"
               >
-                Complete
+                <PackageCheck size={14} /> Complete
               </button>
-            )
-          ) : (
-            <button
-              className="btn btn-cta"
-              onClick={() => complete(false)}
-              data-testid="accept-complete"
-            >
-              <PackageCheck size={14} /> Complete
-            </button>
-          )}
+            )}
+          </Section>
         </div>
       )}
     </div>
@@ -772,10 +773,7 @@ function ExtraPiecesPanel({
   const handoff = correction?.handoff ?? null;
 
   return (
-    <div className="card section-card acc-extra" data-testid="accept-extra">
-      <h3 className="h3">
-        <AlertTriangle size={16} /> More pieces than this PT covers
-      </h3>
+    <Section heading="More pieces than this PT covers" ruled level={3} testId="accept-extra">
       <p className="lead">
         {found
           ? `${found.qty} piece(s) with tag ${found.alias} were not accepted, and the PT has not changed. `
@@ -835,10 +833,10 @@ function ExtraPiecesPanel({
       {(route === "hand_over" || route === "handed_over") && (
         <div data-testid="accept-extra-handoff">
           {route === "handed_over" && handoff ? (
-            <p className="ok-note" data-testid="accept-extra-handed-over">
+            <Note tone="success" testId="accept-extra-handed-over">
               Handed over {formatDateTime(handoff.opened_at)}. {roleLabel(handoff.owner_role)} owns
               it until the extra on this goods receipt is decided.
-            </p>
+            </Note>
           ) : (
             <p className="lead">
               You cannot correct the goods receipt yourself. Hand the pieces over: whoever owns the
@@ -879,7 +877,7 @@ function ExtraPiecesPanel({
             </Field>
           </div>
           <button
-            className="btn btn-cta btn-sm"
+            className="btn btn-primary btn-sm"
             disabled={busy || !canHandOver}
             onClick={handOver}
             data-testid="accept-extra-hand-over"
@@ -892,7 +890,7 @@ function ExtraPiecesPanel({
       <button className="btn btn-sm" onClick={onClose} data-testid="accept-extra-close">
         Close
       </button>
-    </div>
+    </Section>
   );
 }
 
@@ -987,7 +985,7 @@ function ScanForm({
   }
 
   return (
-    <fieldset className="card section-card acc-scan-form" data-testid="accept-scan-form">
+    <fieldset className="box acc-scan-form" data-testid="accept-scan-form">
       <legend>Scan</legend>
       <div className="form-grid">
         <Field
@@ -1095,7 +1093,7 @@ function ScanForm({
                   </option>
                 ))}
               </select>
-              {locationsFailure && <span className="warn-note">{locationsFailure}</span>}
+              {locationsFailure && <Note tone="warn">{locationsFailure}</Note>}
             </Field>
           )}
         </div>
@@ -1122,7 +1120,7 @@ function ScanForm({
           Add scan
         </button>
       </div>
-      {validation && <span className="warn-note">{validation}</span>}
+      {validation && <Note tone="warn">{validation}</Note>}
     </fieldset>
   );
 }

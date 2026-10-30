@@ -3,20 +3,13 @@
 // net of whatever Accounts has recorded against it (`PartnerSettlementsView`).
 import { useState, Fragment } from "react";
 import { Link } from "react-router-dom";
-import {
-  ChevronDown,
-  ChevronRight,
-  IndianRupee,
-  Plus,
-  Printer,
-  RotateCcw,
-  Send,
-  X,
-} from "lucide-react";
+import { ChevronDown, ChevronRight, Plus, Printer, RotateCcw, Send, X } from "lucide-react";
 
 import { useAuth } from "../auth/AuthContext";
 import { userCan } from "../shell/navConfig";
 import { api, apiErrorMessage } from "../lib/api";
+import { KpiStrip } from "../components/KpiStrip";
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
 import { Money } from "../lib/format";
 import { useDoc } from "../lib/hooks";
@@ -162,29 +155,35 @@ export function PartnerDuesPage() {
         </p>
       ) : (
         <>
-          <div className="stat-grid">
-            <div className="card stat-card">
-              <IndianRupee size={18} style={{ color: "var(--rust)" }} />
-              <div className="stat-value mono" data-testid="pd-total-owed">
-                <Money paise={resp!.total_owed_paise} />
-              </div>
-              <div className="stat-label">Total billed, all partner stores</div>
-            </div>
-            <div className="card stat-card">
-              <IndianRupee size={18} style={{ color: "var(--green)" }} />
-              <div className="stat-value mono" data-testid="pd-total-paid">
-                <Money paise={resp!.total_paid_paise} />
-              </div>
-              <div className="stat-label">Total received</div>
-            </div>
-            <div className="card stat-card">
-              <IndianRupee size={18} style={{ color: "var(--red)" }} />
-              <div className="stat-value mono" data-testid="pd-net-outstanding">
-                <Money paise={resp!.net_outstanding_paise} />
-              </div>
-              <div className="stat-label">Net outstanding</div>
-            </div>
-          </div>
+          <KpiStrip
+            label="Partner stores"
+            items={[
+              {
+                label: "Total billed, all partner stores",
+                value: (
+                  <span className="mono" data-testid="pd-total-owed">
+                    <Money paise={resp!.total_owed_paise} />
+                  </span>
+                ),
+              },
+              {
+                label: "Total received",
+                value: (
+                  <span className="mono" data-testid="pd-total-paid">
+                    <Money paise={resp!.total_paid_paise} />
+                  </span>
+                ),
+              },
+              {
+                label: "Net outstanding",
+                value: (
+                  <span className="mono" data-testid="pd-net-outstanding">
+                    <Money paise={resp!.net_outstanding_paise} />
+                  </span>
+                ),
+              },
+            ]}
+          />
           <p className="muted-cell" style={{ margin: "10px 0 18px" }}>
             Billing policy is currently{" "}
             <b>
@@ -246,7 +245,7 @@ export function PartnerDuesPage() {
                         </td>
                         <td className="num">{s.transfer_count}</td>
                         <td>{fmtDate(s.last_dispatch_date)}</td>
-                        <td>
+                        <td className="act">
                           {isFinance && (
                             <button
                               type="button"
@@ -264,11 +263,7 @@ export function PartnerDuesPage() {
                           <td />
                           <td colSpan={7}>
                             {settleFor?.store_id === s.store_id && (
-                              <div
-                                className="card section-card"
-                                data-testid="pd-settle-form"
-                                style={{ marginBottom: 14 }}
-                              >
+                              <div data-testid="pd-settle-form" style={{ marginBottom: 14 }}>
                                 <div className="toolbar" style={{ marginBottom: 12 }}>
                                   <h3 className="h3">Record payment from {s.store_code}</h3>
                                   <div className="spacer" />
@@ -329,13 +324,9 @@ export function PartnerDuesPage() {
                                   </button>
                                 </div>
                                 {error && (
-                                  <div
-                                    className="warn-note"
-                                    style={{ marginTop: 10 }}
-                                    data-testid="pd-settle-error"
-                                  >
+                                  <Note tone="error" testId="pd-settle-error">
                                     {error}
-                                  </div>
+                                  </Note>
                                 )}
                               </div>
                             )}

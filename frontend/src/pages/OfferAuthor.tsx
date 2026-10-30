@@ -22,10 +22,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { CalendarClock, Check, CircleSlash, Send, Tag } from "lucide-react";
+import { CalendarClock, Check, CircleSlash, Send } from "lucide-react";
 
+import { Note } from "../components/Note";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
+import { SegmentedControl } from "../components/SegmentedControl";
+import { Status } from "../components/Status";
 import { api, apiErrorMessage } from "../lib/api";
 import { OfferReturnCard } from "./OfferReturnCard";
 import { OfferSimulationCard } from "./OfferSimulationCard";
@@ -394,64 +398,60 @@ export function OfferAuthorPage() {
         </Link>
         <span className="spacer" />
         {offer && (
-          <span
-            className={`chip chip-${offer.status === "live" ? "green" : offer.status === "ended" ? "grey" : "amber"}`}
-            data-testid="offer-status"
+          <Status
+            tone={offer.status === "live" ? "green" : offer.status === "ended" ? "grey" : "amber"}
+            testId="offer-status"
           >
             {offer.awaiting_approval ? "waiting for approval" : offer.status}
-          </span>
+          </Status>
         )}
       </div>
 
       {error && (
-        <div className="warn-note" data-testid="offer-error">
+        <Note tone="error" testId="offer-error">
           {error}
-        </div>
+        </Note>
       )}
       {note && (
-        <div className="ai-note" data-testid="offer-note">
+        <Note tone="success" role="status" testId="offer-note">
           {note}
-        </div>
+        </Note>
       )}
 
       {offer && (
-        <div className="card section-card" data-testid="offer-asis">
-          <p className="eyebrow">
-            <Tag size={14} /> As the shop will read it
-          </p>
-          <p className="h2-rust" style={{ margin: "4px 0 0" }}>
-            {offer.one_liner}
-          </p>
+        <Section heading="As the shop will read it" testId="offer-asis">
+          <p className="h2">{offer.one_liner}</p>
           <p className="hint">
             {offer.stores.length} store{offer.stores.length === 1 ? "" : "s"} ·{" "}
             {offer.approved_by_name ? `cleared by ${offer.approved_by_name}` : "not yet cleared"}
           </p>
-        </div>
+        </Section>
       )}
 
-      <div className="card section-card">
-        <p className="eyebrow">What kind of offer</p>
-        <div className="pattern-grid">
-          {PATTERNS.map((p) => (
-            <button
-              key={p.key}
-              type="button"
-              disabled={frozen}
-              className={`mode-btn${pattern.key === p.key ? " active" : ""}`}
-              onClick={() => setPattern(p)}
-              data-testid={`offer-pattern-${p.key}`}
-            >
+      <Section heading="What kind of offer" ruled>
+        <SegmentedControl
+          label="What kind of offer"
+          className="pattern-seg"
+          disabled={frozen}
+          options={PATTERNS.map((p) => ({
+            value: p.key,
+            label: (
               <span>
                 <b>{p.label}</b>
                 <span className="pattern-hint">{p.hint}</span>
               </span>
-            </button>
-          ))}
-        </div>
-      </div>
+            ),
+            testId: `offer-pattern-${p.key}`,
+          }))}
+          value={pattern.key}
+          onChange={(key) => {
+            const next = PATTERNS.find((p) => p.key === key);
+            if (next) setPattern(next);
+          }}
+        />
+      </Section>
 
-      <div className="card section-card">
-        <p className="eyebrow">The rule</p>
+      <Section heading="The rule" ruled>
         <div className="form-row">
           <label className="field">
             Name a store manager can read
@@ -599,10 +599,10 @@ export function OfferAuthorPage() {
 
         {(pattern.asks.includes("qtySlabs") || pattern.asks.includes("spendSlabs")) && (
           <div style={{ marginTop: 16 }}>
-            <p className="eyebrow">
+            <h3 className="h3">
               The ladder — {pattern.asks.includes("spendSlabs") ? "spend" : "pieces"}, and what it
               earns
-            </p>
+            </h3>
             {steps.map((step, index) => (
               <div className="eoss-ladder-row" key={index}>
                 <span className="hint" style={{ minWidth: 46 }}>
@@ -654,38 +654,33 @@ export function OfferAuthorPage() {
             )}
           </div>
         )}
-      </div>
+      </Section>
 
-      <div className="card section-card">
-        <p className="eyebrow">Where, when, and how it behaves</p>
-        <div className="filter-bar">
-          <button
-            type="button"
-            className={`chip chip-pick${scopeAll ? " chip-navy" : ""}`}
-            disabled={frozen}
-            onClick={() => setScopeAll(true)}
-            data-testid="offer-scope-all"
-          >
-            Every store
-          </button>
-          <button
-            type="button"
-            className={`chip chip-pick${!scopeAll ? " chip-navy" : ""}`}
-            disabled={frozen}
-            onClick={() => setScopeAll(false)}
-            data-testid="offer-scope-pick"
-          >
-            Only the ones I pick
-          </button>
-        </div>
+      <Section heading="Where, when, and how it behaves" ruled>
+        <SegmentedControl
+          label="Stores"
+          disabled={frozen}
+          options={[
+            { value: "all", label: "Every store", testId: "offer-scope-all" },
+            { value: "pick", label: "Only the ones I pick", testId: "offer-scope-pick" },
+          ]}
+          value={scopeAll ? "all" : "pick"}
+          onChange={(v) => setScopeAll(v === "all")}
+        />
         {!scopeAll && (
-          <div className="filter-bar" data-testid="offer-store-picker">
+          <div
+            className="filter-chips"
+            role="group"
+            aria-label="Stores it runs at"
+            data-testid="offer-store-picker"
+          >
             {stores.map((s) => (
               <button
                 key={s.id}
                 type="button"
                 disabled={frozen}
-                className={`chip chip-pick${picked.includes(s.code) ? " chip-navy" : ""}`}
+                className="filter-chip"
+                aria-pressed={picked.includes(s.code)}
                 onClick={() =>
                   setPicked(
                     picked.includes(s.code)
@@ -814,11 +809,10 @@ export function OfferAuthorPage() {
             </span>
           </label>
         )}
-      </div>
+      </Section>
 
-      <div className="card section-card">
-        <p className="eyebrow">Reads as</p>
-        <p className="h2-rust" style={{ margin: "2px 0 10px" }} data-testid="offer-preview">
+      <Section heading="Reads as" ruled>
+        <p className="h2" data-testid="offer-preview">
           {preview}
         </p>
         <p className="hint">
@@ -851,7 +845,7 @@ export function OfferAuthorPage() {
           {offer && offer.status === "live" && (
             <button
               type="button"
-              className="btn btn-lg"
+              className="btn btn-danger btn-lg"
               disabled={saving}
               onClick={stop}
               data-testid="offer-stop"
@@ -866,7 +860,7 @@ export function OfferAuthorPage() {
             — that is the point of the gate.
           </p>
         )}
-      </div>
+      </Section>
 
       {offer && (
         // Ticket 30: what the offer would have cost on real past bills, before

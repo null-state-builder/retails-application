@@ -20,7 +20,7 @@ export function SoldBy({
   return (
     <section className="bill-rail-section bill-sold-by">
       <label className="bill-sold-by-field">
-        <span className="eyebrow">Sold by</span>
+        <span className="bill-label">Sold by</span>
         <select
           className="select"
           data-testid="bill-sold-by"

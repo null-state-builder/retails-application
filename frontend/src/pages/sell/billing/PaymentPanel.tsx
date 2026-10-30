@@ -99,7 +99,7 @@ export function PaymentPanel({
     >
       {/* "To pay" itself sits in the rail foot, directly above Save & print
           (design system v2 TillLayout); this section is the split. */}
-      <p className="eyebrow">Payment</p>
+      <h3 className="heading">Payment</h3>
 
       {/* Return mode before original bill is found: brief explanation. */}
       {!returnReady && (

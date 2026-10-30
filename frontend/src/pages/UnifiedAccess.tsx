@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { Note } from "../components/Note";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
 
@@ -189,15 +190,16 @@ export function UnifiedAssignmentsTab({
         and brands stay fixed.
       </p>
       {loading && <p>Loading assignments…</p>}
-      {error && (
-        <div className="warn-note" role="alert">
-          {error}
-        </div>
+      {error && <Note tone="error">{error}</Note>}
+      {message && (
+        <Note tone="success" role="status">
+          {message}
+        </Note>
       )}
-      {message && <div className="ok-note">{message}</div>}
       {items.map((item, index) => (
         <fieldset
-          className="card section-card"
+          className="box"
+          style={{ marginBottom: "var(--space-12)" }}
           key={item.id ?? `new-${index}`}
           data-testid={`pa-assignment-${index}`}
         >
@@ -443,12 +445,12 @@ export function UnifiedRolePolicyPanel() {
         Set section levels, protected fields and workflow steps for each role. Approval separation
         and other fixed safeguards remain enforced by the server.
       </p>
-      {error && (
-        <div className="warn-note" role="alert">
-          {error}
-        </div>
+      {error && <Note tone="error">{error}</Note>}
+      {message && (
+        <Note tone="success" role="status">
+          {message}
+        </Note>
       )}
-      {message && <div className="ok-note">{message}</div>}
       <label className="field">
         Role
         <select
@@ -616,33 +618,35 @@ export function UnifiedWorkflowPolicyPanel() {
         Choose the section level needed for each action. Separate-person approvals, limits, document
         state and step-up remain fixed server checks.
       </p>
-      {error && (
-        <div className="warn-note" role="alert">
-          {error}
-        </div>
+      {error && <Note tone="error">{error}</Note>}
+      {message && (
+        <Note tone="success" role="status">
+          {message}
+        </Note>
       )}
-      {message && <div className="ok-note">{message}</div>}
       {loading ? (
         <p>Loading workflow policy…</p>
       ) : (
         <>
           {Object.keys(upgradeDefaults).length > 0 && (
-            <div className="warn-note">
-              <p>
-                {Object.keys(upgradeDefaults).length} newly registered actions are disabled. Review
-                their proposed defaults before saving this policy version.
-              </p>
-              <button
-                className="btn"
-                data-testid="pa-workflow-upgrade"
-                onClick={() => {
-                  setLevels((current) => ({ ...current, ...upgradeDefaults }));
-                  setUpgradeDefaults({});
-                }}
-              >
-                Review new-action defaults
-              </button>
-            </div>
+            <Note
+              tone="warn"
+              action={
+                <button
+                  className="btn btn-sm"
+                  data-testid="pa-workflow-upgrade"
+                  onClick={() => {
+                    setLevels((current) => ({ ...current, ...upgradeDefaults }));
+                    setUpgradeDefaults({});
+                  }}
+                >
+                  Review new-action defaults
+                </button>
+              }
+            >
+              {Object.keys(upgradeDefaults).length} newly registered actions are disabled. Review
+              their proposed defaults before saving this policy version.
+            </Note>
           )}
           <label className="field">
             Find an action

@@ -73,7 +73,7 @@ export function ReservationPickupCard({
     return (
       <section className="bill-consent" data-testid="pickup-card">
         <div className="bill-customer-heading">
-          <p className="eyebrow">Reservation pickup</p>
+          <h3 className="heading">Reservation pickup</h3>
           <span data-testid="pickup-ref">{current.ref}</span>
         </div>
         <p className="muted-cell bill-consent-note" data-testid="pickup-advance">

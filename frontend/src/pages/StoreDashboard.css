@@ -22,12 +22,6 @@
   gap: 10px;
 }
 
-/* The checklist card (StoreChecklist.tsx) still draws as a `.card`, and its
-   stack spacing came from here. */
-.dash-block {
-  margin-bottom: 0;
-}
-
 /* Today: the lead and its strip on the left, tenders on the right. */
 .today-split {
   display: grid;

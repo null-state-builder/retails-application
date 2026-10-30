@@ -215,7 +215,7 @@ export function CustomerQueue({ currentId }: { currentId: string }) {
   }, []);
   if (!rows || rows.length === 0) return null;
   return (
-    <nav className="card side-queue" aria-label="Recent customers" data-testid="customer-queue">
+    <nav className="box side-queue" aria-label="Recent customers" data-testid="customer-queue">
       <p className="side-queue-head">Recent customers</p>
       <ul>
         {rows.map((row) => (

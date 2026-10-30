@@ -3,10 +3,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./Reservations.css";
 
 import { useAuth, allowedUnits } from "../auth/AuthContext";
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
+import { SegmentedControl } from "../components/SegmentedControl";
+import { Status, type StatusTone } from "../components/Status";
 import { api, apiErrorMessage } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
-import { formatINR, StatusChip } from "../lib/format";
+import { formatINR } from "../lib/format";
 import {
   GIFT_VOUCHERS_API,
   GIFT_VOUCHERS_OFFLINE,
@@ -23,6 +27,13 @@ const SHOWS: { value: Show; label: string }[] = [
   { value: "active", label: "Usable" },
   { value: "expired", label: "Expired" },
 ];
+
+/** The voucher's state as a status word: used up is closed, not a warning. */
+const STATE_TONE: Record<string, StatusTone> = {
+  active: "green",
+  used_up: "grey",
+  expired: "amber",
+};
 
 /** Sell > Gift vouchers (store operations ticket 19, ST-POS-4).
  *
@@ -125,59 +136,57 @@ export function GiftVouchersPage() {
         </label>
       )}
       {offline && (
-        <p className="warn-note" data-testid="gift-vouchers-offline" role="status">
-          {GIFT_VOUCHERS_OFFLINE}
-          {online && (
-            <>
-              {" "}
+        <Note
+          tone="warn"
+          testId="gift-vouchers-offline"
+          role="status"
+          action={
+            online && (
               <button
                 type="button"
-                className="btn"
+                className="btn btn-sm"
                 data-testid="gift-vouchers-retry"
                 onClick={() => void load(show, query.trim())}
               >
                 Try again
               </button>
-            </>
-          )}
-        </p>
+            )
+          }
+        >
+          {GIFT_VOUCHERS_OFFLINE}
+        </Note>
       )}
       {error && (
-        <p className="warn-note" data-testid="gift-vouchers-error">
+        <Note tone="error" testId="gift-vouchers-error">
           {error}
-        </p>
+        </Note>
       )}
       {!store && <p>Choose a store to see its gift vouchers.</p>}
       {store && !listing && !offline && !error && <p>Loading gift vouchers…</p>}
 
       {listing && (
-        <section className="card section-card" data-testid="gift-voucher-list">
-          <h2 className="h3">Gift vouchers sold at {listing.store}</h2>
+        <Section heading={`Gift vouchers sold at ${listing.store}`} testId="gift-voucher-list">
           {!listing.switched_on && (
-            <p className="warn-note" data-testid="gift-vouchers-switched-off">
+            <Note tone="warn" testId="gift-vouchers-switched-off">
               Gift vouchers are switched off at {listing.store}: the till neither sells nor takes
               them here. The ones below stay listed, and still expire.
-            </p>
+            </Note>
           )}
           <p className="muted-cell">
             Each can be used for {listing.months} months, in parts. {listing.no_gst_note}
           </p>
-          <div className="toolbar" role="tablist" aria-label="Which vouchers">
-            {SHOWS.map((s) => (
-              <button
-                key={s.value}
-                type="button"
-                role="tab"
-                aria-selected={show === s.value}
-                className={show === s.value ? "btn btn-primary" : "btn"}
-                data-testid={`gift-vouchers-show-${s.value}`}
-                onClick={() => setShow(s.value)}
-              >
-                {s.label}
-              </button>
-            ))}
-          </div>
           <div className="toolbar">
+            <SegmentedControl
+              label="Which vouchers"
+              options={SHOWS.map((s) => ({
+                value: s.value,
+                label: s.label,
+                testId: `gift-vouchers-show-${s.value}`,
+              }))}
+              value={show}
+              onChange={setShow}
+            />
+            <div className="spacer" />
             <input
               className="input"
               aria-label="Find a gift voucher"
@@ -212,14 +221,18 @@ export function GiftVouchersPage() {
           {listing.gift_vouchers.length === 0 ? (
             <p data-testid="gift-voucher-none">No gift vouchers to show.</p>
           ) : (
-            // One card per voucher, stacked: a real layout at 375 px (PRD §5.2).
-            <ul className="reservation-cards" data-testid="gift-voucher-cards">
+            // One box per voucher in a grid that stacks at 375 px (PRD §5.2).
+            <ul
+              className="tiles"
+              style={{ listStyle: "none", margin: 0, padding: 0 }}
+              data-testid="gift-voucher-cards"
+            >
               {listing.gift_vouchers.map((v) => (
                 <VoucherCard key={v.id} voucher={v} />
               ))}
             </ul>
           )}
-        </section>
+        </Section>
       )}
     </div>
   );
@@ -228,9 +241,10 @@ export function GiftVouchersPage() {
 function VoucherCard({ voucher: v }: { voucher: GiftVoucher }) {
   const chip = stateChip(v.state);
   return (
-    <li className="reservation-card" data-testid={`gift-voucher-${v.number}`}>
-      <div className="reservation-card-head">
-        <strong>{v.number}</strong> <StatusChip status={chip.label} tone={chip.tone} />
+    <li className="box" data-testid={`gift-voucher-${v.number}`}>
+      <div>
+        <strong className="mono">{v.number}</strong>{" "}
+        <Status tone={STATE_TONE[v.state] ?? "grey"}>{chip.label}</Status>
       </div>
       <p>
         {formatINR(v.value_paise)} ·{" "}

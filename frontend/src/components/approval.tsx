@@ -5,6 +5,9 @@ import { Link } from "react-router-dom";
 import { Check, ChevronRight, RotateCcw } from "lucide-react";
 
 import { api, apiErrorMessage } from "../lib/api";
+import { Note } from "./Note";
+import { Section } from "./Section";
+import { Status, type StatusTone } from "./Status";
 
 export type ApprovalStatusT = "pending" | "approved" | "rejected" | "not_required";
 
@@ -100,7 +103,7 @@ export function fmtApprovalWhenShort(iso: string): string {
   });
 }
 
-const STATUS_TONE: Record<string, string> = {
+const STATUS_TONE: Record<string, StatusTone> = {
   pending: "amber",
   approved: "green",
   rejected: "red",
@@ -120,7 +123,7 @@ export function isCleared(approval: ApprovalT | null | undefined): boolean {
   return approval?.status === "approved" || approval?.status === "not_required";
 }
 
-const STEP_TONE: Record<ApprovalStepT["state"], string> = {
+const STEP_TONE: Record<ApprovalStepT["state"], StatusTone> = {
   done: "green",
   current: "amber",
   rejected: "red",
@@ -159,9 +162,6 @@ export function ApprovalSteps({
         <span key={step.order} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           {i > 0 && <ChevronRight size={12} style={{ color: "var(--muted)" }} aria-hidden />}
           <span
-            className={`chip chip-${STEP_TONE[step.state]}`}
-            style={{ fontSize: 12 }}
-            data-testid={`approval-step-${step.order}`}
             title={
               step.state === "done"
                 ? `${step.short_circuited ? "Closed" : "Cleared"} by ${step.decided_by_name}${
@@ -170,15 +170,17 @@ export function ApprovalSteps({
                 : step.label
             }
           >
-            {step.state === "done" && <Check size={11} aria-hidden />}
-            {step.label}
-            {!compact && step.state === "done" && step.decided_by_name && (
-              <span style={{ opacity: 0.8 }}>
-                {" · "}
-                {step.short_circuited ? "closed by " : ""}
-                {step.decided_by_name}
-              </span>
-            )}
+            <Status tone={STEP_TONE[step.state]} testId={`approval-step-${step.order}`}>
+              {step.state === "done" && <Check size={11} aria-hidden />}
+              {step.label}
+              {!compact && step.state === "done" && step.decided_by_name && (
+                <span className="muted-cell">
+                  {" · "}
+                  {step.short_circuited ? "closed by " : ""}
+                  {step.decided_by_name}
+                </span>
+              )}
+            </Status>
           </span>
         </span>
       ))}
@@ -187,11 +189,7 @@ export function ApprovalSteps({
 }
 
 export function ApprovalPill({ status }: { status: string }) {
-  return (
-    <span className={`chip chip-${STATUS_TONE[status] ?? "grey"} status-pill`}>
-      {STATUS_LABEL[status] ?? status}
-    </span>
-  );
+  return <Status tone={STATUS_TONE[status] ?? "grey"}>{STATUS_LABEL[status] ?? status}</Status>;
 }
 
 function decisionLine(a: ApprovalT) {
@@ -239,9 +237,8 @@ export function ApprovalTrail({
   }
 
   return (
-    <div className="card section-card" data-testid="approval-trail">
-      <p className="eyebrow">Maker · Checker</p>
-      <p className="lead" style={{ marginTop: 6 }}>
+    <Section heading="Maker · Checker" testId="approval-trail">
+      <p className="lead">
         Made by <b>{createdByName || "—"}</b>
         {createdAt ? ` on ${fmtApprovalWhen(createdAt)}` : ""}
       </p>
@@ -286,21 +283,23 @@ export function ApprovalTrail({
         </p>
       )}
       {error && (
-        <div className="login-error" data-testid="ask-again-error">
+        <Note tone="error" testId="ask-again-error">
           {error}
-        </div>
+        </Note>
       )}
 
       {history.length > 0 && (
         <div style={{ marginTop: 12 }} data-testid="approval-history">
-          <p className="eyebrow">Earlier</p>
+          <p className="lead">
+            <b>Earlier requests</b>
+          </p>
           {history.map((h) => (
-            <p key={h.id} className="lead" style={{ color: "var(--muted)", fontSize: 13 }}>
+            <p key={h.id} className="lead muted-cell">
               {decisionLine(h)}
             </p>
           ))}
         </div>
       )}
-    </div>
+    </Section>
   );
 }

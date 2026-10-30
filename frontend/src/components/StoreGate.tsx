@@ -23,7 +23,7 @@ export function StorePicker({ purpose }: { purpose: string }) {
   const { user, setActiveStore } = useAuth();
   const stores = user?.stores ?? [];
   return (
-    <section className="card section-card store-gate" data-testid="store-gate">
+    <section className="box store-gate" data-testid="store-gate">
       <StoreIcon size={20} aria-hidden="true" />
       <div className="store-gate-body">
         <h2 className="h3">Choose a store</h2>

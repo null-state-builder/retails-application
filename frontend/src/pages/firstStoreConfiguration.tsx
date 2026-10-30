@@ -490,7 +490,7 @@ export function FirstStorePolicyEditor({ kind, value, onChange }: EditorProps & 
         </Field>
         <p>Additional review steps</p>
         {(Array.isArray(value.steps) ? (value.steps as Payload[]) : []).map((step, index) => (
-          <div className="card section-card" key={index}>
+          <div className="box" style={{ marginBottom: "var(--space-12)" }} key={index}>
             <Text
               name={`step-${index}`}
               label="Step name"

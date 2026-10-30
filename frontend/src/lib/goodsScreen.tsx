@@ -12,7 +12,8 @@ import { api, apiErrorCode, apiErrorMessage, authApi, type ApiRead } from "./api
 import type { paths } from "./api-schema";
 import { SearchBox } from "../components/SearchBox";
 import { Note } from "../components/Note";
-import { Loading } from "../components/States";
+import { EmptyState, Loading } from "../components/States";
+import { Status } from "../components/Status";
 
 export interface ResourceDTO<T> {
   id: string;
@@ -61,13 +62,9 @@ export function Feedback({ error, ok }: { error: string; ok: string }) {
 
 export function Denied({ what }: { what: string }) {
   return (
-    <div className="card section-card" data-testid="org-denied">
-      <p className="eyebrow">Not found</p>
-      <h3 className="h3">There is no {what} here for you</h3>
-      <p className="lead">
-        Either this does not exist, or it is outside what you may see (ADR-0003).
-      </p>
-    </div>
+    <EmptyState heading={`There is no ${what} here for you`} testId="org-denied">
+      Either this does not exist, or it is outside what you may see (ADR-0003).
+    </EmptyState>
   );
 }
 
@@ -776,7 +773,8 @@ export function listState(
   emptyText: string,
 ): ReactNode | null {
   if (loading) return <Loading />;
-  if (failure) return <span className="warn-note">{failure}</span>;
+  // A span, not a Note: the answer often sits in a table cell or a paragraph.
+  if (failure) return <Status tone="amber">{failure}</Status>;
   if (empty) return <span className="muted">{emptyText}</span>;
   return null;
 }

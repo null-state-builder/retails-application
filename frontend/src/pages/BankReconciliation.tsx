@@ -5,10 +5,14 @@
 // that's available, it becomes a second feed into the same matching engine,
 // not a rebuild — this screen doesn't change either way.
 import { useState } from "react";
-import { AlertTriangle, CheckCircle2, HelpCircle, Link2, Upload, XCircle } from "lucide-react";
+import { Link2, Upload } from "lucide-react";
 
+import { Note } from "../components/Note";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { Box } from "../components/Section";
+import { SegmentedControl } from "../components/SegmentedControl";
+import { Status, type StatusTone } from "../components/Status";
 import { api, apiErrorMessage } from "../lib/api";
 import { Money } from "../lib/format";
 import { useDoc } from "../lib/hooks";
@@ -49,14 +53,11 @@ interface LineRow {
   matched_by_name: string;
 }
 
-const STATUS_META: Record<
-  LineRow["status"],
-  { label: string; color: string; icon: typeof CheckCircle2 }
-> = {
-  matched: { label: "Matched", color: "var(--green)", icon: CheckCircle2 },
-  review: { label: "Needs review", color: "var(--rust-ink)", icon: AlertTriangle },
-  unmatched: { label: "Unmatched", color: "var(--red)", icon: XCircle },
-  ignored: { label: "Ignored", color: "var(--muted)", icon: HelpCircle },
+const STATUS_META: Record<LineRow["status"], { label: string; tone: StatusTone }> = {
+  matched: { label: "Matched", tone: "green" },
+  review: { label: "Needs review", tone: "amber" },
+  unmatched: { label: "Unmatched", tone: "red" },
+  ignored: { label: "Ignored", tone: "grey" },
 };
 
 const TABS: { key: "" | LineRow["status"]; label: string }[] = [
@@ -121,13 +122,13 @@ export function BankReconciliationPage() {
     <OperationsPage data-testid="bank-reconciliation-page">
       <PageHeader lead="Upload a bank statement (CSV or Excel) and it's matched against the books automatically — what's left is what needs a look." />
 
-      <div className="warn-note" style={{ marginBottom: 18 }} data-testid="bank-api-roadmap-note">
+      <Note tone="info" testId="bank-api-roadmap-note">
         Using file upload for now — direct bank API sync is on the roadmap once your bank provides
         API access. When that's available it will feed the same matching engine below, so this
         screen won't need to change.
-      </div>
+      </Note>
 
-      <div className="card section-card" style={{ marginBottom: 24 }}>
+      <Box style={{ marginBottom: 24 }}>
         <div className="form-grid">
           <input
             type="file"
@@ -153,11 +154,11 @@ export function BankReconciliationPage() {
           </button>
         </div>
         {error && (
-          <div className="warn-note" style={{ marginTop: 10 }} data-testid="bank-upload-error">
+          <Note tone="error" testId="bank-upload-error">
             {error}
-          </div>
+          </Note>
         )}
-      </div>
+      </Box>
 
       <div className="table-wrap" style={{ marginBottom: 24 }}>
         <table className="data" data-testid="bank-imports-table">
@@ -205,17 +206,17 @@ export function BankReconciliationPage() {
 
       {selected && (
         <>
-          <div className="toolbar" style={{ marginBottom: 14, gap: 6 }}>
-            {TABS.map((t) => (
-              <button
-                key={t.key || "all"}
-                className={`btn btn-sm ${tab === t.key ? "btn-primary" : ""}`}
-                onClick={() => setTab(t.key)}
-                data-testid={`bank-tab-${t.key || "all"}`}
-              >
-                {t.label}
-              </button>
-            ))}
+          <div className="toolbar">
+            <SegmentedControl
+              label="Statement lines"
+              options={TABS.map((t) => ({
+                value: t.key,
+                label: t.label,
+                testId: `bank-tab-${t.key || "all"}`,
+              }))}
+              value={tab}
+              onChange={setTab}
+            />
           </div>
           <div className="table-wrap">
             <table className="data" data-testid="bank-lines-table">
@@ -232,7 +233,6 @@ export function BankReconciliationPage() {
               <tbody>
                 {(lines?.rows ?? []).map((l) => {
                   const meta = STATUS_META[l.status];
-                  const Icon = meta.icon;
                   const signed = l.credit_paise - l.debit_paise;
                   return (
                     <tr key={l.id} data-testid={`bank-line-row-${l.id}`}>
@@ -245,16 +245,7 @@ export function BankReconciliationPage() {
                         <Money paise={signed} />
                       </td>
                       <td>
-                        <span
-                          style={{
-                            color: meta.color,
-                            display: "inline-flex",
-                            alignItems: "center",
-                            gap: 4,
-                          }}
-                        >
-                          <Icon size={13} /> {meta.label}
-                        </span>
+                        <Status tone={meta.tone}>{meta.label}</Status>
                       </td>
                       <td>
                         {l.status === "matched" && l.matched_entry_doc_number && (

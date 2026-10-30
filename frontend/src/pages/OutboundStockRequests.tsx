@@ -9,7 +9,12 @@ import { Money, formatDateTime } from "../lib/format";
 import { canWriteTransfer } from "../lib/outbound-rbac";
 import { destinationOptions, type LocationT } from "../lib/transfer-locations";
 import { ApprovalTrail, type ApprovalT } from "../components/approval";
+import { KpiStrip } from "../components/KpiStrip";
+import { Note } from "../components/Note";
 import { ListSearchBar } from "../components/SearchBox";
+import { Section } from "../components/Section";
+import { EmptyState } from "../components/States";
+import { Status, type StatusTone } from "../components/Status";
 import { PageHeader } from "../components/PageHeader";
 import "./Booking.css";
 
@@ -28,7 +33,7 @@ function fmtDate(iso: string): string {
 // The six honest statuses a store sees on its ask (#74) — derived server-side,
 // never typed here. The label comes from the server (`status_display`); the
 // tone is the only thing this screen decides for itself.
-const STATUS_TONE: Record<string, string> = {
+const STATUS_TONE: Record<string, StatusTone> = {
   pending_approval: "amber",
   approved: "blue",
   declined: "red",
@@ -38,7 +43,7 @@ const STATUS_TONE: Record<string, string> = {
 };
 
 function StatusPill({ status, label }: { status: string; label: string }) {
-  return <span className={`chip chip-${STATUS_TONE[status] ?? "grey"} status-pill`}>{label}</span>;
+  return <Status tone={STATUS_TONE[status] ?? "grey"}>{label}</Status>;
 }
 
 interface StockRequestLineT {
@@ -157,11 +162,11 @@ export function StockRequestListPage() {
       {loading ? (
         <p className="lead">Loading…</p>
       ) : data.length === 0 ? (
-        <div className="card section-card" data-testid="stock-request-empty">
+        <EmptyState testId="stock-request-empty">
           {q
             ? `No request matches “${q}”.`
             : "No stock requests yet. Search another location's stock and ask for it."}
-        </div>
+        </EmptyState>
       ) : (
         <div className="table-wrap">
           <table className="data" data-testid="stock-request-table">
@@ -249,9 +254,8 @@ function CrossLocationSearch({ onAdd }: { onAdd: (row: StockSearchRowT) => void 
   const data = rows;
 
   return (
-    <div className="card section-card" data-testid="cross-location-search">
-      <p className="eyebrow">Search stock across locations</p>
-      <div className="form-row" style={{ marginTop: 10 }}>
+    <Section heading="Search stock across locations" ruled testId="cross-location-search">
+      <div className="form-row">
         <div className="field" style={{ flex: 1 }}>
           <label>SKU, design or brand</label>
           <input
@@ -310,10 +314,10 @@ function CrossLocationSearch({ onAdd }: { onAdd: (row: StockSearchRowT) => void 
                         </span>
                       )}
                     </td>
-                    <td>
+                    <td className="act">
                       <button
                         type="button"
-                        className="btn"
+                        className="btn btn-sm"
                         onClick={() => onAdd(row)}
                         data-testid={`stock-search-add-${i}`}
                       >
@@ -326,7 +330,7 @@ function CrossLocationSearch({ onAdd }: { onAdd: (row: StockSearchRowT) => void 
             </table>
           </div>
         ))}
-    </div>
+    </Section>
   );
 }
 
@@ -440,139 +444,129 @@ export function StockRequestNewPage() {
       >
         <ArrowLeft size={15} /> Stock requests
       </Link>
-      <h1 className="h1 h2-rust" style={{ marginBottom: 18 }}>
+      <h1 className="h1" style={{ marginBottom: 18 }}>
         New stock request
       </h1>
 
-      <div className="card section-card">
-        <p className="eyebrow">Step 1 · Who is asking, and of whom</p>
-        <div className="form-row" style={{ marginTop: 10 }}>
-          <div className="field">
-            <label>Requesting store</label>
-            {storeLocked && lockedStore ? (
-              <div className="store-lock" data-testid="sr-requesting-locked">
-                {lockedStore.code} · {lockedStore.name}
-              </div>
-            ) : (
+      <div className="page">
+        <Section heading="Step 1 · Who is asking, and of whom">
+          <div className="form-row">
+            <div className="field">
+              <label>Requesting store</label>
+              {storeLocked && lockedStore ? (
+                <div className="store-lock" data-testid="sr-requesting-locked">
+                  {lockedStore.code} · {lockedStore.name}
+                </div>
+              ) : (
+                <select
+                  className="select"
+                  value={requestingId}
+                  onChange={(e) => setRequestingId(e.target.value)}
+                  data-testid="sr-requesting-select"
+                >
+                  <option value="">Select store…</option>
+                  {stores.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.code} · {s.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div className="field">
+              <label>Fulfilling store / warehouse</label>
               <select
                 className="select"
-                value={requestingId}
-                onChange={(e) => setRequestingId(e.target.value)}
-                data-testid="sr-requesting-select"
+                value={fulfillingId}
+                onChange={(e) => setFulfillingId(e.target.value)}
+                data-testid="sr-fulfilling-select"
               >
-                <option value="">Select store…</option>
-                {stores.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.code} · {s.name}
+                <option value="">Select warehouse or store…</option>
+                {fulfillingOptions.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.code} · {l.name} {l.store_type === "warehouse" ? "(WH)" : ""}
                   </option>
                 ))}
               </select>
-            )}
+            </div>
+            <div className="field" style={{ flex: 1 }}>
+              <label>Notes</label>
+              <input
+                className="input"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Why this store needs it"
+                data-testid="sr-notes"
+              />
+            </div>
           </div>
-          <div className="field">
-            <label>Fulfilling store / warehouse</label>
-            <select
-              className="select"
-              value={fulfillingId}
-              onChange={(e) => setFulfillingId(e.target.value)}
-              data-testid="sr-fulfilling-select"
-            >
-              <option value="">Select warehouse or store…</option>
-              {fulfillingOptions.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.code} · {l.name} {l.store_type === "warehouse" ? "(WH)" : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="field" style={{ flex: 1 }}>
-            <label>Notes</label>
-            <input
-              className="input"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Why this store needs it"
-              data-testid="sr-notes"
-            />
-          </div>
-        </div>
-      </div>
+        </Section>
 
-      <CrossLocationSearch onAdd={addFromSearch} />
+        <CrossLocationSearch onAdd={addFromSearch} />
 
-      <div className="card section-card">
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 10,
-          }}
-        >
-          <div>
-            <p className="eyebrow">Step 2 · What this request asks for</p>
-            <h3 className="h3">Requested lines</h3>
-          </div>
-        </div>
-        {lines.length === 0 ? (
-          <p className="lead">Nothing added yet — search above and add lines to the ask.</p>
-        ) : (
-          <table className="lines-table" data-testid="sr-lines">
-            <thead>
-              <tr>
-                <th>SKU</th>
-                <th>Design</th>
-                <th>Size</th>
-                <th>Colour</th>
-                <th className="num">Qty</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {lines.map((l, i) => (
-                <tr key={i}>
-                  <td className="mono">{l.sku_code}</td>
-                  <td>{l.design || "—"}</td>
-                  <td>{l.size || "—"}</td>
-                  <td>{l.color || "—"}</td>
-                  <td>
-                    <input
-                      className="num"
-                      value={l.qty}
-                      onChange={(e) => setLineQty(i, e.target.value)}
-                      data-testid={`sr-qty-${i}`}
-                    />
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="line-del"
-                      onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))}
-                      data-testid={`delete-sr-line-${i}`}
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </td>
+        <Section heading="Step 2 · What this request asks for" ruled>
+          {lines.length === 0 ? (
+            <p className="lead">Nothing added yet — search above and add lines to the ask.</p>
+          ) : (
+            <table className="lines-table" data-testid="sr-lines">
+              <thead>
+                <tr>
+                  <th>SKU</th>
+                  <th>Design</th>
+                  <th>Size</th>
+                  <th>Colour</th>
+                  <th className="num">Qty</th>
+                  <th />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
+              </thead>
+              <tbody>
+                {lines.map((l, i) => (
+                  <tr key={i}>
+                    <td className="mono">{l.sku_code}</td>
+                    <td>{l.design || "—"}</td>
+                    <td>{l.size || "—"}</td>
+                    <td>{l.color || "—"}</td>
+                    <td>
+                      <input
+                        className="num"
+                        value={l.qty}
+                        onChange={(e) => setLineQty(i, e.target.value)}
+                        data-testid={`sr-qty-${i}`}
+                      />
+                    </td>
+                    <td className="act">
+                      <button
+                        type="button"
+                        className="line-del"
+                        onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))}
+                        data-testid={`delete-sr-line-${i}`}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </Section>
 
-      {error && (
-        <div className="login-error" style={{ maxWidth: 480 }} data-testid="sr-create-error">
-          {error}
+        {error && (
+          <Note tone="error" testId="sr-create-error">
+            {error}
+          </Note>
+        )}
+        <div>
+          <button
+            className="btn btn-primary btn-lg"
+            disabled={saving}
+            onClick={save}
+            data-testid="save-stock-request-btn"
+          >
+            <PackageSearch size={16} /> {saving ? "Saving…" : "Raise request"}
+          </button>
         </div>
-      )}
-      <button
-        className="btn btn-primary btn-lg"
-        disabled={saving}
-        onClick={save}
-        data-testid="save-stock-request-btn"
-      >
-        <PackageSearch size={16} /> {saving ? "Saving…" : "Raise request"}
-      </button>
+      </div>
     </div>
   );
 }
@@ -617,9 +611,8 @@ function FulfilPanel({ r, onDone }: { r: StockRequestT; onDone: () => void }) {
   if (remaining.length === 0) return null;
 
   return (
-    <div className="card section-card" data-testid="fulfil-panel">
-      <p className="eyebrow">Fulfil this request</p>
-      <p className="lead" style={{ marginBottom: 10 }}>
+    <Section heading="Fulfil this request" ruled testId="fulfil-panel">
+      <p className="lead">
         Send some or all of what is left — this creates a draft transfer, pre-filled with what you
         enter below. It still needs the Operations Head's approval before anything dispatches.
       </p>
@@ -650,21 +643,15 @@ function FulfilPanel({ r, onDone }: { r: StockRequestT; onDone: () => void }) {
         </tbody>
       </table>
       {error && (
-        <div className="login-error" style={{ marginTop: 10 }} data-testid="fulfil-error">
+        <Note tone="error" testId="fulfil-error">
           {error}
-        </div>
+        </Note>
       )}
-      <button
-        className="btn btn-primary"
-        style={{ marginTop: 12 }}
-        disabled={busy}
-        onClick={fulfil}
-        data-testid="fulfil-btn"
-      >
+      <button className="btn btn-primary" disabled={busy} onClick={fulfil} data-testid="fulfil-btn">
         <Truck size={15} /> {busy ? "Creating transfer…" : "Create pre-filled transfer"}
       </button>
       <ClosePanel r={r} onDone={onDone} />
-    </div>
+    </Section>
   );
 }
 
@@ -700,9 +687,9 @@ function ClosePanel({ r, onDone }: { r: StockRequestT; onDone: () => void }) {
         data-testid="close-note"
       />
       {error && (
-        <div className="login-error" data-testid="close-error">
+        <Note tone="error" testId="close-error">
           {error}
-        </div>
+        </Note>
       )}
       <div>
         <button
@@ -748,142 +735,135 @@ export function StockRequestDetailPage() {
       </Link>
       <div className="toolbar">
         <div>
-          <p className="eyebrow">{r.doc_number || `Draft #${r.id}`}</p>
           <h1 className="h1">
             {r.requesting_store_code} asks {r.fulfilling_store_code}
           </h1>
           <p className="lead">
+            <span className="mono">{r.doc_number || `Draft #${r.id}`}</span> ·{" "}
             {r.requesting_store_name} → {r.fulfilling_store_name}
             {r.notes ? ` · ${r.notes}` : ""}
           </p>
         </div>
         <div className="spacer" />
         {r.source === "cross_store_search" && (
-          <span className="chip chip-blue" data-testid="sr-source">
+          <span className="chip" data-testid="sr-source">
             From store search
           </span>
         )}
         <StatusPill status={r.status} label={r.status_display} />
       </div>
 
-      {r.status === "declined" && r.decline_reason && (
-        <div className="warn-note" style={{ marginBottom: 18 }} data-testid="sr-decline-reason">
-          <b>Declined:</b> {r.decline_reason}
-        </div>
-      )}
-
-      <div className="form-row" style={{ marginBottom: 18 }}>
-        <div className="card section-card">
-          <p className="eyebrow">Requested</p>
-          <h3 className="h3">{totalQty} pcs</h3>
-        </div>
-        <div className="card section-card">
-          <p className="eyebrow">Fulfilled</p>
-          <h3 className="h3">{totalFulfilled} pcs</h3>
-        </div>
-        <div className="card section-card">
-          <p className="eyebrow">Lines</p>
-          <h3 className="h3">{r.lines.length}</h3>
-        </div>
-        <div className="card section-card">
-          <p className="eyebrow">Date</p>
-          <h3 className="h3">{fmtDate(r.created_at)}</h3>
-        </div>
-        {r.expected_arrival_at && (
-          // The counter quoted this to a person who is coming back to ask about
-          // it. A time nobody can read back is a time that was never carried.
-          <div className="card section-card" data-testid="sr-expected-arrival">
-            <p className="eyebrow">Customer told</p>
-            <h3 className="h3">{formatDateTime(r.expected_arrival_at)}</h3>
-            <p className="lead">No hold was placed on the piece.</p>
-          </div>
+      <div className="page">
+        {r.status === "declined" && r.decline_reason && (
+          <Note tone="warn" testId="sr-decline-reason">
+            <b>Declined:</b> {r.decline_reason}
+          </Note>
         )}
-      </div>
 
-      <div style={{ marginBottom: 18 }}>
-        <ApprovalTrail
-          createdByName={r.created_by_name}
-          createdAt={r.created_at}
-          approval={r.approval}
-          history={r.approval_history}
-          askAgainPath={writable ? `/outbound/stock-requests/${r.id}/request-approval` : undefined}
+        <KpiStrip
+          label="Stock request"
+          items={[
+            { label: "Requested", value: `${totalQty} pcs` },
+            { label: "Fulfilled", value: `${totalFulfilled} pcs` },
+            { label: "Lines", value: r.lines.length },
+            { label: "Date", value: fmtDate(r.created_at) },
+            // The counter quoted this to a person who is coming back to ask about
+            // it. A time nobody can read back is a time that was never carried.
+            ...(r.expected_arrival_at
+              ? [
+                  {
+                    label: "Customer told",
+                    value: formatDateTime(r.expected_arrival_at),
+                    detail: "No hold was placed on the piece.",
+                    testId: "sr-expected-arrival",
+                  },
+                ]
+              : []),
+          ]}
         />
-      </div>
 
-      {canAct && (
-        <div style={{ marginBottom: 18 }}>
-          <FulfilPanel r={r} onDone={reload} />
+        <div>
+          <ApprovalTrail
+            createdByName={r.created_by_name}
+            createdAt={r.created_at}
+            approval={r.approval}
+            history={r.approval_history}
+            askAgainPath={
+              writable ? `/outbound/stock-requests/${r.id}/request-approval` : undefined
+            }
+          />
         </div>
-      )}
 
-      <div className="table-wrap" style={{ marginBottom: 18 }}>
-        <table className="data" data-testid="sr-detail-lines">
-          <thead>
-            <tr>
-              <th>SKU</th>
-              <th>Design</th>
-              <th>Size</th>
-              <th>Colour</th>
-              <th>Brand</th>
-              <th className="num">Requested</th>
-              <th className="num">Fulfilled</th>
-            </tr>
-          </thead>
-          <tbody>
-            {r.lines.map((l) => (
-              <tr key={l.id}>
-                <td>
-                  <b className="mono">{l.sku_code}</b>
-                </td>
-                <td>{l.design || "—"}</td>
-                <td>{l.size || "—"}</td>
-                <td>{l.color || "—"}</td>
-                <td>{l.brand || "—"}</td>
-                <td className="num">{l.qty}</td>
-                <td className="num">{l.qty_fulfilled}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+        {canAct && <FulfilPanel r={r} onDone={reload} />}
 
-      {r.fulfilling_transfers.length > 0 && (
         <div className="table-wrap">
-          <p className="eyebrow" style={{ marginBottom: 8 }}>
-            Transfers answering this request
-          </p>
-          <table className="data" data-testid="sr-fulfilling-transfers">
+          <table className="data" data-testid="sr-detail-lines">
             <thead>
               <tr>
-                <th>Doc #</th>
-                <th>Route</th>
-                <th>Status</th>
-                <th>Date</th>
+                <th>SKU</th>
+                <th>Design</th>
+                <th>Size</th>
+                <th>Colour</th>
+                <th>Brand</th>
+                <th className="num">Requested</th>
+                <th className="num">Fulfilled</th>
               </tr>
             </thead>
             <tbody>
-              {r.fulfilling_transfers.map((t) => (
-                <tr key={t.id}>
+              {r.lines.map((l) => (
+                <tr key={l.id}>
                   <td>
-                    <Link
-                      to={`/transfer/${t.id}`}
-                      className="link-cell mono"
-                      data-testid={`sr-transfer-link-${t.id}`}
-                    >
-                      <Search size={13} /> {t.doc_number || `Draft #${t.id}`}
-                    </Link>
+                    <b className="mono">{l.sku_code}</b>
                   </td>
-                  <td>
-                    {t.source_store_code} → {t.destination_store_code}
-                  </td>
-                  <td>{t.docstatus === 1 ? "Dispatched" : "Draft"}</td>
-                  <td>{fmtDate(t.created_at)}</td>
+                  <td>{l.design || "—"}</td>
+                  <td>{l.size || "—"}</td>
+                  <td>{l.color || "—"}</td>
+                  <td>{l.brand || "—"}</td>
+                  <td className="num">{l.qty}</td>
+                  <td className="num">{l.qty_fulfilled}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      )}
+
+        {r.fulfilling_transfers.length > 0 && (
+          <Section heading="Transfers answering this request" ruled>
+            <div className="table-wrap">
+              <table className="data" data-testid="sr-fulfilling-transfers">
+                <thead>
+                  <tr>
+                    <th>Doc #</th>
+                    <th>Route</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {r.fulfilling_transfers.map((t) => (
+                    <tr key={t.id}>
+                      <td>
+                        <Link
+                          to={`/transfer/${t.id}`}
+                          className="link-cell mono"
+                          data-testid={`sr-transfer-link-${t.id}`}
+                        >
+                          <Search size={13} /> {t.doc_number || `Draft #${t.id}`}
+                        </Link>
+                      </td>
+                      <td>
+                        {t.source_store_code} → {t.destination_store_code}
+                      </td>
+                      <td>{t.docstatus === 1 ? "Dispatched" : "Draft"}</td>
+                      <td>{fmtDate(t.created_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Section>
+        )}
+      </div>
     </div>
   );
 }

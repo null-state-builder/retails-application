@@ -5,6 +5,7 @@ import { describeOriginal, refundFor, returnableQty } from "../../../till/exchan
 import type { OriginalLine, PickedReturn, PickedReturns } from "../../../till/exchange";
 import type { FoundBill } from "../../../till/original";
 import type { TillKnownCustomer } from "../../../till/types";
+import { Note } from "../../../components/Note";
 import { SegmentedControl } from "../../../components/SegmentedControl";
 
 export type ReturnSearchKey = "mobile" | "name";
@@ -95,7 +96,7 @@ export function ReturnCustomerSearch({
       </div>
       {customers.length > 0 && (
         <div className="return-known-customers" data-testid="return-known-customers">
-          <span className="eyebrow">Known customers</span>
+          <span className="bill-label">Known customers</span>
           <div>
             {customers.map((customer) => (
               <button
@@ -174,7 +175,7 @@ export function AgainstBill({
     <section className="return-against" data-testid="return-against-bill">
       <header className="return-against-head">
         <div>
-          <span className="eyebrow">Against bill</span>
+          <span className="bill-label">Against bill</span>
           <strong className="mono">{found.original.doc_number}</strong>
           <span className="muted-cell">
             {formatDateTime(found.billed_at)}
@@ -199,9 +200,9 @@ export function AgainstBill({
       </header>
 
       {late && (
-        <p className="warn-note" data-testid="return-late">
+        <Note tone="warn" testId="return-late">
           This bill is past the {windowDays}-day return window. Save &amp; Print will ask a manager.
-        </p>
+        </Note>
       )}
 
       <div className="return-lines-wrap">
@@ -333,7 +334,7 @@ export function RecentBills({
   return (
     <div className="bill-recent-panel" data-testid="bill-recent-panel">
       <div className="bill-recent-head">
-        <p className="eyebrow">Recent bills</p>
+        <h3 className="heading">Recent bills</h3>
         <span className="muted-cell">Pick one to start return</span>
       </div>
       <div className="bill-recent-rows">

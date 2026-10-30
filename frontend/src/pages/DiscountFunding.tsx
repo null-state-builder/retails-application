@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
 import { SegmentedControl } from "../components/SegmentedControl";
 import { api, apiErrorMessage } from "../lib/api";
@@ -118,23 +119,26 @@ export function DiscountFundingPage() {
 
   const disabled = !online || busy;
   const offlineNote = (!online || lost) && (
-    <p className="warn-note" data-testid="funding-offline" role="status">
-      {OFFLINE}
-      {online && (
-        <>
-          {" "}
+    <Note
+      tone="warn"
+      testId="funding-offline"
+      role="status"
+      action={
+        online && (
           <button
             type="button"
-            className="btn"
+            className="btn btn-sm"
             data-testid="funding-retry"
             disabled={busy}
             onClick={() => void load(filters)}
           >
             Try again
           </button>
-        </>
-      )}
-    </p>
+        )
+      }
+    >
+      {OFFLINE}
+    </Note>
   );
   const lead =
     "How much of each discount the brand funds and how much KDPS funds, by offer, brand and store. Where the brand's model or share is unknown, it says unknown.";
@@ -145,9 +149,9 @@ export function DiscountFundingPage() {
         <PageHeader title="Discount Funding" lead={lead} />
         {offlineNote}
         {error ? (
-          <p className="warn-note" data-testid="funding-error">
+          <Note tone="error" testId="funding-error">
             {error}
-          </p>
+          </Note>
         ) : (
           online && !lost && <p>Loading the discount funding report…</p>
         )}
@@ -161,132 +165,130 @@ export function DiscountFundingPage() {
     <div className="page-pad">
       <PageHeader title="Discount Funding" lead={lead} />
       {offlineNote}
-      <section className="card section-card">
-        <div className="toolbar" data-testid="funding-filters">
-          <label className="field">
-            <span>Store</span>
-            <select
-              className="input"
-              data-testid="funding-filter-store"
-              value={filters.store}
-              disabled={disabled}
-              onChange={(event) => set("store", event.target.value)}
-            >
-              <option value="">All my stores</option>
-              {data.store_options.map((s) => (
-                <option key={s.id} value={s.code}>
-                  {s.name} ({s.code})
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>From</span>
-            <input
-              className="input"
-              type="date"
-              data-testid="funding-filter-from"
-              value={filters.date_from}
-              disabled={disabled}
-              onChange={(event) => set("date_from", event.target.value)}
-            />
-          </label>
-          <label className="field">
-            <span>To</span>
-            <input
-              className="input"
-              type="date"
-              data-testid="funding-filter-to"
-              value={filters.date_to}
-              disabled={disabled}
-              onChange={(event) => set("date_to", event.target.value)}
-            />
-          </label>
-          <button
-            type="button"
-            className="btn btn-primary"
-            data-testid="funding-export"
+      <div className="toolbar" data-testid="funding-filters">
+        <label className="field">
+          <span>Store</span>
+          <select
+            className="input"
+            data-testid="funding-filter-store"
+            value={filters.store}
             disabled={disabled}
-            onClick={() => void exportWorkbook()}
+            onChange={(event) => set("store", event.target.value)}
           >
-            Export to Excel
-          </button>
-        </div>
-        <SegmentedControl
-          label="Group by"
-          testId="funding-groupings"
+            <option value="">All my stores</option>
+            {data.store_options.map((s) => (
+              <option key={s.id} value={s.code}>
+                {s.name} ({s.code})
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span>From</span>
+          <input
+            className="input"
+            type="date"
+            data-testid="funding-filter-from"
+            value={filters.date_from}
+            disabled={disabled}
+            onChange={(event) => set("date_from", event.target.value)}
+          />
+        </label>
+        <label className="field">
+          <span>To</span>
+          <input
+            className="input"
+            type="date"
+            data-testid="funding-filter-to"
+            value={filters.date_to}
+            disabled={disabled}
+            onChange={(event) => set("date_to", event.target.value)}
+          />
+        </label>
+        <button
+          type="button"
+          className="btn btn-primary"
+          data-testid="funding-export"
           disabled={disabled}
-          value={filters.group_by as FundingGrouping}
-          options={FUNDING_GROUPINGS.map((v) => ({
-            value: v.key as FundingGrouping,
-            label: v.label,
-            testId: `funding-group-${v.key}`,
-          }))}
-          onChange={(next) => set("group_by", next)}
-        />
-        <p className="muted-cell" data-testid="funding-as-of">
-          {asOfText(data.as_of)}
-          {data.as_of &&
-            ` · the copy is brought up to date every ${data.refreshed_every_minutes} minutes`}
-          {` · ${data.stores.map((s) => s.code).join(", ")} · ${data.date_from} to ${data.date_to}`}
-        </p>
-        {error && (
-          <p className="warn-note" data-testid="funding-error">
-            {error}
-          </p>
-        )}
-        {data.missing.length > 0 && (
-          <div className="warn-note" data-testid="funding-missing">
-            <strong>Not included, or to check</strong>
-            <ul>
-              {data.missing.map((m) => (
-                <li key={m.code} data-testid={`funding-missing-${m.code}`}>
-                  {m.text}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {data.rows.length === 0 ? (
-          <p className="muted-cell" data-testid="funding-empty">
-            {busy ? "Loading…" : "No discounted lines with a split in this period at these stores."}
-          </p>
-        ) : (
-          <div className="table-wrap">
-            <table className="data" data-testid="funding-table">
-              <thead>
-                <tr>
-                  {columns.map((c) => (
-                    <th
-                      key={c.key}
-                      className={alignsRight(c.kind) ? "num" : undefined}
-                      data-testid={`funding-col-${c.key}`}
-                    >
-                      {c.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {data.rows.map((row) => (
-                  <FundingTableRow key={row.key} row={row} columns={columns} />
-                ))}
-              </tbody>
-              <tfoot>
-                <FundingTableRow row={data.total} columns={columns} total />
-              </tfoot>
-            </table>
-          </div>
-        )}
-        <details className="muted-cell" data-testid="funding-basis">
-          <summary>How these figures are worked out (formula {data.formula_version})</summary>
+          onClick={() => void exportWorkbook()}
+        >
+          Export to Excel
+        </button>
+      </div>
+      <SegmentedControl
+        label="Group by"
+        testId="funding-groupings"
+        disabled={disabled}
+        value={filters.group_by as FundingGrouping}
+        options={FUNDING_GROUPINGS.map((v) => ({
+          value: v.key as FundingGrouping,
+          label: v.label,
+          testId: `funding-group-${v.key}`,
+        }))}
+        onChange={(next) => set("group_by", next)}
+      />
+      <p className="muted-cell" data-testid="funding-as-of">
+        {asOfText(data.as_of)}
+        {data.as_of &&
+          ` · the copy is brought up to date every ${data.refreshed_every_minutes} minutes`}
+        {` · ${data.stores.map((s) => s.code).join(", ")} · ${data.date_from} to ${data.date_to}`}
+      </p>
+      {error && (
+        <Note tone="error" testId="funding-error">
+          {error}
+        </Note>
+      )}
+      {data.missing.length > 0 && (
+        <Note tone="warn" testId="funding-missing">
+          <strong>Not included, or to check</strong>
           <ul>
-            {data.basis.map((line) => (
-              <li key={line}>{line}</li>
+            {data.missing.map((m) => (
+              <li key={m.code} data-testid={`funding-missing-${m.code}`}>
+                {m.text}
+              </li>
             ))}
           </ul>
-        </details>
-      </section>
+        </Note>
+      )}
+      {data.rows.length === 0 ? (
+        <p className="muted-cell" data-testid="funding-empty">
+          {busy ? "Loading…" : "No discounted lines with a split in this period at these stores."}
+        </p>
+      ) : (
+        <div className="table-wrap">
+          <table className="data" data-testid="funding-table">
+            <thead>
+              <tr>
+                {columns.map((c) => (
+                  <th
+                    key={c.key}
+                    className={alignsRight(c.kind) ? "num" : undefined}
+                    data-testid={`funding-col-${c.key}`}
+                  >
+                    {c.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.rows.map((row) => (
+                <FundingTableRow key={row.key} row={row} columns={columns} />
+              ))}
+            </tbody>
+            <tfoot>
+              <FundingTableRow row={data.total} columns={columns} total />
+            </tfoot>
+          </table>
+        </div>
+      )}
+      <details className="muted-cell" data-testid="funding-basis">
+        <summary>How these figures are worked out (formula {data.formula_version})</summary>
+        <ul>
+          {data.basis.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      </details>
     </div>
   );
 }

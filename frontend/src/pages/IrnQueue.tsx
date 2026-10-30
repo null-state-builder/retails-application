@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, FileCheck2, Link2Off, ReceiptText } from "lucide-react";
+import { FileCheck2, Link2Off, ReceiptText } from "lucide-react";
 
 import { api, apiErrorMessage } from "../lib/api";
 import { TAX_KIND_WORDS } from "../till/gstin";
 import type { B2bTaxKind } from "../till/gstin";
 import { Money } from "../lib/format";
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { SegmentedControl } from "../components/SegmentedControl";
+import { EmptyState } from "../components/States";
+import { Status } from "../components/Status";
 import "./Booking.css";
 import "./IrnQueue.css";
 
@@ -82,14 +86,17 @@ function Clock({ days }: { days: number }) {
   if (days < 0) {
     const late = Math.abs(days);
     return (
-      <span className="chip chip-red" data-testid="irn-overdue">
+      <Status tone="red" testId="irn-overdue">
         {late === 1 ? "1 day late" : `${late} days late`}
-      </span>
+      </Status>
     );
   }
-  if (days === 0) return <span className="chip chip-red">Due today</span>;
-  const tone = days <= 7 ? "amber" : "grey";
-  return <span className={`chip chip-${tone}`}>{days === 1 ? "1 day left" : `${days} days`}</span>;
+  if (days === 0) return <Status tone="red">Due today</Status>;
+  return (
+    <Status tone={days <= 7 ? "amber" : "grey"}>
+      {days === 1 ? "1 day left" : `${days} days`}
+    </Status>
+  );
 }
 
 /** Recording what the portal said, on one bill.
@@ -132,7 +139,7 @@ function RecordPanel({ row, onDone }: { row: IrnRowT; onDone: () => void }) {
       />
       <button
         type="button"
-        className="btn btn-primary"
+        className="btn btn-primary btn-sm"
         disabled={busy || !irn}
         onClick={() => void send("generated")}
         data-testid={`irn-save-${row.id}`}
@@ -141,7 +148,7 @@ function RecordPanel({ row, onDone }: { row: IrnRowT; onDone: () => void }) {
       </button>
       <button
         type="button"
-        className="btn"
+        className="btn btn-sm"
         disabled={busy}
         onClick={() => void send("failed")}
         data-testid={`irn-fail-${row.id}`}
@@ -149,8 +156,10 @@ function RecordPanel({ row, onDone }: { row: IrnRowT; onDone: () => void }) {
         <Link2Off size={14} /> Portal refused
       </button>
       {error && (
-        <div className="login-error irn-record-error" data-testid={`irn-error-${row.id}`}>
-          {error}
+        <div className="irn-record-error">
+          <Note tone="error" testId={`irn-error-${row.id}`}>
+            {error}
+          </Note>
         </div>
       )}
     </>
@@ -182,49 +191,46 @@ export default function IrnQueue() {
       <PageHeader lead="Business bills waiting on an e-invoice reference. Thirty days from the sale." />
 
       {queue && queue.overdue_count > 0 && (
-        <p className="warn-note" data-testid="irn-overdue-banner">
-          <AlertTriangle size={15} />{" "}
+        <Note tone="warn" testId="irn-overdue-banner">
           {queue.overdue_count === 1
             ? "1 bill is past its thirty days."
             : `${queue.overdue_count} bills are past their thirty days.`}{" "}
           A bill without an IRN is not a valid tax invoice, and its customer cannot claim the
           credit.
-        </p>
+        </Note>
       )}
 
-      {/* The house chip picker, not a tab bar of this screen's own: three
-          filters over one list is exactly what it is for, and a second way of
-          drawing a segmented control is a second thing to keep in step. */}
-      <div className="filter-bar chip-picker" data-testid="irn-tabs">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            aria-pressed={tab === t.key}
-            className={`chip chip-pick ${tab === t.key ? "chip-navy" : ""}`}
-            onClick={() => setTab(t.key)}
-            data-testid={`irn-tab-${t.key}`}
-          >
-            {t.label}
-            {t.key === "pending" && queue ? ` (${queue.pending_count})` : ""}
-          </button>
-        ))}
+      {/* Three states, each swapping the whole list: the house SegmentedControl
+          (decision 9), not a tab bar of this screen's own. */}
+      <div className="filter-bar">
+        <SegmentedControl
+          label="Which bills"
+          testId="irn-tabs"
+          options={TABS.map((t) => ({
+            value: t.key,
+            label: t.label,
+            count: t.key === "pending" && queue ? queue.pending_count : undefined,
+            testId: `irn-tab-${t.key}`,
+          }))}
+          value={tab}
+          onChange={setTab}
+        />
       </div>
 
       {error && (
-        <div className="login-error" data-testid="irn-load-error">
+        <Note tone="error" testId="irn-load-error">
           {error}
-        </div>
+        </Note>
       )}
 
       {loading ? (
         <p className="lead">Loading…</p>
       ) : rows.length === 0 ? (
-        <div className="card section-card" data-testid="irn-empty">
+        <EmptyState testId="irn-empty">
           {tab === "pending"
             ? "Nothing waiting. Every business bill has its reference."
             : "Nothing here."}
-        </div>
+        </EmptyState>
       ) : (
         <div className="table-wrap">
           <table className="data irn-table" data-testid="irn-table">

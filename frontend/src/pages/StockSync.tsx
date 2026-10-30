@@ -11,6 +11,8 @@ import { useAuth } from "../auth/AuthContext";
 import { OperationsPage, OperationsTable } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { FilterChip } from "../components/FilterChip";
+import { Note } from "../components/Note";
+import { Section } from "../components/Section";
 import { api, apiErrorCode, apiErrorMessage, goodsMeta } from "../lib/api";
 import { sha256Hex } from "../lib/goodsPt";
 import { Feedback, Field, hold } from "../lib/goodsScreen";
@@ -285,9 +287,9 @@ export function StockSyncPage() {
         </p>
       )}
       {overview && !overview.test_environment && (
-        <div className="warn-note" role="alert">
+        <Note tone="warn" role="alert">
           This store is live. Legacy sync runs only on the test environment.
-        </div>
+        </Note>
       )}
       <div className="form-grid">
         <Field id="sync-site" label="Store">
@@ -350,14 +352,16 @@ export function StockSyncPage() {
       )}
 
       {selected && (
-        <section className="card section-card" data-testid="sync-detail">
-          <p className="eyebrow">{selected.source_name}</p>
-          <h3 className="h3">
-            {selected.kind === "soh"
+        <Section
+          ruled
+          testId="sync-detail"
+          heading={`${
+            selected.kind === "soh"
               ? `SOH exported ${when(selected.cutoff_at)}`
-              : `Sales ${selected.date_from} – ${selected.date_to}`}{" "}
-            · {selected.state}
-          </h3>
+              : `Sales ${selected.date_from} – ${selected.date_to}`
+          } · ${selected.state}`}
+        >
+          <p className="muted">{selected.source_name}</p>
           <ul>
             {selected.preview && (
               <li>
@@ -606,7 +610,7 @@ export function StockSyncPage() {
               </table>
             </OperationsTable>
           )}
-        </section>
+        </Section>
       )}
 
       {overview && (

@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { OperationsPage } from "../components/OperationsPage";
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { Box, Section } from "../components/Section";
+import { Status } from "../components/Status";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
 import { commandIdFor, type Pending } from "../lib/debitNotes";
@@ -236,90 +239,99 @@ export function PayablesPage() {
           "Outright brands only. What is owed to SOR and consignment brands comes here later (P4)."}
       </p>
       {offline && (
-        <p className="warn-note" data-testid="pay-offline" role="status">
-          {OFFLINE}
-          {online && (
-            <>
-              {" "}
+        <Note
+          tone="warn"
+          testId="pay-offline"
+          role="status"
+          action={
+            online && (
               <button
                 type="button"
-                className="btn"
+                className="btn btn-sm"
                 data-testid="pay-retry"
                 onClick={() => void load()}
               >
                 Try again
               </button>
-            </>
-          )}
-        </p>
+            )
+          }
+        >
+          {OFFLINE}
+        </Note>
       )}
       {unsent && (
-        <p className="warn-note" data-testid="pay-unsent" role="status">
+        <Note
+          tone="warn"
+          testId="pay-unsent"
+          role="status"
+          action={
+            <button
+              type="button"
+              className="btn btn-primary btn-sm"
+              data-testid="pay-resend"
+              disabled={!online || busy}
+              onClick={() => void send(unsent)}
+            >
+              Send again
+            </button>
+          }
+        >
           The answer to your last save was lost, so it may or may not be recorded. Send it again: it
-          is recorded once either way.{" "}
-          <button
-            type="button"
-            className="btn btn-primary"
-            data-testid="pay-resend"
-            disabled={!online || busy}
-            onClick={() => void send(unsent)}
-          >
-            Send again
-          </button>
-        </p>
+          is recorded once either way.
+        </Note>
       )}
       {error && (
-        <p className="warn-note" data-testid="pay-error">
+        <Note tone="error" testId="pay-error">
           {error}
-        </p>
+        </Note>
       )}
       {done && (
-        <p className="ok-note" data-testid="pay-done">
+        <Note tone="success" role="status" testId="pay-done">
           {done}
-        </p>
+        </Note>
       )}
 
-      <section className="card section-card">
-        <div className="toolbar">
-          <label className="field">
-            <span>Store</span>
-            <select
-              className="input"
-              data-testid="pay-store"
-              value={store}
-              onChange={(e) => setStore(e.target.value)}
-            >
-              <option value="">Every store</option>
-              {(data?.stores ?? []).map((s) => (
-                <option key={s.id} value={String(s.id)}>
-                  {s.code} · {s.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>Show per</span>
-            <select
-              className="input"
-              data-testid="pay-group"
-              value={group}
-              onChange={(e) => setGroup(e.target.value === "vendor" ? "vendor" : "brand")}
-            >
-              <option value="brand">Brand</option>
-              <option value="vendor">Vendor</option>
-            </select>
-          </label>
-          {data && <span className="muted-cell">Ageing as of {data.as_of}</span>}
-        </div>
+      <div className="toolbar">
+        <label className="field">
+          <span>Store</span>
+          <select
+            className="input"
+            data-testid="pay-store"
+            value={store}
+            onChange={(e) => setStore(e.target.value)}
+          >
+            <option value="">Every store</option>
+            {(data?.stores ?? []).map((s) => (
+              <option key={s.id} value={String(s.id)}>
+                {s.code} · {s.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span>Show per</span>
+          <select
+            className="input"
+            data-testid="pay-group"
+            value={group}
+            onChange={(e) => setGroup(e.target.value === "vendor" ? "vendor" : "brand")}
+          >
+            <option value="brand">Brand</option>
+            <option value="vendor">Vendor</option>
+          </select>
+        </label>
+        {data && <span className="muted-cell">Ageing as of {data.as_of}</span>}
+      </div>
+      <Section heading={`What is owed, per ${noun.toLowerCase()}`}>
         {!data ? (
           <p className="muted-cell">{offline ? "" : "Loading…"}</p>
         ) : (
           <>
             {!data.switched_on && (
-              <p className="warn-note" data-testid="pay-off">
+              <Note tone="warn" testId="pay-off">
                 Brand payables are switched off at every store you work at. What is recorded stays
                 here to read.
-              </p>
+              </Note>
             )}
             {data.rows.length === 0 ? (
               <p className="muted-cell" data-testid="pay-empty">
@@ -401,10 +413,10 @@ export function PayablesPage() {
             )}
           </>
         )}
-      </section>
+      </Section>
 
       {data?.can_edit && onStores.length > 0 && options && (
-        <section className="card section-card" data-testid="pay-invoice-form">
+        <Box data-testid="pay-invoice-form">
           <h2 className="h3">Record a vendor invoice</h2>
           <p className="muted-cell">
             From the vendor's tax invoice for an outright brand: the total including tax. The due
@@ -527,9 +539,9 @@ export function PayablesPage() {
             </label>
           </div>
           {!checkedInvoice.ok && invoice.number && (
-            <p className="warn-note" data-testid="pay-inv-problem">
+            <Note tone="warn" testId="pay-inv-problem">
               {checkedInvoice.problem}
-            </p>
+            </Note>
           )}
           <div className="toolbar">
             <button
@@ -551,11 +563,11 @@ export function PayablesPage() {
               Record the invoice
             </button>
           </div>
-        </section>
+        </Box>
       )}
 
       {data?.can_edit && onStores.length > 0 && options && (
-        <section className="card section-card" data-testid="pay-payment-form">
+        <Box data-testid="pay-payment-form">
           <h2 className="h3">Record a payment</h2>
           <p className="muted-cell">
             A payment already made to one vendor for one store. Spread it over that vendor's open
@@ -705,9 +717,9 @@ export function PayablesPage() {
             </div>
           )}
           {!checkedPayment.ok && payment.rupees && (
-            <p className="warn-note" data-testid="pay-pmt-problem">
+            <Note tone="warn" testId="pay-pmt-problem">
               {checkedPayment.problem}
-            </p>
+            </Note>
           )}
           <div className="toolbar">
             <button
@@ -729,12 +741,11 @@ export function PayablesPage() {
               Record the payment
             </button>
           </div>
-        </section>
+        </Box>
       )}
 
       {data && (
-        <section className="card section-card">
-          <h2 className="h3">Invoices</h2>
+        <Section heading="Invoices" ruled>
           {data.invoices.length === 0 ? (
             <p className="muted-cell">No vendor invoices recorded at these stores.</p>
           ) : (
@@ -774,20 +785,18 @@ export function PayablesPage() {
                       </td>
                       <td>
                         {inv.status === "cancelled" ? (
-                          <span className="chip">Cancelled: {inv.cancel_reason}</span>
+                          <Status tone="grey">Cancelled: {inv.cancel_reason}</Status>
                         ) : (
-                          <span
-                            className={`chip ${inv.band && inv.band !== "not_due" ? "chip-amber" : ""}`}
-                          >
+                          <Status tone={inv.band && inv.band !== "not_due" ? "amber" : "grey"}>
                             {bandLabel(inv.band)}
-                          </span>
+                          </Status>
                         )}
                       </td>
-                      <td>
+                      <td className="act">
                         {inv.allowed_actions.includes("cancel") && (
                           <button
                             type="button"
-                            className="btn"
+                            className="btn btn-danger btn-sm"
                             data-testid={`pay-inv-cancel-${inv.id}`}
                             disabled={!writable}
                             onClick={() =>
@@ -809,8 +818,11 @@ export function PayablesPage() {
               </table>
             </div>
           )}
+        </Section>
+      )}
 
-          <h2 className="h3">Payments</h2>
+      {data && (
+        <Section heading="Payments" ruled>
           {data.payments.length === 0 ? (
             <p className="muted-cell">No payments recorded at these stores.</p>
           ) : (
@@ -838,7 +850,9 @@ export function PayablesPage() {
                       <td>
                         {pmt.reference}
                         {pmt.status === "cancelled" && (
-                          <div className="chip">Cancelled: {pmt.cancel_reason}</div>
+                          <div>
+                            <Status tone="grey">Cancelled: {pmt.cancel_reason}</Status>
+                          </div>
                         )}
                       </td>
                       <td className="num">
@@ -852,11 +866,11 @@ export function PayablesPage() {
                           </div>
                         ))}
                       </td>
-                      <td>
+                      <td className="act">
                         {pmt.allowed_actions.includes("cancel") && (
                           <button
                             type="button"
-                            className="btn"
+                            className="btn btn-danger btn-sm"
                             data-testid={`pay-pmt-cancel-${pmt.id}`}
                             disabled={!writable}
                             onClick={() =>
@@ -896,7 +910,7 @@ export function PayablesPage() {
               </label>
               <button
                 type="button"
-                className="btn btn-primary"
+                className="btn btn-danger"
                 data-testid="pay-cancel-confirm"
                 disabled={!writable || !cancelling.reason.trim()}
                 onClick={() =>
@@ -928,7 +942,7 @@ export function PayablesPage() {
               </button>
             </div>
           )}
-        </section>
+        </Section>
       )}
     </OperationsPage>
   );

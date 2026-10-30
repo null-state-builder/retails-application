@@ -27,15 +27,10 @@
   }
 }
 
-.mail-list-pane {
-  padding: 0 12px 10px;
+.mail-layout .mail-list-pane {
+  padding: 12px 12px 10px;
   max-height: calc(100vh - 220px);
   overflow-y: auto;
-}
-.mail-boxes {
-  display: flex;
-  border-bottom: 1px solid var(--hairline);
-  margin: 0 -12px;
 }
 .mail-search {
   padding: 10px 0 4px;
@@ -254,31 +249,6 @@
   margin: 0;
   font-size: 12px;
   color: var(--red);
-}
-
-.mail-warn {
-  margin-top: 12px;
-  padding: 11px 14px;
-  font-size: 13px;
-  color: var(--ink);
-  border-left: 3px solid var(--rust);
-}
-.mail-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 46px 24px;
-  text-align: center;
-  color: var(--muted);
-}
-.mail-empty-state h3 {
-  margin: 0;
-  color: var(--ink);
-}
-.mail-empty-state p {
-  margin: 0;
-  max-width: 420px;
 }
 
 .mail-footer {

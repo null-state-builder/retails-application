@@ -197,7 +197,7 @@ function StatTiles({
         const tone =
           toned === "late" ? " exc-count-overdue" : toned === "today" ? " an-tile-today" : "";
         return (
-          <div key={tile.testId} className={`card stat-card${tone}`} data-testid={tile.testId}>
+          <div key={tile.testId} className={`stat-card${tone}`} data-testid={tile.testId}>
             <div className="stat-label">{tile.label}</div>
             <div className="stat-value exc-count-n">{tile.n}</div>
             <div className="exc-stat-note">{tile.note}</div>

@@ -8,7 +8,12 @@ import { useDoc, useList } from "../lib/hooks";
 import { Money } from "../lib/format";
 import { canWriteStockCount } from "../lib/outbound-rbac";
 import { ApprovalPill, ApprovalTrail, isCleared, type ApprovalT } from "../components/approval";
+import { KpiStrip } from "../components/KpiStrip";
+import { Note } from "../components/Note";
 import { ListSearchBar } from "../components/SearchBox";
+import { Section } from "../components/Section";
+import { EmptyState } from "../components/States";
+import { Status, type StatusTone } from "../components/Status";
 import "./Booking.css";
 import { PageHeader } from "../components/PageHeader";
 
@@ -24,12 +29,10 @@ function fmtDate(iso: string): string {
   });
 }
 
-const DS_TONE: Record<number, string> = { 0: "grey", 1: "green", 2: "red" };
+const DS_TONE: Record<number, StatusTone> = { 0: "grey", 1: "green", 2: "red" };
 const DS_LABEL: Record<number, string> = { 0: "Draft", 1: "Submitted", 2: "Cancelled" };
 function DocPill({ ds }: { ds: number }) {
-  return (
-    <span className={`chip chip-${DS_TONE[ds] ?? "grey"} status-pill`}>{DS_LABEL[ds] ?? ds}</span>
-  );
+  return <Status tone={DS_TONE[ds] ?? "grey"}>{DS_LABEL[ds] ?? ds}</Status>;
 }
 
 // ---------------------------------------------------------------------------
@@ -116,11 +119,11 @@ export function WriteOffListPage() {
       {loading ? (
         <p className="lead">Loading…</p>
       ) : data.length === 0 ? (
-        <div className="card section-card" data-testid="writeoff-empty">
+        <EmptyState testId="writeoff-empty">
           {q
             ? `No write-off matches “${q}”.`
             : "No write-offs yet. Create one for dead stock or refused defectives."}
-        </div>
+        </EmptyState>
       ) : (
         <div className="table-wrap">
           <table className="data" data-testid="writeoff-table">
@@ -257,155 +260,150 @@ export function WriteOffNewPage() {
       >
         <ArrowLeft size={15} /> Write-offs
       </Link>
-      <h1 className="h1 h2-rust" style={{ marginBottom: 18 }}>
+      <h1 className="h1" style={{ marginBottom: 18 }}>
         New Write-off
       </h1>
 
-      <div className="card section-card">
-        <p className="eyebrow">Step 1 · Write-off details</p>
-        <div className="form-row" style={{ marginTop: 10 }}>
-          <div className="field">
-            <label>Store</label>
-            {storeLocked && lockedStore ? (
-              <div className="store-lock" data-testid="wo-store-locked">
-                {lockedStore.code} · {lockedStore.name}
+      <div className="page">
+        <Section heading="Step 1 · Write-off details">
+          <div className="form-row">
+            <div className="field">
+              <label>Store</label>
+              {storeLocked && lockedStore ? (
+                <div className="store-lock" data-testid="wo-store-locked">
+                  {lockedStore.code} · {lockedStore.name}
+                </div>
+              ) : (
+                <select
+                  className="select"
+                  value={storeId}
+                  onChange={(e) => setStoreId(e.target.value)}
+                  data-testid="wo-store-select"
+                >
+                  <option value="">Select store…</option>
+                  {stores.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.code} · {s.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div className="field">
+              <label>Reason</label>
+              <input
+                className="input"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="e.g. Dead stock clearance, refused defectives"
+                data-testid="wo-reason"
+              />
+            </div>
+            <div className="field">
+              <label>Approval</label>
+              <div className="store-lock" data-testid="wo-approved-by">
+                Goes to Action Needed — someone other than you must approve it before it can post.
               </div>
-            ) : (
-              <select
-                className="select"
-                value={storeId}
-                onChange={(e) => setStoreId(e.target.value)}
-                data-testid="wo-store-select"
-              >
-                <option value="">Select store…</option>
-                {stores.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.code} · {s.name}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
-          <div className="field">
-            <label>Reason</label>
-            <input
-              className="input"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="e.g. Dead stock clearance, refused defectives"
-              data-testid="wo-reason"
-            />
-          </div>
-          <div className="field">
-            <label>Approval</label>
-            <div className="store-lock" data-testid="wo-approved-by">
-              Goes to Action Needed — someone other than you must approve it before it can post.
             </div>
           </div>
-        </div>
-      </div>
+        </Section>
 
-      <div className="card section-card">
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 10,
-          }}
+        <Section
+          heading="Step 2 · Items to write off"
+          ruled
+          aside={
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => setLines((l) => [...l, emptyLine()])}
+              data-testid="add-wo-line"
+            >
+              <Plus size={15} /> Add line
+            </button>
+          }
         >
-          <div>
-            <p className="eyebrow">Step 2 · Items to write off</p>
-            <h3 className="h3">Write-off lines</h3>
-          </div>
+          <table className="lines-table" data-testid="wo-lines">
+            <thead>
+              <tr>
+                <th style={{ width: "24%" }}>SKU code</th>
+                <th>Design</th>
+                <th>Size</th>
+                <th>Colour</th>
+                <th className="num">Qty</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {lines.map((l, i) => (
+                <tr key={i}>
+                  <td>
+                    <input
+                      value={l.sku_code}
+                      onChange={(e) => setLine(i, "sku_code", e.target.value)}
+                      data-testid={`wo-sku-${i}`}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      value={l.design}
+                      onChange={(e) => setLine(i, "design", e.target.value)}
+                      data-testid={`wo-design-${i}`}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      value={l.size}
+                      onChange={(e) => setLine(i, "size", e.target.value)}
+                      data-testid={`wo-size-${i}`}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      value={l.color}
+                      onChange={(e) => setLine(i, "color", e.target.value)}
+                      data-testid={`wo-color-${i}`}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="num"
+                      value={l.qty}
+                      onChange={(e) => setLine(i, "qty", e.target.value)}
+                      data-testid={`wo-qty-${i}`}
+                    />
+                  </td>
+                  <td className="act">
+                    <button
+                      type="button"
+                      className="line-del"
+                      onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))}
+                      data-testid={`delete-wo-line-${i}`}
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Section>
+
+        {error && (
+          <Note tone="error" testId="wo-create-error">
+            {error}
+          </Note>
+        )}
+        <div>
           <button
-            type="button"
-            className="btn"
-            onClick={() => setLines((l) => [...l, emptyLine()])}
-            data-testid="add-wo-line"
+            className="btn btn-primary btn-lg"
+            disabled={saving}
+            onClick={save}
+            data-testid="save-wo-btn"
           >
-            <Plus size={15} /> Add line
+            <FileX2 size={16} /> {saving ? "Saving…" : "Create write-off (draft)"}
           </button>
         </div>
-        <table className="lines-table" data-testid="wo-lines">
-          <thead>
-            <tr>
-              <th style={{ width: "24%" }}>SKU code</th>
-              <th>Design</th>
-              <th>Size</th>
-              <th>Colour</th>
-              <th className="num">Qty</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {lines.map((l, i) => (
-              <tr key={i}>
-                <td>
-                  <input
-                    value={l.sku_code}
-                    onChange={(e) => setLine(i, "sku_code", e.target.value)}
-                    data-testid={`wo-sku-${i}`}
-                  />
-                </td>
-                <td>
-                  <input
-                    value={l.design}
-                    onChange={(e) => setLine(i, "design", e.target.value)}
-                    data-testid={`wo-design-${i}`}
-                  />
-                </td>
-                <td>
-                  <input
-                    value={l.size}
-                    onChange={(e) => setLine(i, "size", e.target.value)}
-                    data-testid={`wo-size-${i}`}
-                  />
-                </td>
-                <td>
-                  <input
-                    value={l.color}
-                    onChange={(e) => setLine(i, "color", e.target.value)}
-                    data-testid={`wo-color-${i}`}
-                  />
-                </td>
-                <td>
-                  <input
-                    className="num"
-                    value={l.qty}
-                    onChange={(e) => setLine(i, "qty", e.target.value)}
-                    data-testid={`wo-qty-${i}`}
-                  />
-                </td>
-                <td>
-                  <button
-                    type="button"
-                    className="line-del"
-                    onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))}
-                    data-testid={`delete-wo-line-${i}`}
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </div>
-
-      {error && (
-        <div className="login-error" style={{ maxWidth: 480 }} data-testid="wo-create-error">
-          {error}
-        </div>
-      )}
-      <button
-        className="btn btn-primary btn-lg"
-        disabled={saving}
-        onClick={save}
-        data-testid="save-wo-btn"
-      >
-        <FileX2 size={16} /> {saving ? "Saving…" : "Create write-off (draft)"}
-      </button>
     </div>
   );
 }
@@ -461,10 +459,10 @@ export function WriteOffDetailPage() {
       </Link>
       <div className="toolbar">
         <div>
-          <p className="eyebrow">{w.doc_number || `Draft #${w.id}`}</p>
           <h1 className="h1">Write-off — {w.store_code}</h1>
           <p className="lead">
-            {w.store_name} · {w.reason || "No reason"}
+            <span className="mono">{w.doc_number || `Draft #${w.id}`}</span> · {w.store_name} ·{" "}
+            {w.reason || "No reason"}
           </p>
         </div>
         <div className="spacer" />
@@ -483,23 +481,16 @@ export function WriteOffDetailPage() {
         )}
       </div>
 
-      <div className="form-row" style={{ marginBottom: 18 }}>
-        <div className="card section-card">
-          <p className="eyebrow">Total qty</p>
-          <h3 className="h3">{totalQty} pcs</h3>
-        </div>
-        <div className="card section-card">
-          <p className="eyebrow">Est. value</p>
-          <h3 className="h3">{totalValue ? <Money paise={totalValue} /> : "—"}</h3>
-        </div>
-        <div className="card section-card">
-          <p className="eyebrow">Lines</p>
-          <h3 className="h3">{w.lines.length}</h3>
-        </div>
-        <div className="card section-card">
-          <p className="eyebrow">Date</p>
-          <h3 className="h3">{fmtDate(w.created_at)}</h3>
-        </div>
+      <div style={{ marginBottom: 18 }}>
+        <KpiStrip
+          label="Write-off"
+          items={[
+            { label: "Total qty", value: `${totalQty} pcs` },
+            { label: "Est. value", value: totalValue ? <Money paise={totalValue} /> : "—" },
+            { label: "Lines", value: w.lines.length },
+            { label: "Date", value: fmtDate(w.created_at) },
+          ]}
+        />
       </div>
 
       <div style={{ marginBottom: 18 }}>
@@ -513,9 +504,9 @@ export function WriteOffDetailPage() {
       </div>
 
       {error && (
-        <div className="login-error" style={{ maxWidth: 480 }} data-testid="wo-detail-error">
+        <Note tone="error" testId="wo-detail-error">
           {error}
-        </div>
+        </Note>
       )}
 
       <div className="table-wrap">

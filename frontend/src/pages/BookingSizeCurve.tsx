@@ -14,6 +14,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import "./Shared.css";
 
+import { Note } from "../components/Note";
 import { api, apiErrorCode, apiErrorMessage, goodsMeta } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
 import {
@@ -144,18 +145,24 @@ export function SizeCurveNote({
   }
   if (state.kind === "none") {
     return (
-      <p className="warn-note" data-testid="gb-curve-none">
+      <Note tone="warn" testId="gb-curve-none">
         {storeLabel}: {state.data.message}
-      </p>
+      </Note>
     );
   }
   return (
-    <p className="warn-note" role="status" data-testid="gb-curve-offline">
-      {storeLabel}: {state.kind === "lost" ? LOST : state.message}{" "}
-      <button type="button" className="btn btn-sm" onClick={onRetry} data-testid="gb-curve-retry">
-        Try again
-      </button>
-    </p>
+    <Note
+      tone="warn"
+      role="status"
+      testId="gb-curve-offline"
+      action={
+        <button type="button" className="btn btn-sm" onClick={onRetry} data-testid="gb-curve-retry">
+          Try again
+        </button>
+      }
+    >
+      {storeLabel}: {state.kind === "lost" ? LOST : state.message}
+    </Note>
   );
 }
 
@@ -284,9 +291,9 @@ export function SizeCurveLineFill({
           </p>
         )}
         {error && (
-          <p className="warn-note" role="alert" data-testid={`gb-curve-error-${index}`}>
+          <Note tone="error" testId={`gb-curve-error-${index}`}>
             {error}
-          </p>
+          </Note>
         )}
       </td>
     </tr>

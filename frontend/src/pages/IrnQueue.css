@@ -40,11 +40,8 @@
   gap: 8px;
 }
 
-/* Sized here rather than with `.btn-sm`, which lives in `Shared.css`: a page
- * that depended on another page's stylesheet having been loaded would look
- * right only for as long as something else happened to import it. */
-.irn-record .input,
-.irn-record .btn {
+/* The input matches the row's `.btn-sm` buttons beside it. */
+.irn-record .input {
   padding: 6px 10px;
   font-size: 12px;
 }

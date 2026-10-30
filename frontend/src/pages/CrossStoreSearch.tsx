@@ -21,7 +21,10 @@ import {
   type AvailabilityRowT,
   type PickedRowT,
 } from "../lib/cross-store";
+import { Note } from "../components/Note";
 import { SearchBox } from "../components/SearchBox";
+import { Section } from "../components/Section";
+import { EmptyState } from "../components/States";
 import { PageHeader } from "../components/PageHeader";
 import { OperationsPage, OperationsTable } from "../components/OperationsPage";
 import { stockParams } from "../lib/stockWorkspace";
@@ -120,11 +123,9 @@ export default function CrossStoreSearch({ workspace }: { workspace?: StockWorks
       )}
 
       {!searchable && (
-        <div className="card section-card" data-testid="availability-hint">
-          <p className="lead">
-            Type at least {MIN_TERM} characters — or scan the tag — to see who has this piece.
-          </p>
-        </div>
+        <EmptyState testId="availability-hint">
+          Type at least {MIN_TERM} characters — or scan the tag — to see who has this piece.
+        </EmptyState>
       )}
 
       {searchable && loading && <p className="lead">Searching selected stock…</p>}
@@ -135,24 +136,24 @@ export default function CrossStoreSearch({ workspace }: { workspace?: StockWorks
       </p>
 
       {searchable && !loading && error && (
-        <div className="warn-note" data-testid="availability-error">
+        <Note tone="error" testId="availability-error">
           {error}
-        </div>
+        </Note>
       )}
 
       {searchable && !loading && !error && data && (
         <>
           {data.truncated && (
-            <div className="warn-note" data-testid="availability-truncated">
+            <Note tone="warn" testId="availability-truncated">
               Showing the first {data.results.length} styles only. Narrow the search — scan the tag
               or type the full design number.
-            </div>
+            </Note>
           )}
 
           {data.results.length === 0 ? (
-            <div className="card section-card" data-testid="availability-empty">
-              <p className="lead">No accessible stock in this selection matches “{term}”.</p>
-            </div>
+            <EmptyState testId="availability-empty">
+              No accessible stock in this selection matches “{term}”.
+            </EmptyState>
           ) : (
             data.results.map((design) => (
               <DesignCard
@@ -190,21 +191,21 @@ function DesignCard({
   const testId = `availability-design-${design.brand}-${design.design}`;
 
   return (
-    <div className="card section-card" data-testid={testId}>
-      <div className="toolbar" style={{ marginBottom: 10 }}>
-        <div>
-          <p className="eyebrow">{design.brand || "—"}</p>
-          <h3 className="h3">
-            <span className="mono">{design.design || "—"}</span>
-            {design.item ? ` · ${design.item}` : ""}
-          </h3>
-        </div>
-        <div className="spacer" />
-        <span className="chip chip-navy" data-testid={`${testId}-total`}>
+    <Section
+      ruled
+      testId={testId}
+      heading={
+        <>
+          {design.brand || "—"} · <span className="mono">{design.design || "—"}</span>
+          {design.item ? ` · ${design.item}` : ""}
+        </>
+      }
+      aside={
+        <span className="chip" data-testid={`${testId}-total`}>
           {totalQty(design)} pcs in this selection
         </span>
-      </div>
-
+      }
+    >
       <OperationsTable label={`Available sizes for ${design.item || design.design}`}>
         <table className="lines-table" data-testid={`${testId}-rows`}>
           <thead>
@@ -256,7 +257,7 @@ function DesignCard({
           </tbody>
         </table>
       </OperationsTable>
-    </div>
+    </Section>
   );
 }
 
@@ -335,8 +336,10 @@ function RequestPanel({
 
   return (
     <div data-testid="availability-request-panel">
-      <p className="eyebrow">
-        Ask {row.store} for {design.design} · {row.size} · {row.color || "—"}
+      <p>
+        <b>
+          Ask {row.store} for {design.design} · {row.size} · {row.color || "—"}
+        </b>
       </p>
       <div className="form-row" style={{ marginTop: 10 }}>
         <div className="field">
@@ -407,13 +410,9 @@ function RequestPanel({
       </p>
 
       {error && (
-        <div
-          className="login-error"
-          style={{ maxWidth: 480 }}
-          data-testid="availability-request-error"
-        >
+        <Note tone="error" testId="availability-request-error">
           {error}
-        </div>
+        </Note>
       )}
 
       <button

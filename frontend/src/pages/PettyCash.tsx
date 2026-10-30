@@ -3,8 +3,11 @@ import type { ReactNode } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 
 import { allowedUnits, useAuth } from "../auth/AuthContext";
+import { Note } from "../components/Note";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { Box, Section } from "../components/Section";
+import { Status, type StatusTone } from "../components/Status";
 import { api, apiErrorMessage, apiUrl } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
 import { Money, formatDateTime } from "../lib/format";
@@ -28,11 +31,11 @@ import "./Shared.css";
 import "./PettyCash.css";
 
 const API = "/sell/petty-cash";
-const STATUS_CHIP: Record<string, string> = {
-  spent: "chip-green",
-  waiting: "chip-amber",
-  approved: "chip-green",
-  rejected: "chip-red",
+const STATUS_TONE: Record<string, StatusTone> = {
+  spent: "green",
+  waiting: "amber",
+  approved: "green",
+  rejected: "red",
 };
 
 /** Money > Petty Cash (store operations PRD ST-MNY-3; ticket 42).
@@ -146,26 +149,26 @@ export function PettyCashPage() {
     <OperationsPage>
       <PageHeader lead="The store's petty cash box: who holds it, what went in, and every spend with its bill." />
       {!online && (
-        <p className="warn-note" data-testid="petty-offline">
+        <Note tone="warn" testId="petty-offline">
           You are offline. Petty cash is saved straight to head office, so nothing can be saved
           until the connection is back. What you have typed stays here.
-        </p>
+        </Note>
       )}
       {online && lost && (
-        <p className="warn-note" data-testid="petty-lost">
+        <Note tone="warn" testId="petty-lost">
           The connection dropped before head office answered. What you typed is still here; press
           Save again and it is saved once.
-        </p>
+        </Note>
       )}
       {error && (
-        <p className="till-alert" data-testid="petty-error">
+        <Note tone="error" testId="petty-error">
           {error}
-        </p>
+        </Note>
       )}
       {done && (
-        <p className="ok-note" data-testid="petty-done">
+        <Note tone="success" role="status" testId="petty-done">
           {done}
-        </p>
+        </Note>
       )}
 
       {!id && units.length > 1 && (
@@ -194,10 +197,10 @@ export function PettyCashPage() {
       ) : (
         <>
           {!position.switched_on && (
-            <p className="warn-note" data-testid="petty-switched-off">
+            <Note tone="warn" testId="petty-switched-off">
               Petty cash is switched off for {position.store_name}. What is saved is shown below;
               nothing new can be recorded.
-            </p>
+            </Note>
           )}
           <BoxCard position={position} live={live} busy={busy} send={send} />
           {position.switched_on && position.float && (
@@ -261,10 +264,10 @@ function BoxCard({
   }
 
   return (
-    <section className="card section-card" data-testid="petty-box">
-      <h3 className="section-title">
-        Petty cash box · {position.store_name} ({position.store})
-      </h3>
+    <Section
+      heading={`Petty cash box · ${position.store_name} (${position.store})`}
+      testId="petty-box"
+    >
       {box ? (
         <>
           <Row label="Float" testId="petty-float">
@@ -282,11 +285,11 @@ function BoxCard({
             </Row>
           )}
           {position.missing_bills > 0 && (
-            <p className="warn-note" data-testid="petty-missing-bills">
+            <Note tone="warn" testId="petty-missing-bills">
               {position.missing_bills === 1
                 ? "1 spend has no bill photo yet. Add it below."
                 : `${position.missing_bills} spends have no bill photo yet. Add them below.`}
-            </p>
+            </Note>
           )}
         </>
       ) : (
@@ -336,7 +339,7 @@ function BoxCard({
           </button>
         </div>
       )}
-    </section>
+    </Section>
   );
 }
 
@@ -386,8 +389,8 @@ function SpendForm({
   }
 
   return (
-    <section className="card section-card" data-testid="petty-spend-form">
-      <h3 className="section-title">Record a spend</h3>
+    <Box data-testid="petty-spend-form">
+      <h3 className="h3">Record a spend</h3>
       <label className="field">
         <span>Expense head</span>
         <select
@@ -443,16 +446,16 @@ function SpendForm({
         The box can pay <Money paise={freePaise(position)} />.
       </p>
       {owner && (
-        <p className="warn-note" data-testid="petty-spend-owner">
+        <Note tone="warn" testId="petty-spend-owner">
           Over <Money paise={position.approval_above_paise} />: this waits for the Owner's approval
           in the approvals inbox. Pay it only once it is approved.
-        </p>
+        </Note>
       )}
       {!bill && amountPaise > 0 && (
-        <p className="warn-note" data-testid="petty-spend-no-bill">
+        <Note tone="warn" testId="petty-spend-no-bill">
           No bill photo: it can be saved, but it stays an open exception for the store manager until
           the photo is added.
-        </p>
+        </Note>
       )}
       {blocked && amountPaise > 0 && (
         <p className="muted-cell" data-testid="petty-spend-blocked">
@@ -468,7 +471,7 @@ function SpendForm({
       >
         {busy ? "Saving…" : "Save the spend"}
       </button>
-    </section>
+    </Box>
   );
 }
 
@@ -520,8 +523,8 @@ function TopUpForm({
   }
 
   return (
-    <section className="card section-card" data-testid="petty-top-up-form">
-      <h3 className="section-title">Top up the box</h3>
+    <Box data-testid="petty-top-up-form">
+      <h3 className="h3">Top up the box</h3>
       <label className="field">
         <span>Where the cash comes from</span>
         <select
@@ -595,7 +598,7 @@ function TopUpForm({
       >
         Save the top-up
       </button>
-    </section>
+    </Box>
   );
 }
 
@@ -624,7 +627,7 @@ function BillCell({
       </a>
     );
   }
-  if (!canAdd) return <span className="chip chip-amber">No bill</span>;
+  if (!canAdd) return <Status tone="amber">No bill</Status>;
   return (
     <label className="btn btn-sm" data-testid={`petty-add-bill-${spend.id}`}>
       Add bill photo
@@ -659,8 +662,7 @@ function SpendList({
 }) {
   const canAdd = live && position.switched_on;
   return (
-    <section className="card section-card" data-testid="petty-spends">
-      <h3 className="section-title">Spends</h3>
+    <Section heading="Spends" ruled testId="petty-spends">
       {position.spends.length === 0 ? (
         <p className="muted-cell">No spend is recorded yet.</p>
       ) : (
@@ -687,9 +689,9 @@ function SpendList({
                     <Money paise={spend.amount_paise} />
                   </td>
                   <td>
-                    <span className={`chip ${STATUS_CHIP[spend.status] ?? ""}`}>
+                    <Status tone={STATUS_TONE[spend.status] ?? "grey"}>
                       {STATUS_LABEL[spend.status] ?? spend.status}
-                    </span>
+                    </Status>
                     {spend.reject_reason && <div className="muted-cell">{spend.reject_reason}</div>}
                   </td>
                   <td>
@@ -702,14 +704,13 @@ function SpendList({
           </table>
         </div>
       )}
-    </section>
+    </Section>
   );
 }
 
 function TopUpList({ position }: { position: PettyPosition }) {
   return (
-    <section className="card section-card" data-testid="petty-top-ups">
-      <h3 className="section-title">Top-ups</h3>
+    <Section heading="Top-ups" ruled testId="petty-top-ups">
       {position.top_ups.length === 0 ? (
         <p className="muted-cell">No top-up is recorded yet.</p>
       ) : (
@@ -744,17 +745,21 @@ function TopUpList({ position }: { position: PettyPosition }) {
           </table>
         </div>
       )}
-    </section>
+    </Section>
   );
 }
 
 /** The one spend the Owner opened from the approvals inbox. */
 function OpenedSpend({ spend }: { spend: PettySpend }) {
   return (
-    <section className="card section-card" data-testid="petty-opened">
-      <h3 className="section-title">
-        {spend.head} · <Money paise={spend.amount_paise} /> · {spend.store}
-      </h3>
+    <Section
+      heading={
+        <>
+          {spend.head} · <Money paise={spend.amount_paise} /> · {spend.store}
+        </>
+      }
+      testId="petty-opened"
+    >
       <Row label="Where it stands" testId="petty-opened-status">
         {STATUS_LABEL[spend.status] ?? spend.status}
       </Row>
@@ -777,6 +782,6 @@ function OpenedSpend({ spend }: { spend: PettySpend }) {
           Approve or reject it in the <Link to="/approvals">approvals inbox</Link>.
         </p>
       )}
-    </section>
+    </Section>
   );
 }

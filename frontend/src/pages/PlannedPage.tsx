@@ -1,7 +1,9 @@
 import { useLocation } from "react-router-dom";
-import { Compass } from "lucide-react";
 
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
+import { EmptyState } from "../components/States";
+import { Status } from "../components/Status";
 import { NAV_ITEMS, SECTIONS, itemPath, normalizePath } from "../shell/navConfig";
 import { PLANNED_PAGES, STAGE_LABEL, STAGE_TONE } from "./plannedPages";
 import "./PlannedPage.css";
@@ -23,34 +25,24 @@ function screenAt(pathname: string) {
  *  report the client is holding cannot tell two different stories. */
 export function PlannedPage() {
   const { pathname } = useLocation();
-  const { target, screen, section } = screenAt(pathname);
+  const { target, screen } = screenAt(pathname);
   const planned = PLANNED_PAGES[target];
   if (!planned) return <NotFound />;
-
-  const Icon = section?.icon ?? Compass;
-  const layer = section?.layer ?? "documents";
 
   return (
     <div className="page-pad">
       <PageHeader
         {...(screen ? { title: screen.label } : {})}
         actions={
-          <span className={`chip chip-${STAGE_TONE[planned.module.stage]}`}>
+          // The build stage is a state: blue while it is scheduled, grey once it is "later".
+          <Status tone={STAGE_TONE[planned.module.stage] === "blue" ? "blue" : "grey"}>
             {STAGE_LABEL[planned.module.stage]}
-          </span>
+          </Status>
         }
       />
       <p className="lead planned-summary">{planned.summary}</p>
 
-      <div
-        className="card planned-card"
-        style={{ borderTop: `3px solid var(--layer-${layer})` }}
-        data-testid="planned-page"
-      >
-        <div className="planned-medallion" style={{ color: `var(--layer-${layer})` }}>
-          <Icon size={24} />
-        </div>
-        <h3 className="h3">What will live here</h3>
+      <Section heading="What will live here" className="planned-card" testId="planned-page">
         <ul className="planned-list">
           {planned.contains.map((line) => (
             <li key={line}>{line}</li>
@@ -58,14 +50,13 @@ export function PlannedPage() {
         </ul>
 
         {planned.notes && (
-          <div className="planned-notes">
-            <p className="planned-notes-head">Worth knowing</p>
+          <Section level={3} heading="Worth knowing" className="planned-notes">
             {planned.notes.map((note) => (
               <p key={note}>{note}</p>
             ))}
-          </div>
+          </Section>
         )}
-      </div>
+      </Section>
 
       <p className="planned-stamp">
         Not built yet — part of <b>{planned.module.name}</b> in the module-wise build-status report
@@ -82,15 +73,10 @@ export function NotFound() {
   return (
     <div className="page-pad">
       <h1 className="h1">Nothing at this address</h1>
-      <div className="card planned-card" data-testid="not-found">
-        <div className="planned-medallion" style={{ color: "var(--muted)" }}>
-          <Compass size={24} />
-        </div>
-        <p className="lead" style={{ maxWidth: 560 }}>
-          This is not a screen. Use the sidebar, or the search box at the top, to get where you were
-          going.
-        </p>
-      </div>
+      <EmptyState testId="not-found">
+        This is not a screen. Use the sidebar, or the search box at the top, to get where you were
+        going.
+      </EmptyState>
     </div>
   );
 }

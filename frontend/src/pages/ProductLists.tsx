@@ -8,7 +8,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Check, FileSpreadsheet, FileUp, RefreshCw, Send, X } from "lucide-react";
 
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
+import { SegmentedControl } from "../components/SegmentedControl";
+import { Status, type StatusTone } from "../components/Status";
 import { useAuth } from "../auth/AuthContext";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import { formatDateTime } from "../lib/format";
@@ -17,7 +21,6 @@ import { Feedback, hold, useStepUp, type Page } from "../lib/goodsScreen";
 import {
   MASTER_SHEET_BASE,
   STATE_LABEL,
-  STATE_TONE,
   planTotals,
   submitBlockers,
   withAcknowledged,
@@ -161,27 +164,19 @@ export function ProductListsPage() {
         title="Product lists"
         lead="Season, brand, colour, gender, sub category, type, item, fit and size all come from the KDPS master sheet. Upload it here and a second person approves it."
       />
-      <div className="seg" role="tablist" aria-label="Product lists">
-        {(
+      {/* Which part of the page shows (kept in ?tab=): a view switch, not a tab panel. */}
+      <SegmentedControl
+        label="Product lists"
+        options={(
           [
             ["upload", "Upload sheet"],
             ["lists", "Current lists"],
             ["history", "History"],
           ] as const
-        ).map(([key, label]) => (
-          <button
-            key={key}
-            type="button"
-            role="tab"
-            aria-selected={tab === key}
-            className={`seg-btn ${tab === key ? "active" : ""}`}
-            data-testid={`pl-tab-${key}`}
-            onClick={() => show(key)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+        ).map(([key, label]) => ({ value: key, label, testId: `pl-tab-${key}` }))}
+        value={tab}
+        onChange={show}
+      />
       <Feedback error={error} ok={ok} />
       {stepUp.dialog}
 
@@ -236,6 +231,18 @@ export function ProductListsPage() {
   );
 }
 
+/** An upload's state as a status word: amber while it is being reviewed, blue
+ *  while it waits for a second person, green once approved, grey withdrawn. */
+function stateTone(state: MasterSheetImport["state"]): StatusTone {
+  return state === "review"
+    ? "amber"
+    : state === "submitted"
+      ? "blue"
+      : state === "approved"
+        ? "green"
+        : "grey";
+}
+
 function Steps({ item }: { item: MasterSheetImport | null }) {
   const at =
     !item || item.state === "withdrawn"
@@ -261,7 +268,7 @@ function Steps({ item }: { item: MasterSheetImport | null }) {
 function UploadCard({ busy, onFile }: { busy: boolean; onFile: (file: File) => void }) {
   const [over, setOver] = useState(false);
   return (
-    <section className="card section-card">
+    <div className="pl-upload">
       <label
         className={`dropzone pl-drop ${over ? "over" : ""}`}
         data-testid="pl-dropzone"
@@ -297,7 +304,7 @@ function UploadCard({ busy, onFile }: { busy: boolean; onFile: (file: File) => v
           Only the first sheet, “Master Sheet”, is read. Nothing changes until it is approved.
         </span>
       </label>
-    </section>
+    </div>
   );
 }
 
@@ -334,9 +341,9 @@ function Review({
 
   return (
     <div className="pl-review" data-testid="pl-review">
-      <section className="card section-card pl-file">
+      <div className="box pl-file">
         <div>
-          <p className="eyebrow">
+          <p className="pl-file-name">
             <FileSpreadsheet size={14} aria-hidden /> {item.source_name}
           </p>
           <p className="muted-cell">
@@ -345,20 +352,25 @@ function Review({
             {item.created_at ? ` · ${formatDateTime(item.created_at)}` : ""}
           </p>
         </div>
-        <span className={`chip ${STATE_TONE[item.state]}`} data-testid="pl-state">
+        <Status tone={stateTone(item.state)} testId="pl-state">
           {STATE_LABEL[item.state]}
-        </span>
-      </section>
+        </Status>
+      </div>
 
       {item.data.stale && (
-        <div className="warn-note pl-row" data-testid="pl-stale">
+        <Note
+          tone="warn"
+          testId="pl-stale"
+          action={
+            item.allowed_actions.includes("refresh") && (
+              <button className="btn btn-sm" disabled={busy} onClick={onRefresh}>
+                <RefreshCw size={14} /> Check again
+              </button>
+            )
+          }
+        >
           The lists changed since this sheet was uploaded.
-          {item.allowed_actions.includes("refresh") && (
-            <button className="btn btn-sm" disabled={busy} onClick={onRefresh}>
-              <RefreshCw size={14} /> Check again
-            </button>
-          )}
-        </div>
+        </Note>
       )}
 
       <div className="stat-grid" data-testid="pl-totals">
@@ -379,8 +391,7 @@ function Review({
       </div>
 
       {(plan.warnings.length > 0 || looksLike.length > 0) && (
-        <section className="card section-card" data-testid="pl-attention">
-          <h3 className="h3">Check these first</h3>
+        <Section level={3} heading="Check these first" ruled testId="pl-attention">
           {plan.warnings.map((w) => (
             <label key={w.id} className="pl-check">
               <input
@@ -406,11 +417,10 @@ function Review({
               )}
             </div>
           ))}
-        </section>
+        </Section>
       )}
 
-      <section className="card section-card">
-        <h3 className="h3">Lists</h3>
+      <Section level={3} heading="Lists" ruled>
         <p className="muted-cell">
           Values already in the app stay. A value missing from the sheet is only retired if you tick
           it.
@@ -425,13 +435,12 @@ function Review({
             onChoose={onChoose}
           />
         ))}
-      </section>
+      </Section>
 
       <BrandsBlock item={item} editable={editable} busy={busy} onChoose={onChoose} />
 
       {plan.seasons.to_create.length > 0 && (
-        <section className="card section-card">
-          <h3 className="h3">Seasons to create ({plan.seasons.to_create.length})</h3>
+        <Section level={3} heading={`Seasons to create (${plan.seasons.to_create.length})`} ruled>
           <div className="chip-picker">
             {plan.seasons.to_create.map((s) => (
               <Toggle
@@ -443,7 +452,7 @@ function Review({
               />
             ))}
           </div>
-        </section>
+        </Section>
       )}
 
       <RulesBlock item={item} editable={editable} busy={busy} onChoose={onChoose} />
@@ -520,7 +529,7 @@ function Review({
 
 function Stat({ value, label, tone = "" }: { value: number; label: string; tone?: string }) {
   return (
-    <div className={`card stat-card ${tone ? `pl-${tone}` : ""}`}>
+    <div className={`stat-card ${tone ? `pl-${tone}` : ""}`}>
       <span className="stat-value tabular">{value.toLocaleString("en-IN")}</span>
       <span className="stat-label">{label}</span>
     </div>
@@ -541,7 +550,7 @@ function Toggle({
   return (
     <button
       type="button"
-      className={`chip chip-pick ${on ? "chip-green" : "pl-off"}`}
+      className={`filter-chip ${on ? "" : "pl-off"}`}
       aria-pressed={on}
       disabled={disabled}
       title={on ? "Click to leave out" : "Click to include"}
@@ -583,7 +592,7 @@ function DimensionBlock({
       <summary>
         <strong>{d.column}</strong>
         <span className="muted-cell">{parts.join(" · ") || "no values"}</span>
-        {d.changed && <span className="chip chip-blue">changes</span>}
+        {d.changed && <Status tone="blue">changes</Status>}
       </summary>
       {(d.added.length > 0 || d.left_out.length > 0) && (
         <>
@@ -620,7 +629,7 @@ function DimensionBlock({
           <p className="pl-sub">In the app but not in the sheet — tick to retire</p>
           <div className="chip-picker">
             {d.not_in_sheet.map((v) => (
-              <label key={v.value_id} className={`chip ${v.retire ? "chip-red" : ""} pl-retire`}>
+              <label key={v.value_id} className="chip pl-retire">
                 <input
                   type="checkbox"
                   checked={v.retire}
@@ -633,11 +642,17 @@ function DimensionBlock({
           </div>
         </>
       )}
-      {other.map((p) => (
-        <p key={`${p.row}-${p.code}`} className={p.blocking ? "warn-note" : "muted-cell"}>
-          Row {p.row}: {p.text} — {p.message}
-        </p>
-      ))}
+      {other.map((p) =>
+        p.blocking ? (
+          <Note key={`${p.row}-${p.code}`} tone="warn">
+            Row {p.row}: {p.text} — {p.message}
+          </Note>
+        ) : (
+          <p key={`${p.row}-${p.code}`} className="muted-cell">
+            Row {p.row}: {p.text} — {p.message}
+          </p>
+        ),
+      )}
     </details>
   );
 }
@@ -666,8 +681,7 @@ function BrandsBlock({
     );
   }
   return (
-    <section className="card section-card" data-testid="pl-brands">
-      <h3 className="h3">Brands</h3>
+    <Section level={3} heading="Brands" ruled testId="pl-brands">
       <p className="muted-cell">
         {b.to_create.filter((x) => x.include).length} to create · {b.present_count} already set up.{" "}
         {b.terms_note} <Link to="/setup/products-parties?type=brands">Brands</Link>
@@ -710,7 +724,7 @@ function BrandsBlock({
           <p className="muted-cell">{b.not_in_sheet.map((x) => x.name).join(", ")}</p>
         </details>
       )}
-    </section>
+    </Section>
   );
 }
 
@@ -741,8 +755,7 @@ function RulesBlock({
     ) : null;
   }
   return (
-    <section className="card section-card" data-testid="pl-rules">
-      <h3 className="h3">ITEM → SUB CATEGORY / TYPE suggestions</h3>
+    <Section level={3} heading="ITEM → SUB CATEGORY / TYPE suggestions" ruled testId="pl-rules">
       <p className="muted-cell">
         The sheet's last two columns. On a PT, picking an ITEM suggests these. {rows.length} to set
         {r.same_count ? ` · ${r.same_count} already match` : ""}.
@@ -804,9 +817,7 @@ function RulesBlock({
                     );
                   })}
                   <td>
-                    <span className={`chip ${changed ? "chip-amber" : "chip-blue"}`}>
-                      {changed ? "Changed" : "New"}
-                    </span>
+                    <Status tone={changed ? "amber" : "blue"}>{changed ? "Changed" : "New"}</Status>
                   </td>
                 </tr>
               ))}
@@ -821,7 +832,7 @@ function RulesBlock({
             Row {p.row}: {p.message}
           </p>
         ))}
-    </section>
+    </Section>
   );
 }
 
@@ -834,10 +845,15 @@ function Done({ item, onAnother }: { item: MasterSheetImport; onAnother: () => v
     corrected_rule_ids?: string[];
   };
   return (
-    <section className="card section-card" data-testid="pl-done">
-      <h3 className="h3">
-        <Check size={18} /> Approved by {item.data.approved_by || "a second person"}
-      </h3>
+    <Section
+      level={3}
+      heading={
+        <>
+          <Check size={18} aria-hidden /> Approved by {item.data.approved_by || "a second person"}
+        </>
+      }
+      testId="pl-done"
+    >
       <ul className="pl-done-list">
         <li>{Object.keys(r.config_versions ?? {}).length} lists updated</li>
         <li>{r.brand_ids?.length ?? 0} brands created — set their terms on the Brands screen</li>
@@ -857,7 +873,7 @@ function Done({ item, onAnother }: { item: MasterSheetImport; onAnother: () => v
           <FileUp size={14} /> Upload another sheet
         </button>
       </div>
-    </section>
+    </Section>
   );
 }
 
@@ -874,26 +890,25 @@ function CurrentLists({
   const wrong = rates.filter((r) => !r.expected);
   return (
     <div data-testid="pl-lists">
-      <section className="card section-card pl-row">
-        <div>
-          <h3 className="h3">KDPS PT file</h3>
+      <Section level={3} heading="KDPS PT file">
+        <div className="pl-row">
           <p className="muted-cell">
             The Master Sheet with today's lists, and a blank Work Sheet with the same dropdowns and
             formulas. Fill one Work Sheet and upload it on PT Work.
           </p>
+          <button
+            className="btn btn-primary"
+            disabled={busy}
+            onClick={onDownload}
+            data-testid="pl-download"
+          >
+            <FileSpreadsheet size={14} /> Download PT file
+          </button>
         </div>
-        <button
-          className="btn btn-primary"
-          disabled={busy}
-          onClick={onDownload}
-          data-testid="pl-download"
-        >
-          <FileSpreadsheet size={14} /> Download PT file
-        </button>
-      </section>
+      </Section>
       <div className="stat-grid">
         {summary.lists.map((l) => (
-          <div key={l.dimension} className="card stat-card">
+          <div key={l.dimension} className="stat-card">
             <span className="stat-value tabular">{l.active.toLocaleString("en-IN")}</span>
             <span className="stat-label">
               {l.column}
@@ -905,29 +920,28 @@ function CurrentLists({
         <Stat value={summary.seasons} label="Season masters" />
         <Stat value={summary.item_rules} label="ITEM suggestions" />
       </div>
-      <section className="card section-card" data-testid="pl-prate">
-        <h3 className="h3">P RATE</h3>
+      <Section level={3} heading="P RATE" ruled testId="pl-prate">
         <p>
           KDPS buys at <strong>P RATE = BASIC × {summary.p_rate.expected_factor}</strong>.
         </p>
         {rates.length === 0 && (
-          <p className="warn-note">
+          <Note tone="warn">
             No rates are in force yet. Set transport to 10% in{" "}
             <Link to="/setup/configuration">Configuration → rates</Link>.
-          </p>
+          </Note>
         )}
         {wrong.map((r) => (
-          <p key={r.rates_version_id} className="warn-note">
+          <Note key={r.rates_version_id} tone="warn">
             A rates setting in force uses BASIC × {r.factor} (transport {r.transport_pct}%). Change
             it to 10% in <Link to="/setup/configuration">Configuration → rates</Link>.
-          </p>
+          </Note>
         ))}
         {rates.length > 0 && wrong.length === 0 && (
-          <p className="ok-note">
+          <Note tone="success">
             The rates in force match: BASIC × {summary.p_rate.expected_factor}.
-          </p>
+          </Note>
         )}
-      </section>
+      </Section>
       <p className="muted-cell">
         To change one value, use <Link to="/setup/configuration">Configuration</Link>. To change
         many, upload the master sheet again.
@@ -965,7 +979,7 @@ function History({
               <td>{item.data.uploaded_by}</td>
               <td className="tabular">{item.data.plan.change_count}</td>
               <td>
-                <span className={`chip ${STATE_TONE[item.state]}`}>{STATE_LABEL[item.state]}</span>
+                <Status tone={stateTone(item.state)}>{STATE_LABEL[item.state]}</Status>
               </td>
               <td>
                 <button className="btn btn-sm" onClick={() => onOpen(item)}>

@@ -23,7 +23,7 @@ export function CustomerCard({ plus, locked }: { plus: Plus; locked: boolean }) 
   return (
     <section className="plus-card" data-testid="plus-customer">
       <header className="plus-head">
-        <h3 className="eyebrow">Customer</h3>
+        <h3 className="heading">Customer</h3>
         <span>Optional. A bill never waits for it.</span>
       </header>
       <div className="plus-row">
@@ -94,7 +94,7 @@ function Found({
   return (
     <section className="plus-card" data-testid="plus-customer">
       <header className="plus-head">
-        <h3 className="eyebrow">Customer</h3>
+        <h3 className="heading">Customer</h3>
         <button
           type="button"
           className="plus-x"
@@ -154,7 +154,7 @@ function Register({ plus, start }: { plus: Plus; start: string }) {
   return (
     <section className="plus-card" data-testid="plus-register">
       <header className="plus-head">
-        <h3 className="eyebrow">Register customer</h3>
+        <h3 className="heading">Register customer</h3>
         <button
           type="button"
           className="plus-x"

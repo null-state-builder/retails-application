@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { PageHeader } from "../components/PageHeader";
+import { Note } from "../components/Note";
+import { Status } from "../components/Status";
 import { api, apiErrorMessage } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import {
@@ -126,23 +128,26 @@ export function AuditLogPage() {
 
   const disabled = !online || busy;
   const offlineNote = (!online || lost) && (
-    <p className="warn-note" data-testid="audit-log-offline" role="status">
-      {OFFLINE}
-      {online && (
-        <>
-          {" "}
+    <Note
+      tone="warn"
+      role="status"
+      testId="audit-log-offline"
+      action={
+        online && (
           <button
             type="button"
-            className="btn"
+            className="btn btn-sm"
             data-testid="audit-log-retry"
             disabled={busy}
             onClick={() => void load(filters)}
           >
             Try again
           </button>
-        </>
-      )}
-    </p>
+        )
+      }
+    >
+      {OFFLINE}
+    </Note>
   );
 
   if (!data) {
@@ -151,9 +156,9 @@ export function AuditLogPage() {
         <PageHeader title="Audit Log" />
         {offlineNote}
         {error ? (
-          <p className="warn-note" data-testid="audit-log-error">
+          <Note tone="error" testId="audit-log-error">
             {error}
-          </p>
+          </Note>
         ) : (
           online && !lost && <p>Loading the audit log…</p>
         )}
@@ -168,142 +173,140 @@ export function AuditLogPage() {
         lead="Every recorded change at your stores: who, what, when, where, and the values before and after. Entries cannot be changed or deleted."
       />
       {offlineNote}
-      <section className="card section-card">
-        <div className="toolbar" data-testid="audit-log-filters">
-          <label className="field">
-            <span>Person</span>
-            <select
-              className="input"
-              data-testid="audit-filter-person"
-              value={filters.person}
-              disabled={disabled}
-              onChange={(event) => set("person", event.target.value)}
-            >
-              <option value="">Everyone</option>
-              {data.people.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>Store</span>
-            <select
-              className="input"
-              data-testid="audit-filter-store"
-              value={filters.store}
-              disabled={disabled}
-              onChange={(event) => set("store", event.target.value)}
-            >
-              <option value="">All my stores</option>
-              {data.stores.map((s) => (
-                <option key={s.id} value={String(s.id)}>
-                  {s.name} ({s.code})
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>Record type</span>
-            <select
-              className="input"
-              data-testid="audit-filter-record-type"
-              value={filters.record_type}
-              disabled={disabled}
-              onChange={(event) => set("record_type", event.target.value)}
-            >
-              <option value="">All</option>
-              {data.record_types.map((t) => (
-                <option key={t} value={t}>
-                  {t.replace(/_/g, " ")}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>From</span>
-            <input
-              className="input"
-              type="date"
-              data-testid="audit-filter-from"
-              value={filters.date_from}
-              disabled={disabled}
-              onChange={(event) => set("date_from", event.target.value)}
-            />
-          </label>
-          <label className="field">
-            <span>To</span>
-            <input
-              className="input"
-              type="date"
-              data-testid="audit-filter-to"
-              value={filters.date_to}
-              disabled={disabled}
-              onChange={(event) => set("date_to", event.target.value)}
-            />
-          </label>
-          <button
-            type="button"
-            className="btn"
-            data-testid="audit-log-clear"
+      <div className="toolbar" data-testid="audit-log-filters">
+        <label className="field">
+          <span>Person</span>
+          <select
+            className="input"
+            data-testid="audit-filter-person"
+            value={filters.person}
             disabled={disabled}
-            onClick={() => setFilters(NO_FILTERS)}
+            onChange={(event) => set("person", event.target.value)}
           >
-            Clear
-          </button>
-          <button
-            type="button"
-            className="btn btn-primary"
-            data-testid="audit-log-export"
+            <option value="">Everyone</option>
+            {data.people.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span>Store</span>
+          <select
+            className="input"
+            data-testid="audit-filter-store"
+            value={filters.store}
             disabled={disabled}
-            onClick={() => void exportWorkbook()}
+            onChange={(event) => set("store", event.target.value)}
           >
-            Export to Excel
-          </button>
+            <option value="">All my stores</option>
+            {data.stores.map((s) => (
+              <option key={s.id} value={String(s.id)}>
+                {s.name} ({s.code})
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span>Record type</span>
+          <select
+            className="input"
+            data-testid="audit-filter-record-type"
+            value={filters.record_type}
+            disabled={disabled}
+            onChange={(event) => set("record_type", event.target.value)}
+          >
+            <option value="">All</option>
+            {data.record_types.map((t) => (
+              <option key={t} value={t}>
+                {t.replace(/_/g, " ")}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span>From</span>
+          <input
+            className="input"
+            type="date"
+            data-testid="audit-filter-from"
+            value={filters.date_from}
+            disabled={disabled}
+            onChange={(event) => set("date_from", event.target.value)}
+          />
+        </label>
+        <label className="field">
+          <span>To</span>
+          <input
+            className="input"
+            type="date"
+            data-testid="audit-filter-to"
+            value={filters.date_to}
+            disabled={disabled}
+            onChange={(event) => set("date_to", event.target.value)}
+          />
+        </label>
+        <button
+          type="button"
+          className="btn"
+          data-testid="audit-log-clear"
+          disabled={disabled}
+          onClick={() => setFilters(NO_FILTERS)}
+        >
+          Clear
+        </button>
+        <button
+          type="button"
+          className="btn btn-primary"
+          data-testid="audit-log-export"
+          disabled={disabled}
+          onClick={() => void exportWorkbook()}
+        >
+          Export to Excel
+        </button>
+      </div>
+      {error && (
+        <Note tone="error" testId="audit-log-error">
+          {error}
+        </Note>
+      )}
+      {items.length === 0 ? (
+        <p className="muted-cell" data-testid="audit-log-empty">
+          {busy ? "Loading…" : "Nothing recorded matches these filters."}
+        </p>
+      ) : (
+        <div className="table-wrap">
+          <table className="data" data-testid="audit-log-table">
+            <thead>
+              <tr>
+                <th>When</th>
+                <th>Who</th>
+                <th>Where</th>
+                <th>What</th>
+                <th>Before</th>
+                <th>After</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((entry) => (
+                <AuditRow key={entry.id} entry={entry} />
+              ))}
+            </tbody>
+          </table>
         </div>
-        {error && (
-          <p className="warn-note" data-testid="audit-log-error">
-            {error}
-          </p>
-        )}
-        {items.length === 0 ? (
-          <p className="muted-cell" data-testid="audit-log-empty">
-            {busy ? "Loading…" : "Nothing recorded matches these filters."}
-          </p>
-        ) : (
-          <div className="table-wrap">
-            <table className="data" data-testid="audit-log-table">
-              <thead>
-                <tr>
-                  <th>When</th>
-                  <th>Who</th>
-                  <th>Where</th>
-                  <th>What</th>
-                  <th>Before</th>
-                  <th>After</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((entry) => (
-                  <AuditRow key={entry.id} entry={entry} />
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {data.next_cursor && (
-          <button
-            type="button"
-            className="btn"
-            data-testid="audit-log-more"
-            disabled={disabled}
-            onClick={() => void load(filters, data.next_cursor ?? undefined)}
-          >
-            Show older entries
-          </button>
-        )}
-      </section>
+      )}
+      {data.next_cursor && (
+        <button
+          type="button"
+          className="btn"
+          data-testid="audit-log-more"
+          disabled={disabled}
+          onClick={() => void load(filters, data.next_cursor ?? undefined)}
+        >
+          Show older entries
+        </button>
+      )}
     </div>
   );
 }
@@ -323,9 +326,11 @@ function AuditRow({ entry }: { entry: Entry }) {
           {entry.reason_code && ` · ${entry.reason_code}`}
         </div>
         {note && (
-          <span className="chip chip-amber" data-testid="audit-row-version">
-            {note}
-          </span>
+          <div>
+            <Status tone="amber" testId="audit-row-version">
+              {note}
+            </Status>
+          </div>
         )}
       </td>
       <td data-testid="audit-row-before">

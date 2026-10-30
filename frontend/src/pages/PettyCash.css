@@ -5,7 +5,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 18px;
 }
-.petty-grid .section-card {
+.petty-grid .box {
   display: flex;
   flex-direction: column;
   gap: 10px;

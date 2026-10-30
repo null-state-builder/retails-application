@@ -51,7 +51,7 @@ export function MoreTenders({
   return (
     <section className="plus-card" data-testid="plus-more">
       <header className="plus-head">
-        <h3 className="eyebrow">More ways to pay</h3>
+        <h3 className="heading">More ways to pay</h3>
         {state.openModes.length > 0 && (
           <span>
             Still to allocate <Money paise={owed} />

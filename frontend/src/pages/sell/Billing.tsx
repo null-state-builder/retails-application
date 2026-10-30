@@ -2687,7 +2687,7 @@ function NotInSystem({
   onDismiss: () => void;
 }) {
   return (
-    <div className="card section-card bill-unknown" data-testid="bill-unknown">
+    <div className="box bill-unknown" data-testid="bill-unknown">
       <p className="bill-unknown-note">
         <AlertTriangle size={15} />
         <span>
@@ -2714,8 +2714,8 @@ function Suggestions({
   onPick: (piece: TillItem) => void;
 }) {
   return (
-    <div className="card section-card bill-suggest" data-testid="bill-suggestions">
-      <p className="eyebrow">Did you mean</p>
+    <div className="box bill-suggest" data-testid="bill-suggestions">
+      <h3 className="heading">Did you mean</h3>
       <div className="bill-suggest-rows">
         {pieces.map(({ piece, stock }) => (
           <button
@@ -2762,11 +2762,11 @@ function ExchangeBack({
   onRemove: (key: string) => void;
 }) {
   return (
-    <section className="card section-card bill-exchange" data-testid="bill-exchange">
-      <p className="eyebrow">
-        <Undo2 size={14} /> Coming back · against{" "}
+    <section className="box bill-exchange" data-testid="bill-exchange">
+      <h3 className="heading bill-exchange-head">
+        <Undo2 size={16} aria-hidden="true" /> Coming back · against{" "}
         <span className="mono">{exchange.original.doc_number}</span>
-      </p>
+      </h3>
       <div className="table-wrap">
         <table className="data" data-testid="bill-exchange-lines">
           <thead>

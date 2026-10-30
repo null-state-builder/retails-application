@@ -36,6 +36,8 @@
 import { useState } from "react";
 import { PackageCheck, Scale, Truck, Undo2 } from "lucide-react";
 
+import { Note } from "../components/Note";
+import { Box } from "../components/Section";
 import { api, goodsMeta } from "../lib/api";
 import { Field, useStepUp, type ResourceDTO } from "../lib/goodsScreen";
 import {
@@ -160,10 +162,10 @@ export function RtvPanel({
       </dl>
 
       {(rtv.awaiting_withdrawal_qty ?? 0) > 0 && (
-        <p className="warn-note" data-testid="rtv-awaiting-withdrawal">
+        <Note tone="warn" testId="rtv-awaiting-withdrawal">
           {rtv.awaiting_withdrawal_qty} piece(s) will not be collected under this return, but they
           stay reserved to it until somebody withdraws them.
-        </p>
+        </Note>
       )}
 
       {rtv.state && (rtv.lines?.length ?? 0) > 0 && (
@@ -261,7 +263,10 @@ export function RtvPanel({
         />
       )}
       {(rtv.shipments?.length ?? 0) > 0 && (
-        <div data-testid="rtv-shipments">
+        <div
+          style={{ display: "flex", flexDirection: "column", gap: "var(--space-16)" }}
+          data-testid="rtv-shipments"
+        >
           <h4 className="h4">Shipments to the vendor</h4>
           {rtv.shipments?.map((shipment) => (
             <ShipmentCard
@@ -329,7 +334,7 @@ function ShipForm({
   }
 
   return (
-    <form className="card section-card form-grid" onSubmit={submit} data-testid="rtv-ship-form">
+    <form className="box form-grid" onSubmit={submit} data-testid="rtv-ship-form">
       <h4 className="h4">
         <Truck size={16} /> Send goods to the vendor
       </h4>
@@ -446,8 +451,7 @@ function ShipmentCard({
     shipment.putaways?.length ?? 0
   }-${shipment.pending_closure?.approval_request_id ?? ""}`;
   return (
-    <div
-      className="card section-card"
+    <Box
       data-testid="rtv-shipment"
       data-status={shipment.status}
       data-sequence={shipment.sequence_no}
@@ -489,12 +493,12 @@ function ShipmentCard({
         </div>
       </dl>
       {shipment.status === "short_acknowledged" && (
-        <p className="warn-note" data-testid="rtv-shipment-difference">
+        <Note tone="warn" testId="rtv-shipment-difference">
           The vendor confirmed {shipment.acknowledged_qty} of the {shipment.shipped_qty} piece(s)
           sent. The {shipment.unaccounted_qty} missing piece(s) are a difference only the Owner
           closes; nothing has come back into stock and nothing is written off until then. Its
           follow-up date is a reminder — it never closes the difference by itself.
-        </p>
+        </Note>
       )}
       {shipment.pending_closure && (
         <ClosureDecision
@@ -597,7 +601,7 @@ function ShipmentCard({
           onError={onError}
         />
       )}
-    </div>
+    </Box>
   );
 }
 
@@ -1007,7 +1011,7 @@ function ClosureDecision({
   }
 
   return (
-    <div className="card section-card" data-testid="rtv-closure-pending">
+    <Note tone="warn" testId="rtv-closure-pending">
       <p>
         <strong>Waiting for the Owner:</strong> close {pending.quantity} missing piece(s) as a
         shortfall
@@ -1054,7 +1058,7 @@ function ClosureDecision({
         </div>
       )}
       {dialog}
-    </div>
+    </Note>
   );
 }
 
@@ -1198,7 +1202,7 @@ function PickupForm({
   }
 
   return (
-    <form className="card section-card form-grid" onSubmit={submit} data-testid="rtv-pickup-form">
+    <form className="box form-grid" onSubmit={submit} data-testid="rtv-pickup-form">
       <h4 className="h4">
         <PackageCheck size={16} /> Record a vendor pickup
       </h4>
@@ -1438,7 +1442,7 @@ function WithdrawForm({
   }
 
   return (
-    <form className="card section-card form-grid" onSubmit={submit} data-testid="rtv-withdraw-form">
+    <form className="box form-grid" onSubmit={submit} data-testid="rtv-withdraw-form">
       <h4 className="h4">
         <Undo2 size={16} /> Withdraw from this return
       </h4>

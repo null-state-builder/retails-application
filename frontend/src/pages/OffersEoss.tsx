@@ -11,19 +11,22 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  AlertTriangle,
   CalendarRange,
   CheckCircle2,
   RefreshCw,
   Settings2,
   ShieldAlert,
-  Tag,
   XCircle,
 } from "lucide-react";
 
 import { api, apiErrorMessage } from "../lib/api";
+import { Note } from "../components/Note";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { Box } from "../components/Section";
+import { SegmentedControl } from "../components/SegmentedControl";
+import { EmptyState } from "../components/States";
+import { Status, type StatusTone } from "../components/Status";
 import { useList } from "../lib/hooks";
 import "./OffersEoss.css";
 
@@ -81,7 +84,7 @@ const TABS: { key: "" | RecoRow["status"]; label: string }[] = [
   { key: "rejected", label: "Rejected" },
 ];
 
-const STATUS_TONE: Record<string, string> = {
+const STATUS_TONE: Record<string, StatusTone> = {
   pending: "amber",
   approved: "green",
   rejected: "grey",
@@ -190,38 +193,35 @@ export function OffersEossPage() {
       />
 
       {error && (
-        <div className="login-error" style={{ maxWidth: 560 }} data-testid="eoss-error">
+        <Note tone="error" testId="eoss-error">
           {error}
-        </div>
+        </Note>
       )}
 
       {configOpen && <EossConfigPanel brands={brands} />}
 
       <div className="eoss-tabs">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            className={`chip chip-pick ${tab === t.key ? "chip-navy" : "chip-grey"}`}
-            onClick={() => setTab(t.key)}
-            data-testid={`eoss-tab-${t.key || "all"}`}
-          >
-            {t.label} ({counts[t.key] ?? 0})
-          </button>
-        ))}
+        <SegmentedControl
+          label="Status"
+          options={TABS.map((t) => ({
+            value: t.key,
+            label: t.label,
+            count: counts[t.key] ?? 0,
+            testId: `eoss-tab-${t.key || "all"}`,
+          }))}
+          value={tab}
+          onChange={setTab}
+        />
       </div>
 
       {loading ? (
         <p className="lead">Loading…</p>
       ) : rows.length === 0 ? (
-        <div className="card section-card" data-testid="eoss-empty">
-          <p className="eyebrow">
-            <Tag size={15} /> Nothing here yet
-          </p>
+        <EmptyState heading="Nothing here yet" testId="eoss-empty">
           {season
             ? "No plan has been run for this season yet — pick a season and Recalculate."
             : "Set up a season first."}
-        </div>
+        </EmptyState>
       ) : (
         <div className="table-wrap">
           <table className="data" data-testid="eoss-table">
@@ -242,19 +242,16 @@ export function OffersEossPage() {
                 return (
                   <tr key={row.id} data-testid={`eoss-row-${row.id}`}>
                     <td>
-                      <p className="eyebrow">
-                        <Tag size={13} /> {row.brand_name || "Storewide"}
-                      </p>
                       <b>{row.design}</b> · {row.color}
                       {row.broken_size_run && (
-                        <span
-                          className="chip chip-amber"
-                          style={{ marginLeft: 8 }}
-                          data-testid={`eoss-broken-${row.id}`}
-                        >
-                          <AlertTriangle size={11} /> Broken size run
-                        </span>
+                        <>
+                          {" "}
+                          <Status tone="amber" testId={`eoss-broken-${row.id}`}>
+                            Broken size run
+                          </Status>
+                        </>
                       )}
+                      <span className="sub">{row.brand_name || "Storewide"}</span>
                       <span className="eoss-reason">{row.reason}</span>
                     </td>
                     <td style={{ whiteSpace: "nowrap" }}>
@@ -309,14 +306,14 @@ export function OffersEossPage() {
                       )}
                     </td>
                     <td>
-                      <span className={`chip chip-${STATUS_TONE[row.status]}`}>{row.status}</span>
+                      <Status tone={STATUS_TONE[row.status] ?? "grey"}>{row.status}</Status>
                     </td>
-                    <td>
+                    <td className="act">
                       {row.status === "pending" && (
                         <div style={{ display: "flex", gap: 6 }}>
                           <button
                             type="button"
-                            className="btn btn-cta"
+                            className="btn btn-primary btn-sm"
                             disabled={busyId === row.id}
                             onClick={() => decide(row, "approve")}
                             data-testid={`eoss-approve-${row.id}`}
@@ -325,7 +322,7 @@ export function OffersEossPage() {
                           </button>
                           <button
                             type="button"
-                            className="btn"
+                            className="btn btn-sm"
                             disabled={busyId === row.id}
                             onClick={() => decide(row, "reject")}
                             data-testid={`eoss-reject-${row.id}`}
@@ -398,11 +395,9 @@ function EossConfigPanel({ brands }: { brands: BrandRow[] }) {
   }
 
   return (
-    <div className="card section-card eoss-config-card" data-testid="eoss-config-panel">
+    <Box className="eoss-config-card" data-testid="eoss-config-panel">
       <div className="toolbar" style={{ marginBottom: 4 }}>
-        <p className="eyebrow">
-          <Settings2 size={14} /> Markdown ladder &amp; sell-through targets
-        </p>
+        <h2 className="h3">Markdown ladder &amp; sell-through targets</h2>
         <div className="spacer" />
         <select
           className="input"
@@ -419,13 +414,13 @@ function EossConfigPanel({ brands }: { brands: BrandRow[] }) {
         </select>
       </div>
 
-      {error && <div className="login-error">{error}</div>}
+      {error && <Note tone="error">{error}</Note>}
       {loading ? (
         <p className="lead">Loading…</p>
       ) : (
         <div className="eoss-config-cols">
           <div>
-            <p className="eyebrow">Ladder — past this, offer this much</p>
+            <h3 className="h3">Ladder — past this, offer this much</h3>
             {ladder.map((s, i) => (
               <div className="eoss-ladder-row" key={i} data-testid={`eoss-ladder-row-${i}`}>
                 <select
@@ -468,7 +463,8 @@ function EossConfigPanel({ brands }: { brands: BrandRow[] }) {
                 <span>%</span>
                 <button
                   type="button"
-                  className="btn"
+                  className="btn btn-sm"
+                  aria-label="Remove this step"
                   onClick={() => setLadder((rows) => rows.filter((_, j) => j !== i))}
                 >
                   <XCircle size={13} />
@@ -491,7 +487,7 @@ function EossConfigPanel({ brands }: { brands: BrandRow[] }) {
           </div>
 
           <div>
-            <p className="eyebrow">Sell-through target curve</p>
+            <h3 className="h3">Sell-through target curve</h3>
             {targets.map((t, i) => (
               <div className="eoss-target-row" key={i} data-testid={`eoss-target-row-${i}`}>
                 <span>Week</span>
@@ -519,7 +515,8 @@ function EossConfigPanel({ brands }: { brands: BrandRow[] }) {
                 <span>%</span>
                 <button
                   type="button"
-                  className="btn"
+                  className="btn btn-sm"
+                  aria-label="Remove this week"
                   onClick={() => setTargets((rows) => rows.filter((_, j) => j !== i))}
                 >
                   <XCircle size={13} />
@@ -550,9 +547,9 @@ function EossConfigPanel({ brands }: { brands: BrandRow[] }) {
         >
           {saving ? "Saving…" : "Save"}
         </button>
-        {ok && <span style={{ color: "var(--green)" }}>{ok}</span>}
+        {ok && <Status tone="green">{ok}</Status>}
       </div>
-    </div>
+    </Box>
   );
 }
 

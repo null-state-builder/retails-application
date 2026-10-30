@@ -29,10 +29,6 @@
   margin-bottom: 14px;
 }
 
-.operations-page :is(.warn-note, .ok-note) {
-  overflow-wrap: anywhere;
-}
-
 .operations-page .form-grid {
   align-items: flex-end;
   gap: 12px;

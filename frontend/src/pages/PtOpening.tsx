@@ -8,6 +8,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
+import { Note } from "../components/Note";
+import { Box, Section } from "../components/Section";
 import { api, apiErrorMessage } from "../lib/api";
 import { formatPaiseString } from "../lib/format";
 import { Feedback, Field, hold, useStepUp, type Page } from "../lib/goodsScreen";
@@ -132,8 +134,7 @@ export function PtOpeningPanel({ siteId }: { siteId: string }) {
 
   if (!session?.test_environment || (!stage && !approve)) return null;
   return (
-    <section className="card section-card" data-testid="pt-opening">
-      <h3 className="h3">Opening from PT files (test store)</h3>
+    <Section heading="Opening from PT files (test store)" ruled testId="pt-opening">
       <p className="lead">
         Upload every PT file sent to this store (KDPS 22-column .xlsx; all sheets are read). An
         owner then approves and loads: the quantities go straight onto the floor, ready to sell,
@@ -168,11 +169,13 @@ export function PtOpeningPanel({ siteId }: { siteId: string }) {
         const pt = meta.pt_opening;
         const progress = source.data.quick_load ?? {};
         return (
-          <article className="card" key={source.id} data-testid="pt-opening-source">
-            <p className="eyebrow">
+          <Box key={source.id} data-testid="pt-opening-source">
+            <h3 className="heading">
               {meta.stock_sync_top_up ? "New items from the SOH sync" : source.source_name}
+            </h3>
+            <p>
+              <b>{status(source)}</b>
             </p>
-            <h4 className="h4">{status(source)}</h4>
             <ul>
               <li>
                 {meta.row_count.toLocaleString()} barcodes · {meta.quantity.toLocaleString()} pieces
@@ -216,9 +219,9 @@ export function PtOpeningPanel({ siteId }: { siteId: string }) {
               )}
             </ul>
             {progress.state === "failed" && progress.error && (
-              <div className="warn-note" role="alert">
+              <Note tone="error" role="alert">
                 {progress.error}
-              </div>
+              </Note>
             )}
             {progress.state === "running" && progress.log && progress.log.length > 0 && (
               <p className="muted-cell">{progress.log[progress.log.length - 1]}</p>
@@ -281,9 +284,9 @@ export function PtOpeningPanel({ siteId }: { siteId: string }) {
                     : "Load"}
               </button>
             )}
-          </article>
+          </Box>
         );
       })}
-    </section>
+    </Section>
   );
 }

@@ -4,6 +4,7 @@ import { Link, Navigate, Outlet, useLocation } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
 import { KdpsLogo } from "../components/KdpsLogo";
+import { Note } from "../components/Note";
 import { Status } from "../components/Status";
 import { api, apiErrorCode, apiErrorMessage } from "../lib/api";
 import "./Signup.css";
@@ -609,7 +610,7 @@ export function RegistrationFeedback({
 }) {
   if (Object.keys(errors).length) {
     return (
-      <div className="warn-note" role="alert">
+      <Note tone="error">
         <strong>Check these details</strong>
         <ul>
           {Object.entries(errors).map(([name, message]) => (
@@ -620,13 +621,13 @@ export function RegistrationFeedback({
             </li>
           ))}
         </ul>
-      </div>
+      </Note>
     );
   }
   return error ? (
-    <div role="alert" className="warn-note" data-testid="signup-error">
+    <Note tone="error" testId="signup-error">
       {error}
-    </div>
+    </Note>
   ) : null;
 }
 
@@ -689,8 +690,8 @@ export function RegistrationSummaryView({
 }) {
   const { company, store } = summary;
   const people = [
-    { ...summary.owner, role: "Owner", chip: "chip-navy" },
-    { ...summary.admin, role: "Admin", chip: "chip-blue" },
+    { ...summary.owner, role: "Owner", chip: "" },
+    { ...summary.admin, role: "Admin", chip: "" },
     ...summary.proposed_team.map((p) => ({
       ...p,
       role: `${roleLabel(p.role_code)} (proposed)`,
@@ -740,7 +741,7 @@ export function RegistrationSummaryView({
             <li key={`${p.role}-${p.email}`}>
               <span className="signup-people-name">
                 <strong>{p.name}</strong>
-                <span className={`chip ${p.chip}`}>{p.role}</span>
+                <span className={`chip ${p.chip}`.trim()}>{p.role}</span>
               </span>
               <span className="signup-people-email">{p.email}</span>
               <code>{p.staff_code}</code>
@@ -1282,9 +1283,9 @@ export function Signup() {
           }}
         />
         {notice && (
-          <p role="status" className="ok-note">
+          <Note tone="success" role="status">
             {notice}
-          </p>
+          </Note>
         )}
         {!state ? (
           <>
@@ -1742,7 +1743,7 @@ export function Signup() {
                         [
                           "owner",
                           "Owner",
-                          "chip-navy",
+                          "",
                           "Full authority across the company’s stores and brands.",
                           owner,
                           setOwner,
@@ -1751,7 +1752,7 @@ export function Signup() {
                         [
                           "admin",
                           "Admin",
-                          "chip-blue",
+                          "",
                           "Company administration. No protected business fields.",
                           admin,
                           setAdmin,
@@ -1761,7 +1762,7 @@ export function Signup() {
                     ).map(([who, title, chip, detail, value, set, index]) => (
                       <div className="signup-person" key={who}>
                         <h3>
-                          <span className={`chip ${chip}`}>{title}</span>
+                          <span className={`chip ${chip}`.trim()}>{title}</span>
                         </h3>
                         <p className="signup-muted">{detail}</p>
                         <PersonFields

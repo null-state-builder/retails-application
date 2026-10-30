@@ -88,6 +88,12 @@
      (see BODY_RESET in Mail.tsx). */
   --mail-paper: #ffffff;
   --mail-paper-ink: #222222;
+  /* The sign-in hero: deep navy with a warm and a cool glow, the same in both
+     themes on purpose, so the lockup's lettering is simply white on it. */
+  --hero-navy: #1f2d4d;
+  --hero-ink-2: #cdd4e2;
+  --hero-glow-warm: rgba(196, 98, 63, 0.35);
+  --hero-glow-cool: rgba(44, 62, 99, 0.6);
   /* What comes out of a printer is white paper and black ink in both themes:
      labels, tags, receipts and their on-screen previews. */
   --print-paper: #ffffff;
@@ -393,24 +399,14 @@ a {
   color: var(--ink);
   margin: 0;
 }
-.h2-rust {
-  padding-left: 12px;
-  border-left: 4px solid var(--rust);
-}
+
 .h3 {
   font-size: 16px;
   font-weight: 600;
   color: var(--ink);
   margin: 0;
 }
-/* A section label inside a card. Sentence case in ink, never uppercase rust
- * (desktop redesign audit, rule 1): the copy is already written in sentence
- * case, so every one of its uses follows from this rule. */
-.eyebrow {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink2);
-}
+
 /* The screen a document belongs to, in the header caption — a breadcrumb, so
    getting back to the list is a click and not a browser button. */
 .crumb-link {
@@ -676,17 +672,6 @@ a {
   color: var(--muted);
 }
 
-/* The no-access state (auth/AccessDenied.tsx). */
-.access-denied {
-  display: flex;
-  gap: 14px;
-  align-items: flex-start;
-  color: var(--navy);
-}
-.access-denied .lead {
-  margin: 6px 0 14px;
-  max-width: 72ch;
-}
 /* The inline store picker a one-store screen shows instead of an error
  * (components/StoreGate.tsx). */
 .store-gate {
@@ -756,31 +741,13 @@ a {
   color: var(--grey);
   border-color: var(--grey-bd);
 }
-.chip-green {
-  background: var(--green-bg);
-  color: var(--green);
-  border-color: var(--green-bd);
-}
-.chip-amber {
-  background: var(--amber-bg);
-  color: var(--amber);
-  border-color: var(--amber-bd);
-}
-.chip-red {
-  background: var(--red-bg);
-  color: var(--red);
-  border-color: var(--red-bd);
-}
+
 .chip-blue {
   background: var(--blue-bg);
   color: var(--blue);
   border-color: var(--blue-bd);
 }
-.chip-purple {
-  background: var(--purple-bg);
-  color: var(--purple);
-  border-color: var(--purple-bd);
-}
+
 .chip-navy {
   background: rgba(var(--navy-rgb), 0.09);
   color: var(--navy);
@@ -792,27 +759,9 @@ a {
   flex-wrap: wrap;
   gap: 8px;
 }
-.chip-pick {
-  cursor: pointer;
-  transition:
-    background-color 0.12s,
-    color 0.12s,
-    border-color 0.12s;
-}
-.chip-pick:hover {
-  border-color: var(--rust);
-  color: var(--rust-ink);
-}
+
 .muted-cell {
   color: var(--caption);
-}
-
-/* card */
-.card {
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-box);
-  box-shadow: none;
 }
 
 /* sku line */

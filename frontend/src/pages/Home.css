@@ -97,18 +97,6 @@
   vertical-align: -2px;
 }
 
-/* The store checklist card (StoreChecklist.tsx) is still a `.card` with a
-   `.panel-head`; it is drawn on the store's Home. */
-.panel {
-  padding: 16px 18px;
-}
-.panel-head {
-  margin-bottom: 12px;
-}
-.panel-head .eyebrow {
-  margin-bottom: 2px;
-}
-
 /* Network counts: an unboxed grid of figures divided by hairlines. */
 .net-grid {
   display: grid;

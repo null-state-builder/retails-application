@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import { Note } from "../components/Note";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
+import { Status, type StatusTone } from "../components/Status";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
 import { Money, formatDateTime, paiseToRupees } from "../lib/format";
@@ -34,6 +37,11 @@ interface Form {
   rupees: string;
 }
 const EMPTY: Form = { brand_id: "", season_id: "", site_id: "", rupees: "" };
+
+/** An ask's stage as a Status tone (the stage table still names v1 chip classes). */
+export function stageTone(stage: string): StatusTone {
+  return (STAGE_CHIP[stage]?.replace("chip-", "") as StatusTone | undefined) ?? "grey";
+}
 
 /** Booking > Open-to-Buy (store operations PRD ST-BUY-1; ticket 39).
  *
@@ -184,48 +192,55 @@ export function OpenToBuyPage() {
         lead="Buying budgets at cost for each brand and season. Open-to-buy is the budget less open bookings and goods received. A booking over it needs the Owner's approval."
       />
       {offline && (
-        <p className="warn-note" data-testid="otb-offline" role="status">
-          {OFFLINE}
-          {online && (
-            <>
-              {" "}
+        <Note
+          tone="warn"
+          testId="otb-offline"
+          role="status"
+          action={
+            online && (
               <button
                 type="button"
-                className="btn"
+                className="btn btn-sm"
                 data-testid="otb-retry"
                 onClick={() => void load()}
               >
                 Try again
               </button>
-            </>
-          )}
-        </p>
+            )
+          }
+        >
+          {OFFLINE}
+        </Note>
       )}
       {error && (
-        <p className="warn-note" data-testid="otb-error">
+        <Note tone="error" testId="otb-error">
           {error}
-        </p>
+        </Note>
       )}
       {done && (
-        <p className="ok-note" data-testid="otb-done">
+        <Note tone="success" role="status" testId="otb-done">
           {done}
-        </p>
+        </Note>
       )}
 
       {ask && (
-        <section className="card section-card" data-testid="otb-ask">
-          <div className="toolbar">
-            <h2 className="h3">Booking over open-to-buy</h2>
-            <span className={`chip ${STAGE_CHIP[ask.stage] ?? ""}`} data-testid="otb-ask-stage">
+        <Section
+          heading="Booking over open-to-buy"
+          testId="otb-ask"
+          aside={
+            <Link className="btn btn-sm" to={PAGE_PATH} data-testid="otb-ask-close">
+              Back to budgets
+            </Link>
+          }
+        >
+          <p>
+            <Status tone={stageTone(ask.stage)} testId="otb-ask-stage">
               {ask.approval?.status === "pending"
                 ? STAGE_LABEL.waiting
                 : (STAGE_LABEL[ask.stage] ?? ask.stage)}
-            </span>
-            <Link className="btn" to={PAGE_PATH} data-testid="otb-ask-close">
-              Back to budgets
-            </Link>
-          </div>
-          <dl className="facts">
+            </Status>
+          </p>
+          <dl className="dl">
             <dt>Booking</dt>
             <dd>
               <Link to={`/booking/${ask.booking_id}`} data-testid="otb-ask-booking">
@@ -252,12 +267,15 @@ export function OpenToBuyPage() {
           </dl>
           <OversTable overs={ask.overs} budgets={list?.budgets ?? []} testId="otb-ask-overs" />
           <p className="muted">The Owner approves or turns it down in the approvals inbox.</p>
-        </section>
+        </Section>
       )}
 
       {list?.can_set && (
-        <section className="card section-card" data-testid="otb-form">
-          <h2 className="h3">{current ? "Change a budget" : "Set a budget"}</h2>
+        <Section
+          heading={current ? "Change a budget" : "Set a budget"}
+          ruled={!!ask}
+          testId="otb-form"
+        >
           <div className="otb-form">
             <PickerField
               id="otb-brand"
@@ -322,11 +340,10 @@ export function OpenToBuyPage() {
               </button>
             )}
           </div>
-        </section>
+        </Section>
       )}
 
-      <section className="card section-card">
-        <h2 className="h3">Budgets</h2>
+      <Section heading="Budgets" ruled={!!ask || !!list?.can_set}>
         {list && list.budgets.length === 0 && (
           <p className="muted" data-testid="otb-empty">
             No budget is set yet.
@@ -371,7 +388,11 @@ export function OpenToBuyPage() {
                     </td>
                     <td className="num" data-testid="otb-row-left">
                       <Money paise={Number(b.open_to_buy_paise)} />
-                      {isOver(b.open_to_buy_paise) && <div className="chip chip-red">Over</div>}
+                      {isOver(b.open_to_buy_paise) && (
+                        <div>
+                          <Status tone="red">Over</Status>
+                        </div>
+                      )}
                       {b.cost_missing_pieces > 0 && (
                         <div className="muted-cell">
                           {b.cost_missing_pieces} piece(s) with no cost not counted
@@ -382,7 +403,7 @@ export function OpenToBuyPage() {
                       {list.can_set && (
                         <button
                           type="button"
-                          className="btn"
+                          className="btn btn-sm"
                           data-testid="otb-row-change"
                           onClick={() => edit(b)}
                         >
@@ -396,7 +417,7 @@ export function OpenToBuyPage() {
             </table>
           </div>
         )}
-      </section>
+      </Section>
     </OperationsPage>
   );
 }

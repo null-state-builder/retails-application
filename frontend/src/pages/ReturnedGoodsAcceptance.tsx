@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import { Note } from "../components/Note";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import { Field, useAllPages, useStepUp, type ResourceDTO } from "../lib/goodsScreen";
 import type { InboxItem } from "../lib/goodsReceiving";
@@ -52,9 +53,9 @@ export function ReturnedGoodsAcceptance({ item }: { item: InboxItem }) {
   if (waiting.loading || locations.loading) return <p role="status">Loading returned goods…</p>;
   if (waiting.failure || locations.failure)
     return (
-      <p className="warn-note" role="status">
+      <Note tone="warn" role="status">
         {waiting.failure || locations.failure}
-      </p>
+      </Note>
     );
   if (waiting.denied || locations.denied || !line)
     return <p role="status">These pieces are no longer waiting here, or you cannot accept them.</p>;
@@ -120,9 +121,9 @@ export function ReturnedGoodsAcceptance({ item }: { item: InboxItem }) {
         I checked these returned pieces and put them in the selected location.
       </label>
       {error && (
-        <p className="warn-note" role="alert">
+        <Note tone="error" role="alert">
           {error}
-        </p>
+        </Note>
       )}
       <button
         className="btn btn-cta"

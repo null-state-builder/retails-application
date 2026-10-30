@@ -76,8 +76,13 @@
   padding-top: 12px;
   border-top: 1px solid var(--hairline);
 }
-.bill-rail-section .eyebrow {
-  margin: 0;
+/* A field's or a group's own label inside the counter (Sold by, Tax invoice
+   (GSTIN), Split, Against bill): the house `.field label`, for labels that are
+   not a `.field`'s. A part with a name of its own has a `.heading` instead. */
+.bill-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink2);
 }
 
 /* The counter's top area (ScanHero + alerts) stays fixed at top of work area. */
@@ -429,6 +434,17 @@
 .bill-suggest {
   padding: 14px 16px;
 }
+/* The pieces coming back on an exchange (ExchangeBack, Billing.tsx): a box
+   above the lines, the same gap below it as the held bills keep. */
+.bill-exchange {
+  margin-bottom: 16px;
+}
+.bill-exchange-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+}
 .bill-suggest-rows {
   display: flex;
   flex-direction: column;
@@ -605,7 +621,8 @@
   align-items: center;
   gap: 5px;
 }
-.return-against > .warn-note {
+.return-against > .note {
+  max-width: none;
   margin: 10px 14px;
 }
 .return-lines-wrap {
@@ -2050,7 +2067,7 @@ select.bill-salesman-missing {
   overflow-y: auto;
   padding: 14px 16px;
 }
-.bill-tax-panel .eyebrow {
+.bill-tax-panel .heading {
   margin-bottom: 8px;
 }
 table.data.bill-tax-rows {
@@ -2547,10 +2564,8 @@ main.content:has(> .bill-page) {
   background: var(--surface);
   box-shadow: var(--shadow-float);
 }
-.bill-item-popover .eyebrow {
+.bill-item-popover .heading {
   margin: 0 0 10px;
-  font-size: 12px;
-  letter-spacing: 0.06em;
 }
 .bill-item-popover-row {
   display: flex;
@@ -2603,9 +2618,6 @@ main.content:has(> .bill-page) {
   align-items: baseline;
   justify-content: space-between;
   padding: 14px 16px 8px;
-}
-.bill-recent-head .eyebrow {
-  margin: 0;
 }
 .bill-recent-rows {
   display: flex;

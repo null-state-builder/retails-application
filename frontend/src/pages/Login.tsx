@@ -201,22 +201,18 @@ export function Login() {
   );
 }
 
-/** The sign-in screens' frame (v2 board): the company on the left, quiet on
- *  `inner`, and the form on the right with the theme switch above it. Shared
+/** The sign-in screens' frame: the company on the deep navy hero on the left,
+ *  and the form on the right with the theme switch above it. Shared
  *  with Change password, which is the same room. */
 export function SignInFrame({ children }: { children: ReactNode }) {
   return (
     <div className="login">
       <section className="login-brand" aria-label="KDPS">
-        <span className="login-rings" aria-hidden="true" />
         <div className="login-brand-inner">
+          {/* The hero stays deep navy in both themes, so the lockup's
+              `currentColor` lettering is simply white here. */}
           <KdpsLogo className="login-logo" />
-          <p className="login-title">Operating system</p>
-          <span className="login-rule" aria-hidden="true" />
-          <p className="login-blurb">
-            Billing, stock, goods coming in and going out, and the day&apos;s money, for every store
-            and the warehouse.
-          </p>
+          <p className="login-title">Operating System</p>
         </div>
       </section>
 

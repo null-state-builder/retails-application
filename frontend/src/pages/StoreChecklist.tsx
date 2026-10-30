@@ -12,6 +12,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Camera, Check } from "lucide-react";
 
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
 import { api, apiErrorMessage, apiUrl } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
@@ -130,27 +131,30 @@ export function StoreChecklist({
   }
 
   const offlineNote = (!online || lost) && (
-    <p className="warn-note" data-testid="checklist-offline" role="status">
-      {OFFLINE}
-      {online && (
-        <>
-          {" "}
+    <Note
+      tone="warn"
+      role="status"
+      testId="checklist-offline"
+      action={
+        online && (
           <button
             type="button"
-            className="btn"
+            className="btn btn-sm"
             data-testid="checklist-retry"
             onClick={() => void load()}
           >
             Try again
           </button>
-        </>
-      )}
-    </p>
+        )
+      }
+    >
+      {OFFLINE}
+    </Note>
   );
   const errorNote = error && (
-    <p className="warn-note" data-testid="checklist-error">
+    <Note tone="error" testId="checklist-error">
       {error}
-    </p>
+    </Note>
   );
 
   if (!data) {
@@ -175,9 +179,9 @@ export function StoreChecklist({
       {offlineNote}
       {errorNote}
       {saved && (
-        <p className="ok-note" data-testid="checklist-saved">
+        <Note tone="success" role="status" testId="checklist-saved">
           {saved}
-        </p>
+        </Note>
       )}
       {data.lists.length === 0 ? (
         <p className="muted-cell" data-testid="checklist-none">
@@ -381,7 +385,7 @@ export function StoreChecklistPage() {
         lead="The store's lists due today, and anything from the last few days whose time passed before it was ticked. Tick each item when it is done, with a photo if you want one."
       />
       <StoreGate purpose="the lists due today" bypass={Boolean(store)}>
-        <div className="card section-card" data-testid="checklist-page">
+        <div data-testid="checklist-page">
           <StoreChecklist store={store} />
         </div>
       </StoreGate>

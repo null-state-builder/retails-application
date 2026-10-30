@@ -294,10 +294,7 @@ function DashboardConfigurator({
     <div className="modal-backdrop" data-testid="dashboard-config-modal" onClick={onClose}>
       <div className="modal dashboard-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <div>
-            <p className="eyebrow">Dashboard</p>
-            <h3 className="h3">Choose cards</h3>
-          </div>
+          <h3 className="h3">Choose dashboard cards</h3>
           <button className="btn btn-sm" onClick={onClose} data-testid="dashboard-config-close">
             <X size={14} /> Close
           </button>

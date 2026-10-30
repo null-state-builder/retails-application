@@ -8,6 +8,7 @@ import { formatPaiseString, paiseStringToRupees } from "../lib/format";
 import { Feedback, Field, hold, useStepUp, type Page, type ResourceDTO } from "../lib/goodsScreen";
 import { SohReconciliationPanel } from "./SohReconciliation";
 import { FilterChip } from "../components/FilterChip";
+import { Section } from "../components/Section";
 
 type Mapping = Record<string, string>;
 interface Configuration {
@@ -491,8 +492,7 @@ export function SohImportPanel({ siteId }: { siteId: string }) {
 
   if (!stage && !prepare && !approve) return null;
   return (
-    <section className="card section-card" data-testid="soh-import">
-      <h3 className="h3">Switch an existing store to KDPS</h3>
+    <Section heading="Switch an existing store to KDPS" ruled testId="soh-import">
       <p className="lead">
         Upload current stock on hand, review its identities and values, record physical
         verification, then approve and accept the opening stock. Uploading alone creates no
@@ -1089,6 +1089,6 @@ export function SohImportPanel({ siteId }: { siteId: string }) {
           )}
         </>
       )}
-    </section>
+    </Section>
   );
 }

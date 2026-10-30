@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
+import { Status } from "../components/Status";
 import { api, apiErrorCode, apiErrorMessage, goodsMeta } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
@@ -200,23 +203,26 @@ export function SorAgeingPage() {
 
   const disabled = !online || busy;
   const offlineNote = (!online || lost) && (
-    <p className="warn-note" data-testid="sor-offline" role="status">
-      {OFFLINE}
-      {online && (
-        <>
-          {" "}
+    <Note
+      tone="warn"
+      testId="sor-offline"
+      role="status"
+      action={
+        online && (
           <button
             type="button"
-            className="btn"
+            className="btn btn-sm"
             data-testid="sor-retry"
             disabled={busy}
             onClick={() => void load(siteId)}
           >
             Try again
           </button>
-        </>
-      )}
-    </p>
+        )
+      }
+    >
+      {OFFLINE}
+    </Note>
   );
   const header = (
     <PageHeader
@@ -225,9 +231,9 @@ export function SorAgeingPage() {
     />
   );
   const errorNote = (error || refused) && (
-    <p className="warn-note" data-testid="sor-error">
+    <Note tone="error" testId="sor-error">
       {error || refused}
-    </p>
+    </Note>
   );
 
   if (!data) {
@@ -261,11 +267,11 @@ export function SorAgeingPage() {
       {offlineNote}
       {errorNote}
       {saved && (
-        <p className="ok-note" data-testid="sor-saved">
+        <Note tone="success" role="status" testId="sor-saved">
           {saved}
-        </p>
+        </Note>
       )}
-      <section className="card section-card">
+      <section className="section">
         <div className="toolbar">
           <label className="field">
             <span>Site</span>
@@ -296,7 +302,7 @@ export function SorAgeingPage() {
           </span>
         </div>
         {flagged && (
-          <div className="warn-note" data-testid="sor-ways">
+          <Note tone="warn" testId="sor-ways">
             <strong>Settle each flagged piece one of three ways:</strong>
             <ul>
               <li>Sell it before its date.</li>
@@ -310,17 +316,17 @@ export function SorAgeingPage() {
                   : "; Accounts records it here."}
               </li>
             </ul>
-          </div>
+          </Note>
         )}
         {!data.goods_records ? (
-          <p className="warn-note" data-testid="sor-legacy">
+          <Note tone="warn" testId="sor-legacy">
             This site's stock is not on the goods records yet, so no piece can be traced to its
             delivery.
-          </p>
+          </Note>
         ) : data.rows.length === 0 ? (
-          <p className="ok-note" data-testid="sor-empty">
+          <Note tone="success" testId="sor-empty">
             No SOR stock at this site.
-          </p>
+          </Note>
         ) : (
           data.groups
             .filter((group) => group.qty > 0)
@@ -369,12 +375,8 @@ export function SorAgeingPage() {
                               {row.dispatch_date ? dayText(row.dispatch_date) : "Not recorded"}
                             </td>
                             <td data-testid="sor-deadline">
-                              {row.state === "overdue" && (
-                                <span className="chip chip-red">Past due</span>
-                              )}
-                              {row.state === "due" && (
-                                <span className="chip chip-amber">Settle now</span>
-                              )}{" "}
+                              {row.state === "overdue" && <Status tone="red">Past due</Status>}
+                              {row.state === "due" && <Status tone="amber">Settle now</Status>}{" "}
                               {deadlineText(row)}
                             </td>
                           </tr>
@@ -388,8 +390,7 @@ export function SorAgeingPage() {
       </section>
 
       {deliveries.length > 0 && (
-        <section className="card section-card" data-testid="sor-deliveries">
-          <h3 className="section-title">Deliveries</h3>
+        <Section heading="Deliveries" ruled testId="sor-deliveries">
           <p className="muted-cell">
             The brand's dispatch date and its invoice belong to the delivery the pieces came on.
             {data.can_record
@@ -567,12 +568,11 @@ export function SorAgeingPage() {
               </tbody>
             </table>
           </div>
-        </section>
+        </Section>
       )}
 
       {data.unknown_models.length > 0 && (
-        <section className="card section-card" data-testid="sor-unknown-models">
-          <h3 className="section-title">Brands with no approved model</h3>
+        <Section heading="Brands with no approved model" ruled testId="sor-unknown-models">
           <p className="muted-cell">
             These pieces are not treated as SOR, or as anything else, until the brand's terms for
             the season are approved (Brands, Terms).
@@ -599,7 +599,7 @@ export function SorAgeingPage() {
               </tbody>
             </table>
           </div>
-        </section>
+        </Section>
       )}
     </div>
   );

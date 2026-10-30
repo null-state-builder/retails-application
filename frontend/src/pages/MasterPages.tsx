@@ -13,9 +13,11 @@ import {
   rupeesToPaise,
 } from "../lib/format";
 import { PageHeader } from "../components/PageHeader";
-import { FilterChip } from "../components/FilterChip";
+import { FilterChip, FilterChips } from "../components/FilterChip";
+import { Note } from "../components/Note";
 import { OperationsPage } from "../components/OperationsPage";
 import { SearchBox } from "../components/SearchBox";
+import { Status } from "../components/Status";
 import { financialYear, financialYearChoices, financialYearMonths } from "../lib/fiscal";
 import type { FiscalMonth } from "../lib/fiscal";
 import { userCan } from "../shell/navConfig";
@@ -87,14 +89,14 @@ function Feedback({ error, ok }: { error: string; ok: string }) {
   return (
     <>
       {error && (
-        <div className="warn-note" data-testid="master-error">
+        <Note tone="error" testId="master-error">
           {error}
-        </div>
+        </Note>
       )}
       {ok && (
-        <div className="ok-note" data-testid="master-ok">
+        <Note tone="success" role="status" testId="master-ok">
           {ok}
-        </div>
+        </Note>
       )}
     </>
   );
@@ -197,7 +199,7 @@ export function StoresPage() {
         testId="store-search"
       />
       {canEdit && open && (
-        <div className="card section-card" data-testid="store-editor">
+        <div className="box" style={{ marginBottom: "var(--space-16)" }} data-testid="store-editor">
           <div className="toolbar" style={{ marginBottom: 12 }}>
             <h3 className="h3">{form.id ? "Edit store" : "Create store"}</h3>
             <div className="spacer" />
@@ -314,27 +316,20 @@ export function StoresPage() {
                   </td>
                   <td>{s.name}</td>
                   <td>
-                    <StatusChip
-                      status={s.store_type}
-                      tone={s.store_type === "warehouse" ? "navy" : "green"}
-                    />
+                    <span className="chip">{s.store_type}</span>
                   </td>
                   <td>{s.city || "—"}</td>
-                  <td>
-                    <span className={`chip chip-${s.state_name === "Bihar" ? "amber" : "blue"}`}>
-                      {s.state_name}
-                    </span>
-                  </td>
+                  <td>{s.state_name}</td>
                   <td className="mono" style={{ fontSize: 12 }}>
                     {s.gstin_number}
                   </td>
                   <td>
-                    <span className={`chip chip-${s.is_active ? "green" : "red"}`}>
+                    <Status tone={s.is_active ? "green" : "grey"}>
                       {s.is_active ? "Active" : "Inactive"}
-                    </span>
+                    </Status>
                   </td>
                   <td data-testid={`store-partner-${s.code}`}>
-                    {s.is_partner ? <span className="chip chip-amber">Partner</span> : "—"}
+                    {s.is_partner ? <span className="chip">Partner</span> : "—"}
                   </td>
                   {canEdit && (
                     <td>
@@ -527,14 +522,18 @@ export function StoreTargetsPage() {
       />
       <Feedback error={error || failure || storesFailure} ok={ok} />
       {stale && (
-        <div className="warn-note" data-testid="target-stale-note">
+        <Note tone="warn" testId="target-stale-note">
           The grid could not be loaded, so nothing here can be edited - what you would see as an
           empty cell might be a target that is already set. Refresh, or check you still have access
           to this section.
-        </div>
+        </Note>
       )}
       {editable && edit && (
-        <div className="card section-card" data-testid="target-editor">
+        <div
+          className="box"
+          style={{ marginBottom: "var(--space-16)" }}
+          data-testid="target-editor"
+        >
           <div className="toolbar" style={{ marginBottom: 12 }}>
             <h3 className="h3">
               {edit.store} · {edit.label}
@@ -731,7 +730,7 @@ export function BrandsPage() {
         testId="brand-search"
       />
       {canEdit && open && (
-        <div className="card section-card" data-testid="brand-editor">
+        <div className="box" style={{ marginBottom: "var(--space-16)" }} data-testid="brand-editor">
           <div className="toolbar" style={{ marginBottom: 12 }}>
             <h3 className="h3">{form.id ? "Edit brand" : "Create brand"}</h3>
             <div className="spacer" />
@@ -870,9 +869,9 @@ export function BrandsPage() {
                     )}
                   </td>
                   <td>
-                    <span className={`chip chip-${b.is_active ? "green" : "red"}`}>
+                    <Status tone={b.is_active ? "green" : "grey"}>
                       {b.is_active ? "Active" : "Inactive"}
-                    </span>
+                    </Status>
                   </td>
                   {canEdit && (
                     <td>
@@ -964,7 +963,11 @@ export function SeasonsPage() {
         testId="season-search"
       />
       {canEdit && open && (
-        <div className="card section-card" data-testid="season-editor">
+        <div
+          className="box"
+          style={{ marginBottom: "var(--space-16)" }}
+          data-testid="season-editor"
+        >
           <div className="toolbar" style={{ marginBottom: 12 }}>
             <h3 className="h3">{form.id ? "Edit season" : "Create season"}</h3>
             <div className="spacer" />
@@ -1160,7 +1163,7 @@ export function GstinsPage() {
         testId="gstin-search"
       />
       {canEdit && open && (
-        <div className="card section-card" data-testid="gstin-editor">
+        <div className="box" style={{ marginBottom: "var(--space-16)" }} data-testid="gstin-editor">
           <div className="toolbar" style={{ marginBottom: 12 }}>
             <h3 className="h3">{form.id ? "Edit GSTIN" : "Create GSTIN"}</h3>
             <div className="spacer" />
@@ -1254,17 +1257,13 @@ export function GstinsPage() {
                   <td className="mono">
                     <b>{g.gstin}</b>
                   </td>
-                  <td>
-                    <span className={`chip chip-${g.state_name === "Bihar" ? "amber" : "blue"}`}>
-                      {g.state_name}
-                    </span>
-                  </td>
+                  <td>{g.state_name}</td>
                   <td className="mono">{g.state_code}</td>
                   <td>{g.legal_entity_name}</td>
                   <td>
-                    <span className={`chip chip-${g.is_active ? "green" : "red"}`}>
+                    <Status tone={g.is_active ? "green" : "grey"}>
                       {g.is_active ? "Active" : "Inactive"}
-                    </span>
+                    </Status>
                   </td>
                   {canEdit && (
                     <td>
@@ -1416,7 +1415,11 @@ export function VendorsPage() {
     >
       <Feedback error={error} ok={ok} />
       {canEdit && open && (
-        <div className="card section-card" data-testid="vendor-editor">
+        <div
+          className="box"
+          style={{ marginBottom: "var(--space-16)" }}
+          data-testid="vendor-editor"
+        >
           <div className="toolbar" style={{ marginBottom: 12 }}>
             <h3 className="h3">{form.id ? "Edit vendor" : "Create vendor"}</h3>
             <div className="spacer" />
@@ -1489,22 +1492,21 @@ export function VendorsPage() {
             </label>
           </div>
           <div style={{ marginTop: 12 }}>
-            <p className="eyebrow" style={{ marginBottom: 6 }}>
+            <p className="muted-cell" style={{ margin: "0 0 6px" }}>
               Brands this vendor supplies
             </p>
-            <div className="chip-picker" data-testid="vendor-brand-picker">
+            <FilterChips label="Brands this vendor supplies" testId="vendor-brand-picker">
               {brands.map((b) => (
-                <button
+                <FilterChip
                   key={b.id}
-                  type="button"
-                  className={`chip chip-pick ${form.brands.includes(b.id) ? "chip-green" : ""}`}
+                  pressed={form.brands.includes(b.id)}
                   onClick={() => toggleBrand(b.id)}
-                  data-testid={`vendor-brand-${b.code}`}
+                  testId={`vendor-brand-${b.code}`}
                 >
                   {b.name}
-                </button>
+                </FilterChip>
               ))}
-            </div>
+            </FilterChips>
           </div>
           <button
             className="btn btn-primary"
@@ -1562,9 +1564,9 @@ export function VendorsPage() {
                   </td>
                   <td>{v.payment_terms || "—"}</td>
                   <td>
-                    <span className={`chip chip-${v.is_active ? "green" : "red"}`}>
+                    <Status tone={v.is_active ? "green" : "grey"}>
                       {v.is_active ? "Active" : "Retired"}
-                    </span>
+                    </Status>
                   </td>
                   {canEdit && (
                     <td>

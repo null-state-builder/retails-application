@@ -12,6 +12,7 @@
 // bar on every counter screen.
 
 import { useTill } from "./TillProvider";
+import { Status } from "../components/Status";
 
 /** The light itself. Renders nothing when this login has no counter. */
 export function SyncLight({ counter = false }: { counter?: boolean } = {}) {
@@ -21,8 +22,8 @@ export function SyncLight({ counter = false }: { counter?: boolean } = {}) {
   const visibleLabel = counter && label === "Offline" ? "Offline · will sync" : label;
   return (
     <span className="sync-light" data-testid="till-sync-light" data-colour={colour}>
-      <span className={`chip chip-${colour}`} title={reason}>
-        {visibleLabel}
+      <span title={reason}>
+        <Status tone={colour}>{visibleLabel}</Status>
       </span>
     </span>
   );

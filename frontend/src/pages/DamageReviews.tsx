@@ -25,6 +25,7 @@
 import { useState } from "react";
 import { ShieldCheck, ShieldX } from "lucide-react";
 
+import { Section } from "../components/Section";
 import { api, goodsMeta } from "../lib/api";
 import { Denied, Field, listState, useGoodsFetch, useStepUp, type Page } from "../lib/goodsScreen";
 import {
@@ -60,8 +61,7 @@ export function DamageReviewsPanel({
   );
 
   return (
-    <section className="card section-card" data-testid="dmg-panel">
-      <h3 className="h3">Damage reviews</h3>
+    <Section heading="Damage reviews" ruled testId="dmg-panel">
       <p className="lead">
         These pieces are already held in quarantine and cannot be sold, transferred or reserved.
         Confirm the damage, or reject a mistaken report to give the quantity back. Whoever reported
@@ -76,7 +76,7 @@ export function DamageReviewsPanel({
         {DAMAGE_REJECT_SCOPE}
       </p>
       {state ?? (
-        <table data-testid="dmg-list">
+        <table className="data" data-testid="dmg-list">
           <thead>
             <tr>
               <th>Reported</th>
@@ -102,7 +102,7 @@ export function DamageReviewsPanel({
           </tbody>
         </table>
       )}
-    </section>
+    </Section>
   );
 }
 
@@ -160,7 +160,7 @@ function ReviewRow({
           </Field>
           <div className="toolbar">
             <button
-              className="btn btn-cta"
+              className="btn btn-cta btn-sm"
               disabled={busy || !reason}
               onClick={() => decide("confirm")}
               data-testid="dmg-confirm"

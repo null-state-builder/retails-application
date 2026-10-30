@@ -56,10 +56,25 @@
   gap: 12px;
   margin-top: 16px;
 }
-.product-lists .pl-file .eyebrow {
+.product-lists .pl-file-name {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+/* v2: the review's parts are sections on the page, spaced and ruled. */
+.product-lists .section {
+  margin-top: 24px;
+}
+.product-lists .section.ruled {
+  padding-top: 24px;
+}
+.product-lists .pl-upload,
+.product-lists .pl-review > .note {
+  margin-top: 16px;
 }
 .product-lists .pl-row {
   display: flex;
@@ -101,7 +116,7 @@
   font-size: 12px;
   color: var(--muted);
 }
-.product-lists .chip-pick[disabled] {
+.product-lists .filter-chip[disabled] {
   cursor: default;
 }
 .product-lists .pl-off {

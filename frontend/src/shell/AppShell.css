@@ -1221,34 +1221,36 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
  * you can go, the title is where you are. Deliberately not `.seg`, the joined
  * navy tray a screen uses for its own groupings - these are free-standing
  * buttons, rust when active, so the two controls never read as one. */
+/* Section tabs: sibling pages of one section, so they are links. A hairline
+   under the row; the page you are on is ink with the rust "where you are" bar. */
 .page-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin: 0 0 16px;
+  gap: var(--space-24);
+  margin: 0 0 var(--space-24);
+  border-bottom: 1px solid var(--hairline);
 }
 .page-tab {
-  padding: 7px 14px;
-  font-size: 14px;
-  font-weight: 600;
+  margin-bottom: -1px;
+  padding: var(--space-8) 0;
+  border-bottom: 2px solid transparent;
   color: var(--muted);
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-control);
-  transition:
-    color 0.15s,
-    background-color 0.15s,
-    border-color 0.15s;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  text-decoration: none;
 }
 .page-tab:hover {
   color: var(--ink);
-  background: var(--inner);
+}
+.page-tab:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 .page-tab.active {
-  color: var(--rust-ink);
-  background: rgba(var(--rust-rgb), 0.12);
-  border-color: var(--rust);
+  color: var(--ink);
   font-weight: 600;
+  border-bottom-color: var(--rust);
 }
 /* ---------- mail: the top-bar popup only ----------
    Reuses the bell's popup shell wholesale — `.bell-popup`, `.bell-list`,

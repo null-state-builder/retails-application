@@ -9,7 +9,11 @@ import { Money } from "../lib/format";
 import { canWriteStockCount } from "../lib/outbound-rbac";
 import { adjustmentReasonLabel } from "../lib/adjustment-reasons";
 import { ApprovalPill, ApprovalTrail, isCleared, type ApprovalT } from "../components/approval";
+import { KpiStrip } from "../components/KpiStrip";
+import { Note } from "../components/Note";
 import { ListSearchBar } from "../components/SearchBox";
+import { EmptyState } from "../components/States";
+import { Status, type StatusTone } from "../components/Status";
 import "./Booking.css";
 import { PageHeader } from "../components/PageHeader";
 
@@ -25,12 +29,10 @@ function fmtDate(iso: string): string {
   });
 }
 
-const DS_TONE: Record<number, string> = { 0: "grey", 1: "green", 2: "red" };
+const DS_TONE: Record<number, StatusTone> = { 0: "grey", 1: "green", 2: "red" };
 const DS_LABEL: Record<number, string> = { 0: "Draft", 1: "Submitted", 2: "Cancelled" };
 function DocPill({ ds }: { ds: number }) {
-  return (
-    <span className={`chip chip-${DS_TONE[ds] ?? "grey"} status-pill`}>{DS_LABEL[ds] ?? ds}</span>
-  );
+  return <Status tone={DS_TONE[ds] ?? "grey"}>{DS_LABEL[ds] ?? ds}</Status>;
 }
 
 // ---------------------------------------------------------------------------
@@ -112,11 +114,11 @@ export function AdjustmentListPage() {
       {loading ? (
         <p className="lead">Loading…</p>
       ) : data.length === 0 ? (
-        <div className="card section-card" data-testid="adjustment-empty">
+        <EmptyState testId="adjustment-empty">
           {q
             ? `No adjustment matches “${q}”.`
             : "No stock adjustments yet. Create one after a physical count."}
-        </div>
+        </EmptyState>
       ) : (
         <div className="table-wrap">
           <table className="data" data-testid="adjustment-table">
@@ -224,10 +226,10 @@ export function AdjustmentDetailPage() {
       </Link>
       <div className="toolbar">
         <div>
-          <p className="eyebrow">{a.doc_number || `Draft #${a.id}`}</p>
           <h1 className="h1">Stock Adjustment — {a.store_code}</h1>
           <p className="lead">
-            {a.store_name} · {adjustmentReasonLabel(a.reason)}
+            <span className="mono">{a.doc_number || `Draft #${a.id}`}</span> · {a.store_name} ·{" "}
+            {adjustmentReasonLabel(a.reason)}
             {a.notes ? ` · ${a.notes}` : ""}
           </p>
         </div>
@@ -247,29 +249,28 @@ export function AdjustmentDetailPage() {
         )}
       </div>
 
-      <div className="form-row" style={{ marginBottom: 18 }}>
-        <div className="card section-card">
-          <p className="eyebrow">Reason</p>
-          <h3 className="h3">{adjustmentReasonLabel(a.reason)}</h3>
-        </div>
-        <div className="card section-card">
-          <p className="eyebrow">Net variance</p>
-          <h3
-            className="h3"
-            style={{ color: netAdj < 0 ? "var(--red)" : netAdj > 0 ? "var(--green)" : undefined }}
-          >
-            {netAdj > 0 ? "+" : ""}
-            {netAdj} pcs
-          </h3>
-        </div>
-        <div className="card section-card">
-          <p className="eyebrow">Lines</p>
-          <h3 className="h3">{a.lines.length}</h3>
-        </div>
-        <div className="card section-card">
-          <p className="eyebrow">Date</p>
-          <h3 className="h3">{fmtDate(a.created_at)}</h3>
-        </div>
+      <div style={{ marginBottom: 18 }}>
+        <KpiStrip
+          label="Adjustment"
+          items={[
+            { label: "Reason", value: adjustmentReasonLabel(a.reason) },
+            {
+              label: "Net variance",
+              value: (
+                <span
+                  style={{
+                    color: netAdj < 0 ? "var(--red)" : netAdj > 0 ? "var(--green)" : undefined,
+                  }}
+                >
+                  {netAdj > 0 ? "+" : ""}
+                  {netAdj} pcs
+                </span>
+              ),
+            },
+            { label: "Lines", value: a.lines.length },
+            { label: "Date", value: fmtDate(a.created_at) },
+          ]}
+        />
       </div>
 
       <div style={{ marginBottom: 18 }}>
@@ -283,9 +284,9 @@ export function AdjustmentDetailPage() {
       </div>
 
       {error && (
-        <div className="login-error" style={{ maxWidth: 480 }} data-testid="adj-detail-error">
+        <Note tone="error" testId="adj-detail-error">
           {error}
-        </div>
+        </Note>
       )}
 
       <div className="table-wrap">

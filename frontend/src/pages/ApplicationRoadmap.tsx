@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
 import { visibleSections } from "../shell/navConfig";
 import { PLANNED_PAGES } from "./plannedPages";
 
@@ -27,12 +28,11 @@ export function ApplicationRoadmapPage() {
         </p>
       )}
       {sections.map((section) => (
-        <section
+        <Section
           key={section.def.code}
-          className="card section-card"
-          data-testid={`roadmap-${section.def.code}`}
+          heading={section.label}
+          testId={`roadmap-${section.def.code}`}
         >
-          <h2 className="h3">{section.label}</h2>
           <ul>
             {section.items.map((item) => (
               <li key={item.to}>
@@ -43,7 +43,7 @@ export function ApplicationRoadmapPage() {
               </li>
             ))}
           </ul>
-        </section>
+        </Section>
       ))}
     </OperationsPage>
   );
