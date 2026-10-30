@@ -5,6 +5,24 @@ branch `caching-phase-3` (2026-10-30) to the narrowed scope below: conditional
 GET (ETag/304) and device data minimisation. Delta sync and server push are
 deferred by owner decision.
 
+Review fixes on `caching-phase-3` (2026-10-30): an orphan 304 (its remembered
+body evicted or forgotten in flight) is replayed once without `If-None-Match`;
+remembered bodies are handed out as copies and capped by size as well as
+count. Cash summary, gift vouchers, petty cash, bills, the stock ledger's
+on-hand/summary/entries/in-transit, goods quarantine, brand terms and claims,
+debit notes, three-way match and SOR ageing are financial (asked again on
+sight, never saved); the goods approvals inbox is action-needed (10 s). A
+goods-v1 master or vendor write refreshes the `/masters/<kind>` or `/vendors`
+reads it touched (mounted ones refetch, the rest are dropped, so the device
+copy loses them), and every mounted read refetches after a write. `useList`
+exposes `error`; a refresh that fails behind shown rows says so
+(`RefreshFailed`) instead of hiding them; more stock and money screens show
+"Updated … ago". Logout, expiry or a password change in one tab wipes the
+cache and the device copy in every open tab (`BroadcastChannel`, `storage`
+event fallback), which then never write the device copy until a session starts
+there. The history panel, Audit Log, SOH import rows and PT line pages read
+through the cache (memory only). CustomerPage stays uncached.
+
 ## Owner decisions (2026-10-30)
 - Freshness stays **refresh on focus/open**: the current staleTimes and
   `refetchOnWindowFocus`. No polling is added, no server push (SSE/WebSocket),
