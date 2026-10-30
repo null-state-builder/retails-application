@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, PackageSearch, Plus, Search, Trash2, Truck, XCircle } from "lucide-react";
 
 import { api, apiErrorMessage } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
 import { useDoc, useList } from "../lib/hooks";
+import { useCachedGet } from "../lib/cachedQuery";
 import { Money, formatDateTime } from "../lib/format";
 import { canWriteTransfer } from "../lib/outbound-rbac";
 import { destinationOptions, type LocationT } from "../lib/transfer-locations";
@@ -229,29 +230,19 @@ export function StockRequestListPage() {
 /** Searches stock across every location. Identity and quantity show for every
  *  row; cost, landed value and margin show only where `is_own` says so — the
  *  server already withheld them for anywhere else (Anand's ruling of 26 July). */
+const NO_STOCK_ROWS: StockSearchRowT[] = [];
+
 function CrossLocationSearch({ onAdd }: { onAdd: (row: StockSearchRowT) => void }) {
   const [term, setTerm] = useState("");
-  const [rows, setRows] = useState<StockSearchRowT[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    const q = term.trim();
-    if (!q) {
-      setRows([]);
-      return;
-    }
-    let live = true;
-    setLoading(true);
-    api
-      .get("/outbound/stock-search", { params: { q } })
-      .then((r) => live && setRows(r.data.rows))
-      .finally(() => live && setLoading(false));
-    return () => {
-      live = false;
-    };
-  }, [term]);
-
-  const data = rows;
+  const q = term.trim();
+  // Cached per search term: a term searched before answers at once. An empty
+  // box asks nothing and shows nothing.
+  const search = useCachedGet<{ rows: StockSearchRowT[] }, StockSearchRowT[]>(
+    q ? "/outbound/stock-search" : null,
+    { params: { q }, select: (r) => r.rows },
+  );
+  const loading = search.loading;
+  const data = (q ? search.data : undefined) ?? NO_STOCK_ROWS;
 
   return (
     <Section heading="Search stock across locations" ruled testId="cross-location-search">

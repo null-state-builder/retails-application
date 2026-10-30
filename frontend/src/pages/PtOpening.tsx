@@ -11,6 +11,7 @@ import { useAuth } from "../auth/AuthContext";
 import { Note } from "../components/Note";
 import { Box, Section } from "../components/Section";
 import { api, apiErrorMessage } from "../lib/api";
+import { useCachedGet } from "../lib/cachedQuery";
 import { formatPaiseString } from "../lib/format";
 import { Feedback, Field, hold, useStepUp, type Page } from "../lib/goodsScreen";
 
@@ -68,29 +69,27 @@ function status(source: Source): string {
   return source.state === "applied" ? "Loaded" : "Waiting for owner approval";
 }
 
+const NO_SOURCES: Source[] = [];
+
 export function PtOpeningPanel({ siteId }: { siteId: string }) {
   const { session } = useAuth();
   const stage = hold(session, "opening.import.stage");
   const approve = hold(session, "opening.manifest.approve");
-  const [sources, setSources] = useState<Source[]>([]);
+  // The site's PT openings, cached per site; polled below while a quick load runs.
+  const read = useCachedGet<Page<Source>, Source[]>(BASE, {
+    params: { site_id: siteId },
+    select: (page) =>
+      page.items.filter((s) => s.data.metadata.pt_opening || s.data.metadata.stock_sync_top_up),
+  });
+  const sources = read.data ?? NO_SOURCES;
   const [files, setFiles] = useState<File[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
   const stepUp = useStepUp();
 
-  const refresh = useCallback(async () => {
-    const list = await api.get<Page<Source>>(`${BASE}?site_id=${siteId}`);
-    setSources(
-      list.data.items.filter(
-        (s) => s.data.metadata.pt_opening || s.data.metadata.stock_sync_top_up,
-      ),
-    );
-  }, [siteId]);
-
-  useEffect(() => {
-    refresh().catch((e: unknown) => setError(apiErrorMessage(e)));
-  }, [refresh]);
+  const { reload } = read;
+  const refresh = useCallback(async () => reload(), [reload]);
 
   const loading = sources.some((s) => s.data.quick_load?.state === "running");
   useEffect(() => {
@@ -141,7 +140,7 @@ export function PtOpeningPanel({ siteId }: { siteId: string }) {
         with P RATE as cost and each row&apos;s own HSN. Afterwards, upload the legacy SOH in{" "}
         <Link to="/goods/stock-sync">Legacy sync</Link> to match what is really in the store.
       </p>
-      <Feedback error={error} ok={ok} />
+      <Feedback error={error || (read.error ? apiErrorMessage(read.error) : "")} ok={ok} />
       {stepUp.dialog}
       {stage && (
         <div className="form-grid">
