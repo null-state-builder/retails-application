@@ -6,6 +6,9 @@
  * goes to the server. The till keeps its own Dexie dataset and never reads
  * from this.
  *
+ * Phase 3: the hottest reads are revalidated with `If-None-Match` from memory
+ * (`conditionalGet.ts`), so a refresh that finds nothing changed costs a 304.
+ *
  * Phase 2: an explicit allowlist — reference masters only (`isPersistableUrl`)
  * — is also kept on the device for 24 h by `deviceCache.ts`, stamped with the
  * app version and the scope, and deleted whenever the scope ends.
@@ -26,6 +29,7 @@ import {
 import type { InternalAxiosRequestConfig } from "axios";
 
 import { api } from "./api";
+import { forgetRevalidation, installConditionalGet } from "./conditionalGet";
 import { startDeviceCache, wipeDeviceCache } from "./deviceCache";
 
 const SECOND = 1_000;
@@ -211,6 +215,7 @@ export function resetQueryCache(client: QueryClient = queryClient): Promise<void
   const wiped = wipeDeviceCache();
   void client.cancelQueries();
   client.clear();
+  forgetRevalidation();
   return wiped;
 }
 
@@ -220,6 +225,7 @@ export function resetQueryCache(client: QueryClient = queryClient): Promise<void
 export function clearQueryMemory(client: QueryClient = queryClient): void {
   void client.cancelQueries();
   client.clear();
+  forgetRevalidation();
 }
 
 /** Restore this scope's device copy and keep saving its allowlisted entries.
@@ -255,6 +261,8 @@ export function invalidateAfterMutation(url: string, client: QueryClient = query
     },
   });
 }
+
+installConditionalGet(api);
 
 const MUTATING = new Set(["post", "put", "patch", "delete"]);
 
