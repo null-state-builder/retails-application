@@ -39,6 +39,8 @@ import { useAuth } from "../auth/AuthContext";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { Note } from "../components/Note";
+import { RefreshFailed } from "../components/RefreshFailed";
+import { UpdatedAgo } from "../components/UpdatedAgo";
 import { SegmentedControl } from "../components/SegmentedControl";
 import { EmptyState } from "../components/States";
 import { formatDateTime, formatPaiseString } from "../lib/format";
@@ -77,6 +79,10 @@ interface ReadState<T> {
   deniedField: boolean;
   deniedAction: boolean;
   failure: string;
+  /** The raw failure: with data still on screen, a refresh that failed. */
+  error: unknown;
+  fetching: boolean;
+  updatedAt: number | null;
   /** Re-run the read. A command that changed this stock (E209) refetches the
    *  authoritative answer rather than adjusting a number locally (design §8.2). */
   reload: () => void;
@@ -87,12 +93,19 @@ interface ReadState<T> {
  *  loading/denied/failure state machine — this thin wrapper only renames the
  *  fields to the shape this screen already reads. */
 function useGoodsRead<T>(url: string | null): ReadState<T> {
-  const { value, loading, denied, deniedField, failure, reload } = useGoodsFetch<T, T | null>(
-    url,
-    (r) => r,
-    null,
-  );
-  return { loading, data: value, deniedField, deniedAction: denied, failure, reload };
+  const { value, loading, denied, deniedField, failure, error, fetching, updatedAt, reload } =
+    useGoodsFetch<T, T | null>(url, (r) => r, null);
+  return {
+    loading,
+    data: value,
+    deniedField,
+    deniedAction: denied,
+    failure,
+    error,
+    fetching,
+    updatedAt,
+    reload,
+  };
 }
 
 function buildUrl(base: string, params: Record<string, string | undefined>): string {
@@ -273,12 +286,19 @@ export function GoodsStockPage({
               : "Physical, valued and available quantities, with holds, reservations and reasons."
         }
         actions={
-          damageWorkspace &&
-          (hold(session, "movement.draft") || hold(session, "movement.approve")) ? (
-            <Link className="btn" to={`/goods/movements${siteId ? `?site_id=${siteId}` : ""}`}>
-              Movements &amp; damage reviews
-            </Link>
-          ) : undefined
+          <>
+            <UpdatedAgo
+              updatedAt={rows.updatedAt}
+              fetching={rows.fetching || summary.fetching}
+              testId="stock-updated"
+            />
+            {damageWorkspace &&
+              (hold(session, "movement.draft") || hold(session, "movement.approve")) && (
+                <Link className="btn" to={`/goods/movements${siteId ? `?site_id=${siteId}` : ""}`}>
+                  Movements &amp; damage reviews
+                </Link>
+              )}
+          </>
         }
       />
 
@@ -513,50 +533,75 @@ function StockTable({
         ? "Nothing is quarantined or held for this scope."
         : "No stock in this scope.";
 
+  // A failed refresh keeps the rows already on screen and warns above them;
+  // only a read that never answered shows the failure in their place.
   const state = listState(
-    { loading: rows.loading, failure: rows.failure, empty: (rows.data?.items.length ?? 0) === 0 },
+    {
+      loading: rows.loading,
+      failure: rows.data ? "" : rows.failure,
+      empty: (rows.data?.items.length ?? 0) === 0,
+    },
     emptyText,
   );
-  if (state) return state;
+  const stale = (
+    <RefreshFailed
+      error={rows.failure ? rows.error : null}
+      shown={Boolean(rows.data)}
+      updatedAt={rows.updatedAt}
+      onRetry={rows.reload}
+      testId="stock-refresh-failed"
+    />
+  );
+  if (state) {
+    return (
+      <>
+        {stale}
+        {state}
+      </>
+    );
+  }
 
   const items = rows.data?.items ?? [];
   return (
-    <div className="table-wrap capped" role="region" aria-label="Goods stock" tabIndex={0}>
-      <table className="data" data-testid="stock-table">
-        <thead>
-          <tr>
-            <th>Location</th>
-            <th>SKU / description</th>
-            <th className="p2">Season</th>
-            <th>Condition</th>
-            <th className="num">Physical</th>
-            <th className="num p2">Valued</th>
-            <th className="num p2">Unvalued</th>
-            <th className="num">Accepted</th>
-            <th className="num">{view === "in-transit" ? "In transit" : "ATS / Transfer"}</th>
-            <th className="num">Held</th>
-            <th className="num p2">Reserved</th>
-            {basis !== "quantity" && <th className="num">Value</th>}
-            <th className="p2">Reasons</th>
-            {view === "quarantine" && <th>Damage review</th>}
-            {onMarkDamaged && view !== "in-transit" && <th className="act">Found damaged?</th>}
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((row, i) => (
-            <StockRowView
-              key={i}
-              row={row}
-              basis={basis}
-              view={view}
-              isWarehouse={isWarehouseKind(row.site_id ? siteKinds.get(row.site_id) : undefined)}
-              review={view === "quarantine" ? damageRowWords(row, reviews) : null}
-              onMarkDamaged={view === "in-transit" ? null : onMarkDamaged}
-            />
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <>
+      {stale}
+      <div className="table-wrap capped" role="region" aria-label="Goods stock" tabIndex={0}>
+        <table className="data" data-testid="stock-table">
+          <thead>
+            <tr>
+              <th>Location</th>
+              <th>SKU / description</th>
+              <th className="p2">Season</th>
+              <th>Condition</th>
+              <th className="num">Physical</th>
+              <th className="num p2">Valued</th>
+              <th className="num p2">Unvalued</th>
+              <th className="num">Accepted</th>
+              <th className="num">{view === "in-transit" ? "In transit" : "ATS / Transfer"}</th>
+              <th className="num">Held</th>
+              <th className="num p2">Reserved</th>
+              {basis !== "quantity" && <th className="num">Value</th>}
+              <th className="p2">Reasons</th>
+              {view === "quarantine" && <th>Damage review</th>}
+              {onMarkDamaged && view !== "in-transit" && <th className="act">Found damaged?</th>}
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((row, i) => (
+              <StockRowView
+                key={i}
+                row={row}
+                basis={basis}
+                view={view}
+                isWarehouse={isWarehouseKind(row.site_id ? siteKinds.get(row.site_id) : undefined)}
+                review={view === "quarantine" ? damageRowWords(row, reviews) : null}
+                onMarkDamaged={view === "in-transit" ? null : onMarkDamaged}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 

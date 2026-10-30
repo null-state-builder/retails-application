@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 
 import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { RefreshFailed } from "../components/RefreshFailed";
+import { UpdatedAgo } from "../components/UpdatedAgo";
 import { useCachedGet } from "../lib/cachedQuery";
 import { Box, Section } from "../components/Section";
 import { Status, type StatusTone } from "../components/Status";
@@ -75,9 +77,15 @@ export function BrandTermsPage() {
   const detail = brandId === null ? null : (detailRead.data ?? null);
   const readError = summaryRead.error ?? detailRead.error;
   const lost = commandLost || (readError != null && isConnectionLost(readError));
+  // A read that failed with nothing to show is the answer; one that failed
+  // behind terms already shown keeps them and warns (`RefreshFailed`).
+  const answerError =
+    (summary === null ? summaryRead.error : null) ?? (detail === null ? detailRead.error : null);
+  const staleError =
+    (summary !== null ? summaryRead.error : null) ?? (detail !== null ? detailRead.error : null);
   const error =
     commandError ||
-    (readError != null && !isConnectionLost(readError) ? apiErrorMessage(readError) : "");
+    (answerError != null && !isConnectionLost(answerError) ? apiErrorMessage(answerError) : "");
   useEffect(() => {
     if (summaryRead.updatedAt) setLost(false);
   }, [summaryRead.updatedAt]);
@@ -213,6 +221,13 @@ export function BrandTermsPage() {
           {done}
         </Note>
       )}
+      <RefreshFailed
+        error={staleError != null && !isConnectionLost(staleError) ? staleError : null}
+        shown
+        updatedAt={summaryRead.updatedAt}
+        onRetry={load}
+        testId="brand-terms-refresh-failed"
+      />
     </>
   );
   const writable = !offline && !busy;
@@ -261,6 +276,13 @@ export function BrandTermsPage() {
       <PageHeader
         title="Brand Terms"
         lead="Each brand's commercial terms per season, from a date. The Brand Manager proposes a change and the Owner approves it."
+        actions={
+          <UpdatedAgo
+            updatedAt={summaryRead.updatedAt}
+            fetching={summaryRead.fetching || detailRead.fetching}
+            testId="brand-terms-updated"
+          />
+        }
       />
       {offlineNote}
       {!summary.switched_on && (

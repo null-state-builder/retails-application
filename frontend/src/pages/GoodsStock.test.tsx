@@ -4,13 +4,31 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { GoodsStockPage } from "./GoodsStock";
 
-const reads = vi.hoisted(() => ({ urls: [] as (string | null)[], summaryFailure: false }));
+const reads = vi.hoisted(() => ({
+  urls: [] as (string | null)[],
+  summaryFailure: false,
+  rowsRefreshFailed: false,
+}));
 
 vi.mock("../lib/goodsScreen", async (original) => ({
   ...(await original<typeof import("../lib/goodsScreen")>()),
   useGoodsFetch: (url: string | null) => {
     reads.urls.push(url);
     const failed = reads.summaryFailure && url?.includes("stockledger/summary");
+    if (reads.rowsRefreshFailed && url?.includes("stockledger/quarantine")) {
+      // Rows read before, then a refresh that failed behind them.
+      return {
+        loading: false,
+        denied: false,
+        deniedField: false,
+        failure: "The server is busy.",
+        error: { response: { status: 503, data: { detail: "The server is busy." } } },
+        fetching: false,
+        updatedAt: Date.now() - 2 * 60_000,
+        value: { items: [], next_cursor: null, as_of: "2026-10-30T10:00:00Z" },
+        reload: () => {},
+      };
+    }
     return {
       loading: !failed,
       denied: false,
@@ -47,6 +65,7 @@ describe("daily damage uses the canonical stock screen", () => {
   beforeEach(() => {
     reads.urls.length = 0;
     reads.summaryFailure = false;
+    reads.rowsRefreshFailed = false;
   });
 
   it("starts in quarantine at the active store and offers governed physical-stock reporting", () => {
@@ -81,5 +100,16 @@ describe("daily damage uses the canonical stock screen", () => {
     expect(html).toContain("Summary unavailable");
     expect(html).not.toContain('data-testid="stock-summary"');
     expect(html).not.toContain("999");
+  });
+
+  it("says how old the stock is, and keeps it on screen with a warning when a refresh fails", () => {
+    reads.rowsRefreshFailed = true;
+    const html = draw();
+    expect(html).toContain('data-testid="stock-updated"');
+    expect(html).toContain("2 min ago");
+    expect(html).toContain('data-testid="stock-refresh-failed"');
+    expect(html).toContain("may be out of date");
+    // The rows' own answer stands: no failure in their place.
+    expect(html).toContain("Nothing is quarantined or held for this scope.");
   });
 });

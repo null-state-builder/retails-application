@@ -20,6 +20,7 @@ import { useCachedGet } from "../lib/cachedQuery";
 import { useAuth } from "../auth/AuthContext";
 import { KpiStrip } from "../components/KpiStrip";
 import { Note } from "../components/Note";
+import { UpdatedAgo } from "../components/UpdatedAgo";
 import { PageHeader } from "../components/PageHeader";
 import { Section } from "../components/Section";
 import { Status } from "../components/Status";
@@ -66,6 +67,8 @@ interface DashboardCard {
   /** Rendered value. `null` data reads as "…" (loading), never as 0. */
   value: React.ReactNode;
   sub: string;
+  /** A second, quieter line: how old the figure is. */
+  note?: React.ReactNode;
   icon: React.ReactNode;
   /** What the tile is for — shown in the card picker. */
   purpose: string;
@@ -89,6 +92,7 @@ function Kpi({
   label,
   value,
   sub,
+  note,
   state,
   onOpen,
   onDragStart,
@@ -99,6 +103,7 @@ function Kpi({
   label: string;
   value: React.ReactNode;
   sub?: string;
+  note?: React.ReactNode;
   state: CardState;
   onOpen: () => void;
   onDragStart: () => void;
@@ -127,6 +132,7 @@ function Kpi({
       </div>
       <div className="kpi-value mono">{value}</div>
       {sub && <div className="kpi-sub">{sub}</div>}
+      {note && <div className="kpi-sub">{note}</div>}
     </button>
   );
 }
@@ -362,11 +368,29 @@ export function Home() {
   const inbox =
     useCachedGet<unknown[] | null, number>("/approvals/inbox", { select: (r) => r?.length ?? 0 })
       .data ?? null;
-  const onHand =
-    useCachedGet<{ summary: OnHandSummary }, OnHandSummary>("/stockledger/on-hand", {
-      kind: "doc",
-      select: (r) => r.summary,
-    }).data ?? null;
+  const onHandRead = useCachedGet<{ summary: OnHandSummary }, OnHandSummary>(
+    "/stockledger/on-hand",
+    { kind: "doc", select: (r) => r.summary },
+  );
+  const onHand = onHandRead.data ?? null;
+  // Stock is a money figure: say how old it is, and say so when a refresh
+  // failed behind the figure shown.
+  const stockNote =
+    onHand === null ? undefined : (
+      <>
+        <UpdatedAgo
+          updatedAt={onHandRead.updatedAt}
+          fetching={onHandRead.fetching}
+          testId="stock-tile-updated"
+        />
+        {onHandRead.error != null && (
+          <span className="muted-cell" data-testid="stock-tile-refresh-failed">
+            {" "}
+            · could not refresh
+          </span>
+        )}
+      </>
+    );
   const alertCount =
     useCachedGet<unknown[] | null, number>("/alerts", { select: (r) => r?.length ?? 0 }).data ??
     null;
@@ -387,6 +411,7 @@ export function Home() {
         sub: onHand
           ? `${onHand.units_on_hand.toLocaleString("en-IN")} pcs · ${onHand.lines.toLocaleString("en-IN")} SKU lines`
           : "From the stock ledger",
+        note: stockNote,
         purpose:
           "Stock value at book cost, from the stock ledger — the units and lines behind it are on Stock on Hand.",
         state: "live",
@@ -398,6 +423,7 @@ export function Home() {
         label: "Stock on hand",
         value: num(onHand === null ? null : onHand.units_on_hand, " pcs"),
         sub: onHand ? `${onHand.lines} SKU lines` : "From the stock ledger",
+        note: stockNote,
         purpose:
           "Pieces on hand from the stock ledger. Cost is not shown — the books are finance's.",
         state: "live",
@@ -552,6 +578,7 @@ export function Home() {
             label={card.label}
             value={card.value}
             sub={card.sub}
+            note={card.note}
             state={card.state}
             onOpen={() => navigate(card.to)}
             onDragStart={() => setDragCard(card.id)}
