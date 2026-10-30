@@ -6,6 +6,9 @@
  * goes to the server. The till keeps its own Dexie dataset and never reads
  * from this.
  *
+ * Phase 3: the hottest reads are revalidated with `If-None-Match` from memory
+ * (`conditionalGet.ts`), so a refresh that finds nothing changed costs a 304.
+ *
  * Phase 2: an explicit allowlist — reference masters only (`isPersistableUrl`)
  * — is also kept on the device for 24 h by `deviceCache.ts`, stamped with the
  * app version and the scope, and deleted whenever the scope ends.
@@ -26,6 +29,8 @@ import {
 import type { InternalAxiosRequestConfig } from "axios";
 
 import { api } from "./api";
+import { forgetRevalidation, installConditionalGet } from "./conditionalGet";
+import { onSessionEndedElsewhere } from "./crossTab";
 import { startDeviceCache, wipeDeviceCache } from "./deviceCache";
 
 const SECOND = 1_000;
@@ -83,10 +88,29 @@ const FINANCIAL = [
   // Open-to-buy budgets are cost figures, on bookings and on their own.
   /open-to-buy/,
   /\/bank(\/|\?|$)/,
+  // Cash, vouchers, petty cash and bills are money.
+  /^\/store\/cash-summary(\/|\?|$)/,
+  /^\/sell\/gift-vouchers(\/|\?|$)/,
+  /^\/sell\/petty-cash(\/|\?|$)/,
+  /^\/sell\/sales(\/|\?|$)/,
+  // Stock values: the ledger's on-hand, summary, postings and in transit.
+  /^\/stockledger\/(on-hand|summary|entries|in-transit)(\/|\?|$)/,
+  /^\/goods-v1\/stockledger\/quarantine(\/|\?|$)/,
+  // Brand money: terms, claims, debit notes, invoice matching, SOR ageing.
+  /^\/goods-v1\/masters\/brand-terms(\/|\?|$)/,
+  /^\/goods-v1\/sell\/brand-claims(\/|\?|$)/,
+  /^\/goods-v1\/inbound\/debit-notes(\/|\?|$)/,
+  /\/three-way-match(\/|\?|$)/,
+  /\/sor-ageing(\/|\?|$)/,
+  /^\/brands\/(terms|claims|reports|sor-ageing)(\/|\?|$)/,
 ];
 
 /** Lists people act from, kept as fresh as an open document. */
-const ACTION_NEEDED = [/^\/approvals(\/|\?|$)/, /^\/alerts(\/|\?|$)/];
+const ACTION_NEEDED = [
+  /^\/approvals(\/|\?|$)/,
+  /^\/goods-v1\/approvals\/inbox(\/|\?|$)/,
+  /^\/alerts(\/|\?|$)/,
+];
 
 function pathOf(url: string): string {
   return url.split("?")[0] ?? url;
@@ -211,6 +235,7 @@ export function resetQueryCache(client: QueryClient = queryClient): Promise<void
   const wiped = wipeDeviceCache();
   void client.cancelQueries();
   client.clear();
+  forgetRevalidation();
   return wiped;
 }
 
@@ -220,11 +245,39 @@ export function resetQueryCache(client: QueryClient = queryClient): Promise<void
 export function clearQueryMemory(client: QueryClient = queryClient): void {
   void client.cancelQueries();
   client.clear();
+  forgetRevalidation();
 }
 
+/** Set when another tab ended the session: this tab saves nothing to the
+ *  device again until a session starts in it (`resumePersistence`). */
+let persistenceBlocked = false;
+
+/** Whether this tab may save to the device (tests and diagnostics). */
+export function isPersistenceBlocked(): boolean {
+  return persistenceBlocked;
+}
+
+/** A session started in this tab (sign-in, or a restored session): it may
+ *  save its own scope again. */
+export function resumePersistence(): void {
+  persistenceBlocked = false;
+}
+
+/** Another tab ended the session (logout, expiry, password change): stop
+ *  every request, forget everything, delete the device copy, and refuse to
+ *  write it again from this tab. */
+export function resetAfterSessionEndedElsewhere(client: QueryClient = queryClient): Promise<void> {
+  persistenceBlocked = true;
+  return resetQueryCache(client);
+}
+
+onSessionEndedElsewhere(() => void resetAfterSessionEndedElsewhere());
+
 /** Restore this scope's device copy and keep saving its allowlisted entries.
- *  Resolves when the restore is done or refused; never rejects. */
+ *  Resolves when the restore is done or refused; never rejects. Does nothing
+ *  after another tab ended the session, until one starts here again. */
 export function persistScope(scope: string, client: QueryClient = queryClient): Promise<void> {
+  if (persistenceBlocked) return Promise.resolve();
   return startDeviceCache(client, scope, {
     appVersion: APP_VERSION,
     maxAge: PERSIST_MAX_AGE,
@@ -232,29 +285,63 @@ export function persistScope(scope: string, client: QueryClient = queryClient): 
   });
 }
 
+/** The reference data a write may have changed, as `/masters/…` and
+ *  `/vendors` prefixes. The goods-v1 master screens write through
+ *  `/goods-v1/masters/<kind>` and `/goods-v1/vendors`, while the reference
+ *  reads (and the sign-in bootstrap's blocks, which are seeded under the same
+ *  URLs) live under `/masters/<kind>` and `/vendors`: the two families must
+ *  move together. */
+export function referenceTouchedBy(url: string): string[] {
+  const parts = pathOf(url).split("/").filter(Boolean);
+  const touched = new Set<string>();
+  let rest = parts;
+  if (rest[0] === "goods-v1") rest = rest.slice(1);
+  if (rest[0] === "vendors") touched.add("/vendors");
+  if (rest[0] === "masters" && rest[1]) {
+    const kind = rest[1];
+    if (kind === "vendors") touched.add("/vendors");
+    else touched.add(`/masters/${kind === "subbrands" ? "brands" : kind}`);
+    // A store's locations are written under the store.
+    if (kind === "stores" && rest.includes("locations")) touched.add("/masters/locations");
+  }
+  return [...touched].filter((prefix) => isReferenceUrl(prefix));
+}
+
 /** After a successful change, the screen should end on what the server says.
- *  Lists under the same first path segment (`/outbound/…`, `/masters/…`,
- *  `/approvals/…`) refetch now if shown; every other non-reference answer is
- *  marked stale, so it is re-asked (behind the cached copy) next time it is
- *  shown. */
+ *  - Every mounted answer refetches now: the changed family's (first path
+ *    segment: `/outbound/…`, `/goods-v1/…`) and every other family's too,
+ *    except reference data the write cannot have touched. What is not on
+ *    screen is marked stale and is re-asked (behind the cached copy) next
+ *    time it is shown.
+ *  - Reference data the write did touch (`referenceTouchedBy`, across the
+ *    legacy and goods-v1 families): mounted reads refetch now, and copies not
+ *    on screen are dropped, so the device copy loses them on its next write
+ *    rather than restoring a superseded master for up to 24 h. */
 export function invalidateAfterMutation(url: string, client: QueryClient = queryClient): void {
   const segment = pathOf(url).split("/").filter(Boolean)[0];
   if (!segment || segment === "auth") return;
   const family = `/${segment}`;
+  const touched = referenceTouchedBy(url);
+  const isTouched = (u: string) => touched.some((prefix) => under(pathOf(u), prefix));
+  if (touched.length > 0) {
+    client.removeQueries({
+      predicate: (q) => {
+        const u = urlOf(q);
+        return u !== null && isTouched(u) && !q.isActive();
+      },
+    });
+  }
   void client.invalidateQueries({
     predicate: (q) => {
       const u = urlOf(q);
-      return u !== null && under(pathOf(u), family);
-    },
-  });
-  void client.invalidateQueries({
-    refetchType: "none",
-    predicate: (q) => {
-      const u = urlOf(q);
-      return u !== null && !under(pathOf(u), family) && !isReferenceUrl(u);
+      if (u === null) return false;
+      if (isTouched(u)) return true;
+      return under(pathOf(u), family) || !isReferenceUrl(u);
     },
   });
 }
+
+installConditionalGet(api);
 
 const MUTATING = new Set(["post", "put", "patch", "delete"]);
 

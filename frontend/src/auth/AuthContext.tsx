@@ -10,7 +10,14 @@ import {
 import type { ReactNode } from "react";
 
 import { authApi, authSession, unitContext } from "../lib/api";
-import { cacheScope, clearQueryMemory, persistScope, resetQueryCache } from "../lib/queryCache";
+import { announceSessionEnded, onSessionEndedElsewhere } from "../lib/crossTab";
+import {
+  cacheScope,
+  clearQueryMemory,
+  persistScope,
+  resetQueryCache,
+  resumePersistence,
+} from "../lib/queryCache";
 import { storeFeaturesOn } from "../shell/navConfig";
 
 export interface Store {
@@ -425,6 +432,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function startSession(payload: SessionPayload) {
+    // A session opened in this tab may save its own scope again, even if
+    // another tab's logout stopped this one saving.
+    resumePersistence();
     const { csrf_token: _csrf, ...current } = payload;
     const u = shellUser(current);
     noteIdentity(current);
@@ -435,12 +445,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     lastRefresh.current = Date.now();
   }
 
-  function endSession() {
+  function endSession({ announce = true }: { announce?: boolean } = {}) {
     // Logout, revocation, expiry and a password change all end here: forget
     // everything the back office was shown, in memory and on the device,
-    // whatever the scope says.
+    // whatever the scope says — and tell the other open tabs to do the same
+    // (they share the session cookie, so it has ended for them too).
     noteIdentity(null);
     void resetQueryCache();
+    if (announce) announceSessionEnded();
     setUser(null);
     setSession(null);
     applyContext(null, null);
@@ -546,13 +558,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // A session that was never open (the unauthenticated bootstrap probe,
       // or a stale retry racing a deliberate logout) is not a revocation —
       // only flag it when a real session was open a moment ago.
-      if (loggedInRef.current) setSessionExpired(true);
+      const wasOpen = loggedInRef.current;
+      if (wasOpen) setSessionExpired(true);
       sessionEpoch.current += 1;
-      endSession();
+      // Only a session that was open is news to the other tabs.
+      endSession({ announce: wasOpen });
     }
     window.addEventListener("kdps:session-expired", onExpired);
     return () => window.removeEventListener("kdps:session-expired", onExpired);
   }, []);
+
+  useEffect(
+    () =>
+      // Another tab logged out (or its session expired, or the password
+      // changed). `queryCache` has already wiped and stopped saving; this
+      // signs this tab out too, so nothing in flight here can start a scope
+      // again. Not re-announced: the other tabs heard it from the same place.
+      onSessionEndedElsewhere(() => {
+        sessionEpoch.current += 1;
+        authSession.bump();
+        endSession({ announce: false });
+      }),
+    // Subscribed once, like the session-expired listener above: `endSession`
+    // only touches refs and state setters.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [],
+  );
 
   async function login(email: string, password: string) {
     sessionEpoch.current += 1;

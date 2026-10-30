@@ -34,6 +34,8 @@ import { Section } from "../components/Section";
 import { Loading } from "../components/States";
 import { Status } from "../components/Status";
 import { apiErrorMessage } from "../lib/api";
+import { RefreshFailed } from "../components/RefreshFailed";
+import { UpdatedAgo } from "../components/UpdatedAgo";
 import { useCachedGet } from "../lib/cachedQuery";
 import { Money } from "../lib/format";
 import { userCan, type Area } from "../shell/navConfig";
@@ -382,6 +384,20 @@ export function StoreDashboard({
 
   return (
     <div className="store-dash">
+      <RefreshFailed
+        error={read.error}
+        shown
+        updatedAt={read.updatedAt}
+        onRetry={read.reload}
+        testId="dashboard-refresh-failed"
+      />
+      <div>
+        <UpdatedAgo
+          updatedAt={read.updatedAt}
+          fetching={read.fetching}
+          testId="dashboard-updated"
+        />
+      </div>
       <QuickActions />
       <TodayRow d={data} />
       {/* Store operations ticket 49: the day's task checklists, where switched on. */}

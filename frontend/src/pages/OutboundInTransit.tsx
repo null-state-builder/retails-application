@@ -22,6 +22,8 @@ import { isCleared } from "../components/approval";
 import { KpiStrip } from "../components/KpiStrip";
 import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { RefreshFailed } from "../components/RefreshFailed";
+import { UpdatedAgo } from "../components/UpdatedAgo";
 import { Box, Section } from "../components/Section";
 import { EmptyState, Loading } from "../components/States";
 import { GapStatePill, ReceiptExceptions, fmtDate, type TransferT } from "./OutboundTransfers";
@@ -317,14 +319,11 @@ function GapCard({
 export function InTransitPage() {
   const { user } = useAuth();
   const canClose = canCloseTransferGap(user);
-  const {
-    data: gaps,
-    loading: gapsLoading,
-    reload,
-  } = useList<TransferT>("/outbound/transfers/gaps");
+  const gapsRead = useList<TransferT>("/outbound/transfers/gaps");
+  const { data: gaps, loading: gapsLoading, reload } = gapsRead;
   // A summary + its rows in one object, not a bare list — so useDoc, not useList.
-  const { data: transit, loading: transitLoading } =
-    useDoc<InTransitPayloadT>("/stockledger/in-transit");
+  const transitRead = useDoc<InTransitPayloadT>("/stockledger/in-transit");
+  const { data: transit, loading: transitLoading } = transitRead;
   const summary = transit?.summary;
   const rows = transit?.rows ?? [];
 
@@ -333,11 +332,25 @@ export function InTransitPage() {
       <PageHeader
         title="In transit & gaps"
         lead="Stock that has left one location and not yet arrived at another. The sender is answerable for it until the receiver scans it in — so a carton lost on the bus is visible here, not vanished."
+        actions={
+          <UpdatedAgo
+            updatedAt={transitRead.updatedAt}
+            fetching={transitRead.fetching || gapsRead.fetching}
+            testId="in-transit-updated"
+          />
+        }
       />
 
       <div className="page">
         {/* Gaps first: these are the ones somebody has to act on. */}
         <Section heading="Gaps — sent ≠ received">
+          <RefreshFailed
+            error={gapsRead.error}
+            shown={gapsRead.updatedAt !== null}
+            updatedAt={gapsRead.updatedAt}
+            onRetry={gapsRead.reload}
+            testId="gaps-refresh-failed"
+          />
           {gapsLoading ? (
             <Loading />
           ) : gaps.length === 0 ? (
@@ -353,6 +366,13 @@ export function InTransitPage() {
 
         {/* Then the plain in-transit position. */}
         <Section heading="On the road" ruled>
+          <RefreshFailed
+            error={transitRead.error}
+            shown={transit !== null}
+            updatedAt={transitRead.updatedAt}
+            onRetry={transitRead.reload}
+            testId="transit-refresh-failed"
+          />
           {summary && (
             <KpiStrip
               label="In transit"

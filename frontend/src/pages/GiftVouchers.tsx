@@ -9,6 +9,8 @@ import { Section } from "../components/Section";
 import { SegmentedControl } from "../components/SegmentedControl";
 import { Status, type StatusTone } from "../components/Status";
 import { apiErrorMessage } from "../lib/api";
+import { RefreshFailed } from "../components/RefreshFailed";
+import { UpdatedAgo } from "../components/UpdatedAgo";
 import { useCachedGet } from "../lib/cachedQuery";
 import { isConnectionLost } from "../lib/auditLog";
 import { formatINR } from "../lib/format";
@@ -111,6 +113,15 @@ export function GiftVouchersPage() {
       <PageHeader
         title="Gift vouchers"
         lead="The vouchers this store sold, what is left on each, and those that expired unused. Sell and take them at Billing."
+        actions={
+          listing ? (
+            <UpdatedAgo
+              updatedAt={read.updatedAt}
+              fetching={read.fetching}
+              testId="gift-vouchers-updated"
+            />
+          ) : undefined
+        }
       />
       {stores.length > 1 && (
         <label className="field">
@@ -153,11 +164,20 @@ export function GiftVouchersPage() {
           {GIFT_VOUCHERS_OFFLINE}
         </Note>
       )}
-      {error && (
+      {/* A refresh that failed behind a list already shown keeps the list and
+          warns; with nothing shown the failure is the answer. */}
+      {error && !listing && (
         <Note tone="error" testId="gift-vouchers-error">
           {error}
         </Note>
       )}
+      <RefreshFailed
+        error={error ? read.error : null}
+        shown={listing !== null}
+        updatedAt={read.updatedAt}
+        onRetry={load}
+        testId="gift-vouchers-refresh-failed"
+      />
       {!store && <p>Choose a store to see its gift vouchers.</p>}
       {store && !listing && !offline && !error && <p>Loading gift vouchers…</p>}
 

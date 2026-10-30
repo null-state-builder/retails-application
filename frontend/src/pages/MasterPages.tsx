@@ -1291,8 +1291,10 @@ interface VendorRow {
   gstin: string;
   state_code: string;
   state_name: string;
-  pan: string;
-  payment_terms: string;
+  /** Absent on a copy restored from the device, which never keeps PAN or
+   *  payment terms (caching plan Phase 3) until the refetch brings them. */
+  pan?: string;
+  payment_terms?: string;
   brands: number[];
   brand_names: string[];
   is_active: boolean;
@@ -1310,6 +1312,9 @@ const blankVendor = {
   payment_terms: "",
   brands: [] as number[],
   is_active: true,
+  /** False while editing a row whose PAN and terms are not known yet: the save
+   *  then leaves them as they are on the server instead of blanking them. */
+  termsKnown: true,
 };
 
 export function VendorsPage() {
@@ -1334,8 +1339,7 @@ export function VendorsPage() {
       gstin: form.gstin,
       state_code: form.state_code,
       state_name: form.state_name,
-      pan: form.pan,
-      payment_terms: form.payment_terms,
+      ...(form.termsKnown ? { pan: form.pan, payment_terms: form.payment_terms } : {}),
       brands: form.brands,
       is_active: form.is_active,
     };
@@ -1366,6 +1370,7 @@ export function VendorsPage() {
       payment_terms: v.payment_terms || "",
       brands: v.brands ?? [],
       is_active: v.is_active,
+      termsKnown: v.pan !== undefined && v.payment_terms !== undefined,
     });
   }
   function add() {
@@ -1458,14 +1463,20 @@ export function VendorsPage() {
             />
             <input
               className="input"
-              placeholder="PAN"
+              placeholder={form.termsKnown ? "PAN" : "PAN (still loading; left unchanged)"}
+              disabled={!form.termsKnown}
               value={form.pan}
               onChange={(e) => setForm({ ...form, pan: e.target.value.toUpperCase() })}
               data-testid="vendor-pan-input"
             />
             <input
               className="input"
-              placeholder="Payment terms (e.g. 30 days from invoice)"
+              placeholder={
+                form.termsKnown
+                  ? "Payment terms (e.g. 30 days from invoice)"
+                  : "Payment terms (still loading; left unchanged)"
+              }
+              disabled={!form.termsKnown}
               value={form.payment_terms}
               onChange={(e) => setForm({ ...form, payment_terms: e.target.value })}
               data-testid="vendor-terms-input"

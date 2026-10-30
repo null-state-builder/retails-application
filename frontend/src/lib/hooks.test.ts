@@ -221,6 +221,26 @@ describe("useList / useDoc over the query cache", () => {
     expect(docs.at(-1)).toMatchObject({ data: null, loading: true, error: null });
   });
 
+  it("keeps the rows on screen and reports the error when a refresh fails", async () => {
+    let fail = false;
+    server = () => (fail ? { status: 503 } : { data: [{ id: 1 }] });
+    const seen: ListResult[] = [];
+    mount(withClient(createQueryClient(), h(ListProbe, { url: "/outbound/rtvs", seen: seen })));
+    await settle();
+    expect(seen.at(-1)).toMatchObject({ data: [{ id: 1 }], error: null, loading: false });
+    fail = true;
+    act(() => seen.at(-1)!.reload());
+    await settle();
+    const last = seen.at(-1)!;
+    expect(last.data).toEqual([{ id: 1 }]);
+    expect(last.loading).toBe(false);
+    expect((last.error as { response?: { status: number } }).response?.status).toBe(503);
+    fail = false;
+    act(() => last.reload());
+    await settle();
+    expect(seen.at(-1)?.error).toBeNull();
+  });
+
   it("treats a refused document as an answer: error, not a spinner", async () => {
     server = () => ({ status: 404 });
     const seen: DocResult[] = [];

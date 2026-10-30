@@ -115,6 +115,9 @@ MIDDLEWARE = [
     # The business unit / brand the caller picked in the top-bar switcher (#88).
     # Narrows what the scoping helpers answer; it can never widen it.
     "masters.unit_context.ActiveContextMiddleware",
+    # ETag / 304 on the back office's hottest reads (caching plan Phase 3).
+    # Innermost, so the digest covers exactly the body the view rendered.
+    "core.conditional_get.ConditionalApiGetMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -370,7 +373,12 @@ CORS_ALLOW_CREDENTIALS = True
 # all (discovered while QA'ing ticket 02: the harness's own smoke spec failed
 # the same way, on every browser-driven login, not on anything this ticket
 # changed).
-CORS_ALLOW_HEADERS = (*default_headers, "x-kdps-unit", "x-kdps-brand", "x-csrf-token")
+CORS_ALLOW_HEADERS = (
+    *default_headers, "x-kdps-unit", "x-kdps-brand", "x-csrf-token",
+    # The back office revalidates its hottest reads itself (caching plan Phase 3).
+    "if-none-match",
+)
+CORS_EXPOSE_HEADERS = ["ETag"]
 # The broad Emergent-preview + localhost regexes are a credentialed wildcard on a
 # *shared* preview domain (any `<x>.emergentagent.com` could ride the cookie), so
 # they are gated to DEBUG (preview/dev) only. In production (DEBUG=0) CORS is driven

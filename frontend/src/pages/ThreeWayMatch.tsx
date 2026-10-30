@@ -12,6 +12,8 @@ import { useEffect, useRef } from "react";
 import { Scale } from "lucide-react";
 
 import { Note } from "../components/Note";
+import { RefreshFailed } from "../components/RefreshFailed";
+import { UpdatedAgo } from "../components/UpdatedAgo";
 import { apiErrorCode, apiErrorMessage } from "../lib/api";
 import { useCachedGet } from "../lib/cachedQuery";
 import { formatPaiseString } from "../lib/format";
@@ -23,7 +25,16 @@ export type ThreeWayState =
   | { kind: "off" }
   | { kind: "offline" }
   | { kind: "failed"; message: string }
-  | { kind: "ready"; data: ThreeWayData };
+  | {
+      kind: "ready";
+      data: ThreeWayData;
+      /** When the shown match was read, and whether it is being read again. */
+      updatedAt?: number | null;
+      fetching?: boolean;
+      /** A read again that failed behind the match shown. */
+      refreshError?: unknown;
+      reload?: () => void;
+    };
 
 /** The action an arrival names where the site's switch is on. */
 export const THREE_WAY_ACTION = "three_way_match";
@@ -62,6 +73,11 @@ export function useThreeWay(
   }, [refresh, reload]);
 
   if (!arrivalId) return { kind: "off" };
+  const shown = {
+    updatedAt: read.updatedAt,
+    fetching: read.fetching,
+    reload,
+  };
   if (read.error) {
     const e = read.error;
     const code = apiErrorCode(e);
@@ -69,10 +85,12 @@ export function useThreeWay(
     if (code === "FEATURE_OFF" || code === "ACTION_DENIED" || code === "NOT_FOUND") {
       return { kind: "off" };
     }
+    // A failed read again behind a match already shown keeps it, and says so.
+    if (read.data) return { kind: "ready", data: read.data, refreshError: e, ...shown };
     if (!answered || !navigator.onLine) return { kind: "offline" };
     return { kind: "failed", message: apiErrorMessage(e) };
   }
-  if (read.data) return { kind: "ready", data: read.data };
+  if (read.data) return { kind: "ready", data: read.data, refreshError: null, ...shown };
   return { kind: "loading" };
 }
 
@@ -95,8 +113,20 @@ export function ThreeWayPanel({
   return (
     <section data-testid="twm-panel">
       <h4 className="gr-h4">
-        <Scale size={15} /> Booked, invoiced and counted
+        <Scale size={15} /> Booked, invoiced and counted{" "}
+        {state.kind === "ready" && (
+          <UpdatedAgo updatedAt={state.updatedAt} fetching={state.fetching} testId="twm-updated" />
+        )}
       </h4>
+      {state.kind === "ready" && (
+        <RefreshFailed
+          error={state.refreshError}
+          shown
+          updatedAt={state.updatedAt}
+          onRetry={state.reload}
+          testId="twm-refresh-failed"
+        />
+      )}
       {state.kind === "offline" && (
         <Note tone="warn" testId="twm-offline">
           You are offline, so the match cannot be read now. Counting is not affected. It shows again

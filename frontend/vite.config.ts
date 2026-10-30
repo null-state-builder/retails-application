@@ -8,10 +8,14 @@ import { PWA_OPTIONS } from "./src/pwa/config";
 
 /** The build's identity, stamped on the back office's device cache so a new
  *  deploy never renders a copy an older build saved (caching plan Phase 2).
- *  `KDPS_BUILD_ID` wins (CI/deploy), then the commit, then the package version. */
+ *  `KDPS_BUILD_ID` wins (CI/deploy), then the commit Vercel is building
+ *  (`VERCEL_GIT_COMMIT_SHA`, set on every Vercel build, which has no `.git`),
+ *  then the local git commit, then the package version. */
 function buildId(): string {
   const { version } = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
   if (process.env.KDPS_BUILD_ID) return `${version}+${process.env.KDPS_BUILD_ID}`;
+  if (process.env.VERCEL_GIT_COMMIT_SHA)
+    return `${version}+${process.env.VERCEL_GIT_COMMIT_SHA.slice(0, 12)}`;
   try {
     const sha = execSync("git rev-parse --short=12 HEAD", { stdio: ["ignore", "pipe", "ignore"] });
     return `${version}+${sha.toString().trim()}`;

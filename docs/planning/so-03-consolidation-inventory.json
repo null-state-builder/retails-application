@@ -6268,6 +6268,14 @@
       "gate": "Trace this dynamic/indirect call to a mounted API and test tenant, scope and field authority."
     },
     {
+      "id": "S2822",
+      "kind": "api_consumer",
+      "key_regex": "^api_consumer:frontend/src/components/AdministrativeHistory\\.tsx:dc19583f0964$",
+      "primary_id": "P00",
+      "lifecycle": "unresolved",
+      "gate": "Trace this dynamic/indirect call to a mounted API and test tenant, scope and field authority."
+    },
+    {
       "id": "S0796",
       "kind": "api_consumer",
       "key_regex": "^api_consumer:frontend/src/components/CounterPinCard\\.tsx:1d971fc19f3b$",
@@ -6605,6 +6613,13 @@
       "id": "S0834",
       "kind": "api_consumer",
       "key_regex": "^api_consumer:frontend/src/pages/AuditLog\\.tsx:e360a8f923db$",
+      "primary_id": "C15",
+      "lifecycle": "canonical"
+    },
+    {
+      "id": "S2823",
+      "kind": "api_consumer",
+      "key_regex": "^api_consumer:frontend/src/pages/AuditLog\\.tsx:23cfc0c9acad$",
       "primary_id": "C15",
       "lifecycle": "canonical"
     },
@@ -9194,6 +9209,13 @@
       "id": "S1207",
       "kind": "api_consumer",
       "key_regex": "^api_consumer:frontend/src/pages/PtPrepare\\.tsx:fed3c9cdd85f$",
+      "primary_id": "C05",
+      "lifecycle": "canonical"
+    },
+    {
+      "id": "S2824",
+      "kind": "api_consumer",
+      "key_regex": "^api_consumer:frontend/src/pages/PtPrepare\\.tsx:faec6a6855dd$",
       "primary_id": "C05",
       "lifecycle": "canonical"
     },
@@ -20959,6 +20981,34 @@
       "lifecycle": "canonical"
     },
     {
+      "id": "APP-CACHE-201",
+      "kind": "middleware",
+      "key_regex": "^middleware:core\\.conditional_get\\.ConditionalApiGetMiddleware$",
+      "primary_id": "P00",
+      "related_ids": [
+        "C01",
+        "C04",
+        "C06",
+        "C15"
+      ],
+      "lifecycle": "canonical",
+      "gate": "ETag/304 transport layer for the back office's hottest reads (app loading and caching plan, Phase 3); module APP-CACHE-202. Runs after the view: never authorises, scopes or writes anything, touches only a 200 JSON answer on its exact path allowlist, and keeps it no-store, private. When SO-04/SO-07/SO-08/SO-14 move one of those screens' URLs, move the path in CONDITIONAL_PATHS with it; tests/test_conditional_get.py proves 304, change, cross-caller and denial behaviour."
+    },
+    {
+      "id": "APP-CACHE-202",
+      "kind": "module",
+      "key_regex": "^module:core\\.conditional_get$",
+      "primary_id": "P00",
+      "related_ids": [
+        "C01",
+        "C04",
+        "C06",
+        "C15"
+      ],
+      "lifecycle": "canonical",
+      "gate": "Module behind APP-CACHE-201 (caching plan Phase 3). The ETag is a digest of the exact body the view rendered for the caller, mixed with tenant, user and the X-KDPS-Unit/X-KDPS-Brand headers, computed after authorisation; a refused or non-200 answer is never touched. Path allowlist: the bootstrap's masters/vendors readers (C01/C04), /api/auth/bootstrap, the approvals/alerts inboxes (C15) and legacy stock on-hand/summary (C06). Move a path with its screen when SO-04/SO-07/SO-08/SO-14 retire it."
+    },
+    {
       "id": "F0001",
       "kind": "api_consumer",
       "key_regex": "^api_consumer:frontend/src/pages/GoodsMonitoring\\.tsx:d82480d79d62$",
@@ -23313,6 +23363,27 @@
       "migration_requirements": " Pending opening/repeat boundary: ptmapper.soh_services.apply_batch locks tenant/site SiteGuard before the source document; requires_inventory_reconciliation preserves the first approved parent and its resumable deterministic children, while another source or retained custody/origin/physical-position history requires a C08/SO-08 delta review. C06 is the retained stock journal dependency, not the repeat-snapshot workflow owner. No trading count, second opening or workflow retirement is accepted from this classification."
     },
     {
+      "id": "S2825",
+      "kind": "api_consumer",
+      "key_regex": "^api_consumer:frontend/src/pages/SohImport\\.tsx:8db30d7f2380$",
+      "primary_id": "C05",
+      "related_ids": [
+        "A00",
+        "C01",
+        "C06",
+        "C08"
+      ],
+      "lifecycle": "canonical",
+      "authorization": "Trusted site and reviewed stable brand/SKU identities; action plus cost_own_pt/financial fields in one scoped assignment; immutable source/physical/review pins; canonical manifest/PT and goods acceptance writers.",
+      "acceptance_evidence": "Current revision proof commands and browser evidence must be recorded in docs/planning/kdps-first-store-alpha-evidence.md; inventory coverage is not acceptance.",
+      "access_contract": {
+        "trace_status": "pending",
+        "required_action": "Trusted site and reviewed stable brand/SKU identities; action plus cost_own_pt/financial fields in one scoped assignment; immutable source/physical/review pins; canonical manifest/PT and goods acceptance writers.",
+        "reviewed_chain": "New first-store surface: frontend/src/pages/SohImport.tsx; full runtime acceptance is still in progress. Pending opening/repeat boundary: ptmapper.soh_services.apply_batch locks tenant/site SiteGuard before the source document; requires_inventory_reconciliation preserves the first approved parent and its resumable deterministic children, while another source or retained custody/origin/physical-position history requires a C08/SO-08 delta review. C06 is the retained stock journal dependency, not the repeat-snapshot workflow owner. No trading count, second opening or workflow retirement is accepted from this classification."
+      },
+      "migration_requirements": " Pending opening/repeat boundary: ptmapper.soh_services.apply_batch locks tenant/site SiteGuard before the source document; requires_inventory_reconciliation preserves the first approved parent and its resumable deterministic children, while another source or retained custody/origin/physical-position history requires a C08/SO-08 delta review. C06 is the retained stock journal dependency, not the repeat-snapshot workflow owner. No trading count, second opening or workflow retirement is accepted from this classification."
+    },
+    {
       "id": "FIRST-STORE-073",
       "kind": "operational_file",
       "key_regex": "^operational_file:scripts/first\\-store\\-proof\\.py$",
@@ -25358,7 +25429,7 @@
     }
   ],
   "discovered": {
-    "checksum": "0e10c705303af1ab263de0d2032a03c02bbbf899a66a39cd2522f1d62a25ac50",
+    "checksum": "5904cde86a3745ab3a366d88bb301ca3f6810a31a6ba8e720b0215af8d05b273",
     "records": [
       {
         "kind": "api",
@@ -44717,6 +44788,7 @@
           ],
           "static_frontend_importers": [],
           "frontend_api_callsites": [
+            "api_consumer:frontend/src/pages/AuditLog.tsx:23cfc0c9acad",
             "api_consumer:frontend/src/pages/AuditLog.tsx:e360a8f923db"
           ]
         },
@@ -44745,6 +44817,7 @@
           ],
           "candidate_model_keys": [],
           "frontend_api_callsites": [
+            "api_consumer:frontend/src/pages/AuditLog.tsx:23cfc0c9acad",
             "api_consumer:frontend/src/pages/AuditLog.tsx:e360a8f923db"
           ],
           "api_targets": [],
@@ -57590,7 +57663,8 @@
             "api_consumer:frontend/src/pages/GoodsLabels.tsx:61d6c828ef59",
             "api_consumer:frontend/src/pages/PtApprovals.tsx:c09bc9dcae96",
             "api_consumer:frontend/src/pages/PtPrepare.tsx:10772876aba7",
-            "api_consumer:frontend/src/pages/PtPrepare.tsx:64138651a4fb"
+            "api_consumer:frontend/src/pages/PtPrepare.tsx:64138651a4fb",
+            "api_consumer:frontend/src/pages/PtPrepare.tsx:faec6a6855dd"
           ]
         },
         "dependencies": {
@@ -57732,7 +57806,8 @@
             "api_consumer:frontend/src/pages/GoodsLabels.tsx:61d6c828ef59",
             "api_consumer:frontend/src/pages/PtApprovals.tsx:c09bc9dcae96",
             "api_consumer:frontend/src/pages/PtPrepare.tsx:10772876aba7",
-            "api_consumer:frontend/src/pages/PtPrepare.tsx:64138651a4fb"
+            "api_consumer:frontend/src/pages/PtPrepare.tsx:64138651a4fb",
+            "api_consumer:frontend/src/pages/PtPrepare.tsx:faec6a6855dd"
           ],
           "api_targets": [],
           "model_relations": [],
@@ -146245,6 +146320,58 @@
       },
       {
         "kind": "api_consumer",
+        "key": "api_consumer:frontend/src/components/AdministrativeHistory.tsx:dc19583f0964",
+        "source": "frontend/src/components/AdministrativeHistory.tsx",
+        "detail": {
+          "invocation": "useCachedGet",
+          "method": "GET",
+          "argument": "historyPath(subjectKind, subjectId)",
+          "api_reference": null,
+          "resolution": "dynamic"
+        },
+        "primary_id": "P00",
+        "owner": "SO-02",
+        "related_ids": [],
+        "lifecycle": "unresolved",
+        "data_ownership": "Platform-owned configuration and infrastructure",
+        "authorization": "Platform exposure and operator authentication require separate review.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "frontend_declaration",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "unknown",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "replacement": "Supported platform endpoints with security review",
+        "migration_requirements": "No business transaction migration.",
+        "acceptance_evidence": "Platform exposure and deployment checks.",
+        "removal_condition": "Retain while required by deployment; remove only through platform change review.",
+        "gate": "Trace this dynamic/indirect call to a mounted API and test tenant, scope and field authority.",
+        "rule_id": "S2822"
+      },
+      {
+        "kind": "api_consumer",
         "key": "api_consumer:frontend/src/components/CounterPinCard.tsx:1d971fc19f3b",
         "source": "frontend/src/components/CounterPinCard.tsx",
         "detail": {
@@ -148543,6 +148670,59 @@
         "acceptance_evidence": "backend/tests/test_so03_brand_identity.py; backend/tests/test_so03_access_safeguards.py. Integration and browser acceptance remain recorded separately.",
         "removal_condition": "Retain as the SO-03 identity/access target; business workflow retirement remains owned by its SO item.",
         "rule_id": "SO03-COMP-004"
+      },
+      {
+        "kind": "api_consumer",
+        "key": "api_consumer:frontend/src/pages/AuditLog.tsx:23cfc0c9acad",
+        "source": "frontend/src/pages/AuditLog.tsx",
+        "detail": {
+          "invocation": "useCachedGet",
+          "method": "GET",
+          "argument": "\"/goods-v1/masters/audit-log\"",
+          "api_reference": "/api/goods-v1/masters/audit-log",
+          "resolution": "literal_or_constant"
+        },
+        "primary_id": "C15",
+        "owner": "SO-14",
+        "related_ids": [],
+        "lifecycle": "canonical",
+        "data_ownership": "Tenant-owned approval/evidence/notification readers with legacy brand-name snapshots",
+        "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "frontend_declaration",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [
+            "api:GET:/api/goods-v1/masters/audit-log"
+          ],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "unknown",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "replacement": "`/action-needed`, `/alerts`, `/setup/audit`, `/setup/monitoring`, `/reports/*`, `/checklist`, `/setup/checklists`, `/setup/feature-switches` use shared scoped queues, evidence and readers",
+        "migration_requirements": "Map request/decision, maker/checker, notification/exception owner/state, audit, file hashes and source links.",
+        "acceptance_evidence": "Resolve `Approval.brand` name snapshots to stable tenant brand IDs, queue renamed or ambiguous history for review, and keep old authority evidence. Reconcile queue counts, decision outcomes, export bytes and before/after history; retire duplicate inbox/alert/search/export logic after denial and revocation tests.",
+        "removal_condition": "`/approvals` and `/goods/exceptions` may remain tested redirects.",
+        "rule_id": "S2823"
       },
       {
         "kind": "api_consumer",
@@ -170204,6 +170384,59 @@
       },
       {
         "kind": "api_consumer",
+        "key": "api_consumer:frontend/src/pages/PtPrepare.tsx:faec6a6855dd",
+        "source": "frontend/src/pages/PtPrepare.tsx",
+        "detail": {
+          "invocation": "useCachedQuery",
+          "method": "GET",
+          "argument": "// The variant (below) keeps this apart from the first page's own entry. firstNext ? `/goods-v1/ptmapper/files/${ptId}` : null",
+          "api_reference": "/api/goods-v1/ptmapper/files/{ptId}",
+          "resolution": "template"
+        },
+        "primary_id": "C05",
+        "owner": "SO-07",
+        "related_ids": [],
+        "lifecycle": "canonical",
+        "data_ownership": "Tenant-owned goods receiving/PT evidence with legacy receiving history",
+        "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "frontend_declaration",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [
+            "api:GET:/api/goods-v1/ptmapper/files/<uuid:pk>"
+          ],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "unknown",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "replacement": "`/goods/receive/*`, `/goods/pt-work`, `/goods/labels` retain receiving, PT and labels. Old `/goods/arrivals`, `/goods/receipts`, `/goods/accept`, `/goods/pt/prepare`, `/goods/pt/approvals` are bookmark redirects",
+        "migration_requirements": "Map arrival, claimed invoice, count, GRN, PT rows, number, cost basis, label jobs and approval evidence with source IDs.",
+        "acceptance_evidence": "Reconcile physical count and official value once; prove history and separate-person approval before removing separate screens or old write services.",
+        "removal_condition": "Reconcile physical count and official value once; prove history and separate-person approval before removing separate screens or old write services.",
+        "rule_id": "S2824"
+      },
+      {
+        "kind": "api_consumer",
         "key": "api_consumer:frontend/src/pages/PtPrepare.tsx:fed3c9cdd85f",
         "source": "frontend/src/pages/PtPrepare.tsx",
         "detail": {
@@ -173154,6 +173387,62 @@
         "acceptance_evidence": "Current revision proof commands and browser evidence must be recorded in docs/planning/kdps-first-store-alpha-evidence.md; inventory coverage is not acceptance.",
         "removal_condition": "Reconcile physical count and official value once; prove history and separate-person approval before removing separate screens or old write services.",
         "rule_id": "FIRST-STORE-029"
+      },
+      {
+        "kind": "api_consumer",
+        "key": "api_consumer:frontend/src/pages/SohImport.tsx:8db30d7f2380",
+        "source": "frontend/src/pages/SohImport.tsx",
+        "detail": {
+          "invocation": "useCachedGet",
+          "method": "GET",
+          "argument": "selected ? `${base}/${selected.id}/rows?stocked=${includeCatalogue ? \"0\" : \"1\"}&q=${encodeURIComponent(search)}` : null",
+          "api_reference": null,
+          "resolution": "template"
+        },
+        "primary_id": "C05",
+        "owner": "SO-07",
+        "related_ids": [
+          "A00",
+          "C01",
+          "C06",
+          "C08"
+        ],
+        "lifecycle": "canonical",
+        "data_ownership": "Tenant-owned goods receiving/PT evidence with legacy receiving history",
+        "authorization": "Trusted site and reviewed stable brand/SKU identities; action plus cost_own_pt/financial fields in one scoped assignment; immutable source/physical/review pins; canonical manifest/PT and goods acceptance writers.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "frontend_declaration",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "unknown",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "replacement": "`/goods/receive/*`, `/goods/pt-work`, `/goods/labels` retain receiving, PT and labels. Old `/goods/arrivals`, `/goods/receipts`, `/goods/accept`, `/goods/pt/prepare`, `/goods/pt/approvals` are bookmark redirects",
+        "migration_requirements": " Pending opening/repeat boundary: ptmapper.soh_services.apply_batch locks tenant/site SiteGuard before the source document; requires_inventory_reconciliation preserves the first approved parent and its resumable deterministic children, while another source or retained custody/origin/physical-position history requires a C08/SO-08 delta review. C06 is the retained stock journal dependency, not the repeat-snapshot workflow owner. No trading count, second opening or workflow retirement is accepted from this classification.",
+        "acceptance_evidence": "Current revision proof commands and browser evidence must be recorded in docs/planning/kdps-first-store-alpha-evidence.md; inventory coverage is not acceptance.",
+        "removal_condition": "Reconcile physical count and official value once; prove history and separate-person approval before removing separate screens or old write services.",
+        "rule_id": "S2825"
       },
       {
         "kind": "api_consumer",
@@ -191530,6 +191819,76 @@
         "acceptance_evidence": "backend/tests/test_pt_opening.py and test_opening_auto_approval.py on the exact revision; scripts/rehearse_store_opening.sh --twice results recorded against that revision.",
         "removal_condition": "Retire with the store test run at real-store cutover (SO-22): the synthetic tenant is closed and no real tenant can reach these surfaces.",
         "rule_id": "STORE-TEST-503"
+      },
+      {
+        "kind": "middleware",
+        "key": "middleware:core.conditional_get.ConditionalApiGetMiddleware",
+        "source": "backend/core/conditional_get.py",
+        "detail": {
+          "callable": "core.conditional_get.ConditionalApiGetMiddleware",
+          "module": "core.conditional_get",
+          "position": 11
+        },
+        "primary_id": "P00",
+        "owner": "SO-02",
+        "related_ids": [
+          "C01",
+          "C04",
+          "C06",
+          "C15"
+        ],
+        "lifecycle": "canonical",
+        "data_ownership": "Platform-owned configuration and infrastructure",
+        "authorization": "Platform exposure and operator authentication require separate review.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "source_module_static",
+          "source_module": "module:core.conditional_get",
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "source_file_static_candidates",
+          "read_candidates": [
+            "request.META.get",
+            "request.headers.get",
+            "response.get"
+          ],
+          "write_candidates": [
+            "digest.update"
+          ],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "access_contract": {
+          "trace_status": "pending",
+          "actor_type": "unreviewed",
+          "required_action": "unreviewed",
+          "scope_source": "unreviewed",
+          "protected_fields": "unreviewed",
+          "delivery_recheck": "unreviewed",
+          "named_tests": [],
+          "reviewed_chain": "Static candidates do not establish runtime access coverage."
+        },
+        "replacement": "Supported platform endpoints with security review",
+        "migration_requirements": "No business transaction migration.",
+        "acceptance_evidence": "Platform exposure and deployment checks.",
+        "removal_condition": "Retain while required by deployment; remove only through platform change review.",
+        "rule_id": "APP-CACHE-201"
       },
       {
         "kind": "middleware",
@@ -270813,6 +271172,74 @@
         "acceptance_evidence": "Platform exposure and deployment checks.",
         "removal_condition": "Retain while required by deployment; remove only through platform change review.",
         "rule_id": "S2114"
+      },
+      {
+        "kind": "module",
+        "key": "module:core.conditional_get",
+        "source": "backend/core/conditional_get.py",
+        "detail": {
+          "imports": [],
+          "read_candidates": [
+            "request.META.get",
+            "request.headers.get",
+            "response.get"
+          ],
+          "write_candidates": [
+            "digest.update"
+          ],
+          "authorization_candidates": [],
+          "tags": []
+        },
+        "primary_id": "P00",
+        "owner": "SO-02",
+        "related_ids": [
+          "C01",
+          "C04",
+          "C06",
+          "C15"
+        ],
+        "lifecycle": "canonical",
+        "data_ownership": "Platform-owned configuration and infrastructure",
+        "authorization": "Platform exposure and operator authentication require separate review.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "source_module_static",
+          "source_module": "module:core.conditional_get",
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "source_file_static_candidates",
+          "read_candidates": [
+            "request.META.get",
+            "request.headers.get",
+            "response.get"
+          ],
+          "write_candidates": [
+            "digest.update"
+          ],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "replacement": "Supported platform endpoints with security review",
+        "migration_requirements": "No business transaction migration.",
+        "acceptance_evidence": "Platform exposure and deployment checks.",
+        "removal_condition": "Retain while required by deployment; remove only through platform change review.",
+        "rule_id": "APP-CACHE-202"
       },
       {
         "kind": "module",
@@ -353632,6 +354059,7 @@
           "local_component_keys": [],
           "candidate_model_keys": [],
           "frontend_api_callsites": [
+            "api_consumer:frontend/src/pages/AuditLog.tsx:23cfc0c9acad",
             "api_consumer:frontend/src/pages/AuditLog.tsx:d994f39dc121",
             "api_consumer:frontend/src/pages/AuditLog.tsx:e360a8f923db"
           ],

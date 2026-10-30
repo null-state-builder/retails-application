@@ -1,6 +1,37 @@
 # App loading and caching plan
 
-Status: Phase 1 approved for build (2026-10-29). Phases 2–3 planned, not started.
+Status: Phases 1–2 built (branch `caching-phase-1-2`, PR #2). Phase 3 built on
+branch `caching-phase-3` (2026-10-30) to the narrowed scope below: conditional
+GET (ETag/304) and device data minimisation. Delta sync and server push are
+deferred by owner decision.
+
+Review fixes on `caching-phase-3` (2026-10-30): an orphan 304 (its remembered
+body evicted or forgotten in flight) is replayed once without `If-None-Match`;
+remembered bodies are handed out as copies and capped by size as well as
+count. Cash summary, gift vouchers, petty cash, bills, the stock ledger's
+on-hand/summary/entries/in-transit, goods quarantine, brand terms and claims,
+debit notes, three-way match and SOR ageing are financial (asked again on
+sight, never saved); the goods approvals inbox is action-needed (10 s). A
+goods-v1 master or vendor write refreshes the `/masters/<kind>` or `/vendors`
+reads it touched (mounted ones refetch, the rest are dropped, so the device
+copy loses them), and every mounted read refetches after a write. `useList`
+exposes `error`; a refresh that fails behind shown rows says so
+(`RefreshFailed`) instead of hiding them; more stock and money screens show
+"Updated … ago". Logout, expiry or a password change in one tab wipes the
+cache and the device copy in every open tab (`BroadcastChannel`, `storage`
+event fallback), which then never write the device copy until a session starts
+there. The history panel, Audit Log, SOH import rows and PT line pages read
+through the cache (memory only). CustomerPage stays uncached.
+
+## Owner decisions (2026-10-30)
+- Freshness stays **refresh on focus/open**: the current staleTimes and
+  `refetchOnWindowFocus`. No polling is added, no server push (SSE/WebSocket),
+  no `since`-cursor delta sync.
+- Back-office devices are **personal**. The logout wipe and the 24 h maximum
+  age of the device copy stay as they are.
+- **Vendor and legal-entity PAN and payment terms are never saved on the
+  device.** Names, codes, GSTIN and addresses may be. Those fields may still be
+  shown on screen from memory, as before.
 
 ## Problem
 The counter (till) already keeps its own per-store copy of items, stock and
@@ -57,12 +88,55 @@ once at login.
 - Persist an explicit allowlist of reference queries to IndexedDB, keyed and
   busted by `appVersion:user:store:role`, max age 24 h, deleted on logout.
 
-### Phase 3: freshness without full reloads
-- `@condition` ETags and `Cache-Control: private, no-cache` on hot list and
-  reference endpoints (304 when nothing changed).
-- `since`-cursor delta sync for large sets (stock), reusing the till dataset
-  pattern.
-- Refetch on focus; server-push invalidation hints only if that proves too slow.
+### Phase 3: cheap refreshes, less on the device (built 2026-10-30)
+Scope, after the owner decisions above:
+
+1. **Device data minimisation** (`frontend/src/lib/deviceCache.ts`). On the way
+   to IndexedDB every persisted entry loses `pan`, `pan_number`, `pan_no`,
+   `payment_terms`, `payment_terms_days`, `bank_account`,
+   `bank_account_number`, `bank_account_no`, `account_number`, `ifsc` and
+   `ifsc_code`, at any depth (today only `pan` on `/vendors` and
+   `/masters/entities`, and `payment_terms` on `/vendors`, exist). Memory keeps
+   the full answer. An entry that lost a field is saved already invalidated, so
+   after a restore its screen renders the rest at once and refetches the whole
+   answer. The device stamp gained a format (`d2:<build>:<scope>`), so copies
+   saved before this rule are refused and deleted. The vendor form leaves PAN
+   and terms untouched when it edits a restored row that does not carry them
+   yet, so a save can never blank them.
+2. **Conditional GET** (`backend/core/conditional_get.py`, a middleware
+   innermost in the stack). On `GET /api/masters/{stores,locations,brands,
+   seasons,gstins,entities}`, `/api/vendors`, `/api/auth/bootstrap`,
+   `/api/approvals/inbox`, `/api/alerts`, `/api/stockledger/on-hand` and
+   `/api/stockledger/summary`, a 200 JSON answer gets a strong ETag: a SHA-256
+   over the exact body the view rendered for this caller, mixed with tenant,
+   user and the `X-KDPS-Unit`/`X-KDPS-Brand` headers. It is computed after the
+   view, so authorisation and scoping always run; a refusal is never touched.
+   An `If-None-Match` that still matches gets a 304 with no body. `Vary:
+   Cookie, X-KDPS-Unit, X-KDPS-Brand`. The goods-v1 stock readers are left out:
+   their body carries the read moment (`as_of`), so it never repeats.
+3. **`no-store`, not `no-cache`, and revalidation from memory**
+   (`frontend/src/lib/conditionalGet.ts`). The plan first assumed
+   `Cache-Control: private, no-cache` and letting the browser revalidate. That
+   works (the browser answers the XHR from its HTTP cache after a 304), but it
+   needs the browser to keep every body in its HTTP disk cache, which outlives
+   a logout and would hold vendor PAN, payment terms and stock values on the
+   device, against the owner decision and the fixed rules. So these responses
+   stay `no-store, private`, and the app remembers each ETag'd body in memory,
+   sends `If-None-Match` itself (a request header set by the page puts the
+   fetch in `no-store` mode, so the browser hands the 304 through), and turns a
+   304 back into the remembered body for every `api.get` caller. That memory is
+   emptied with the query cache on logout and every scope change. The service
+   worker stays shell-only (`runtimeCaching: []`, `/api` denied).
+4. **Build stamp**: `KDPS_BUILD_ID`, then `VERCEL_GIT_COMMIT_SHA`, then git,
+   then the package version. Server-side or Docker frontend builds must set
+   `KDPS_BUILD_ID` (`deploy/README.md`).
+
+Deferred: `since`-cursor delta sync for stock and server-push invalidation
+(owner decision); revisit only if refresh-on-open measurably misses the
+targets. No endpoint uses a cheap pre-query ETag (`max(updated_at)` + count):
+none could be shown to cover every field and the caller's scope that way, so
+every ETag is a body digest. The view still runs; the saving is the transfer
+and the client's re-render work. Not yet measured on a deployed revision.
 
 ## Fixed rules
 - Cost, margin and financial reports are never persisted on the device.
@@ -71,6 +145,10 @@ once at login.
 - No cross-user, cross-store or cross-role leakage; proven by a denial test
   (log in as A, log out, log in as B).
 - The service worker stays shell-only (`runtimeCaching: []`).
+- Vendor and legal-entity PAN, payment terms and bank details are never
+  written to the device (memory only).
+- ETag'd reads stay `no-store, private` and are revalidated from memory, never
+  through the browser's HTTP cache.
 - The till's Dexie database keeps its own rules; unsent bills are never wiped.
 - Logout deletes everything cached for the back office. Counter PIN/lock-screen
   is out of scope.
