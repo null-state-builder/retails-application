@@ -3,21 +3,48 @@
  * Phase 1).
  *
  * One `QueryClient` for the whole app. It only *renders*: every action still
- * goes to the server, and nothing here is written to disk. The till keeps its
- * own Dexie dataset and never reads from this.
+ * goes to the server. The till keeps its own Dexie dataset and never reads
+ * from this.
+ *
+ * Phase 2: an explicit allowlist — reference masters only (`isPersistableUrl`)
+ * — is also kept on the device for 24 h by `deviceCache.ts`, stamped with the
+ * app version and the scope, and deleted whenever the scope ends.
  *
  * Every entry is keyed `[scope, url]`, where scope is who is looking, in which
  * store/brand, under which roles. A different person, unit or role can never
  * read another's entry, and on top of that the whole client is emptied when
  * any of them changes (`resetQueryCache`, called from `AuthContext`).
  */
-import { QueryClient, type Query } from "@tanstack/react-query";
+import {
+  QueryClient,
+  type DefaultError,
+  type DefaultedQueryObserverOptions,
+  type Query,
+  type QueryKey,
+  type QueryObserverOptions,
+} from "@tanstack/react-query";
 import type { InternalAxiosRequestConfig } from "axios";
 
 import { api } from "./api";
+import { startDeviceCache, wipeDeviceCache } from "./deviceCache";
 
 const SECOND = 1_000;
 const MINUTE = 60 * SECOND;
+const HOUR = 60 * MINUTE;
+
+/** How long a copy on the device may be shown before it is thrown away. */
+export const PERSIST_MAX_AGE = 24 * HOUR;
+
+/** Cache entries the sign-in bootstrap writes that are not an endpoint's URL:
+ *  the `ref_version` it last saw (kept on the device, so a reopened browser can
+ *  tell whether its saved masters are current) and the action-needed counts
+ *  (memory only). */
+export const BOOTSTRAP_REF_VERSION_KEY = "bootstrap:ref_version";
+export const BOOTSTRAP_COUNTS_KEY = "bootstrap:counts";
+
+/** Which build wrote a device copy; a new deploy never reads an old one. */
+export const APP_VERSION: string =
+  typeof __KDPS_APP_VERSION__ === "string" ? __KDPS_APP_VERSION__ : "dev";
 
 export const STALE_TIME = {
   /** Masters that change a few times a year: stores, locations, brands, seasons… */
@@ -76,6 +103,14 @@ export function isFinancialUrl(url: string): boolean {
   return FINANCIAL.some((rule) => rule.test(url));
 }
 
+/** The device allowlist: reference masters, never anything financial, plus the
+ *  bootstrap's `ref_version`. Lists, documents, approvals, alerts and counts
+ *  are never written to disk. */
+export function isPersistableUrl(url: string): boolean {
+  if (url === BOOTSTRAP_REF_VERSION_KEY) return true;
+  return isReferenceUrl(url) && !isFinancialUrl(url);
+}
+
 export function staleTimeFor(url: string, kind: "list" | "doc"): number {
   if (isFinancialUrl(url)) return STALE_TIME.financial;
   if (isReferenceUrl(url)) return STALE_TIME.reference;
@@ -110,8 +145,32 @@ export function fetchUrl<T>(url: string, signal?: AbortSignal): Promise<T> {
   return api.get<T>(url, signal ? { signal } : {}).then((r) => r.data);
 }
 
+/** A device copy is kept 24 h, so the entries it holds must outlive the usual
+ *  30 min in memory too — for those entries only. (`gcTime` only ever grows.) */
+class BackOfficeQueryClient extends QueryClient {
+  override defaultQueryOptions<
+    TQueryFnData = unknown,
+    TError = DefaultError,
+    TData = TQueryFnData,
+    TQueryData = TQueryFnData,
+    TQueryKey extends QueryKey = QueryKey,
+    TPageParam = never,
+  >(
+    options:
+      | QueryObserverOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey, TPageParam>
+      | DefaultedQueryObserverOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey>,
+  ): DefaultedQueryObserverOptions<TQueryFnData, TError, TData, TQueryData, TQueryKey> {
+    const defaulted = super.defaultQueryOptions(options);
+    const url = (defaulted.queryKey as readonly unknown[] | undefined)?.[1];
+    if (typeof url === "string" && isPersistableUrl(url)) {
+      defaulted.gcTime = Math.max(defaulted.gcTime ?? 0, PERSIST_MAX_AGE);
+    }
+    return defaulted;
+  }
+}
+
 export function createQueryClient(): QueryClient {
-  return new QueryClient({
+  return new BackOfficeQueryClient({
     defaultOptions: {
       queries: {
         // The hooks never retried; a refused document is an answer, not a blip.
@@ -142,11 +201,33 @@ export function invalidateUrl(prefix: string, client: QueryClient = queryClient)
   });
 }
 
-/** Logout, session expiry, store/brand switch or role change: stop every
- *  request in flight and forget everything this tab was shown. */
-export function resetQueryCache(client: QueryClient = queryClient): void {
+/** Logout, session expiry, password change, store/brand switch or role
+ *  change: stop every request in flight, forget everything this tab was shown,
+ *  and delete the copy on the device. */
+export function resetQueryCache(client: QueryClient = queryClient): Promise<void> {
+  // Stop saving before clearing, so the clear itself is never written back.
+  const wiped = wipeDeviceCache();
   void client.cancelQueries();
   client.clear();
+  return wiped;
+}
+
+/** The first scope this tab opens (sign-in, or a reopened browser): empty the
+ *  memory but keep the device copy — `persistScope` refuses it unless it was
+ *  saved for exactly this scope and build. */
+export function clearQueryMemory(client: QueryClient = queryClient): void {
+  void client.cancelQueries();
+  client.clear();
+}
+
+/** Restore this scope's device copy and keep saving its allowlisted entries.
+ *  Resolves when the restore is done or refused; never rejects. */
+export function persistScope(scope: string, client: QueryClient = queryClient): Promise<void> {
+  return startDeviceCache(client, scope, {
+    appVersion: APP_VERSION,
+    maxAge: PERSIST_MAX_AGE,
+    shouldPersistUrl: isPersistableUrl,
+  });
 }
 
 /** After a successful change, the screen should end on what the server says.

@@ -10,7 +10,7 @@ import {
 import type { ReactNode } from "react";
 
 import { authApi, authSession, unitContext } from "../lib/api";
-import { cacheScope, resetQueryCache } from "../lib/queryCache";
+import { cacheScope, clearQueryMemory, persistScope, resetQueryCache } from "../lib/queryCache";
 import { storeFeaturesOn } from "../shell/navConfig";
 
 export interface Store {
@@ -223,6 +223,9 @@ export function sameAuthority(a: unknown, b: unknown): boolean {
 }
 const BRAND_KEY = "kdps_brand";
 
+/** The most a restored session waits for the device copy before rendering. */
+const DEVICE_RESTORE_WAIT_MS = 300;
+
 /** The top-bar context is one filter axis at a time. A site and brand from
  * different assignments must never be presented as one combined selection. */
 export function contextSelection(
@@ -368,6 +371,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     roles: [],
   });
   const cacheScopeRef = useRef("");
+  // The device copy's restore for the current scope (caching plan Phase 2).
+  const deviceRestore = useRef<Promise<void>>(Promise.resolve());
 
   function syncCacheScope(store: Store | null, brand: Brand | null) {
     const next = identity.current.userId
@@ -378,8 +383,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           roles: identity.current.roles,
         })
       : "";
-    if (next !== cacheScopeRef.current) resetQueryCache();
+    if (next === cacheScopeRef.current) return;
+    // Leaving a real scope (another unit, brand or role set) wipes memory and
+    // the device copy. The first scope this tab opens only empties memory: the
+    // device copy is then restored only if it was saved for exactly this scope
+    // and build, and refused (and deleted) otherwise.
+    if (cacheScopeRef.current) void resetQueryCache();
+    else clearQueryMemory();
     cacheScopeRef.current = next;
+    deviceRestore.current = next ? persistScope(next) : Promise.resolve();
   }
 
   function noteIdentity(current: GoodsSession | null) {
@@ -425,9 +437,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   function endSession() {
     // Logout, revocation, expiry and a password change all end here: forget
-    // everything the back office was shown, whatever the scope says.
+    // everything the back office was shown, in memory and on the device,
+    // whatever the scope says.
     noteIdentity(null);
-    resetQueryCache();
+    void resetQueryCache();
     setUser(null);
     setSession(null);
     applyContext(null, null);
@@ -443,7 +456,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // means no one is, not an error.
       try {
         const { data } = await authApi.me();
-        if (!cancelled && sessionEpoch.current === epoch) startSession(readSession(data));
+        if (!cancelled && sessionEpoch.current === epoch) {
+          startSession(readSession(data));
+          // A reopened browser: give this person's saved reference data a
+          // moment to land before the first screen asks for it. Never longer
+          // than that: a slow or broken disk only costs a fetch.
+          await Promise.race([
+            deviceRestore.current,
+            new Promise((resolve) => setTimeout(resolve, DEVICE_RESTORE_WAIT_MS)),
+          ]);
+        }
       } catch {
         // Stay logged out.
       } finally {

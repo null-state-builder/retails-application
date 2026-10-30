@@ -14,6 +14,7 @@ from accounts.views import (
     StepUpView,
     TillPinView,
 )
+from accounts.bootstrap import BootstrapView
 from accounts.registration_views import RegistrationConfirmView, RegistrationView
 
 # Session lifecycle and one canonical People & Access administration surface.
@@ -31,6 +32,9 @@ urlpatterns = [
     path("step-up", StepUpView.as_view(), name="step-up"),
     path("change-password", ChangePasswordView.as_view(), name="change-password"),
     path("me", MeView.as_view(), name="me"),
+    # Everything the back office needs at sign-in, in one round trip (caching
+    # plan Phase 2). Each block is its own endpoint's answer for this caller.
+    path("bootstrap", BootstrapView.as_view(), name="bootstrap"),
     # A manager's own counter PIN (#182). Under `me/` because that is exactly its
     # scope: this endpoint can only ever write the caller's own row.
     path("me/till-pin", TillPinView.as_view(), name="me-till-pin"),
