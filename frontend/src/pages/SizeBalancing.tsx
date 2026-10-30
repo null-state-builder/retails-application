@@ -4,6 +4,8 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Note } from "../components/Note";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { UpdatedAgo } from "../components/UpdatedAgo";
+import { useCachedGet } from "../lib/cachedQuery";
 import { Section } from "../components/Section";
 import { api, apiErrorCode, apiErrorMessage, goodsMeta } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
@@ -39,62 +41,61 @@ const OFFLINE = "Size balancing needs a connection. Reconnect to see the suggest
 export function SizeBalancingPage() {
   const [params, setParams] = useSearchParams();
   const siteId = Number(params.get("site_id")) || null;
-  const [data, setData] = useState<Payload | null>(null);
-  const [error, setError] = useState("");
+  const [commandError, setError] = useState("");
   const [refused, setRefused] = useState("");
   const [saved, setSaved] = useState<{ text: string; request: boolean } | null>(null);
   const [online, setOnline] = useState(navigator.onLine);
-  const [lost, setLost] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const request = useRef(0);
+  const [commandLost, setLost] = useState(false);
+  const [deciding, setBusy] = useState(false);
   /** A decision's command id, kept until the server answers it. */
   const sent = useRef(new Map<string, string>());
 
-  const load = useCallback(
-    async (site: number | null) => {
-      if (!navigator.onLine) {
-        setOnline(false);
-        return;
-      }
-      const mine = ++request.current;
-      setBusy(true);
-      setError("");
-      try {
-        const response = await api.get<Payload>("/goods-v1/outbound/size-balancing", {
-          params: site ? { site_id: site } : {},
-        });
-        if (mine !== request.current) return;
-        setLost(false);
-        setData(response.data);
-      } catch (reason) {
-        if (mine !== request.current) return;
-        if (isConnectionLost(reason)) setLost(true);
-        else if (site && apiErrorCode(reason) === "NOT_FOUND") {
-          setRefused(apiErrorMessage(reason));
-          setParams(
-            (current) => {
-              const next = new URLSearchParams(current);
-              next.delete("site_id");
-              return next;
-            },
-            { replace: true },
-          );
-        } else setError(apiErrorMessage(reason));
-      } finally {
-        if (mine === request.current) setBusy(false);
-      }
-    },
-    [setParams],
-  );
-
+  // Through the shared cache: the store's suggestions seen before show at once
+  // and are read again behind. Offline, the request waits for the connection.
+  const read = useCachedGet<Payload>("/goods-v1/outbound/size-balancing", {
+    params: { site_id: siteId },
+  });
+  const data = read.data ?? null;
+  const busy = deciding || read.fetching;
+  const readError = read.error;
+  const outOfScope = readError != null && siteId != null && apiErrorCode(readError) === "NOT_FOUND";
+  const lost = commandLost || (readError != null && isConnectionLost(readError));
+  const error =
+    commandError ||
+    (readError != null && !outOfScope && !isConnectionLost(readError)
+      ? apiErrorMessage(readError)
+      : "");
   useEffect(() => {
-    void load(siteId);
-  }, [load, siteId]);
+    if (read.updatedAt) setLost(false);
+  }, [read.updatedAt]);
+  // A store outside this person's scope: say so and fall back to the default.
+  useEffect(() => {
+    if (!outOfScope) return;
+    setRefused(apiErrorMessage(readError));
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete("site_id");
+        return next;
+      },
+      { replace: true },
+    );
+  }, [outOfScope, readError, setParams]);
+
+  const { reload } = read;
+  const load = useCallback(() => {
+    if (!navigator.onLine) {
+      setOnline(false);
+      return;
+    }
+    setError("");
+    reload();
+  }, [reload]);
 
   useEffect(() => {
     const up = () => {
       setOnline(true);
-      void load(siteId);
+      load();
     };
     const down = () => setOnline(false);
     window.addEventListener("online", up);
@@ -103,7 +104,7 @@ export function SizeBalancingPage() {
       window.removeEventListener("online", up);
       window.removeEventListener("offline", down);
     };
-  }, [load, siteId]);
+  }, [load]);
 
   /** Approve or reject one suggestion; true once the server has it. */
   async function decide(row: Suggestion, decision: Decision, reason: string): Promise<boolean> {
@@ -148,8 +149,8 @@ export function SizeBalancingPage() {
     } finally {
       setBusy(false);
     }
-    await load(siteId);
-    // After the reload, which starts by clearing the last error.
+    // The page reads again either way; a refusal stays said.
+    load();
     if (refusal) setError(refusal);
     return ok;
   }
@@ -167,7 +168,7 @@ export function SizeBalancingPage() {
             className="btn btn-sm"
             data-testid="balance-retry"
             disabled={busy}
-            onClick={() => void load(siteId)}
+            onClick={() => load()}
           >
             Try again
           </button>
@@ -181,6 +182,7 @@ export function SizeBalancingPage() {
     <PageHeader
       title="Size Balancing"
       lead="Transfers suggested to fill this store's missing sizes from another store that has more than it sells. Approve one to ask for the stock, or reject it and say why."
+      actions={<UpdatedAgo updatedAt={read.updatedAt} fetching={read.fetching} />}
     />
   );
   const errorNote = (error || refused) && (

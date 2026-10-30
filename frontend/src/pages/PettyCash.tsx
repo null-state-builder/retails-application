@@ -6,6 +6,8 @@ import { allowedUnits, useAuth } from "../auth/AuthContext";
 import { Note } from "../components/Note";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { UpdatedAgo } from "../components/UpdatedAgo";
+import { useCachedGet } from "../lib/cachedQuery";
 import { Box, Section } from "../components/Section";
 import { Status, type StatusTone } from "../components/Status";
 import { api, apiErrorMessage, apiUrl } from "../lib/api";
@@ -56,57 +58,49 @@ export function PettyCashPage() {
   const { user, activeStore } = useAuth();
   const units = user ? allowedUnits(user) : [];
   const site = chosenStore(Number(params.get("site_id")) || null, activeStore?.id ?? null, units);
-  const [position, setPosition] = useState<PettyPosition | null>(null);
-  const [opened, setOpened] = useState<PettySpend | null>(null);
-  const [error, setError] = useState("");
+  const [commandError, setError] = useState("");
   const [done, setDone] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
-  const [lost, setLost] = useState(false);
+  const [commandLost, setLost] = useState(false);
   const [busy, setBusy] = useState(false);
-  const request = useRef(0);
 
-  const load = useCallback(async () => {
+  // Read through the shared cache (money: always re-asked, the last copy shown
+  // meanwhile). An opened spend says which store's box to show.
+  const spendRead = useCachedGet<PettySpend>(id ? `${API}/spends/${id}` : null, {
+    kind: "doc",
+  });
+  const opened = id ? (spendRead.data ?? null) : null;
+  const where = id ? opened?.site_id : site;
+  const positionRead = useCachedGet<PettyPosition>(where ? API : null, {
+    params: { site_id: where },
+  });
+  const position = where ? (positionRead.data ?? null) : null;
+  const readError = spendRead.error ?? positionRead.error;
+  const lost = commandLost || (readError != null && isConnectionLost(readError));
+  const error =
+    commandError ||
+    (readError != null && !isConnectionLost(readError) ? apiErrorMessage(readError) : "");
+
+  // A good read ends a lost connection, as it always did.
+  useEffect(() => {
+    if (positionRead.updatedAt) setLost(false);
+  }, [positionRead.updatedAt]);
+
+  const { reload: reloadSpend } = spendRead;
+  const { reload: reloadPosition } = positionRead;
+  const load = useCallback(() => {
     if (!navigator.onLine) {
       setOnline(false);
       return;
     }
-    const mine = ++request.current;
-    try {
-      let where = site;
-      if (id) {
-        const spend = await api.get<PettySpend>(`${API}/spends/${id}`);
-        if (mine !== request.current) return;
-        setOpened(spend.data);
-        where = spend.data.site_id;
-      } else {
-        setOpened(null);
-      }
-      if (!where) {
-        setPosition(null);
-        return;
-      }
-      const response = await api.get<PettyPosition>(API, {
-        params: { site_id: where },
-      });
-      if (mine !== request.current) return;
-      setLost(false);
-      setError("");
-      setPosition(response.data);
-    } catch (reason) {
-      if (mine !== request.current) return;
-      if (isConnectionLost(reason)) setLost(true);
-      else setError(apiErrorMessage(reason));
-    }
-  }, [id, site]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+    reloadSpend();
+    reloadPosition();
+  }, [reloadSpend, reloadPosition]);
 
   useEffect(() => {
     const up = () => {
       setOnline(true);
-      void load();
+      load();
     };
     const down = () => setOnline(false);
     window.addEventListener("online", up);
@@ -139,7 +133,7 @@ export function PettyCashPage() {
     } finally {
       setBusy(false);
     }
-    if (ok) await load();
+    if (ok) load();
     return ok;
   }
 
@@ -147,7 +141,10 @@ export function PettyCashPage() {
   const live = online;
   return (
     <OperationsPage>
-      <PageHeader lead="The store's petty cash box: who holds it, what went in, and every spend with its bill." />
+      <PageHeader
+        lead="The store's petty cash box: who holds it, what went in, and every spend with its bill."
+        actions={<UpdatedAgo updatedAt={positionRead.updatedAt} fetching={positionRead.fetching} />}
+      />
       {!online && (
         <Note tone="warn" testId="petty-offline">
           You are offline. Petty cash is saved straight to head office, so nothing can be saved

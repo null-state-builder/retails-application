@@ -4,12 +4,15 @@
 // such screen needs. First written for Organisation (ticket 02); pulled out
 // here once a second screen (People and access, ticket 03) needed the same
 // fetch/error/step-up shape rather than a second copy of it.
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { X } from "lucide-react";
 
 import { api, apiErrorCode, apiErrorMessage, authApi, type ApiRead } from "./api";
 import type { paths } from "./api-schema";
+import { useCachedGet, useCachedQuery } from "./cachedQuery";
+import { withQuery } from "./query";
+import { fetchUrl } from "./queryCache";
 import { SearchBox } from "../components/SearchBox";
 import { Note } from "../components/Note";
 import { EmptyState, Loading } from "../components/States";
@@ -276,43 +279,30 @@ export function readFailure(e: unknown): {
 
 // `useResourceList` and `useResourceDoc` are this one fetch/error shape
 // twice (list vs single document); this is the one place that spells it.
+//
+// Read through the shared cache (`useCachedGet`, keyed `[scope, url]`): a
+// screen seen before renders its last answer at once and refreshes it behind
+// it. `loading` is true only while what is shown is not the answer to `url` —
+// nothing yet, or the previous url's value standing in — so a reload after an
+// action no longer blanks the screen. `extract` must be a pure function of the
+// response.
 export function useGoodsFetch<R, T>(url: string | null, extract: (r: R) => T, empty: T) {
-  const [value, setValue] = useState<T>(empty);
-  const [loading, setLoading] = useState(true);
-  const [denied, setDenied] = useState(false);
-  const [deniedField, setDeniedField] = useState(false);
-  const [failure, setFailure] = useState("");
-  const [tick, setTick] = useState(0);
-
-  useEffect(() => {
-    if (!url) {
-      setValue(empty);
-      setLoading(false);
-      return;
-    }
-    let live = true;
-    setLoading(true);
-    setDenied(false);
-    setDeniedField(false);
-    setFailure("");
-    api
-      .get<R>(url)
-      .then((r) => live && setValue(extract(r.data)))
-      .catch((e) => {
-        if (!live) return;
-        const outcome = readFailure(e);
-        setDenied(outcome.denied);
-        setDeniedField(outcome.deniedField);
-        setFailure(outcome.failure);
-      })
-      .finally(() => live && setLoading(false));
-    return () => {
-      live = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [url, tick]);
-
-  return { value, loading, denied, deniedField, failure, reload: () => setTick((t) => t + 1) };
+  const read = useCachedGet<R, T>(url, { select: extract });
+  // The first `empty` a caller passed, so an inline `[]` keeps one identity.
+  const [nothing] = useState(empty);
+  const outcome = read.error
+    ? readFailure(read.error)
+    : { denied: false, deniedField: false, failure: "" };
+  return {
+    value: read.data === undefined ? nothing : read.data,
+    loading: read.loading,
+    denied: outcome.denied,
+    deniedField: outcome.deniedField,
+    failure: outcome.failure,
+    fetching: read.fetching,
+    updatedAt: read.updatedAt,
+    reload: read.reload,
+  };
 }
 
 export function useResourceList<T>(url: string | null) {
@@ -341,69 +331,56 @@ const MAX_PAGES = 50;
  *  turns "the list could not be read" into "there is nothing to decide",
  *  which is the very thing this hook exists to prevent. */
 export function useAllPages<T>(url: string | null) {
-  const [items, setItems] = useState<T[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [denied, setDenied] = useState(false);
-  const [failure, setFailure] = useState("");
-  const [tick, setTick] = useState(0);
-  const generation = useRef(0);
-
-  useEffect(() => {
-    const mine = ++generation.current;
-    if (!url) {
-      setItems([]);
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    setDenied(false);
-    setFailure("");
-    void (async () => {
-      const all: T[] = [];
-      let cursor: string | null = null;
-      for (let read = 0; read < MAX_PAGES; read += 1) {
-        try {
-          // The caller's url may already carry a query (`?limit=100`); axios
-          // joins these params onto whatever is there.
-          const params: Record<string, string> = cursor ? { cursor } : {};
-          const { data } = await api.get<Page<T>>(url, { params });
-          if (mine !== generation.current) return;
-          all.push(...(data.items ?? []));
-          cursor = data.next_cursor;
-        } catch (e) {
-          if (mine !== generation.current) return;
-          const outcome = readFailure(e);
-          setDenied(outcome.denied);
-          // A refused field basis is not "you may not see this at all", but it
-          // is not nothing either: without a sentence it reads as an empty list.
-          setFailure(
-            outcome.deniedField
-              ? "Part of this list needs a permission you do not have."
-              : outcome.failure,
-          );
-          setItems([]);
-          setLoading(false);
-          return;
-        }
-        if (!cursor) break;
-      }
-      if (mine !== generation.current) return;
-      if (cursor) {
-        // Still a cursor in hand at the cap. Showing the prefix would be the
-        // silent truncation this hook promises not to do.
-        setItems([]);
-        setFailure(`This list is longer than ${MAX_PAGES} pages and was not read.`);
-      } else {
-        setItems(all);
-      }
-      setLoading(false);
-    })();
-    return () => {
-      generation.current += 1;
+  // Cached as one answer (every page, joined) under `[scope, url, "all-pages"]`
+  // — kept apart from the raw first page `useGoodsFetch` caches under `url`.
+  const read = useCachedQuery<T[]>(url, readAllPages<T>, { variant: "all-pages" });
+  const items = useMemo(() => read.data ?? [], [read.data]);
+  if (read.error) {
+    const outcome = readFailure(read.error);
+    return {
+      items: [] as T[],
+      loading: false,
+      denied: outcome.denied,
+      // A refused field basis is not "you may not see this at all", but it is
+      // not nothing either: without a sentence it reads as an empty list.
+      failure:
+        read.error instanceof TooManyPages
+          ? read.error.message
+          : outcome.deniedField
+            ? "Part of this list needs a permission you do not have."
+            : outcome.failure,
+      fetching: read.fetching,
+      updatedAt: read.updatedAt,
+      reload: read.reload,
     };
-  }, [url, tick]);
+  }
+  return {
+    items,
+    loading: read.loading,
+    denied: false,
+    failure: "",
+    fetching: read.fetching,
+    updatedAt: read.updatedAt,
+    reload: read.reload,
+  };
+}
 
-  return { items, loading, denied, failure, reload: () => setTick((t) => t + 1) };
+class TooManyPages extends Error {}
+
+async function readAllPages<T>(url: string, { signal }: { signal: AbortSignal }): Promise<T[]> {
+  const all: T[] = [];
+  let cursor: string | null = null;
+  for (let read = 0; read < MAX_PAGES; read += 1) {
+    // The caller's url may already carry a query (`?limit=100`); `withQuery`
+    // joins the cursor onto whatever is there.
+    const data: Page<T> = await fetchUrl<Page<T>>(withQuery(url, { cursor }), signal);
+    all.push(...(data.items ?? []));
+    cursor = data.next_cursor;
+    if (!cursor) return all;
+  }
+  // Still a cursor in hand at the cap. Showing the prefix would be the silent
+  // truncation this hook promises not to do.
+  throw new TooManyPages(`This list is longer than ${MAX_PAGES} pages and was not read.`);
 }
 
 /** One row a searchable, paginated reference picker can offer. `data` is

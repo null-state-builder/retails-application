@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
+import { useCachedGet } from "../lib/cachedQuery";
 import { rupeesToPaiseString, sha256Hex } from "../lib/goodsPt";
 import { formatPaiseString, paiseStringToRupees } from "../lib/format";
 import { Feedback, Field, hold, useStepUp, type Page, type ResourceDTO } from "../lib/goodsScreen";
@@ -181,12 +182,13 @@ async function allPages<T>(path: string): Promise<T[]> {
   return items;
 }
 
+const NO_SOURCES: Source[] = [];
+
 export function SohImportPanel({ siteId }: { siteId: string }) {
   const { session } = useAuth();
   const stage = hold(session, "opening.import.stage");
   const prepare = hold(session, "pt.prepare.opening");
   const approve = hold(session, "opening.manifest.approve");
-  const [sources, setSources] = useState<Source[]>([]);
   const [selected, setSelected] = useState<Source | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [counts, setCounts] = useState<File | null>(null);
@@ -207,14 +209,20 @@ export function SohImportPanel({ siteId }: { siteId: string }) {
   const [ok, setOk] = useState("");
   const stepUp = useStepUp();
   const base = "/goods-v1/ptmapper/soh-imports";
+  // The site's SOH sources: a plain list, cached per site. The source being
+  // worked on, its rows and its choices stay in this screen's own state.
+  const sourcesRead = useCachedGet<Page<Source>, Source[]>("/goods-v1/ptmapper/soh-imports", {
+    params: { site_id: siteId },
+    select: (page) => page.items,
+  });
+  const sources = sourcesRead.data ?? NO_SOURCES;
   const canPrepare = selected?.data.field_access.writable_fields.includes("cost") ?? false;
   const canVerify = selected?.allowed_actions.includes("verify") ?? false;
   const canReadFinancial =
     selected?.data.field_access.readable_fields.includes("financial") ?? false;
 
   async function refresh(sourceId?: string) {
-    const list = await api.get<Page<Source>>(`${base}?site_id=${siteId}`);
-    setSources(list.data.items);
+    sourcesRead.reload();
     if (sourceId) {
       const detail = await api.get<Source>(`${base}/${sourceId}`);
       setSelected(detail.data);
@@ -224,24 +232,11 @@ export function SohImportPanel({ siteId }: { siteId: string }) {
   }
 
   useEffect(() => {
-    let active = true;
     setSelected(null);
-    setSources([]);
     setRows([]);
     setGroups({});
     setChoices({});
     setConfig(blankConfiguration());
-    api
-      .get<Page<Source>>(`${base}?site_id=${siteId}`)
-      .then((r) => {
-        if (active) setSources(r.data.items);
-      })
-      .catch((e: unknown) => {
-        if (active) setError(apiErrorMessage(e));
-      });
-    return () => {
-      active = false;
-    };
   }, [siteId]);
 
   useEffect(() => {
@@ -498,7 +493,10 @@ export function SohImportPanel({ siteId }: { siteId: string }) {
         verification, then approve and accept the opening stock. Uploading alone creates no
         inventory.
       </p>
-      <Feedback error={error} ok={ok} />
+      <Feedback
+        error={error || (sourcesRead.error ? apiErrorMessage(sourcesRead.error) : "")}
+        ok={ok}
+      />
       {stepUp.dialog}
       {!selected ? (
         <>

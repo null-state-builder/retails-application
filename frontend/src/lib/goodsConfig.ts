@@ -11,6 +11,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { api, apiErrorMessage } from "./api";
 import type { paths } from "./api-schema";
+import { useCachedQuery } from "./cachedQuery";
 import { useResourceList, type Page, type ResourceDTO } from "./goodsScreen";
 
 /** The registered configuration kinds (backend `masters.goods_services.CONFIG_KINDS`). */
@@ -189,56 +190,53 @@ export interface EffectiveProfile {
  *  show whatever is being edited, not what SKUs are actually governed by. */
 export function useEffectiveIdentityProfiles() {
   const list = useConfigurations("identity_profile");
-  const [profiles, setProfiles] = useState<EffectiveProfile[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [failure, setFailure] = useState("");
   const wanted = allVersions(list.items)
     .filter((entry) => entry.version.state === "effective")
     .map((entry) => `${entry.draftId}:${entry.version.version}:${entry.version.id}`)
     .join(",");
-
-  useEffect(() => {
-    if (list.loading) return;
-    const entries = wanted ? wanted.split(",") : [];
-    if (entries.length === 0) {
-      setProfiles([]);
-      setLoading(false);
-      return;
-    }
-    let live = true;
-    setLoading(true);
-    setFailure("");
-    Promise.all(
-      entries.map(async (entry) => {
-        const [draftId, version, versionId] = entry.split(":");
-        if (!draftId || !versionId || !version || !Number.isSafeInteger(Number(version))) {
-          throw new Error("Invalid effective identity profile reference");
-        }
-        const { data } = await api.get<ResourceDTO<ConfigData>>(
-          `/goods-v1/masters/configurations/${draftId}?version=${version}`,
-        );
-        return {
-          draftId,
-          versionId,
-          version: Number(version),
-          payload: data.data.payload as unknown as IdentityProfilePayload,
-        };
-      }),
-    )
-      .then((found) => live && setProfiles(found))
-      .catch((e) => live && setFailure(apiErrorMessage(e)))
-      .finally(() => live && setLoading(false));
-    return () => {
-      live = false;
-    };
-  }, [wanted, list.loading]);
-
+  // Cached under the configurations family with the exact versions as the
+  // variant, so a new effective version is a new answer, and any goods-v1
+  // change refreshes it like every other `/goods-v1/…` read.
+  const read = useCachedQuery<EffectiveProfile[]>(
+    "/goods-v1/masters/configurations",
+    () => readEffectiveProfiles(wanted),
+    {
+      variant: `effective:${wanted}`,
+      enabled: !list.loading && wanted !== "",
+      keepPrevious: false,
+    },
+  );
+  const none = !list.loading && wanted === "";
   return {
-    profiles,
-    loading: list.loading || loading,
+    profiles: none || read.error ? NO_PROFILES : (read.data ?? NO_PROFILES),
+    loading: list.loading || (!none && read.loading),
     denied: list.denied,
-    failure: list.failure || failure,
+    failure: list.failure || (read.error ? apiErrorMessage(read.error) : ""),
   };
+}
+
+const NO_PROFILES: EffectiveProfile[] = [];
+
+function readEffectiveProfiles(wanted: string): Promise<EffectiveProfile[]> {
+  return Promise.all(
+    wanted.split(",").map(async (entry) => {
+      const [draftId, version, versionId] = entry.split(":");
+      if (!draftId || !versionId || !version || !Number.isSafeInteger(Number(version))) {
+        throw new Error("Invalid effective identity profile reference");
+      }
+      // Each effective version, read by the same client as every other GET
+      // (the cache keeps the joined answer, under the list's own URL).
+      const { data } = await api.get<ResourceDTO<ConfigData>>(
+        `/goods-v1/masters/configurations/${draftId}?version=${version}`,
+      );
+      return {
+        draftId,
+        versionId,
+        version: Number(version),
+        payload: data.data.payload as unknown as IdentityProfilePayload,
+      };
+    }),
+  );
 }
 
 type ControlledQuery = NonNullable<

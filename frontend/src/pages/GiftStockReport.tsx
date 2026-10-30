@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Download } from "lucide-react";
 
@@ -7,6 +7,8 @@ import type { Kpi } from "../components/KpiStrip";
 import { Note } from "../components/Note";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { UpdatedAgo } from "../components/UpdatedAgo";
+import { useCachedGet } from "../lib/cachedQuery";
 import { Section } from "../components/Section";
 import { SegmentedControl } from "../components/SegmentedControl";
 import { EmptyState, Loading } from "../components/States";
@@ -43,52 +45,39 @@ const OFFLINE = "Reports need a connection. Reconnect to see or export this repo
  *  only: offline it says it needs a connection, and comes back by itself. */
 export function GiftStockReportPage() {
   const [filters, setFilters] = useState<GiftFilters>(() => defaultGiftFilters());
-  const [data, setData] = useState<Payload | null>(null);
-  const [error, setError] = useState("");
+  const [exportError, setError] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
-  // The browser says it is online, but the last request got no answer at all.
-  const [lost, setLost] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const request = useRef(0);
+  // The browser says it is online, but the last export got no answer at all.
+  const [exportLost, setLost] = useState(false);
+  const asked = filters;
+  // Through the shared cache: a report seen before shows at once and is always
+  // read again behind it. Offline, the request waits for the connection.
+  const read = useCachedGet<Payload>("/reports/gift-stock", { params: giftParams(asked) });
+  useEffect(() => setError(""), [filters]);
+  const data = read.data ?? null;
+  const busy = read.fetching;
+  const lost = exportLost || (read.error != null && isConnectionLost(read.error));
+  const readError =
+    read.error != null && !isConnectionLost(read.error) ? apiErrorMessage(read.error) : "";
+  const error = exportError || readError;
+  useEffect(() => {
+    if (read.updatedAt) setLost(false);
+  }, [read.updatedAt]);
 
-  const load = useCallback(async (wanted: GiftFilters) => {
+  const { reload } = read;
+  const load = useCallback(() => {
     if (!navigator.onLine) {
       setOnline(false);
       return;
     }
-    if (wanted.date_from && wanted.date_to && wanted.date_to < wanted.date_from) {
-      // Checked before the request count moves, so a request still in flight
-      // clears the busy flag it set and the dates can be put right.
-      setError("The period ends before it starts. Choose a To date on or after the From date.");
-      return;
-    }
-    const mine = ++request.current;
-    setBusy(true);
     setError("");
-    try {
-      const response = await api.get<Payload>("/reports/gift-stock", {
-        params: giftParams(wanted),
-      });
-      if (mine !== request.current) return;
-      setLost(false);
-      setData(response.data);
-    } catch (reason) {
-      if (mine !== request.current) return;
-      if (isConnectionLost(reason)) setLost(true);
-      else setError(apiErrorMessage(reason));
-    } finally {
-      if (mine === request.current) setBusy(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load(filters);
-  }, [filters, load]);
+    reload();
+  }, [reload]);
 
   useEffect(() => {
     const up = () => {
       setOnline(true);
-      void load(filters);
+      load();
     };
     const down = () => setOnline(false);
     window.addEventListener("online", up);
@@ -142,7 +131,7 @@ export function GiftStockReportPage() {
             className="btn btn-sm"
             data-testid="gift-retry"
             disabled={busy}
-            onClick={() => void load(filters)}
+            onClick={() => load()}
           >
             Try again
           </button>
@@ -248,7 +237,16 @@ export function GiftStockReportPage() {
 
   return (
     <OperationsPage>
-      <PageHeader title="Gift Stock" lead={lead} actions={filterBar} />
+      <PageHeader
+        title="Gift Stock"
+        lead={lead}
+        actions={
+          <>
+            <UpdatedAgo updatedAt={read.updatedAt} fetching={read.fetching} />
+            {filterBar}
+          </>
+        }
+      />
       <div className="page">
         {notAFiling}
         {offlineNote}

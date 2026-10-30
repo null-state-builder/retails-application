@@ -10,6 +10,7 @@ import { Link2, Upload } from "lucide-react";
 import { Note } from "../components/Note";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { UpdatedAgo } from "../components/UpdatedAgo";
 import { Box } from "../components/Section";
 import { SegmentedControl } from "../components/SegmentedControl";
 import { Status, type StatusTone } from "../components/Status";
@@ -69,9 +70,12 @@ const TABS: { key: "" | LineRow["status"]; label: string }[] = [
 ];
 
 export function BankReconciliationPage() {
-  const { data: imports, reload: reloadImports } = useDoc<{ rows: ImportRow[] }>(
-    "/finledger/bank/imports",
-  );
+  const {
+    data: imports,
+    reload: reloadImports,
+    updatedAt,
+    fetching,
+  } = useDoc<{ rows: ImportRow[] }>("/finledger/bank/imports");
   const [selected, setSelected] = useState<number | null>(null);
   const [tab, setTab] = useState<"" | LineRow["status"]>("review");
   const linesUrl = selected
@@ -120,7 +124,10 @@ export function BankReconciliationPage() {
 
   return (
     <OperationsPage data-testid="bank-reconciliation-page">
-      <PageHeader lead="Upload a bank statement (CSV or Excel) and it's matched against the books automatically — what's left is what needs a look." />
+      <PageHeader
+        lead="Upload a bank statement (CSV or Excel) and it's matched against the books automatically — what's left is what needs a look."
+        actions={<UpdatedAgo updatedAt={updatedAt} fetching={fetching} />}
+      />
 
       <Note tone="info" testId="bank-api-roadmap-note">
         Using file upload for now — direct bank API sync is on the roadmap once your bank provides

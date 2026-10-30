@@ -8,6 +8,33 @@ from scripts.so03_frontend_inventory import check_frontend, discover_frontend
 
 
 class FrontendInventoryTests(unittest.TestCase):
+    def test_lazy_route_screens_keep_their_component_source(self) -> None:
+        by_key = {record["key"]: record for record in discover_frontend()}
+
+        # routes.tsx loads screens with `lazyPage(() => import(...), name)`;
+        # each must still resolve to its page module, aliases included.
+        self.assertEqual(
+            by_key["screen:/setup/people-access"]["detail"]["component_source"],
+            "frontend/src/pages/PeopleAccess.tsx",
+        )
+        self.assertEqual(
+            by_key["screen:/goods/transfers/:id"]["detail"]["component_source"],
+            "frontend/src/pages/TransferDetail.tsx",
+        )
+        self.assertEqual(
+            by_key["screen:/sell/till"]["detail"]["component_source"],
+            "frontend/src/pages/sell/Till.tsx",
+        )
+        unresolved = [
+            key
+            for key, record in by_key.items()
+            if record["kind"] == "screen"
+            and record["source"] == "frontend/src/routes.tsx"
+            and record["detail"]["component"] not in {"PlannedPage", "LegacyRedirect"}
+            and not record["detail"]["component_source"]
+        ]
+        self.assertEqual(unresolved, [])
+
     def test_canonical_and_legacy_journeys_are_both_discovered(self) -> None:
         records = discover_frontend()
         by_key = {record["key"]: record for record in records}
@@ -59,6 +86,26 @@ class FrontendInventoryTests(unittest.TestCase):
                 for row in records
             )
         )
+
+    def test_cached_reads_stay_traceable_to_their_api(self) -> None:
+        # Screens moved from their own `api.get` to the shared cache keep a
+        # resolvable URL, including a read that waits on a store or selection.
+        consumers = {
+            (row["source"], row["detail"]["api_reference"])
+            for row in discover_frontend()
+            if row["kind"] == "api_consumer"
+            and row["detail"]["invocation"] in {"useCachedGet", "useCachedQuery"}
+        }
+        for expected in (
+            ("frontend/src/pages/Home.tsx", "/api/finledger/health"),
+            ("frontend/src/pages/SalesReport.tsx", "/api/reports/sales"),
+            ("frontend/src/pages/Alterations.tsx", "/api/sell/alterations"),
+            (
+                "frontend/src/lib/goodsConfig.ts",
+                "/api/goods-v1/masters/configurations",
+            ),
+        ):
+            self.assertIn(expected, consumers)
 
     def test_keys_are_unique_and_independent_of_line_numbers(self) -> None:
         records = discover_frontend()

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Note } from "../components/Note";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
+import { useCachedGet } from "../lib/cachedQuery";
 import { useAuth } from "../auth/AuthContext";
 
 interface Choice {
@@ -337,8 +338,16 @@ export function UnifiedAssignmentsTab({
 /** One policy editor for section levels, protected fields and additive steps.
  * Its payload is versioned and validated by the server; the editor stays usable
  * when a new section or step is added without a frontend release. */
+const NO_ROLES: RoleChoice[] = [];
+
 export function UnifiedRolePolicyPanel() {
-  const [roles, setRoles] = useState<RoleChoice[]>([]);
+  // The role choices are a plain read, cached; the policy itself is loaded
+  // into an editable draft with its revision and stays a direct read.
+  const rolesRead = useCachedGet<
+    { items: { data: { code: string; name: string } }[] },
+    RoleChoice[]
+  >("/auth/admin/roles", { select: (data) => data.items.map(({ data: role }) => role) });
+  const roles = rolesRead.data ?? NO_ROLES;
   const [code, setCode] = useState("");
   const [draft, setDraft] = useState("");
   const [stepDefaults, setStepDefaults] = useState<string[]>([]);
@@ -349,13 +358,6 @@ export function UnifiedRolePolicyPanel() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const requestSequence = useRef(0);
-
-  useEffect(() => {
-    api
-      .get<{ items: { data: { code: string; name: string } }[] }>("/auth/admin/roles")
-      .then(({ data }) => setRoles(data.items.map(({ data: role }) => role)))
-      .catch((reason) => setError(apiErrorMessage(reason)));
-  }, []);
 
   const load = useCallback(() => {
     if (!code) return;
@@ -445,7 +447,9 @@ export function UnifiedRolePolicyPanel() {
         Set section levels, protected fields and workflow steps for each role. Approval separation
         and other fixed safeguards remain enforced by the server.
       </p>
-      {error && <Note tone="error">{error}</Note>}
+      {(error || rolesRead.error != null) && (
+        <Note tone="error">{error || apiErrorMessage(rolesRead.error)}</Note>
+      )}
       {message && (
         <Note tone="success" role="status">
           {message}

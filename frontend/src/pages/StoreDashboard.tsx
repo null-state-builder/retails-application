@@ -13,7 +13,7 @@
 // comparison and each queue row's detail line are not in this payload, so they
 // are not drawn.
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -33,7 +33,8 @@ import { Note } from "../components/Note";
 import { Section } from "../components/Section";
 import { Loading } from "../components/States";
 import { Status } from "../components/Status";
-import { api, apiErrorMessage } from "../lib/api";
+import { apiErrorMessage } from "../lib/api";
+import { useCachedGet } from "../lib/cachedQuery";
 import { Money } from "../lib/format";
 import { userCan, type Area } from "../shell/navConfig";
 import { StoreChecklistCard } from "./StoreChecklist";
@@ -355,25 +356,18 @@ export function StoreDashboard({
   onLoaded?: ((d: DashboardPayload) => void) | undefined;
 } = {}) {
   const { featuresOn } = useAuth();
-  const [data, setData] = useState<DashboardPayload | null>(null);
-  const [error, setError] = useState("");
+  // From the shared cache: a revisit shows the store's day at once and
+  // refreshes it behind it (fresh for 10 s, like the other counts).
+  const read = useCachedGet<DashboardPayload>("/store/dashboard", { kind: "doc" });
+  const data = read.data ?? null;
+  // A failed refresh behind a day already shown leaves the day on screen.
+  const error = !data && read.error !== null ? apiErrorMessage(read.error) : "";
   const loaded = useRef(onLoaded);
   loaded.current = onLoaded;
 
   useEffect(() => {
-    let live = true;
-    api
-      .get<DashboardPayload>("/store/dashboard")
-      .then((r) => {
-        if (!live) return;
-        setData(r.data);
-        loaded.current?.(r.data);
-      })
-      .catch((e) => live && setError(apiErrorMessage(e)));
-    return () => {
-      live = false;
-    };
-  }, []);
+    if (data) loaded.current?.(data);
+  }, [data]);
 
   if (error) {
     return (

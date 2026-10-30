@@ -8,6 +8,7 @@ import { useState } from "react";
 import { KpiStrip } from "../components/KpiStrip";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { UpdatedAgo } from "../components/UpdatedAgo";
 import { Money } from "../lib/format";
 import { useDoc } from "../lib/hooks";
 import "./Shared.css";
@@ -57,11 +58,16 @@ function when(iso: string): string {
 
 export function DailyCashPage() {
   const [day, setDay] = useState(today());
-  const { data, loading } = useDoc<DailyCashResponse>(`/finledger/cash/daily?date=${day}`);
+  const { data, loading, updatedAt, fetching } = useDoc<DailyCashResponse>(
+    `/finledger/cash/daily?date=${day}`,
+  );
 
   return (
     <OperationsPage data-testid="daily-cash-page">
-      <PageHeader lead="What moved today, by account — money in and money out kept apart, not netted into one balance." />
+      <PageHeader
+        lead="What moved today, by account — money in and money out kept apart, not netted into one balance."
+        actions={<UpdatedAgo updatedAt={updatedAt} fetching={fetching} />}
+      />
       <div className="toolbar" style={{ marginBottom: 18 }}>
         <input
           type="date"

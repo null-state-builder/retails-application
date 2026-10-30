@@ -15,6 +15,9 @@ import "./Booking.css";
 import "./Shared.css";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { UpdatedAgo } from "../components/UpdatedAgo";
+import { useCachedGet } from "../lib/cachedQuery";
+import { useList } from "../lib/hooks";
 
 interface BalanceT {
   vendor_id: number;
@@ -62,20 +65,9 @@ export default function VendorLedger() {
   // read from the same section payload rather than a role list of our own.
   const isFinance = userCan(user, "money", "manage");
 
-  const [balances, setBalances] = useState<{
-    total_payable_paise: number;
-    vendors_with_dues: number;
-    rows: BalanceT[];
-  }>();
-  const [ageing, setAgeing] = useState<AgeingT>();
-  const [entries, setEntries] = useState<EntryT[]>([]);
-  const [vendors, setVendors] = useState<{ id: number; name: string }[]>([]);
   const [page, setPage] = useState(1);
-  const [count, setCount] = useState(0);
-  const [hasNext, setHasNext] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [entriesLoading, setEntriesLoading] = useState(true);
   const [q, setQ] = useState("");
 
   const [mode, setMode] = useState<Mode>(null);
@@ -88,30 +80,31 @@ export default function VendorLedger() {
   });
   const PAGE_SIZE = 50;
 
+  // Read through the shared cache: a revisit shows the last copy at once and
+  // re-asks behind it (money reads are never trusted as fresh).
+  const balancesRead = useCachedGet<{
+    total_payable_paise: number;
+    vendors_with_dues: number;
+    rows: BalanceT[];
+  }>("/finledger/vendor/balances", { kind: "doc" });
+  const balances = balancesRead.data;
+  const ageingRead = useCachedGet<AgeingT>("/finledger/vendor/ageing", { kind: "doc" });
+  const ageing = ageingRead.data;
+  const entriesRead = useCachedGet<{ results: EntryT[]; count: number; next: string | null }>(
+    "/finledger/vendor/entries",
+    { params: { page, page_size: PAGE_SIZE, q } },
+  );
+  const entries = entriesRead.data?.results ?? [];
+  const count = entriesRead.data?.count ?? 0;
+  const hasNext = Boolean(entriesRead.data?.next);
+  const entriesLoading = entriesRead.loading;
+  const { data: vendors } = useList<{ id: number; name: string }>(isFinance ? "/vendors" : null);
   function loadAll() {
-    api.get("/finledger/vendor/balances").then((r) => setBalances(r.data));
-    api.get("/finledger/vendor/ageing").then((r) => setAgeing(r.data));
-    setEntriesLoading(true);
-    const params = new URLSearchParams({ page: String(page), page_size: String(PAGE_SIZE) });
-    if (q.trim()) params.set("q", q.trim());
-    api
-      .get(`/finledger/vendor/entries?${params}`)
-      .then((r) => {
-        setEntries(r.data.results);
-        setCount(r.data.count);
-        setHasNext(Boolean(r.data.next));
-      })
-      .finally(() => setEntriesLoading(false));
+    balancesRead.reload();
+    ageingRead.reload();
+    entriesRead.reload();
   }
-  useEffect(loadAll, [page, q]);
   useEffect(() => setPage(1), [q]);
-  useEffect(() => {
-    if (isFinance)
-      api
-        .get("/vendors")
-        .then((r) => setVendors(r.data))
-        .catch(() => {});
-  }, [isFinance]);
 
   async function submit() {
     setBusy(true);
@@ -153,30 +146,36 @@ export default function VendorLedger() {
       <PageHeader
         lead="Accounts payable, brand by brand. Append-only: a correction is a reversing entry."
         actions={
-          isFinance && (
-            <>
-              <button
-                className="btn"
-                onClick={() => {
-                  setMode("bill");
-                  setError("");
-                }}
-                data-testid="vl-record-bill-btn"
-              >
-                <ReceiptText size={15} /> Record Bill
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={() => {
-                  setMode("payment");
-                  setError("");
-                }}
-                data-testid="vl-record-payment-btn"
-              >
-                <Send size={15} /> Record Payment
-              </button>
-            </>
-          )
+          <>
+            <UpdatedAgo
+              updatedAt={entriesRead.updatedAt}
+              fetching={entriesRead.fetching || balancesRead.fetching || ageingRead.fetching}
+            />
+            {isFinance && (
+              <>
+                <button
+                  className="btn"
+                  onClick={() => {
+                    setMode("bill");
+                    setError("");
+                  }}
+                  data-testid="vl-record-bill-btn"
+                >
+                  <ReceiptText size={15} /> Record Bill
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => {
+                    setMode("payment");
+                    setError("");
+                  }}
+                  data-testid="vl-record-payment-btn"
+                >
+                  <Send size={15} /> Record Payment
+                </button>
+              </>
+            )}
+          </>
         }
       />
 

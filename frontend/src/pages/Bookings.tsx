@@ -27,6 +27,7 @@ import { isOver, type OtbBudget, type OtbList } from "../lib/openToBuy";
 import { userCan } from "../shell/navConfig";
 import { api, apiErrorMessage } from "../lib/api";
 import { useDoc, useList } from "../lib/hooks";
+import { useCachedGet } from "../lib/cachedQuery";
 import { Money, formatDay, formatINR, rupeesToPaise } from "../lib/format";
 import {
   engineOfId,
@@ -295,22 +296,17 @@ export function BookingsPage() {
 /** Open-to-buy at the top of Bookings (mockup Booking): what is left to book
  *  per brand and season, at cost, from the server's own figures. Drawn only for
  *  someone the Open-to-Buy screen opens for, since every figure is at cost. */
+const NO_BOOKING_FIELDS = { readable_fields: [] as string[], writable_fields: [] as string[] };
+
 function OpenToBuyStrip() {
   const { user, session, featuresOn } = useAuth();
   const allowed =
     !!user && canAccess("/booking/open-to-buy", user, session?.display_actions ?? [], featuresOn);
-  const [budgets, setBudgets] = useState<OtbBudget[] | null>(null);
-  useEffect(() => {
-    if (!allowed) return;
-    let live = true;
-    api
-      .get<OtbList>("/goods-v1/open-to-buy")
-      .then((r) => live && setBudgets(r.data.budgets))
-      .catch(() => live && setBudgets(null));
-    return () => {
-      live = false;
-    };
-  }, [allowed]);
+  const otb = useCachedGet<OtbList, OtbBudget[]>(allowed ? "/goods-v1/open-to-buy" : null, {
+    select: (r) => r.budgets,
+  });
+  // A failed read hides the strip rather than showing an older copy.
+  const budgets = otb.error ? null : (otb.data ?? null);
   if (!allowed || !budgets || budgets.length === 0) return null;
   // Tightest first: the budget closest to running out is the one to look at.
   const shown = [...budgets]
@@ -520,10 +516,6 @@ export function BookingNewPage() {
   const [warn, setWarn] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [bookingFields, setBookingFields] = useState<{
-    readable_fields: string[];
-    writable_fields: string[];
-  }>({ readable_fields: [], writable_fields: [] });
 
   const store = stores.find((s) => s.id === storeId);
   // The store decides the engine. Before one is chosen, a person who books in
@@ -533,25 +525,21 @@ export function BookingNewPage() {
   const costScopeSites = [
     ...new Set([storeId, ...lines.map((line) => line.store || storeId)].filter(Boolean)),
   ].sort();
-  useEffect(() => {
-    let current = true;
-    setBookingFields({ readable_fields: [], writable_fields: [] });
-    if (engine === "goods" && storeId && picked.brand_id) {
-      api
-        .get<{ readable_fields: string[]; writable_fields: string[] }>(
-          `/goods-v1/bookings/access-preview?site_id=${encodeURIComponent(storeId)}&brand_id=${encodeURIComponent(picked.brand_id)}&line_site_ids=${encodeURIComponent(costScopeSites.join(","))}`,
-        )
-        .then((response) => {
-          if (current) setBookingFields(response.data);
-        })
-        .catch(() => {
-          if (current) setBookingFields({ readable_fields: [], writable_fields: [] });
-        });
-    }
-    return () => {
-      current = false;
-    };
-  }, [engine, storeId, picked.brand_id, costScopeSites.join(",")]);
+  // Which booking fields this person may read and write here. Cached per
+  // site/brand/line sites; nothing (no cost column) while it is being asked,
+  // never the previous choice's answer, and nothing if it is refused.
+  const preview = useCachedGet<{ readable_fields: string[]; writable_fields: string[] }>(
+    engine === "goods" && storeId && picked.brand_id ? "/goods-v1/bookings/access-preview" : null,
+    {
+      params: {
+        site_id: storeId,
+        brand_id: picked.brand_id,
+        line_site_ids: costScopeSites.join(","),
+      },
+      keepPrevious: false,
+    },
+  );
+  const bookingFields = (!preview.error && preview.data) || NO_BOOKING_FIELDS;
   const showCost = engine === "goods" && bookingFields.writable_fields.includes("cost");
   const lineStores = stores.filter((s) => s.engine === (store?.engine ?? engine));
 

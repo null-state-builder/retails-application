@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
 import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { UpdatedAgo } from "../components/UpdatedAgo";
+import { useCachedGet } from "../lib/cachedQuery";
 import { api, apiErrorMessage } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
@@ -36,56 +38,52 @@ const ESTIMATE =
  *  by itself when the line does. */
 export function MarginSharePage() {
   const [filters, setFilters] = useState<MarginFilters>(() => defaultMarginFilters());
-  const [data, setData] = useState<Payload | null>(null);
-  const [error, setError] = useState("");
+  const [exportError, setError] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
-  // The browser says it is online, but the last request got no answer at all.
-  const [lost, setLost] = useState(false);
-  const [busy, setBusy] = useState(false);
+  // The browser says it is online, but the last export got no answer at all.
+  const [exportLost, setLost] = useState(false);
   // The brands the last every-brand statement named, so one can be picked.
   const [brands, setBrands] = useState<{ id: string; name: string }[]>([]);
-  const request = useRef(0);
+  const asked = filters;
+  // Through the shared cache: a report seen before shows at once and is always
+  // read again behind it. Offline, the request waits for the connection.
+  const read = useCachedGet<Payload>("/reports/margin-share", { params: marginParams(asked) });
+  useEffect(() => setError(""), [filters]);
+  // An every-brand statement names the brands, so one can be picked.
+  const everyBrand = !read.loading && !asked.brand ? read.data : undefined;
+  useEffect(() => {
+    if (!everyBrand) return;
+    setBrands(
+      everyBrand.rows.flatMap((row) => {
+        const id = brandIdOf(row.key);
+        return id ? [{ id, name: row.label ?? "" }] : [];
+      }),
+    );
+  }, [everyBrand]);
+  const data = read.data ?? null;
+  const busy = read.fetching;
+  const lost = exportLost || (read.error != null && isConnectionLost(read.error));
+  const readError =
+    read.error != null && !isConnectionLost(read.error) ? apiErrorMessage(read.error) : "";
+  const error = exportError || readError;
+  useEffect(() => {
+    if (read.updatedAt) setLost(false);
+  }, [read.updatedAt]);
 
-  const load = useCallback(async (wanted: MarginFilters) => {
+  const { reload } = read;
+  const load = useCallback(() => {
     if (!navigator.onLine) {
       setOnline(false);
       return;
     }
-    const mine = ++request.current;
-    setBusy(true);
     setError("");
-    try {
-      const response = await api.get<Payload>("/reports/margin-share", {
-        params: marginParams(wanted),
-      });
-      if (mine !== request.current) return;
-      setLost(false);
-      setData(response.data);
-      if (!wanted.brand) {
-        setBrands(
-          response.data.rows.flatMap((row) => {
-            const id = brandIdOf(row.key);
-            return id ? [{ id, name: row.label ?? "" }] : [];
-          }),
-        );
-      }
-    } catch (reason) {
-      if (mine !== request.current) return;
-      if (isConnectionLost(reason)) setLost(true);
-      else setError(apiErrorMessage(reason));
-    } finally {
-      if (mine === request.current) setBusy(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load(filters);
-  }, [filters, load]);
+    reload();
+  }, [reload]);
 
   useEffect(() => {
     const up = () => {
       setOnline(true);
-      void load(filters);
+      load();
     };
     const down = () => setOnline(false);
     window.addEventListener("online", up);
@@ -139,7 +137,7 @@ export function MarginSharePage() {
             className="btn btn-sm"
             data-testid="margin-retry"
             disabled={busy}
-            onClick={() => void load(filters)}
+            onClick={() => load()}
           >
             Try again
           </button>
@@ -181,7 +179,11 @@ export function MarginSharePage() {
 
   return (
     <div className="page-pad">
-      <PageHeader title="Margin Share" lead={lead} />
+      <PageHeader
+        title="Margin Share"
+        lead={lead}
+        actions={<UpdatedAgo updatedAt={read.updatedAt} fetching={read.fetching} />}
+      />
       {estimate}
       {offlineNote}
       <div className="toolbar" data-testid="margin-filters">

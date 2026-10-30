@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import "./Reservations.css";
 
@@ -8,7 +8,8 @@ import { PageHeader } from "../components/PageHeader";
 import { Section } from "../components/Section";
 import { SegmentedControl } from "../components/SegmentedControl";
 import { Status, type StatusTone } from "../components/Status";
-import { api, apiErrorMessage } from "../lib/api";
+import { apiErrorMessage } from "../lib/api";
+import { useCachedGet } from "../lib/cachedQuery";
 import { isConnectionLost } from "../lib/auditLog";
 import { formatINR } from "../lib/format";
 import {
@@ -55,47 +56,44 @@ export function GiftVouchersPage() {
 
   const [show, setShow] = useState<Show>("all");
   const [query, setQuery] = useState("");
-  const [listing, setListing] = useState<GiftVoucherListing | null>(null);
-  const [error, setError] = useState("");
+  // The term last sent with Find; typing alone does not search.
+  const [searched, setSearched] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
-  const [lost, setLost] = useState(false);
-  const request = useRef(0);
 
-  const load = useCallback(
-    async (which: Show, q: string) => {
-      if (!store) return;
-      if (!navigator.onLine) {
-        setOnline(false);
-        return;
-      }
-      const mine = ++request.current;
-      setError("");
-      try {
-        const params: Record<string, string> = { store, show: which };
-        if (q) params.q = q;
-        const l = await api.get<GiftVoucherListing>(GIFT_VOUCHERS_API, { params });
-        if (mine !== request.current) return;
-        setLost(false);
-        setListing(l.data);
-      } catch (reason) {
-        if (mine !== request.current) return;
-        if (isConnectionLost(reason)) setLost(true);
-        else setError(apiErrorMessage(reason));
-      }
-    },
-    [store],
-  );
+  // The store's vouchers for the tab, from the shared cache: a revisit shows
+  // the last list at once and refreshes it behind it.
+  const read = useCachedGet<GiftVoucherListing>(store ? GIFT_VOUCHERS_API : null, {
+    params: { store, show, q: searched },
+  });
+  const { reload } = read;
+  // Only this store's list: another store's stays off screen while this one loads.
+  const listing = read.data && read.data.store === store ? read.data : null;
+  const lost = read.error !== null && isConnectionLost(read.error);
+  const error = read.error !== null && !lost ? apiErrorMessage(read.error) : "";
 
-  useEffect(() => {
-    void load(show, "");
-    // Only the store and the tab reload the list; a search waits for Find.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [load, show]);
+  const load = useCallback(() => {
+    if (!navigator.onLine) {
+      setOnline(false);
+      return;
+    }
+    reload();
+  }, [reload]);
+
+  /** Find: ask for the typed term (again, if it is the one already shown). */
+  const find = () => {
+    if (!navigator.onLine) {
+      setOnline(false);
+      return;
+    }
+    const term = query.trim();
+    if (term === searched) reload();
+    else setSearched(term);
+  };
 
   useEffect(() => {
     const up = () => {
       setOnline(true);
-      void load(show, query.trim());
+      load();
     };
     const down = () => setOnline(false);
     window.addEventListener("online", up);
@@ -104,7 +102,7 @@ export function GiftVouchersPage() {
       window.removeEventListener("online", up);
       window.removeEventListener("offline", down);
     };
-  }, [load, show, query]);
+  }, [load]);
 
   const offline = !online || lost;
 
@@ -123,7 +121,6 @@ export function GiftVouchersPage() {
             value={store}
             onChange={(e) => {
               setPicked(e.target.value);
-              setListing(null);
             }}
           >
             <option value="">Choose a store</option>
@@ -146,7 +143,7 @@ export function GiftVouchersPage() {
                 type="button"
                 className="btn btn-sm"
                 data-testid="gift-vouchers-retry"
-                onClick={() => void load(show, query.trim())}
+                onClick={() => load()}
               >
                 Try again
               </button>
@@ -184,7 +181,10 @@ export function GiftVouchersPage() {
                 testId: `gift-vouchers-show-${s.value}`,
               }))}
               value={show}
-              onChange={setShow}
+              onChange={(next) => {
+                setShow(next);
+                setSearched("");
+              }}
             />
             <div className="spacer" />
             <input
@@ -195,15 +195,10 @@ export function GiftVouchersPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") void load(show, query.trim());
+                if (e.key === "Enter") find();
               }}
             />
-            <button
-              type="button"
-              className="btn"
-              disabled={offline}
-              onClick={() => void load(show, query.trim())}
-            >
+            <button type="button" className="btn" disabled={offline} onClick={find}>
               Find
             </button>
           </div>

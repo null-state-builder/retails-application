@@ -9,10 +9,11 @@ import { PageHeader } from "../../components/PageHeader";
 import { Pane, SplitView } from "../../components/SplitView";
 import { EmptyState, ErrorState } from "../../components/States";
 import { Status } from "../../components/Status";
+import { UpdatedAgo } from "../../components/UpdatedAgo";
+import { useCachedGet } from "../../lib/cachedQuery";
 import { api, apiErrorMessage } from "../../lib/api";
 import type { ApiRead, ApiSchemas } from "../../lib/api";
 import { Money, formatDateTime } from "../../lib/format";
-import { withQuery } from "../../lib/query";
 import {
   billsInRange,
   billsMatching,
@@ -71,8 +72,12 @@ export default function BillsPage() {
   const [from, setFrom] = useState(today);
   const [to, setTo] = useState(today);
   const [term, setTerm] = useState("");
-  const [rows, setRows] = useState<BillRow[] | null>(null);
-  const [loading, setLoading] = useState(false);
+  // The search term the list was last asked for: a search runs when somebody
+  // asks for it, not on every keystroke.
+  const [applied, setApplied] = useState("");
+  const [localRows, setLocalRows] = useState<BillRow[] | null>(null);
+  const [localLoading, setLocalLoading] = useState(false);
+  const [localTick, setLocalTick] = useState(0);
   const [error, setError] = useState("");
   const [open, setOpen] = useState<OpenBill | null>(null);
   const [printProblem, setPrintProblem] = useState("");
@@ -83,34 +88,63 @@ export default function BillsPage() {
 
   /** Ask both sides, and join them. The server's refusal is worth saying out
    *  loud - a counter that cannot reach head office still has its own bills, and
-   *  the list is honest about showing only those. */
-  const load = useCallback(async () => {
-    setLoading(true);
+   *  the list is honest about showing only those. The server's side comes from
+   *  the shared cache, so a range seen before shows at once and is refreshed
+   *  behind it; the counter's own queue is read fresh every time. */
+  const serverRead = useCachedGet<SaleRow[]>("/sell/sales", {
+    params: { from, to, q: applied },
+  });
+
+  useEffect(() => {
+    let live = true;
+    setLocalLoading(true);
+    void (async () => {
+      let local: BillRow[] = [];
+      if (db) {
+        const queued = await db.queue.orderBy("id").reverse().toArray();
+        local = billsMatching(billsInRange(queued.map(queuedAsRow), from, to), applied);
+      }
+      if (!live) return;
+      setLocalRows(local);
+      setLocalLoading(false);
+    })();
+    return () => {
+      live = false;
+    };
+  }, [db, from, to, applied, localTick]);
+
+  const serverRows = serverRead.data;
+  const serverFailed = !!serverRead.error;
+  const rows = useMemo<BillRow[] | null>(() => {
+    if (localRows === null) return null;
+    if (serverFailed) return localRows;
+    if (serverRows === undefined) return null;
+    return mergeBillRows(localRows, serverRows.map(serverAsRow));
+  }, [localRows, serverRows, serverFailed]);
+  const loading = serverRead.loading || localLoading;
+  const shownError =
+    error ||
+    (serverRead.error
+      ? `${apiErrorMessage(serverRead.error)} Showing this counter's own bills that have not gone in yet.`
+      : "");
+
+  const load = useCallback(() => {
     setError("");
     setPrintProblem("");
     setOpen(null);
-    let local: BillRow[] = [];
-    if (db) {
-      const queued = await db.queue.orderBy("id").reverse().toArray();
-      local = billsMatching(billsInRange(queued.map(queuedAsRow), from, to), term);
-    }
-    try {
-      const { data } = await api.get(
-        withQuery("/sell/sales", { from, to, ...(term.trim() ? { q: term.trim() } : {}) }),
-      );
-      setRows(mergeBillRows(local, (data as SaleRow[]).map(serverAsRow)));
-    } catch (e) {
-      setError(`${apiErrorMessage(e)} Showing this counter's own bills that have not gone in yet.`);
-      setRows(local);
-    } finally {
-      setLoading(false);
-    }
-  }, [db, from, to, term]);
+    setLocalTick((t) => t + 1);
+    const wanted = term.trim();
+    if (wanted === applied) serverRead.reload();
+    else setApplied(wanted);
+  }, [term, applied, serverRead]);
 
-  // Today's bills, the moment the screen opens. The term is deliberately not a
-  // dependency: a search runs when somebody asks for it, not on every keystroke.
+  // Today's bills, the moment the screen opens; a new range asks again with
+  // whatever term is in the box.
   useEffect(() => {
-    void load();
+    setError("");
+    setPrintProblem("");
+    setOpen(null);
+    setApplied(term.trim());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [db, from, to]);
 
@@ -199,7 +233,12 @@ export default function BillsPage() {
       <PageHeader
         title="Bills"
         lead="Today's bills, including any not yet synced. A bill is never edited: print it again, or start an exchange from it."
-        actions={<BillScope />}
+        actions={
+          <>
+            <UpdatedAgo updatedAt={serverRead.updatedAt} fetching={serverRead.fetching} />
+            <BillScope />
+          </>
+        }
       />
 
       <div className="bills-bar" data-testid="bills-bar">
@@ -287,7 +326,7 @@ export default function BillsPage() {
         </button>
       </div>
 
-      {error && <ErrorState message={error} testId="bills-error" />}
+      {shownError && <ErrorState message={shownError} testId="bills-error" />}
 
       {rows !== null && rows.length === 0 && (
         <EmptyState testId="bills-empty">
