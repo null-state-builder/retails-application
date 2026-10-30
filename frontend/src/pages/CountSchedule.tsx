@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { Note } from "../components/Note";
@@ -10,6 +10,7 @@ import { Status } from "../components/Status";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
+import { useCachedGet } from "../lib/cachedQuery";
 import { countScreenPath, EVERY_CHOICES, everyText, scopeText } from "../lib/countSchedule";
 import { dayText } from "../lib/stockAgeing";
 
@@ -38,11 +39,15 @@ interface Draft {
 export function CountSchedulePage() {
   const [params] = useSearchParams();
   const siteFilter = Number(params.get("site_id")) || null;
-  const [data, setData] = useState<Payload | null>(null);
-  const [error, setError] = useState("");
+  // Read through the shared cache: a revisit shows the last schedule at once
+  // and refreshes it behind it (and again on reconnect).
+  const read = useCachedGet<Payload>(URL);
+  const data = read.data ?? null;
+  const [writeError, setError] = useState("");
   const [saved, setSaved] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
-  const [lost, setLost] = useState(false);
+  // When a write last got no answer at all; cleared by the next good read.
+  const [lostAt, setLostAt] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [draft, setDraft] = useState<Draft>({
     site_id: "",
@@ -50,34 +55,23 @@ export function CountSchedulePage() {
     every: "month",
     first_due_on: "",
   });
-  const request = useRef(0);
-
-  const load = useCallback(async () => {
+  const readLost = read.error != null && isConnectionLost(read.error);
+  const lost = readLost || (lostAt !== null && (read.updatedAt ?? 0) < lostAt);
+  const error = writeError || (read.error != null && !readLost ? apiErrorMessage(read.error) : "");
+  const setLost = (value: boolean) => setLostAt(value ? Date.now() : null);
+  const { reload } = read;
+  const load = useCallback(() => {
     if (!navigator.onLine) {
       setOnline(false);
       return;
     }
-    const mine = ++request.current;
-    try {
-      const response = await api.get<Payload>(URL);
-      if (mine !== request.current) return;
-      setLost(false);
-      setData(response.data);
-    } catch (reason) {
-      if (mine !== request.current) return;
-      if (isConnectionLost(reason)) setLost(true);
-      else setError(apiErrorMessage(reason));
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+    reload();
+  }, [reload]);
 
   useEffect(() => {
     const up = () => {
       setOnline(true);
-      void load();
+      load();
     };
     const down = () => setOnline(false);
     window.addEventListener("online", up);
@@ -109,7 +103,7 @@ export function CountSchedulePage() {
     } finally {
       setBusy(false);
     }
-    if (ok) await load();
+    if (ok) load();
     return ok;
   }
 

@@ -15,6 +15,8 @@ import "./Booking.css";
 import "./Shared.css";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { UpdatedAgo } from "../components/UpdatedAgo";
+import { useCachedGet } from "../lib/cachedQuery";
 
 interface AccountT {
   account: string;
@@ -39,14 +41,9 @@ export default function CashLedger() {
   // read from the same section payload rather than a role list of our own.
   const isFinance = userCan(user, "money", "manage");
 
-  const [summary, setSummary] = useState<{ total_paise: number; accounts: AccountT[] }>();
-  const [entries, setEntries] = useState<EntryT[]>([]);
   const [page, setPage] = useState(1);
-  const [count, setCount] = useState(0);
-  const [hasNext, setHasNext] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [entriesLoading, setEntriesLoading] = useState(true);
   const [q, setQ] = useState("");
 
   const [open, setOpen] = useState(false);
@@ -58,21 +55,25 @@ export default function CashLedger() {
   });
   const PAGE_SIZE = 50;
 
+  // Read through the shared cache: a revisit shows the last copy at once and
+  // re-asks behind it (money reads are never trusted as fresh).
+  const summaryRead = useCachedGet<{ total_paise: number; accounts: AccountT[] }>(
+    "/finledger/cash/summary",
+    { kind: "doc" },
+  );
+  const summary = summaryRead.data;
+  const entriesRead = useCachedGet<{ results: EntryT[]; count: number; next: string | null }>(
+    "/finledger/cash/entries",
+    { params: { page, page_size: PAGE_SIZE, q } },
+  );
+  const entries = entriesRead.data?.results ?? [];
+  const count = entriesRead.data?.count ?? 0;
+  const hasNext = Boolean(entriesRead.data?.next);
+  const entriesLoading = entriesRead.loading;
   function loadAll() {
-    api.get("/finledger/cash/summary").then((r) => setSummary(r.data));
-    setEntriesLoading(true);
-    const params = new URLSearchParams({ page: String(page), page_size: String(PAGE_SIZE) });
-    if (q.trim()) params.set("q", q.trim());
-    api
-      .get(`/finledger/cash/entries?${params}`)
-      .then((r) => {
-        setEntries(r.data.results);
-        setCount(r.data.count);
-        setHasNext(Boolean(r.data.next));
-      })
-      .finally(() => setEntriesLoading(false));
+    summaryRead.reload();
+    entriesRead.reload();
   }
-  useEffect(loadAll, [page, q]);
   useEffect(() => setPage(1), [q]);
 
   async function submit() {
@@ -113,18 +114,24 @@ export default function CashLedger() {
       <PageHeader
         lead="Cash and bank movements. Append-only: a correction is a reversing entry."
         actions={
-          isFinance && (
-            <button
-              className="btn btn-primary"
-              onClick={() => {
-                setOpen(true);
-                setError("");
-              }}
-              data-testid="cl-record-btn"
-            >
-              <Plus size={15} /> Record Movement
-            </button>
-          )
+          <>
+            <UpdatedAgo
+              updatedAt={entriesRead.updatedAt}
+              fetching={entriesRead.fetching || summaryRead.fetching}
+            />
+            {isFinance && (
+              <button
+                className="btn btn-primary"
+                onClick={() => {
+                  setOpen(true);
+                  setError("");
+                }}
+                data-testid="cl-record-btn"
+              >
+                <Plus size={15} /> Record Movement
+              </button>
+            )}
+          </>
         }
       />
 

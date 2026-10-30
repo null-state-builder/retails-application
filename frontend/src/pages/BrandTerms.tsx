@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 
 import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { useCachedGet } from "../lib/cachedQuery";
 import { Box, Section } from "../components/Section";
 import { Status, type StatusTone } from "../components/Status";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
@@ -52,51 +53,50 @@ function useCommandId(): [string, () => void] {
  *  change applies from its date and never alters a result already worked out.
  *  The server decides who may do what; this page only offers what it allows. */
 export function BrandTermsPage() {
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [detail, setDetail] = useState<Detail | null>(null);
   const [brandId, setBrandId] = useState<number | null>(null);
-  const [error, setError] = useState("");
+  const [commandError, setError] = useState("");
   const [done, setDone] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
-  const [lost, setLost] = useState(false);
+  const [commandLost, setLost] = useState(false);
   const [busy, setBusy] = useState(false);
   const [terms, setTerms] = useState<TermsDraft | null>(null);
   const [promotion, setPromotion] = useState<PromotionDraft | null>(null);
   const [reasons, setReasons] = useState<Record<string, string>>({});
   const [termsCommand, nextTermsCommand] = useCommandId();
   const [promotionCommand, nextPromotionCommand] = useCommandId();
-  const request = useRef(0);
 
-  const load = useCallback(async (brand: number | null) => {
+  // Through the shared cache: the brands (and an opened brand) seen before show
+  // at once and are read again behind. Offline, the request waits.
+  const summaryRead = useCachedGet<Summary>(PAGE_API);
+  const detailRead = useCachedGet<Detail>(brandId === null ? null : `${PAGE_API}/${brandId}`, {
+    kind: "doc",
+  });
+  const summary = summaryRead.data ?? null;
+  const detail = brandId === null ? null : (detailRead.data ?? null);
+  const readError = summaryRead.error ?? detailRead.error;
+  const lost = commandLost || (readError != null && isConnectionLost(readError));
+  const error =
+    commandError ||
+    (readError != null && !isConnectionLost(readError) ? apiErrorMessage(readError) : "");
+  useEffect(() => {
+    if (summaryRead.updatedAt) setLost(false);
+  }, [summaryRead.updatedAt]);
+
+  const { reload: reloadSummary } = summaryRead;
+  const { reload: reloadDetail } = detailRead;
+  const load = useCallback(() => {
     if (!navigator.onLine) {
       setOnline(false);
       return;
     }
-    const mine = ++request.current;
-    try {
-      const [s, d] = await Promise.all([
-        api.get<Summary>(PAGE_API),
-        brand === null ? Promise.resolve(null) : api.get<Detail>(`${PAGE_API}/${brand}`),
-      ]);
-      if (mine !== request.current) return;
-      setLost(false);
-      setSummary(s.data);
-      setDetail(d ? d.data : null);
-    } catch (reason) {
-      if (mine !== request.current) return;
-      if (isConnectionLost(reason)) setLost(true);
-      else setError(apiErrorMessage(reason));
-    }
-  }, []);
-
-  useEffect(() => {
-    void load(brandId);
-  }, [brandId, load]);
+    reloadSummary();
+    reloadDetail();
+  }, [reloadSummary, reloadDetail]);
 
   useEffect(() => {
     const up = () => {
       setOnline(true);
-      void load(brandId);
+      load();
     };
     const down = () => setOnline(false);
     window.addEventListener("online", up);
@@ -105,7 +105,7 @@ export function BrandTermsPage() {
       window.removeEventListener("online", up);
       window.removeEventListener("offline", down);
     };
-  }, [brandId, load]);
+  }, [load]);
 
   function open(id: number) {
     setError("");
@@ -159,7 +159,7 @@ export function BrandTermsPage() {
     if (!ok) return;
     setTerms(null);
     setDone("Sent to the Owner for approval. It counts only once approved.");
-    await load(brandId);
+    load();
   }
 
   async function proposePromotion() {
@@ -178,7 +178,7 @@ export function BrandTermsPage() {
     if (!ok) return;
     setPromotion(null);
     setDone("Sent to the Owner for approval. It counts only once approved.");
-    await load(brandId);
+    load();
   }
 
   async function decide(proposal: Proposal, outcome: "approved" | "rejected" | "withdrawn") {
@@ -197,7 +197,7 @@ export function BrandTermsPage() {
           ? "Rejected. Nothing changed."
           : "Withdrawn. Nothing changed.",
     );
-    await load(brandId);
+    load();
   }
 
   const offline = !online || lost;
@@ -227,7 +227,7 @@ export function BrandTermsPage() {
             type="button"
             className="btn btn-sm"
             data-testid="brand-terms-retry"
-            onClick={() => void load(brandId)}
+            onClick={() => load()}
           >
             Try again
           </button>

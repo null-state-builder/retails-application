@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Minus, Plus, Repeat, ScrollText, ShieldAlert, X } from "lucide-react";
@@ -9,6 +9,8 @@ import { SearchBox } from "../components/SearchBox";
 import { api, apiErrorMessage } from "../lib/api";
 import { Money } from "../lib/format";
 import { withQuery } from "../lib/query";
+import { useCachedGet, useCachedQuery } from "../lib/cachedQuery";
+import { UpdatedAgo } from "../components/UpdatedAgo";
 import "./Booking.css";
 import "./Shared.css";
 import { PageHeader } from "../components/PageHeader";
@@ -178,12 +180,7 @@ export default function StockOnHand({
         : "sku";
   const setGroup = (value: Group) =>
     setParams(stockParams(params, { group: value === "sku" ? "" : value }));
-  const [data, setData] = useState<OnHandT | null>(null);
-  const [quar, setQuar] = useState<QuarT | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [flash, setFlash] = useState("");
-  const [reloadKey, setReloadKey] = useState(0);
   // The screen's own search (#102) — style, barcode or brand. A wedge scan lands
   // here too, so a store person can check a tag without going up to the top bar.
   const q = workspace?.query ?? params.get("q") ?? "";
@@ -196,15 +193,10 @@ export default function StockOnHand({
   const [qBrand, setQBrand] = useState("");
   // Option lists come from an unfiltered snapshot so a chosen filter never
   // empties the other dropdown.
-  const [quarOpts, setQuarOpts] = useState<{ stores: [string, string][]; brands: string[] }>({
-    stores: [],
-    brands: [],
-  });
+  // (Read below, with the other quarantine reads.)
 
   // Damage reports that have not become quarantine yet — the reporting store's
   // own view of "I said so, and it hasn't been actioned" (#138).
-  const [openFlags, setOpenFlags] = useState<DamageFlagT[]>([]);
-  const [flagsErr, setFlagsErr] = useState("");
 
   // Mark-damaged modal state (pre-commit adjustment before posting).
   const [dmgRow, setDmgRow] = useState<RowT | null>(null);
@@ -212,40 +204,41 @@ export default function StockOnHand({
   const [dmgErr, setDmgErr] = useState("");
   const [dmgBusy, setDmgBusy] = useState(false);
 
-  useEffect(() => {
-    let live = true;
-    setLoading(true);
-    setError("");
-    setData(null);
-    setQuar(null);
-    if (group === "quarantine") {
+  const isQuarantine = group === "quarantine";
+  // Read through the shared cache: a grouping or filter seen before shows at
+  // once and is refreshed behind it. `keepPrevious: false` so a new filter's
+  // figures never stand in for the old ones (they read "Loading…" instead).
+  const quarRead = useCachedGet<QuarT>(isQuarantine ? "/stockledger/quarantine" : null, {
+    params: { store: qStore, brand: qBrand },
+    keepPrevious: false,
+  });
+  // Deep link (from a global-search result) and typed term compose: the term
+  // narrows inside the link, it does not replace it. A workspace store is sent
+  // as the unit header, so it is part of the cache key too.
+  const onHandRead = useCachedQuery<OnHandT>(
+    isQuarantine
+      ? null
+      : withQuery("/stockledger/on-hand", {
+          group_by: group,
+          sku: skuFilter,
+          brand: brandFilter,
+          q,
+          store: storeCode,
+        }),
+    (url, { signal }) =>
       api
-        .get(withQuery("/stockledger/quarantine", { store: qStore, brand: qBrand }))
-        .then((r) => live && setQuar(r.data))
-        .catch((e) => live && setError(apiErrorMessage(e)))
-        .finally(() => live && setLoading(false));
-    } else {
-      // Deep link (from a global-search result) and typed term compose: the term
-      // narrows inside the link, it does not replace it.
-      api
-        .get(
-          withQuery("/stockledger/on-hand", {
-            group_by: group,
-            sku: skuFilter,
-            brand: brandFilter,
-            q,
-            store: storeCode,
-          }),
-          storeId === undefined ? undefined : { headers: { "X-KDPS-Unit": storeId } },
-        )
-        .then((r) => live && setData(r.data))
-        .catch((e) => live && setError(apiErrorMessage(e)))
-        .finally(() => live && setLoading(false));
-    }
-    return () => {
-      live = false;
-    };
-  }, [group, qStore, qBrand, reloadKey, skuFilter, brandFilter, q, storeCode, storeId]);
+        .get<OnHandT>(url, {
+          signal,
+          ...(storeId === undefined ? {} : { headers: { "X-KDPS-Unit": storeId } }),
+        })
+        .then((r) => r.data),
+    { keepPrevious: false, variant: storeId === undefined ? undefined : `unit:${storeId}` },
+  );
+  const main = isQuarantine ? quarRead : onHandRead;
+  const data = onHandRead.data ?? null;
+  const quar = quarRead.data ?? null;
+  const loading = main.loading;
+  const error = main.error ? apiErrorMessage(main.error) : "";
 
   // The reports still waiting on someone — drafts, which is flagged and
   // rejected both; a confirmed one has posted and shows up as quarantine
@@ -256,41 +249,36 @@ export default function StockOnHand({
   // A failure here is said out loud rather than swallowed: an empty list and a
   // list that would not load look identical on screen, and the store would read
   // the silence as "my report was actioned".
-  useEffect(() => {
-    if (group !== "quarantine") return;
-    setFlagsErr("");
-    api
-      .get("/outbound/mark-damaged?docstatus=0")
-      .then((r) => setOpenFlags(r.data as DamageFlagT[]))
-      .catch((e) => {
-        setOpenFlags([]);
-        setFlagsErr(apiErrorMessage(e));
-      });
-  }, [group, reloadKey]);
+  const flagsRead = useCachedGet<DamageFlagT[]>(
+    isQuarantine ? "/outbound/mark-damaged?docstatus=0" : null,
+  );
+  const flagsErr = flagsRead.error ? apiErrorMessage(flagsRead.error) : "";
+  const openFlags = (!flagsErr && flagsRead.data) || [];
 
-  // Refresh the filter option lists from the full (unfiltered) quarantine set
-  // whenever we enter the tab or the data changes.
-  useEffect(() => {
-    if (group !== "quarantine") return;
-    api
-      .get("/stockledger/quarantine")
-      .then((r) => {
-        const rows: QuarRowT[] = r.data.rows ?? [];
-        const stores = new Map<string, string>();
-        const brands = new Set<string>();
-        for (const row of rows) {
-          stores.set(row.store_code, row.store_name);
-          if (row.brand) brands.add(row.brand);
-        }
-        setQuarOpts({
-          stores: [...stores.entries()].sort((a, b) => a[0].localeCompare(b[0])),
-          brands: [...brands].sort(),
-        });
-      })
-      .catch(() => {
-        /* option lists are best-effort */
-      });
-  }, [group, reloadKey]);
+  // The filter option lists, from the full (unfiltered) quarantine set so a
+  // chosen filter never empties the other dropdown. Best-effort: a failure
+  // leaves them empty.
+  const allQuarRead = useCachedGet<QuarT>(isQuarantine ? "/stockledger/quarantine" : null);
+  const allQuarRows = allQuarRead.data?.rows;
+  const quarOpts = useMemo(() => {
+    const stores = new Map<string, string>();
+    const brands = new Set<string>();
+    for (const row of allQuarRows ?? []) {
+      stores.set(row.store_code, row.store_name);
+      if (row.brand) brands.add(row.brand);
+    }
+    return {
+      stores: [...stores.entries()].sort((x, y) => x[0].localeCompare(y[0])),
+      brands: [...brands].sort(),
+    };
+  }, [allQuarRows]);
+
+  function reloadAll() {
+    onHandRead.reload();
+    quarRead.reload();
+    flagsRead.reload();
+    allQuarRead.reload();
+  }
 
   // "Mark damaged" is a global action wherever stock is visible. Clicking it
   // opens a stepper so the exact count is set BEFORE anything posts; on confirm
@@ -332,7 +320,7 @@ export default function StockOnHand({
               "They stay sellable until the warehouse confirms it.",
       );
       setDmgRow(null);
-      setReloadKey((k) => k + 1);
+      reloadAll();
     } catch (e) {
       setDmgErr(apiErrorMessage(e));
     } finally {
@@ -387,18 +375,21 @@ export default function StockOnHand({
               : "The live net position, from the stock ledger."
           }
           actions={
-            !hostedQuar && (
-              <>
-                {/* V-flip is an ownership correction, not a daily job - so it is an
+            <>
+              <UpdatedAgo updatedAt={main.updatedAt} fetching={main.fetching} />
+              {!hostedQuar && (
+                <>
+                  {/* V-flip is an ownership correction, not a daily job - so it is an
                   action here inside Stock rather than a line in the sidebar (#87). */}
-                <Link className="btn" to="/stock/vflips" data-testid="vflip-link">
-                  <Repeat size={16} /> V-Flip
-                </Link>
-                <Link className="btn" to="/stock/history" data-testid="stock-ledger-link">
-                  <ScrollText size={16} /> Movement History
-                </Link>
-              </>
-            )
+                  <Link className="btn" to="/stock/vflips" data-testid="vflip-link">
+                    <Repeat size={16} /> V-Flip
+                  </Link>
+                  <Link className="btn" to="/stock/history" data-testid="stock-ledger-link">
+                    <ScrollText size={16} /> Movement History
+                  </Link>
+                </>
+              )}
+            </>
           }
         />
       )}

@@ -15,6 +15,7 @@ import { SegmentedControl } from "../components/SegmentedControl";
 import { Status, type StatusTone } from "../components/Status";
 import { useAuth } from "../auth/AuthContext";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
+import { useCachedGet } from "../lib/cachedQuery";
 import { formatDateTime } from "../lib/format";
 import { sha256Hex } from "../lib/goodsPt";
 import { Feedback, hold, useStepUp, type Page } from "../lib/goodsScreen";
@@ -39,37 +40,53 @@ import "./ProductLists.css";
 
 type Tab = "upload" | "lists" | "history";
 
+const NO_IMPORTS: MasterSheetImport[] = [];
+
 export function ProductListsPage() {
   const { session } = useAuth();
   const canDraft = hold(session, "config.draft");
   const [params, setParams] = useSearchParams();
   const [tab, setTab] = useState<Tab>((params.get("tab") as Tab) || "upload");
-  const [summary, setSummary] = useState<MasterSheetSummary | null>(null);
+  // The lists in force and the import history are plain reads, cached. The
+  // import under review is loaded into state (it is replaced by every command's
+  // answer, with its revision) and stays a direct read.
+  const summaryRead = useCachedGet<MasterSheetSummary>(`${MASTER_SHEET_BASE}/summary`);
+  const historyRead = useCachedGet<Page<MasterSheetImport>, MasterSheetImport[]>(
+    MASTER_SHEET_BASE,
+    { select: (page) => page.items },
+  );
+  const summary = summaryRead.data ?? null;
+  const history = historyRead.data ?? NO_IMPORTS;
+  const readFailure = summaryRead.error ?? historyRead.error;
   const [current, setCurrent] = useState<MasterSheetImport | null>(null);
-  const [history, setHistory] = useState<MasterSheetImport[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
   const stepUp = useStepUp();
   const importId = params.get("import");
 
-  const load = useCallback(async () => {
-    const [s, h] = await Promise.all([
-      api.get<MasterSheetSummary>(`${MASTER_SHEET_BASE}/summary`),
-      api.get<Page<MasterSheetImport>>(MASTER_SHEET_BASE),
-    ]);
-    setSummary(s.data);
-    setHistory(h.data.items);
-    const wanted = importId ?? s.data.open_import_id;
+  // Until the summary has answered, an unnamed import is not yet known.
+  const known = importId !== null || summary !== null;
+  const wanted = importId ?? summary?.open_import_id ?? null;
+  const loadCurrent = useCallback(async () => {
+    if (!known) return;
     if (wanted) {
       const one = await api.get<MasterSheetImport>(`${MASTER_SHEET_BASE}/${wanted}`);
       setCurrent(one.data);
     } else setCurrent(null);
-  }, [importId]);
+  }, [known, wanted]);
+
+  const { reload: reloadSummary } = summaryRead;
+  const { reload: reloadHistory } = historyRead;
+  const load = useCallback(async () => {
+    reloadSummary();
+    reloadHistory();
+    await loadCurrent();
+  }, [reloadSummary, reloadHistory, loadCurrent]);
 
   useEffect(() => {
-    load().catch((e) => setError(apiErrorMessage(e)));
-  }, [load]);
+    loadCurrent().catch((e) => setError(apiErrorMessage(e)));
+  }, [loadCurrent]);
 
   async function run(work: () => Promise<void>, done = "") {
     setBusy(true);
@@ -177,7 +194,7 @@ export function ProductListsPage() {
         value={tab}
         onChange={show}
       />
-      <Feedback error={error} ok={ok} />
+      <Feedback error={error || (readFailure ? apiErrorMessage(readFailure) : "")} ok={ok} />
       {stepUp.dialog}
 
       {tab === "lists" && summary && (

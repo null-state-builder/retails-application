@@ -87,6 +87,26 @@ class FrontendInventoryTests(unittest.TestCase):
             )
         )
 
+    def test_cached_reads_stay_traceable_to_their_api(self) -> None:
+        # Screens moved from their own `api.get` to the shared cache keep a
+        # resolvable URL, including a read that waits on a store or selection.
+        consumers = {
+            (row["source"], row["detail"]["api_reference"])
+            for row in discover_frontend()
+            if row["kind"] == "api_consumer"
+            and row["detail"]["invocation"] in {"useCachedGet", "useCachedQuery"}
+        }
+        for expected in (
+            ("frontend/src/pages/Home.tsx", "/api/finledger/health"),
+            ("frontend/src/pages/SalesReport.tsx", "/api/reports/sales"),
+            ("frontend/src/pages/Alterations.tsx", "/api/sell/alterations"),
+            (
+                "frontend/src/lib/goodsConfig.ts",
+                "/api/goods-v1/masters/configurations",
+            ),
+        ):
+            self.assertIn(expected, consumers)
+
     def test_keys_are_unique_and_independent_of_line_numbers(self) -> None:
         records = discover_frontend()
         keys = [record["key"] for record in records]

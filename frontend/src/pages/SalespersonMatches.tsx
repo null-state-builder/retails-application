@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
 import { Section } from "../components/Section";
-import { api, apiErrorMessage, goodsMeta, typedApi } from "../lib/api";
+import { api, apiErrorMessage, goodsMeta } from "../lib/api";
+import { useCachedGet } from "../lib/cachedQuery";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 
 type Payload = ApiRead<ApiSchemas["Matches"]>;
@@ -19,24 +20,17 @@ type Row = Payload["rows"][number];
  *  nothing is guessed, and a past bill's seller never changes. When the person
  *  has no staff record yet, add them in People and access first. */
 export function SalespersonMatchesPage() {
-  const [data, setData] = useState<Payload | null>(null);
+  // From the shared cache: a revisit shows the last answer at once and
+  // refreshes it behind it.
+  const read = useCachedGet<Payload>("/goods-v1/sell/salesperson-matches");
+  const { reload } = read;
+  const data = read.data ?? null;
   const [picked, setPicked] = useState<Record<number, string>>({});
-  const [error, setError] = useState("");
+  // A refused match, said until the next one; otherwise a failed read.
+  const [writeError, setError] = useState("");
+  const error = writeError || (read.error !== null ? apiErrorMessage(read.error) : "");
   const [saved, setSaved] = useState("");
   const [busy, setBusy] = useState(false);
-
-  const load = useCallback(async () => {
-    try {
-      const response = await typedApi.get("/goods-v1/sell/salesperson-matches");
-      setData(response.data as Payload);
-    } catch (reason) {
-      setError(apiErrorMessage(reason));
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
 
   async function resolve(row: Row) {
     const staffId = picked[row.id];
@@ -50,7 +44,7 @@ export function SalespersonMatchesPage() {
         staff_id: staffId,
       });
       setSaved(`${row.name} (${row.store_code}) is matched.`);
-      await load();
+      reload();
     } catch (reason) {
       setError(apiErrorMessage(reason));
     } finally {

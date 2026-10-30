@@ -16,6 +16,7 @@ import { Section } from "../components/Section";
 import { api, apiErrorCode, apiErrorMessage, goodsMeta } from "../lib/api";
 import { sha256Hex } from "../lib/goodsPt";
 import { Feedback, Field, hold } from "../lib/goodsScreen";
+import { useCachedGet } from "../lib/cachedQuery";
 
 interface Row {
   id?: string;
@@ -142,7 +143,6 @@ export function StockSyncPage() {
   const allowed = hold(session, "opening.import.stage");
   const [siteId, setSiteId] = useState("");
   const [mode, setMode] = useState<"soh" | "sales">("soh");
-  const [overview, setOverview] = useState<Overview | null>(null);
   const [selected, setSelected] = useState<Selected | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [cutoff, setCutoff] = useState(localNow());
@@ -150,7 +150,6 @@ export function StockSyncPage() {
   const [error, setError] = useState("");
   const [needsOpening, setNeedsOpening] = useState(false);
   const [ok, setOk] = useState("");
-  const [review, setReview] = useState<ReviewPage | null>(null);
   const [category, setCategory] = useState<Category | "">("");
   const [onlyOpen, setOnlyOpen] = useState(true);
   const [offset, setOffset] = useState(0);
@@ -158,19 +157,24 @@ export function StockSyncPage() {
 
   const reviewId = selected?.kind === "soh" && selected.state === "applied" ? selected.id : null;
 
-  async function loadReview(id: string, from: number) {
-    const query = new URLSearchParams({ offset: String(from), limit: String(PAGE_SIZE) });
-    if (category) query.set("category", category);
-    if (onlyOpen) query.set("review_state", "open");
-    const result = await api.get<ReviewPage>(`${BASE}/stock-syncs/${id}/rows?${query.toString()}`);
-    setReview(result.data);
-    setPicked(new Set());
-  }
+  // The flagged rows of an applied SOH sync, a page at a time, through the
+  // shared cache.
+  const reviewRead = useCachedGet<ReviewPage>(
+    reviewId ? `${BASE}/stock-syncs/${reviewId}/rows` : null,
+    {
+      params: {
+        offset,
+        limit: PAGE_SIZE,
+        category,
+        review_state: onlyOpen ? "open" : undefined,
+      },
+      keepPrevious: false,
+    },
+  );
+  const review = reviewRead.data ?? null;
 
   useEffect(() => {
-    setReview(null);
-    if (reviewId) loadReview(reviewId, offset).catch((e) => setError(apiErrorMessage(e)));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setPicked(new Set());
   }, [reviewId, category, onlyOpen, offset]);
 
   async function acknowledge(ids: string[]) {
@@ -182,7 +186,8 @@ export function StockSyncPage() {
     setOk(
       `Marked ${result.data.acknowledged} reviewed. ${result.data.open_rows} still to review. Stock is not changed.`,
     );
-    await loadReview(reviewId, offset);
+    setPicked(new Set());
+    reviewRead.reload();
   }
 
   function togglePick(id: string) {
@@ -198,18 +203,22 @@ export function StockSyncPage() {
     if (!siteId && sites[0]) setSiteId(sites[0].id);
   }, [sites, siteId]);
 
-  async function refresh() {
-    if (!siteId) return;
-    const result = await api.get<Overview>(`${BASE}/legacy-sync?site_id=${siteId}`);
-    setOverview(result.data);
-  }
+  // The site's sync overview, through the shared cache. An action's POST
+  // already refreshes every goods-v1 read; `refresh` asks again regardless.
+  const overviewRead = useCachedGet<Overview>(siteId ? `${BASE}/legacy-sync` : null, {
+    params: { site_id: siteId },
+    kind: "doc",
+    keepPrevious: false,
+  });
+  const overview = overviewRead.data ?? null;
+  const refresh = overviewRead.reload;
 
   useEffect(() => {
     setSelected(null);
-    setOverview(null);
-    refresh().catch((e) => setError(apiErrorMessage(e)));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [siteId]);
+
+  const readFailure = overviewRead.error ?? reviewRead.error;
+  const shownError = error || (readFailure ? apiErrorMessage(readFailure) : "");
 
   async function run(work: () => Promise<void>) {
     setBusy(true);
@@ -248,7 +257,7 @@ export function StockSyncPage() {
     }
     const result = await api.post(path, form);
     await open(mode, result.data.id);
-    await refresh();
+    refresh();
   }
 
   async function act(operation: "apply" | "discard") {
@@ -262,7 +271,7 @@ export function StockSyncPage() {
     } else if (operation === "apply") {
       setOk(`Applied. ${result.data.exception_count} rows need attention.`);
     }
-    await refresh();
+    refresh();
   }
 
   if (!allowed) {
@@ -280,7 +289,7 @@ export function StockSyncPage() {
         title="Legacy sync"
         lead="Each night, bring this store in line with the legacy software. Today's test bills go back on the shelf first."
       />
-      <Feedback error={error} ok={ok} />
+      <Feedback error={shownError} ok={ok} />
       {needsOpening && (
         <p className="lead">
           <Link to="/goods/opening">Go to Opening stock</Link> to upload this store&apos;s PT files.

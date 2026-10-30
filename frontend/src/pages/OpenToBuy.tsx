@@ -4,6 +4,8 @@ import { Link, useParams } from "react-router-dom";
 import { Note } from "../components/Note";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { UpdatedAgo } from "../components/UpdatedAgo";
+import { useCachedGet } from "../lib/cachedQuery";
 import { Section } from "../components/Section";
 import { Status, type StatusTone } from "../components/Status";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
@@ -52,16 +54,28 @@ export function stageTone(stage: string): StatusTone {
  *  sees cost, and the server says who may set a budget. */
 export function OpenToBuyPage() {
   const { id } = useParams();
-  const [list, setList] = useState<OtbList | null>(null);
-  const [ask, setAsk] = useState<OtbAsk | null>(null);
   const [form, setForm] = useState<Form>(EMPTY);
-  const [error, setError] = useState("");
+  const [commandError, setError] = useState("");
   const [done, setDone] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
-  const [lost, setLost] = useState(false);
+  const [commandLost, setLost] = useState(false);
   const [busy, setBusy] = useState(false);
   const pending = useRef<Pending | null>(null);
-  const request = useRef(0);
+
+  // Through the shared cache: the budgets (and an opened ask) seen before show
+  // at once and are read again behind. Offline, the request waits.
+  const listRead = useCachedGet<OtbList>(PAGE_API);
+  const askRead = useCachedGet<OtbAsk>(id ? `${PAGE_API}/asks/${id}` : null, { kind: "doc" });
+  const list = listRead.data ?? null;
+  const ask = id ? (askRead.data ?? null) : null;
+  const readError = listRead.error ?? askRead.error;
+  const lost = commandLost || (readError != null && isConnectionLost(readError));
+  const error =
+    commandError ||
+    (readError != null && !isConnectionLost(readError) ? apiErrorMessage(readError) : "");
+  useEffect(() => {
+    if (listRead.updatedAt) setLost(false);
+  }, [listRead.updatedAt]);
 
   const brands = usePagedPicker(
     "/goods-v1/masters/brands",
@@ -76,31 +90,16 @@ export function OpenToBuyPage() {
     (row) => masterLabel(row),
   );
 
-  const load = useCallback(async () => {
+  const { reload: reloadList } = listRead;
+  const { reload: reloadAsk } = askRead;
+  const load = useCallback(() => {
     if (!navigator.onLine) {
       setOnline(false);
       return;
     }
-    const mine = ++request.current;
-    try {
-      const [l, a] = await Promise.all([
-        api.get<OtbList>(PAGE_API),
-        id ? api.get<OtbAsk>(`${PAGE_API}/asks/${id}`) : Promise.resolve(null),
-      ]);
-      if (mine !== request.current) return;
-      setLost(false);
-      setList(l.data);
-      setAsk(a ? a.data : null);
-    } catch (reason) {
-      if (mine !== request.current) return;
-      if (isConnectionLost(reason)) setLost(true);
-      else setError(apiErrorMessage(reason));
-    }
-  }, [id]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+    reloadList();
+    reloadAsk();
+  }, [reloadList, reloadAsk]);
 
   useEffect(() => {
     const up = () => {
@@ -169,8 +168,7 @@ export function OpenToBuyPage() {
       });
       pending.current = null;
       setDone(`Saved. ${scopeName(answer.data)} has a budget of the amount typed.`);
-      const fresh = await api.get<OtbList>(PAGE_API);
-      setList(fresh.data);
+      reloadList();
     } catch (reason) {
       if (isConnectionLost(reason)) {
         setLost(true);
@@ -190,6 +188,7 @@ export function OpenToBuyPage() {
       <PageHeader
         title="Open-to-Buy"
         lead="Buying budgets at cost for each brand and season. Open-to-buy is the budget less open bookings and goods received. A booking over it needs the Owner's approval."
+        actions={<UpdatedAgo updatedAt={listRead.updatedAt} fetching={listRead.fetching} />}
       />
       {offline && (
         <Note

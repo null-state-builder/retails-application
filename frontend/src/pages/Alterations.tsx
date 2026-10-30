@@ -15,6 +15,7 @@ import { EmptyState, Loading } from "../components/States";
 import { Status } from "../components/Status";
 import type { StatusTone } from "../components/Status";
 import { api, apiErrorMessage } from "../lib/api";
+import { useCachedGet } from "../lib/cachedQuery";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
 import {
@@ -63,7 +64,6 @@ export function AlterationsPage() {
     (activeStore?.store_type === "store" ? activeStore.code : "") ||
     (stores.length === 1 ? (stores[0]?.code ?? "") : "");
 
-  const [listing, setListing] = useState<Listing | null>(null);
   const [draft, setDraft] = useState<JobDraft>(emptyDraft);
   const [bill, setBill] = useState<AlterationBill | null>(null);
   const [billNumber, setBillNumber] = useState("");
@@ -74,7 +74,8 @@ export function AlterationsPage() {
   const [error, setError] = useState("");
   const [done, setDone] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
-  const [lost, setLost] = useState(false);
+  // When a request last went unanswered; a list read after it clears it.
+  const [lostAt, setLostAt] = useState(0);
   const [busy, setBusy] = useState(false);
   // One job card's identity across retries: a dropped connection after the
   // server saved it replays the same job card instead of making a second.
@@ -82,7 +83,6 @@ export function AlterationsPage() {
   // The same for a step, per job card and step: kept only while the answer is
   // lost, so a later, separate attempt is judged afresh.
   const attempts = useRef(new Map<string, string>());
-  const request = useRef(0);
   // The open job card is in the URL, so back, refresh and a shared link
   // reopen it; the form and the list's filter are this visit's.
   const [params] = useSearchParams();
@@ -90,38 +90,29 @@ export function AlterationsPage() {
   const [adding, setAdding] = useState(false);
   const [filter, setFilter] = useState<string>("open");
 
-  const load = useCallback(
-    async (q: string) => {
-      if (!store) return;
-      if (!navigator.onLine) {
-        setOnline(false);
-        return;
-      }
-      const mine = ++request.current;
-      try {
-        const l = await api.get<Listing>(ALTERATIONS_API, {
-          params: q ? { store, q } : { store },
-        });
-        if (mine !== request.current) return;
-        setLost(false);
-        setListing(l.data);
-      } catch (reason) {
-        if (mine !== request.current) return;
-        if (isConnectionLost(reason)) setLost(true);
-        else setError(apiErrorMessage(reason));
-      }
-    },
-    [store],
-  );
-
-  useEffect(() => {
-    void load("");
-  }, [load]);
+  // The store's job cards, from the shared cache: a revisit shows the last
+  // list at once and refreshes it behind it. A search is part of the URL.
+  const read = useCachedGet<Listing>(store ? ALTERATIONS_API : null, {
+    params: { store, q: query.trim() },
+  });
+  const { reload } = read;
+  // Only this store's list: another store's stays off screen while this one loads.
+  const listing = read.data && read.data.store === store ? read.data : null;
+  const readLost = read.error !== null && isConnectionLost(read.error);
+  const lost = readLost || lostAt > (read.updatedAt ?? 0);
+  const readError = read.error !== null && !readLost ? apiErrorMessage(read.error) : "";
+  const load = useCallback(() => {
+    if (!navigator.onLine) {
+      setOnline(false);
+      return;
+    }
+    reload();
+  }, [reload]);
 
   useEffect(() => {
     const up = () => {
       setOnline(true);
-      void load(query);
+      load();
     };
     const down = () => setOnline(false);
     window.addEventListener("online", up);
@@ -130,7 +121,7 @@ export function AlterationsPage() {
       window.removeEventListener("online", up);
       window.removeEventListener("offline", down);
     };
-  }, [load, query]);
+  }, [load]);
 
   /** One write. A dropped connection keeps everything as typed and the command's
    *  identity; any answer from the server - saved or refused - ends that command. */
@@ -152,7 +143,7 @@ export function AlterationsPage() {
       return response.data;
     } catch (reason) {
       if (isConnectionLost(reason)) {
-        setLost(true);
+        setLostAt(Date.now());
       } else {
         answered();
         setError(apiErrorMessage(reason));
@@ -180,7 +171,7 @@ export function AlterationsPage() {
       setOtherCharge(false);
       setDraft(fromBill(draft, found.data));
     } catch (reason) {
-      if (isConnectionLost(reason)) setLost(true);
+      if (isConnectionLost(reason)) setLostAt(Date.now());
       else setError(apiErrorMessage(reason));
     }
   }
@@ -201,7 +192,7 @@ export function AlterationsPage() {
     setBill(null);
     setBillNumber("");
     setDone(`Job card ${made.ref} made. ${promisedText(made)}.`);
-    await load(query);
+    load();
   }
 
   async function step(job: AlterationJob, which: Step) {
@@ -213,7 +204,7 @@ export function AlterationsPage() {
     );
     if (!after) return;
     setDone(`${after.ref}: ${STEP_WORDS[which].toLowerCase()}.`);
-    await load(query);
+    load();
   }
 
   async function cancel(job: AlterationJob) {
@@ -227,7 +218,7 @@ export function AlterationsPage() {
     setCancelling(null);
     setReason("");
     setDone(`${after.ref} cancelled. The garment goes back to the customer as it is.`);
-    await load(query);
+    load();
   }
 
   function attemptId(key: string): string {
@@ -239,14 +230,10 @@ export function AlterationsPage() {
   }
 
   /** A search looks across every stage, so what it finds is on screen. */
-  const search = useCallback(
-    (term: string) => {
-      setQuery(term);
-      if (term.trim()) setFilter("");
-      void load(term.trim());
-    },
-    [load],
-  );
+  const search = useCallback((term: string) => {
+    setQuery(term);
+    if (term.trim()) setFilter("");
+  }, []);
 
   const offline = !online || lost;
   const writable = !offline && !busy;
@@ -265,7 +252,7 @@ export function AlterationsPage() {
             type="button"
             className="btn btn-sm"
             data-testid="alterations-retry"
-            onClick={() => void load(query)}
+            onClick={() => load()}
           >
             Try again
           </button>
@@ -305,7 +292,6 @@ export function AlterationsPage() {
               value={store}
               onChange={(e) => {
                 setPicked(e.target.value);
-                setListing(null);
               }}
             >
               <option value="">Choose a store</option>
@@ -318,9 +304,9 @@ export function AlterationsPage() {
           </label>
         )}
         {offlineNote}
-        {error && (
+        {(error || readError) && (
           <Note tone="error" testId="alterations-error">
-            {error}
+            {error || readError}
           </Note>
         )}
         {done && (
@@ -329,7 +315,9 @@ export function AlterationsPage() {
           </Note>
         )}
         {!store && <EmptyState>Choose a store to see its job cards.</EmptyState>}
-        {store && !listing && !offline && !error && <Loading label="Loading job cards" />}
+        {store && !listing && !offline && !error && !readError && (
+          <Loading label="Loading job cards" />
+        )}
 
         {listing && !listing.switched_on && (
           <Note tone="warn" testId="alterations-switched-off">

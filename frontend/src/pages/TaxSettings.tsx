@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 
 import { PageHeader } from "../components/PageHeader";
 import { Note } from "../components/Note";
 import { Section } from "../components/Section";
 import { Status } from "../components/Status";
-import { api, apiErrorMessage, goodsMeta, typedApi } from "../lib/api";
+import { api, apiErrorMessage, goodsMeta } from "../lib/api";
+import { useCachedGet } from "../lib/cachedQuery";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { formatDateTime, formatINR, paiseToRupees, rupeesToPaise } from "../lib/format";
 import { rateHundredths } from "../till/pricing";
@@ -61,24 +62,17 @@ function filedRows(filed: Record<string, Record<string, string>> | undefined): F
  *  1 October 2026). Accounts and everyone else holding Setup read the page; only
  *  Admin saves, and the server refuses anybody else regardless. */
 export function TaxSettingsPage() {
-  const [data, setData] = useState<Payload | null>(null);
+  // From the shared cache: a revisit shows the last answer at once and
+  // refreshes it behind it. The draft is only ever started by a click.
+  const read = useCachedGet<Payload>("/goods-v1/masters/tax-settings");
+  const { reload } = read;
+  const data = read.data ?? null;
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [error, setError] = useState("");
+  // A refused save, said until the next one; otherwise a failed read.
+  const [writeError, setError] = useState("");
+  const error = writeError || (read.error !== null ? apiErrorMessage(read.error) : "");
   const [saved, setSaved] = useState("");
   const [busy, setBusy] = useState(false);
-
-  const load = useCallback(async () => {
-    try {
-      const response = await typedApi.get("/goods-v1/masters/tax-settings");
-      setData(response.data as Payload);
-    } catch (reason) {
-      setError(apiErrorMessage(reason));
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
 
   async function save() {
     if (!data || !draft) return;
@@ -137,7 +131,7 @@ export function TaxSettingsPage() {
         `Version ${response.data.version} is saved. It applies from ${response.data.applies_from}.`,
       );
       setDraft(null);
-      await load();
+      reload();
     } catch (reason) {
       setError(apiErrorMessage(reason));
     } finally {

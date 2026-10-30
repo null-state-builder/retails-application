@@ -4,6 +4,8 @@ import { Link, useParams } from "react-router-dom";
 import { Note } from "../components/Note";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { UpdatedAgo } from "../components/UpdatedAgo";
+import { useCachedGet } from "../lib/cachedQuery";
 import { Section } from "../components/Section";
 import { Status, type StatusTone } from "../components/Status";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
@@ -60,19 +62,34 @@ function pieces(note: DebitNote): number {
 export function DebitNotesPage() {
   const { id } = useParams();
   const [show, setShow] = useState<Show>("open");
-  const [list, setList] = useState<DebitNoteList | null>(null);
   const [note, setNote] = useState<DebitNote | null>(null);
   const [drafts, setDrafts] = useState<Record<string, LineDraft>>({});
   const [reviewNote, setReviewNote] = useState("");
   const [cancelReason, setCancelReason] = useState("");
-  const [error, setError] = useState("");
+  const [commandError, setError] = useState("");
   const [done, setDone] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
-  const [lost, setLost] = useState(false);
+  const [commandLost, setLost] = useState(false);
   const [busy, setBusy] = useState(false);
   /** The press whose answer was lost, if any (`commandIdFor`). */
   const pending = useRef<Pending | null>(null);
   const request = useRef(0);
+
+  // The list reads through the shared cache: a revisit shows it at once and
+  // refreshes it behind. The open note stays a direct read - it seeds the
+  // review drafts, which must only be reset when the note itself moves on.
+  const listRead = useCachedGet<DebitNoteList>(PAGE_API, { params: { show } });
+  const list = listRead.data ?? null;
+  const lost = commandLost || (listRead.error != null && isConnectionLost(listRead.error));
+  const error =
+    commandError ||
+    (listRead.error != null && !isConnectionLost(listRead.error)
+      ? apiErrorMessage(listRead.error)
+      : "");
+  useEffect(() => {
+    if (listRead.updatedAt) setLost(false);
+  }, [listRead.updatedAt]);
+  const { reload: reloadList } = listRead;
 
   const shown = useRef<{ id: number; revision: number } | null>(null);
   /** Show `fresh`. What was typed is kept when it is the same note at the same
@@ -100,21 +117,18 @@ export function DebitNotesPage() {
       return;
     }
     const mine = ++request.current;
+    reloadList();
     try {
-      const [l, n] = await Promise.all([
-        api.get<DebitNoteList>(PAGE_API, { params: { show } }),
-        id ? api.get<DebitNote>(`${PAGE_API}/${id}`) : Promise.resolve(null),
-      ]);
+      const n = id ? await api.get<DebitNote>(`${PAGE_API}/${id}`) : null;
       if (mine !== request.current) return;
       setLost(false);
-      setList(l.data);
       openNote(n ? n.data : null);
     } catch (reason) {
       if (mine !== request.current) return;
       if (isConnectionLost(reason)) setLost(true);
       else setError(apiErrorMessage(reason));
     }
-  }, [id, show, openNote]);
+  }, [id, openNote, reloadList]);
 
   useEffect(() => {
     void load();
@@ -157,8 +171,7 @@ export function DebitNotesPage() {
       pending.current = null;
       setDone(said);
       openNote(answer.data);
-      const fresh = await api.get<DebitNoteList>(PAGE_API, { params: { show } });
-      setList(fresh.data);
+      reloadList();
     } catch (reason) {
       if (isConnectionLost(reason)) {
         setLost(true);
@@ -183,6 +196,7 @@ export function DebitNotesPage() {
       <PageHeader
         title="Debit Notes"
         lead="Debit notes to vendors for pieces invoiced but never received. Accounts reviews and issues them; the Owner approves them in the approvals inbox."
+        actions={<UpdatedAgo updatedAt={listRead.updatedAt} fetching={listRead.fetching} />}
       />
       {offline && (
         <Note

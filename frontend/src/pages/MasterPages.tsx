@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { Pencil, Plus, Save, X } from "lucide-react";
 
@@ -21,7 +21,8 @@ import { Status } from "../components/Status";
 import { financialYear, financialYearChoices, financialYearMonths } from "../lib/fiscal";
 import type { FiscalMonth } from "../lib/fiscal";
 import { userCan } from "../shell/navConfig";
-import { withQuery, type QueryParams } from "../lib/query";
+import { type QueryParams } from "../lib/query";
+import { useCachedGet } from "../lib/cachedQuery";
 
 function useSteward(): boolean {
   const { user } = useAuth();
@@ -33,33 +34,21 @@ function useSteward(): boolean {
 // exactly like "there is nothing here" - survivable on a list of seasons, not on
 // a grid of editable money cells, where a blank cell reads as "no target set" and
 // the next save would overwrite a number that was there all along.
+//
+// Read through the shared cache (`useCachedGet`, keyed `[scope, url]`): a master
+// seen before renders at once and is refreshed behind it. A refusal still
+// answers no rows *and* the sentence, even when an older copy is cached.
+const NO_ROWS: never[] = [];
+
 function useList<T>(url: string, params?: QueryParams) {
-  const [data, setData] = useState<T[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [failure, setFailure] = useState("");
-  const [tick, setTick] = useState(0);
-  const full = withQuery(url, params);
-  useEffect(() => {
-    let live = true;
-    setLoading(true);
-    api
-      .get(full)
-      .then((r) => {
-        if (!live) return;
-        setData(r.data);
-        setFailure("");
-      })
-      .catch((e) => {
-        if (!live) return;
-        setData([]);
-        setFailure(apiErrorMessage(e));
-      })
-      .finally(() => live && setLoading(false));
-    return () => {
-      live = false;
-    };
-  }, [full, tick]);
-  return { data, loading, failure, reload: () => setTick((t) => t + 1) };
+  const read = useCachedGet<T[]>(url, { params });
+  const failure = read.error ? apiErrorMessage(read.error) : "";
+  return {
+    data: failure ? (NO_ROWS as T[]) : (read.data ?? (NO_ROWS as T[])),
+    loading: read.loading,
+    failure,
+    reload: read.reload,
+  };
 }
 
 function Screen({

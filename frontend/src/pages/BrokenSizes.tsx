@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { Note } from "../components/Note";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { UpdatedAgo } from "../components/UpdatedAgo";
+import { useCachedGet } from "../lib/cachedQuery";
 import { Section } from "../components/Section";
 import { Status } from "../components/Status";
 import { Switch } from "../components/Switch";
@@ -43,60 +45,59 @@ const OFFLINE = "Broken sizes need a connection. Reconnect to see them.";
 export function BrokenSizesPage() {
   const [params, setParams] = useSearchParams();
   const siteId = Number(params.get("site_id")) || null;
-  const [data, setData] = useState<Payload | null>(null);
-  const [error, setError] = useState("");
+  const [commandError, setError] = useState("");
   const [refused, setRefused] = useState("");
   const [saved, setSaved] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
-  const [lost, setLost] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const request = useRef(0);
+  const [commandLost, setLost] = useState(false);
+  const [writing, setBusy] = useState(false);
 
-  const load = useCallback(
-    async (site: number | null) => {
-      if (!navigator.onLine) {
-        setOnline(false);
-        return;
-      }
-      const mine = ++request.current;
-      setBusy(true);
-      setError("");
-      try {
-        const response = await api.get<Payload>("/goods-v1/stock/broken-sizes", {
-          params: site ? { site_id: site } : {},
-        });
-        if (mine !== request.current) return;
-        setLost(false);
-        setData(response.data);
-      } catch (reason) {
-        if (mine !== request.current) return;
-        if (isConnectionLost(reason)) setLost(true);
-        else if (site && apiErrorCode(reason) === "NOT_FOUND") {
-          setRefused(apiErrorMessage(reason));
-          setParams(
-            (current) => {
-              const next = new URLSearchParams(current);
-              next.delete("site_id");
-              return next;
-            },
-            { replace: true },
-          );
-        } else setError(apiErrorMessage(reason));
-      } finally {
-        if (mine === request.current) setBusy(false);
-      }
-    },
-    [setParams],
-  );
-
+  // Through the shared cache: the store's alerts seen before show at once and
+  // are read again behind. Offline, the request waits for the connection.
+  const read = useCachedGet<Payload>("/goods-v1/stock/broken-sizes", {
+    params: { site_id: siteId },
+  });
+  const data = read.data ?? null;
+  const busy = writing || read.fetching;
+  const readError = read.error;
+  const outOfScope = readError != null && siteId != null && apiErrorCode(readError) === "NOT_FOUND";
+  const lost = commandLost || (readError != null && isConnectionLost(readError));
+  const error =
+    commandError ||
+    (readError != null && !outOfScope && !isConnectionLost(readError)
+      ? apiErrorMessage(readError)
+      : "");
   useEffect(() => {
-    void load(siteId);
-  }, [load, siteId]);
+    if (read.updatedAt) setLost(false);
+  }, [read.updatedAt]);
+  // A store outside this person's scope: say so and fall back to the default.
+  useEffect(() => {
+    if (!outOfScope) return;
+    setRefused(apiErrorMessage(readError));
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete("site_id");
+        return next;
+      },
+      { replace: true },
+    );
+  }, [outOfScope, readError, setParams]);
+
+  const { reload } = read;
+  const load = useCallback(() => {
+    if (!navigator.onLine) {
+      setOnline(false);
+      return;
+    }
+    setError("");
+    reload();
+  }, [reload]);
 
   useEffect(() => {
     const up = () => {
       setOnline(true);
-      void load(siteId);
+      load();
     };
     const down = () => setOnline(false);
     window.addEventListener("online", up);
@@ -105,7 +106,7 @@ export function BrokenSizesPage() {
       window.removeEventListener("online", up);
       window.removeEventListener("offline", down);
     };
-  }, [load, siteId]);
+  }, [load]);
 
   /** Send one write; true once the server has it. The page reloads either way. */
   async function write(
@@ -136,8 +137,8 @@ export function BrokenSizesPage() {
     } finally {
       setBusy(false);
     }
-    await load(siteId);
-    // After the reload, which starts by clearing the last error.
+    // The page reads again either way; a refusal stays said.
+    load();
     if (refusal) setError(refusal);
     return ok;
   }
@@ -171,7 +172,7 @@ export function BrokenSizesPage() {
             className="btn btn-sm"
             data-testid="broken-retry"
             disabled={busy}
-            onClick={() => void load(siteId)}
+            onClick={() => load()}
           >
             Try again
           </button>
@@ -185,6 +186,7 @@ export function BrokenSizesPage() {
     <PageHeader
       title="Broken Sizes"
       lead="Style-colours at the store missing too many of their category's core sizes while they still have stock. Checked every day. Record what you did about each one within 7 days."
+      actions={<UpdatedAgo updatedAt={read.updatedAt} fetching={read.fetching} />}
     />
   );
   const errorNote = (error || refused) && (

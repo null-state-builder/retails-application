@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Search } from "lucide-react";
 
@@ -6,12 +6,12 @@ import { Note } from "../../components/Note";
 import { PageHeader } from "../../components/PageHeader";
 import "../../components/SearchBox.css";
 import { EmptyState } from "../../components/States";
-import { api, apiErrorMessage } from "../../lib/api";
+import { apiErrorMessage } from "../../lib/api";
 import type { ApiRead, ApiSchemas } from "../../lib/api";
 import { isConnectionLost } from "../../lib/auditLog";
 import { CUSTOMERS_OFFLINE, searchQuery } from "../../lib/customerRights";
 import { formatDateTime } from "../../lib/format";
-import { withQuery } from "../../lib/query";
+import { useCachedGet } from "../../lib/cachedQuery";
 import "./Customers.css";
 
 type Listing = ApiRead<ApiSchemas["CustomerList"]>;
@@ -25,46 +25,36 @@ export const CUSTOMERS_API = "/goods-v1/sell/customers";
  *  connection; offline it says so and keeps what was typed. */
 export function CustomerListPage() {
   const [term, setTerm] = useState("");
-  const [data, setData] = useState<Listing | null>(null);
-  const [error, setError] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
-  const [lost, setLost] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const request = useRef(0);
-  const searched = useRef("");
+  // The term the list was last asked for; a search runs when somebody asks.
+  const [searchedTerm, setSearchedTerm] = useState("");
 
-  const load = useCallback(async (q: string) => {
-    if (!navigator.onLine) {
-      setOnline(false);
-      return;
-    }
-    const mine = ++request.current;
-    searched.current = q;
-    setLoading(true);
-    setError("");
-    try {
-      const response = await api.get<Listing>(withQuery(CUSTOMERS_API, searchQuery(q)));
-      if (mine !== request.current) return;
-      setLost(false);
-      setData(response.data);
-    } catch (reason) {
-      if (mine !== request.current) return;
-      if (isConnectionLost(reason)) setLost(true);
-      else setError(apiErrorMessage(reason));
-    } finally {
-      if (mine === request.current) setLoading(false);
-    }
-  }, []);
+  // Through the shared cache: the list seen before shows at once and is
+  // refreshed behind it. Nothing is asked offline.
+  const read = useCachedGet<Listing>(CUSTOMERS_API, {
+    params: searchQuery(searchedTerm),
+    enabled: online,
+  });
+  const data = read.data ?? null;
+  const lost = !!read.error && isConnectionLost(read.error);
+  const error = read.error && !lost ? apiErrorMessage(read.error) : "";
+  const loading = read.fetching;
+  const { reload } = read;
 
-  useEffect(() => {
-    void load("");
-  }, [load]);
+  const load = useCallback(
+    (q: string) => {
+      if (!navigator.onLine) {
+        setOnline(false);
+        return;
+      }
+      if (q === searchedTerm) reload();
+      else setSearchedTerm(q);
+    },
+    [searchedTerm, reload],
+  );
 
   useEffect(() => {
-    const up = () => {
-      setOnline(true);
-      void load(searched.current);
-    };
+    const up = () => setOnline(true);
     const down = () => setOnline(false);
     window.addEventListener("online", up);
     window.addEventListener("offline", down);
@@ -72,7 +62,7 @@ export function CustomerListPage() {
       window.removeEventListener("online", up);
       window.removeEventListener("offline", down);
     };
-  }, [load]);
+  }, []);
 
   const offline = !online || lost;
 
@@ -137,7 +127,7 @@ export function CustomerListPage() {
           {data && count > 0 && (
             <span className="customers-count" role="status">
               {count === 1 ? "1 customer" : `${count.toLocaleString("en-IN")} customers`}
-              {searched.current ? ` at your stores match “${searched.current}”` : ""}
+              {searchedTerm ? ` at your stores match “${searchedTerm}”` : ""}
               {data.truncated ? ", the most recent. Search to narrow it." : ""}
             </span>
           )}
@@ -151,7 +141,7 @@ export function CustomerListPage() {
 
         {data && count === 0 && (
           <EmptyState testId="customers-empty">
-            {searched.current
+            {searchedTerm
               ? "No customer at your stores matches that. Check the number, or search by name."
               : "No customer has bought at your stores yet."}
           </EmptyState>
@@ -202,17 +192,10 @@ export function CustomerListPage() {
  *  redesign, layout L): the next customer is one click away. The same scoped
  *  read the list makes; it opens nothing the list would not. */
 export function CustomerQueue({ currentId }: { currentId: string }) {
-  const [rows, setRows] = useState<Listing["customers"] | null>(null);
-  useEffect(() => {
-    let live = true;
-    api
-      .get<Listing>(withQuery(CUSTOMERS_API, searchQuery("")))
-      .then((r) => live && setRows(r.data.customers))
-      .catch(() => live && setRows(null));
-    return () => {
-      live = false;
-    };
-  }, []);
+  // The list's own unsearched read, from the same cache entry.
+  const rows = useCachedGet<Listing, Listing["customers"]>(CUSTOMERS_API, {
+    select: (r) => r.customers,
+  }).data;
   if (!rows || rows.length === 0) return null;
   return (
     <nav className="box side-queue" aria-label="Recent customers" data-testid="customer-queue">

@@ -15,6 +15,7 @@ import { Camera, Check } from "lucide-react";
 import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
 import { api, apiErrorMessage, apiUrl } from "../lib/api";
+import { useCachedGet } from "../lib/cachedQuery";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
 import { dayText } from "../lib/stockAgeing";
@@ -33,39 +34,33 @@ const URL = "/store/checklists";
 const OFFLINE = "The checklist needs a connection. Nothing was ticked; reconnect and tick again.";
 
 function useChecklist(store: string) {
-  const [data, setData] = useState<Payload | null>(null);
-  const [error, setError] = useState("");
+  // From the shared cache: a revisit shows the last answer at once and
+  // refreshes it behind it.
+  const read = useCachedGet<Payload>(URL, { params: { store } });
+  const { reload } = read;
+  const data = read.data ?? null;
+  // A refused or failed write, said until the next one.
+  const [writeError, setError] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
-  const [lost, setLost] = useState(false);
-  const request = useRef(0);
+  // When a request last went unanswered; a read after it clears it.
+  const [lostAt, setLostAt] = useState(0);
+  const setLost = useCallback((value: boolean) => setLostAt(value ? Date.now() : 0), []);
+  const readLost = read.error !== null && isConnectionLost(read.error);
+  const lost = readLost || lostAt > (read.updatedAt ?? 0);
+  const error = writeError || (read.error !== null && !readLost ? apiErrorMessage(read.error) : "");
 
-  const load = useCallback(async () => {
+  const load = useCallback(() => {
     if (!navigator.onLine) {
       setOnline(false);
       return;
     }
-    const mine = ++request.current;
-    try {
-      const response = await api.get<Payload>(URL, { params: store ? { store } : {} });
-      if (mine !== request.current) return;
-      setLost(false);
-      setError("");
-      setData(response.data);
-    } catch (reason) {
-      if (mine !== request.current) return;
-      if (isConnectionLost(reason)) setLost(true);
-      else setError(apiErrorMessage(reason));
-    }
-  }, [store]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+    reload();
+  }, [reload]);
 
   useEffect(() => {
     const up = () => {
       setOnline(true);
-      void load();
+      load();
     };
     const down = () => setOnline(false);
     window.addEventListener("online", up);
@@ -117,13 +112,13 @@ export function StoreChecklist({
       pending.current.delete(key);
       setLost(false);
       setSaved(`Ticked: ${item.text}${photo ? ", with a photo" : ""}.`);
-      await load();
+      load();
     } catch (reason) {
       if (isConnectionLost(reason)) setLost(true);
       else {
         pending.current.delete(key);
         setError(apiErrorMessage(reason));
-        await load();
+        load();
       }
     } finally {
       setBusy("");

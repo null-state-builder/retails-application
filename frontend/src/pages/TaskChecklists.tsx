@@ -4,6 +4,7 @@ import { PageHeader } from "../components/PageHeader";
 import { Note } from "../components/Note";
 import { Section } from "../components/Section";
 import { api, apiErrorMessage } from "../lib/api";
+import { useCachedGet } from "../lib/cachedQuery";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
 import { EVERY_CHOICES, WEEKDAYS, everyText } from "../lib/storeChecklists";
@@ -73,11 +74,20 @@ function bodyOf(draft: Draft) {
  *  Setup reads this page; only Admin changes it, which the server enforces.
  *  Offline the page says it needs a connection and keeps what was typed. */
 export function TaskChecklistsPage() {
-  const [data, setData] = useState<Payload | null>(null);
-  const [error, setError] = useState("");
+  // From the shared cache: a revisit shows the last answer at once and
+  // refreshes it behind it.
+  const read = useCachedGet<Payload>(URL);
+  const { reload } = read;
+  const data = read.data ?? null;
+  // A refused or failed save, said until the next one.
+  const [writeError, setError] = useState("");
   const [saved, setSaved] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
-  const [lost, setLost] = useState(false);
+  // When a request last went unanswered; a read after it clears it.
+  const [lostAt, setLostAt] = useState(0);
+  const readLost = read.error !== null && isConnectionLost(read.error);
+  const lost = readLost || lostAt > (read.updatedAt ?? 0);
+  const error = writeError || (read.error !== null && !readLost ? apiErrorMessage(read.error) : "");
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft>(EMPTY);
@@ -85,34 +95,19 @@ export function TaskChecklistsPage() {
   // dropped connection is the same save. Keyed by what is saved; changing the
   // draft makes it a new save.
   const pending = useRef(new Map<string, string>());
-  const request = useRef(0);
 
-  const load = useCallback(async () => {
+  const load = useCallback(() => {
     if (!navigator.onLine) {
       setOnline(false);
       return;
     }
-    const mine = ++request.current;
-    try {
-      const response = await api.get<Payload>(URL);
-      if (mine !== request.current) return;
-      setLost(false);
-      setData(response.data);
-    } catch (reason) {
-      if (mine !== request.current) return;
-      if (isConnectionLost(reason)) setLost(true);
-      else setError(apiErrorMessage(reason));
-    }
-  }, []);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+    reload();
+  }, [reload]);
 
   useEffect(() => {
     const up = () => {
       setOnline(true);
-      void load();
+      load();
     };
     const down = () => setOnline(false);
     window.addEventListener("online", up);
@@ -146,7 +141,7 @@ export function TaskChecklistsPage() {
       setSaved(done);
       ok = true;
     } catch (reason) {
-      if (isConnectionLost(reason)) setLost(true);
+      if (isConnectionLost(reason)) setLostAt(Date.now());
       else {
         pending.current.delete(path);
         setError(apiErrorMessage(reason));
@@ -154,7 +149,7 @@ export function TaskChecklistsPage() {
     } finally {
       setBusy(false);
     }
-    if (ok) await load();
+    if (ok) load();
     return ok;
   }
 

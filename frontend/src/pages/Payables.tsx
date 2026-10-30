@@ -3,6 +3,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { OperationsPage } from "../components/OperationsPage";
 import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { UpdatedAgo } from "../components/UpdatedAgo";
+import { useCachedGet } from "../lib/cachedQuery";
 import { Box, Section } from "../components/Section";
 import { Status } from "../components/Status";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
@@ -92,75 +94,62 @@ function PositionCells({ row }: { row: Position }) {
 export function PayablesPage() {
   const [store, setStore] = useState("");
   const [group, setGroup] = useState<"brand" | "vendor">("brand");
-  const [data, setData] = useState<PayablesSummary | null>(null);
-  const [options, setOptions] = useState<PayableOptions | null>(null);
   const [invoice, setInvoice] = useState<InvoiceDraft>(() => emptyInvoice());
   const [payment, setPayment] = useState<PaymentDraft>(() => emptyPayment());
   const [cancelling, setCancelling] = useState<Cancelling | null>(null);
-  /** The payment form's store, read on its own: the page's store filter may differ. */
-  const [payStore, setPayStore] = useState<PayablesSummary | null>(null);
-  const [error, setError] = useState("");
+  const [commandError, setError] = useState("");
   const [done, setDone] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
-  const [lost, setLost] = useState(false);
+  const [commandLost, setLost] = useState(false);
   const [busy, setBusy] = useState(false);
   const pending = useRef<Pending | null>(null);
   /** A press whose answer was lost: "Send again" sends exactly it once more. */
   const [unsent, setUnsent] = useState<Press | null>(null);
-  const request = useRef(0);
 
-  const load = useCallback(async () => {
+  // Read through the shared cache (money: always re-asked, the last copy shown
+  // meanwhile). Offline, the cache holds the request until the connection is back.
+  const summaryRead = useCachedGet<PayablesSummary>(PAGE_API, {
+    params: { group, store },
+  });
+  const optionsRead = useCachedGet<PayableOptions>(`${PAGE_API}/options`);
+  /** The payment form's store, read on its own: the page's store filter may differ. */
+  const payStoreRead = useCachedGet<PayablesSummary>(PAGE_API, {
+    params: { store: payment.store },
+    enabled: Boolean(payment.store),
+    keepPrevious: false,
+  });
+  const data = summaryRead.data ?? null;
+  const options = optionsRead.data ?? null;
+  const payStore = payment.store ? (payStoreRead.data ?? null) : null;
+  const readError = summaryRead.error ?? optionsRead.error ?? payStoreRead.error;
+  const lost = commandLost || (readError != null && isConnectionLost(readError));
+  const error =
+    commandError ||
+    (readError != null && !isConnectionLost(readError) ? apiErrorMessage(readError) : "");
+
+  // A good read ends a lost connection, as it always did.
+  useEffect(() => {
+    if (summaryRead.updatedAt) setLost(false);
+  }, [summaryRead.updatedAt]);
+
+  const { reload: reloadSummary } = summaryRead;
+  const { reload: reloadOptions } = optionsRead;
+  const { reload: reloadPayStore } = payStoreRead;
+  const load = useCallback(() => {
     if (!navigator.onLine) {
       setOnline(false);
       return;
     }
-    const mine = ++request.current;
-    try {
-      const params: Record<string, string> = { group };
-      if (store) params.store = store;
-      const [summary, choices] = await Promise.all([
-        api.get<PayablesSummary>(PAGE_API, { params }),
-        api.get<PayableOptions>(`${PAGE_API}/options`),
-      ]);
-      if (mine !== request.current) return;
-      setLost(false);
-      setData(summary.data);
-      setOptions(choices.data);
-    } catch (reason) {
-      if (mine !== request.current) return;
-      if (isConnectionLost(reason)) setLost(true);
-      else setError(apiErrorMessage(reason));
-    }
-  }, [group, store]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  const loadPayStore = useCallback(async (storeId: string) => {
-    if (!storeId || !navigator.onLine) {
-      setPayStore(null);
-      return;
-    }
-    try {
-      const answer = await api.get<PayablesSummary>(PAGE_API, { params: { store: storeId } });
-      setPayStore(answer.data);
-    } catch (reason) {
-      if (isConnectionLost(reason)) setLost(true);
-      else setError(apiErrorMessage(reason));
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadPayStore(payment.store);
-    // Read again whenever the page reads again (after every save), so what is
-    // left to pay is never stale.
-  }, [payment.store, data, loadPayStore]);
+    // Read again after every save, so what is left to pay is never stale.
+    reloadSummary();
+    reloadOptions();
+    reloadPayStore();
+  }, [reloadSummary, reloadOptions, reloadPayStore]);
 
   useEffect(() => {
     const up = () => {
       setOnline(true);
-      void load();
+      load();
     };
     const down = () => setOnline(false);
     window.addEventListener("online", up);
@@ -233,6 +222,7 @@ export function PayablesPage() {
       <PageHeader
         title="Payables"
         lead="What is owed to each outright brand or vendor, what is paid, what is due and how long past due."
+        actions={<UpdatedAgo updatedAt={summaryRead.updatedAt} fetching={summaryRead.fetching} />}
       />
       <p className="muted-cell" data-testid="pay-later">
         {data?.later ??
