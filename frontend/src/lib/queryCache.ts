@@ -30,6 +30,7 @@ import type { InternalAxiosRequestConfig } from "axios";
 
 import { api } from "./api";
 import { forgetRevalidation, installConditionalGet } from "./conditionalGet";
+import { onSessionEndedElsewhere } from "./crossTab";
 import { startDeviceCache, wipeDeviceCache } from "./deviceCache";
 
 const SECOND = 1_000;
@@ -247,9 +248,36 @@ export function clearQueryMemory(client: QueryClient = queryClient): void {
   forgetRevalidation();
 }
 
+/** Set when another tab ended the session: this tab saves nothing to the
+ *  device again until a session starts in it (`resumePersistence`). */
+let persistenceBlocked = false;
+
+/** Whether this tab may save to the device (tests and diagnostics). */
+export function isPersistenceBlocked(): boolean {
+  return persistenceBlocked;
+}
+
+/** A session started in this tab (sign-in, or a restored session): it may
+ *  save its own scope again. */
+export function resumePersistence(): void {
+  persistenceBlocked = false;
+}
+
+/** Another tab ended the session (logout, expiry, password change): stop
+ *  every request, forget everything, delete the device copy, and refuse to
+ *  write it again from this tab. */
+export function resetAfterSessionEndedElsewhere(client: QueryClient = queryClient): Promise<void> {
+  persistenceBlocked = true;
+  return resetQueryCache(client);
+}
+
+onSessionEndedElsewhere(() => void resetAfterSessionEndedElsewhere());
+
 /** Restore this scope's device copy and keep saving its allowlisted entries.
- *  Resolves when the restore is done or refused; never rejects. */
+ *  Resolves when the restore is done or refused; never rejects. Does nothing
+ *  after another tab ended the session, until one starts here again. */
 export function persistScope(scope: string, client: QueryClient = queryClient): Promise<void> {
+  if (persistenceBlocked) return Promise.resolve();
   return startDeviceCache(client, scope, {
     appVersion: APP_VERSION,
     maxAge: PERSIST_MAX_AGE,
