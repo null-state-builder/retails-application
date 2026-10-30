@@ -80,6 +80,8 @@ const FINANCIAL = [
   /margin/,
   /cost/,
   /payables/,
+  // Open-to-buy budgets are cost figures, on bookings and on their own.
+  /open-to-buy/,
   /\/bank(\/|\?|$)/,
 ];
 

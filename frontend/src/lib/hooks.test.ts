@@ -252,6 +252,8 @@ describe("staleness and invalidation rules", () => {
     expect(staleTimeFor("/finledger/cash/daily?date=2026-10-01", "doc")).toBe(0);
     expect(staleTimeFor("/outbound/partner-dues", "doc")).toBe(0);
     expect(staleTimeFor("/sell/discounts?from=a&to=b", "doc")).toBe(0);
+    expect(staleTimeFor("/goods-v1/open-to-buy?season=4", "list")).toBe(0);
+    expect(staleTimeFor("/goods-v1/bookings/9/open-to-buy", "doc")).toBe(0);
   });
 
   it("refreshes the changed family now and marks the rest stale, but not reference data", async () => {
