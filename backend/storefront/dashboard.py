@@ -50,6 +50,7 @@ from offers.serializers import one_liner
 from outbound import count_schedules
 from outbound.models import CountStatus, MarkDamaged, Stocktake, StoreTransfer
 from sell.models import SALE_DOC_TYPE, ContinuityFlag, DeferredCosting, HeldBill
+from sell.services.day_close import dashboard_state as day_close_state
 from storefront import checklists
 from storefront.day import DayMoney, money_for, net_sales_by_day
 
@@ -403,10 +404,10 @@ def manager_block(user: Any, store: Store, today: date) -> dict[str, Any] | None
         store, [month_start + timedelta(days=n) for n in range((today - month_start).days + 1)]
     )
     return {
-        # Day close (I3, store open/close) is its own designed flow, sequenced
-        # after this one. The key is here with an honest state rather than
-        # missing, so the row has its shape from the first day.
-        "day_close": {"date": today.isoformat(), "state": "not_built"},
+        # Whether the store's business day is closed yet (`sell.services.day_close`):
+        # `open`, `closed`, or `off` where the cash count - and so the close - is
+        # switched off.
+        "day_close": day_close_state(store),
         # The month so far, first of the month to today inclusive - and not a
         # month-to-*yesterday*, because the bar is read beside a target somebody
         # is still trading towards.

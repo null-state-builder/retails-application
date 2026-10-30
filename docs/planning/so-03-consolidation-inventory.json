@@ -6653,6 +6653,27 @@
       "lifecycle": "temporary_supported_legacy"
     },
     {
+      "id": "S2819",
+      "kind": "api_consumer",
+      "key_regex": "^api_consumer:frontend/src/pages/Bookings\\.tsx:10df4562a3fd$",
+      "primary_id": "C04",
+      "lifecycle": "temporary_supported_legacy"
+    },
+    {
+      "id": "S2820",
+      "kind": "api_consumer",
+      "key_regex": "^api_consumer:frontend/src/pages/Bookings\\.tsx:b80008a07916$",
+      "primary_id": "C04",
+      "lifecycle": "temporary_supported_legacy"
+    },
+    {
+      "id": "S2821",
+      "kind": "api_consumer",
+      "key_regex": "^api_consumer:frontend/src/pages/Bookings\\.tsx:d365507bf4b5$",
+      "primary_id": "C04",
+      "lifecycle": "temporary_supported_legacy"
+    },
+    {
       "id": "S0849",
       "kind": "api_consumer",
       "key_regex": "^api_consumer:frontend/src/pages/BrandClaims\\.tsx:c0dcf14f10e4$",
@@ -24384,6 +24405,36 @@
       "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
     },
     {
+      "id": "STORE-TEST-505",
+      "kind": "api_consumer",
+      "key_regex": "^api_consumer:frontend/src/pages/StockSync\\.tsx:1f9245765ef0$",
+      "primary_id": "C08",
+      "lifecycle": "temporary_supported_legacy",
+      "related_ids": [
+        "A00",
+        "C05",
+        "C06",
+        "C10",
+        "C15"
+      ],
+      "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
+    },
+    {
+      "id": "STORE-TEST-506",
+      "kind": "api_consumer",
+      "key_regex": "^api_consumer:frontend/src/pages/StockSync\\.tsx:d4066fc2fff0$",
+      "primary_id": "C08",
+      "lifecycle": "temporary_supported_legacy",
+      "related_ids": [
+        "A00",
+        "C05",
+        "C06",
+        "C10",
+        "C15"
+      ],
+      "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
+    },
+    {
       "id": "STORE-TEST-106",
       "kind": "migration",
       "key_regex": "^migration:core\\.migrations\\.0013_legacy_sync$",
@@ -24813,6 +24864,147 @@
       "primary_id": "C09",
       "lifecycle": "canonical",
       "removal_condition": "Open-returns queue beside an open return (desktop redesign layout L): the same scoped GET /outbound/rtvs read as api_consumer:frontend/src/pages/OutboundRTV.tsx:567acdc676fc; it writes nothing and retires with the list."
+    },
+    {
+      "id": "DAY-CLOSE-001",
+      "kind": "api",
+      "key_regex": "^api:GET:/api/sell/day\\-close$",
+      "primary_id": "C13",
+      "related_ids": [
+        "C10"
+      ],
+      "lifecycle": "canonical",
+      "authorization": "CanRunTill (section sell: operate) plus the store's scoped counter assignment (sell.cash_views._counter_access); the store is the till login's own (till_store), never taken from the request. Writes record section.sell.operate on the principal so the command replays it at commit. Close additionally needs a manager of this store (sell: approve) proved by their own till PIN, re-verified on the server and paused after three wrong PINs.",
+      "removal_condition": "Canonical day-close writer next to the cash count (SO-12). Retires only with a replacement close in the same target that keeps DayClose rows, their frozen facts and audit evidence.",
+      "access_contract": {
+        "trace_status": "verified",
+        "actor_type": "authenticated tenant human session on a one-store counter login",
+        "required_action": "section.sell.operate at the till store",
+        "scope_source": "till_store(request): the login's single Store; _counter_access requires the scoped counter assignment at that site",
+        "protected_fields": "Staff names (counted_by/approved_by/summary_checked_by/closed_by/confirmed_by) are blanked unless the same assignment carries the personal field; the manager PIN is write-only and stripped from command input and audit",
+        "delivery_recheck": "access.revalidate_delivery() before the response; no queued, file or event delivery",
+        "named_tests": [
+          "backend/tests/test_day_close.py::test_each_open_step_refuses_the_close_and_says_what_to_do",
+          "backend/tests/test_day_close.py::test_ready_day_closes_once_with_manager_pin_and_repeat_answers_with_it",
+          "backend/tests/test_day_close.py::test_wrong_or_missing_pin_and_non_manager_leave_the_day_open",
+          "backend/tests/test_day_close.py::test_login_that_is_not_this_counter_cannot_read_tick_or_close"
+        ],
+        "reviewed_chain": "DayCloseView -> till_store -> _counter_access(_can_accept_bill) -> sell.services.day_close.day_state (register_state, HeldBill, CashCount, Sale reads for the store) -> state_body -> _project_people -> revalidate_delivery. Owner and warehouse logins are refused before any read."
+      }
+    },
+    {
+      "id": "DAY-CLOSE-002",
+      "kind": "api",
+      "key_regex": "^api:POST:/api/sell/day\\-close/summary\\-check$",
+      "primary_id": "C13",
+      "related_ids": [
+        "C10"
+      ],
+      "lifecycle": "canonical",
+      "authorization": "CanRunTill (section sell: operate) plus the store's scoped counter assignment (sell.cash_views._counter_access); the store is the till login's own (till_store), never taken from the request. Writes record section.sell.operate on the principal so the command replays it at commit. Close additionally needs a manager of this store (sell: approve) proved by their own till PIN, re-verified on the server and paused after three wrong PINs.",
+      "removal_condition": "Canonical day-close writer next to the cash count (SO-12). Retires only with a replacement close in the same target that keeps DayClose rows, their frozen facts and audit evidence.",
+      "access_contract": {
+        "trace_status": "verified",
+        "actor_type": "authenticated tenant human session on a one-store counter login",
+        "required_action": "section.sell.operate at the till store, recorded on the command principal",
+        "scope_source": "till_store(request): the login's single Store; _counter_access requires the scoped counter assignment at that site",
+        "protected_fields": "Staff names (counted_by/approved_by/summary_checked_by/closed_by/confirmed_by) are blanked unless the same assignment carries the personal field; the manager PIN is write-only and stripped from command input and audit",
+        "delivery_recheck": "access.revalidate_delivery() before the response; no queued, file or event delivery",
+        "named_tests": [
+          "backend/tests/test_day_close.py::test_each_open_step_refuses_the_close_and_says_what_to_do",
+          "backend/tests/test_day_close.py::test_ready_day_closes_once_with_manager_pin_and_repeat_answers_with_it",
+          "backend/tests/test_day_close.py::test_wrong_or_missing_pin_and_non_manager_leave_the_day_open",
+          "backend/tests/test_day_close.py::test_login_that_is_not_this_counter_cannot_read_tick_or_close"
+        ],
+        "reviewed_chain": "DaySummaryCheckView -> till_store -> _command_access -> record_summary_check -> core.commands.execute_command (idempotent command id, advisory lock, audit sell.day_close.summary_checked) -> DayClose summary fields -> fresh state."
+      }
+    },
+    {
+      "id": "DAY-CLOSE-003",
+      "kind": "api",
+      "key_regex": "^api:POST:/api/sell/day\\-close/close$",
+      "primary_id": "C13",
+      "related_ids": [
+        "C10"
+      ],
+      "lifecycle": "canonical",
+      "authorization": "CanRunTill (section sell: operate) plus the store's scoped counter assignment (sell.cash_views._counter_access); the store is the till login's own (till_store), never taken from the request. Writes record section.sell.operate on the principal so the command replays it at commit. Close additionally needs a manager of this store (sell: approve) proved by their own till PIN, re-verified on the server and paused after three wrong PINs.",
+      "removal_condition": "Canonical day-close writer next to the cash count (SO-12). Retires only with a replacement close in the same target that keeps DayClose rows, their frozen facts and audit evidence.",
+      "access_contract": {
+        "trace_status": "verified",
+        "actor_type": "authenticated tenant human session on a one-store counter login",
+        "required_action": "section.sell.operate at the till store, recorded on the command principal; confirming manager holds sell: approve at the store and their own till PIN",
+        "scope_source": "till_store(request): the login's single Store; _counter_access requires the scoped counter assignment at that site",
+        "protected_fields": "Staff names (counted_by/approved_by/summary_checked_by/closed_by/confirmed_by) are blanked unless the same assignment carries the personal field; the manager PIN is write-only and stripped from command input and audit",
+        "delivery_recheck": "access.revalidate_delivery() before the response; no queued, file or event delivery",
+        "named_tests": [
+          "backend/tests/test_day_close.py::test_each_open_step_refuses_the_close_and_says_what_to_do",
+          "backend/tests/test_day_close.py::test_ready_day_closes_once_with_manager_pin_and_repeat_answers_with_it",
+          "backend/tests/test_day_close.py::test_wrong_or_missing_pin_and_non_manager_leave_the_day_open",
+          "backend/tests/test_day_close.py::test_login_that_is_not_this_counter_cannot_read_tick_or_close"
+        ],
+        "reviewed_chain": "DayCloseCloseView -> till_store -> _command_access -> close_day -> execute_command (locks cash drawer and day, re-reads state, refuses BILLS_UNSYNCED/HELD_BILLS_OPEN/CASH_NOT_COUNTED/SUMMARY_NOT_CHECKED/SUMMARY_CHANGED, then manager_for_override + verify_till_pin; WRONG_PIN refusals audited, PIN_PAUSED after three) -> DayClose closed_at/closed_by/confirmed_by/cash_count/facts -> audit sell.day_close.close; a closed day answers 200 with the same record."
+      }
+    },
+    {
+      "id": "DAY-CLOSE-010",
+      "kind": "module",
+      "key_regex": "^module:sell\\.(day_close_models|day_close_serializers|day_close_views|services\\.day_close)$",
+      "primary_id": "C13",
+      "related_ids": [
+        "C10"
+      ],
+      "lifecycle": "canonical",
+      "removal_condition": "Canonical day-close writer next to the cash count (SO-12). Retires only with a replacement close in the same target that keeps DayClose rows, their frozen facts and audit evidence."
+    },
+    {
+      "id": "DAY-CLOSE-011",
+      "kind": "model",
+      "key_regex": "^model:sell\\.DayClose$",
+      "primary_id": "C13",
+      "lifecycle": "canonical",
+      "data_ownership": "One row per store and business day (uq_day_close_day), owned through Store (tenant via the store); single writer sell.services.day_close. A closed row is complete by constraint (ck_day_close_complete) and its facts are frozen at the close; invoices and the cash count are referenced, never changed.",
+      "removal_condition": "Canonical day-close writer next to the cash count (SO-12). Retires only with a replacement close in the same target that keeps DayClose rows, their frozen facts and audit evidence."
+    },
+    {
+      "id": "DAY-CLOSE-012",
+      "kind": "migration",
+      "key_regex": "^migration:sell\\.migrations\\.0051_day_close$",
+      "primary_id": "C13",
+      "lifecycle": "historical_read_only"
+    },
+    {
+      "id": "DAY-CLOSE-020",
+      "kind": "screen",
+      "key_regex": "^screen:/sell/day\\-close$",
+      "primary_id": "C10",
+      "related_ids": [
+        "C13"
+      ],
+      "lifecycle": "canonical",
+      "removal_condition": "Counter screen for the canonical day close; goes only with the day-close APIs (DAY-CLOSE-001..003)."
+    },
+    {
+      "id": "DAY-CLOSE-021",
+      "kind": "navigation",
+      "key_regex": "^navigation:sell:/sell/day\\-close$",
+      "primary_id": "C10",
+      "related_ids": [
+        "C13"
+      ],
+      "lifecycle": "canonical",
+      "removal_condition": "Menu line for screen:/sell/day-close, counter-only and behind the cash-count switch like Cash Count."
+    },
+    {
+      "id": "DAY-CLOSE-030",
+      "kind": "api_consumer",
+      "key_regex": "^api_consumer:frontend/src/pages/sell/DayClose\\.tsx:[0-9a-f]{12}$",
+      "primary_id": "C13",
+      "related_ids": [
+        "C10"
+      ],
+      "lifecycle": "canonical",
+      "removal_condition": "Day close screen callsites of GET /api/sell/day-close and its two POSTs; they retire with the screen."
     }
   ],
   "discovered": {

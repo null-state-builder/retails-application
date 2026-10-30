@@ -29,7 +29,8 @@ export interface DashboardPayload {
   };
   last7: { date: string; net_sales_paise: number }[];
   manager?: {
-    day_close: { date: string; state: string };
+    /** The business day's close (R-POS-011): `off` where the cash count is not in use. */
+    day_close: { date: string; state: "open" | "closed" | "off"; closed_at: string | null };
     mtd_net_paise: number;
     target_paise: number;
   };

@@ -73,10 +73,12 @@ describe("the one sidebar (desktop redesign, 29 Oct 2026)", () => {
     const owner = lines(sidebarRows(login(["sell"], "manage", 2), [], ALL_ON));
     expect(owner).not.toContain("/sell");
     expect(owner).not.toContain("/sell/cash-count");
+    expect(owner).not.toContain("/sell/day-close");
     expect(owner).toContain("/sell/till");
     const counter = lines(sidebarRows(login(["sell"], "manage", 1, "store_person"), [], ALL_ON));
     expect(counter).toContain("/sell");
     expect(counter).toContain("/sell/cash-count");
+    expect(counter).toContain("/sell/day-close");
   });
 
   it("keeps retiring legacy screens off the menu, still routed for bookmarks", () => {

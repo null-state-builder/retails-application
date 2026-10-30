@@ -320,6 +320,15 @@ export const SECTIONS: NavSectionDef[] = [
         counterOnly: true,
         storeFeature: "cash-count",
       },
+      // R-POS-011 / R-FIN-015: closing the business day, after the count. The
+      // same till login and store switch as Cash Count, whose count it needs.
+      {
+        label: "Day Close",
+        to: "/sell/day-close",
+        minCapability: "operate",
+        counterOnly: true,
+        storeFeature: "cash-count",
+      },
       // Ticket 19 (ST-POS-4): the gift vouchers this store sold. `operate` like
       // Cash Count: its endpoints are a till login's, for its own store. Only
       // where gift vouchers are on.
@@ -1485,7 +1494,14 @@ export const SELL_STRIP: NavStripDef = {
   // Bills sits between the counter and the counter's own state, because that is
   // the order a person moves through them: ring it up, look it up, then ask why
   // it has not gone in (OPS-08).
-  tabs: ["/sell", "/sell/bills", "/sell/till", "/sell/cash-count", "/sell/gift-vouchers"],
+  tabs: [
+    "/sell",
+    "/sell/bills",
+    "/sell/till",
+    "/sell/cash-count",
+    "/sell/day-close",
+    "/sell/gift-vouchers",
+  ],
 };
 
 // Receive Goods as the store sees it (store and warehouse operations PRD §12):

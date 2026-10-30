@@ -136,6 +136,7 @@ import BillsPage from "./pages/sell/Bills";
 import CustomerSearchPage from "./pages/sell/CustomerSearch";
 import TillPage from "./pages/sell/Till";
 import CashCountPage from "./pages/sell/CashCount";
+import DayClosePage from "./pages/sell/DayClose";
 
 export type Room = "counter";
 type Screen = RouteObject & { id: string; path: string; room?: Room };
@@ -289,6 +290,7 @@ const BUILT: Screen[] = [
   { id: "sell-till", path: "/sell/till", room: "counter", element: <TillPage /> },
   // Ticket 41: the day-close cash count, on the counter that took the cash.
   { id: "sell-cash-count", path: "/sell/cash-count", room: "counter", element: <CashCountPage /> },
+  { id: "sell-day-close", path: "/sell/day-close", room: "counter", element: <DayClosePage /> },
   // Ticket 19: the gift vouchers this store sold. Online only; no counter needed.
   { id: "sell-gift-vouchers", path: "/sell/gift-vouchers", element: <GiftVouchersPage /> },
   // What this counter has done, and where each bill has got to (OPS-08). It

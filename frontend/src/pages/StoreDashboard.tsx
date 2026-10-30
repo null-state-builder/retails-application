@@ -301,7 +301,11 @@ function Sparkline({ d }: { d: DashboardPayload }) {
 }
 
 function ManagerRow({ m }: { m: NonNullable<DashboardPayload["manager"]> }) {
+  const { user } = useAuth();
   const pct = targetProgressPct(m.mtd_net_paise, m.target_paise);
+  // Day close is a counter's screen: offered only to a one-store login that
+  // runs the till, the same rule as its menu line.
+  const canCloseHere = (user?.stores?.length ?? 0) === 1 && userCan(user, "sell", "operate");
   return (
     <Section heading="This month" ruled testId="manager-row">
       <LeadFigure label="Net sales this month" value={<Money paise={m.mtd_net_paise} />}>
@@ -320,9 +324,20 @@ function ManagerRow({ m }: { m: NonNullable<DashboardPayload["manager"]> }) {
           <span style={{ width: `${pct}%` }} />
         </div>
       )}
-      <p className="day-close" data-testid="day-close">
+      <p className="day-close" data-testid="day-close" data-state={m.day_close.state}>
         <CalendarCheck size={14} aria-hidden="true" /> Day close
-        <Status>Not built</Status>
+        {m.day_close.state === "closed" && <Status tone="green">Closed</Status>}
+        {m.day_close.state === "open" && (
+          <>
+            <Status tone="amber">Open</Status>
+            {canCloseHere && (
+              <Link to="/sell/day-close" data-testid="day-close-link">
+                Close the day
+              </Link>
+            )}
+          </>
+        )}
+        {m.day_close.state === "off" && <Status>Not in use</Status>}
       </p>
     </Section>
   );
