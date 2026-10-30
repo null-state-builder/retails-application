@@ -230,3 +230,10 @@ def test_middleware_leaves_other_paths_errors_and_writes_alone() -> None:
     request = RequestFactory().post("/api/vendors", data=json.dumps({}), content_type="application/json")
     created = ConditionalApiGetMiddleware(lambda _r: JsonResponse({"id": 1}, status=201))(request)
     assert "ETag" not in created
+
+
+def test_a_compressing_proxys_encoding_mark_still_matches() -> None:
+    first = _run("/api/masters/stores", [{"id": 1}])
+    marked = first["ETag"][:-1] + '-gzip"'
+    assert _run("/api/masters/stores", [{"id": 1}], HTTP_IF_NONE_MATCH=marked).status_code == 304
+    assert _run("/api/masters/stores", [{"id": 2}], HTTP_IF_NONE_MATCH=marked).status_code == 200

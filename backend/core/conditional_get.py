@@ -28,6 +28,7 @@ can ever hand one caller's answer to another.
 from __future__ import annotations
 
 import hashlib
+import re
 from collections.abc import Callable
 
 from django.http import HttpRequest, HttpResponse, HttpResponseBase
@@ -63,6 +64,17 @@ CONDITIONAL_PATHS: frozenset[str] = frozenset(
 VARY_ON: tuple[str, ...] = ("Cookie", "X-KDPS-Unit", "X-KDPS-Brand")
 
 CACHE_CONTROL = "no-store, private"
+
+#: A compressing proxy in front of the API (Caddy's `encode`, `deploy/Caddyfile`)
+#: may mark the ETag of a body it compressed with the encoding ("abc-gzip"). The
+#: body is the same, only the transport differs, so the mark is ignored here.
+_ENCODING_MARK = re.compile(r'-(?:gzip|zstd|br|deflate)"')
+
+
+def _unmark_encodings(request: HttpRequest) -> None:
+    value = request.META.get("HTTP_IF_NONE_MATCH")
+    if value:
+        request.META["HTTP_IF_NONE_MATCH"] = _ENCODING_MARK.sub('"', value)
 
 
 def _caller_marks(request: HttpRequest) -> bytes:
@@ -106,6 +118,7 @@ class ConditionalApiGetMiddleware:
         if not _eligible(request, response):
             return response
         assert isinstance(response, HttpResponse)
+        _unmark_encodings(request)
         response["ETag"] = body_etag(request, response.content)
         response["Cache-Control"] = CACHE_CONTROL
         patch_vary_headers(response, VARY_ON)
