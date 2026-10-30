@@ -4,7 +4,7 @@ import { PackageCheck } from "lucide-react";
 
 import { useAuth } from "../auth/AuthContext";
 import { canAccess } from "../auth/routeAccess";
-import { api } from "../lib/api";
+import { useCachedGet } from "../lib/cachedQuery";
 import { Money } from "../lib/format";
 import { ListSearchBar } from "../components/SearchBox";
 import "./Booking.css";
@@ -12,6 +12,7 @@ import "./Shared.css";
 import { KpiStrip, type Kpi } from "../components/KpiStrip";
 import { PageHeader } from "../components/PageHeader";
 import { EmptyState } from "../components/States";
+import { UpdatedAgo } from "../components/UpdatedAgo";
 import { Note } from "../components/Note";
 
 interface EntryT {
@@ -41,6 +42,8 @@ interface SummaryT {
   distinct_documents: number;
 }
 
+const NO_ENTRIES: EntryT[] = [];
+
 export default function StockLedger() {
   const { user, session, featuresOn } = useAuth();
   // The empty ledger points at Movements only for someone who can open it.
@@ -48,33 +51,24 @@ export default function StockLedger() {
     !!user && canAccess("/goods/movements", user, session?.display_actions ?? [], featuresOn);
   const [params] = useSearchParams();
   const docFilter = params.get("doc") || "";
-  const [entries, setEntries] = useState<EntryT[]>([]);
-  const [summary, setSummary] = useState<SummaryT | null>(null);
-  const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
-  const [count, setCount] = useState(0);
-  const [hasNext, setHasNext] = useState(false);
   const [q, setQ] = useState("");
   const PAGE_SIZE = 50;
 
   useEffect(() => setPage(1), [docFilter, q]);
 
-  useEffect(() => {
-    setLoading(true);
-    const params = new URLSearchParams();
-    if (docFilter) params.set("doc_number", docFilter);
-    if (q.trim()) params.set("q", q.trim());
-    params.set("page", String(page));
-    params.set("page_size", String(PAGE_SIZE));
-    Promise.all([
-      api.get(`/stockledger/entries?${params.toString()}`).then((r) => {
-        setEntries(r.data.results);
-        setCount(r.data.count);
-        setHasNext(Boolean(r.data.next));
-      }),
-      api.get(`/stockledger/summary`).then((r) => setSummary(r.data)),
-    ]).finally(() => setLoading(false));
-  }, [docFilter, page, q]);
+  // Through the shared cache: a page of the ledger seen before shows at once.
+  // A failed read leaves the screen as it was (it always has).
+  const entriesRead = useCachedGet<{ results: EntryT[]; count: number; next: string | null }>(
+    "/stockledger/entries",
+    { params: { doc_number: docFilter, q, page, page_size: PAGE_SIZE } },
+  );
+  const summaryRead = useCachedGet<SummaryT>("/stockledger/summary");
+  const entries = entriesRead.data?.results ?? NO_ENTRIES;
+  const count = entriesRead.data?.count ?? 0;
+  const hasNext = Boolean(entriesRead.data?.next);
+  const summary = summaryRead.data ?? null;
+  const loading = entriesRead.loading || summaryRead.loading;
 
   // Unknown is a dash, never a nought: before the summary arrives, and when
   // this ledger holds no postings for these stores (their stock is kept in
@@ -102,9 +96,15 @@ export default function StockLedger() {
       <PageHeader
         lead="Every movement, in the order it happened. The stock ledger is append-only — a correction is a reversing entry, never an edit."
         actions={
-          <Link className="btn" to="/stock" data-testid="stock-on-hand-link">
-            <PackageCheck size={16} /> Stock on Hand
-          </Link>
+          <>
+            <UpdatedAgo
+              updatedAt={entriesRead.updatedAt}
+              fetching={entriesRead.fetching || summaryRead.fetching}
+            />
+            <Link className="btn" to="/stock" data-testid="stock-on-hand-link">
+              <PackageCheck size={16} /> Stock on Hand
+            </Link>
+          </>
         }
       />
 

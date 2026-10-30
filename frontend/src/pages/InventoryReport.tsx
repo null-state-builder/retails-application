@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Download } from "lucide-react";
 
@@ -10,6 +10,8 @@ import { PageHeader } from "../components/PageHeader";
 import { Section } from "../components/Section";
 import { SegmentedControl } from "../components/SegmentedControl";
 import { EmptyState, Loading } from "../components/States";
+import { UpdatedAgo } from "../components/UpdatedAgo";
+import { useCachedGet } from "../lib/cachedQuery";
 import { api, apiErrorMessage } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
@@ -57,51 +59,45 @@ const OFFLINE = "Reports need a connection. Reconnect to see or export this repo
  *  back by itself when the line does. */
 export function InventoryReportPage() {
   const [filters, setFilters] = useState<InventoryFilters>(() => defaultInventoryFilters());
-  const [data, setData] = useState<Payload | null>(null);
-  const [error, setError] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
-  // The browser says it is online, but the last request got no answer at all.
-  const [lost, setLost] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const request = useRef(0);
+  // What the last export said, kept apart from the report read's own answer.
+  const [exportError, setExportError] = useState("");
+  const [exportLost, setExportLost] = useState(false);
+  const backwards = !!(filters.date_from && filters.date_to && filters.date_to < filters.date_from);
 
-  const load = useCallback(async (wanted: InventoryFilters) => {
+  // Through the shared cache (a report: always asked again on sight, behind
+  // what was last shown). The previous filters' report stays up while new
+  // filters load. Nothing is asked offline or for a period that runs backwards.
+  const read = useCachedGet<Payload>("/reports/inventory", {
+    params: inventoryParams(filters),
+    enabled: online && !backwards,
+  });
+  const data = read.data ?? null;
+  const readLost = !!read.error && isConnectionLost(read.error);
+  // Half-way through changing both dates the period can run backwards; say so
+  // rather than ask the server a question it will refuse.
+  const error = backwards
+    ? "The period ends before it starts. Choose a To date on or after the From date."
+    : exportError || (read.error && !readLost ? apiErrorMessage(read.error) : "");
+  // The browser says it is online, but the last request got no answer at all.
+  const lost = readLost || exportLost;
+  const busy = read.fetching;
+  const { reload } = read;
+
+  useEffect(() => {
+    if (!read.fetching && read.data !== undefined && !read.error) setExportLost(false);
+  }, [read.fetching, read.data, read.error]);
+
+  const load = useCallback(() => {
     if (!navigator.onLine) {
       setOnline(false);
       return;
     }
-    const mine = ++request.current;
-    if (wanted.date_from && wanted.date_to && wanted.date_to < wanted.date_from) {
-      setError("The period ends before it starts. Choose a To date on or after the From date.");
-      return;
-    }
-    setBusy(true);
-    setError("");
-    try {
-      const response = await api.get<Payload>("/reports/inventory", {
-        params: inventoryParams(wanted),
-      });
-      if (mine !== request.current) return;
-      setLost(false);
-      setData(response.data);
-    } catch (reason) {
-      if (mine !== request.current) return;
-      if (isConnectionLost(reason)) setLost(true);
-      else setError(apiErrorMessage(reason));
-    } finally {
-      if (mine === request.current) setBusy(false);
-    }
-  }, []);
+    reload();
+  }, [reload]);
 
   useEffect(() => {
-    void load(filters);
-  }, [filters, load]);
-
-  useEffect(() => {
-    const up = () => {
-      setOnline(true);
-      void load(filters);
-    };
+    const up = () => setOnline(true);
     const down = () => setOnline(false);
     window.addEventListener("online", up);
     window.addEventListener("offline", down);
@@ -109,9 +105,10 @@ export function InventoryReportPage() {
       window.removeEventListener("online", up);
       window.removeEventListener("offline", down);
     };
-  }, [filters, load]);
+  }, []);
 
   function set<K extends keyof InventoryFilters>(key: K, value: InventoryFilters[K]) {
+    setExportError("");
     setFilters((current) => ({ ...current, [key]: value }));
   }
 
@@ -120,7 +117,7 @@ export function InventoryReportPage() {
       setOnline(false);
       return;
     }
-    setError("");
+    setExportError("");
     try {
       const response = await api.get<Blob>("/reports/inventory/export.xlsx", {
         params: inventoryParams(filters),
@@ -134,10 +131,10 @@ export function InventoryReportPage() {
       URL.revokeObjectURL(href);
     } catch (reason) {
       if (isConnectionLost(reason)) {
-        setLost(true);
+        setExportLost(true);
         return;
       }
-      setError(await blobErrorMessage(reason));
+      setExportError(await blobErrorMessage(reason));
     }
   }
 
@@ -154,7 +151,7 @@ export function InventoryReportPage() {
             className="btn btn-sm"
             data-testid="inventory-retry"
             disabled={busy}
-            onClick={() => void load(filters)}
+            onClick={load}
           >
             Try again
           </button>
@@ -277,7 +274,16 @@ export function InventoryReportPage() {
 
   return (
     <OperationsPage>
-      <PageHeader title="Inventory" lead={lead} actions={filterBar} />
+      <PageHeader
+        title="Inventory"
+        lead={lead}
+        actions={
+          <>
+            <UpdatedAgo updatedAt={read.updatedAt} fetching={read.fetching} />
+            {filterBar}
+          </>
+        }
+      />
       <div className="page">
         {offlineNote}
         {errorNote}

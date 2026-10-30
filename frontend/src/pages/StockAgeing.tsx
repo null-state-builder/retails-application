@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { Note } from "../components/Note";
@@ -6,6 +6,8 @@ import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { Section } from "../components/Section";
 import { Status } from "../components/Status";
+import { UpdatedAgo } from "../components/UpdatedAgo";
+import { useCachedGet } from "../lib/cachedQuery";
 import { api, apiErrorCode, apiErrorMessage, goodsMeta } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
@@ -35,64 +37,61 @@ export function StockAgeingPage() {
   // already showing another store moves it to the right one.
   const [params, setParams] = useSearchParams();
   const siteId = Number(params.get("site_id")) || null;
-  const [data, setData] = useState<Payload | null>(null);
-  const [error, setError] = useState("");
   // A store the address asked for that this person cannot see (or that was
   // switched off since the alert was raised): said once, then the page carries on.
   const [refused, setRefused] = useState("");
   const [saved, setSaved] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
+  // What the last season-end save said, kept apart from the read's own answer.
+  const [actionError, setActionError] = useState("");
+  const [actionLost, setActionLost] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Through the shared cache: a store seen before shows at once (with when it
+  // was read) and is refreshed behind it. Nothing is asked while offline.
+  const read = useCachedGet<Payload>("/goods-v1/stock/ageing", {
+    params: { site_id: siteId },
+    kind: "doc",
+    enabled: online,
+  });
+  const data = read.data ?? null;
+  const readLost = !!read.error && isConnectionLost(read.error);
+  const readRefused =
+    !!read.error && !!siteId && !readLost && apiErrorCode(read.error) === "NOT_FOUND";
+  const readError = read.error && !readLost && !readRefused ? apiErrorMessage(read.error) : "";
+  const error = actionError || readError;
   // The browser says it is online, but the last request got no answer at all.
-  const [lost, setLost] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const request = useRef(0);
-
-  const load = useCallback(
-    async (site: number | null) => {
-      if (!navigator.onLine) {
-        setOnline(false);
-        return;
-      }
-      const mine = ++request.current;
-      setBusy(true);
-      setError("");
-      try {
-        const response = await api.get<Payload>("/goods-v1/stock/ageing", {
-          params: site ? { site_id: site } : {},
-        });
-        if (mine !== request.current) return;
-        setLost(false);
-        setData(response.data);
-      } catch (reason) {
-        if (mine !== request.current) return;
-        if (isConnectionLost(reason)) setLost(true);
-        else if (site && apiErrorCode(reason) === "NOT_FOUND") {
-          setRefused(apiErrorMessage(reason));
-          setParams(
-            (current) => {
-              const next = new URLSearchParams(current);
-              next.delete("site_id");
-              return next;
-            },
-            { replace: true },
-          );
-        } else setError(apiErrorMessage(reason));
-      } finally {
-        if (mine === request.current) setBusy(false);
-      }
-    },
-    [setParams],
-  );
+  const lost = readLost || actionLost;
+  const busy = saving || read.fetching;
+  const { reload } = read;
 
   useEffect(() => {
-    void load(siteId);
-  }, [load, siteId]);
+    if (!readRefused) return;
+    setRefused(apiErrorMessage(read.error));
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete("site_id");
+        return next;
+      },
+      { replace: true },
+    );
+  }, [readRefused, read.error, setParams]);
 
   useEffect(() => {
-    const up = () => {
-      setOnline(true);
-      void load(siteId);
-    };
+    if (!read.fetching && read.data !== undefined && !read.error) setActionLost(false);
+  }, [read.fetching, read.data, read.error]);
+
+  const load = useCallback(() => {
+    if (!navigator.onLine) {
+      setOnline(false);
+      return;
+    }
+    reload();
+  }, [reload]);
+
+  useEffect(() => {
+    const up = () => setOnline(true);
     const down = () => setOnline(false);
     window.addEventListener("online", up);
     window.addEventListener("offline", down);
@@ -100,7 +99,7 @@ export function StockAgeingPage() {
       window.removeEventListener("online", up);
       window.removeEventListener("offline", down);
     };
-  }, [load, siteId]);
+  }, []);
 
   /** True once the server has it, so the editor can drop its draft. */
   async function saveSeasonEnd(season: Season, endedOn: string | null): Promise<boolean> {
@@ -108,9 +107,9 @@ export function StockAgeingPage() {
       setOnline(false);
       return false;
     }
-    setError("");
+    setActionError("");
     setSaved("");
-    setBusy(true);
+    setSaving(true);
     let done = false;
     try {
       await api.post("/goods-v1/stock/ageing/season-end", {
@@ -125,12 +124,12 @@ export function StockAgeingPage() {
       );
       done = true;
     } catch (reason) {
-      if (isConnectionLost(reason)) setLost(true);
-      else setError(apiErrorMessage(reason));
+      if (isConnectionLost(reason)) setActionLost(true);
+      else setActionError(apiErrorMessage(reason));
     } finally {
-      setBusy(false);
+      setSaving(false);
     }
-    await load(siteId);
+    load();
     return done;
   }
 
@@ -147,7 +146,7 @@ export function StockAgeingPage() {
             className="btn btn-sm"
             data-testid="ageing-retry"
             disabled={busy}
-            onClick={() => void load(siteId)}
+            onClick={load}
           >
             Try again
           </button>
@@ -160,6 +159,7 @@ export function StockAgeingPage() {
   const header = (
     <PageHeader
       title="Stock Ageing"
+      actions={<UpdatedAgo updatedAt={read.updatedAt} fetching={read.fetching} />}
       lead="Stock at the store aged against its season. In-season stock is flagged after the set days with no sale here; stock whose season has ended counts as aged from the day it ended; stock of the unknown historical season is its own group and is never guessed."
     />
   );

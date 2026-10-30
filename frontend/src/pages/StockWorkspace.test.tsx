@@ -1,7 +1,10 @@
+import { QueryClientProvider } from "@tanstack/react-query";
+import { createContext } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
+import { createQueryClient } from "../lib/queryCache";
 import { StockWorkspace } from "./StockWorkspace";
 
 const stores = [
@@ -10,6 +13,8 @@ const stores = [
 ];
 
 vi.mock("../auth/AuthContext", () => ({
+  // The stock panels read through the shared cache, whose key asks who is looking.
+  AuthContext: createContext(null),
   allowedUnits: (user: { business_units: typeof stores }) => user.business_units,
   useAuth: () => ({
     user: { business_units: stores },
@@ -20,9 +25,11 @@ vi.mock("../auth/AuthContext", () => ({
 
 function draw(search: string) {
   return renderToStaticMarkup(
-    <MemoryRouter initialEntries={[`/inventory${search}`]}>
-      <StockWorkspace />
-    </MemoryRouter>,
+    <QueryClientProvider client={createQueryClient()}>
+      <MemoryRouter initialEntries={[`/inventory${search}`]}>
+        <StockWorkspace />
+      </MemoryRouter>
+    </QueryClientProvider>,
   );
 }
 
