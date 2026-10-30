@@ -87,10 +87,29 @@ const FINANCIAL = [
   // Open-to-buy budgets are cost figures, on bookings and on their own.
   /open-to-buy/,
   /\/bank(\/|\?|$)/,
+  // Cash, vouchers, petty cash and bills are money.
+  /^\/store\/cash-summary(\/|\?|$)/,
+  /^\/sell\/gift-vouchers(\/|\?|$)/,
+  /^\/sell\/petty-cash(\/|\?|$)/,
+  /^\/sell\/sales(\/|\?|$)/,
+  // Stock values: the ledger's on-hand, summary, postings and in transit.
+  /^\/stockledger\/(on-hand|summary|entries|in-transit)(\/|\?|$)/,
+  /^\/goods-v1\/stockledger\/quarantine(\/|\?|$)/,
+  // Brand money: terms, claims, debit notes, invoice matching, SOR ageing.
+  /^\/goods-v1\/masters\/brand-terms(\/|\?|$)/,
+  /^\/goods-v1\/sell\/brand-claims(\/|\?|$)/,
+  /^\/goods-v1\/inbound\/debit-notes(\/|\?|$)/,
+  /\/three-way-match(\/|\?|$)/,
+  /\/sor-ageing(\/|\?|$)/,
+  /^\/brands\/(terms|claims|reports|sor-ageing)(\/|\?|$)/,
 ];
 
 /** Lists people act from, kept as fresh as an open document. */
-const ACTION_NEEDED = [/^\/approvals(\/|\?|$)/, /^\/alerts(\/|\?|$)/];
+const ACTION_NEEDED = [
+  /^\/approvals(\/|\?|$)/,
+  /^\/goods-v1\/approvals\/inbox(\/|\?|$)/,
+  /^\/alerts(\/|\?|$)/,
+];
 
 function pathOf(url: string): string {
   return url.split("?")[0] ?? url;

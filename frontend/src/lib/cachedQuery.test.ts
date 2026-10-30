@@ -113,7 +113,7 @@ describe("useCachedGet", () => {
     server = () => ({ data: { total: 7 } });
     const client = createQueryClient();
     const first: Result[] = [];
-    mount(withClient(client, h(Probe, { url: "/stockledger/on-hand", seen: first })));
+    mount(withClient(client, h(Probe, { url: "/masters/summary", seen: first })));
     expect(first[0]).toMatchObject({ loading: true, data: undefined, updatedAt: null });
     await settle();
     expect(first.at(-1)).toMatchObject({ loading: false, data: 7, error: null });
@@ -121,11 +121,11 @@ describe("useCachedGet", () => {
     unmount();
 
     const again: Result[] = [];
-    mount(withClient(client, h(Probe, { url: "/stockledger/on-hand", seen: again })));
+    mount(withClient(client, h(Probe, { url: "/masters/summary", seen: again })));
     expect(again[0]).toMatchObject({ loading: false, data: 7 });
     expect(again.every((r) => !r.loading)).toBe(true);
     await settle();
-    expect(getCalls).toEqual(["/stockledger/on-hand"]);
+    expect(getCalls).toEqual(["/masters/summary"]);
   });
 
   it("refreshes a money read on every visit, behind the cached copy", async () => {
