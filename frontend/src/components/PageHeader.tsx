@@ -5,6 +5,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import {
   SECTIONS,
+  foldOwning,
   itemOwning,
   itemPath,
   menuSectionCode,
@@ -80,32 +81,42 @@ export function PageHeader({
   // else — a document number, or a page whose name differs from its menu entry.
   // On the list screen itself "Booking · Bookings" would just say it twice.
   // A hosted screen never shows it: the tab strip already says which one it is.
+  // The area mark: the icon the sidebar draws this screen under, on its area's
+  // tint (v2.1). A folded page has no owning item; its fold lends the icon.
+  const Mark = section?.icon ?? foldOwning(pathname)?.icon;
   const showScreen =
     !hosted && !!item && item.label !== heading && itemPath(item) !== normalizePath(pathname);
 
-  // v2 PageHeader: the crumb, the title in navy at 20/600, one sentence on
-  // where things stand, the page's actions on the right (CTA last), and a
-  // hairline under it all. No tabs, filters or KPIs in here.
+  // v2.1 PageHeader: the area mark, the crumb, the title in navy at 24/700,
+  // one sentence on where things stand, and the page's actions on the right
+  // (CTA last). No tabs, filters or KPIs in here.
   return (
     <>
       {hosted?.tabs}
       <header className="page-head">
-        <div className="page-head-text">
-          <p className="page-crumb" data-testid="page-crumb">
-            {hosted?.crumb ?? section?.label}
-            {showScreen && (
-              <>
-                {" · "}
-                <Link className="crumb-link" to={item.to} data-testid="page-crumb-screen">
-                  {item.label}
-                </Link>
-              </>
-            )}
-          </p>
-          <h1 className="h1" data-testid={titleTestId ?? "page-title"}>
-            {heading}
-          </h1>
-          {lead && <p className="lead">{lead}</p>}
+        <div className="page-head-id">
+          {Mark && (
+            <span className="page-mark" aria-hidden="true">
+              <Mark size={22} />
+            </span>
+          )}
+          <div className="page-head-text">
+            <p className="page-crumb" data-testid="page-crumb">
+              {hosted?.crumb ?? section?.label}
+              {showScreen && (
+                <>
+                  {" · "}
+                  <Link className="crumb-link" to={item.to} data-testid="page-crumb-screen">
+                    {item.label}
+                  </Link>
+                </>
+              )}
+            </p>
+            <h1 className="h1" data-testid={titleTestId ?? "page-title"}>
+              {heading}
+            </h1>
+            {lead && <p className="lead">{lead}</p>}
+          </div>
         </div>
         {actions && <div className="page-head-actions">{actions}</div>}
       </header>

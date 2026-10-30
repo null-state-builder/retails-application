@@ -215,6 +215,48 @@ Not seen on screen with data, because the demo cashier gets "No access" or the r
 - **Seen on screen:** as the owner, People and access, Inventory, Home, Organisation, Product lists, Feature switches, Transfers and Bookings. Not seen: the reports, Petty cash and Brand terms, because the rehearsal owner gets "No access" there.
 - **Day close** (`/sell/day-close`) was built alongside, with its board. It has five steps (bills synced, held bills cleared, cash counted, summary checked, and close with a manager's PIN), plus today's totals and what stays open. The backend is in `sell` (`DayClose`, `services/day_close.py`), and the screen sits behind the cash-count store switch.
 
+## v2.1: contrast pass (30 Oct 2026)
+
+After Phase 6 the owner found the app flat: every page was text on background. v2 had removed the white panels, the coloured sidebar icons, the tinted figure tiles, the icon tiles on Home and the filled chips together. The answers from that review set v2.1, which keeps v2's tokens, components and rules and puts the layers back:
+
+- **Business areas.** One colour per part of the business, with a tint and a line for each and twins for dark mode (`--area-*` in `index.css`):
+
+  | Area      | Sections                         | Colour |
+  | --------- | -------------------------------- | ------ |
+  | `today`   | Today                            | navy   |
+  | `sell`    | Sell, Customers, Customer orders | green  |
+  | `receive` | Receive goods                    | blue   |
+  | `move`    | Transfers, Return to brand       | clay   |
+  | `stock`   | Stock, Stock count               | ochre  |
+  | `plan`    | Booking, Offers and price        | violet |
+  | `money`   | Money, Brands                    | teal   |
+  | `admin`   | People, Reports, Setup           | slate  |
+
+  `navConfig.ts` gives each section its `area`, and `areaFor(pathname)` sets `data-area` on the page. Components read `--area`, `--area-tint` and `--area-line` and never name an area themselves. The colour appears in three places: the sidebar icon, the page header's mark (the section's icon on its tint), and the page's figure tiles.
+
+- **Shell.**
+  - The sidebar is lighter than the paper.
+  - Section heads are 14px 600 in ink.
+  - The row you are on is a solid tile in its area's tint, with a 3px bar.
+  - The top bar is white with a hairline.
+- **Panels.**
+  - The paper is one step darker (`#f2f0eb`), and every `.section` is a white panel with a hairline and `--panel-pad`.
+  - A section inside a panel, box, pane, modal or drawer stays open, and `ruled` only applies there.
+  - Empty states are dashed panels.
+- **Figures.** `KpiStrip` draws tiles in the area tint: the number large in ink, its label (13/600) under it.
+- **Status.** `Status` is a filled chip in its tone, with its dot.
+- **Tables.** The header row sits on a filled header (`--inner`) with labels in ink at 13/600. The selected row's bar takes the area colour.
+- **Type.**
+  - Page titles are navy at 24/700. `--weight-title` is the one weight past 600, and the token check allows it only as that token.
+  - Leads and description labels are in `--ink2`, not grey.
+- **Home.**
+  - Quick actions are white panels, each with a filled square icon in the colour of the area it opens. New Bill is Sell green, so red stays on money.
+  - Needs you is bordered rows with a count badge (navy when work waits, quiet at nought) and a chevron.
+- **Counter.**
+  - The payment rail is a white panel.
+  - The bill's totals and To pay are Sell-tinted tiles.
+  - Red stays only on Save & print.
+
 ## Checks on every change
 
 - **Code checks:** `npm run typecheck`, `npm run lint`, `npm run format:check`, `npm test`.

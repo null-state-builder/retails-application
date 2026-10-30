@@ -17,6 +17,7 @@ import { MobileNavContext, useMobileNavExclusion } from "./MobileNavContext";
 import { MailButton } from "./MailButton";
 import { ActionNeededButton, AlertsButton } from "./Notifications";
 import {
+  areaFor,
   headingOwning,
   litLine,
   SECTIONS,
@@ -28,7 +29,7 @@ import {
   stripOwning,
   testId,
 } from "./navConfig";
-import type { NavFoldDef, NavItem, NavRow, VisibleSection } from "./navConfig";
+import type { Area, NavFoldDef, NavItem, NavRow, VisibleSection } from "./navConfig";
 import { contextKey, optionKey, switcherModel } from "./unitSwitcher";
 import type { SwitcherOption } from "./unitSwitcher";
 import { usePositionedPopover } from "./usePositionedPopover";
@@ -393,7 +394,7 @@ function Sidebar({
   function oneLineRow(row: {
     key: string;
     icon: LucideIcon;
-    layer: string;
+    area: Area;
     to: string;
     label: string;
     active: boolean;
@@ -409,6 +410,7 @@ function Sidebar({
           aria-current={row.active ? "page" : undefined}
           title={row.label}
           className={`rail-link ${row.active ? "active" : ""}`}
+          data-area={row.area}
           data-testid={row.testId}
         >
           <span className="nav-ic">
@@ -426,6 +428,7 @@ function Sidebar({
           onClick={onNavigate}
           aria-current={row.active ? "page" : undefined}
           className={`nav-group-head nav-grouplink ${row.active ? "active" : ""}`}
+          data-area={row.area}
           data-testid={row.testId}
         >
           <span className="nav-ic">
@@ -452,6 +455,7 @@ function Sidebar({
           type="button"
           ref={open ? flyoutTriggerRef : undefined}
           className={`rail-link rail-flyout-trigger ${holdsActive ? "active" : ""}`}
+          data-area={s.def.area}
           title={s.label}
           aria-expanded={open}
           onClick={() => setOpenFlyout((current) => (current === s.def.code ? null : s.def.code))}
@@ -466,6 +470,7 @@ function Sidebar({
           createPortal(
             <div
               className="rail-flyout"
+              data-area={s.def.area}
               ref={popoverMounted}
               style={{ top: flyoutAt.top, left: flyoutAt.left }}
               data-testid={`nav-flyout-${s.def.code}`}
@@ -512,7 +517,7 @@ function Sidebar({
       return oneLineRow({
         key: s.def.code,
         icon: Icon,
-        layer: s.def.layer,
+        area: s.def.area,
         to: first.to,
         label: s.label,
         active: first.to === lit,
@@ -521,7 +526,7 @@ function Sidebar({
     }
     if (rail) return railFlyoutSection(s, items, holdsActive);
     return (
-      <div className="nav-group" key={s.def.code}>
+      <div className="nav-group" key={s.def.code} data-area={s.def.area}>
         {
           <button
             type="button"
@@ -577,7 +582,7 @@ function Sidebar({
     return oneLineRow({
       key: fold.to,
       icon: fold.icon,
-      layer: fold.layer,
+      area: fold.area,
       to: fold.to,
       label: fold.heading,
       active: isActiveFold(fold, pathname),
@@ -595,7 +600,7 @@ function Sidebar({
     return oneLineRow({
       key: row.key,
       icon: row.def.icon,
-      layer: row.def.layer,
+      area: row.def.area,
       // The first tab this person can see - never a screen access already hid.
       to: first.to,
       label: row.label,
@@ -695,6 +700,7 @@ export function SectionTabsProvider({ children }: { children: ReactNode }) {
 export function AppShell({ children, room }: { children: ReactNode; room?: Room }) {
   const { activeStore, activeBrand, session } = useAuth();
   const testEnvironment = Boolean(session?.test_environment);
+  const { pathname: shellPath } = useLocation();
   // The print adapter is not a React consumer, so it reads the flag from here.
   useEffect(() => {
     setTestEnvironment(testEnvironment);
@@ -832,7 +838,11 @@ export function AppShell({ children, room }: { children: ReactNode; room?: Room 
         {/* Keyed on the working context: switching unit remounts the page, so
             every screen refetches under the new unit instead of leaving the
             previous store's numbers on screen. */}
-        <main className="content" key={contextKey(activeStore, activeBrand)}>
+        <main
+          className="content"
+          key={contextKey(activeStore, activeBrand)}
+          data-area={areaFor(shellPath)}
+        >
           <SectionTabsProvider>{children}</SectionTabsProvider>
         </main>
       </div>

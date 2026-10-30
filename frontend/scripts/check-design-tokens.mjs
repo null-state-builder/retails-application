@@ -28,7 +28,8 @@ const COLOUR_HOMES = new Set(["src/index.css", "src/theme/fonts.css", "src/theme
 const RULES = {
   "half-pixel-size": "font size with a fraction (12.5px, 13.5px …): use 12 or 14",
   "off-scale-size": "font size outside 12/13/14/16/20/24/32/44/56",
-  "heavy-weight": "font weight 650/700/800/bold: v2 tops out at 600",
+  "heavy-weight":
+    "font weight 650/700/800/bold: v2 tops out at 600 (page titles use var(--weight-title))",
   "colour-literal": "hex/rgb/hsl colour outside the token files: use a colour token",
   "radius-literal": "border-radius in px: use --radius-control/box/overlay/round",
   "shadow-literal":
@@ -86,10 +87,12 @@ function check(file, css) {
         at("colour-literal", decl);
       if (/^border(?:-[a-z]+)*-radius\s*:/.test(decl) && /\d+(?:\.\d+)?px/.test(decl))
         at("radius-literal", decl);
-      // An inset bar (the rust "where you are" mark) is a border, not a shadow.
+      // An inset bar (the "where you are" mark) is a border, not a shadow. A bare
+      // `box-shadow:` is the head of a list Prettier put on the lines below;
+      // those lines hold no colon, so only inset lists are written that way here.
       if (
         /^box-shadow\s*:/.test(decl) &&
-        !/^box-shadow\s*:\s*(?:none|var\(--[a-z-]+\)|inset\b.*)\s*$/.test(decl)
+        !/^box-shadow\s*:\s*(?:none|var\(--[a-z-]+\)|inset\b.*)?\s*$/.test(decl)
       )
         at("shadow-literal", decl);
     }

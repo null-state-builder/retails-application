@@ -21,7 +21,7 @@
   overflow: hidden;
   width: 100%;
   max-width: none;
-  padding: 0 0 0 16px;
+  padding: 0 16px 0 16px;
 }
 
 /* The BillBar spans the full width across both columns. */
@@ -53,7 +53,10 @@
   min-height: 0;
   min-width: 0;
   overflow: hidden;
-  border-left: 1px solid var(--hairline);
+  /* A white panel on the paper, like the bill beside it (v2.1). */
+  margin: 0 0 12px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-box);
   background: var(--surface);
 }
 
@@ -1102,29 +1105,35 @@ select.bill-salesman-missing {
   gap: 14px;
   padding: 12px 16px;
   border-top: 1px solid var(--hairline);
-  background: var(--inner);
+  background: var(--surface);
 }
 .bill-grid-totals {
   min-width: 0;
   flex: 1;
 }
-/* The bill's totals (design system v2 TotalsStrip): a 12px label over a 20px
-   tabular figure, a hairline above, no box. "To pay" itself is the rail's. */
+/* The bill's totals (v2.1): each figure a tile in Sell's tint, the 20px
+   tabular number over its label. "To pay" itself is the rail's. */
 .bill-grid-footer .bill-totals {
-  gap: 28px;
+  gap: 8px;
   flex-wrap: nowrap;
   overflow-x: auto;
 }
 .bill-grid-footer .bill-figure {
   flex: 0 0 auto;
-  gap: 2px;
+  min-width: 88px;
+  gap: 0;
+  padding: 6px 12px;
+  background: var(--area-tint);
+  border: 1px solid var(--area-line);
+  border-radius: var(--radius-control);
   font: 600 20px/28px var(--font-sans);
   font-variant-numeric: tabular-nums;
   color: var(--ink);
 }
 .bill-grid-footer .bill-figure-label {
+  order: 2;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 16px;
   color: var(--ink2);
 }
@@ -1929,6 +1938,10 @@ select.bill-salesman-missing {
   justify-content: space-between;
   gap: 12px;
   margin: 0 0 12px;
+  padding: 8px 12px;
+  background: var(--area-tint);
+  border: 1px solid var(--area-line);
+  border-radius: var(--radius-box);
 }
 .bill-rail-due-label {
   color: var(--ink2);

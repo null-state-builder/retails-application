@@ -6,9 +6,9 @@
    `html[data-theme="dark"]` block below. Never hardcode a hex outside :root. */
 :root {
   /* surfaces: a neutral warm white in v2, no longer cream */
-  --paper: #f7f6f3; /* app background */
+  --paper: #f2f0eb; /* app background: one step darker than v2 so white panels stand off it (v2.1) */
   --surface: #ffffff; /* card / panel / tile */
-  --sidebar: #efeeea; /* navigation */
+  --sidebar: #f7f6f3; /* navigation: lighter than the paper, darker than a panel */
   --sidebar-border: #e0ddd7;
   --hairline: #e3e0da; /* dividers and box borders */
   --line: #d3cfc7; /* field, table-header and filter outlines: one step firmer */
@@ -50,16 +50,34 @@
   --grey-bg: #eeece8;
   --grey-bd: #dfdcd6;
 
-  /* five-layer band accents */
-  --layer-master: #9aa1ad;
-  --layer-documents: #1f2d4d;
-  --layer-ledgers: #c4623f;
-  --layer-controls: #9a6700;
-  --layer-intelligence: #6b3fb0;
-  --layer-edges: #1e5fa8;
-  --layer-home: #c4623f;
-  --layer-store: #1f7a4d;
-  --layer-outbound: #b44d2d;
+  /* Business areas (v2.1 contrast pass, 30 Oct 2026). One colour per part of
+     the business, carried by its sidebar icon, its page's title mark and its
+     figure tiles, so a person knows where they are before they read. Tint is
+     the tile fill, line its border. Sections map to areas in navConfig.ts. */
+  --area-today: #1f2d4d;
+  --area-today-tint: #e9edf5;
+  --area-today-line: #c8d1e3;
+  --area-sell: #1f7a4d;
+  --area-sell-tint: #ebf3ef;
+  --area-sell-line: #c5dcd1;
+  --area-receive: #1e5fa8;
+  --area-receive-tint: #ebf1f7;
+  --area-receive-line: #c4d5e8;
+  --area-move: #b44d2d;
+  --area-move-tint: #f8efec;
+  --area-move-line: #ecd1c8;
+  --area-stock: #9a6700;
+  --area-stock-tint: #f6f1e8;
+  --area-stock-line: #e5d7bd;
+  --area-plan: #6b3fb0;
+  --area-plan-tint: #f2eef8;
+  --area-plan-line: #d9cdea;
+  --area-money: #0f766e;
+  --area-money-tint: #e9f3f2;
+  --area-money-line: #c1dbd9;
+  --area-admin: #5b6576;
+  --area-admin-tint: #f0f1f3;
+  --area-admin-line: #d4d7db;
 
   /* tinted band panels */
   --band-edge-bg: #eef3fb;
@@ -183,6 +201,8 @@
   --ease-in: cubic-bezier(0.3, 0, 1, 1);
   --ease-std: cubic-bezier(0.2, 0, 0, 1);
   --ease-emph: cubic-bezier(0.05, 0.7, 0.1, 1);
+  /* Page titles alone go past 600 (v2.1): they are the one bold thing on a page. */
+  --weight-title: 700;
   --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
 }
@@ -239,16 +259,31 @@ html[data-theme="dark"] {
   --grey-bg: #2e2c29;
   --grey-bd: #423f3a;
 
-  /* layer accents — brightened to read as icons on the dark rail */
-  --layer-master: #a7aeba;
-  --layer-documents: #a6b6dc;
-  --layer-ledgers: #e07b52;
-  --layer-controls: #d9a337;
-  --layer-intelligence: #b28ce8;
-  --layer-edges: #6ba6e8;
-  --layer-home: #e07b52;
-  --layer-store: #5fc98d;
-  --layer-outbound: #e07b52;
+  /* business areas — brightened twins on dark tints */
+  --area-today: #a6b6dc;
+  --area-today-tint: #2f3441;
+  --area-today-line: #46506b;
+  --area-sell: #5fc98d;
+  --area-sell-tint: #2d3930;
+  --area-sell-line: #375643;
+  --area-receive: #6ba6e8;
+  --area-receive-tint: #2e343b;
+  --area-receive-line: #3b4c5e;
+  --area-move: #e58a68;
+  --area-move-tint: #3d312b;
+  --area-move-line: #5f4338;
+  --area-stock: #d9a337;
+  --area-stock-tint: #3b3425;
+  --area-stock-line: #5c4b29;
+  --area-plan: #b28ce8;
+  --area-plan-tint: #37313b;
+  --area-plan-line: #50445e;
+  --area-money: #4fc4b5;
+  --area-money-tint: #2b3835;
+  --area-money-line: #32554f;
+  --area-admin: #a7aeba;
+  --area-admin-tint: #353535;
+  --area-admin-line: #4d4e50;
 
   /* tinted band panels — dark tints */
   --band-edge-bg: #1e2530;
@@ -282,6 +317,51 @@ html[data-theme="dark"] {
   --pin-shadow: 6px 0 8px -6px rgba(0, 0, 0, 0.6);
 }
 
+/* The area a screen or sidebar row belongs to (data-area, set by the shell
+   from navConfig's AREA_OF). Components read --area, --area-tint and
+   --area-line and never name an area themselves. */
+:root,
+[data-area="today"] {
+  --area: var(--area-today);
+  --area-tint: var(--area-today-tint);
+  --area-line: var(--area-today-line);
+}
+[data-area="sell"] {
+  --area: var(--area-sell);
+  --area-tint: var(--area-sell-tint);
+  --area-line: var(--area-sell-line);
+}
+[data-area="receive"] {
+  --area: var(--area-receive);
+  --area-tint: var(--area-receive-tint);
+  --area-line: var(--area-receive-line);
+}
+[data-area="move"] {
+  --area: var(--area-move);
+  --area-tint: var(--area-move-tint);
+  --area-line: var(--area-move-line);
+}
+[data-area="stock"] {
+  --area: var(--area-stock);
+  --area-tint: var(--area-stock-tint);
+  --area-line: var(--area-stock-line);
+}
+[data-area="plan"] {
+  --area: var(--area-plan);
+  --area-tint: var(--area-plan-tint);
+  --area-line: var(--area-plan-line);
+}
+[data-area="money"] {
+  --area: var(--area-money);
+  --area-tint: var(--area-money-tint);
+  --area-line: var(--area-money-line);
+}
+[data-area="admin"] {
+  --area: var(--area-admin);
+  --area-tint: var(--area-admin-tint);
+  --area-line: var(--area-admin-line);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -301,6 +381,7 @@ body,
   --text-lh: 20px;
   --cell-x: var(--space-16);
   --box-pad: var(--space-16);
+  --panel-pad: 20px;
   --field-gap: var(--space-16);
 }
 [data-density="counter"] {
@@ -311,6 +392,7 @@ body,
   --text: 16px;
   --text-lh: 24px;
   --box-pad: 20px;
+  --panel-pad: var(--space-24);
 }
 [data-density="compact"] {
   --btn-text: 13px;
@@ -321,6 +403,7 @@ body,
   --text-lh: 20px;
   --cell-x: var(--space-12);
   --box-pad: var(--space-12);
+  --panel-pad: var(--space-16);
   --field-gap: var(--space-12);
   --gutter: var(--space-16);
 }
@@ -386,11 +469,11 @@ a {
 
 /* headings per the type scale */
 .h1 {
-  font-size: 20px;
-  font-weight: 600;
+  font-size: 24px;
+  font-weight: var(--weight-title);
   color: var(--navy);
-  letter-spacing: -0.1px;
-  line-height: 28px;
+  letter-spacing: -0.3px;
+  line-height: 32px;
   margin: 0;
 }
 .h2 {

@@ -225,8 +225,8 @@ export interface NavSectionDef {
   /** Fallback label; the server's label for the section wins when present. */
   label: string;
   icon: LucideIcon;
-  /** CSS `--layer-*` token suffix (index.css). Sections share the nine tokens. */
-  layer: string;
+  /** The business area whose colour marks this section (`data-area`, index.css). */
+  area: Area;
   items: NavItem[];
   /** A heading the server never sends, drawn from another section's grant.
    *  Brands (store operations PRD §5.1, ticket 23) is the one case: the RBAC
@@ -243,12 +243,16 @@ export function sectionGrant(code: string): string {
   return SECTIONS.find((s) => s.code === code)?.grantedBy ?? code;
 }
 
+/** The parts of the business a colour stands for (v2.1 contrast pass). Each
+ *  has --area-<name>, -tint and -line tokens in index.css. */
+export type Area = "today" | "sell" | "receive" | "move" | "stock" | "plan" | "money" | "admin";
+
 export const SECTIONS: NavSectionDef[] = [
   {
     code: "home",
     label: "Today",
     icon: LayoutDashboard,
-    layer: "home",
+    area: "today",
     items: [
       { label: "Dashboard", to: "/" },
       // Home is split by one question, "do I have to do something?" (Anand,
@@ -276,7 +280,7 @@ export const SECTIONS: NavSectionDef[] = [
     code: "sell",
     label: "Sell",
     icon: ShoppingCart,
-    layer: "store",
+    area: "sell",
     items: [
       // The counter itself (#181). `operate` for the same reason Till & Sync
       // carries it: this screen bills, and every endpoint behind it is gated at
@@ -359,7 +363,7 @@ export const SECTIONS: NavSectionDef[] = [
     code: "customers",
     label: "Customers",
     icon: Contact,
-    layer: "store",
+    area: "sell",
     grantedBy: "sell",
     items: [
       {
@@ -379,7 +383,7 @@ export const SECTIONS: NavSectionDef[] = [
     code: "customer_orders",
     label: "Customer Orders",
     icon: CalendarClock,
-    layer: "store",
+    area: "sell",
     grantedBy: "sell",
     items: [
       {
@@ -408,7 +412,7 @@ export const SECTIONS: NavSectionDef[] = [
     code: "booking",
     label: "Booking",
     icon: ClipboardList,
-    layer: "documents",
+    area: "plan",
     items: [
       // One Bookings screen over both booking engines (store and warehouse
       // operations PRD §12). A store's goods go through the booking engine of
@@ -449,7 +453,7 @@ export const SECTIONS: NavSectionDef[] = [
     code: "receive_goods",
     label: "Receive Goods",
     icon: PackagePlus,
-    layer: "store",
+    area: "receive",
     items: [
       // The legacy Receive and PT Files lines went with legacy receiving
       // (OPS-18, PRD §5.5): goods-v1 is the one receiving system.
@@ -519,7 +523,7 @@ export const SECTIONS: NavSectionDef[] = [
     code: "transfer",
     label: "Transfers",
     icon: Truck,
-    layer: "outbound",
+    area: "move",
     items: [
       // The goods-v1 transfer lifecycle (OPS-06, store and warehouse operations
       // PRD §7 and §12): two lines, Transfers and Requests. *New transfer*,
@@ -557,7 +561,7 @@ export const SECTIONS: NavSectionDef[] = [
     code: "stock_count",
     label: "Stock Count",
     icon: ClipboardCheck,
-    layer: "controls",
+    area: "stock",
     items: [
       // The legacy count screens retire into the goods count journey (SO-03 C08):
       // off the menu wherever Stock on hand is drawn, whose page keeps them as
@@ -591,7 +595,7 @@ export const SECTIONS: NavSectionDef[] = [
     code: "return_to_brand",
     label: "Return to Brand",
     icon: Undo2,
-    layer: "outbound",
+    area: "move",
     items: [
       { label: "Returns", to: "/return-to-brand" },
       { label: "New Return", to: "/return-to-brand/new" },
@@ -610,7 +614,7 @@ export const SECTIONS: NavSectionDef[] = [
     code: "stock",
     label: "Stock",
     icon: Boxes,
-    layer: "ledgers",
+    area: "stock",
     items: [
       { label: "Stock on Hand", to: "/stock" },
       // Goods-v1 stock (ticket 07): physical, valued, unvalued, ATS/transfer,
@@ -667,7 +671,7 @@ export const SECTIONS: NavSectionDef[] = [
     code: "money",
     label: "Money",
     icon: Wallet,
-    layer: "controls",
+    area: "money",
     // The sheet gives store and warehouse "Expenses only (create)" while
     // Accounts and Owner get the whole section. Capability can't say that — both
     // hold `operate` — so the books themselves carry the finance gate they
@@ -751,7 +755,7 @@ export const SECTIONS: NavSectionDef[] = [
     code: "brands",
     label: "Brands",
     icon: Handshake,
-    layer: "master",
+    area: "money",
     grantedBy: "setup",
     items: [
       {
@@ -806,7 +810,7 @@ export const SECTIONS: NavSectionDef[] = [
     code: "offers_price",
     label: "Offers & Price",
     icon: Tag,
-    layer: "intelligence",
+    area: "plan",
     // Consolidated from five entries to three "pillars" (Aug 2026 redesign):
     // authoring a rule and running the EOSS markdown ladder both just make more
     // rows in the same `Offer` table, so "New Offer" and "EOSS Planning" moved
@@ -838,7 +842,7 @@ export const SECTIONS: NavSectionDef[] = [
     code: "hrms",
     label: "People",
     icon: Users,
-    layer: "edges",
+    area: "admin",
     items: [
       { label: "Attendance", to: "/staff/attendance", planned: true },
       // Store operations ST-HR-1 (ticket 07): one staff list per store - who is
@@ -863,7 +867,7 @@ export const SECTIONS: NavSectionDef[] = [
     code: "reports",
     label: "Reports",
     icon: BarChart3,
-    layer: "intelligence",
+    area: "admin",
     items: [
       // Store operations ST-RPT-1 (ticket 10): the Sales report, read from the
       // reporting copy kept apart from billing. Everyone holding Reports reads
@@ -957,7 +961,7 @@ export const SECTIONS: NavSectionDef[] = [
     code: "setup",
     label: "Setup",
     icon: Settings,
-    layer: "master",
+    area: "admin",
     items: [
       // The KDPS master sheet configures every product list in one approved upload
       // (SO-04 C01); single values are still edited under Configuration.
@@ -1261,6 +1265,14 @@ function deepestUnder(
 /** The one screen a URL belongs to — what the route guard gates on. A deep link
  *  owns no URL (the section hosting the screen keeps it), but an `action` screen
  *  does own one and carries its own gate, so it counts here. */
+/** The area of the screen at `pathname`: the area of the section that owns
+ *  it, else Today. Presentation only - never an access decision. */
+export function areaFor(pathname: string): Area {
+  const owner = itemOwning(pathname);
+  if (owner) return SECTIONS.find((s) => s.code === owner.section)?.area ?? "today";
+  return foldOwning(pathname)?.area ?? "today";
+}
+
 export function itemOwning(pathname: string): (NavItem & { section: string }) | null {
   return deepestUnder(pathname, (i) => !i.deepLink);
 }
@@ -1369,8 +1381,8 @@ export interface FoldTab {
 export interface NavFoldDef {
   heading: string;
   icon: LucideIcon;
-  /** CSS `--layer-*` token suffix, as on a section. */
-  layer: string;
+  /** The business area whose colour marks the row, as on a section. */
+  area: Area;
   /** The one URL. Its tabs are `?tab=<slug>` under it. */
   to: string;
   /** Section codes this fold stands in for; their heads leave the sidebar. */
@@ -1414,7 +1426,7 @@ export interface NavStripDef {
  *  (desktop redesign, 29 Oct 2026: Customer Orders under Customers, Stock
  *  Count under Stock). Presentation only: every line has already passed its own
  *  section's gate, so a group can only ever draw what its sections would have
- *  drawn one by one. The first section present lends the row its icon, layer
+ *  drawn one by one. The first section present lends the row its icon, area
  *  and key. */
 export interface NavGroupDef {
   group: string;
@@ -1451,7 +1463,7 @@ export type PersonaLayout = LayoutRow[];
 export const INVENTORY_FOLD: NavFoldDef = {
   heading: "Stock",
   icon: Warehouse,
-  layer: "store",
+  area: "stock",
   to: "/inventory",
   sections: ["stock", "stock_count", "return_to_brand"],
   tabs: [
@@ -1860,7 +1872,7 @@ export type NavRow =
       kind: "strip";
       key: string;
       strip: NavStripDef;
-      /** The section the strip stands for - its icon, layer and fallback label.
+      /** The section the strip stands for - its icon, area and fallback label.
        *  Resolved here because a row only exists where the section does. */
       def: NavSectionDef;
       label: string;
@@ -2086,7 +2098,7 @@ export function applyLayout(sections: VisibleSection[], roleCode: string): NavRo
       });
       const lead = members[0];
       const items = members.flatMap((m) => m.items);
-      // The heading is the first section's: its icon, its layer, its server
+      // The heading is the first section's: its icon, its area, its server
       // label. Lines are each member's own, already through its own gate.
       if (lead && items.length) {
         rows.push({ kind: "section", key: lead.def.code, section: { ...lead, items } });

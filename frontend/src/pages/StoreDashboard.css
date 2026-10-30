@@ -7,19 +7,50 @@
 .store-dash {
   display: flex;
   flex-direction: column;
-  gap: var(--space-32);
+  gap: var(--space-24);
   min-width: 0;
 }
 
-/* Quick actions: places, so links drawn as large buttons. The first is wider,
-   as on the board; no hover lift. */
+/* Quick actions (v2.1): places, so links, each a white panel whose filled
+   square icon is in the colour of the area it opens. The border takes the
+   area colour on hover; nothing lifts. */
 .quick-row {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-12);
 }
 .quick-link {
-  gap: 10px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-12);
+  min-height: 64px;
+  padding: var(--space-12) var(--space-16);
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-box);
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 600;
+  transition: border-color var(--dur-2) var(--ease-std);
+}
+.quick-link:hover {
+  border-color: var(--area);
+}
+.quick-link:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.quick-ic {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-box);
+  background: var(--area);
+  color: var(--surface);
 }
 
 /* Today: the lead and its strip on the left, tenders on the right. */
@@ -78,57 +109,68 @@
 .dash-cols {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 360px);
-  gap: var(--space-32);
+  gap: var(--space-24);
   align-items: start;
 }
 .dash-side {
   display: flex;
   flex-direction: column;
-  gap: var(--space-32);
+  gap: var(--space-24);
   min-width: 0;
 }
 
-/* The needs-you queue: one row per kind of work, divided by hairlines. */
+/* The needs-you queue (v2.1): one bordered row per kind of work, its count
+   in a badge - filled when something waits, quiet at nought - and a chevron. */
 .queue-list {
   list-style: none;
   margin: 0;
   padding: 0;
-  border-top: 1px solid var(--hairline);
-}
-.queue-list li {
-  border-bottom: 1px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
 }
 .queue-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto 16px;
   align-items: center;
   gap: var(--space-12);
-  min-height: var(--row);
-  padding: 8px var(--space-8);
+  min-height: 48px;
+  padding: var(--space-8) var(--space-12) var(--space-8) var(--space-16);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-box);
+  background: var(--surface);
   color: var(--ink);
+  transition: border-color var(--dur-2) var(--ease-std);
 }
 .queue-row:hover {
-  background: var(--inner);
+  border-color: var(--line-strong);
+  background: var(--row-hover);
 }
 .queue-label {
   font-weight: 600;
 }
 .queue-count {
-  min-width: 28px;
-  text-align: right;
-  font-size: 20px;
-  line-height: 28px;
+  min-width: 32px;
+  padding: 2px 10px;
+  text-align: center;
+  font-size: 14px;
+  line-height: 20px;
   font-weight: 600;
-  color: var(--ink);
+  border-radius: var(--radius-round);
+  background: var(--navy-fill);
+  color: var(--on-fill);
 }
 .queue-go {
-  color: var(--caption);
+  color: var(--ink2);
 }
 /* Nought stays on the list and greys out - a queue that shortens as work is
    cleared is one you stop trusting to be the whole list. */
-.queue-row[data-empty="true"] .queue-label,
-.queue-row[data-empty="true"] .queue-count {
+.queue-row[data-empty="true"] .queue-label {
   font-weight: 500;
+  color: var(--muted);
+}
+.queue-row[data-empty="true"] .queue-count {
+  background: var(--inner);
   color: var(--muted);
 }
 .queue-clear {

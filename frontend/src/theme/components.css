@@ -5,12 +5,14 @@
    Loaded after index.css, so where an old rule and a v2 rule share a class
    name the v2 rule wins. */
 
-/* ---------- page and sections (unboxed) ---------- */
-/* A page is a column of sections separated by space, not by boxes. */
+/* ---------- page and sections (white panels on paper, v2.1) ---------- */
+/* A page is a column of white panels on the warm paper. The panel edge is what
+   tells one part of the page from the next; v2's unboxed sections left only
+   text on background. A section inside a panel, box or pane stays open. */
 .page {
   display: flex;
   flex-direction: column;
-  gap: var(--space-32);
+  gap: var(--space-24);
   min-width: 0;
 }
 .section {
@@ -18,6 +20,16 @@
   flex-direction: column;
   gap: var(--space-16);
   min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-box);
+  padding: var(--panel-pad);
+}
+:is(.section, .box, .pane, .modal, .drawer) .section {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
 }
 /* The section's gap is the spacing: no browser margins on top, and a lone button
    keeps its own width instead of stretching across the column. */
@@ -27,9 +39,10 @@
 .section > .btn {
   align-self: flex-start;
 }
-/* One hairline where two sections would otherwise read as one. */
-.section.ruled {
-  padding-top: var(--space-32);
+/* A panel already has its edge; `ruled` only matters for a section opened
+   inside another panel, where one hairline still divides the two. */
+:is(.section, .box, .pane, .modal, .drawer) .section.ruled {
+  padding-top: var(--space-24);
   border-top: 1px solid var(--hairline);
 }
 .section-head {
@@ -59,7 +72,7 @@
   font-variant-numeric: tabular-nums;
 }
 .dl dt {
-  color: var(--muted);
+  color: var(--ink2);
 }
 .dl dd {
   margin: 0;
@@ -89,12 +102,31 @@
 .page-head {
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  align-items: center;
   gap: var(--space-16);
   flex-wrap: wrap;
-  padding-bottom: var(--space-16);
   margin-bottom: var(--space-24);
-  border-bottom: 1px solid var(--hairline);
+}
+/* The area mark: the section's own icon on its area tint, the same icon and
+   colour as its sidebar row, so the page says where it belongs at a glance. */
+.page-mark {
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-box);
+  background: var(--area-tint);
+  border: 1px solid var(--area-line);
+  color: var(--area);
+}
+.page-head-id {
+  display: flex;
+  align-items: center;
+  gap: var(--space-16);
+  min-width: 0;
+  flex: 1 1 320px;
 }
 .page-head-text {
   min-width: 0;
@@ -113,23 +145,30 @@
   color: var(--muted);
 }
 .page-head .h1 {
-  font-size: 20px;
-  line-height: 28px;
-  letter-spacing: -0.1px;
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: var(--weight-title);
+  letter-spacing: -0.3px;
+  color: var(--navy);
 }
 .page-head .lead {
   margin: var(--space-4) 0 0;
+  color: var(--ink2);
 }
 
-/* ---------- status: a dot and a word; a filled chip only when someone must act ---------- */
+/* ---------- status: a filled chip in its tone, with its dot (v2.1) ---------- */
 .status {
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  padding: 2px 8px;
   font-size: 13px;
   line-height: 16px;
-  font-weight: 500;
-  color: var(--ink2);
+  font-weight: 600;
+  color: var(--grey);
+  background: var(--grey-bg);
+  border: 1px solid var(--grey-bd);
+  border-radius: var(--radius-round);
   white-space: nowrap;
 }
 .status::before {
@@ -140,23 +179,33 @@
   background: var(--grey);
   flex: none;
 }
-.status-green::before {
-  background: var(--green);
+.status::before {
+  background: currentColor;
 }
-.status-amber::before {
-  background: var(--amber);
+.status-green {
+  color: var(--green);
+  background: var(--green-bg);
+  border-color: var(--green-bd);
 }
-.status-red::before {
-  background: var(--red);
-}
-.status-blue::before {
-  background: var(--blue);
-}
-.status-purple::before {
-  background: var(--purple);
+.status-amber {
+  color: var(--amber);
+  background: var(--amber-bg);
+  border-color: var(--amber-bd);
 }
 .status-red {
   color: var(--red);
+  background: var(--red-bg);
+  border-color: var(--red-bd);
+}
+.status-blue {
+  color: var(--blue);
+  background: var(--blue-bg);
+  border-color: var(--blue-bd);
+}
+.status-purple {
+  color: var(--purple);
+  background: var(--purple-bg);
+  border-color: var(--purple-bd);
 }
 
 /* ---------- note: a 3px bar, ink text ---------- */
@@ -214,8 +263,18 @@
   flex-direction: column;
   align-items: flex-start;
   gap: var(--space-12);
-  padding: var(--space-24) 0;
+  padding: var(--space-32) var(--panel-pad);
   color: var(--ink2);
+  background: var(--surface);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-box);
+}
+/* Inside a panel the panel is the frame; the state is only its words. */
+:is(.section, .box, .pane, .modal, .drawer, .table-wrap) .state {
+  padding: var(--space-24) 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
   max-width: var(--prose-max);
 }
 .state .heading {
@@ -474,10 +533,9 @@ a.seg-btn {
 }
 .lead-figure-l,
 .kpi-l {
-  font-size: 12px;
+  font-size: 13px;
   line-height: 16px;
-  font-weight: 500;
-  letter-spacing: 0.32px;
+  font-weight: 600;
   color: var(--ink2);
 }
 .lead-figure-v {
@@ -505,32 +563,42 @@ a.seg-btn {
 .kpi-d.down {
   color: var(--red);
 }
+/* Figures are tiles in the page's area tint (v2.1): the number large in ink,
+   its label under it. The tint is what makes a row of figures read as one
+   thing, and the colour says which part of the business they count. */
 .kpis {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(176px, 1fr));
+  gap: var(--space-12);
   margin: 0;
-  border-top: 1px solid var(--hairline);
-  border-bottom: 1px solid var(--hairline);
 }
 .kpis > .kpi-cell {
-  flex: 1 1 160px;
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  padding: var(--space-12) var(--space-24) var(--space-12) 0;
+  padding: var(--space-16);
+  background: var(--area-tint);
+  border: 1px solid var(--area-line);
+  border-radius: var(--radius-box);
+  min-width: 0;
 }
-.kpis > .kpi-cell + .kpi-cell {
-  padding-left: var(--space-24);
-  border-left: 1px solid var(--hairline);
+.kpis > .kpi-cell > .kpi-l {
+  order: 2;
+}
+.kpis > .kpi-cell > .kpi-v {
+  order: 1;
+}
+.kpis > .kpi-cell > .kpi-d {
+  order: 3;
 }
 .kpis dd {
   margin: 0;
 }
 .kpi-v {
   font-size: 24px;
-  line-height: 28px;
+  line-height: 32px;
   font-weight: 600;
-  letter-spacing: -0.2px;
+  letter-spacing: -0.3px;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
 }
@@ -576,16 +644,15 @@ a.seg-btn {
   line-height: var(--text-lh);
 }
 :is(table.data, table.table, table.data-table) th {
-  height: 36px;
+  height: 40px;
   text-align: left;
   padding: 0 var(--cell-x);
-  background: var(--surface);
+  background: var(--inner);
   border-bottom: 1px solid var(--line);
-  color: var(--muted);
-  font-size: 12px;
+  color: var(--ink);
+  font-size: 13px;
   line-height: 16px;
-  font-weight: 500;
-  letter-spacing: 0.32px;
+  font-weight: 600;
   white-space: nowrap;
 }
 :is(table.data, table.table, table.data-table) td {
@@ -604,7 +671,7 @@ a.seg-btn {
   background: var(--selection);
 }
 :is(table.data, table.table, table.data-table) tr.is-selected td:first-child {
-  box-shadow: inset 3px 0 0 var(--rust);
+  box-shadow: inset 3px 0 0 var(--area);
 }
 :is(table.data, table.table, table.data-table) tfoot td {
   font-weight: 600;

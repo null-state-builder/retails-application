@@ -14,6 +14,7 @@
 // are not drawn.
 
 import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowLeftRight,
@@ -34,7 +35,7 @@ import { Loading } from "../components/States";
 import { Status } from "../components/Status";
 import { api, apiErrorMessage } from "../lib/api";
 import { Money } from "../lib/format";
-import { userCan } from "../shell/navConfig";
+import { userCan, type Area } from "../shell/navConfig";
 import { StoreChecklistCard } from "./StoreChecklist";
 import {
   queueRows,
@@ -47,18 +48,19 @@ import {
 } from "./storeDashboardModel";
 import "./StoreDashboard.css";
 
-// Places, so links (decision 5). New bill is the first and the navy one; red is
-// kept for the button that commits money or stock (decision 3).
-const QUICK_ACTIONS = [
-  { label: "New Bill", to: "/sell", icon: <ShoppingCart size={20} />, primary: true },
+// Places, so links (decision 5), drawn as icon tiles in the colour of the area
+// each opens (v2.1). Red stays kept for the button that commits money or stock
+// (decision 3), so New Bill is Sell's green, not red.
+const QUICK_ACTIONS: { label: string; to: string; icon: ReactNode; area: Area }[] = [
+  { label: "New Bill", to: "/sell", icon: <ShoppingCart size={20} />, area: "sell" },
   // Receive Goods' one way in (OPS-17): the inbox, not the legacy screen.
-  { label: "Receive", to: "/goods/receive", icon: <PackageCheck size={20} /> },
-  { label: "Transfer", to: "/transfer", icon: <ArrowLeftRight size={20} /> },
+  { label: "Receive", to: "/goods/receive", icon: <PackageCheck size={20} />, area: "receive" },
+  { label: "Transfer", to: "/transfer", icon: <ArrowLeftRight size={20} />, area: "move" },
   // D10's fourth quick action is "search across stores", and it now exists
   // (#175) - so this opens it rather than the stock the person can already see.
   // The two answer different questions, and the one a customer is standing at
   // the counter asking is this one.
-  { label: "Find stock", to: "/stock/search", icon: <Search size={20} /> },
+  { label: "Find stock", to: "/stock/search", icon: <Search size={20} />, area: "stock" },
 ];
 
 function QuickActions() {
@@ -68,10 +70,13 @@ function QuickActions() {
         <Link
           key={a.label}
           to={a.to}
-          className={`btn btn-lg quick-link ${a.primary ? "btn-primary" : ""}`}
+          className="quick-link"
+          data-area={a.area}
           data-testid={`quick-${a.label.toLowerCase().replace(/ /g, "-")}`}
         >
-          {a.icon}
+          <span className="quick-ic" aria-hidden="true">
+            {a.icon}
+          </span>
           {a.label}
         </Link>
       ))}

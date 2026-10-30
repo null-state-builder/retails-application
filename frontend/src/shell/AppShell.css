@@ -164,46 +164,42 @@ body.sidebar-resizing .sidebar-resizer::after {
   color: var(--ink);
   font-weight: 600;
 }
-/* Section icons are muted; rust marks only the section you are in. */
+/* Each section's icon is in its business area's colour (v2.1), so the menu
+   reads as parts of the business before it reads as words. */
 .nav-ic {
   width: 24px;
   height: 24px;
   border-radius: 0;
   background: transparent;
   border: 0;
-  color: var(--muted);
+  color: var(--area);
   display: flex;
   align-items: center;
   justify-content: center;
   flex: none;
 }
-.nav-group-toggle:has(+ .nav-items .nav-item.active) .nav-ic {
-  color: var(--rust);
-}
-/* A section header is quieter than the screens under it (v2 Sidebar): 13px
-   500 in muted, sentence case, never capitals. The one holding the screen you
-   are on reads in ink at 600. */
+/* Section heads are the menu's landmarks: 14px 600 in ink, sentence case. */
 .nav-group-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
 }
 /* A one-line row is a link the whole way across, so its transient interaction
    state covers the icon as well as the label. */
 .nav-grouplink {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--muted);
-}
-/* Where you are: surface, rust text and a 2px rust bar - rust's one job. */
-.nav-grouplink.active {
-  background: var(--surface);
-  color: var(--rust-ink);
+  font-size: 14px;
   font-weight: 600;
-  box-shadow: inset 2px 0 0 var(--rust);
+  color: var(--ink);
 }
-.nav-grouplink.active .nav-ic {
-  color: var(--rust);
+/* Where you are: a solid tile in the area's tint, ink text and a 3px bar in
+   the area's colour. */
+.nav-grouplink.active {
+  background: var(--area-tint);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow:
+    inset 3px 0 0 var(--area),
+    inset 0 0 0 1px var(--area-line);
 }
 /* #96's grouping heading, which nested section heads one step in, is gone:
    D10 folds those sections onto one page instead, and a fold draws as a plain
@@ -219,7 +215,7 @@ body.sidebar-resizing .sidebar-resizer::after {
 .nav-item {
   display: flex;
   align-items: center;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--ink2);
   padding: 4px 10px;
   min-height: 30px;
@@ -236,10 +232,12 @@ body.sidebar-resizing .sidebar-resizer::after {
   cursor: grabbing;
 }
 .nav-item.active {
-  background: var(--surface);
-  color: var(--rust-ink);
+  background: var(--area-tint);
+  color: var(--ink);
   font-weight: 600;
-  box-shadow: inset 2px 0 0 var(--rust);
+  box-shadow:
+    inset 3px 0 0 var(--area),
+    inset 0 0 0 1px var(--area-line);
 }
 
 /* ---------- icon rail (#230) ----------
@@ -269,13 +267,10 @@ body.sidebar-resizing .sidebar-resizer::after {
 }
 .rail-link.active,
 .rail-flyout-trigger.active {
-  background: var(--surface);
-  box-shadow: inset 2px 0 0 var(--rust);
-}
-.rail-link.active .nav-ic,
-.rail-flyout-trigger.active .nav-ic {
-  background: transparent;
-  color: var(--rust);
+  background: var(--area-tint);
+  box-shadow:
+    inset 3px 0 0 var(--area),
+    inset 0 0 0 1px var(--area-line);
 }
 
 /* Hover and press are transient state layers; keyboard focus remains visible
@@ -375,7 +370,7 @@ body.sidebar-resizing .sidebar-resizer::after {
 .topbar {
   height: var(--topbar-h);
   flex: none;
-  background: var(--paper);
+  background: var(--surface);
   border-bottom: 1px solid var(--hairline);
   display: flex;
   align-items: center;
