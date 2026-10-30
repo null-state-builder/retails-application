@@ -59,6 +59,9 @@ export function useList<T>(url: string | null, params?: QueryParams) {
     data: (query.data as T[] | undefined) ?? (NO_ROWS as T[]),
     loading: query.isPending || query.isPlaceholderData,
     fetching: query.isFetching,
+    /** The last refusal or failure. With rows still on screen it means a
+     *  refresh failed and they may be out of date (`RefreshFailed`). */
+    error: (query.error as unknown) ?? null,
     updatedAt: query.dataUpdatedAt || null,
     reload,
   };

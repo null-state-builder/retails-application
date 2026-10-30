@@ -299,6 +299,8 @@ export function useGoodsFetch<R, T>(url: string | null, extract: (r: R) => T, em
     denied: outcome.denied,
     deniedField: outcome.deniedField,
     failure: outcome.failure,
+    /** The raw failure, for `RefreshFailed` when a refresh fails behind data. */
+    error: read.error,
     fetching: read.fetching,
     updatedAt: read.updatedAt,
     reload: read.reload,
