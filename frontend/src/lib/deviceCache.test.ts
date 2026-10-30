@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "fake-indexeddb/auto";
 
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, QueryObserver } from "@tanstack/react-query";
 // Plain `createElement` rather than JSX: a `.test.ts` file is a test, not an
 // API consumer, to the SO-03 frontend inventory scanner.
 import { act, createElement as h, useEffect } from "react";
@@ -139,6 +139,135 @@ describe("restore", () => {
     await set(
       "client",
       { ...saved, buster: `old-build:${A}` },
+      createStore("kdps-backoffice-cache", "queries"),
+    );
+    const reader = createQueryClient();
+    await persistScope(A, reader);
+    expect(reader.getQueryCache().getAll()).toHaveLength(0);
+    expect(await readDeviceCache()).toBeUndefined();
+  });
+});
+
+describe("data minimisation (Phase 3)", () => {
+  const VENDORS = [
+    {
+      id: 7,
+      code: "V7",
+      name: "Vendor Seven",
+      gstin: "10ABCDE1234F1Z5",
+      city: "Patna",
+      pan: "ABCDE1234F",
+      payment_terms: "30 days from invoice",
+      brands: [1],
+    },
+  ];
+  const ENTITIES = [{ id: 1, code: "E1", name: "Entity", pan: "PQRSX6789K", is_active: true }];
+
+  async function rawDeviceBytes(): Promise<string> {
+    return JSON.stringify(await readDeviceCache());
+  }
+
+  it("never writes PAN or payment terms to the device, and memory keeps them", async () => {
+    const client = createQueryClient();
+    await persistScope(A, client);
+    client.setQueryData(queryKeyFor(A, "/vendors"), VENDORS);
+    client.setQueryData(queryKeyFor(A, "/masters/entities"), ENTITIES);
+    client.setQueryData(queryKeyFor(A, "/masters/stores"), STORES);
+    flushDeviceCache();
+    await vi.waitFor(async () => expect(await savedKeys()).toHaveLength(3));
+
+    const bytes = await rawDeviceBytes();
+    expect(bytes).not.toMatch(/ABCDE1234F"|PQRSX6789K|30 days from invoice/);
+    expect(bytes).not.toMatch(/"pan"|"payment_terms"/);
+    // Names, codes, GSTIN and addresses may be kept.
+    expect(bytes).toMatch(/Vendor Seven/);
+    expect(bytes).toMatch(/10ABCDE1234F1Z5/);
+    expect(bytes).toMatch(/Patna/);
+    // The screen in memory still has everything.
+    expect(client.getQueryData(queryKeyFor(A, "/vendors"))).toEqual(VENDORS);
+    expect(client.getQueryData(queryKeyFor(A, "/masters/entities"))).toEqual(ENTITIES);
+
+    const saved = await readDeviceCache();
+    const state = (url: string) =>
+      saved?.clientState.queries.find((q) => q.queryKey[1] === url)?.state;
+    // An entry that lost a field is saved already marked stale; one that lost
+    // nothing is saved as it was.
+    expect(state("/vendors")?.isInvalidated).toBe(true);
+    expect(state("/masters/entities")?.isInvalidated).toBe(true);
+    expect(state("/masters/stores")?.isInvalidated).toBe(false);
+  });
+
+  it("strips withheld fields at any depth and leaves the input untouched", async () => {
+    const { withholdFields } = await import("./deviceCache");
+    const input = {
+      results: [{ vendor: { name: "N", pan: "X", bank_account_number: "1", ifsc: "I" } }],
+    };
+    const before = JSON.stringify(input);
+    const { value, stripped } = withholdFields(input);
+    expect(stripped).toBe(true);
+    expect(value).toEqual({ results: [{ vendor: { name: "N" } }] });
+    expect(JSON.stringify(input)).toBe(before);
+  });
+
+  it("a restored stripped entry is shown at once and refetched in full", async () => {
+    const writer = createQueryClient();
+    await persistScope(A, writer);
+    writer.setQueryData(queryKeyFor(A, "/vendors"), VENDORS);
+    writer.setQueryData(queryKeyFor(A, "/masters/stores"), STORES);
+    flushDeviceCache();
+    await vi.waitFor(async () => expect(await savedKeys()).toHaveLength(2));
+    const { stopDeviceCache } = await import("./deviceCache");
+    stopDeviceCache();
+
+    const reader = createQueryClient();
+    await persistScope(A, reader);
+    const restored = reader.getQueryData<typeof VENDORS>(queryKeyFor(A, "/vendors"));
+    expect(restored?.[0]?.name).toBe("Vendor Seven");
+    expect(restored?.[0]).not.toHaveProperty("pan");
+    expect(restored?.[0]).not.toHaveProperty("payment_terms");
+
+    const vendors = reader.getQueryCache().find({ queryKey: queryKeyFor(A, "/vendors") });
+    const stores = reader.getQueryCache().find({ queryKey: queryKeyFor(A, "/masters/stores") });
+    // Stale even under the hour-long reference staleTime, so a screen that
+    // mounts refetches it; the untouched masters keep their staleTime.
+    expect(vendors?.isStaleByTime(60 * 60 * 1_000)).toBe(true);
+    expect(stores?.isStaleByTime(60 * 60 * 1_000)).toBe(false);
+
+    const fetched = vi.fn(async () => VENDORS);
+    const observer = new QueryObserver(reader, {
+      queryKey: queryKeyFor(A, "/vendors"),
+      queryFn: fetched,
+      staleTime: 60 * 60 * 1_000,
+    });
+    const unsubscribe = observer.subscribe(() => undefined);
+    await vi.waitFor(() => expect(fetched).toHaveBeenCalledTimes(1));
+    await vi.waitFor(() =>
+      expect(reader.getQueryData(queryKeyFor(A, "/vendors"))).toEqual(VENDORS),
+    );
+    unsubscribe();
+  });
+
+  it("refuses and deletes a copy written before PAN and terms were withheld", async () => {
+    const { stopDeviceCache } = await import("./deviceCache");
+    stopDeviceCache();
+    const { set, createStore } = await import("idb-keyval");
+    await set(
+      "client",
+      {
+        timestamp: Date.now(),
+        // The Phase 2 stamp: build and scope, no device format.
+        buster: `${APP_VERSION}:${A}`,
+        clientState: {
+          mutations: [],
+          queries: [
+            {
+              queryKey: [A, "/vendors"],
+              queryHash: JSON.stringify([A, "/vendors"]),
+              state: { data: VENDORS, status: "success", dataUpdatedAt: Date.now() },
+            },
+          ],
+        },
+      },
       createStore("kdps-backoffice-cache", "queries"),
     );
     const reader = createQueryClient();
