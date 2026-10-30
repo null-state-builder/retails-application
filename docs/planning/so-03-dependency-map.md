@@ -584,8 +584,8 @@ These calls need a data-target and runtime-reachability review before the retire
 | Services | 1 tagged service modules: `module:core.posting`. |
 | Offline client modules | 0 till/PWA modules: None discovered. |
 | Data | 30 owned model classes: `model:admin.LogEntry`, `model:auth.Group`, `model:auth.Permission`, `model:contenttypes.ContentType`, `model:core.AuditEvent`, `model:core.ChainHead`, `model:core.CommandAttempt`, `model:core.CommandKey`, `model:core.CommandOutcome`, `model:core.DeliveryEvent`, `model:core.DocumentEvent`, `model:core.DocumentHead`, `model:core.DocumentIdentity`, `model:core.DocumentProbe`, `model:core.DraftLine`, `model:core.DraftRevision`, `model:core.GLEntry`, `model:core.JobArtifact`, `model:core.JobState`, `model:core.LedgerProbe`, `model:core.LegacyReference`, `model:core.OfficialLine`, `model:core.OfficialVersion`, `model:core.OutboxIntent`, `model:core.PrivilegedReview`, `model:core.RecoveryRecord`, `model:core.SeriesCeiling`, `model:core.SubjectRevision`, `model:core.VoucherSeries`, `model:sessions.Session`. 18 direct model-module import edges from owned modules; 89 static read-call candidates in 25 backend/client modules (individual expressions are in the machine inventory). |
-| Downstream readers | 13 frontend API callsites; 1 endpoint/callsite links, 13 dynamic URL references; 1383 cross-owner static backend import edges. |
-| Lifecycle | canonical: 115, historical_read_only: 12, retirement_candidate: 32, temporary_supported_legacy: 3, unresolved: 214. |
+| Downstream readers | 14 frontend API callsites; 1 endpoint/callsite links, 14 dynamic URL references; 1383 cross-owner static backend import edges. |
+| Lifecycle | canonical: 115, historical_read_only: 12, retirement_candidate: 32, temporary_supported_legacy: 3, unresolved: 215. |
 
 ### Entry-point dependency traces
 
@@ -2297,6 +2297,7 @@ Dynamic frontend API references requiring a consumer trace:
 - `api_consumer:frontend/src/lib/goodsScreen.tsx:55ef662222bb` — `url`
 - `api_consumer:frontend/src/lib/goodsScreen.tsx:e6a4d8233363` — `url`
 - `api_consumer:frontend/src/lib/goodsScreen.tsx:fe6c0b6dba2a` — `password`
+- `api_consumer:frontend/src/lib/queryCache.ts:55ef662222bb` — `url`
 
 ### P00 static writer candidates
 

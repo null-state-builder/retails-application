@@ -34,6 +34,7 @@ import { contextKey, optionKey, switcherModel } from "./unitSwitcher";
 import type { SwitcherOption } from "./unitSwitcher";
 import { usePositionedPopover } from "./usePositionedPopover";
 import { useDensity } from "../theme/density";
+import { useRoutePrefetch } from "./useRoutePrefetch";
 import "./AppShell.css";
 
 const SIDEBAR_WIDTH_KEY = "kdps-sidebar-width";
@@ -301,6 +302,7 @@ function Sidebar({
 }) {
   const { user, session, featuresOn } = useAuth();
   const { pathname, search } = useLocation();
+  const warm = useRoutePrefetch();
   const [navOrder, setNavOrder] = useState<NavOrder>(() => readNavOrder());
   const [collapsed, setCollapsed] = useState<Record<string, true>>(() =>
     readCollapsed(user?.role?.code ?? ""),
@@ -635,7 +637,7 @@ function Sidebar({
           <ChevronLeft size={16} className={`rail-chev ${rail ? "flipped" : ""}`} />
         </button>
       </div>
-      <nav className="nav" data-testid="sidebar-nav">
+      <nav className="nav" data-testid="sidebar-nav" onPointerOver={warm} onFocus={warm}>
         {rows.map((row) =>
           row.kind === "section"
             ? renderSection(row.section)

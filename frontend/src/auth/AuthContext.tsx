@@ -10,6 +10,7 @@ import {
 import type { ReactNode } from "react";
 
 import { authApi, authSession, unitContext } from "../lib/api";
+import { cacheScope, resetQueryCache } from "../lib/queryCache";
 import { storeFeaturesOn } from "../shell/navConfig";
 
 export interface Store {
@@ -199,7 +200,9 @@ interface AuthContextValue {
   featuresOn: ReadonlySet<string>;
 }
 
-const AuthContext = createContext<AuthContextValue>(null as unknown as AuthContextValue);
+/** Exported for the data hooks' cache scope, which must tolerate a render with
+ *  no provider (null); every screen reads it through `useAuth`. */
+export const AuthContext = createContext<AuthContextValue>(null as unknown as AuthContextValue);
 
 export const useAuth = () => useContext(AuthContext);
 
@@ -357,6 +360,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // mistaken for a revoked session.
   const loggedInRef = useRef(false);
   const lastRefresh = useRef(0);
+  // Who the back-office cache was filled for (person, roles, unit, brand). When
+  // any of it changes the cache is emptied before the new context renders, so
+  // nothing one person, store or role was shown survives into another's view.
+  const identity = useRef<{ userId: string | null; roles: string[] }>({
+    userId: null,
+    roles: [],
+  });
+  const cacheScopeRef = useRef("");
+
+  function syncCacheScope(store: Store | null, brand: Brand | null) {
+    const next = identity.current.userId
+      ? cacheScope({
+          userId: identity.current.userId,
+          storeId: store?.id ?? null,
+          brandId: brand?.id ?? null,
+          roles: identity.current.roles,
+        })
+      : "";
+    if (next !== cacheScopeRef.current) resetQueryCache();
+    cacheScopeRef.current = next;
+  }
+
+  function noteIdentity(current: GoodsSession | null) {
+    identity.current = current
+      ? { userId: current.user.id, roles: current.assignments.map((a) => a.role_code) }
+      : { userId: null, roles: [] };
+  }
 
   /** Set the context React renders *and* the one axios sends, together. The
    *  header is read synchronously by the request interceptor, so it must not
@@ -364,6 +394,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    *  and would otherwise carry the previous unit. */
   function applyContext(store: Store | null, brand: Brand | null) {
     const selection = contextSelection(store, brand);
+    syncCacheScope(store, brand);
     setActiveStoreState((current) => (current?.id === store?.id ? current : store));
     setActiveBrandState((current) => (current?.id === brand?.id ? current : brand));
     unitContext.set(selection);
@@ -384,6 +415,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   function startSession(payload: SessionPayload) {
     const { csrf_token: _csrf, ...current } = payload;
     const u = shellUser(current);
+    noteIdentity(current);
     setUser(u);
     setSession(current);
     applyContext(pickDefaultStore(u), pickDefaultBrand(u));
@@ -392,6 +424,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function endSession() {
+    // Logout, revocation, expiry and a password change all end here: forget
+    // everything the back office was shown, whatever the scope says.
+    noteIdentity(null);
+    resetQueryCache();
     setUser(null);
     setSession(null);
     applyContext(null, null);
@@ -443,6 +479,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (sessionEpoch.current !== epoch || !loggedInRef.current) return;
         const { csrf_token: _csrf, ...next } = readSession(data);
         const view = shellUser(next);
+        noteIdentity(next);
         setUser((current) => (sameAuthority(current, view) ? current : view));
         setSession((current) => (sameAuthority(current, next) ? current : next));
         applyContext(pickDefaultStore(view), pickDefaultBrand(view));

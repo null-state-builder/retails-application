@@ -5,138 +5,247 @@
 // opens — `/transfer/new` is the new-transfer form, `/transfer/12` is transfer 12 — is
 // something a test can assert rather than something we hope React Router got
 // right. `id` is that assertion's handle; it never reaches the user.
+import { isValidElement } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { matchRoutes } from "react-router-dom";
 import type { RouteObject } from "react-router-dom";
 
+import { lazyPage } from "./lib/lazyPage";
+import { withQuery } from "./lib/query";
 import { PlannedPage } from "./pages/PlannedPage";
 import { LegacyRedirect } from "./shell/LegacyRedirect";
 import { LEGACY_PATHS, NAV_ITEMS, itemPath } from "./shell/navConfig";
-import { Home } from "./pages/Home";
-import {
-  BrandsPage,
-  GstinsPage,
-  SeasonsPage,
-  StoreTargetsPage,
-  StoresPage,
-  VendorsPage,
-} from "./pages/MasterPages";
-import { OrganisationPage } from "./pages/Organisation";
-import { FirstStoreSetupPage } from "./pages/FirstStoreSetup";
-import { PeopleAccessPage } from "./pages/PeopleAccess";
-import { ProductsPartiesPage } from "./pages/ProductsParties";
-import { ConfigurationPage } from "./pages/Configuration";
-import { ProductListsPage } from "./pages/ProductLists";
-import { SellPolicySettingsPage } from "./pages/SellPolicySettings";
-import { AuditLogPage } from "./pages/AuditLog";
-import { SalesReportPage } from "./pages/SalesReport";
-import { GiftStockReportPage } from "./pages/GiftStockReport";
-import { DiscountFundingPage } from "./pages/DiscountFunding";
-import { DebitNotesPage } from "./pages/DebitNotes";
-import { PettyCashPage } from "./pages/PettyCash";
-import { PayablesPage } from "./pages/Payables";
-import { OpenToBuyPage } from "./pages/OpenToBuy";
-import { GstReportPage } from "./pages/GstReport";
-import { ExceptionsReportPage } from "./pages/ExceptionsReport";
-import { StaffPerformanceReportPage } from "./pages/StaffPerformanceReport";
-import { ShrinkageReportPage } from "./pages/ShrinkageReport";
-import { InventoryReportPage } from "./pages/InventoryReport";
-import { BrandPerformanceReportPage } from "./pages/BrandPerformanceReport";
-import { StoreDashboardPage } from "./pages/StoreDashboardPage";
-import { TaxSettingsPage } from "./pages/TaxSettings";
-import { ConsentWordingPage } from "./pages/ConsentWording";
-import { BrandTermsPage } from "./pages/BrandTerms";
-import { MarginSharePage } from "./pages/MarginShare";
-import { BrandClaimsPage } from "./pages/BrandClaims";
-import { SorAgeingPage } from "./pages/SorAgeing";
-import { BrandReportsPage } from "./pages/BrandReports";
-import { CustomerListPage } from "./pages/customers/CustomerList";
-import { CustomerPage } from "./pages/customers/CustomerPage";
-import { ReservationsPage } from "./pages/Reservations";
-import { SpecialOrdersPage } from "./pages/SpecialOrders";
-import { GiftVouchersPage } from "./pages/GiftVouchers";
-import { AlterationsPage } from "./pages/Alterations";
-import { DocumentNumberingPage } from "./pages/DocumentNumbering";
-import { SalespersonMatchesPage } from "./pages/SalespersonMatches";
-import { MissingHsnPage } from "./pages/MissingHsn";
-import { StockAgeingPage } from "./pages/StockAgeing";
-import { BrokenSizesPage } from "./pages/BrokenSizes";
-import { SizeBalancingPage } from "./pages/SizeBalancing";
-import { CountSchedulePage } from "./pages/CountSchedule";
-import { StoreChecklistPage } from "./pages/StoreChecklist";
-import { TaskChecklistsPage } from "./pages/TaskChecklists";
-import { StaffListPage } from "./pages/StaffList";
-import { FeatureCheckPage, FeatureSwitchesPage } from "./pages/FeatureSwitches";
-import { PartnerBillingPage } from "./pages/PartnerBilling";
-import { PartnerDuesPage } from "./pages/PartnerDues";
-import { DailyCashPage } from "./pages/DailyCash";
-import { BankReconciliationPage } from "./pages/BankReconciliation";
-import { BookingDetailPage, BookingNewPage, BookingsPage } from "./pages/Bookings";
+
+// Every screen is its own chunk, fetched the first time it is opened (or when
+// its sidebar link is hovered or focused: `preloadRoute` below).
+const Home = lazyPage(() => import("./pages/Home"), "Home");
+const BrandsPage = lazyPage(() => import("./pages/MasterPages"), "BrandsPage");
+const GstinsPage = lazyPage(() => import("./pages/MasterPages"), "GstinsPage");
+const SeasonsPage = lazyPage(() => import("./pages/MasterPages"), "SeasonsPage");
+const StoreTargetsPage = lazyPage(() => import("./pages/MasterPages"), "StoreTargetsPage");
+const StoresPage = lazyPage(() => import("./pages/MasterPages"), "StoresPage");
+const VendorsPage = lazyPage(() => import("./pages/MasterPages"), "VendorsPage");
+const OrganisationPage = lazyPage(() => import("./pages/Organisation"), "OrganisationPage");
+const FirstStoreSetupPage = lazyPage(
+  () => import("./pages/FirstStoreSetup"),
+  "FirstStoreSetupPage",
+);
+const PeopleAccessPage = lazyPage(() => import("./pages/PeopleAccess"), "PeopleAccessPage");
+const ProductsPartiesPage = lazyPage(
+  () => import("./pages/ProductsParties"),
+  "ProductsPartiesPage",
+);
+const ConfigurationPage = lazyPage(() => import("./pages/Configuration"), "ConfigurationPage");
+const ProductListsPage = lazyPage(() => import("./pages/ProductLists"), "ProductListsPage");
+const SellPolicySettingsPage = lazyPage(
+  () => import("./pages/SellPolicySettings"),
+  "SellPolicySettingsPage",
+);
+const AuditLogPage = lazyPage(() => import("./pages/AuditLog"), "AuditLogPage");
+const SalesReportPage = lazyPage(() => import("./pages/SalesReport"), "SalesReportPage");
+const GiftStockReportPage = lazyPage(
+  () => import("./pages/GiftStockReport"),
+  "GiftStockReportPage",
+);
+const DiscountFundingPage = lazyPage(
+  () => import("./pages/DiscountFunding"),
+  "DiscountFundingPage",
+);
+const DebitNotesPage = lazyPage(() => import("./pages/DebitNotes"), "DebitNotesPage");
+const PettyCashPage = lazyPage(() => import("./pages/PettyCash"), "PettyCashPage");
+const PayablesPage = lazyPage(() => import("./pages/Payables"), "PayablesPage");
+const OpenToBuyPage = lazyPage(() => import("./pages/OpenToBuy"), "OpenToBuyPage");
+const GstReportPage = lazyPage(() => import("./pages/GstReport"), "GstReportPage");
+const ExceptionsReportPage = lazyPage(
+  () => import("./pages/ExceptionsReport"),
+  "ExceptionsReportPage",
+);
+const StaffPerformanceReportPage = lazyPage(
+  () => import("./pages/StaffPerformanceReport"),
+  "StaffPerformanceReportPage",
+);
+const ShrinkageReportPage = lazyPage(
+  () => import("./pages/ShrinkageReport"),
+  "ShrinkageReportPage",
+);
+const InventoryReportPage = lazyPage(
+  () => import("./pages/InventoryReport"),
+  "InventoryReportPage",
+);
+const BrandPerformanceReportPage = lazyPage(
+  () => import("./pages/BrandPerformanceReport"),
+  "BrandPerformanceReportPage",
+);
+const StoreDashboardPage = lazyPage(
+  () => import("./pages/StoreDashboardPage"),
+  "StoreDashboardPage",
+);
+const TaxSettingsPage = lazyPage(() => import("./pages/TaxSettings"), "TaxSettingsPage");
+const ConsentWordingPage = lazyPage(() => import("./pages/ConsentWording"), "ConsentWordingPage");
+const BrandTermsPage = lazyPage(() => import("./pages/BrandTerms"), "BrandTermsPage");
+const MarginSharePage = lazyPage(() => import("./pages/MarginShare"), "MarginSharePage");
+const BrandClaimsPage = lazyPage(() => import("./pages/BrandClaims"), "BrandClaimsPage");
+const SorAgeingPage = lazyPage(() => import("./pages/SorAgeing"), "SorAgeingPage");
+const BrandReportsPage = lazyPage(() => import("./pages/BrandReports"), "BrandReportsPage");
+const CustomerListPage = lazyPage(
+  () => import("./pages/customers/CustomerList"),
+  "CustomerListPage",
+);
+const CustomerPage = lazyPage(() => import("./pages/customers/CustomerPage"), "CustomerPage");
+const ReservationsPage = lazyPage(() => import("./pages/Reservations"), "ReservationsPage");
+const SpecialOrdersPage = lazyPage(() => import("./pages/SpecialOrders"), "SpecialOrdersPage");
+const GiftVouchersPage = lazyPage(() => import("./pages/GiftVouchers"), "GiftVouchersPage");
+const AlterationsPage = lazyPage(() => import("./pages/Alterations"), "AlterationsPage");
+const DocumentNumberingPage = lazyPage(
+  () => import("./pages/DocumentNumbering"),
+  "DocumentNumberingPage",
+);
+const SalespersonMatchesPage = lazyPage(
+  () => import("./pages/SalespersonMatches"),
+  "SalespersonMatchesPage",
+);
+const MissingHsnPage = lazyPage(() => import("./pages/MissingHsn"), "MissingHsnPage");
+const StockAgeingPage = lazyPage(() => import("./pages/StockAgeing"), "StockAgeingPage");
+const BrokenSizesPage = lazyPage(() => import("./pages/BrokenSizes"), "BrokenSizesPage");
+const SizeBalancingPage = lazyPage(() => import("./pages/SizeBalancing"), "SizeBalancingPage");
+const CountSchedulePage = lazyPage(() => import("./pages/CountSchedule"), "CountSchedulePage");
+const StoreChecklistPage = lazyPage(() => import("./pages/StoreChecklist"), "StoreChecklistPage");
+const TaskChecklistsPage = lazyPage(() => import("./pages/TaskChecklists"), "TaskChecklistsPage");
+const StaffListPage = lazyPage(() => import("./pages/StaffList"), "StaffListPage");
+const FeatureCheckPage = lazyPage(() => import("./pages/FeatureSwitches"), "FeatureCheckPage");
+const FeatureSwitchesPage = lazyPage(
+  () => import("./pages/FeatureSwitches"),
+  "FeatureSwitchesPage",
+);
+const PartnerBillingPage = lazyPage(() => import("./pages/PartnerBilling"), "PartnerBillingPage");
+const PartnerDuesPage = lazyPage(() => import("./pages/PartnerDues"), "PartnerDuesPage");
+const DailyCashPage = lazyPage(() => import("./pages/DailyCash"), "DailyCashPage");
+const BankReconciliationPage = lazyPage(
+  () => import("./pages/BankReconciliation"),
+  "BankReconciliationPage",
+);
+const BookingDetailPage = lazyPage(() => import("./pages/Bookings"), "BookingDetailPage");
+const BookingNewPage = lazyPage(() => import("./pages/Bookings"), "BookingNewPage");
+const BookingsPage = lazyPage(() => import("./pages/Bookings"), "BookingsPage");
 // Goods-v1 receiving: the inbox, the delivery workflow and Goods arrived
 // (OPS-04, OPS-17). The arrivals, receipts, acceptance and PT-preparation
 // screens are no longer screens of their own; their panels are the steps.
-import { ReceiveDeliveryPage, ReceiveNewPage } from "./pages/ReceiveDelivery";
+const ReceiveDeliveryPage = lazyPage(
+  () => import("./pages/ReceiveDelivery"),
+  "ReceiveDeliveryPage",
+);
+const ReceiveNewPage = lazyPage(() => import("./pages/ReceiveDelivery"), "ReceiveNewPage");
 // Aliased: the legacy outbound screens below already export a
 // `TransferDetailPage` of their own, and both keep their routes (#303).
-import { TransferDetailPage as GoodsTransferDetailPage } from "./pages/TransferDetail";
-import { TransferDocumentPage } from "./pages/TransferDocumentPrint";
-import { TransferRequestsPage as GoodsTransferRequestsPage } from "./pages/TransferRequests";
-import { TransfersPage as GoodsTransfersPage } from "./pages/Transfers";
-import { ReceiveHistoryPage, ReceiveInboxPage } from "./pages/ReceiveInbox";
+const GoodsTransferDetailPage = lazyPage(
+  () => import("./pages/TransferDetail"),
+  "TransferDetailPage",
+);
+const TransferDocumentPage = lazyPage(
+  () => import("./pages/TransferDocumentPrint"),
+  "TransferDocumentPage",
+);
+const GoodsTransferRequestsPage = lazyPage(
+  () => import("./pages/TransferRequests"),
+  "TransferRequestsPage",
+);
+const GoodsTransfersPage = lazyPage(() => import("./pages/Transfers"), "TransfersPage");
+const ReceiveHistoryPage = lazyPage(() => import("./pages/ReceiveInbox"), "ReceiveHistoryPage");
+const ReceiveInboxPage = lazyPage(() => import("./pages/ReceiveInbox"), "ReceiveInboxPage");
 // PT Work (OPS-17): To prepare, To approve and Mapping rules.
-import { PtWorkPage } from "./pages/PtWork";
+const PtWorkPage = lazyPage(() => import("./pages/PtWork"), "PtWorkPage");
 // Goods-v1 opening stock for synthetic tenants (ticket 10, GSA-T10).
-import { GoodsOpeningPage } from "./pages/GoodsOpening";
-import { StockSyncPage } from "./pages/StockSync";
-import { GoodsOriginJourneyPage, GoodsStockPage } from "./pages/GoodsStock";
+const GoodsOpeningPage = lazyPage(() => import("./pages/GoodsOpening"), "GoodsOpeningPage");
+const StockSyncPage = lazyPage(() => import("./pages/StockSync"), "StockSyncPage");
+const GoodsOriginJourneyPage = lazyPage(
+  () => import("./pages/GoodsStock"),
+  "GoodsOriginJourneyPage",
+);
+const GoodsStockPage = lazyPage(() => import("./pages/GoodsStock"), "GoodsStockPage");
 // Goods-v1 labels and print jobs (ticket 11), beside the legacy TagPrint modal
 // (PriceList.tsx), which prints a different, unrelated floor price tag.
-import { GoodsLabelsPage } from "./pages/GoodsLabels";
-import { GoodsMovementsPage } from "./pages/GoodsMovements";
+const GoodsLabelsPage = lazyPage(() => import("./pages/GoodsLabels"), "GoodsLabelsPage");
+const GoodsMovementsPage = lazyPage(() => import("./pages/GoodsMovements"), "GoodsMovementsPage");
 // Goods-v1 counts at non-trading sites (ticket 17).
-import { GoodsCountDetailPage, GoodsCountsPage } from "./pages/GoodsCounts";
+const GoodsCountDetailPage = lazyPage(() => import("./pages/GoodsCounts"), "GoodsCountDetailPage");
+const GoodsCountsPage = lazyPage(() => import("./pages/GoodsCounts"), "GoodsCountsPage");
 // Goods-v1 monitoring, durable exports and command lookup (ticket 18).
-import { GoodsMonitoringPage } from "./pages/GoodsMonitoring";
-import {
-  TransferListPage,
-  TransferNewPage,
-  TransferDetailPage,
-  TransferPtPage,
-} from "./pages/OutboundTransfers";
-import { DistributionGridPage } from "./pages/DistributionGrid";
-import {
-  StockRequestListPage,
-  StockRequestNewPage,
-  StockRequestDetailPage,
-} from "./pages/OutboundStockRequests";
-import { InTransitPage } from "./pages/OutboundInTransit";
-import { RTVListPage, RTVNewPage, RTVDetailPage } from "./pages/OutboundRTV";
-import { AdjustmentListPage, AdjustmentDetailPage } from "./pages/OutboundAdjustments";
-import { StockCountListPage, StockCountDetailPage } from "./pages/StockCount";
-import { WriteOffListPage, WriteOffNewPage, WriteOffDetailPage } from "./pages/OutboundWriteoffs";
-import { VFlipListPage, VFlipNewPage, VFlipDetailPage } from "./pages/OutboundVflips";
-import { ActionNeededPage } from "./pages/ActionNeeded";
-import { AlertsPage } from "./pages/Alerts";
-import { MailPage } from "./pages/Mail";
-import { OffersPage } from "./pages/Offers";
-import { RunningOffersPage } from "./pages/RunningOffers";
-import { OffersEossPage } from "./pages/OffersEoss";
-import { OfferAuthorPage } from "./pages/OfferAuthor";
-import { PriceListPage } from "./pages/PriceList";
-import { DiscountsPage } from "./pages/Discounts";
-import { InventoryPage } from "./pages/Inventory";
-import { ApplicationRoadmapPage } from "./pages/ApplicationRoadmap";
-import StockLedger from "./pages/StockLedger";
-import { StockBookmark } from "./pages/StockWorkspace";
-import VendorLedger from "./pages/VendorLedger";
-import CashLedger from "./pages/CashLedger";
-import DaySummary from "./pages/DaySummary";
-import IrnQueue from "./pages/IrnQueue";
-import BillingPage from "./pages/sell/Billing";
-import BillsPage from "./pages/sell/Bills";
-import CustomerSearchPage from "./pages/sell/CustomerSearch";
-import TillPage from "./pages/sell/Till";
-import CashCountPage from "./pages/sell/CashCount";
-import DayClosePage from "./pages/sell/DayClose";
+const GoodsMonitoringPage = lazyPage(
+  () => import("./pages/GoodsMonitoring"),
+  "GoodsMonitoringPage",
+);
+const TransferListPage = lazyPage(() => import("./pages/OutboundTransfers"), "TransferListPage");
+const TransferNewPage = lazyPage(() => import("./pages/OutboundTransfers"), "TransferNewPage");
+const TransferDetailPage = lazyPage(
+  () => import("./pages/OutboundTransfers"),
+  "TransferDetailPage",
+);
+const TransferPtPage = lazyPage(() => import("./pages/OutboundTransfers"), "TransferPtPage");
+const DistributionGridPage = lazyPage(
+  () => import("./pages/DistributionGrid"),
+  "DistributionGridPage",
+);
+const StockRequestListPage = lazyPage(
+  () => import("./pages/OutboundStockRequests"),
+  "StockRequestListPage",
+);
+const StockRequestNewPage = lazyPage(
+  () => import("./pages/OutboundStockRequests"),
+  "StockRequestNewPage",
+);
+const StockRequestDetailPage = lazyPage(
+  () => import("./pages/OutboundStockRequests"),
+  "StockRequestDetailPage",
+);
+const InTransitPage = lazyPage(() => import("./pages/OutboundInTransit"), "InTransitPage");
+const RTVListPage = lazyPage(() => import("./pages/OutboundRTV"), "RTVListPage");
+const RTVNewPage = lazyPage(() => import("./pages/OutboundRTV"), "RTVNewPage");
+const RTVDetailPage = lazyPage(() => import("./pages/OutboundRTV"), "RTVDetailPage");
+const AdjustmentListPage = lazyPage(
+  () => import("./pages/OutboundAdjustments"),
+  "AdjustmentListPage",
+);
+const AdjustmentDetailPage = lazyPage(
+  () => import("./pages/OutboundAdjustments"),
+  "AdjustmentDetailPage",
+);
+const StockCountListPage = lazyPage(() => import("./pages/StockCount"), "StockCountListPage");
+const StockCountDetailPage = lazyPage(() => import("./pages/StockCount"), "StockCountDetailPage");
+const WriteOffListPage = lazyPage(() => import("./pages/OutboundWriteoffs"), "WriteOffListPage");
+const WriteOffNewPage = lazyPage(() => import("./pages/OutboundWriteoffs"), "WriteOffNewPage");
+const WriteOffDetailPage = lazyPage(
+  () => import("./pages/OutboundWriteoffs"),
+  "WriteOffDetailPage",
+);
+const VFlipListPage = lazyPage(() => import("./pages/OutboundVflips"), "VFlipListPage");
+const VFlipNewPage = lazyPage(() => import("./pages/OutboundVflips"), "VFlipNewPage");
+const VFlipDetailPage = lazyPage(() => import("./pages/OutboundVflips"), "VFlipDetailPage");
+const ActionNeededPage = lazyPage(() => import("./pages/ActionNeeded"), "ActionNeededPage");
+const AlertsPage = lazyPage(() => import("./pages/Alerts"), "AlertsPage");
+const MailPage = lazyPage(() => import("./pages/Mail"), "MailPage");
+const OffersPage = lazyPage(() => import("./pages/Offers"), "OffersPage");
+const RunningOffersPage = lazyPage(() => import("./pages/RunningOffers"), "RunningOffersPage");
+const OffersEossPage = lazyPage(() => import("./pages/OffersEoss"), "OffersEossPage");
+const OfferAuthorPage = lazyPage(() => import("./pages/OfferAuthor"), "OfferAuthorPage");
+const PriceListPage = lazyPage(() => import("./pages/PriceList"), "PriceListPage");
+const DiscountsPage = lazyPage(() => import("./pages/Discounts"), "DiscountsPage");
+const InventoryPage = lazyPage(() => import("./pages/Inventory"), "InventoryPage");
+const ApplicationRoadmapPage = lazyPage(
+  () => import("./pages/ApplicationRoadmap"),
+  "ApplicationRoadmapPage",
+);
+const StockLedger = lazyPage(() => import("./pages/StockLedger"), "default");
+const StockBookmark = lazyPage(() => import("./pages/StockWorkspace"), "StockBookmark");
+const VendorLedger = lazyPage(() => import("./pages/VendorLedger"), "default");
+const CashLedger = lazyPage(() => import("./pages/CashLedger"), "default");
+const DaySummary = lazyPage(() => import("./pages/DaySummary"), "default");
+const IrnQueue = lazyPage(() => import("./pages/IrnQueue"), "default");
+const BillingPage = lazyPage(() => import("./pages/sell/Billing"), "default");
+const BillsPage = lazyPage(() => import("./pages/sell/Bills"), "default");
+const CustomerSearchPage = lazyPage(() => import("./pages/sell/CustomerSearch"), "default");
+const TillPage = lazyPage(() => import("./pages/sell/Till"), "default");
+const CashCountPage = lazyPage(() => import("./pages/sell/CashCount"), "default");
+const DayClosePage = lazyPage(() => import("./pages/sell/DayClose"), "default");
 
 export type Room = "counter";
 type Screen = RouteObject & { id: string; path: string; room?: Room };
@@ -463,7 +572,48 @@ const LEGACY: Screen[] = LEGACY_PATHS.filter((path) => matchRoutes(CLAIMABLE, pa
   }),
 );
 
+// Each screen's chunk suspends against the one boundary `ProtectedRoute` puts
+// around the outlet. Router navigations are transitions, so moving between
+// screens keeps the current one on view until the next one's code is in,
+// instead of flashing a fallback per route.
 export const PROTECTED_ROUTES: Screen[] = [...CLAIMABLE, ...LEGACY];
+
+/** The list a screen asks for first, where it is plain enough to warm from a
+ *  sidebar hover. Each must be byte-for-byte the URL the screen's `useList`
+ *  builds with its default tab and an empty search box, or the warm-up lands
+ *  in a cache entry nobody reads. */
+const PRIMARY_LIST: Record<string, string> = {
+  alerts: "/alerts",
+  offers: "/offers/",
+  "transfer-list": withQuery("/outbound/transfers", { type: "inter_store" }),
+  "stock-request-list": "/outbound/stock-requests",
+  "count-list": "/outbound/stocktakes",
+  "adjustment-list": "/outbound/adjustments",
+  "writeoff-list": "/outbound/writeoffs",
+  "rtv-list": withQuery("/outbound/rtvs", { return_type: "defective" }),
+  "vflip-list": "/outbound/vflips",
+};
+
+function preloadOf(node: ReactNode): (() => Promise<unknown>) | undefined {
+  if (!isValidElement(node)) return undefined;
+  const preload = (node.type as { preload?: unknown }).preload;
+  if (typeof preload === "function") return preload as () => Promise<unknown>;
+  return preloadOf((node as ReactElement<{ children?: ReactNode }>).props.children);
+}
+
+/** What to warm before someone opens `pathname`: its code chunk, and its
+ *  first list where `PRIMARY_LIST` knows it. */
+export function routeWarmup(pathname: string): {
+  preload?: () => Promise<unknown>;
+  listUrl?: string;
+} {
+  const matched = matchRoutes(CLAIMABLE, pathname);
+  const screen = matched?.[matched.length - 1]?.route as Screen | undefined;
+  if (!screen) return {};
+  const preload = preloadOf(screen.element);
+  const listUrl = PRIMARY_LIST[screen.id];
+  return { ...(preload ? { preload } : {}), ...(listUrl ? { listUrl } : {}) };
+}
 
 /** Resolve from the canonical table so shell chrome cannot drift into a second
  *  pathname list with subtly different prefix rules. */

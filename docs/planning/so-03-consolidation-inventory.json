@@ -6441,6 +6441,14 @@
       "gate": "Trace this dynamic/indirect call to a mounted API and test tenant, scope and field authority."
     },
     {
+      "id": "APP-CACHE-001",
+      "kind": "api_consumer",
+      "key_regex": "^api_consumer:frontend/src/lib/queryCache\\.ts:55ef662222bb$",
+      "primary_id": "P00",
+      "lifecycle": "unresolved",
+      "gate": "Shared GET fetcher behind useList/useDoc (app loading and caching plan, Phase 1); the URL is each screen's own. Read-only, in-memory, keyed by user/store/brand/roles and cleared on logout, expiry, store and role change. Trace each calling screen's URL to its mounted API, tenant, scope and field authority."
+    },
+    {
       "id": "S0819",
       "kind": "api_consumer",
       "key_regex": "^api_consumer:frontend/src/lib/mail\\.ts:1d17567b44e1$",
@@ -25106,7 +25114,7 @@
     }
   ],
   "discovered": {
-    "checksum": "3e7e762afa71faa51161db96b994f61045ab557e5ddd51dbb3c84e8b1540ed3c",
+    "checksum": "1ecc94b450a308ef67264b81c3e13268731f74792b5ce126ad43a938f7b294ac",
     "records": [
       {
         "kind": "api",
@@ -147428,6 +147436,58 @@
         "acceptance_evidence": "Retire duplicate manual/provider send records after retry and refusal proof.",
         "removal_condition": "Retire duplicate manual/provider send records after retry and refusal proof.",
         "rule_id": "S0826"
+      },
+      {
+        "kind": "api_consumer",
+        "key": "api_consumer:frontend/src/lib/queryCache.ts:55ef662222bb",
+        "source": "frontend/src/lib/queryCache.ts",
+        "detail": {
+          "invocation": "api.get",
+          "method": "GET",
+          "argument": "url",
+          "api_reference": null,
+          "resolution": "dynamic"
+        },
+        "primary_id": "P00",
+        "owner": "SO-02",
+        "related_ids": [],
+        "lifecycle": "unresolved",
+        "data_ownership": "Platform-owned configuration and infrastructure",
+        "authorization": "Platform exposure and operator authentication require separate review.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "frontend_declaration",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "unknown",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "replacement": "Supported platform endpoints with security review",
+        "migration_requirements": "No business transaction migration.",
+        "acceptance_evidence": "Platform exposure and deployment checks.",
+        "removal_condition": "Retain while required by deployment; remove only through platform change review.",
+        "gate": "Shared GET fetcher behind useList/useDoc (app loading and caching plan, Phase 1); the URL is each screen's own. Read-only, in-memory, keyed by user/store/brand/roles and cleared on logout, expiry, store and role change. Trace each calling screen's URL to its mounted API, tenant, scope and field authority.",
+        "rule_id": "APP-CACHE-001"
       },
       {
         "kind": "api_consumer",

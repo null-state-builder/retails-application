@@ -147,6 +147,13 @@ def _imports(text: str) -> dict[str, str]:
                     parts = name.strip().split(" as ")
                     if parts[0]:
                         found[parts[-1].strip()] = module_path
+    # Route code splitting: `const X = lazyPage(() => import("./pages/Y"), "Z")`
+    # is the same screen-to-module edge as a static import of Y.
+    for name, module in re.findall(
+        r'\bconst\s+(\w+)\s*=\s*lazyPage\(\s*\(\)\s*=>\s*import\(\s*["\'](\./pages/[^"\']+)["\']',
+        text,
+    ):
+        found[name] = f"frontend/src/{module.removeprefix('./')}.tsx"
     return found
 
 

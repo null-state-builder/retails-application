@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 import { KdpsLogo } from "../components/KdpsLogo";
@@ -45,7 +45,14 @@ export function ProtectedRoute() {
   }
   const room = allowed ? roomAt(location.pathname) : undefined;
   const shell = (
-    <AppShell {...(room ? { room } : {})}>{allowed ? <Outlet /> : <AccessDenied />}</AppShell>
+    <AppShell {...(room ? { room } : {})}>
+      {/* Screens load their code on first open (routes.tsx). One boundary,
+          inside the shell: the menu stays put, and a navigation (a
+          transition) keeps the current screen until the next one is ready. */}
+      <Suspense fallback={<p className="lead">Loading…</p>}>
+        {allowed ? <Outlet /> : <AccessDenied />}
+      </Suspense>
+    </AppShell>
   );
   // The till sits above the shell so the top bar can show its live status. It
   // is always mounted, and only switched on in the counter room: if it came and
