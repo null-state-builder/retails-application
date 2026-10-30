@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { AlertTriangle, FileText, UserPlus } from "lucide-react";
+import { ChevronDown, UserPlus } from "lucide-react";
+
+import { Note } from "../../../components/Note";
 
 import { usePositionedPopover } from "../../../shell/usePositionedPopover";
 import type { TillDb } from "../../../till/db";
@@ -12,6 +15,12 @@ import type { TillCustomer, TillKnownCustomer } from "../../../till/types";
  *  (`usePositionedPopover`'s `fallbackSize`). Kept in step with
  *  `.bill-customer-float`'s width in Billing.css. */
 const FLOAT_WIDTH = 300;
+
+/** ₹50,000 in paise: from here the "Tax invoice (GSTIN)" row opens by itself
+ *  (design system v2 TillLayout), because a bill this size is the one most
+ *  often a business bill. It only opens the row; nothing here requires a
+ *  GSTIN. */
+const GSTIN_ROW_OPENS_AT_PAISE = 5_000_000;
 
 /** What the phone book last answered, and the number it answered *about*.
  *
@@ -44,7 +53,7 @@ interface Answer {
  * buyer's state against the shop's, because it prints minutes before head office
  * hears about the bill and cannot wait for anybody. It sits behind a disclosure
  * because most bills are not business bills - but a bill that *has* one always
- * shows it, whether it came from the phone book, a restored draft or a resumed
+ * shows it, and so does a bill of ₹50,000 or more, whether it came from the phone book, a restored draft or a resumed
  * hold: a field carrying a value the cashier cannot see is the one thing this
  * card is not allowed to do (Rule 5).
  *
@@ -59,9 +68,16 @@ export function CustomerStrip({
   storeStateCode,
   db,
   locked,
+  billPaise,
+  salesperson,
   onChange,
 }: {
   value: TillCustomer;
+  /** The bill's net, which opens the GSTIN row at ₹50,000. */
+  billPaise: number;
+  /** The rail's second section (`SoldBy`), drawn between the customer and the
+   *  GSTIN row: design system v2 TillLayout puts them in that order. */
+  salesperson?: ReactNode;
   /** Null when the counter has not learned which state it is in - see below. */
   storeStateCode: string | null;
   /** The counter's own database, holding the synced phone book (#245). Null
@@ -81,6 +97,11 @@ export function CustomerStrip({
    *  opens it too - see `showGstin` - so this only has to carry the case where
    *  there is nothing to show yet. */
   const [askedForGstin, setAskedForGstin] = useState(false);
+  /** "Not a business bill" was pressed on a bill that opened the row by its
+   *  size. Put down again once the bill falls under the line (a new bill). */
+  const [closedBigBill, setClosedBigBill] = useState(false);
+  const bigBill = billPaise >= GSTIN_ROW_OPENS_AT_PAISE;
+  if (closedBigBill && !bigBill) setClosedBigBill(false);
   /** The phone-book row this card was last filled from. Held because a name and
    *  a registration belong to a *number*, and the cashier can change the number
    *  after picking - five near-identical mobiles are five chances to tap the
@@ -100,7 +121,7 @@ export function CustomerStrip({
   const canBillB2b = storeStateCode !== null;
   const kind = canBillB2b ? taxKindFor(value.gstin, storeStateCode) : "none";
   const malformed = canBillB2b ? describeGstin(value.gstin) : "";
-  const showGstin = askedForGstin || value.gstin.trim() !== "";
+  const showGstin = askedForGstin || value.gstin.trim() !== "" || (bigBill && !closedBigBill);
 
   const searchable = mobilePrefixes(value.mobile).length > 0;
   useEffect(() => {
@@ -158,12 +179,12 @@ export function CustomerStrip({
   }
 
   return (
-    <section className="bill-customer-card">
-      <div className="bill-customer-heading">
-        <p className="eyebrow">Customer</p>
-        <span>Optional</span>
-      </div>
-      <div className="bill-rail-tile bill-customer-tile">
+    <>
+      <section className="bill-rail-section bill-customer-card">
+        <div className="bill-customer-heading">
+          <h3 className="heading">Customer</h3>
+          <span>Optional</span>
+        </div>
         {/* Side by side rather than stacked: the rail has to hold this card and
             the payment card at 1366×768 without a scrollbar of its own
             (grill-decisions amendment 12's exit condition), and a mobile number
@@ -204,23 +225,55 @@ export function CustomerStrip({
             <span /> Returning customer · details from the KDPS phone book
           </p>
         )}
+      </section>
 
-        {!showGstin && (
+      {salesperson}
+
+      {/* The collapsed "Tax invoice (GSTIN)" row (design system v2
+          TillLayout). Only the presentation folds: what opens it is a GSTIN
+          already on the bill, a hand on the row, or a bill of ₹50,000. */}
+      <section className="bill-rail-section bill-gstin" data-open={showGstin || undefined}>
+        {!showGstin ? (
           <button
             type="button"
-            className="btn bill-business-toggle"
+            className="bill-gstin-row"
             data-testid="bill-business-open"
             aria-expanded={false}
             disabled={locked}
             onClick={() => setAskedForGstin(true)}
           >
-            Need a GST business bill?
+            <span className="bill-label">Tax invoice (GSTIN)</span>
+            <span className="bill-gstin-hint">Need a GST business bill?</span>
+            <ChevronDown size={16} aria-hidden="true" />
           </button>
-        )}
-        {showGstin && (
+        ) : (
           <>
+            <div className="bill-gstin-head">
+              <span className="bill-label">Tax invoice (GSTIN)</span>
+              {/* Closing the disclosure on a bill that carries a registration
+                  *clears* it rather than hiding it. "Not a business bill" is a
+                  statement about the bill, and a GSTIN still riding along
+                  invisibly would print a tax invoice the cashier thinks they
+                  cancelled. */}
+              <button
+                type="button"
+                className="btn btn-sm bill-business-toggle"
+                data-testid="bill-business-close"
+                aria-expanded
+                disabled={locked}
+                onClick={() => {
+                  setAskedForGstin(false);
+                  if (bigBill) setClosedBigBill(true);
+                  if (value.gstin) onChange({ ...value, gstin: "" });
+                }}
+              >
+                Not a business bill
+              </button>
+            </div>
             <div className="field">
-              <label htmlFor="bill-gstin">GSTIN (for a business bill)</label>
+              <label htmlFor="bill-gstin" className="sr-only">
+                GSTIN (for a business bill)
+              </label>
               <input
                 id="bill-gstin"
                 className="input mono"
@@ -228,6 +281,7 @@ export function CustomerStrip({
                 autoComplete="off"
                 maxLength={15}
                 spellCheck={false}
+                placeholder="GSTIN"
                 disabled={locked || !canBillB2b}
                 value={value.gstin}
                 // Upper-cased as it is typed, so what the cashier reads back is what
@@ -236,48 +290,28 @@ export function CustomerStrip({
                 onChange={(e) => onChange({ ...value, gstin: e.target.value.toUpperCase() })}
               />
             </div>
-            {/* Closing the disclosure on a bill that carries a registration
-                *clears* it rather than hiding it. "Not a business bill" is a
-                statement about the bill, and a GSTIN still riding along
-                invisibly would print a tax invoice the cashier thinks they
-                cancelled. */}
-            <button
-              type="button"
-              className="btn bill-business-toggle"
-              data-testid="bill-business-close"
-              aria-expanded
-              disabled={locked}
-              onClick={() => {
-                setAskedForGstin(false);
-                if (value.gstin) onChange({ ...value, gstin: "" });
-              }}
-            >
-              Not a business bill
-            </button>
             {!canBillB2b && (
-              <p className="bill-alert" data-testid="bill-gstin-unavailable">
-                <AlertTriangle size={15} /> This counter has not synced its own registration yet, so
-                it cannot say whether a buyer is in this state. Sync from Till &amp; Sync to bill a
-                business; a retail bill is unaffected.
-              </p>
+              <Note tone="warn" testId="bill-gstin-unavailable">
+                This counter has not synced its own registration yet, so it cannot say whether a
+                buyer is in this state. Sync from Till &amp; Sync to bill a business; a retail bill
+                is unaffected.
+              </Note>
             )}
             {kind !== "none" && (
-              <p className="ok-note" data-testid="bill-tax-kind">
-                <FileText size={15} /> Tax invoice · {TAX_KIND_WORDS[kind]}
+              <Note tone="success" testId="bill-tax-kind">
+                Tax invoice · {TAX_KIND_WORDS[kind]}
                 {kind === "igst" ? " (buyer is out of state)" : ""}
-              </p>
+              </Note>
             )}
             {malformed && (
-              <p className="bill-alert" data-testid="bill-gstin-warning">
-                <AlertTriangle size={15} /> {malformed} The bill will still close - check the card.
-              </p>
+              <Note tone="warn" testId="bill-gstin-warning">
+                {malformed} The bill will still close - check the card.
+              </Note>
             )}
+            <p className="muted-cell bill-customer-note">The bill works without any of these.</p>
           </>
         )}
-        {showGstin && (
-          <p className="muted-cell bill-customer-note">The bill works without any of these.</p>
-        )}
-      </div>
+      </section>
 
       {/* Portaled and placed, like every other prompt on this screen (Q11:
           nothing pushes the layout) - and here the portal is doing a second
@@ -288,7 +322,7 @@ export function CustomerStrip({
         createPortal(
           <div
             ref={float.popoverRef}
-            className="card section-card bill-customer-float"
+            className="box bill-customer-float"
             data-testid="bill-customer-float"
             // Applied whole, never field by field - see `PopoverPlacement`.
             // The mobile field sits low on the rail, so this list is normally
@@ -302,7 +336,7 @@ export function CustomerStrip({
                     Ranchi), so most of what a counter sees under a number was
                     billed at some other shop, and a label saying otherwise
                     tells the cashier something untrue about their own store. */}
-                <p className="eyebrow">Billed before</p>
+                <h3 className="heading">Billed before</h3>
                 <div className="bill-customer-rows">
                   {rows.map((row) => (
                     <button
@@ -340,6 +374,6 @@ export function CustomerStrip({
           </div>,
           document.body,
         )}
-    </section>
+    </>
   );
 }

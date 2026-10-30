@@ -104,7 +104,7 @@ def prepare(proof: Any, claim: Any, record: dict[str, Any]) -> dict[str, Any]:
     from approvals.goods_models import ApprovalRequest
     from core.documents import VoucherSeries
     from core.fiscal import financial_year
-    from core.numbering import publish_ceiling, series_store_code
+    from core.numbering import confirmed_ceiling, publish_ceiling, series_store_code
     from django.utils import timezone
     from masters.goods_models import ConfigVersion
     from masters.models import Store
@@ -193,10 +193,14 @@ def prepare(proof: Any, claim: Any, record: dict[str, Any]) -> dict[str, Any]:
     publish("approval", "approval", {"action": "pt.approve.transfer", "roles": ["owner"], "site_ids": [], "brand_ids": [],
         "require_distinct": True, "qty_max": 100, "value_max": "10000000", "step_up": True, "unknown_value": "refuse"})
     entity_id = source.gstin.legal_entity_id
-    publish("series-TPT", "series", {"entity_id": str(entity_id), "type": "TPT", "fy": financial_year(), "ceiling_block_size": 100},
-        {"scope_kind": "entity", "entity_id": str(entity_id)})
-    series = VoucherSeries.objects.get(store_code=series_store_code(entity_id), fy=financial_year(), doc_type="TPT", scope_version="entity_v1")
-    publish_ceiling(claim.tenant_id, series.pk, target=series.ceiling_block_size)
+    # Goods readiness requires TPT (READINESS_SERIES), so the opening proof has
+    # usually published it already; publish it here only when it has not.
+    series = VoucherSeries.objects.filter(store_code=series_store_code(entity_id), fy=financial_year(), doc_type="TPT", scope_version="entity_v1").first()
+    if series is None or confirmed_ceiling(series.pk) <= 0:
+        publish("series-TPT", "series", {"entity_id": str(entity_id), "type": "TPT", "fy": financial_year(), "ceiling_block_size": 100},
+            {"scope_kind": "entity", "entity_id": str(entity_id)})
+        series = VoucherSeries.objects.get(store_code=series_store_code(entity_id), fy=financial_year(), doc_type="TPT", scope_version="entity_v1")
+        publish_ceiling(claim.tenant_id, series.pk, target=series.ceiling_block_size)
     fixture.update(synthetic_only=True, source_site_id=str(source.pk), destination_site_id=destination_id,
         destination_floor_id=str(floor["id"]), sku_id=str(origin.sku_id), origin_id=str(origin.pk), barcode="ALPHA000123")
     proof.save(record)

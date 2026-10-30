@@ -20,6 +20,7 @@ import { splitTax, taxKindFor } from "./gstin";
 import { taxLabel } from "./tax";
 import type { B2bTaxKind } from "./gstin";
 import { describePiece } from "./lookup";
+import { TEST_MARK } from "../lib/testEnvironment";
 import type { BillLine, BillTender, QueuedBill, TillCustomer, TillStoreIdentity } from "./types";
 
 export interface ReceiptOptions {
@@ -261,6 +262,29 @@ export function receiptHtml(
   ${footer(bill)}
 </body></html>`;
 }
+
+/**
+ * The same document with a test banner across its top and its bottom.
+ *
+ * Applied to the finished string rather than threaded through each builder, so
+ * a bill, an exchange and a reprint (and any paper added later) are all marked
+ * the same way. The banner's style rides inline: the receipt's own sheet is not
+ * the only HTML that passes through here.
+ */
+export function markTestDocument(html: string): string {
+  const banner = `<div class="test-mark" data-test-mark style="${TEST_MARK_STYLE}">${esc(TEST_MARK)}</div>`;
+  const opened = /<body[^>]*>/i.exec(html);
+  const top = opened ? opened.index + opened[0].length : 0;
+  const withTop = `${html.slice(0, top)}\n  ${banner}${html.slice(top)}`;
+  const close = withTop.toLowerCase().lastIndexOf("</body>");
+  return close < 0
+    ? `${withTop}\n  ${banner}`
+    : `${withTop.slice(0, close)}  ${banner}\n${withTop.slice(close)}`;
+}
+
+const TEST_MARK_STYLE =
+  "display:block;margin:4px 0;padding:4px 2px;border:2px solid #000;text-align:center;" +
+  "font:800 14px/1.25 Arial,sans-serif;letter-spacing:0.5px;text-transform:uppercase;color:#000;";
 
 const STYLE = `
   @page { size: 80mm auto; margin: 0; }

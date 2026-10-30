@@ -56,10 +56,12 @@ export function TagPrintModal({ rows, onClose }: { rows: TagPrintRow[]; onClose:
       >
         <div className="modal-head">
           <div>
-            <p className="eyebrow">
-              <Printer size={14} /> Print {many ? `${rows.length} tags` : "tag"}
+            <h3 className="h3">
+              <Printer size={16} aria-hidden="true" /> Print {many ? `${rows.length} tags` : "tag"}
+            </h3>
+            <p className="muted-cell">
+              {many ? "Selected pieces" : rows[0]?.brand || "(unbranded)"}
             </p>
-            <h3 className="h3">{many ? "Selected pieces" : rows[0]?.brand || "(unbranded)"}</h3>
           </div>
           <button
             type="button"
@@ -71,14 +73,10 @@ export function TagPrintModal({ rows, onClose }: { rows: TagPrintRow[]; onClose:
           </button>
         </div>
 
-        <div
-          className="card section-card no-print"
-          style={{ marginTop: 14 }}
-          data-testid="tag-preview"
-        >
+        <div className="box no-print" style={{ marginTop: 14 }} data-testid="tag-preview">
           {rows.map((r) => (
             <div key={r.barcode} style={{ textAlign: "center", padding: many ? "6px 0" : 0 }}>
-              <p className="eyebrow">{r.item || "Piece"}</p>
+              <p className="muted-cell">{r.item || "Piece"}</p>
               <p style={{ fontWeight: 700 }}>
                 {r.design} {r.color} {r.size}
               </p>
@@ -111,7 +109,7 @@ export function TagPrintModal({ rows, onClose }: { rows: TagPrintRow[]; onClose:
 
         <button
           type="button"
-          className="btn btn-cta no-print"
+          className="btn btn-primary no-print"
           style={{ marginTop: 14, width: "100%" }}
           onClick={() => window.print()}
           data-testid="tag-print-confirm"

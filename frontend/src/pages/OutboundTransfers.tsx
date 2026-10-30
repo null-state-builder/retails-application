@@ -3,7 +3,6 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import {
   ArrowLeft,
   ArrowRight,
-  AlertTriangle,
   Boxes,
   Download,
   PackageCheck,
@@ -23,8 +22,14 @@ import { destinationOptions, isCrossState, type LocationT } from "../lib/transfe
 import { ScanScreen, type ScanResult, type ScanTarget } from "../components/ScanScreen";
 import { ListSearchBar } from "../components/SearchBox";
 import { ApprovalPill, ApprovalTrail, isCleared, type ApprovalT } from "../components/approval";
+import { KpiStrip } from "../components/KpiStrip";
+import { Note } from "../components/Note";
+import { Section } from "../components/Section";
+import { EmptyState } from "../components/States";
+import { Status, type StatusTone } from "../components/Status";
 import "./Booking.css";
 import { PageHeader } from "../components/PageHeader";
+import { SegmentedControl } from "../components/SegmentedControl";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -38,13 +43,11 @@ export function fmtDate(iso: string): string {
   });
 }
 
-const DS_TONE: Record<number, string> = { 0: "grey", 1: "green", 2: "red" };
+const DS_TONE: Record<number, StatusTone> = { 0: "grey", 1: "green", 2: "red" };
 const DS_LABEL: Record<number, string> = { 0: "Draft", 1: "Submitted", 2: "Cancelled" };
 
 function DocPill({ ds }: { ds: number }) {
-  return (
-    <span className={`chip chip-${DS_TONE[ds] ?? "grey"} status-pill`}>{DS_LABEL[ds] ?? ds}</span>
-  );
+  return <Status tone={DS_TONE[ds] ?? "grey"}>{DS_LABEL[ds] ?? ds}</Status>;
 }
 
 const TRANSFER_TYPE_LABEL: Record<string, string> = {
@@ -68,7 +71,7 @@ const TRANSPORT_OPTIONS = [
   { value: "hand_carried", label: "Hand-carried" },
 ];
 
-const RECEIPT_TONE: Record<string, string> = {
+const RECEIPT_TONE: Record<string, StatusTone> = {
   pending: "amber",
   complete: "green",
   shortfall: "red",
@@ -197,7 +200,7 @@ export const GAP_STATE_LABEL: Record<string, string> = {
   closed: "Gap closed",
 };
 
-const GAP_STATE_TONE: Record<string, string> = {
+const GAP_STATE_TONE: Record<string, StatusTone> = {
   in_transit: "amber",
   received: "green",
   gap: "red",
@@ -207,13 +210,13 @@ const GAP_STATE_TONE: Record<string, string> = {
 export function GapStatePill({ state }: { state: string }) {
   if (!state) return null;
   return (
-    <span className={`chip chip-${GAP_STATE_TONE[state] ?? "grey"}`} data-testid="gap-state-pill">
+    <Status tone={GAP_STATE_TONE[state] ?? "grey"} testId="gap-state-pill">
       {GAP_STATE_LABEL[state] ?? state}
-    </span>
+    </Status>
   );
 }
 
-const EXCEPTION_TONE: Record<string, string> = {
+const EXCEPTION_TONE: Record<string, StatusTone> = {
   short: "red",
   extra: "amber",
   damaged: "amber",
@@ -238,9 +241,7 @@ export function ReceiptExceptions({ rows }: { rows: ReceiptExceptionT[] }) {
           {rows.map((e) => (
             <tr key={e.id} data-testid={`exception-${e.kind}-${e.sku_code}`}>
               <td>
-                <span className={`chip chip-${EXCEPTION_TONE[e.kind] ?? "grey"}`}>
-                  {e.kind_label}
-                </span>
+                <Status tone={EXCEPTION_TONE[e.kind] ?? "grey"}>{e.kind_label}</Status>
               </td>
               <td>
                 <b className="mono">{e.sku_code}</b>
@@ -283,35 +284,39 @@ export function TransferListPage() {
       <PageHeader
         actions={
           writable && (
-            <Link className="btn btn-cta" to="/transfer/new" data-testid="new-transfer-btn">
+            <Link className="btn btn-primary" to="/transfer/new" data-testid="new-transfer-btn">
               <Plus size={16} /> New transfer
             </Link>
           )
         }
       />
 
-      <div
-        className="mode-toggle"
-        data-testid="transfer-type-toggle"
-        style={{ maxWidth: 520, marginBottom: 18 }}
-      >
-        <button
-          type="button"
-          className={`mode-btn ${tab === "inter_store" ? "active" : ""}`}
-          onClick={() => setTab("inter_store")}
-          data-testid="transfer-tab-inter"
-        >
-          <ArrowRight size={16} /> Inter-store
-        </button>
-        <button
-          type="button"
-          className={`mode-btn ${tab === "store_split" ? "active" : ""}`}
-          onClick={() => setTab("store_split")}
-          data-testid="transfer-tab-split"
-        >
-          <Boxes size={16} /> Store split (WH → store)
-        </button>
-      </div>
+      <SegmentedControl
+        label="Kind of transfer"
+        testId="transfer-type-toggle"
+        value={tab}
+        options={[
+          {
+            value: "inter_store",
+            label: (
+              <>
+                <ArrowRight size={16} aria-hidden="true" /> Inter-store
+              </>
+            ),
+            testId: "transfer-tab-inter",
+          },
+          {
+            value: "store_split",
+            label: (
+              <>
+                <Boxes size={16} aria-hidden="true" /> Store split (WH → store)
+              </>
+            ),
+            testId: "transfer-tab-split",
+          },
+        ]}
+        onChange={setTab}
+      />
 
       <ListSearchBar
         value={q}
@@ -327,12 +332,12 @@ export function TransferListPage() {
       {loading ? (
         <p className="lead">Loading…</p>
       ) : data.length === 0 ? (
-        <div className="card section-card" data-testid="transfer-empty">
+        <EmptyState testId="transfer-empty">
           {q
             ? `No ${tab === "store_split" ? "store split" : "inter-store"} transfer matches “${q}”. ` +
               "Try the document number, or the store it came from or went to."
             : `No ${tab === "store_split" ? "store split" : "inter-store"} transfers yet.`}
-        </div>
+        </EmptyState>
       ) : (
         <div className="table-wrap">
           <table className="data" data-testid="transfer-table">
@@ -373,9 +378,9 @@ export function TransferListPage() {
                   <td className="num">{t.lines.length}</td>
                   <td>
                     {t.is_cross_state ? (
-                      <span className="chip chip-amber">Cross-state</span>
+                      <Status tone="amber">Cross-state</Status>
                     ) : (
-                      <span className="chip chip-grey">Same state</span>
+                      <span className="muted">Same state</span>
                     )}
                   </td>
                   <td>
@@ -386,13 +391,11 @@ export function TransferListPage() {
                   </td>
                   <td>
                     {t.receipt ? (
-                      <span
-                        className={`chip chip-${RECEIPT_TONE[t.receipt.receipt_status] ?? "grey"}`}
-                      >
+                      <Status tone={RECEIPT_TONE[t.receipt.receipt_status] ?? "grey"}>
                         {t.receipt.receipt_status}
-                      </span>
+                      </Status>
                     ) : t.docstatus === 1 ? (
-                      <span className="chip chip-amber">In transit</span>
+                      <Status tone="amber">In transit</Status>
                     ) : (
                       "—"
                     )}
@@ -514,236 +517,229 @@ export function TransferNewPage() {
       >
         <ArrowLeft size={15} /> Transfers
       </Link>
-      <h1 className="h1 h2-rust" style={{ marginBottom: 18 }}>
+      <h1 className="h1" style={{ marginBottom: 18 }}>
         New transfer
       </h1>
 
-      <div className="card section-card">
-        <p className="eyebrow">Step 1 · Locations</p>
-        <div className="form-row" style={{ marginTop: 10 }}>
-          <div className="field">
-            <label>Source store / warehouse</label>
-            {storeLocked && lockedStore ? (
-              <div className="store-lock" data-testid="transfer-source-locked">
-                {lockedStore.code} · {lockedStore.name}
-              </div>
-            ) : (
+      <div className="page">
+        <Section heading="Step 1 · Locations">
+          <div className="form-row">
+            <div className="field">
+              <label>Source store / warehouse</label>
+              {storeLocked && lockedStore ? (
+                <div className="store-lock" data-testid="transfer-source-locked">
+                  {lockedStore.code} · {lockedStore.name}
+                </div>
+              ) : (
+                <select
+                  className="select"
+                  value={sourceId}
+                  onChange={(e) => setSourceId(e.target.value)}
+                  data-testid="transfer-source-select"
+                >
+                  <option value="">Select source…</option>
+                  {stores.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.code} · {s.name} {s.store_type === "warehouse" ? "(WH)" : ""}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div className="field">
+              <label>Destination store / warehouse</label>
               <select
                 className="select"
-                value={sourceId}
-                onChange={(e) => setSourceId(e.target.value)}
-                data-testid="transfer-source-select"
+                value={destId}
+                onChange={(e) => setDestId(e.target.value)}
+                data-testid="transfer-dest-select"
               >
-                <option value="">Select source…</option>
-                {stores.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.code} · {s.name} {s.store_type === "warehouse" ? "(WH)" : ""}
+                <option value="">Select destination…</option>
+                {destinations.map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.code} · {l.name} {l.store_type === "warehouse" ? "(WH)" : ""}
                   </option>
                 ))}
               </select>
-            )}
-          </div>
-          <div className="field">
-            <label>Destination store / warehouse</label>
-            <select
-              className="select"
-              value={destId}
-              onChange={(e) => setDestId(e.target.value)}
-              data-testid="transfer-dest-select"
-            >
-              <option value="">Select destination…</option>
-              {destinations.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.code} · {l.name} {l.store_type === "warehouse" ? "(WH)" : ""}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="field">
-            <label>Transfer type</label>
-            <select
-              className="select"
-              value={transferType}
-              onChange={(e) => setTransferType(e.target.value)}
-              data-testid="transfer-type-select"
-            >
-              <option value="inter_store">Inter-store</option>
-              <option value="store_split">Store split (WH → store)</option>
-            </select>
-          </div>
-          <div className="field">
-            <label>Reason</label>
-            <select
-              className="select"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              data-testid="transfer-reason-select"
-            >
-              <option value="">Select reason…</option>
-              {REASON_OPTIONS.map((r) => (
-                <option key={r.value} value={r.value}>
-                  {r.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-        {crossState && (
-          <div className="warn-note" style={{ marginTop: 14 }} data-testid="cross-state-warning">
-            <AlertTriangle size={14} style={{ verticalAlign: "middle", marginRight: 6 }} />
-            Cross-state transfer (Bihar ↔ Jharkhand) — <b>E-way bill is required</b>.
-          </div>
-        )}
-      </div>
-
-      <div className="card section-card">
-        <p className="eyebrow">Step 2 · Transport details</p>
-        <div className="form-row" style={{ marginTop: 10 }}>
-          <div className="field">
-            <label>Transport mode</label>
-            <select
-              className="select"
-              value={transportMode}
-              onChange={(e) => setTransportMode(e.target.value)}
-              data-testid="transfer-transport-mode"
-            >
-              <option value="">Select mode…</option>
-              {TRANSPORT_OPTIONS.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="field">
-            <label>Bus / courier AWB / vehicle plate</label>
-            <input
-              className="input"
-              value={transportRef}
-              onChange={(e) => setTransportRef(e.target.value)}
-              placeholder="Transport ID"
-              data-testid="transfer-transport-ref"
-            />
-          </div>
-          <div className="field">
-            <label>Dispatcher name</label>
-            <input
-              className="input"
-              value={dispatcherName}
-              onChange={(e) => setDispatcherName(e.target.value)}
-              placeholder="Who is dispatching?"
-              data-testid="transfer-dispatcher"
-            />
-          </div>
-          <div className="field">
-            <label>Expected arrival</label>
-            <input
-              className="input"
-              value={expectedArrival}
-              onChange={(e) => setExpectedArrival(e.target.value)}
-              placeholder="e.g. Tomorrow by 2 PM"
-              data-testid="transfer-expected-arrival"
-            />
+            </div>
+            <div className="field">
+              <label>Transfer type</label>
+              <select
+                className="select"
+                value={transferType}
+                onChange={(e) => setTransferType(e.target.value)}
+                data-testid="transfer-type-select"
+              >
+                <option value="inter_store">Inter-store</option>
+                <option value="store_split">Store split (WH → store)</option>
+              </select>
+            </div>
+            <div className="field">
+              <label>Reason</label>
+              <select
+                className="select"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                data-testid="transfer-reason-select"
+              >
+                <option value="">Select reason…</option>
+                {REASON_OPTIONS.map((r) => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
           {crossState && (
+            <Note tone="warn" testId="cross-state-warning">
+              Cross-state transfer (Bihar ↔ Jharkhand) — <b>E-way bill is required</b>.
+            </Note>
+          )}
+        </Section>
+
+        <Section heading="Step 2 · Transport details" ruled>
+          <div className="form-row">
             <div className="field">
-              <label>E-way bill number *</label>
+              <label>Transport mode</label>
+              <select
+                className="select"
+                value={transportMode}
+                onChange={(e) => setTransportMode(e.target.value)}
+                data-testid="transfer-transport-mode"
+              >
+                <option value="">Select mode…</option>
+                {TRANSPORT_OPTIONS.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label>Bus / courier AWB / vehicle plate</label>
               <input
                 className="input"
-                value={ewayBill}
-                onChange={(e) => setEwayBill(e.target.value)}
-                placeholder="Required for cross-state"
-                data-testid="transfer-eway-bill"
+                value={transportRef}
+                onChange={(e) => setTransportRef(e.target.value)}
+                placeholder="Transport ID"
+                data-testid="transfer-transport-ref"
               />
             </div>
-          )}
-        </div>
-      </div>
-
-      <div className="card section-card">
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 10,
-          }}
-        >
-          <div>
-            <p className="eyebrow">Step 3 · Plan (optional)</p>
-            <h3 className="h3">Planned lines</h3>
+            <div className="field">
+              <label>Dispatcher name</label>
+              <input
+                className="input"
+                value={dispatcherName}
+                onChange={(e) => setDispatcherName(e.target.value)}
+                placeholder="Who is dispatching?"
+                data-testid="transfer-dispatcher"
+              />
+            </div>
+            <div className="field">
+              <label>Expected arrival</label>
+              <input
+                className="input"
+                value={expectedArrival}
+                onChange={(e) => setExpectedArrival(e.target.value)}
+                placeholder="e.g. Tomorrow by 2 PM"
+                data-testid="transfer-expected-arrival"
+              />
+            </div>
+            {crossState && (
+              <div className="field">
+                <label>E-way bill number *</label>
+                <input
+                  className="input"
+                  value={ewayBill}
+                  onChange={(e) => setEwayBill(e.target.value)}
+                  placeholder="Required for cross-state"
+                  data-testid="transfer-eway-bill"
+                />
+              </div>
+            )}
           </div>
+        </Section>
+
+        <Section
+          heading="Step 3 · Planned lines (optional)"
+          ruled
+          aside={
+            <button
+              type="button"
+              className="btn btn-sm"
+              onClick={() => setLines((l) => [...l, emptyLine()])}
+              data-testid="add-transfer-line"
+            >
+              <Plus size={15} /> Add plan line
+            </button>
+          }
+        >
+          <p className="lead">
+            The plan is what dispatch scans <b>against</b> — the scanned pieces are the only
+            quantities that move stock. Leave it empty to build the transfer by scanning the carton
+            at dispatch (store → store).
+          </p>
+          {lines.length > 0 && (
+            <table className="lines-table" data-testid="transfer-lines">
+              <thead>
+                <tr>
+                  <th style={{ width: "50%" }}>Barcode / SKU</th>
+                  <th className="num">Planned qty</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {lines.map((l, i) => (
+                  <tr key={i}>
+                    <td>
+                      <input
+                        value={l.sku_code}
+                        onChange={(e) => setLine(i, "sku_code", e.target.value)}
+                        data-testid={`tl-sku-${i}`}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        className="num"
+                        value={l.qty_planned}
+                        onChange={(e) => setLine(i, "qty_planned", e.target.value)}
+                        data-testid={`tl-qty-${i}`}
+                      />
+                    </td>
+                    <td className="act">
+                      <button
+                        type="button"
+                        className="line-del"
+                        onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))}
+                        data-testid={`delete-tl-${i}`}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </Section>
+
+        {error && (
+          <Note tone="error" testId="transfer-create-error">
+            {error}
+          </Note>
+        )}
+        <div>
           <button
-            type="button"
-            className="btn"
-            onClick={() => setLines((l) => [...l, emptyLine()])}
-            data-testid="add-transfer-line"
+            className="btn btn-primary btn-lg"
+            disabled={saving}
+            onClick={save}
+            data-testid="save-transfer-btn"
           >
-            <Plus size={15} /> Add plan line
+            <Truck size={16} /> {saving ? "Saving…" : "Create transfer (draft)"}
           </button>
         </div>
-        <p className="lead" style={{ marginBottom: 10 }}>
-          The plan is what dispatch scans <b>against</b> — the scanned pieces are the only
-          quantities that move stock. Leave it empty to build the transfer by scanning the carton at
-          dispatch (store → store).
-        </p>
-        {lines.length > 0 && (
-          <table className="lines-table" data-testid="transfer-lines">
-            <thead>
-              <tr>
-                <th style={{ width: "50%" }}>Barcode / SKU</th>
-                <th className="num">Planned qty</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {lines.map((l, i) => (
-                <tr key={i}>
-                  <td>
-                    <input
-                      value={l.sku_code}
-                      onChange={(e) => setLine(i, "sku_code", e.target.value)}
-                      data-testid={`tl-sku-${i}`}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      className="num"
-                      value={l.qty_planned}
-                      onChange={(e) => setLine(i, "qty_planned", e.target.value)}
-                      data-testid={`tl-qty-${i}`}
-                    />
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="line-del"
-                      onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))}
-                      data-testid={`delete-tl-${i}`}
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
       </div>
-
-      {error && (
-        <div className="login-error" style={{ maxWidth: 540 }} data-testid="transfer-create-error">
-          {error}
-        </div>
-      )}
-      <button
-        className="btn btn-primary btn-lg"
-        disabled={saving}
-        onClick={save}
-        data-testid="save-transfer-btn"
-      >
-        <Truck size={16} /> {saving ? "Saving…" : "Create transfer (draft)"}
-      </button>
     </div>
   );
 }
@@ -791,15 +787,18 @@ async function downloadPt(transferId: number | string, kind: "csv" | "xlsx") {
 function TransferPtCard({ t }: { t: TransferT }) {
   if (!t.pt_generated_at) return null;
   return (
-    <div className="card section-card" data-testid="transfer-pt-card">
-      <p className="eyebrow">PT file</p>
-      <h3 className="h3">Generated {fmtDate(t.pt_generated_at)}</h3>
-      <p className="lead" style={{ marginTop: 6 }}>
-        Built from the scanned lines, so the document and the carton say the same thing. It is never
-        typed and cannot be edited - send it with the goods.
+    <Section heading="PT file" ruled testId="transfer-pt-card">
+      <p className="lead">
+        Generated {fmtDate(t.pt_generated_at)}. Built from the scanned lines, so the document and
+        the carton say the same thing. It is never typed and cannot be edited - send it with the
+        goods.
       </p>
-      <div className="toolbar" style={{ marginTop: 14, marginBottom: 0 }}>
-        <Link className="btn btn-cta" to={`/transfer/${t.id}/pt`} data-testid="transfer-pt-open">
+      <div className="toolbar" style={{ marginBottom: 0 }}>
+        <Link
+          className="btn btn-primary"
+          to={`/transfer/${t.id}/pt`}
+          data-testid="transfer-pt-open"
+        >
           <Printer size={15} /> View &amp; print
         </Link>
         <button
@@ -819,7 +818,7 @@ function TransferPtCard({ t }: { t: TransferT }) {
           <Download size={15} /> CSV
         </button>
       </div>
-    </div>
+    </Section>
   );
 }
 
@@ -863,11 +862,11 @@ export function TransferPtPage() {
 
       <div className="toolbar">
         <div>
-          <p className="eyebrow">PT file · {pt.doc_number || `Draft #${pt.transfer}`}</p>
           <h1 className="h1">
             {pt.source_store_code} → {pt.destination_store_code}
           </h1>
           <p className="lead">
+            PT file <span className="mono">{pt.doc_number || `Draft #${pt.transfer}`}</span> ·{" "}
             {pt.source_store_name} → {pt.destination_store_name} · {pt.rows.length} line(s) ·
             generated {fmtDate(pt.generated_at)}
             {pt.generated_by_name ? ` by ${pt.generated_by_name}` : ""}
@@ -877,7 +876,7 @@ export function TransferPtPage() {
         <div className="toolbar pt-print-hide" style={{ marginBottom: 0 }}>
           <button
             type="button"
-            className="btn btn-cta"
+            className="btn btn-primary"
             onClick={() => window.print()}
             data-testid="transfer-pt-print"
           >
@@ -1033,12 +1032,12 @@ export function TransferDetailPage() {
       </Link>
       <div className="toolbar">
         <div>
-          <p className="eyebrow">{t.doc_number || `Draft #${t.id}`}</p>
           <h1 className="h1">
             {t.source_store_code} → {t.destination_store_code}
           </h1>
           <p className="lead">
-            {t.source_store_name} → {t.destination_store_name}
+            <span className="mono">{t.doc_number || `Draft #${t.id}`}</span> · {t.source_store_name}{" "}
+            → {t.destination_store_name}
             {t.reason
               ? ` · ${REASON_OPTIONS.find((r) => r.value === t.reason)?.label || t.reason}`
               : ""}
@@ -1048,19 +1047,17 @@ export function TransferDetailPage() {
         <DocPill ds={t.docstatus} />
         {t.docstatus === 0 && <ApprovalPill status={t.approval?.status ?? "pending"} />}
         <GapStatePill state={t.gap_state} />
-        {t.is_cross_state && <span className="chip chip-amber">Cross-state</span>}
-        <span className="chip chip-navy">
-          {TRANSFER_TYPE_LABEL[t.transfer_type] ?? t.transfer_type}
-        </span>
+        {t.is_cross_state && <Status tone="amber">Cross-state</Status>}
+        <span className="chip">{TRANSFER_TYPE_LABEL[t.transfer_type] ?? t.transfer_type}</span>
         {t.docstatus === 1 && t.dispatch_mismatch && (
-          <span className="chip chip-amber" data-testid="dispatch-mismatch-chip">
+          <Status tone="amber" testId="dispatch-mismatch-chip">
             Plan mismatch
-          </span>
+          </Status>
         )}
         {canDispatch && (
           <button
             type="button"
-            className="btn btn-cta"
+            className="btn btn-primary"
             onClick={() => {
               setScanError("");
               setScanMode("dispatch");
@@ -1073,7 +1070,7 @@ export function TransferDetailPage() {
         {canReceive && (
           <button
             type="button"
-            className="btn btn-cta"
+            className="btn btn-primary"
             onClick={() => {
               setScanError("");
               setScanMode("receive");
@@ -1115,237 +1112,206 @@ export function TransferDetailPage() {
         />
       )}
 
-      {/* Stats row */}
-      <div className="form-row" style={{ marginBottom: 18 }}>
-        <div className="card section-card">
-          <p className="eyebrow">Transport</p>
-          <h3 className="h3">
-            {TRANSPORT_OPTIONS.find((o) => o.value === t.transport_mode)?.label ||
-              t.transport_mode ||
-              "—"}
-          </h3>
-          {t.transport_ref && (
-            <p className="lead" style={{ marginTop: 4 }}>
-              {t.transport_ref}
-            </p>
-          )}
-        </div>
-        <div className="card section-card">
-          <p className="eyebrow">Dispatcher</p>
-          <h3 className="h3">{t.dispatcher_name || "—"}</h3>
-          {t.expected_arrival_note && (
-            <p className="lead" style={{ marginTop: 4 }}>
-              {t.expected_arrival_note}
-            </p>
-          )}
-        </div>
-        <div className="card section-card">
-          <p className="eyebrow">Dispatched / Received</p>
-          <h3 className="h3">
-            {totalDispatched} / {totalReceived} pcs
-          </h3>
-          {t.qty_in_transit > 0 && (
-            <p className="lead" style={{ marginTop: 4 }} data-testid="in-transit-count">
-              <b>{t.qty_in_transit} pcs in transit</b>
-            </p>
-          )}
-        </div>
-        <div className="card section-card">
-          <p className="eyebrow">Raised</p>
-          <h3 className="h3">{fmtDate(t.created_at)}</h3>
-          {/* Who actually let the stock go, and when — the other half of the
-              trail. The "Dispatcher" card above is the free-text person carrying
-              the carton, which is not the same question (#137). */}
-          {t.dispatch_date && (
-            <p className="lead" style={{ marginTop: 4 }} data-testid="dispatched-by">
-              Sent by <b>{t.dispatched_by_name || "—"}</b> on {fmtDate(t.dispatch_date)}
-            </p>
-          )}
-        </div>
-      </div>
-
-      {t.eway_bill_number && (
-        <div className="card section-card" style={{ marginBottom: 18 }}>
-          <p className="eyebrow">E-way bill</p>
-          <h3 className="h3 mono">{t.eway_bill_number}</h3>
-        </div>
-      )}
-
-      {/* Only ever set when the destination is a partner store (Rule 12) —
-          every ordinary transfer leaves this null, exactly as before. */}
-      {t.partner_billing_value_paise != null && (
-        <div
-          className="card section-card"
-          style={{ marginBottom: 18 }}
-          data-testid="partner-billing-card"
-        >
-          <p className="eyebrow">Partner billing</p>
-          <h3 className="h3">
-            <Money paise={t.partner_billing_value_paise} /> at Purchase Price
-          </h3>
-          <p className="lead" style={{ marginTop: 4 }}>
-            {t.destination_store_code} is a partner store — this is what it owes for this transfer.
-          </p>
-        </div>
-      )}
-
-      {/* Who made this transfer and who let the stock go (#137) */}
-      <div style={{ marginBottom: 18 }} data-testid="transfer-approval">
-        <ApprovalTrail
-          createdByName={t.created_by_name}
-          createdAt={t.created_at}
-          approval={t.approval}
-          history={t.approval_history}
-          askAgainPath={writable ? `/outbound/transfers/${t.id}/request-approval` : undefined}
+      <div className="page">
+        {/* Stats row */}
+        <KpiStrip
+          label="Transfer"
+          items={[
+            {
+              label: "Transport",
+              value:
+                TRANSPORT_OPTIONS.find((o) => o.value === t.transport_mode)?.label ||
+                t.transport_mode ||
+                "—",
+              detail: t.transport_ref || undefined,
+            },
+            {
+              label: "Dispatcher",
+              value: t.dispatcher_name || "—",
+              detail: t.expected_arrival_note || undefined,
+            },
+            {
+              label: "Dispatched / Received",
+              value: `${totalDispatched} / ${totalReceived} pcs`,
+              detail:
+                t.qty_in_transit > 0 ? (
+                  <b data-testid="in-transit-count">{t.qty_in_transit} pcs in transit</b>
+                ) : undefined,
+            },
+            {
+              label: "Raised",
+              value: fmtDate(t.created_at),
+              // Who actually let the stock go, and when — the other half of the
+              // trail. "Dispatcher" above is the free-text person carrying the
+              // carton, which is not the same question (#137).
+              detail: t.dispatch_date ? (
+                <span data-testid="dispatched-by">
+                  Sent by <b>{t.dispatched_by_name || "—"}</b> on {fmtDate(t.dispatch_date)}
+                </span>
+              ) : undefined,
+            },
+            ...(t.eway_bill_number
+              ? [{ label: "E-way bill", value: <span className="mono">{t.eway_bill_number}</span> }]
+              : []),
+          ]}
         />
-      </div>
 
-      {/* The PT that went in the box (#72) */}
-      <TransferPtCard t={t} />
-
-      {/* Receipt — and everything that went wrong at it (#71) */}
-      {t.receipt && (
-        <div
-          className="card section-card"
-          style={{ marginBottom: 18 }}
-          data-testid="transfer-receipt-info"
-        >
-          <p className="eyebrow">Receipt</p>
-          <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
-            <span className={`chip chip-${RECEIPT_TONE[t.receipt.receipt_status] ?? "grey"}`}>
-              {t.receipt.receipt_status}
-            </span>
-            <span className="lead">{fmtDate(t.receipt.receipt_date)}</span>
-            {t.receipt.received_by_name && (
-              <span className="lead">
-                by <b>{t.receipt.received_by_name}</b>
-              </span>
-            )}
-          </div>
-          {t.receipt.shortfall_notes && (
-            <p className="lead" style={{ marginTop: 10 }} data-testid="shortfall-notes">
-              “{t.receipt.shortfall_notes}”
+        {/* Only ever set when the destination is a partner store (Rule 12) —
+          every ordinary transfer leaves this null, exactly as before. */}
+        {t.partner_billing_value_paise != null && (
+          <Section heading="Partner billing" testId="partner-billing-card">
+            <p>
+              <b>
+                <Money paise={t.partner_billing_value_paise} />
+              </b>{" "}
+              at Purchase Price
             </p>
-          )}
-          {t.receipt.exceptions.length > 0 && (
-            <div style={{ marginTop: 14 }}>
-              <ReceiptExceptions rows={t.receipt.exceptions} />
+            <p className="lead">
+              {t.destination_store_code} is a partner store — this is what it owes for this
+              transfer.
+            </p>
+          </Section>
+        )}
+
+        {/* Who made this transfer and who let the stock go (#137) */}
+        <div data-testid="transfer-approval">
+          <ApprovalTrail
+            createdByName={t.created_by_name}
+            createdAt={t.created_at}
+            approval={t.approval}
+            history={t.approval_history}
+            askAgainPath={writable ? `/outbound/transfers/${t.id}/request-approval` : undefined}
+          />
+        </div>
+
+        {/* The PT that went in the box (#72) */}
+        <TransferPtCard t={t} />
+
+        {/* Receipt — and everything that went wrong at it (#71) */}
+        {t.receipt && (
+          <Section heading="Receipt" ruled testId="transfer-receipt-info">
+            <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+              <Status tone={RECEIPT_TONE[t.receipt.receipt_status] ?? "grey"}>
+                {t.receipt.receipt_status}
+              </Status>
+              <span className="lead">{fmtDate(t.receipt.receipt_date)}</span>
+              {t.receipt.received_by_name && (
+                <span className="lead">
+                  by <b>{t.receipt.received_by_name}</b>
+                </span>
+              )}
             </div>
-          )}
-        </div>
-      )}
-
-      {/* The gap and how it was closed */}
-      {t.gap_state === "gap" && (
-        <div
-          className="card section-card"
-          style={{ marginBottom: 18 }}
-          data-testid="transfer-open-gap"
-        >
-          <p className="eyebrow">Open gap</p>
-          <p className="lead">
-            <b>{t.qty_in_transit} piece(s)</b> were sent but never scanned in. They stay in the
-            in-transit bucket on this transfer — {t.source_store_code} is answerable for them —
-            until the Operations Head closes the gap with a reason. The receiving store cannot close
-            it.{" "}
-            {t.gap_closure ? (
-              <>A closure is already waiting for approval.</>
-            ) : (
-              // Only offered to the people who can act on it — for anyone else
-              // the gaps list is scoped away and the link would go nowhere.
-              canCloseTransferGap(user) && <Link to="/transfer/in-transit">Open the gaps list</Link>
+            {t.receipt.shortfall_notes && (
+              <p className="lead" data-testid="shortfall-notes">
+                “{t.receipt.shortfall_notes}”
+              </p>
             )}
-          </p>
-        </div>
-      )}
-      {t.gap_closure && (
-        <div
-          className="card section-card"
-          style={{ marginBottom: 18 }}
-          data-testid="transfer-gap-closure"
-        >
-          <p className="eyebrow">
-            Gap closure {t.gap_closure.doc_number ? `· ${t.gap_closure.doc_number}` : "(draft)"}
-          </p>
-          <h3 className="h3">{t.gap_closure.reason_label}</h3>
-          {t.gap_closure.note && (
-            <p className="lead" style={{ marginTop: 6 }}>
-              {t.gap_closure.note}
+            {t.receipt.exceptions.length > 0 && <ReceiptExceptions rows={t.receipt.exceptions} />}
+          </Section>
+        )}
+
+        {/* The gap and how it was closed */}
+        {t.gap_state === "gap" && (
+          <Section heading="Open gap" ruled testId="transfer-open-gap">
+            <p className="lead">
+              <b>{t.qty_in_transit} piece(s)</b> were sent but never scanned in. They stay in the
+              in-transit bucket on this transfer — {t.source_store_code} is answerable for them —
+              until the Operations Head closes the gap with a reason. The receiving store cannot
+              close it.{" "}
+              {t.gap_closure ? (
+                <>A closure is already waiting for approval.</>
+              ) : (
+                // Only offered to the people who can act on it — for anyone else
+                // the gaps list is scoped away and the link would go nowhere.
+                canCloseTransferGap(user) && (
+                  <Link to="/transfer/in-transit">Open the gaps list</Link>
+                )
+              )}
             </p>
-          )}
-          <div style={{ marginTop: 12 }}>
+          </Section>
+        )}
+        {t.gap_closure && (
+          <Section
+            heading={`Gap closure ${t.gap_closure.doc_number ? `· ${t.gap_closure.doc_number}` : "(draft)"}`}
+            ruled
+            testId="transfer-gap-closure"
+          >
+            <p>
+              <b>{t.gap_closure.reason_label}</b>
+            </p>
+            {t.gap_closure.note && <p className="lead">{t.gap_closure.note}</p>}
             <ApprovalTrail
               createdByName={t.gap_closure.created_by_name}
               createdAt={t.gap_closure.created_at}
               approval={t.gap_closure.approval}
               history={t.gap_closure.approval_history}
             />
-          </div>
-        </div>
-      )}
+          </Section>
+        )}
 
-      {/* Lines table — quantities are scan-derived, never typed */}
-      <div className="table-wrap">
-        <table className="data" data-testid="transfer-detail-lines">
-          <thead>
-            <tr>
-              <th>SKU</th>
-              <th>Design</th>
-              <th>Size</th>
-              <th>Colour</th>
-              <th>Brand</th>
-              <th className="num">Planned</th>
-              <th className="num">Dispatched</th>
-              <th className="num">Received</th>
-              <th className="num">Gap closed</th>
-              <th className="num">In transit</th>
-              <th className="num">Cost</th>
-            </tr>
-          </thead>
-          <tbody>
-            {t.lines.map((l) => (
-              <tr key={l.id}>
-                <td>
-                  <b className="mono">{l.sku_code}</b>
-                </td>
-                <td>{l.design || "—"}</td>
-                <td>{l.size || "—"}</td>
-                <td>{l.color || "—"}</td>
-                <td>{l.brand || "—"}</td>
-                <td className="num">{l.qty_planned ?? "—"}</td>
-                <td className="num">
-                  {l.qty_dispatched}
-                  {t.docstatus === 1 &&
-                    l.qty_planned != null &&
-                    l.qty_planned !== l.qty_dispatched && (
-                      <span className="chip chip-amber" style={{ marginLeft: 6 }}>
-                        ≠ plan
-                      </span>
-                    )}
-                </td>
-                <td className="num">{l.qty_received}</td>
-                <td className="num">{l.qty_resolved || "—"}</td>
-                <td className="num">
-                  {t.docstatus === 1 && l.qty_in_transit > 0 ? (
-                    <b data-testid={`line-in-transit-${l.id}`}>{l.qty_in_transit}</b>
-                  ) : (
-                    "—"
-                  )}
-                </td>
-                <td className="num">
-                  {l.unit_cost_paise ? <Money paise={l.unit_cost_paise} /> : "—"}
-                </td>
-              </tr>
-            ))}
-            {t.lines.length === 0 && (
+        {/* Lines table — quantities are scan-derived, never typed */}
+        <div className="table-wrap">
+          <table className="data" data-testid="transfer-detail-lines">
+            <thead>
               <tr>
-                <td colSpan={11} style={{ textAlign: "center", opacity: 0.7 }}>
-                  No lines yet — this transfer builds its lines by scanning at dispatch.
-                </td>
+                <th>SKU</th>
+                <th>Design</th>
+                <th>Size</th>
+                <th>Colour</th>
+                <th>Brand</th>
+                <th className="num">Planned</th>
+                <th className="num">Dispatched</th>
+                <th className="num">Received</th>
+                <th className="num">Gap closed</th>
+                <th className="num">In transit</th>
+                <th className="num">Cost</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {t.lines.map((l) => (
+                <tr key={l.id}>
+                  <td>
+                    <b className="mono">{l.sku_code}</b>
+                  </td>
+                  <td>{l.design || "—"}</td>
+                  <td>{l.size || "—"}</td>
+                  <td>{l.color || "—"}</td>
+                  <td>{l.brand || "—"}</td>
+                  <td className="num">{l.qty_planned ?? "—"}</td>
+                  <td className="num">
+                    {l.qty_dispatched}
+                    {t.docstatus === 1 &&
+                      l.qty_planned != null &&
+                      l.qty_planned !== l.qty_dispatched && (
+                        <span style={{ marginLeft: 6 }}>
+                          <Status tone="amber">≠ plan</Status>
+                        </span>
+                      )}
+                  </td>
+                  <td className="num">{l.qty_received}</td>
+                  <td className="num">{l.qty_resolved || "—"}</td>
+                  <td className="num">
+                    {t.docstatus === 1 && l.qty_in_transit > 0 ? (
+                      <b data-testid={`line-in-transit-${l.id}`}>{l.qty_in_transit}</b>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
+                  <td className="num">
+                    {l.unit_cost_paise ? <Money paise={l.unit_cost_paise} /> : "—"}
+                  </td>
+                </tr>
+              ))}
+              {t.lines.length === 0 && (
+                <tr>
+                  <td colSpan={11} style={{ textAlign: "center", opacity: 0.7 }}>
+                    No lines yet — this transfer builds its lines by scanning at dispatch.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
+import { Note } from "../components/Note";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
 import { api, apiErrorCode, apiErrorMessage, goodsMeta } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
@@ -154,23 +156,26 @@ export function SizeBalancingPage() {
 
   const disabled = !online || busy;
   const offlineNote = (!online || lost) && (
-    <p className="warn-note" data-testid="balance-offline" role="status">
-      {OFFLINE}
-      {online && (
-        <>
-          {" "}
+    <Note
+      tone="warn"
+      testId="balance-offline"
+      role="status"
+      action={
+        online && (
           <button
             type="button"
-            className="btn"
+            className="btn btn-sm"
             data-testid="balance-retry"
             disabled={busy}
             onClick={() => void load(siteId)}
           >
             Try again
           </button>
-        </>
-      )}
-    </p>
+        )
+      }
+    >
+      {OFFLINE}
+    </Note>
   );
   const header = (
     <PageHeader
@@ -179,9 +184,9 @@ export function SizeBalancingPage() {
     />
   );
   const errorNote = (error || refused) && (
-    <p className="warn-note" data-testid="balance-error">
+    <Note tone="error" testId="balance-error">
       {error || refused}
-    </p>
+    </Note>
   );
 
   if (!data) {
@@ -213,7 +218,7 @@ export function SizeBalancingPage() {
       {offlineNote}
       {errorNote}
       {saved && (
-        <p className="ok-note" data-testid="balance-saved">
+        <Note tone="success" role="status" testId="balance-saved">
           {saved.text}
           {saved.request && (
             <>
@@ -223,9 +228,9 @@ export function SizeBalancingPage() {
               </Link>
             </>
           )}
-        </p>
+        </Note>
       )}
-      <section className="card section-card">
+      <section className="section">
         <div className="toolbar">
           <label className="field">
             <span>Store</span>
@@ -258,9 +263,9 @@ export function SizeBalancingPage() {
           {ruleText(data.settings)}
         </p>
         {data.pending.length === 0 ? (
-          <p className="ok-note" data-testid="balance-empty">
+          <Note tone="success" testId="balance-empty">
             Nothing suggested for this store now.
-          </p>
+          </Note>
         ) : (
           data.pending.map((row) => (
             <PendingSuggestion
@@ -294,10 +299,16 @@ function PendingSuggestion({
 }) {
   const [reason, setReason] = useState("");
   return (
-    <div className="card section-card" data-testid={`balance-row-${row.sending.code}`}>
-      <h3 className="section-title" data-testid="balance-from">
-        From {row.sending.name} ({row.sending.code})
-      </h3>
+    <Section
+      level={3}
+      ruled
+      testId={`balance-row-${row.sending.code}`}
+      heading={
+        <span data-testid="balance-from">
+          From {row.sending.name} ({row.sending.code})
+        </span>
+      }
+    >
       <p data-testid="balance-total">
         {totalText(row.pieces, row.mrp_paise, row.mrp_unknown_pieces)}. Suggested{" "}
         {formatDateTime(row.made_at)}.
@@ -308,9 +319,9 @@ function PendingSuggestion({
             <tr>
               <th>Brand</th>
               <th>Item</th>
-              <th>Pieces</th>
-              <th>MRP each</th>
-              <th>You sold ({weeks} weeks)</th>
+              <th className="num">Pieces</th>
+              <th className="num">MRP each</th>
+              <th className="num">You sold ({weeks} weeks)</th>
             </tr>
           </thead>
           <tbody>
@@ -318,9 +329,9 @@ function PendingSuggestion({
               <tr key={`${line.alert_id}:${line.sku_id}`} data-testid="balance-line">
                 <td>{line.brand}</td>
                 <td>{itemText(line)}</td>
-                <td>{line.qty}</td>
-                <td>{mrpText(line.mrp_paise)}</td>
-                <td>{line.destination_sold}</td>
+                <td className="num">{line.qty}</td>
+                <td className="num">{mrpText(line.mrp_paise)}</td>
+                <td className="num">{line.destination_sold}</td>
               </tr>
             ))}
           </tbody>
@@ -361,14 +372,13 @@ function PendingSuggestion({
           Someone who can ask for stock at this store decides.
         </p>
       )}
-    </div>
+    </Section>
   );
 }
 
 function Decided({ rows }: { rows: Suggestion[] }) {
   return (
-    <section className="card section-card" data-testid="balance-decided">
-      <h3 className="section-title">Recently decided</h3>
+    <Section heading="Recently decided" ruled testId="balance-decided">
       <div className="table-wrap">
         <table className="data">
           <thead>
@@ -397,6 +407,6 @@ function Decided({ rows }: { rows: Suggestion[] }) {
           </tbody>
         </table>
       </div>
-    </section>
+    </Section>
   );
 }

@@ -22,7 +22,7 @@ from accounts.goods_setup import (
     seed_role_assignment,
     service_principal,
 )
-from accounts.models import LoginAttempt
+from accounts.models import LoginAttempt, User
 from accounts.rbac_matrix import section_access_for
 from accounts.registration_models import InstallationRegistration
 from accounts.role_assignments import INITIAL_FIELD_ACCESS, INITIAL_ROLE_CODES
@@ -117,6 +117,38 @@ def resolve_registration_codes(data: dict[str, Any], previous: dict[str, Any] | 
     return resolved
 
 
+def demo_logins() -> list[dict[str, str]]:
+    """This synthetic deployment's configured sign-in chips (``KDPS_DEMO_LOGINS``).
+
+    Local development only (``DEBUG``): a deployed API never hands out a password,
+    whatever its environment says (owner decision, 28 Oct 2026). And only for
+    logins active in the synthetic tenant: a stale or mistyped entry, and any
+    login of a real tenant, never reaches the sign-in page.
+    """
+    if not settings.DEBUG:
+        return []
+    try:
+        configured = json.loads(settings.KDPS_DEMO_LOGINS or "[]")
+    except ValueError:
+        return []
+    entries = [
+        {"label": entry["label"], "email": entry["email"].strip(), "password": entry["password"]}
+        for entry in (configured if isinstance(configured, list) else [])
+        if isinstance(entry, dict)
+        and all(isinstance(entry.get(key), str) and entry[key] for key in ("label", "email", "password"))
+    ]
+    active = {
+        email.casefold()
+        for email in User.objects.filter(
+            is_active=True,
+            email__isnull=False,
+            tenant__synthetic=True,
+            tenant__deployment_key=deployment_key(),
+        ).values_list("email", flat=True)
+    }
+    return [entry for entry in entries if entry["email"].casefold() in active]
+
+
 def public_state() -> dict[str, Any]:
     closed = Tenant.objects.exists()
     pending = (
@@ -125,6 +157,9 @@ def public_state() -> dict[str, Any]:
             deployment_key=deployment_key()
         ).exists()
     )
+    synthetic = Tenant.objects.filter(
+        deployment_key=deployment_key(), synthetic=True
+    ).exists()
     return {
         "available": not closed,
         "pending_confirmation": pending,
@@ -132,11 +167,8 @@ def public_state() -> dict[str, Any]:
         if closed
         else "Register this company and its first store.",
         "options": registration_options(),
-        "synthetic": bool(
-            Tenant.objects.filter(
-                deployment_key=deployment_key(), synthetic=True
-            ).exists()
-        ),
+        "synthetic": synthetic,
+        "demo_logins": demo_logins() if synthetic else [],
     }
 
 

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Section } from "../components/Section";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import { Denied, Feedback, useGoodsFetch } from "../lib/goodsScreen";
 
@@ -85,9 +86,8 @@ export function BrandReconciliationPanel() {
 
   if (page.denied) return <Denied what="brand reconciliation" />;
   return (
-    <section className="card section-card" data-testid="brand-reconciliation">
-      <h2>Review brand identity</h2>
-      <p>
+    <Section heading="Review brand identity" testId="brand-reconciliation">
+      <p className="lead">
         Select a brand for each row you have verified. Name suggestions are for review only.
         Unresolved rows remain unavailable for operational access. Historical labels and values are
         preserved.
@@ -110,7 +110,7 @@ export function BrandReconciliationPanel() {
       {page.loading ? (
         <p>Loading review…</p>
       ) : (
-        <table className="data-table">
+        <table className="data">
           <thead>
             <tr>
               <th>Record</th>
@@ -194,12 +194,12 @@ export function BrandReconciliationPanel() {
         onChange={(event) => setPassword(event.target.value)}
       />
       <button
-        className="btn btn-cta"
+        className="btn btn-primary"
         disabled={busy || page.loading || !chosen.length || !password}
         onClick={() => void apply()}
       >
         {busy ? "Applying…" : "Apply reviewed mappings"}
       </button>
-    </section>
+    </Section>
   );
 }

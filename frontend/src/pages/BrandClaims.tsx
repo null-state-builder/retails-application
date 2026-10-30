@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
+import { Status, type StatusTone } from "../components/Status";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
 import {
-  STATUS_CHIP,
   STATUS_LABEL,
   emptySettle,
   monthLabel,
@@ -20,6 +22,14 @@ import { commandIdFor, type Pending } from "../lib/debitNotes";
 import { Money, formatDateTime } from "../lib/format";
 
 const PAGE_API = "/goods-v1/sell/brand-claims";
+
+/** A claim's state as a status word: waiting on the brand, settled, or short. */
+const STATUS_TONE: Record<BrandClaimDetail["status"], StatusTone> = {
+  raised: "amber",
+  accepted: "amber",
+  settled: "green",
+  settled_short: "red",
+};
 const PAGE_PATH = "/brands/claims";
 const OFFLINE =
   "Brand claims need a connection. Nothing can be raised, accepted or settled until it is back; what you typed stays here.";
@@ -40,7 +50,6 @@ function today(): string {
  *  server decides who may do what; this page only offers what it allows. */
 export function BrandClaimsPage() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [month, setMonth] = useState("");
   const [list, setList] = useState<BrandClaimList | null>(null);
   const [claim, setClaim] = useState<BrandClaimDetail | null>(null);
@@ -191,63 +200,72 @@ export function BrandClaimsPage() {
         lead="At month end, the brand-funded share of each store's discounts becomes a claim on the brand, settled by the brand's commercial credit note."
       />
       {offline && (
-        <p className="warn-note" data-testid="bc-offline" role="status">
-          {OFFLINE}
-          {online && (
-            <>
-              {" "}
+        <Note
+          tone="warn"
+          testId="bc-offline"
+          role="status"
+          action={
+            online && (
               <button
                 type="button"
-                className="btn"
+                className="btn btn-sm"
                 data-testid="bc-retry"
                 onClick={() => void load()}
               >
                 Try again
               </button>
-            </>
-          )}
-        </p>
+            )
+          }
+        >
+          {OFFLINE}
+        </Note>
       )}
       {error && (
-        <p className="warn-note" data-testid="bc-error">
+        <Note tone="error" testId="bc-error">
           {error}
-        </p>
+        </Note>
       )}
       {done && (
-        <p className="ok-note" data-testid="bc-done">
+        <Note tone="success" role="status" testId="bc-done">
           {done}
-        </p>
+        </Note>
       )}
 
       {claim && (
-        <section className="card section-card" data-testid="bc-detail">
-          <div className="toolbar">
-            <h2 className="h3" data-testid="bc-reference">
-              {claim.reference}
-            </h2>
-            <span className={`chip ${STATUS_CHIP[claim.status]}`} data-testid="bc-status">
-              {STATUS_LABEL[claim.status]}
-            </span>
-            <Link className="btn" to={PAGE_PATH} data-testid="bc-close">
+        <Section
+          heading={
+            <>
+              <span className="mono" data-testid="bc-reference">
+                {claim.reference}
+              </span>{" "}
+              <Status tone={STATUS_TONE[claim.status]} testId="bc-status">
+                {STATUS_LABEL[claim.status]}
+              </Status>
+            </>
+          }
+          aside={
+            <Link className="btn btn-sm" to={PAGE_PATH} data-testid="bc-close">
               Back to the list
             </Link>
-          </div>
+          }
+          testId="bc-detail"
+        >
           <p data-testid="bc-next">{nextStep(claim)}</p>
           {claim.promotion_flag && (
-            <p className="warn-note" data-testid="bc-flag">
+            <Note tone="warn" testId="bc-flag">
               {claim.brand.name} has a promotion-services agreement. Money paid under it may be
               payment for a service, not a discount. Accounts to check before treating it as a
               discount claim.
-            </p>
+            </Note>
           )}
           {!claim.switched_on && (claim.status === "raised" || claim.status === "accepted") && (
-            <p className="warn-note" data-testid="bc-switched-off">
+            <Note tone="warn" testId="bc-switched-off">
               Brand discount claims are switched off at {claim.store.name}. The claim stays here,
               but it cannot be moved on until Admin switches them on again in Setup, Feature
               Switches.
-            </p>
+            </Note>
           )}
-          <dl className="facts" data-testid="bc-facts">
+          <dl className="dl" data-testid="bc-facts">
             <dt>Brand</dt>
             <dd>{claim.brand.name}</dd>
             <dt>Store</dt>
@@ -389,9 +407,9 @@ export function BrandClaimsPage() {
                 </label>
               )}
               {!checked.ok && (settle.number || settle.reason) && (
-                <p className="warn-note" data-testid="bc-settle-problem">
+                <Note tone="warn" testId="bc-settle-problem">
                   {checked.problem}
-                </p>
+                </Note>
               )}
               <div className="toolbar">
                 <button
@@ -441,12 +459,13 @@ export function BrandClaimsPage() {
               </tbody>
             </table>
           </div>
-        </section>
+        </Section>
       )}
 
-      <section className="card section-card">
-        <div className="toolbar">
-          <h2 className="h3">{list ? monthLabel(list.month) : "Month"}</h2>
+      <Section
+        heading={list ? monthLabel(list.month) : "Month"}
+        ruled={!!claim}
+        aside={
           <label className="field">
             <span>Month</span>
             <input
@@ -457,16 +476,17 @@ export function BrandClaimsPage() {
               onChange={(e) => e.target.value && setMonth(e.target.value)}
             />
           </label>
-        </div>
+        }
+      >
         {!list ? (
           <p className="muted-cell">{offline ? "" : "Loading…"}</p>
         ) : (
           <>
             {!list.switched_on && (
-              <p className="warn-note" data-testid="bc-off">
+              <Note tone="warn" testId="bc-off">
                 Brand discount claims are switched off at every store you work at. Claims already
                 raised stay here to read.
-              </p>
+              </Note>
             )}
             {!list.month_ended && (
               <p className="muted-cell" data-testid="bc-not-ended">
@@ -516,10 +536,8 @@ export function BrandClaimsPage() {
                         </td>
                         <td className="num">{row.raised}</td>
                         <td>
-                          {row.promotion_flag && (
-                            <span className="chip chip-amber">Promotion services</span>
-                          )}
-                          {!row.switched_on && <span className="chip">Switched off</span>}
+                          {row.promotion_flag && <Status tone="amber">Promotion services</Status>}
+                          {!row.switched_on && <Status tone="grey">Switched off</Status>}
                           {row.brand_id !== null && Number(row.amount_paise) < 0 && (
                             <div className="muted-cell">
                               More given back than sold: taken off the next claim
@@ -575,7 +593,7 @@ export function BrandClaimsPage() {
                           {row.brand.name}
                           {row.promotion_flag && (
                             <div>
-                              <span className="chip chip-amber">Promotion services: check</span>
+                              <Status tone="amber">Promotion services: check</Status>
                             </div>
                           )}
                         </td>
@@ -584,23 +602,20 @@ export function BrandClaimsPage() {
                           <Money paise={Number(row.amount_paise)} />
                         </td>
                         <td>
-                          <span className={`chip ${STATUS_CHIP[row.status]}`}>
-                            {STATUS_LABEL[row.status]}
-                          </span>
+                          <Status tone={STATUS_TONE[row.status]}>{STATUS_LABEL[row.status]}</Status>
                         </td>
-                        <td>
-                          <button
-                            type="button"
-                            className="btn"
+                        <td className="act">
+                          <Link
+                            className="btn btn-sm"
+                            to={`${PAGE_PATH}/${row.id}`}
                             data-testid={`bc-open-${row.id}`}
                             onClick={() => {
                               setError("");
                               setDone("");
-                              navigate(`${PAGE_PATH}/${row.id}`);
                             }}
                           >
                             Open
-                          </button>
+                          </Link>
                         </td>
                       </tr>
                     ))}
@@ -610,7 +625,7 @@ export function BrandClaimsPage() {
             )}
           </>
         )}
-      </section>
+      </Section>
     </div>
   );
 }

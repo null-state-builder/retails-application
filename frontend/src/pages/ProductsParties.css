@@ -21,14 +21,14 @@
 }
 
 .pp-layout .h4 {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--navy2);
   margin: 0 0 6px;
 }
 
 .pp-layout .h5 {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ink);
   margin: 12px 0 4px;
@@ -88,7 +88,7 @@
   grid-template-columns: auto 1fr;
   gap: 4px 12px;
   margin: 0 0 12px;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 
 .pp-layout .pp-candidate-facts dt {
@@ -103,7 +103,7 @@
 /* What actually tells these two apart. Marked, not merely coloured: colour
  * alone is not a distinction everyone can see. */
 .pp-layout .pp-candidate-facts dd.pp-differs {
-  font-weight: 700;
+  font-weight: 600;
   text-decoration: underline;
   text-decoration-style: dotted;
   text-underline-offset: 3px;
@@ -117,4 +117,9 @@
   .pp-layout .pp-candidates {
     grid-template-columns: 1fr;
   }
+}
+
+/* v2: a SKU form under a style sits on the page, spaced from what is above. */
+.pp-layout .pp-part {
+  margin-top: 16px;
 }

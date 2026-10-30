@@ -10,6 +10,20 @@ describe("API refusals", () => {
     expect(apiErrorCode(refusal)).toBe("SCOPE_DENIED");
   });
 
+  it("says a missing configuration in plain words, not the server's internal sentence", () => {
+    const refusal = {
+      response: {
+        data: {
+          code: "SELL_POLICY_REQUIRED",
+          error: "The sell_policy configuration has no effective sell_policy configuration.",
+          details: { issues: [{ code: "CONFIG_MISSING", message: "has no effective …" }] },
+        },
+      },
+    };
+    expect(apiErrorMessage(refusal)).toContain("has not been set up for this store yet");
+    expect(apiErrorMessage(refusal)).not.toContain("sell_policy");
+  });
+
   it("shows the first field error without exposing a debug HTML response", () => {
     expect(apiErrorMessage({ response: { data: { roles: ["Choose one role."] } } })).toBe(
       "Choose one role.",

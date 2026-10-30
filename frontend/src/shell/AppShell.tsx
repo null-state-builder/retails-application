@@ -8,6 +8,7 @@ import type { LucideIcon } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import { KdpsLogo } from "../components/KdpsLogo";
 import { HostedPageContext } from "../components/PageHeader";
+import { setTestEnvironment } from "../lib/testEnvironment";
 import { ThemeToggle } from "../theme/ThemeToggle";
 import type { Room } from "../routes";
 import { SyncLight } from "../till/SyncLight";
@@ -16,9 +17,11 @@ import { MobileNavContext, useMobileNavExclusion } from "./MobileNavContext";
 import { MailButton } from "./MailButton";
 import { ActionNeededButton, AlertsButton } from "./Notifications";
 import {
+  areaFor,
   headingOwning,
+  litLine,
+  SECTIONS,
   isActiveFold,
-  isActiveItem,
   isOneLineRow,
   itemPath,
   sectionTabsFor,
@@ -26,10 +29,11 @@ import {
   stripOwning,
   testId,
 } from "./navConfig";
-import type { NavFoldDef, NavItem, NavRow, VisibleSection } from "./navConfig";
+import type { Area, NavFoldDef, NavItem, NavRow, VisibleSection } from "./navConfig";
 import { contextKey, optionKey, switcherModel } from "./unitSwitcher";
 import type { SwitcherOption } from "./unitSwitcher";
 import { usePositionedPopover } from "./usePositionedPopover";
+import { useDensity } from "../theme/density";
 import "./AppShell.css";
 
 const SIDEBAR_WIDTH_KEY = "kdps-sidebar-width";
@@ -246,13 +250,22 @@ function readNavOrder(): NavOrder {
  *  pushed Money, Reports and Setup below the fold on a laptop: the sidebar was
  *  a list to scroll rather than a map to read. Folding is the ERP norm for a
  *  reason. Everything stays open by default, so nobody loses a link they had. */
-function readCollapsed(): Record<string, true> {
+function readCollapsed(roleCode: string): Record<string, true> {
   try {
-    return JSON.parse(localStorage.getItem(NAV_COLLAPSED_KEY) || "{}") as Record<string, true>;
+    const saved = localStorage.getItem(NAV_COLLAPSED_KEY);
+    if (saved) return JSON.parse(saved) as Record<string, true>;
   } catch {
     return {};
   }
+  // A store person's first sidebar opens on the day's work and folds the rest
+  // (desktop redesign Q9): the same sidebar as every role, not a different one.
+  if (roleCode !== "store_person") return {};
+  return Object.fromEntries(
+    SECTIONS.filter((s) => !STORE_OPEN_SECTIONS.includes(s.code)).map((s) => [s.code, true]),
+  ) as Record<string, true>;
 }
+
+const STORE_OPEN_SECTIONS = ["home", "sell", "customers"];
 
 /** Rail state, remembered on this device (device-scoped, not per-person - the
  *  issue's own AC, over `design.md`'s "new localStorage key" and the grill's
@@ -287,9 +300,11 @@ function Sidebar({
   onNavigate: () => void;
 }) {
   const { user, session, featuresOn } = useAuth();
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
   const [navOrder, setNavOrder] = useState<NavOrder>(() => readNavOrder());
-  const [collapsed, setCollapsed] = useState<Record<string, true>>(() => readCollapsed());
+  const [collapsed, setCollapsed] = useState<Record<string, true>>(() =>
+    readCollapsed(user?.role?.code ?? ""),
+  );
   const [dragged, setDragged] = useState<DraggedItem>(null);
   const [railCollapsed, setRailCollapsed] = useState<boolean>(() => readRailCollapsed());
   // Which multi-item section's flyout is open, by section code, or none. Only
@@ -327,8 +342,13 @@ function Sidebar({
   // Attendance is standing under Home. It runs on arrival only - never on the
   // fold itself - so a person can still fold the section they are standing in.
   const roleCode = user?.role?.code ?? "";
+  useDensity(roleCode);
+  // Goods lines follow the session's current action grants (GSA-T02).
+  const rows = user ? sidebarRows(user, session?.display_actions ?? [], featuresOn) : [];
+  // The one drawn line that lights here, asked of the rows actually drawn.
+  const lit = litLine(rows, pathname, search);
+  const heading = headingOwning(pathname, roleCode, rows, search);
   useEffect(() => {
-    const heading = headingOwning(pathname, roleCode);
     if (!heading) return;
     setCollapsed((current) => {
       if (!current[heading]) return current;
@@ -337,11 +357,9 @@ function Sidebar({
       localStorage.setItem(NAV_COLLAPSED_KEY, JSON.stringify(next));
       return next;
     });
-  }, [pathname, roleCode]);
+  }, [heading, pathname]);
 
   if (!user) return null;
-  // Goods lines follow the session's current action grants (GSA-T02).
-  const rows = sidebarRows(user, session?.display_actions ?? [], featuresOn);
 
   function toggleSection(code: string) {
     setCollapsed((current) => {
@@ -376,7 +394,7 @@ function Sidebar({
   function oneLineRow(row: {
     key: string;
     icon: LucideIcon;
-    layer: string;
+    area: Area;
     to: string;
     label: string;
     active: boolean;
@@ -392,9 +410,10 @@ function Sidebar({
           aria-current={row.active ? "page" : undefined}
           title={row.label}
           className={`rail-link ${row.active ? "active" : ""}`}
+          data-area={row.area}
           data-testid={row.testId}
         >
-          <span className="nav-ic" style={{ color: `var(--layer-${row.layer})` }}>
+          <span className="nav-ic">
             <Icon size={16} />
           </span>
         </Link>
@@ -409,9 +428,10 @@ function Sidebar({
           onClick={onNavigate}
           aria-current={row.active ? "page" : undefined}
           className={`nav-group-head nav-grouplink ${row.active ? "active" : ""}`}
+          data-area={row.area}
           data-testid={row.testId}
         >
-          <span className="nav-ic" style={{ color: `var(--layer-${row.layer})` }}>
+          <span className="nav-ic">
             <Icon size={16} />
           </span>
           {row.label}
@@ -435,12 +455,13 @@ function Sidebar({
           type="button"
           ref={open ? flyoutTriggerRef : undefined}
           className={`rail-link rail-flyout-trigger ${holdsActive ? "active" : ""}`}
+          data-area={s.def.area}
           title={s.label}
           aria-expanded={open}
           onClick={() => setOpenFlyout((current) => (current === s.def.code ? null : s.def.code))}
           data-testid={`nav-section-${s.def.code}`}
         >
-          <span className="nav-ic" style={{ color: `var(--layer-${s.def.layer})` }}>
+          <span className="nav-ic">
             <Icon size={16} />
           </span>
         </button>
@@ -449,13 +470,14 @@ function Sidebar({
           createPortal(
             <div
               className="rail-flyout"
+              data-area={s.def.area}
               ref={popoverMounted}
               style={{ top: flyoutAt.top, left: flyoutAt.left }}
               data-testid={`nav-flyout-${s.def.code}`}
             >
               <div className="rail-flyout-head">{s.label}</div>
               {items.map((it) => {
-                const active = isActiveItem(it, pathname);
+                const active = it.to === lit;
                 return (
                   <Link
                     key={it.to}
@@ -488,23 +510,23 @@ function Sidebar({
     // not a shaping: what a persona's sidebar *contains* is the layout's job
     // (`applyLayout` in the manifest), never this.
     const open = !collapsed[s.def.code];
-    const holdsActive = items.some((i) => isActiveItem(i, pathname));
+    const holdsActive = items.some((i) => i.to === lit);
     const row: NavRow = { kind: "section", key: s.def.code, section: s };
     const first = items[0];
     if (isOneLineRow(row) && first) {
       return oneLineRow({
         key: s.def.code,
         icon: Icon,
-        layer: s.def.layer,
+        area: s.def.area,
         to: first.to,
         label: s.label,
-        active: isActiveItem(first, pathname),
+        active: first.to === lit,
         testId: `nav-${s.def.code}`,
       });
     }
     if (rail) return railFlyoutSection(s, items, holdsActive);
     return (
-      <div className="nav-group" key={s.def.code}>
+      <div className="nav-group" key={s.def.code} data-area={s.def.area}>
         {
           <button
             type="button"
@@ -513,7 +535,7 @@ function Sidebar({
             onClick={() => toggleSection(s.def.code)}
             data-testid={`nav-section-${s.def.code}`}
           >
-            <span className="nav-ic" style={{ color: `var(--layer-${s.def.layer})` }}>
+            <span className="nav-ic">
               <Icon size={16} />
             </span>
             <span className={`nav-group-label ${holdsActive ? "holds-active" : ""}`}>
@@ -525,7 +547,7 @@ function Sidebar({
         {open && (
           <div className="nav-items">
             {items.map((it) => {
-              const active = isActiveItem(it, pathname);
+              const active = it.to === lit;
               return (
                 <Link
                   key={it.to}
@@ -560,7 +582,7 @@ function Sidebar({
     return oneLineRow({
       key: fold.to,
       icon: fold.icon,
-      layer: fold.layer,
+      area: fold.area,
       to: fold.to,
       label: fold.heading,
       active: isActiveFold(fold, pathname),
@@ -578,7 +600,7 @@ function Sidebar({
     return oneLineRow({
       key: row.key,
       icon: row.def.icon,
-      layer: row.def.layer,
+      area: row.def.area,
       // The first tab this person can see - never a screen access already hid.
       to: first.to,
       label: row.label,
@@ -676,7 +698,13 @@ export function SectionTabsProvider({ children }: { children: ReactNode }) {
 }
 
 export function AppShell({ children, room }: { children: ReactNode; room?: Room }) {
-  const { activeStore, activeBrand } = useAuth();
+  const { activeStore, activeBrand, session } = useAuth();
+  const testEnvironment = Boolean(session?.test_environment);
+  const { pathname: shellPath } = useLocation();
+  // The print adapter is not a React consumer, so it reads the flag from here.
+  useEffect(() => {
+    setTestEnvironment(testEnvironment);
+  }, [testEnvironment]);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const closeMobileNav = useCallback(() => setMobileNavOpen(false), []);
   const mobileNavCtx = useMemo(
@@ -685,7 +713,7 @@ export function AppShell({ children, room }: { children: ReactNode; room?: Room 
   );
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY));
-    return Number.isFinite(saved) && saved >= MIN_SIDEBAR && saved <= MAX_SIDEBAR ? saved : 258;
+    return Number.isFinite(saved) && saved >= MIN_SIDEBAR && saved <= MAX_SIDEBAR ? saved : 232;
   });
 
   // The drag in progress, or null. Holding it as state means the listeners are
@@ -753,6 +781,16 @@ export function AppShell({ children, room }: { children: ReactNode; room?: Room 
             <KdpsLogo className="topbar-logo-full" height={30} title="" />
             <KdpsLogo className="topbar-logo-mark" variant="mark" height={30} title="" />
           </Link>
+          {testEnvironment && (
+            <span
+              className="test-env-badge"
+              role="status"
+              title="This is a test environment. Bills and documents printed here are not tax invoices."
+              data-testid="test-environment-badge"
+            >
+              Test environment
+            </span>
+          )}
         </div>
         {/* The drawer's overlay (z-index 55/60) sits above these popups
             (40/50) by design (see MobileNavContext) - so whichever of the
@@ -800,7 +838,11 @@ export function AppShell({ children, room }: { children: ReactNode; room?: Room 
         {/* Keyed on the working context: switching unit remounts the page, so
             every screen refetches under the new unit instead of leaving the
             previous store's numbers on screen. */}
-        <main className="content" key={contextKey(activeStore, activeBrand)}>
+        <main
+          className="content"
+          key={contextKey(activeStore, activeBrand)}
+          data-area={areaFor(shellPath)}
+        >
           <SectionTabsProvider>{children}</SectionTabsProvider>
         </main>
       </div>

@@ -25,7 +25,7 @@ export function LoyaltyRow({
   return (
     <section className="plus-card" data-testid="plus-loyalty">
       <header className="plus-head">
-        <h3 className="eyebrow">Points</h3>
+        <h3 className="heading">Points</h3>
         <span data-testid="plus-balance">
           {customer.points.toLocaleString("en-IN")} ={" "}
           <Money paise={pointsValuePaise(customer.points)} />

@@ -11,6 +11,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Calculator, Download } from "lucide-react";
 
 import { useAuth } from "../auth/AuthContext";
+import { Note } from "../components/Note";
+import { Section } from "../components/Section";
 import { api, apiErrorCode, apiErrorMessage } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
 import { cellText, figuresFor, periodDates } from "../lib/offerSimulation";
@@ -121,13 +123,18 @@ export function OfferSimulationCard({ offerId, status, updatedAt }: Props) {
   const ran = data?.simulation != null;
 
   return (
-    <section className="card section-card" data-testid="sim-card">
-      <p className="eyebrow">
-        <Calculator size={14} /> What it would have cost{" "}
-        <span className="chip chip-amber" data-testid="sim-estimate-label">
-          Estimate
-        </span>
-      </p>
+    <Section
+      heading={
+        <>
+          What it would have cost{" "}
+          <span className="chip" data-testid="sim-estimate-label">
+            Estimate
+          </span>
+        </>
+      }
+      ruled
+      testId="sim-card"
+    >
       <p className="hint">
         Priced by the till's own offer engine on real bills from the last 4 weeks and the same 4
         weeks last year. Customers may buy differently when it runs, so this is a guide, not a
@@ -135,28 +142,31 @@ export function OfferSimulationCard({ offerId, status, updatedAt }: Props) {
       </p>
 
       {(!online || lost) && (
-        <p className="warn-note" data-testid="sim-offline" role="status">
-          {OFFLINE}
-          {online && (
-            <>
-              {" "}
+        <Note
+          tone="warn"
+          testId="sim-offline"
+          role="status"
+          action={
+            online && (
               <button
                 type="button"
-                className="btn"
+                className="btn btn-sm"
                 data-testid="sim-retry"
                 disabled={busy}
                 onClick={() => void send(false)}
               >
                 Try again
               </button>
-            </>
-          )}
-        </p>
+            )
+          }
+        >
+          {OFFLINE}
+        </Note>
       )}
       {error && (
-        <p className="warn-note" data-testid="sim-error">
+        <Note tone="error" testId="sim-error">
           {error}
-        </p>
+        </Note>
       )}
 
       {data && ran && (
@@ -170,9 +180,9 @@ export function OfferSimulationCard({ offerId, status, updatedAt }: Props) {
             · {data.stores.map((s) => s.code).join(", ") || "no stores"}
           </p>
           {data.stale && (
-            <p className="warn-note" data-testid="sim-stale">
+            <Note tone="warn" testId="sim-stale">
               The offer changed after this estimate. Run it again to see the offer as it now stands.
-            </p>
+            </Note>
           )}
           <div className="table-wrap">
             <table className="data" data-testid="sim-table">
@@ -252,7 +262,7 @@ export function OfferSimulationCard({ offerId, status, updatedAt }: Props) {
           )}
         </div>
       )}
-    </section>
+    </Section>
   );
 }
 

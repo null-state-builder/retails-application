@@ -1,13 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { Check, Plus, Printer, X } from "lucide-react";
 
 import "./Reservations.css";
 
 import { useAuth, allowedUnits } from "../auth/AuthContext";
+import { FilterChip, FilterChips } from "../components/FilterChip";
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { SearchBox } from "../components/SearchBox";
+import { Box, Section } from "../components/Section";
+import { Pane, SplitView } from "../components/SplitView";
+import { EmptyState, Loading } from "../components/States";
+import { Status } from "../components/Status";
+import type { StatusTone } from "../components/Status";
 import { api, apiErrorMessage } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
-import { formatINR, StatusChip } from "../lib/format";
+import { formatDateTime, formatINR } from "../lib/format";
 import { TENDERS, dayText } from "../lib/reservations";
 import type { Tender } from "../lib/reservations";
 import {
@@ -71,6 +81,12 @@ export function SpecialOrdersPage() {
   // so a later, separate attempt is judged afresh.
   const attempts = useRef(new Map<string, string>());
   const request = useRef(0);
+  // The open order is in the URL, so back, refresh and a shared link reopen
+  // it; the form and the list's filter are this visit's.
+  const [params] = useSearchParams();
+  const openRef = params.get("open") ?? "";
+  const [adding, setAdding] = useState(false);
+  const [filter, setFilter] = useState<string>("open");
 
   const load = useCallback(
     async (q: string) => {
@@ -177,196 +193,227 @@ export function SpecialOrdersPage() {
     await load(query);
   };
 
+  /** A search looks across every stage, so what it finds is on screen. */
+  const search = useCallback(
+    (term: string) => {
+      setQuery(term);
+      if (term.trim()) setFilter("");
+      void load(term.trim());
+    },
+    [load],
+  );
+
   const offline = !online || lost;
   const writable = !offline && !busy;
   const withAdvance = draft.advance.trim() !== "";
+  const rows = listing?.special_orders ?? [];
+  const open = rows.find((o) => o.ref === openRef) ?? null;
+  const showing = rows.filter((o) => inView(o, filter));
+  const refundsDue = rows.filter((o) => o.advance_outcome === "refund_due");
 
   return (
     <div className="page-pad">
       <PageHeader
         title="Special orders"
         lead="For an item no store has: record what the customer wants and follow it until they collect it at Billing."
+        actions={
+          listing?.switched_on && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              aria-expanded={adding}
+              data-testid="special-order-new"
+              onClick={() => setAdding(!adding)}
+            >
+              <Plus size={16} aria-hidden="true" /> New special order
+            </button>
+          )
+        }
       />
-      {stores.length > 1 && (
-        <label className="field">
-          <span>Store</span>
-          <select
-            className="input"
-            data-testid="special-orders-store"
-            value={store}
-            onChange={(e) => {
-              setPicked(e.target.value);
-              setListing(null);
-            }}
+      <div className="page">
+        {stores.length > 1 && (
+          <label className="field">
+            <span>Store</span>
+            <select
+              className="input"
+              data-testid="special-orders-store"
+              value={store}
+              onChange={(e) => {
+                setPicked(e.target.value);
+                setListing(null);
+              }}
+            >
+              <option value="">Choose a store</option>
+              {stores.map((s) => (
+                <option key={s.code} value={s.code}>
+                  {s.code} · {s.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {offline && (
+          <Note
+            tone="warn"
+            role="status"
+            testId="special-orders-offline"
+            action={
+              online && (
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  data-testid="special-orders-retry"
+                  onClick={() => void load(query)}
+                >
+                  Try again
+                </button>
+              )
+            }
           >
-            <option value="">Choose a store</option>
-            {stores.map((s) => (
-              <option key={s.code} value={s.code}>
-                {s.code} · {s.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-      {offline && (
-        <p className="warn-note" data-testid="special-orders-offline" role="status">
-          {SPECIAL_ORDER_OFFLINE}
-          {online && (
-            <>
-              {" "}
-              <button
-                type="button"
-                className="btn"
-                data-testid="special-orders-retry"
-                onClick={() => void load(query)}
-              >
-                Try again
-              </button>
-            </>
-          )}
-        </p>
-      )}
-      {error && (
-        <p className="warn-note" data-testid="special-orders-error">
-          {error}
-        </p>
-      )}
-      {done && (
-        <p className="ok-note" data-testid="special-orders-done">
-          {done}
-        </p>
-      )}
-      {!store && <p>Choose a store to see its special orders.</p>}
-      {store && !listing && !offline && !error && <p>Loading special orders…</p>}
+            {SPECIAL_ORDER_OFFLINE}
+          </Note>
+        )}
+        {error && (
+          <Note tone="error" testId="special-orders-error">
+            {error}
+          </Note>
+        )}
+        {done && (
+          <Note tone="success" role="status" testId="special-orders-done">
+            {done}
+          </Note>
+        )}
+        {!store && <EmptyState>Choose a store to see its special orders.</EmptyState>}
+        {store && !listing && !offline && !error && <Loading label="Loading special orders" />}
 
-      {shown?.voucher && <Voucher order={shown} onClose={() => setShown(null)} />}
+        {shown?.voucher && <Voucher order={shown} onClose={() => setShown(null)} />}
 
-      {listing && (
-        <>
-          {!listing.switched_on ? (
-            <p className="warn-note" data-testid="special-orders-switched-off">
-              Special orders are switched off at {listing.store}. No new order can be taken; the
-              ones below can still be moved on, collected, cancelled and refunded.
-            </p>
-          ) : (
-            <section className="card section-card" data-testid="special-order-form">
-              <h2 className="h3">New special order</h2>
-              <div className="form-grid">
-                <label className="field">
-                  <span>Customer name</span>
-                  <input
-                    className="input"
-                    data-testid="special-order-name"
-                    value={draft.customer_name}
-                    onChange={(e) => setDraft({ ...draft, customer_name: e.target.value })}
-                  />
-                </label>
-                <label className="field">
-                  <span>Mobile</span>
-                  <input
-                    className="input"
-                    inputMode="tel"
-                    data-testid="special-order-mobile"
-                    value={draft.customer_mobile}
-                    onChange={(e) => setDraft({ ...draft, customer_mobile: e.target.value })}
-                  />
-                </label>
-                <label className="field">
-                  <span>Brand</span>
-                  <select
-                    className="input"
-                    data-testid="special-order-brand"
-                    value={draft.brand}
-                    onChange={(e) => setDraft({ ...draft, brand: e.target.value })}
-                  >
-                    <option value="">Choose a brand</option>
-                    {listing.brands.map((b) => (
-                      <option key={b.id} value={String(b.id)}>
-                        {b.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="field">
-                  <span>Style</span>
-                  <input
-                    className="input"
-                    data-testid="special-order-style"
-                    value={draft.style_code}
-                    onChange={(e) => setDraft({ ...draft, style_code: e.target.value })}
-                  />
-                </label>
-                <label className="field">
-                  <span>Size</span>
-                  <input
-                    className="input"
-                    data-testid="special-order-size"
-                    value={draft.size}
-                    onChange={(e) => setDraft({ ...draft, size: e.target.value })}
-                  />
-                </label>
-                <label className="field">
-                  <span>Colour</span>
-                  <input
-                    className="input"
-                    data-testid="special-order-colour"
-                    value={draft.colour}
-                    onChange={(e) => setDraft({ ...draft, colour: e.target.value })}
-                  />
-                </label>
-              </div>
+        {listing && !listing.switched_on && (
+          <Note tone="warn" testId="special-orders-switched-off">
+            Special orders are switched off at {listing.store}. No new order can be taken; the ones
+            below can still be moved on, collected, cancelled and refunded.
+          </Note>
+        )}
+
+        {listing && listing.switched_on && adding && (
+          <Section heading="New special order" testId="special-order-form">
+            <div className="form-grid">
               <label className="field">
-                <span>Note (optional)</span>
+                <span>Customer name</span>
                 <input
                   className="input"
-                  data-testid="special-order-note"
-                  value={draft.note}
-                  onChange={(e) => setDraft({ ...draft, note: e.target.value })}
+                  data-testid="special-order-name"
+                  value={draft.customer_name}
+                  onChange={(e) => setDraft({ ...draft, customer_name: e.target.value })}
                 />
               </label>
-              <div className="form-grid">
+              <label className="field">
+                <span>Mobile</span>
+                <input
+                  className="input"
+                  inputMode="tel"
+                  data-testid="special-order-mobile"
+                  value={draft.customer_mobile}
+                  onChange={(e) => setDraft({ ...draft, customer_mobile: e.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>Brand</span>
+                <select
+                  className="input"
+                  data-testid="special-order-brand"
+                  value={draft.brand}
+                  onChange={(e) => setDraft({ ...draft, brand: e.target.value })}
+                >
+                  <option value="">Choose a brand</option>
+                  {listing.brands.map((b) => (
+                    <option key={b.id} value={String(b.id)}>
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>Style</span>
+                <input
+                  className="input"
+                  data-testid="special-order-style"
+                  value={draft.style_code}
+                  onChange={(e) => setDraft({ ...draft, style_code: e.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>Size</span>
+                <input
+                  className="input"
+                  data-testid="special-order-size"
+                  value={draft.size}
+                  onChange={(e) => setDraft({ ...draft, size: e.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>Colour</span>
+                <input
+                  className="input"
+                  data-testid="special-order-colour"
+                  value={draft.colour}
+                  onChange={(e) => setDraft({ ...draft, colour: e.target.value })}
+                />
+              </label>
+            </div>
+            <label className="field">
+              <span>Note (optional)</span>
+              <input
+                className="input"
+                data-testid="special-order-note"
+                value={draft.note}
+                onChange={(e) => setDraft({ ...draft, note: e.target.value })}
+              />
+            </label>
+            <div className="form-grid">
+              <label className="field">
+                <span>Advance in rupees (optional)</span>
+                <input
+                  className="input"
+                  inputMode="decimal"
+                  data-testid="special-order-advance"
+                  value={draft.advance}
+                  onChange={(e) => setDraft({ ...draft, advance: e.target.value })}
+                />
+              </label>
+              {withAdvance && (
+                <fieldset className="field">
+                  <legend>Paid by</legend>
+                  {TENDERS.map((t) => (
+                    <label key={t.value} className="radio">
+                      <input
+                        type="radio"
+                        name="special-order-mode"
+                        data-testid={`special-order-mode-${t.value}`}
+                        checked={draft.mode === t.value}
+                        onChange={() => setDraft({ ...draft, mode: t.value as Tender })}
+                      />{" "}
+                      {t.label}
+                    </label>
+                  ))}
+                </fieldset>
+              )}
+              {withAdvance && draft.mode !== "cash" && (
                 <label className="field">
-                  <span>Advance in rupees (optional)</span>
+                  <span>Card or UPI reference (optional)</span>
                   <input
                     className="input"
-                    inputMode="decimal"
-                    data-testid="special-order-advance"
-                    value={draft.advance}
-                    onChange={(e) => setDraft({ ...draft, advance: e.target.value })}
+                    data-testid="special-order-reference"
+                    value={draft.reference}
+                    onChange={(e) => setDraft({ ...draft, reference: e.target.value })}
                   />
                 </label>
-                {withAdvance && (
-                  <fieldset className="field">
-                    <legend>Paid by</legend>
-                    {TENDERS.map((t) => (
-                      <label key={t.value} className="radio">
-                        <input
-                          type="radio"
-                          name="special-order-mode"
-                          data-testid={`special-order-mode-${t.value}`}
-                          checked={draft.mode === t.value}
-                          onChange={() => setDraft({ ...draft, mode: t.value as Tender })}
-                        />{" "}
-                        {t.label}
-                      </label>
-                    ))}
-                  </fieldset>
-                )}
-                {withAdvance && draft.mode !== "cash" && (
-                  <label className="field">
-                    <span>Card or UPI reference (optional)</span>
-                    <input
-                      className="input"
-                      data-testid="special-order-reference"
-                      value={draft.reference}
-                      onChange={(e) => setDraft({ ...draft, reference: e.target.value })}
-                    />
-                  </label>
-                )}
-              </div>
-              <p className="muted-cell" data-testid="special-order-terms">
-                {withAdvance ? listing.terms_with_advance : listing.terms_without_advance}
-              </p>
+              )}
+            </div>
+            <p className="muted-cell" data-testid="special-order-terms">
+              {withAdvance ? listing.terms_with_advance : listing.terms_without_advance}
+            </p>
+            <div className="order-actions">
               <button
                 type="button"
                 className="btn btn-primary"
@@ -376,62 +423,190 @@ export function SpecialOrdersPage() {
               >
                 Take the order
               </button>
-            </section>
-          )}
-
-          <section className="card section-card" data-testid="special-order-list">
-            <h2 className="h3">Special orders at {listing.store}</h2>
-            <p className="muted-cell">
-              To collect: at Billing, press Special order collection and type the order number.
-            </p>
-            <div className="toolbar">
-              <input
-                className="input"
-                aria-label="Find a special order"
-                placeholder="Order number, voucher number or mobile"
-                data-testid="special-order-search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void load(query.trim());
-                }}
-              />
-              <button
-                type="button"
-                className="btn"
-                disabled={offline}
-                onClick={() => void load(query.trim())}
-              >
-                Find
-              </button>
             </div>
-            {listing.special_orders.length === 0 ? (
-              <p data-testid="special-order-none">No special orders to show.</p>
-            ) : (
-              // One card per order, stacked: a real layout at 375 px on the shop
-              // floor (PRD §5.2 rule 2), not a squeezed table.
-              <ul className="reservation-cards" data-testid="special-order-cards">
-                {listing.special_orders.map((o) => (
-                  <OrderCard
-                    key={o.id}
-                    order={o}
+          </Section>
+        )}
+
+        {listing && (
+          <Section heading={`Special orders at ${listing.store}`} testId="special-order-list">
+            <div className="orders-bar">
+              <FilterChips label="Stage">
+                {VIEWS.map((v) => (
+                  <FilterChip
+                    key={v.key}
+                    pressed={filter === v.key}
+                    count={rows.filter((o) => inView(o, v.key)).length}
+                    onClick={() => setFilter(filter === v.key ? "" : v.key)}
+                    testId={`special-order-show-${v.key}`}
+                  >
+                    {v.label}
+                  </FilterChip>
+                ))}
+              </FilterChips>
+              <SearchBox
+                label="Find a special order"
+                placeholder="Order number, voucher number or mobile"
+                testId="special-order-search"
+                value={query}
+                onChange={search}
+              />
+            </div>
+            {refundsDue.length > 0 && (
+              <Note tone="warn" testId="special-order-refunds-due">
+                An advance is due back:{" "}
+                {refundsDue.map((o, i) => (
+                  <span key={o.id}>
+                    {i > 0 && "; "}
+                    <Link
+                      className="link"
+                      to={{ search: `?open=${encodeURIComponent(o.ref)}` }}
+                      onClick={() => setFilter("")}
+                    >
+                      {o.ref}
+                    </Link>
+                    , {formatINR(o.advance_balance_paise)} to {o.customer_name}
+                  </span>
+                ))}
+                .
+              </Note>
+            )}
+            <SplitView
+              pane={
+                open && (
+                  <OrderPane
+                    key={open.id}
+                    order={open}
                     sources={listing.sources}
                     writable={writable}
-                    onVoucher={() => setShown(o)}
+                    onVoucher={() => setShown(open)}
                     send={step}
                   />
-                ))}
-              </ul>
-            )}
-          </section>
-        </>
-      )}
+                )
+              }
+            >
+              {rows.length === 0 ? (
+                <EmptyState testId="special-order-none">No special orders to show.</EmptyState>
+              ) : showing.length === 0 ? (
+                <EmptyState>Nothing at this stage.</EmptyState>
+              ) : (
+                <div className="table-wrap capped">
+                  <table className="data" data-testid="special-order-cards">
+                    <thead>
+                      <tr>
+                        <th scope="col">Order</th>
+                        <th scope="col">Customer</th>
+                        <th scope="col">Wants</th>
+                        <th scope="col">Stage</th>
+                        <th scope="col" className="p2">
+                          Ordered as
+                        </th>
+                        <th scope="col" className="p3">
+                          Voucher
+                        </th>
+                        <th scope="col" className="num">
+                          Advance
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {showing.map((o) => {
+                        const chip = statusChip(o.status);
+                        const selected = o.id === open?.id;
+                        return (
+                          <tr
+                            key={o.id}
+                            className={selected ? "is-selected" : undefined}
+                            data-testid={`special-order-${o.ref}`}
+                          >
+                            <td>
+                              <Link
+                                className="order-ref"
+                                to={{ search: `?open=${encodeURIComponent(o.ref)}` }}
+                                aria-current={selected ? "true" : undefined}
+                              >
+                                {o.ref}
+                              </Link>
+                              <span className="sub">{dayText(o.asked_on)}</span>
+                            </td>
+                            <td>
+                              <span className="order-who">{o.customer_name}</span>
+                              <span className="sub">{o.customer_mobile}</span>
+                            </td>
+                            <td>
+                              {[o.brand_name, o.style_code].filter(Boolean).join(" · ")}
+                              <span className="sub">
+                                {[o.colour, o.size].filter(Boolean).join(", ") || "—"}
+                              </span>
+                            </td>
+                            <td>
+                              <Status tone={toneOf(chip.tone)}>{chip.label}</Status>
+                            </td>
+                            <td className="p2">{o.route ? routeText(o) : "—"}</td>
+                            <td className="p3 mono">{o.voucher?.number ?? "—"}</td>
+                            <td className="num">{advanceText(o)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </SplitView>
+          </Section>
+        )}
+      </div>
     </div>
   );
 }
 
-/** One order, with the one next step it can take. */
-function OrderCard({
+/** The list's view filters: what is still being worked, what needs the
+ *  customer told, and the two ways an order ends. */
+const VIEWS = [
+  { key: "open", label: "Open" },
+  { key: "arrived", label: "Arrived" },
+  { key: "collected", label: "Collected" },
+  { key: "cancelled", label: "Cancelled" },
+] as const;
+
+function inView(o: SpecialOrder, view: string): boolean {
+  if (!view) return true;
+  if (view === "open") return isOpen(o);
+  return o.status === view;
+}
+
+/** The library's chip tones as Status dots: navy (closed) reads as grey. */
+function toneOf(tone: string): StatusTone {
+  return tone === "navy" ? "grey" : (tone as StatusTone);
+}
+
+/** What a finished step recorded, in a line under its word. */
+function stepNote(o: SpecialOrder, s: (typeof STEPS)[number]): string {
+  switch (s) {
+    case "asked":
+      return dayText(o.asked_on);
+    case "ordered":
+      return [routeText(o), o.ordered_at && formatDateTime(o.ordered_at)]
+        .filter(Boolean)
+        .join(", ");
+    case "arrived":
+      return [
+        o.arrived_barcode && `Piece ${o.arrived_barcode}`,
+        o.arrived_at && formatDateTime(o.arrived_at),
+      ]
+        .filter(Boolean)
+        .join(", ");
+    case "told":
+      return [o.told_how && toldText(o.told_how), o.told_at && formatDateTime(o.told_at)]
+        .filter(Boolean)
+        .join(", ");
+    case "collected":
+      return o.sale_doc_number ? `Bill ${o.sale_doc_number}` : "";
+  }
+}
+
+/** One order, open beside the list, with the one next step it can take done
+ *  where that step stands. */
+function OrderPane({
   order: o,
   sources,
   writable,
@@ -456,33 +631,10 @@ function OrderCard({
   const piece = arrived ?? o.ordered_barcode;
   const reached = STEPS.indexOf(o.status as (typeof STEPS)[number]);
 
-  return (
-    <li className="reservation-card" data-testid={`special-order-${o.ref}`}>
-      <div className="reservation-card-head">
-        <strong>{o.ref}</strong> <StatusChip status={chip.label} tone={chip.tone} />
-      </div>
-      <p>
-        {o.customer_name} · <span className="muted-cell">{o.customer_mobile}</span>
-      </p>
-      <p data-testid={`special-order-item-${o.ref}`}>{itemText(o)}</p>
-      {o.note && <p className="muted-cell">{o.note}</p>}
-      <p className="muted-cell" data-testid={`special-order-steps-${o.ref}`}>
-        {o.status === "cancelled"
-          ? "Cancelled"
-          : STEPS.map((s, i) => (i <= reached ? statusChip(s).label : null))
-              .filter(Boolean)
-              .join(" → ")}
-      </p>
-      <p className="muted-cell">
-        Asked {dayText(o.asked_on)}
-        {o.route ? ` · ${routeText(o)}` : ""}
-        {o.arrived_barcode ? ` · Piece ${o.arrived_barcode}` : ""}
-        {o.told_how ? ` · Told ${toldText(o.told_how)}` : ""}
-        {o.sale_doc_number ? ` · Bill ${o.sale_doc_number}` : ""}
-      </p>
-      <p data-testid={`special-order-advance-${o.ref}`}>{advanceText(o)}</p>
-
-      {o.status === "asked" && (
+  /** The controls for the step after the last one done. */
+  function nextStep() {
+    if (o.status === "asked")
+      return (
         <fieldset className="field" data-testid={`special-order-order-${o.ref}`}>
           <legend>Order it as</legend>
           <label className="radio">
@@ -544,29 +696,31 @@ function OrderCard({
               />
             </label>
           )}
-          <button
-            type="button"
-            className="btn btn-primary"
-            data-testid={`special-order-place-${o.ref}`}
-            disabled={!writable}
-            onClick={() =>
-              void send(
-                o,
-                "order",
-                route === "transfer"
-                  ? { route, source_site: source, barcode: barcode.trim() }
-                  : { route, booking: booking.trim() },
-                (after) => `${after.ref} ordered: ${routeText(after)}.`,
-              )
-            }
-          >
-            Order
-          </button>
+          <div className="order-actions">
+            <button
+              type="button"
+              className="btn btn-primary"
+              data-testid={`special-order-place-${o.ref}`}
+              disabled={!writable}
+              onClick={() =>
+                void send(
+                  o,
+                  "order",
+                  route === "transfer"
+                    ? { route, source_site: source, barcode: barcode.trim() }
+                    : { route, booking: booking.trim() },
+                  (after) => `${after.ref} ordered: ${routeText(after)}.`,
+                )
+              }
+            >
+              Order
+            </button>
+          </div>
         </fieldset>
-      )}
-
-      {o.status === "ordered" && (
-        <div className="toolbar">
+      );
+    if (o.status === "ordered")
+      return (
+        <div className="order-step-row">
           <input
             className="input"
             aria-label="Barcode of the piece that arrived"
@@ -592,16 +746,16 @@ function OrderCard({
             Arrived
           </button>
         </div>
-      )}
-
-      {o.status === "arrived" && (
-        <div className="toolbar" data-testid={`special-order-tell-${o.ref}`}>
-          <span className="muted-cell">Customer told by</span>
+      );
+    if (o.status === "arrived")
+      return (
+        <div className="order-step-row" data-testid={`special-order-tell-${o.ref}`}>
+          <span className="order-sub">Customer told by</span>
           {(["call", "message", "in_person"] as const).map((how) => (
             <button
               key={how}
               type="button"
-              className="btn"
+              className="btn btn-sm"
               data-testid={`special-order-told-${how}-${o.ref}`}
               disabled={!writable}
               onClick={() =>
@@ -619,19 +773,124 @@ function OrderCard({
             </button>
           ))}
         </div>
-      )}
+      );
+    if (o.status === "told")
+      return (
+        <p className="order-sub">
+          To collect: at Billing, press Special order collection and type the order number.
+        </p>
+      );
+    return null;
+  }
 
-      <div className="toolbar">
+  return (
+    <Pane label={`Special order ${o.ref}`} testId="special-order-pane">
+      <div className="order-pane-head">
+        <div>
+          <div className="order-pane-title">
+            <h2 className="heading">{o.ref}</h2>
+            <Status tone={toneOf(chip.tone)}>{chip.label}</Status>
+          </div>
+          <p className="order-sub">
+            {o.customer_name}, {o.customer_mobile}
+          </p>
+        </div>
+        <Link className="btn btn-sm order-close" to={{ search: "" }} aria-label="Close the order">
+          <X size={16} aria-hidden="true" />
+        </Link>
+      </div>
+      <div>
+        <div className="order-who" data-testid={`special-order-item-${o.ref}`}>
+          {itemText(o)}
+        </div>
+        {o.note && <p className="order-sub">{o.note}</p>}
+      </div>
+      {o.status === "cancelled" ? (
+        <p className="order-sub" data-testid={`special-order-steps-${o.ref}`}>
+          Cancelled
+        </p>
+      ) : (
+        <ol
+          className="order-timeline"
+          aria-label="Stages"
+          data-testid={`special-order-steps-${o.ref}`}
+        >
+          {STEPS.map((s, i) => {
+            const state = i <= reached ? "is-done" : i === reached + 1 ? "is-current" : "";
+            const note = i <= reached ? stepNote(o, s) : "";
+            return (
+              <li
+                key={s}
+                className={state || undefined}
+                aria-current={state === "is-current" ? "step" : undefined}
+              >
+                <span className="order-timeline-n" aria-hidden="true">
+                  {i <= reached ? <Check size={12} strokeWidth={2.6} /> : i + 1}
+                </span>
+                <div className="order-timeline-body">
+                  <span className="order-timeline-word">
+                    {statusChip(s).label}
+                    {i <= reached && <span className="sr-only">, done</span>}
+                  </span>
+                  {note && <p className="order-sub">{note}</p>}
+                  {state === "is-current" && nextStep()}
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+      <dl className="dl">
+        <dt>Advance</dt>
+        <dd data-testid={`special-order-advance-${o.ref}`}>{advanceText(o)}</dd>
         {o.voucher && (
-          <button type="button" className="btn" onClick={onVoucher}>
-            Voucher
-          </button>
-        )}
-        {isOpen(o) && (
           <>
+            <dt>Receipt voucher</dt>
+            <dd className="mono">{o.voucher.number}</dd>
+          </>
+        )}
+        {o.close_reason && (
+          <>
+            <dt>Closed</dt>
+            <dd>{o.close_reason}</dd>
+          </>
+        )}
+      </dl>
+      {(o.voucher || o.advance_outcome === "refund_due") && (
+        <div className="order-actions">
+          {o.voucher && (
+            <button type="button" className="btn" onClick={onVoucher}>
+              <Printer size={16} aria-hidden="true" /> Voucher
+            </button>
+          )}
+          {o.advance_outcome === "refund_due" && (
             <button
               type="button"
-              className="btn"
+              className="btn btn-cta"
+              data-testid={`special-order-refund-${o.ref}`}
+              disabled={!writable}
+              onClick={() =>
+                void send(
+                  o,
+                  "refund",
+                  {},
+                  (after) =>
+                    `${after.ref}: ${advanceText(after)} by ${after.voucher?.mode.toUpperCase() ?? "cash"}.`,
+                )
+              }
+            >
+              Refund {formatINR(o.advance_balance_paise)}
+            </button>
+          )}
+        </div>
+      )}
+      {isOpen(o) && (
+        <div className="order-cancel">
+          <span className="order-cancel-label">Cancel the order</span>
+          <div className="order-actions">
+            <button
+              type="button"
+              className="btn btn-danger"
               data-testid={`special-order-cancel-customer-${o.ref}`}
               disabled={!writable}
               onClick={() =>
@@ -647,7 +906,7 @@ function OrderCard({
             </button>
             <button
               type="button"
-              className="btn"
+              className="btn btn-danger"
               data-testid={`special-order-cancel-store-${o.ref}`}
               disabled={!writable}
               onClick={() =>
@@ -661,29 +920,10 @@ function OrderCard({
             >
               Store cancels
             </button>
-          </>
-        )}
-        {o.advance_outcome === "refund_due" && (
-          <button
-            type="button"
-            className="btn btn-primary"
-            data-testid={`special-order-refund-${o.ref}`}
-            disabled={!writable}
-            onClick={() =>
-              void send(
-                o,
-                "refund",
-                {},
-                (after) =>
-                  `${after.ref}: ${advanceText(after)} by ${after.voucher?.mode.toUpperCase() ?? "cash"}.`,
-              )
-            }
-          >
-            Refund {formatINR(o.advance_balance_paise)}
-          </button>
-        )}
-      </div>
-    </li>
+          </div>
+        </div>
+      )}
+    </Pane>
   );
 }
 
@@ -692,28 +932,29 @@ function Voucher({ order, onClose }: { order: SpecialOrder; onClose: () => void 
   const v = order.voucher;
   if (!v) return null;
   return (
-    <section className="card section-card" data-testid="special-order-voucher">
-      <h2 className="h3">Receipt voucher {v.number}</h2>
-      <p>
-        {v.store_name} · GSTIN {v.store_gstin}
-        <br />
-        Date {dayText(v.issued_on)} · Special order {order.ref}
-      </p>
-      <p>
-        Received from {order.customer_name} ({order.customer_mobile}):{" "}
-        <strong>{formatINR(v.amount_paise)}</strong> by {v.mode.toUpperCase()}
-        {v.reference ? ` (${v.reference})` : ""}.
-      </p>
-      <p>For: {itemText(order)}</p>
-      <p data-testid="special-order-voucher-terms">{order.terms}</p>
-      <div className="toolbar">
-        <button type="button" className="btn" onClick={() => window.print()}>
-          Print
+    <Section heading={`Receipt voucher ${v.number}`} testId="special-order-voucher">
+      <Box className="order-voucher">
+        <p>
+          {v.store_name} · GSTIN {v.store_gstin}
+          <br />
+          Date {dayText(v.issued_on)} · Special order {order.ref}
+        </p>
+        <p>
+          Received from {order.customer_name} ({order.customer_mobile}):{" "}
+          <strong>{formatINR(v.amount_paise)}</strong> by {v.mode.toUpperCase()}
+          {v.reference ? ` (${v.reference})` : ""}.
+        </p>
+        <p>For: {itemText(order)}</p>
+        <p data-testid="special-order-voucher-terms">{order.terms}</p>
+      </Box>
+      <div className="order-actions">
+        <button type="button" className="btn btn-primary" onClick={() => window.print()}>
+          <Printer size={16} aria-hidden="true" /> Print
         </button>
         <button type="button" className="btn" onClick={onClose}>
           Close
         </button>
       </div>
-    </section>
+    </Section>
   );
 }

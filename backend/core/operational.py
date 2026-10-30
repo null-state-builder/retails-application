@@ -37,7 +37,14 @@ BOUNDARIES = frozenset(
 #: 15D): quarantined pieces actually destroyed or handed over for scrap leave
 #: custody for the ``disposed`` boundary, with a value leg only for a portion
 #: whose loss no write-off has already recognised.
-POSTING_KINDS = frozenset(f"P{number:02d}" for number in range(1, 22))
+#: P22 is the test-tenant nightly legacy sync: the day's test bills are put back
+#: exactly where they were taken from, then the store follows the legacy book -
+#: from its SOH (pieces it no longer holds leave as ``consumed``, extra pieces of
+#: known items arrive as accepted adjustment lots) or from its sales report
+#: (sold pieces leave, returns come back). It exists only on a synthetic tenant
+#: running beside the legacy software, and is a kind of its own so it is never
+#: read as a sale, a receipt or a count correction.
+POSTING_KINDS = frozenset(f"P{number:02d}" for number in range(1, 23))
 
 #: The sale posting, named once so the engine's consumption test and the sell
 #: service cannot drift apart.
@@ -46,6 +53,8 @@ SALE_POSTING = "P19"
 WRITE_OFF_POSTING = "P20"
 #: The disposal posting (goods ticket 15D), named once for the same reason.
 DISPOSAL_POSTING = "P21"
+#: The test-tenant nightly legacy sync (store test run), named once.
+LEGACY_SYNC_POSTING = "P22"
 
 
 class OperationalBatchError(ValueError):

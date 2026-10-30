@@ -2417,6 +2417,9 @@ from sell.alteration_models import (  # noqa: E402, F401
 )
 from sell.cash_models import CashCount, CashCountBill, CashMovement  # noqa: E402, F401
 
+# Closing the business day: the summary tick and the manager-confirmed close.
+from sell.day_close_models import DayClose  # noqa: E402, F401
+
 # Ticket 26: claims for brand-funded discounts.
 from sell.claim_models import BrandClaim, BrandClaimPart  # noqa: E402, F401
 

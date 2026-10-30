@@ -20,7 +20,7 @@
 
 .accept-layout .h3,
 .stock-layout .h3 {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--navy2);
   margin: 14px 0 6px;
@@ -64,16 +64,26 @@
 .stock-layout table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 
 .accept-layout th,
 .accept-layout td,
 .stock-layout th,
 .stock-layout td {
-  padding: 6px 8px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--sidebar-border);
   text-align: left;
+}
+
+.accept-layout thead th,
+.stock-layout thead th {
+  background: var(--inner);
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
 .accept-layout .acc-pt-list {
@@ -91,7 +101,7 @@
   justify-content: space-between;
   gap: 10px;
   border: 1px solid var(--sidebar-border);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   padding: 8px 10px;
 }
 
@@ -99,9 +109,9 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid color-mix(in srgb, var(--amber, #f59e0b) 60%, var(--sidebar-border));
-  background: color-mix(in srgb, var(--amber, #f59e0b) 8%, transparent);
-  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--amber) 60%, var(--sidebar-border));
+  background: color-mix(in srgb, var(--amber) 8%, transparent);
+  border-radius: var(--radius-control);
   padding: 8px 12px;
   font-size: 13px;
   margin-bottom: 10px;
@@ -112,7 +122,7 @@
 }
 
 .accept-layout .acc-big {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 600;
   padding: 10px 12px;
   height: auto;
@@ -127,7 +137,7 @@
 
 .accept-layout .acc-conditions {
   border: 1px solid var(--sidebar-border);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   padding: 8px 10px;
   margin: 10px 0;
 }
@@ -145,7 +155,7 @@
   gap: 8px;
   padding: 8px 4px;
   cursor: pointer;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 
 .accept-layout .acc-condition span {
@@ -162,22 +172,15 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 
 .accept-layout .acc-errors p {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: var(--red, #b91c1c);
+  color: var(--red);
   font-size: 13px;
-}
-
-/* Ticket 07B: more pieces than the PT covers. Amber, like the stock
-   limitation note: a thing to act on, not an error in what was typed. */
-.accept-layout .acc-extra {
-  border-color: color-mix(in srgb, var(--amber, #f59e0b) 60%, var(--sidebar-border));
-  background: color-mix(in srgb, var(--amber, #f59e0b) 6%, transparent);
 }
 
 .accept-layout .acc-extra-refs {
@@ -188,21 +191,20 @@
 }
 
 .accept-layout .acc-extra-refs dt {
-  font-size: 11.5px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--muted);
 }
 
 .accept-layout .acc-extra-refs dd {
   margin: 2px 0 0;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 
 .accept-layout .acc-extra-steps {
   margin: 8px 0 12px;
   padding-left: 20px;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 
 .accept-layout .acc-extra-steps li {
@@ -218,23 +220,10 @@
 }
 
 .stock-layout .stock-reasons {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--muted);
   margin: 0;
   padding-left: 16px;
-}
-
-.stock-layout .stock-limitation {
-  border: 1px solid color-mix(in srgb, var(--amber, #f59e0b) 60%, var(--sidebar-border));
-  background: color-mix(in srgb, var(--amber, #f59e0b) 8%, transparent);
-  border-radius: 10px;
-  padding: 10px 12px;
-  font-size: 13px;
-  margin: 10px 0;
-}
-
-.stock-layout .stock-limitation-intro {
-  margin: 0;
 }
 
 /* One line per limitation the server declared: the list length is the answer,
@@ -277,7 +266,7 @@
 
 .stock-layout .journey-meta {
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: 12px;
 }
 
 @media (max-width: 720px) {

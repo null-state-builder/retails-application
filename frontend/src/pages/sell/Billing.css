@@ -21,7 +21,7 @@
   overflow: hidden;
   width: 100%;
   max-width: none;
-  padding: 0 0 0 16px;
+  padding: 0 16px 0 16px;
 }
 
 /* The BillBar spans the full width across both columns. */
@@ -41,6 +41,10 @@
   overflow: hidden;
   padding: 0 16px 12px 0;
 }
+/* The payment rail (design system v2 TillLayout), top to bottom: customer,
+   salesperson, the Tax invoice (GSTIN) row, the tenders, then the fixed foot -
+   To pay and Save & print. A true grid child (column 2, row 2); on narrow
+   screens it stacks below the work area ("Sizes", bottom of this file). */
 .bill-pay {
   grid-column: 2;
   display: flex;
@@ -49,19 +53,39 @@
   min-height: 0;
   min-width: 0;
   overflow: hidden;
-  border-left: 1px solid var(--hairline);
-  padding-bottom: 12px;
+  /* A white panel on the paper, like the bill beside it (v2.1). */
+  margin: 0 0 12px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-box);
+  background: var(--surface);
 }
 
-/* The rail body takes remaining space above RailFoot and scrolls if needed. */
+/* The rail body takes the space above RailFoot and scrolls if it must.
+   `auto`, not `visible` (ticket 05): a business bill's GSTIN block plus a
+   refusal in the foot can outgrow it, and overflowing content slid under the
+   foot where nobody could reach "Not a business bill". No scrollbar appears
+   while everything fits. */
 .bill-rail-body {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  padding: 16px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
+}
+/* Each part of the rail is a section on the rail's paper, a hairline apart. */
+.bill-rail-section + .bill-rail-section {
+  padding-top: 12px;
+  border-top: 1px solid var(--hairline);
+}
+/* A field's or a group's own label inside the counter (Sold by, Tax invoice
+   (GSTIN), Split, Against bill): the house `.field label`, for labels that are
+   not a `.field`'s. A part with a name of its own has a `.heading` instead. */
+.bill-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink2);
 }
 
 /* The counter's top area (ScanHero + alerts) stays fixed at top of work area. */
@@ -78,47 +102,14 @@
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
-  padding: 14px 16px 14px 0;
+  padding: 12px 16px 12px 0;
   border-bottom: 1px solid var(--hairline);
 }
-.bill-mode {
-  display: inline-flex;
-  height: 38px;
-  padding: 3px;
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-inner);
-  background: var(--surface);
-}
-.bill-mode-button {
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--muted);
-  padding: 0 14px;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.bill-mode-button.is-active {
-  background: var(--navy-fill);
-  color: #fff;
-}
-.bill-mode-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-/* Mode+identity group, separated from Sold-by by a vertical divider. */
+/* Mode and the bill's identity; Sold by lives in the rail now (SoldBy.tsx). */
 .bill-bar-left {
   display: flex;
   align-items: center;
   gap: 14px;
-}
-.bill-bar-divider {
-  width: 1px;
-  height: 28px;
-  background: var(--hairline);
-  flex-shrink: 0;
 }
 .bill-identity {
   display: flex;
@@ -130,26 +121,10 @@
 }
 .bill-identity strong {
   color: var(--ink);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
 }
-/* Sold-by as a self-contained field (label + select). */
-.bill-sold-by-field {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
-  white-space: nowrap;
-}
-.bill-sold-by-field .select {
-  min-width: 160px;
-  height: 38px;
-  padding: 0 10px;
-  font-size: 14px;
-  color: var(--ink);
-}
+/* Held bills, Hold, New bill: sized by density like every other button. */
 .bill-bar-actions {
   display: flex;
   align-items: center;
@@ -157,13 +132,26 @@
   flex-wrap: wrap;
   margin-left: auto;
 }
-.bill-bar-actions .btn {
+/* The F-key printed on the button it presses (decision 2: keep the F-keys).
+   Hidden from the accessible name, which `aria-keyshortcuts` carries. */
+.bill-key {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  height: 38px;
-  padding: 0 14px;
-  font-size: 14px;
+  min-height: 20px;
+  padding: 0 5px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--inner);
+  color: var(--ink2);
+  font: 500 12px/1 var(--mono);
+}
+.btn-cta .bill-key {
+  border-color: var(--on-fill-line);
+  background: transparent;
+  color: inherit;
+}
+.btn-cta:disabled .bill-key {
+  border-color: var(--line);
 }
 .bill-scan-row {
   display: flex;
@@ -175,9 +163,6 @@
   --navy: var(--counter-return-blue, var(--blue));
   --navy-fill: var(--counter-return-blue, var(--blue));
   --navy-fill-hover: var(--counter-return-blue, var(--blue));
-}
-.bill-page[data-mode="return"] .bill-mode-button.is-active {
-  background: var(--counter-return-blue, var(--blue));
 }
 .bill-page[data-mode="return"] .scan-hero-input-wrap {
   border-color: var(--counter-return-blue, var(--blue));
@@ -204,7 +189,7 @@
   gap: 12px;
   padding: 0 16px;
   border: 2px solid var(--navy-fill);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   color: var(--navy);
   background: var(--field-bg);
 }
@@ -219,7 +204,7 @@
   background: transparent;
   color: var(--ink);
   font: inherit;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 500;
 }
 .scan-hero-input::placeholder {
@@ -232,7 +217,7 @@
   gap: 8px;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.06em;
   white-space: nowrap;
 }
@@ -241,12 +226,12 @@
   height: 8px;
   border-radius: 50%;
   background: var(--green);
-  box-shadow: 0 0 0 3px var(--green-bg);
+  box-shadow: var(--halo-ok);
 }
 .scan-hero-lookup {
   width: 104px;
   border: 1px solid var(--sidebar-border);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   background: var(--surface);
   color: var(--ink);
   font: inherit;
@@ -270,12 +255,12 @@
 .scan-hero.is-error .scan-hero-input-wrap {
   border-color: var(--red);
   color: var(--red);
-  box-shadow: 0 0 0 3px var(--red-bg);
+  box-shadow: var(--halo-error);
   animation: bill-scan-shake 0.22s ease-in-out;
 }
 .scan-hero.is-error .scan-hero-state-ring {
   background: var(--red);
-  box-shadow: 0 0 0 3px var(--red-bg);
+  box-shadow: var(--halo-error);
 }
 .scan-hero-error {
   margin-top: 10px;
@@ -284,7 +269,7 @@
   gap: 10px;
   padding: 10px 14px;
   border: 1px solid var(--red-bd);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   color: var(--red);
   background: var(--red-bg);
 }
@@ -300,7 +285,7 @@
 }
 .scan-hero-error small {
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.4;
 }
 .scan-hero-error-icon {
@@ -325,14 +310,14 @@
 }
 .scan-hero-demo > span {
   color: var(--caption);
-  font-size: 11.5px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 .scan-hero-demo button {
   border: 1px solid var(--hairline);
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   background: var(--surface);
   color: var(--muted);
   padding: 4px 8px;
@@ -355,17 +340,14 @@
   font-weight: 400;
 }
 
-.bill-alert {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--amber-bg);
-  border: 1px solid var(--amber-bd);
-  color: var(--amber);
-  border-radius: var(--radius-inner);
-  padding: 10px 14px;
-  font-size: 13.5px;
-  margin: 0 0 14px;
+/* The notes above the lines (components/Note.tsx): a 3px bar, ink text, the
+   width of the work area, a gap apart. */
+.bill-top > .note {
+  max-width: none;
+  margin: 0 0 12px;
+}
+.bill-top > .note .bill-note-line {
+  margin: 2px 0 0;
 }
 
 /* A scan that found nothing (#186). It sits above the suggestion list because
@@ -404,31 +386,22 @@
 }
 
 /* The counter itself cannot bill (#189) - data cleared, or a second window on
-   one till. Red rather than the amber every other banner on this page wears: it
-   is the only one that means "nothing below this works". Rule 5 says
+   one till. A red note rather than the amber every other note on this page
+   wears: it is the only one that means "nothing below this works". Rule 5 says
    collapsing alerts to one line must not soften this case, so it is not one of
-   the alert-strip banners at all - `.bill-blocked-area` below is `.bill-work`'s
-   entire content instead of a line above it. */
-.bill-alert-stop {
-  background: var(--red-bg);
-  border-color: var(--red-bd);
-  color: var(--red);
-}
-
-/* The full-band takeover (#243, AC4): the work area's only content while
-   `till.blocked`, in place of the grid and the rail. */
+   the notes above the lines at all - `.bill-blocked-area` is the work area's
+   entire content (#243, AC4), in place of the grid. */
 .bill-blocked-area {
-  grid-column: 1 / -1;
   height: 100%;
   margin: 0;
   padding: 40px;
-  border-radius: var(--radius);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  text-align: center;
-  font-size: 15.5px;
+}
+.bill-blocked-area > .note {
+  font-size: 16px;
+  line-height: 24px;
 }
 
 /* Keying a printed bill back in after a register handover (#189). Deliberately
@@ -441,7 +414,7 @@
   background: var(--band-edge-bg);
   border: 1px solid var(--band-edge-bd);
   color: var(--ink);
-  border-radius: 10px;
+  border-radius: var(--radius-box);
   padding: 12px 14px;
   font-size: 13px;
   margin: 0 0 16px;
@@ -463,6 +436,17 @@
 
 .bill-suggest {
   padding: 14px 16px;
+}
+/* The pieces coming back on an exchange (ExchangeBack, Billing.tsx): a box
+   above the lines, the same gap below it as the held bills keep. */
+.bill-exchange {
+  margin-bottom: 16px;
+}
+.bill-exchange-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
 }
 .bill-suggest-rows {
   display: flex;
@@ -513,9 +497,9 @@
 .return-customer-search {
   padding: 16px;
   border: 1px solid var(--hairline);
-  border-radius: 12px;
+  border-radius: var(--radius-box);
   background: var(--surface);
-  box-shadow: var(--shadow-lift);
+  box-shadow: var(--shadow-float);
 }
 .return-customer-head,
 .return-customer-form,
@@ -539,7 +523,7 @@
 .return-offline {
   color: var(--amber);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .return-customer-form .input {
   min-width: 0;
@@ -604,7 +588,7 @@
   margin-bottom: 12px;
   overflow: hidden;
   border: 1px solid var(--hairline);
-  border-radius: 12px;
+  border-radius: var(--radius-box);
   background: var(--surface);
 }
 .return-against-head {
@@ -624,12 +608,12 @@
 }
 .return-against-value > span {
   color: var(--muted);
-  font-size: 11.5px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 .return-against-value strong {
-  font: 600 17px/1.2 var(--mono);
+  font: 600 20px/1.2 var(--mono);
 }
 .return-against-actions {
   display: flex;
@@ -640,7 +624,8 @@
   align-items: center;
   gap: 5px;
 }
-.return-against > .warn-note {
+.return-against > .note {
+  max-width: none;
   margin: 10px 14px;
 }
 .return-lines-wrap {
@@ -649,14 +634,14 @@
 .return-lines {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 .return-lines th {
   padding: 10px 8px;
   background: var(--inner);
   color: var(--muted);
-  font-size: 11.5px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   letter-spacing: 0.05em;
   text-align: left;
   text-transform: uppercase;
@@ -736,7 +721,7 @@
   justify-content: space-between;
   gap: 16px;
   border: 1px solid var(--hairline);
-  border-radius: 10px;
+  border-radius: var(--radius-box);
   padding: 9px 12px;
 }
 .bill-hold-who {
@@ -747,7 +732,7 @@
 }
 .bill-hold-name {
   font-weight: 600;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 .bill-hold-who .muted-cell {
   display: inline-flex;
@@ -756,8 +741,8 @@
   font-size: 12px;
 }
 .bill-hold-money {
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 600;
   white-space: nowrap;
 }
 .bill-hold-actions {
@@ -766,21 +751,14 @@
   gap: 8px;
   flex-wrap: wrap;
 }
-.bill-alert .btn {
-  margin-left: auto;
-}
-
-/* A flagged draft (#244) offers two answers, not one - `.bill-alert .btn`'s
-   own `margin-left: auto` would push both to the right independently and
-   spread them apart, so they are grouped and pushed as one instead. */
+/* A flagged draft (#244) offers two answers, not one, so they are grouped and
+   pushed right as one, where a note's single action sits. */
 .bill-pending-draft-actions {
   display: flex;
+  flex: none;
   align-items: center;
   gap: 8px;
   margin-left: auto;
-}
-.bill-pending-draft-actions .btn {
-  margin-left: 0;
 }
 
 .bill-work {
@@ -795,7 +773,7 @@
   text-align: center;
   font-size: 14px;
   border: 1px dashed var(--hairline);
-  border-radius: var(--radius);
+  border-radius: var(--radius-box);
 }
 
 /* Twelve columns is what staff read today (D10 §4), so the grid is tuned to
@@ -805,7 +783,7 @@
    be written to out-weigh it or the generic 18px gutter keeps twelve columns
    from fitting. */
 .bill-grid {
-  font-size: 12.5px;
+  font-size: 12px;
   table-layout: fixed;
   width: 100%;
 }
@@ -867,7 +845,7 @@ select.bill-cell {
   width: 100%;
   min-width: 0;
   padding: 4px 6px;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 .bill-grid td.num .bill-cell {
   text-align: right;
@@ -876,14 +854,13 @@ select.bill-season {
   min-width: 0;
 }
 /* Which slab the line was taxed at (#247, grill Q7) - "a quiet badge", so it is
-   a wash and a hairline rather than a colour that means something. The three
-   status colours on this screen are all warnings (`.bill-overcap` red,
-   `.bill-offer` green), and a rate is neither good nor bad news. */
+   a wash and a hairline rather than a colour that means something: a rate is
+   neither good nor bad news. */
 .bill-gst-badge {
   display: inline-block;
   padding: 1px 7px;
-  border-radius: 10px;
-  font-size: 11.5px;
+  border-radius: var(--radius-control);
+  font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
   color: var(--muted);
@@ -894,7 +871,7 @@ select.bill-season {
 .bill-overcap {
   display: block;
   margin-top: 4px;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--red);
 }
@@ -917,19 +894,10 @@ select.bill-season {
   border-top: 0;
   white-space: normal;
 }
+/* An offer on a line is a `.chip-blue` (design system v2 BillLine: a chip,
+   because it needs a look); this only fits it into the item's meta line. */
 .bill-offer {
-  display: inline-block;
-  margin-right: 8px;
-  padding: 1px 8px;
-  border-radius: 10px;
-  font-size: 11.5px;
-  font-weight: 600;
-  line-height: 1.6;
-  white-space: normal;
-  overflow-wrap: break-word;
-  color: var(--green);
-  background: var(--green-bg);
-  border: 1px solid var(--green-bd);
+  min-height: 20px;
 }
 
 /* The re-cut grid is a card, not a generic data table: item identity has room
@@ -942,7 +910,7 @@ select.bill-season {
   overflow: hidden;
   background: var(--surface);
   border: 1px solid var(--hairline);
-  border-radius: var(--radius);
+  border-radius: var(--radius-box);
 }
 .bill-grid-scroll {
   min-height: 0;
@@ -964,8 +932,8 @@ select.bill-season {
   padding: 10px 8px;
   background: var(--inner);
   color: var(--muted);
-  font-size: 11.5px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   letter-spacing: 0.05em;
   text-transform: uppercase;
   text-align: left;
@@ -986,6 +954,24 @@ select.bill-season {
 .bill-grid-card .bill-grid td.bill-col-qty {
   padding-left: 4px;
   padding-right: 4px;
+}
+/* The line the last scan landed on: a 2px rust bar on its first cell (rust
+   marks where you are) and a glow that fades over --dur-flash. */
+.bill-grid-card .bill-grid tr.is-last-scan > td:first-child {
+  box-shadow: inset 2px 0 0 var(--rust);
+}
+.bill-grid-card .bill-grid tr.is-last-scan > td {
+  animation: bill-last-scan var(--dur-flash) linear;
+}
+@keyframes bill-last-scan {
+  from {
+    background: rgba(var(--rust-rgb), 0.12);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bill-grid-card .bill-grid tr.is-last-scan > td {
+    animation: none;
+  }
 }
 .bill-line-number {
   color: var(--caption);
@@ -1020,7 +1006,7 @@ select.bill-season {
   display: block;
   overflow: hidden;
   color: var(--ink);
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1041,21 +1027,18 @@ select.bill-season {
   flex: 0 0 auto;
   overflow: visible;
 }
-.bill-item-meta .bill-offer,
 .bill-tag {
   margin: 0;
   padding: 1px 6px;
-  border-radius: 6px;
-  font-size: 11.5px;
+  border-radius: var(--radius-control);
+  font-size: 12px;
   line-height: 1.4;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-}
-.bill-tag {
   color: var(--muted);
   background: var(--inner);
   border: 1px solid var(--hairline);
-  font-weight: 700;
+  font-weight: 600;
 }
 .bill-size-fold {
   display: none;
@@ -1075,14 +1058,14 @@ select.bill-season {
   border: 1px solid var(--hairline);
   background: var(--inner);
   color: var(--ink);
-  font: 15px/1 inherit;
+  font: 14px/1 inherit;
   cursor: pointer;
 }
 .bill-qty-stepper button:first-child {
-  border-radius: 6px 0 0 6px;
+  border-radius: var(--radius-control) 0 0 var(--radius-control);
 }
 .bill-qty-stepper button:last-child {
-  border-radius: 0 6px 6px 0;
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
 }
 .bill-qty-stepper input.bill-cell {
   width: 32px;
@@ -1095,7 +1078,7 @@ select.bill-season {
   border-color: var(--amber-bd);
   background: var(--amber-bg);
   color: var(--amber);
-  font-weight: 700;
+  font-weight: 600;
 }
 .bill-net-tax {
   display: flex;
@@ -1108,7 +1091,7 @@ select.bill-season {
 }
 .bill-net-tax .bill-gst-badge {
   padding: 0 6px;
-  font-size: 11.5px;
+  font-size: 12px;
 }
 select.bill-salesman-missing {
   border-color: var(--amber-bd);
@@ -1122,29 +1105,45 @@ select.bill-salesman-missing {
   gap: 14px;
   padding: 12px 16px;
   border-top: 1px solid var(--hairline);
-  background: var(--inner);
+  background: var(--surface);
 }
 .bill-grid-totals {
   min-width: 0;
   flex: 1;
 }
+/* The bill's totals (v2.1): each figure a tile in Sell's tint, the 20px
+   tabular number over its label. "To pay" itself is the rail's. */
 .bill-grid-footer .bill-totals {
-  gap: 28px;
+  gap: 8px;
   flex-wrap: nowrap;
   overflow-x: auto;
 }
 .bill-grid-footer .bill-figure {
   flex: 0 0 auto;
-  gap: 2px;
-  font-size: 15px;
+  min-width: 88px;
+  gap: 0;
+  padding: 6px 12px;
+  background: var(--area-tint);
+  border: 1px solid var(--area-line);
+  border-radius: var(--radius-control);
+  font: 600 20px/28px var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
 }
 .bill-grid-footer .bill-figure-label {
+  order: 2;
   font-size: 12px;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  line-height: 16px;
+  color: var(--ink2);
 }
-.bill-grid-footer .bill-figure-strong {
-  font-size: 18px;
+.bill-grid-footer .bill-totals-note {
+  flex: 0 1 320px;
+  align-self: center;
+  margin: 0;
+  padding: 6px 12px;
+  font-size: 13px;
+  line-height: 18px;
 }
 .bill-grid-undo {
   flex: 0 0 auto;
@@ -1166,7 +1165,7 @@ select.bill-salesman-missing {
 .bill-empty strong {
   margin-top: 8px;
   color: var(--ink);
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
 }
 .bill-empty > span:last-child {
@@ -1185,30 +1184,6 @@ select.bill-salesman-missing {
   border: 1px solid var(--hairline);
 }
 
-/* The rail: now a true CSS grid child (column 2, row 2) rather than an
-   absolute overlay. No independent scrollbar target at 1366×768: payment
-   and customer sections are trimmed to fit within row-2 height. On narrow
-   screens the rail stacks below the work area ("Sizes", bottom of this file). */
-.bill-pay {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  border-left: 1px solid var(--hairline);
-  background: var(--sidebar);
-}
-/* `auto`, not `visible` (ticket 05): the rail is sized to fit, but a business
-   bill's GSTIN block plus a refusal in the foot can outgrow it, and overflowing
-   content slid under the foot where nobody could reach "Not a business bill".
-   No scrollbar appears while everything fits. */
-.bill-rail-body {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
-  padding: 14px 16px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
 .bill-panel {
   padding: 14px 16px;
 }
@@ -1218,34 +1193,16 @@ select.bill-salesman-missing {
 .bill-panel .muted-cell {
   display: block;
   margin-top: 10px;
-  font-size: 12.5px;
-}
-.bill-payment-heading {
-  padding: 0;
-}
-.bill-payment-heading .eyebrow {
-  margin: 0;
-  color: var(--muted);
   font-size: 12px;
-  letter-spacing: 0.08em;
-}
-.bill-due {
-  font: 600 40px/1.1 var(--mono);
-  letter-spacing: -0.03em;
-  color: var(--ink);
-  margin: 4px 0 0;
-}
-.bill-page[data-mode="return"] .bill-due {
-  color: var(--counter-return-blue, var(--blue));
 }
 /* A connected rail tile: one border wraps multiple sections separated by
    internal hairline dividers (spec §Payment and customer rail). */
 .bill-rail-tile {
   overflow: hidden;
   border: 1px solid var(--hairline);
-  border-radius: 14px;
+  border-radius: var(--radius-overlay);
   background: var(--inner);
-  box-shadow: var(--shadow-rest);
+  box-shadow: none;
 }
 .bill-tile-divider {
   margin: 0;
@@ -1257,6 +1214,7 @@ select.bill-salesman-missing {
    between two rules rather than a second shaded card with a shadow. */
 .bill-rail-tile.bill-payment-tile {
   margin-top: 10px;
+  overflow: visible;
   border: 0;
   border-top: 1px solid var(--hairline);
   border-bottom: 1px solid var(--hairline);
@@ -1275,12 +1233,21 @@ select.bill-salesman-missing {
   background: transparent;
   box-shadow: none;
 }
+/* One tender row (design system v2 TenderRow). The row being typed into is
+   "where you are": a 2px rust bar on its left edge and an inner wash. The row
+   reaches 8px past the rail's text edge so the bar sits clear of the label. */
 .bill-tender {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto 140px;
   align-items: center;
   gap: 8px;
-  padding: 7px 0;
+  margin: 0 -8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-control);
+}
+.bill-tender:focus-within {
+  background: var(--inner);
+  box-shadow: inset 2px 0 0 var(--rust);
 }
 /* Cash, its chips and the cash-received box read as one block (#246): they are
    three parts of one question - how much of this bill is cash, what did the
@@ -1295,7 +1262,7 @@ select.bill-salesman-missing {
    under Cash and set quieter, so an eye running down the amounts reads three
    tenders, not four. */
 .bill-tender.is-quiet {
-  padding-left: 22px;
+  padding-left: 30px;
 }
 .bill-cash-block .bill-tender.is-quiet {
   border-top: 1px solid var(--hairline);
@@ -1309,7 +1276,7 @@ select.bill-salesman-missing {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--ink);
 }
@@ -1324,7 +1291,6 @@ select.bill-salesman-missing {
 /* A quiet text button, not a pill: it should read as "tap to fill the rest
    here", and when there is no rest it simply fades. */
 .bill-tender-rest {
-  height: 32px;
   padding: 0 10px;
   border-color: transparent;
   background: transparent;
@@ -1354,12 +1320,12 @@ select.bill-salesman-missing {
   text-align: right;
 }
 .bill-payment-method .bill-cell {
-  height: 42px;
+  height: var(--control-counter);
   padding: 0 12px;
   border-color: var(--sidebar-border);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   background: var(--field-bg);
-  font-size: 17px;
+  font-size: 20px;
   font-weight: 600;
 }
 
@@ -1372,17 +1338,13 @@ select.bill-salesman-missing {
    bill and the rows are the split. */
 .bill-allocate-all {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   margin: 10px 0 0;
 }
 .bill-allocate {
   flex: 1;
-  min-height: 40px;
   padding: 0 8px;
   justify-content: center;
-  border-color: var(--sidebar-border);
-  font-size: 14px;
-  font-weight: 600;
 }
 
 /* How a tender was proved, in words, on the row itself: a card row and a UPI row
@@ -1423,8 +1385,8 @@ select.bill-salesman-missing {
   font-weight: 600;
 }
 .bill-chip-tag {
-  font-size: 11.5px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--caption);
@@ -1441,32 +1403,18 @@ select.bill-salesman-missing {
    shared one: `short`, `over` and `stranded` are different problems with
    different fixes, and a class called `is-short` on an over-tendered bill would
    be a lie the next person reading the DOM has to unpick. */
+/* Painted as a design system v2 note (`.note-warn` while money is still to
+   allocate - `unallocated`, where every bill starts, and `short`; `.note-error`
+   for `over` and `stranded`; `.note-success` for `change` and `settled`,
+   PaymentPanel.tsx), with the words left and the figure right. */
 .bill-balance-line {
-  display: flex;
+  max-width: none;
   align-items: baseline;
   justify-content: space-between;
   gap: 16px;
   margin: 10px 0 0;
   padding: 10px 14px;
-  border-radius: var(--radius-inner);
-  font-size: 14px;
-  font-weight: 700;
-}
-.bill-balance-line.is-over,
-.bill-balance-line.is-stranded {
-  color: var(--red);
-  background: var(--red-bg);
-  border: 1px solid var(--red-bd);
-}
-.bill-balance-line.is-short,
-/* Where every bill now starts: the whole amount, with nothing said about where
-   it is coming from. Amber like `short`, because the two are the same job half
-   done - but a class of its own, because only one of them is a split somebody
-   has already begun. */
-.bill-balance-line.is-unallocated {
-  color: var(--amber);
-  background: var(--amber-bg);
-  border: 1px solid var(--amber-bd);
+  font-weight: 600;
 }
 /* The one red state whose words are a sentence rather than a label, so it is the
    one that needs room to wrap in a 340px rail. */
@@ -1474,57 +1422,26 @@ select.bill-salesman-missing {
   font-size: 13px;
   align-items: center;
 }
-.bill-balance-line.is-change {
-  color: var(--green);
-  background: var(--green-bg);
-  border: 1px solid var(--green-bd);
-}
-.bill-balance-line.is-settled {
-  color: var(--green);
-  background: var(--green-bg);
-  border: 1px solid var(--green-bd);
-  font-weight: 600;
-}
 .bill-balance-line [data-testid="bill-balance"] {
-  font: 700 19px/1 var(--mono);
+  font: 600 20px/1 var(--mono);
 }
 
-/* The customer section: joined to the payment tile as a footer row within the
-   same .bill-rail-tile, separated by a .bill-tile-divider. */
-.bill-customer-card {
-  padding-top: 12px;
-  border-top: 1px solid var(--hairline);
-}
+/* The customer, first in the rail. */
 .bill-customer-heading {
   display: flex;
   align-items: baseline;
   gap: 8px;
   padding: 0;
 }
-.bill-customer-heading .eyebrow {
-  margin: 0;
-  color: var(--muted);
-  font-size: 12px;
-  letter-spacing: 0.08em;
-}
 .bill-customer-heading > span {
   color: var(--caption);
   font-size: 12px;
-}
-.bill-customer-tile {
-  margin-top: 10px;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  overflow: visible;
 }
 .bill-customer-fields {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr);
   gap: 8px;
-  margin: 0;
+  margin: 10px 0 0;
 }
 .bill-customer-fields .field {
   position: relative;
@@ -1538,34 +1455,83 @@ select.bill-salesman-missing {
   clip-path: inset(50%);
 }
 .bill-customer-fields .input {
-  height: 42px;
-  border: 1px solid var(--sidebar-border);
-  border-radius: var(--radius-inner);
-  background: var(--field-bg);
+  height: var(--control-counter);
   padding: 0 12px;
-  font-size: 14px;
 }
-/* The disclosure itself - quiet, because on most bills the answer is no. */
-.bill-business-toggle {
+
+/* Sold by, second in the rail: the label beside a full-width select. */
+.bill-sold-by-field {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+.bill-sold-by-field .select {
+  min-width: 0;
+  height: var(--control-counter);
+}
+.bill-apply-sold-by {
   width: 100%;
-  min-height: 40px;
-  margin: 8px 0 0;
-  padding: 6px 14px;
-  justify-content: flex-start;
-  border: 1px dashed var(--sidebar-border);
-  border-radius: var(--radius-inner);
-  background: transparent;
-  text-align: left;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--muted);
+  margin-top: 8px;
 }
-/* The card's last word, and the one thing on it that is not a control: no
-   bottom margin, because a paragraph's default one is a card's worth of
-   padding again. */
-.bill-customer-tile .bill-customer-note {
+
+/* The Tax invoice (GSTIN) row, third: one quiet row while closed - on most
+   bills the answer is no - and the field under its own head once open. */
+.bill-gstin-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: var(--control-sm);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink2);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.bill-gstin-row:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.bill-gstin-hint {
+  flex: 1;
+  color: var(--navy);
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+}
+.bill-gstin-row:hover:not(:disabled) .bill-gstin-hint {
+  text-decoration: underline;
+}
+.bill-gstin-row:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.bill-gstin-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.bill-gstin .field {
+  margin: 0;
+}
+.bill-gstin .input {
+  height: var(--control-counter);
+}
+.bill-gstin .note {
+  margin-top: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  line-height: 18px;
+}
+/* The section's last word, and the one thing in it that is not a control. */
+.bill-gstin .bill-customer-note {
   margin: 8px 0 0;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 .bill-known-customer {
   display: flex;
@@ -1573,7 +1539,7 @@ select.bill-salesman-missing {
   gap: 8px;
   margin: 10px 0 0;
   color: var(--green);
-  font-size: 12.5px;
+  font-size: 12px;
 }
 .bill-known-customer > span {
   width: 6px;
@@ -1655,7 +1621,7 @@ select.bill-salesman-missing {
   max-height: calc(100vh - 48px);
   overflow-y: auto;
   border: 1px solid var(--hairline);
-  border-radius: 18px;
+  border-radius: var(--radius-overlay);
   background: var(--surface);
   box-shadow: var(--shadow-raised);
 }
@@ -1695,7 +1661,7 @@ select.bill-salesman-missing {
 .bill-finish-payment,
 .bill-finish-barcode {
   border: 1px solid var(--hairline);
-  border-radius: 12px;
+  border-radius: var(--radius-box);
   background: var(--inner);
 }
 .bill-finish-paid {
@@ -1706,7 +1672,7 @@ select.bill-salesman-missing {
   padding: 14px;
 }
 .bill-finish-paid strong {
-  font: 600 23px/1 var(--mono);
+  font: 600 24px/1 var(--mono);
 }
 .bill-finish-split {
   border-top: 1px solid var(--hairline);
@@ -1761,8 +1727,8 @@ select.bill-salesman-missing {
   margin-left: 8px;
   padding: 2px 6px;
   border: 1px solid currentColor;
-  border-radius: 4px;
-  font: 11.5px/1 var(--mono);
+  border-radius: var(--radius-control);
+  font: 12px/1 var(--mono);
   opacity: 0.72;
 }
 
@@ -1814,12 +1780,12 @@ select.bill-salesman-missing {
   padding: 7px 11px;
 }
 .bill-customer-row .muted-cell {
-  font-size: 12.5px;
+  font-size: 12px;
 }
 .bill-customer-none {
   display: block;
   margin: 0 0 10px;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 
 /* The UPI row and how it is being proved (#248, grill Q5). Same hanging indent
@@ -1852,7 +1818,7 @@ select.bill-salesman-missing {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--green);
   overflow-wrap: anywhere;
@@ -1867,8 +1833,8 @@ select.bill-salesman-missing {
    card that is true in every one of the five states. */
 .bill-upi-amount {
   margin: 4px 0 16px;
-  font-size: 34px;
-  font-weight: 700;
+  font-size: 32px;
+  font-weight: 600;
   color: var(--navy);
   letter-spacing: -0.5px;
   text-align: center;
@@ -1879,11 +1845,11 @@ select.bill-salesman-missing {
   align-items: center;
   gap: 10px;
   padding: 22px 18px;
-  border-radius: 12px;
+  border-radius: var(--radius-box);
   border: 1px dashed var(--hairline);
   background: var(--band-edge-bg);
   color: var(--caption);
-  font-size: 12.5px;
+  font-size: 12px;
   text-align: center;
 }
 .bill-upi-says {
@@ -1897,7 +1863,7 @@ select.bill-salesman-missing {
   gap: 9px;
   margin: 0;
   padding: 12px 14px;
-  border-radius: 10px;
+  border-radius: var(--radius-box);
   font-size: 13px;
   font-weight: 600;
   line-height: 1.45;
@@ -1950,18 +1916,53 @@ select.bill-salesman-missing {
 .bill-asks {
   margin: 4px 0 16px;
   padding-left: 18px;
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--ink);
 }
 .bill-asks li {
   margin-top: 4px;
 }
 
+/* The rail's foot (design system v2 TotalsStrip + TillLayout): To pay at 44px
+   on a hairline, then Save & print - the one red button, because it commits
+   money - and a quiet Reprint under it. Fixed below the scrolling body. */
 .bill-rail-foot {
   flex: 0 0 auto;
-  padding: 12px 16px 14px;
-  border-top: 1px solid var(--hairline);
-  background: var(--paper);
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+}
+.bill-rail-due {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 12px;
+  padding: 8px 12px;
+  background: var(--area-tint);
+  border: 1px solid var(--area-line);
+  border-radius: var(--radius-box);
+}
+.bill-rail-due-label {
+  color: var(--ink2);
+  font-size: 13px;
+  font-weight: 600;
+}
+.bill-due {
+  font: 600 44px/48px var(--font-sans);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.bill-page[data-mode="return"] .bill-due {
+  color: var(--counter-return-blue, var(--blue));
+}
+/* A return before its original bill is found: nothing to pay yet, said small. */
+.bill-rail-due[data-ready="false"] .bill-due {
+  opacity: 0.45;
+  font-size: 16px;
+  line-height: 24px;
 }
 .bill-rail-blocked {
   display: flex;
@@ -1969,63 +1970,48 @@ select.bill-salesman-missing {
   gap: 8px;
   margin: 0 0 8px;
   color: var(--amber);
-  font-size: 12.5px;
+  font-size: 12px;
   line-height: 1.4;
 }
 .bill-rail-blocked svg {
   flex: 0 0 auto;
   margin-top: 2px;
 }
-/* The amount due, repeated beside Save & print only where the rail stacks under
-   the lines (tablet upright, phone) and "To pay" has scrolled away. */
-.bill-rail-due {
-  display: none;
-}
+/* Save & print takes the row; Reprint is a quiet button before it, kept on the
+   same row so the rail's height goes to the tenders. */
 .bill-rail-actions {
   display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.bill-rail-actions .btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
   gap: 8px;
-  height: 50px;
+}
+.bill-rail-save {
+  flex: 1 1 auto;
+  min-height: 52px;
+  gap: 10px;
+  font-size: 16px;
 }
 .bill-rail-reprint {
   flex: 0 0 96px;
   min-width: 96px;
   flex-direction: column;
-  gap: 0 !important;
-  color: var(--muted);
+  gap: 0;
+  padding: 0 8px;
+  border-color: transparent;
   background: transparent;
+  color: var(--ink2);
+  font-size: 13px;
   line-height: 1.2;
+}
+.bill-rail-reprint:hover:not(:disabled) {
+  background: var(--inner);
 }
 .bill-rail-reprint .mono {
   overflow: hidden;
   max-width: 86px;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11.5px;
-}
-.bill-rail-save {
-  flex: 1 1 auto;
-  font-size: 16px;
-  font-weight: 700;
-}
-.bill-rail-save:disabled {
-  opacity: 0.55;
-  background: var(--inner);
-  border-color: var(--inner);
-  color: var(--caption);
-}
-.bill-rail-save:disabled:hover {
-  background: var(--inner);
-}
-.bill-rail-key {
   font-size: 12px;
-  opacity: 0.6;
+  font-weight: 500;
 }
 
 .bill-foot {
@@ -2049,12 +2035,11 @@ select.bill-salesman-missing {
 }
 .bill-figure-label {
   font-size: 12px;
-  text-transform: uppercase;
-  color: var(--muted);
+  color: var(--ink2);
 }
 .bill-figure-strong {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* The tax figure as a way in (#247, grill Q7). It has to keep reading as one of
@@ -2095,11 +2080,11 @@ select.bill-salesman-missing {
   overflow-y: auto;
   padding: 14px 16px;
 }
-.bill-tax-panel .eyebrow {
+.bill-tax-panel .heading {
   margin-bottom: 8px;
 }
 table.data.bill-tax-rows {
-  font-size: 12.5px;
+  font-size: 12px;
   width: 100%;
 }
 table.data.bill-tax-rows th {
@@ -2134,7 +2119,7 @@ table.data.bill-tax-rows td {
   gap: 7px;
 }
 .bill-blocked {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--red);
   max-width: 320px;
 }
@@ -2148,8 +2133,8 @@ table.data.bill-tax-rows td {
      720-899px       one column: lines, then payment (a tablet held upright)
      under 720px     the phone: each line becomes a card, nothing scrolls sideways
    Below 900px the page scrolls again (G-2: "bands stack, everything still
-   works") and Save & print sticks to the bottom of the screen, with the amount
-   due beside it, so a bill is always one tap from done. */
+   works") and the rail's foot - To pay and Save & print - sticks to the bottom
+   of the screen, so a bill is always one tap from done. */
 main.content:has(> .bill-page) {
   container: counter / inline-size;
 }
@@ -2236,8 +2221,8 @@ main.content:has(> .bill-page) {
     margin-top: 16px;
     padding: 16px;
     border: 1px solid var(--hairline);
-    border-radius: var(--radius);
-    background: var(--sidebar);
+    border-radius: var(--radius-box);
+    background: var(--surface);
   }
   .bill-rail-foot {
     grid-column: 1;
@@ -2246,25 +2231,25 @@ main.content:has(> .bill-page) {
     z-index: 30;
     margin: 16px -16px 0;
     padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
-    box-shadow: var(--shadow-rest);
+    box-shadow: none;
   }
-  .bill-rail-due {
+  /* Stuck to the screen's foot, the amount and the button share one row. */
+  .bill-rail-foot:not(:has(.bill-rail-blocked)) {
     display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .bill-rail-foot .bill-rail-due {
     flex-direction: column;
-    flex: 0 0 auto;
-    margin: 0 6px 0 0;
-    line-height: 1.15;
+    gap: 0;
+    margin: 0;
   }
-  .bill-rail-due > span {
-    color: var(--muted);
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+  .bill-rail-foot .bill-due {
+    font-size: 32px;
+    line-height: 40px;
   }
-  .bill-rail-due > strong {
-    font: 600 22px/1.15 var(--mono);
-    color: var(--ink);
+  .bill-rail-foot:not(:has(.bill-rail-blocked)) .bill-rail-actions {
+    flex: 1;
   }
   .bill-top {
     flex: none;
@@ -2304,10 +2289,7 @@ main.content:has(> .bill-page) {
     flex-wrap: wrap;
     gap: 10px;
   }
-  .bill-bar-divider {
-    display: none;
-  }
-  .bill-mode-button {
+  .bill-bar .seg-btn {
     white-space: nowrap;
   }
   .bill-identity {
@@ -2315,13 +2297,6 @@ main.content:has(> .bill-page) {
   }
   .bill-identity strong {
     white-space: nowrap;
-  }
-  .bill-sold-by-field {
-    flex: 1 1 100%;
-  }
-  .bill-sold-by-field .select {
-    flex: 1;
-    min-width: 0;
   }
   .bill-bar-actions {
     flex: 1 1 100%;
@@ -2418,7 +2393,7 @@ main.content:has(> .bill-page) {
   }
   .bill-grid-card .bill-grid tr.bill-line > td.bill-col-net {
     text-align: right;
-    font: 600 18px/1.2 var(--mono);
+    font: 600 20px/1.2 var(--mono);
   }
   .bill-col-del {
     grid-area: del;
@@ -2497,23 +2472,28 @@ main.content:has(> .bill-page) {
     flex-wrap: wrap;
   }
   .bill-rail-reprint {
-    flex-basis: 80px;
-    min-width: 80px;
+    flex-basis: 72px;
+    min-width: 72px;
   }
   .bill-rail-reprint .mono {
     display: none;
   }
   .bill-rail-save {
-    font-size: 15px;
+    font-size: 14px;
   }
-  .bill-rail-key {
+  .bill-rail-save .bill-key,
+  .bill-bar-actions .bill-key {
     display: none;
+  }
+  /* A card per line, so the last scan's bar sits on the card's own edge. */
+  .bill-grid-card .bill-grid tr.bill-line.is-last-scan {
+    box-shadow: inset 2px 0 0 var(--rust);
   }
 }
 
 /* Fingers, not a mouse (tablets and phones): every control at least 44px. */
 @media (pointer: coarse) {
-  .bill-mode,
+  .bill-bar .seg-btn,
   .bill-sold-by-field .select,
   .bill-bar-actions .btn {
     height: 44px;
@@ -2521,11 +2501,13 @@ main.content:has(> .bill-page) {
   .bill-allocate,
   .bill-chip,
   .bill-upi-open,
-  .bill-business-toggle {
+  .bill-business-toggle,
+  .bill-gstin-row,
+  .bill-rail-reprint {
     min-height: 44px;
   }
   .bill-tender-rest {
-    height: 44px;
+    min-height: 44px;
   }
   .bill-grid-card input.bill-cell,
   .bill-grid-card select.bill-cell {
@@ -2545,9 +2527,6 @@ main.content:has(> .bill-page) {
   /* ...and its column grows with it, or the button pokes out past the grid. */
   .bill-grid-card .bill-grid col:nth-child(9) {
     width: 48px !important;
-  }
-  .bill-rail-actions .btn {
-    height: 52px;
   }
   /* The bigger qty buttons need a wider Qty column where the columns are slim. */
   @container counter (max-width: 1099px) and (min-width: 720px) {
@@ -2594,14 +2573,12 @@ main.content:has(> .bill-page) {
   overflow-y: auto;
   padding: 14px 16px;
   border: 1px solid var(--hairline);
-  border-radius: 12px;
+  border-radius: var(--radius-box);
   background: var(--surface);
-  box-shadow: var(--shadow-lift);
+  box-shadow: var(--shadow-float);
 }
-.bill-item-popover .eyebrow {
+.bill-item-popover .heading {
   margin: 0 0 10px;
-  font-size: 11.5px;
-  letter-spacing: 0.06em;
 }
 .bill-item-popover-row {
   display: flex;
@@ -2609,11 +2586,11 @@ main.content:has(> .bill-page) {
   justify-content: space-between;
   gap: 8px;
   margin-top: 8px;
-  font-size: 12.5px;
+  font-size: 12px;
 }
 .bill-item-popover-row label {
   color: var(--muted);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.07em;
@@ -2632,18 +2609,14 @@ main.content:has(> .bill-page) {
 
 /* ── Payment tile: return-mode not-ready state ────────────────────────────────
    When the counter is in return mode but no original bill has been found yet,
-   the tender inputs are disabled and a short explanation replaces the "To pay"
-   figure. */
-.bill-payment-panel[data-return-ready="false"] .bill-due,
+   the tender inputs are disabled and a short explanation sits above them (the
+   foot's "To pay" says "Nothing yet", see `.bill-rail-due[data-ready]`). */
 .bill-payment-panel[data-return-ready="false"] .bill-payment-stack {
   opacity: 0.45;
   pointer-events: none;
 }
-.bill-payment-panel[data-return-ready="false"] .bill-due {
-  font-size: 16px;
-}
 .bill-payment-return-hint {
-  margin: 10px 12px 4px;
+  margin: 8px 0 4px;
   font-size: 12px;
   color: var(--muted);
   line-height: 1.4;
@@ -2659,9 +2632,6 @@ main.content:has(> .bill-page) {
   justify-content: space-between;
   padding: 14px 16px 8px;
 }
-.bill-recent-head .eyebrow {
-  margin: 0;
-}
 .bill-recent-rows {
   display: flex;
   flex-direction: column;
@@ -2675,7 +2645,7 @@ main.content:has(> .bill-page) {
   gap: 16px;
   padding: 11px 14px;
   border: 1px solid var(--hairline);
-  border-radius: 10px;
+  border-radius: var(--radius-box);
   background: var(--surface);
   text-align: left;
   font-size: 13px;
@@ -2696,7 +2666,7 @@ main.content:has(> .bill-page) {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 .bill-recent-row-left small {
   color: var(--muted);
@@ -2710,7 +2680,7 @@ main.content:has(> .bill-page) {
   white-space: nowrap;
 }
 .bill-recent-row-right strong {
-  font: 700 14px/1.2 var(--mono);
+  font: 600 14px/1.2 var(--mono);
 }
 .bill-recent-row-right small {
   color: var(--muted);

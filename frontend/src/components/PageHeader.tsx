@@ -2,7 +2,17 @@ import { createContext, useContext } from "react";
 import type { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 
-import { SECTIONS, itemOwning, itemPath, normalizePath } from "../shell/navConfig";
+import { useAuth } from "../auth/AuthContext";
+import {
+  SECTIONS,
+  foldOwning,
+  itemOwning,
+  itemPath,
+  menuSectionCode,
+  normalizePath,
+  sidebarRows,
+  type NavRow,
+} from "../shell/navConfig";
 
 // One header for every screen, captioned the way the sidebar addresses it (#87).
 //
@@ -15,9 +25,13 @@ import { SECTIONS, itemOwning, itemPath, normalizePath } from "../shell/navConfi
 // and `pageVocabulary.test.ts` fails the build if a page types one back.
 
 /** The section that owns `pathname`, and the screen inside it. */
-export function pageContext(pathname: string) {
+export function pageContext(pathname: string, drawn?: NavRow[]) {
   const item = itemOwning(pathname);
-  const section = item ? SECTIONS.find((s) => s.code === item.section) : undefined;
+  // The heading the sidebar draws the screen under, which is not always the
+  // section that owns its gate (a moved line, a grouped section). Asked of the
+  // person's own rows when known: a moved line stays under its own heading
+  // for somebody whose sidebar does not draw where it moved to.
+  const section = item ? SECTIONS.find((s) => s.code === menuSectionCode(item, drawn)) : undefined;
   return { item, section };
 }
 
@@ -29,7 +43,7 @@ export function pageContext(pathname: string) {
  *  - that no menu entry owns, leaving them titleless. Passed through context
  *  rather than as props, so folding a screen never means editing it. */
 export interface HostedPage {
-  /** The eyebrow: the folded page's own name. */
+  /** The crumb: the folded page's own name. */
   crumb: string;
   /** The showing tab's name, which is this screen's title. */
   title: string;
@@ -55,40 +69,57 @@ export function PageHeader({
   titleTestId?: string;
 }) {
   const { pathname } = useLocation();
-  const { item, section } = pageContext(pathname);
+  const auth = useAuth();
+  const user = auth?.user;
+  const drawn = user
+    ? sidebarRows(user, auth.session?.display_actions ?? [], auth.featuresOn)
+    : undefined;
+  const { item, section } = pageContext(pathname, drawn);
   const hosted = useContext(HostedPageContext);
   const heading = title ?? hosted?.title ?? item?.label ?? "";
   // The screen's own line is worth showing only when the title is something
   // else — a document number, or a page whose name differs from its menu entry.
   // On the list screen itself "Booking · Bookings" would just say it twice.
   // A hosted screen never shows it: the tab strip already says which one it is.
+  // The area mark: the icon the sidebar draws this screen under, on its area's
+  // tint (v2.1). A folded page has no owning item; its fold lends the icon.
+  const Mark = section?.icon ?? foldOwning(pathname)?.icon;
   const showScreen =
     !hosted && !!item && item.label !== heading && itemPath(item) !== normalizePath(pathname);
 
+  // v2.1 PageHeader: the area mark, the crumb, the title in navy at 24/700,
+  // one sentence on where things stand, and the page's actions on the right
+  // (CTA last). No tabs, filters or KPIs in here.
   return (
     <>
       {hosted?.tabs}
-      <div className="toolbar">
-        <div>
-          <p className="eyebrow" data-testid="page-crumb">
-            {hosted?.crumb ?? section?.label}
-            {showScreen && (
-              <>
-                {" · "}
-                <Link className="crumb-link" to={item.to} data-testid="page-crumb-screen">
-                  {item.label}
-                </Link>
-              </>
-            )}
-          </p>
-          <h1 className="h1 h2-rust" data-testid={titleTestId ?? "page-title"}>
-            {heading}
-          </h1>
-          {lead && <p className="lead">{lead}</p>}
+      <header className="page-head">
+        <div className="page-head-id">
+          {Mark && (
+            <span className="page-mark" aria-hidden="true">
+              <Mark size={22} />
+            </span>
+          )}
+          <div className="page-head-text">
+            <p className="page-crumb" data-testid="page-crumb">
+              {hosted?.crumb ?? section?.label}
+              {showScreen && (
+                <>
+                  {" · "}
+                  <Link className="crumb-link" to={item.to} data-testid="page-crumb-screen">
+                    {item.label}
+                  </Link>
+                </>
+              )}
+            </p>
+            <h1 className="h1" data-testid={titleTestId ?? "page-title"}>
+              {heading}
+            </h1>
+            {lead && <p className="lead">{lead}</p>}
+          </div>
         </div>
-        <div className="spacer" />
-        {actions}
-      </div>
+        {actions && <div className="page-head-actions">{actions}</div>}
+      </header>
     </>
   );
 }

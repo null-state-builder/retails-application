@@ -177,7 +177,7 @@ function ConsentFor({
   return (
     <section className="bill-consent" data-testid="consent-card">
       <div className="bill-customer-heading">
-        <p className="eyebrow">Consent</p>
+        <h3 className="heading">Consent</h3>
         <span>The customer answers on the display</span>
       </div>
       <dl className="bill-consent-rows">
@@ -229,7 +229,7 @@ function ConsentFor({
         </p>
       )}
       {refused > 0 && (
-        <p className="bill-alert bill-consent-note" data-testid="consent-refused">
+        <p className="note note-warn bill-consent-note" data-testid="consent-refused">
           Head office refused {refused === 1 ? "1 answer" : `${refused} answers`} from this counter.
           Ask the customer again if it still matters.
         </p>

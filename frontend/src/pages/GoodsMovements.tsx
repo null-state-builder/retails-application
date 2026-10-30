@@ -90,8 +90,11 @@ import { hold } from "../lib/goodsScreen";
 import { DamageReviewsPanel } from "./DamageReviews";
 import { RtvPanel, type PutawayLocation } from "./RtvPanel";
 import { useAuth } from "../auth/AuthContext";
+import { canAccess } from "../auth/routeAccess";
+import { Note } from "../components/Note";
 import { OperationsPage, OperationsTable } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
 import { formatDateTime, formatPaiseString } from "../lib/format";
 import { causeLabel, kindLabel, resolutionFor } from "../lib/goodsExceptions";
 import "./GoodsAcceptance.css";
@@ -153,7 +156,7 @@ const ADJUSTMENT_MODE_KIND: Partial<Record<Mode, string>> = {
 };
 
 export function GoodsMovementsPage() {
-  const { session } = useAuth();
+  const { user, session, featuresOn } = useAuth();
   const [params, setParams] = useSearchParams();
   const siteId = params.get("site_id") ?? "";
   const [text, setText] = useState(params.get("q") ?? "");
@@ -230,6 +233,15 @@ export function GoodsMovementsPage() {
       <PageHeader
         title="Movements"
         lead="Move exact quantities between locations at one site, put goods on hold, release a hold, and record evidenced adjustments for someone else to approve."
+        actions={
+          // Movement History is folded in here (desktop redesign Q3): the
+          // earlier stock ledger stays readable, for whoever its gate opens.
+          user && canAccess("/stock/history", user, session?.display_actions ?? [], featuresOn) ? (
+            <Link className="btn" to="/stock/history" data-testid="movements-earlier">
+              Earlier stock history
+            </Link>
+          ) : undefined
+        }
       />
 
       <div className="form-grid">
@@ -378,8 +390,7 @@ function SearchResults({
   );
 
   return (
-    <section className="card section-card">
-      <h3 className="h3">Stock at this site</h3>
+    <Section heading="Stock at this site" ruled>
       {/* The read names the basis it answered on, so the columns below are never
           read as money the caller was not shown (design §6.1's basis rule). */}
       <p className="lead" data-testid="mv-basis">
@@ -562,7 +573,7 @@ function SearchResults({
           </table>
         </div>
       )}
-    </section>
+    </Section>
   );
 }
 
@@ -841,7 +852,7 @@ function MovementForm({
   }
 
   return (
-    <form className="card section-card form-grid" onSubmit={submit} data-testid="mv-form">
+    <form className="box form-grid" onSubmit={submit} data-testid="mv-form">
       <h3 className="h3">{MODE_LABEL[mode]}</h3>
       <p className="lead">
         {row.description || row.sku_id || "Unidentified goods"} at {row.location_id} ·{" "}
@@ -1188,8 +1199,7 @@ function MovementList({
     "No movements have been recorded here yet.",
   );
   return (
-    <section className="card section-card">
-      <h3 className="h3">Movements</h3>
+    <Section heading="Movements" ruled>
       {state ?? (
         <OperationsTable label="Movement history">
           <table data-testid="mv-list">
@@ -1228,7 +1238,7 @@ function MovementList({
           </table>
         </OperationsTable>
       )}
-    </section>
+    </Section>
   );
 }
 
@@ -1260,7 +1270,7 @@ function MovementDetail({
   );
   if (open.denied) return <Denied what="movement" />;
   if (open.loading) return <span className="muted">Loading movement…</span>;
-  if (open.failure) return <p className="warn-note">{open.failure}</p>;
+  if (open.failure) return <Note tone="error">{open.failure}</Note>;
   const doc = open.value;
   if (!doc) return null;
   const { header, lines, authority } = doc.data;
@@ -1329,8 +1339,7 @@ function MovementDetail({
   }
 
   return (
-    <section className="card section-card" data-testid="mv-detail">
-      <h3 className="h3">{doc.number ?? "Draft movement"}</h3>
+    <Section heading={doc.number ?? "Draft movement"} ruled testId="mv-detail">
       <dl className="gr-facts">
         <div>
           <dt>What happened</dt>
@@ -1514,7 +1523,7 @@ function MovementDetail({
 
       {doc.allowed_actions.includes("submit") && (
         <button
-          className="btn btn-cta"
+          className="btn btn-primary"
           onClick={submitForApproval}
           disabled={busy}
           data-testid="mv-submit-for-approval"
@@ -1564,7 +1573,7 @@ function MovementDetail({
         </div>
       )}
       {dialog}
-    </section>
+    </Section>
   );
 }
 
@@ -1578,8 +1587,7 @@ function MovementDetail({
 function WriteOffPanel({ doc }: { doc: ResourceDTO<MovementData> }) {
   const detail = doc.data.write_off;
   return (
-    <section className="card section-card" data-testid="wo-panel">
-      <h4 className="h4">Write-off</h4>
+    <Section heading="Write-off" level={3} testId="wo-panel">
       <dl className="gr-facts">
         <div>
           <dt>Status</dt>
@@ -1630,7 +1638,7 @@ function WriteOffPanel({ doc }: { doc: ResourceDTO<MovementData> }) {
         A write-off moves nothing. The goods stay counted at the site, in quarantine and
         unavailable, until a disposal records that they actually left. No accounting entry is made.
       </p>
-    </section>
+    </Section>
   );
 }
 
@@ -1652,8 +1660,7 @@ function DisposalPanel({ doc }: { doc: ResourceDTO<MovementData> }) {
   const detail = doc.data.disposal;
   const facts = doc.data.header.disposal;
   return (
-    <section className="card section-card" data-testid="dsp-panel">
-      <h4 className="h4">Disposal</h4>
+    <Section heading="Disposal" level={3} testId="dsp-panel">
       <dl className="gr-facts">
         <div>
           <dt>Status</dt>
@@ -1720,6 +1727,6 @@ function DisposalPanel({ doc }: { doc: ResourceDTO<MovementData> }) {
         Only the pieces recorded here leave the site; any others stay in quarantine under their
         holds. No accounting entry is made, and scrap proceeds are never posted.
       </p>
-    </section>
+    </Section>
   );
 }

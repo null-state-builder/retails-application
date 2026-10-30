@@ -56,9 +56,12 @@ describe("one scoped stock workspace", () => {
     expect(search.searchParams.get("brand")).toBe("Reviewed");
     expect(stockView(search.searchParams)).toBe("availability");
     expect(stockBookmark("/stock", "?sku=000123&group=brand")).toContain("scope=all");
+    // The old damage bookmark opens the Quarantine view of Stock on hand.
     expect(stockBookmark("/stock", "?view=quarantine&store=FIRST")).toBe(
-      "/inventory?store=FIRST&tab=damage",
+      "/inventory?view=quarantine&store=FIRST&tab=stock",
     );
+    expect(stockView(new URLSearchParams("tab=damage"))).toBe("quarantine");
+    expect(stockView(new URLSearchParams("tab=stock&view=in-transit"))).toBe("in-transit");
     expect(stockSelection(new URLSearchParams("tab=search"), stores[0]!, stores).store).toBeNull();
   });
 

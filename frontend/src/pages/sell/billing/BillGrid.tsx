@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { ScanBarcode, X } from "lucide-react";
 
+import { Status } from "../../../components/Status";
 import { formatINR, Money } from "../../../lib/format";
 import { clampManualDiscount, qtyFrom } from "../../../till/cart";
 import type { CartLine, PricedLine } from "../../../till/cart";
@@ -38,9 +39,13 @@ export function Lines({
   onUndo,
   canUndo,
   footer,
+  lastScannedKey = null,
   splitAllowed = false,
 }: {
   lines: PricedLine[];
+  /** The line the last scan landed on - a new line or a rescan's qty bump. It
+   *  carries the rust bar: rust marks where you are (design system v2). */
+  lastScannedKey?: string | null;
   salespeople: { id: string; name: string }[];
   /** Ticket 08: whether this store's till may split a line between two people. */
   splitAllowed?: boolean;
@@ -92,7 +97,10 @@ export function Lines({
             <tbody>
               {lines.map((line) => (
                 <Fragment key={line.key}>
-                  <tr className="bill-line" data-testid={`bill-line-${line.line_no}`}>
+                  <tr
+                    className={line.key === lastScannedKey ? "bill-line is-last-scan" : "bill-line"}
+                    data-testid={`bill-line-${line.line_no}`}
+                  >
                     <td className="bill-line-number bill-col-no">{line.line_no}</td>
                     <td className="bill-col-item">
                       <ItemIdentityCell
@@ -120,7 +128,7 @@ export function Lines({
                               {line.barcode}
                             </span>
                             {line.offer_credits.map((credit) => (
-                              <span className="bill-offer" key={credit.offer_id}>
+                              <span className="chip chip-blue bill-offer" key={credit.offer_id}>
                                 {credit.offer_name || "Offer"}
                               </span>
                             ))}
@@ -263,7 +271,7 @@ function SplitRow({
       <td />
       <td colSpan={8}>
         <div className="bill-split">
-          <span className="eyebrow">Split</span>
+          <span className="bill-label">Split</span>
           <label>
             {firstName}
             <input
@@ -326,9 +334,9 @@ function SplitRow({
             </span>
           )}
           {problem && (
-            <span className="warn-note" data-testid={`bill-split-problem-${line.line_no}`}>
+            <Status tone="amber" testId={`bill-split-problem-${line.line_no}`}>
               {problem}
-            </span>
+            </Status>
           )}
           <button
             type="button"
@@ -448,7 +456,7 @@ function ItemIdentityCell({
             className="bill-item-popover"
             style={{ top: at.top, bottom: at.bottom, left: at.left, maxHeight: at.maxHeight }}
           >
-            <p className="eyebrow">Item details &middot; line {line.line_no}</p>
+            <h3 className="heading">Item details &middot; line {line.line_no}</h3>
 
             {line.design && (
               <div className="bill-item-popover-row">
@@ -605,11 +613,11 @@ function DiscountCell({ line, locked, onEdit }: CellProps) {
         />
       </span>
       {needsCorrection && (
-        <span className="warn-note" data-testid={`bill-disc-correction-${line.line_no}`}>
+        <Status tone="amber" testId={`bill-disc-correction-${line.line_no}`}>
           {lockedOnOffer
             ? "Remove this manual discount: Head Office has turned offer stacking off."
             : `Reduce this discount to ${formatINR(allowedPaise)}: Head Office's limit is ${line.cap_percent}%.`}
-        </span>
+        </Status>
       )}
       {/* Information, not a gate - and deliberately so. The rulebook (#183) does
           obey this flag: no offer, of any layer, reaches a no-discount piece.

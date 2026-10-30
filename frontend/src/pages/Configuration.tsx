@@ -53,7 +53,10 @@ import { IdentityProfileEditor, PtProfileEditor } from "./ProfileWizard";
 import { FirstStoreConfigScope, FirstStorePolicyEditor } from "./firstStoreConfiguration";
 import { useAuth } from "../auth/AuthContext";
 import { PageHeader } from "../components/PageHeader";
+import { Note } from "../components/Note";
+import { Status, type StatusTone } from "../components/Status";
 import { formatDateTime } from "../lib/format";
+import { scopeLabel, summarizeConfiguration } from "./configurationSummary";
 import "./Configuration.css";
 
 /** One approval request as E169/E170 answer it (design §6.1 ApprovalDTO). */
@@ -164,7 +167,7 @@ const BLANK_PAYLOAD: Record<string, Payload> = {
 };
 
 export function versionChip(version: VersionState): ReactNode {
-  const tone =
+  const tone: StatusTone =
     version.state === "effective"
       ? "green"
       : version.state === "scheduled"
@@ -172,12 +175,20 @@ export function versionChip(version: VersionState): ReactNode {
         : version.state === "ended"
           ? "grey"
           : "red";
-  return <span className={`chip chip-${tone}`}>{version.state}</span>;
+  return <Status tone={tone}>{version.state}</Status>;
 }
 
+const DRAFT_STATE_LABEL: Record<string, string> = {
+  draft: "Draft",
+  submitted: "Waiting for approval",
+  approved: "Approved",
+};
+
 function draftChip(state: string): ReactNode {
-  const tone = state === "approved" ? "green" : state === "submitted" ? "amber" : "grey";
-  return <span className={`chip chip-${tone}`}>{state}</span>;
+  const tone: StatusTone =
+    state === "approved" ? "green" : state === "submitted" ? "amber" : "grey";
+  const label = DRAFT_STATE_LABEL[state] ?? state.charAt(0).toUpperCase() + state.slice(1);
+  return <Status tone={tone}>{label}</Status>;
 }
 
 /** An RFC3339 instant as a `datetime-local` control wants it, and back. */
@@ -190,14 +201,14 @@ function toLocalInput(iso: string): string {
 export function configurationPeriod(from: string, until: string) {
   const start = new Date(from);
   if (!from.trim() || !Number.isFinite(start.getTime())) {
-    throw new RangeError("Choose a valid In force from date and time.");
+    throw new RangeError("Choose a valid start date and time.");
   }
   const end = until ? new Date(until) : null;
   if (end && !Number.isFinite(end.getTime())) {
-    throw new RangeError("Choose a valid Until date and time, or leave it empty.");
+    throw new RangeError("Choose a valid end date and time, or leave it blank.");
   }
   if (end && end <= start) {
-    throw new RangeError("Until must be later than In force from.");
+    throw new RangeError("End date must be after the start date.");
   }
   return { effective_from: start.toISOString(), effective_to: end?.toISOString() ?? null };
 }
@@ -210,7 +221,7 @@ function VersionsTable({ versions }: { versions: VersionState[] }) {
   if (versions.length === 0) {
     return (
       <p className="muted" data-testid="config-no-versions">
-        Nothing approved yet, so no version of this is in force.
+        Not approved yet.
       </p>
     );
   }
@@ -221,8 +232,8 @@ function VersionsTable({ versions }: { versions: VersionState[] }) {
           <tr>
             <th>Version</th>
             <th>State</th>
-            <th>From</th>
-            <th>Until</th>
+            <th>Starts</th>
+            <th>Ends</th>
             <th>Withdrawn</th>
           </tr>
         </thead>
@@ -257,7 +268,7 @@ function ImpactPanel({
   onReview: (next: Set<string>) => void;
 }) {
   return (
-    <div className="card section-card cfg-impact" data-testid="config-impact">
+    <div className="box cfg-impact" data-testid="config-impact">
       <h4 className="h4">
         <CalendarClock size={15} /> This start is in the past
       </h4>
@@ -501,15 +512,20 @@ function DraftPanel({
       <Feedback error={error} ok={ok} />
       {stepUp.dialog}
       {!canDraft && (
-        <p className="warn-note">You may read this configuration, but not draft a change to it.</p>
+        <Note tone="warn">You may read this configuration, but not draft a change to it.</Note>
       )}
-      {loaded && <VersionsTable versions={loaded.data.versions ?? []} />}
-      <div className="card section-card">
-        <div className="form-grid wide-form">
+      {(loaded?.data.versions ?? []).length > 0 && (
+        <VersionsTable versions={loaded?.data.versions ?? []} />
+      )}
+      <div className="cfg-part">
+        <div className="cfg-two cfg-dates">
           <Field
             id="config-from"
-            label="In force from"
-            hint={dateError || (backdate?.blocked ? backdate.blocked.message : undefined)}
+            label="Start date"
+            hint={
+              dateError ||
+              (backdate?.blocked ? backdate.blocked.message : "When this takes effect.")
+            }
           >
             <input
               id="config-from"
@@ -522,7 +538,11 @@ function DraftPanel({
               data-testid="config-from"
             />
           </Field>
-          <Field id="config-until" label="Until (optional)" hint="Leave empty for open-ended.">
+          <Field
+            id="config-until"
+            label="End date (optional)"
+            hint="Leave blank to keep it running."
+          >
             <input
               id="config-until"
               className="input"
@@ -534,13 +554,13 @@ function DraftPanel({
           </Field>
         </div>
         {(dateError || backdate?.blocked) && (
-          <p className="warn-note" data-testid="config-date-refusal">
+          <Note tone="error" testId="config-date-refusal">
             {dateError || backdate?.blocked?.message}
             {(backdate?.blocked?.issues ?? []).map((issue) => ` ${issue.message}.`).join("")}
-          </p>
+          </Note>
         )}
       </div>
-      <div className="card section-card">
+      <div className="cfg-part">
         {["approval", "sell_policy", "workflow", "notifications"].includes(kind) && (
           <FirstStoreConfigScope value={scope} onChange={setScope} locked={Boolean(loaded)} />
         )}
@@ -553,8 +573,18 @@ function DraftPanel({
       </div>
       {needsReview && <ImpactPanel impact={impact} reviewed={reviewed} onReview={setReviewed} />}
       {canDraft && (
-        <div className="toolbar">
-          <button className="btn btn-cta" onClick={save} disabled={busy} data-testid="config-save">
+        <div className="toolbar cfg-actions">
+          {blocked && !backdate?.blocked && (
+            <span className="goods-hint" data-testid="config-submit-blocked">
+              Tick every affected document above before this can be sent.
+            </span>
+          )}
+          <button
+            className="btn btn-primary"
+            onClick={save}
+            disabled={busy}
+            data-testid="config-save"
+          >
             <Save size={15} /> Save draft
           </button>
           <button
@@ -565,15 +595,16 @@ function DraftPanel({
           >
             <Send size={15} /> Send for approval
           </button>
-          {blocked && !backdate?.blocked && (
-            <span className="goods-hint" data-testid="config-submit-blocked">
-              Tick every affected document above before this can be sent.
-            </span>
-          )}
         </div>
       )}
     </div>
   );
+}
+
+/** " by you" / " by Asha" / "" — the backend may not name the maker. */
+function senderName(row: ApprovalRow, me: string | null | undefined): string {
+  if (me && row.maker.id === me) return " by you";
+  return row.maker.name ? ` by ${row.maker.name}` : "";
 }
 
 function KindPanel({
@@ -591,6 +622,21 @@ function KindPanel({
     `/goods-v1/masters/configurations?kind=${encodeURIComponent(kind)}`,
   );
 
+  // Who sent each waiting draft, from the approvals this screen already reads.
+  // Fetched only when something is waiting; a refusal just drops the detail.
+  const anyWaiting = lines.items.some((line) => line.state === "submitted");
+  const approvals = useGoodsFetch<Page<ApprovalRow>, ApprovalRow[]>(
+    anyWaiting ? "/goods-v1/approvals" : null,
+    (r) =>
+      (r.items ?? []).filter(
+        (row) => row.subject_kind === "configuration" && row.state === "pending",
+      ),
+    [],
+  );
+  const sentBy = new Map(
+    approvals.value.map((row) => [row.subject_id.replace("configdraft:", ""), row]),
+  );
+
   if (lines.denied) return <Denied what="configuration" />;
   const state = listState(
     { loading: lines.loading, failure: lines.failure, empty: lines.items.length === 0 },
@@ -603,7 +649,7 @@ function KindPanel({
         <h3 className="h3">{CONFIG_KIND_LABEL[kind] ?? kind}</h3>
         <div className="spacer" />
         {canDraft && EDITABLE_KINDS.has(kind) && (
-          <button className="btn btn-cta" onClick={onNew} data-testid="config-new">
+          <button className="btn btn-primary" onClick={onNew} data-testid="config-new">
             Start a change
           </button>
         )}
@@ -611,25 +657,64 @@ function KindPanel({
       {state ? (
         <p data-testid="config-kind-state">{state}</p>
       ) : (
-        lines.items.map((line) => (
-          <div className="card section-card" key={line.id} data-testid={`config-line-${line.id}`}>
-            <div className="toolbar" style={{ marginBottom: 8 }}>
-              <span>
-                Draft {draftChip(line.state)} · in force from{" "}
-                {formatDateTime(line.data.effective_from)}
-              </span>
-              <div className="spacer" />
-              <button
-                className="btn btn-sm"
-                onClick={() => onOpen(line.id)}
-                data-testid={`config-open-${line.id}`}
-              >
-                Open
-              </button>
+        lines.items.map((line) => {
+          const versions = line.data.versions ?? [];
+          const summary = summarizeConfiguration(kind, line.data.payload);
+          const request = sentBy.get(line.id);
+          return (
+            <div className="cfg-line" key={line.id} data-testid={`config-line-${line.id}`}>
+              <div className="cfg-line-head">
+                <div className="cfg-line-title">
+                  {draftChip(line.state)}
+                  <span className="cfg-line-scope">{scopeLabel(line.data.scope)}</span>
+                </div>
+                <button
+                  className="btn btn-sm"
+                  onClick={() => onOpen(line.id)}
+                  data-testid={`config-open-${line.id}`}
+                >
+                  Open
+                </button>
+              </div>
+              <p className="cfg-line-period">
+                {formatDateTime(line.data.effective_from)} →{" "}
+                {line.data.effective_to ? formatDateTime(line.data.effective_to) : "no end date"}
+              </p>
+              {summary.length > 0 && (
+                <dl className="cfg-summary" data-testid={`config-summary-${line.id}`}>
+                  {summary.map((row) => (
+                    <div key={row.label}>
+                      <dt>{row.label}</dt>
+                      <dd title={row.value}>{row.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+              {versions.length > 0 ? (
+                <VersionsTable versions={versions} />
+              ) : (
+                <p className="cfg-line-next" data-testid="config-no-versions">
+                  {line.state === "draft"
+                    ? "Not sent yet. Open it to finish and send for approval."
+                    : line.state === "submitted"
+                      ? request
+                        ? `Sent${senderName(request, session?.user.human_id)}${
+                            request.requested_at
+                              ? ` on ${new Date(request.requested_at).toLocaleDateString(
+                                  undefined,
+                                  { day: "numeric", month: "short" },
+                                )}`
+                              : ""
+                          }. Someone else has to approve it.`
+                        : "Waiting for someone else to approve it."
+                      : line.state === "approved"
+                        ? "Approved."
+                        : "Sent back. Open it to change and send again."}
+                </p>
+              )}
             </div>
-            <VersionsTable versions={line.data.versions ?? []} />
-          </div>
-        ))
+          );
+        })
       )}
     </div>
   );
@@ -722,13 +807,13 @@ function ApprovalsPanel() {
                     <td>{row.requested_at ? formatDateTime(row.requested_at) : "—"}</td>
                     <td>
                       {ownWork ? (
-                        <span className="warn-note" data-testid={`config-approval-self-${row.id}`}>
+                        <Status tone="amber" testId={`config-approval-self-${row.id}`}>
                           You prepared this, so you cannot approve it. Someone else has to.
-                        </span>
+                        </Status>
                       ) : (
                         <>
                           <button
-                            className="btn btn-cta btn-sm"
+                            className="btn btn-primary btn-sm"
                             onClick={() => decide(row, "approve")}
                             disabled={busy}
                             data-testid={`config-approve-${row.id}`}
@@ -770,7 +855,7 @@ export function ConfigurationPage() {
   const kinds = useMemo(() => [...CONFIG_KINDS], []);
 
   return (
-    <div className="page-pad">
+    <div className="page-pad cfg-page">
       <PageHeader />
       <div className="org-layout cfg-layout">
         <nav className="org-nav" aria-label="Configuration">

@@ -268,6 +268,13 @@ function firstSentence(value: unknown): string {
   return "";
 }
 
+/** Refusal codes whose server sentence is written for engineers, in words for
+ *  the person at the screen. */
+const PLAIN_REFUSALS: Record<string, string> = {
+  CONFIG_MISSING:
+    "This has not been set up for this store yet. Head office sets it in Setup › Configuration.",
+};
+
 export function apiErrorMessage(e: unknown): string {
   const data = (e as { response?: { data?: unknown } })?.response?.data;
   // `detail` is what a refusal raised by a view or permission carries, and it
@@ -282,6 +289,23 @@ export function apiErrorMessage(e: unknown): string {
   // before `code`, and a body whose message depends on its key order is one
   // reorder away from showing a store person "SCOPE_DENIED".
   const error = (data as { error?: unknown })?.error;
+  // A few refusals carry the server's internal wording ("no effective
+  // sell_policy configuration…"). Their code is stable, so say what it means
+  // to a store person and keep the raw sentence for whoever is debugging.
+  // The reason may be the refusal's own code or one of its issues' codes,
+  // which goods-v1 refusals carry at `issues` or `details.issues`.
+  const body = data as
+    | { code?: unknown; issues?: unknown; details?: { issues?: unknown } }
+    | undefined;
+  const issues = [body?.issues, body?.details?.issues].flatMap((list) =>
+    Array.isArray(list) ? (list as { code?: unknown }[]) : [],
+  );
+  const codes = [body?.code, ...issues.map((i) => i?.code)];
+  const known = codes.find((c): c is string => typeof c === "string" && c in PLAIN_REFUSALS);
+  if (known) {
+    console.info(`[${known}]`, firstSentence(error) || firstSentence(detail));
+    return PLAIN_REFUSALS[known] as string;
+  }
   return (
     firstSentence(detail) ||
     firstSentence(error) ||

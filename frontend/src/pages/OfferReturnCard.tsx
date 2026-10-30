@@ -9,8 +9,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { Download, TrendingUp } from "lucide-react";
+import { Download } from "lucide-react";
 
+import { Note } from "../components/Note";
+import { Section } from "../components/Section";
 import { api, apiErrorCode, apiErrorMessage } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
 import { baselineQuery, cellText, changeText, figuresFor, periodDates } from "../lib/offerReturn";
@@ -131,10 +133,7 @@ export function OfferReturnCard({ offerId }: Props) {
   const [ran, base] = data?.periods ?? [];
 
   return (
-    <section className="card section-card" data-testid="ret-card">
-      <p className="eyebrow">
-        <TrendingUp size={14} /> What it earned and what it cost
-      </p>
+    <Section heading="What it earned and what it cost" ruled testId="ret-card">
       <p className="hint">
         The goods this offer covers, at its stores, while it ran - against a baseline period you
         choose. Customers, stock and season differ between two periods, so the change is not all the
@@ -142,28 +141,31 @@ export function OfferReturnCard({ offerId }: Props) {
       </p>
 
       {(!online || lost) && (
-        <p className="warn-note" data-testid="ret-offline" role="status">
-          {OFFLINE}
-          {online && (
-            <>
-              {" "}
+        <Note
+          tone="warn"
+          testId="ret-offline"
+          role="status"
+          action={
+            online && (
               <button
                 type="button"
-                className="btn"
+                className="btn btn-sm"
                 data-testid="ret-retry"
                 disabled={busy}
                 onClick={() => void load(wanted.current)}
               >
                 Try again
               </button>
-            </>
-          )}
-        </p>
+            )
+          }
+        >
+          {OFFLINE}
+        </Note>
       )}
       {error && (
-        <p className="warn-note" data-testid="ret-error">
+        <Note tone="error" testId="ret-error">
           {error}
-        </p>
+        </Note>
       )}
 
       <form className="filter-bar" onSubmit={compare} data-testid="ret-baseline">
@@ -275,7 +277,7 @@ export function OfferReturnCard({ offerId }: Props) {
           </button>
         </div>
       )}
-    </section>
+    </Section>
   );
 }
 

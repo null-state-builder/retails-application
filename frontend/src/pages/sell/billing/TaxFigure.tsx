@@ -80,11 +80,11 @@ export function TaxFigure({
         createPortal(
           <div
             ref={panel.popoverRef}
-            className="card bill-tax-panel"
+            className="box bill-tax-panel"
             data-testid="bill-tax-panel"
             style={{ top: panel.at.top, left: panel.at.left }}
           >
-            <p className="eyebrow">{label}</p>
+            <h3 className="heading">{label}</h3>
             {breakup.rows.length === 0 ? (
               <p className="muted-cell" data-testid="bill-tax-empty">
                 Nothing on this bill carries tax yet.

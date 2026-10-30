@@ -1,13 +1,23 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
+import { Plus, Printer, X } from "lucide-react";
 
 import "./Reservations.css";
 
 import { useAuth, allowedUnits } from "../auth/AuthContext";
+import { FilterChip, FilterChips } from "../components/FilterChip";
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { SearchBox } from "../components/SearchBox";
+import { Box, Section } from "../components/Section";
+import { Pane, SplitView } from "../components/SplitView";
+import { EmptyState, Loading } from "../components/States";
+import { Status } from "../components/Status";
+import type { StatusTone } from "../components/Status";
 import { api, apiErrorMessage } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
-import { formatINR, StatusChip } from "../lib/format";
+import { formatINR } from "../lib/format";
 import {
   RESERVATION_OFFLINE,
   RESERVATIONS_API,
@@ -26,6 +36,9 @@ import type { Reservation, ReservationDraft, Tender } from "../lib/reservations"
 
 type Listing = ApiRead<ApiSchemas["ReservationList"]>;
 type Terms = ApiRead<ApiSchemas["ReservationTerms"]>;
+
+/** The list's view filters, in the order a reservation lives. */
+const STATUSES = ["active", "collected", "expired", "cancelled"] as const;
 
 /** Customer Orders > Reservations (store operations ticket 20, ST-ORD-1).
  *
@@ -66,6 +79,12 @@ export function ReservationsPage() {
   // answer is lost, so a later, separate attempt is judged afresh.
   const attempts = useRef(new Map<string, string>());
   const request = useRef(0);
+  // The open reservation is in the URL, so back, refresh and a shared link
+  // reopen it; the form and the list's filter are this visit's.
+  const [params] = useSearchParams();
+  const openRef = params.get("open") ?? "";
+  const [adding, setAdding] = useState(false);
+  const [filter, setFilter] = useState<string>("active");
 
   const load = useCallback(
     async (q: string) => {
@@ -111,8 +130,16 @@ export function ReservationsPage() {
     };
   }, [load, query]);
 
-  /** One write. A dropped connection keeps everything as typed; any answer
-   *  from the server ends that command. */
+  /** A search looks across every status, so what it finds is on screen. */
+  const search = useCallback(
+    (term: string) => {
+      setQuery(term);
+      if (term.trim()) setFilter("");
+      void load(term.trim());
+    },
+    [load],
+  );
+
   /** One write. A dropped connection keeps everything as typed and the command's
    *  identity; any answer from the server - saved or refused - ends that command. */
   async function send<T>(
@@ -205,179 +232,202 @@ export function ReservationsPage() {
   const offline = !online || lost;
   const writable = !offline && !busy;
   const offlineNote = offline && (
-    <p className="warn-note" data-testid="reservations-offline" role="status">
-      {RESERVATION_OFFLINE}
-      {online && (
-        <>
-          {" "}
+    <Note
+      tone="warn"
+      role="status"
+      testId="reservations-offline"
+      action={
+        online && (
           <button
             type="button"
-            className="btn"
+            className="btn btn-sm"
             data-testid="reservations-retry"
             onClick={() => void load(query)}
           >
             Try again
           </button>
-        </>
-      )}
-    </p>
+        )
+      }
+    >
+      {RESERVATION_OFFLINE}
+    </Note>
   );
   const withAdvance = draft.advance.trim() !== "";
+  const rows = listing?.reservations ?? [];
+  const open = rows.find((r) => r.ref === openRef) ?? null;
+  const showing = filter ? rows.filter((r) => r.status === filter) : rows;
+  const refundsDue = rows.filter((r) => r.advance_outcome === "refund_due");
 
   return (
     <div className="page-pad">
       <PageHeader
         title="Reservations"
         lead="Hold pieces for a named customer. The pieces leave the counter until they are collected at Billing."
+        actions={
+          listing?.switched_on && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              aria-expanded={adding}
+              data-testid="reservation-new"
+              onClick={() => setAdding(!adding)}
+            >
+              <Plus size={16} aria-hidden="true" /> New reservation
+            </button>
+          )
+        }
       />
-      {stores.length > 1 && (
-        <label className="field">
-          <span>Store</span>
-          <select
-            className="input"
-            data-testid="reservations-store"
-            value={store}
-            onChange={(e) => {
-              setPicked(e.target.value);
-              setListing(null);
-            }}
-          >
-            <option value="">Choose a store</option>
-            {stores.map((s) => (
-              <option key={s.code} value={s.code}>
-                {s.code} · {s.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-      {offlineNote}
-      {error && (
-        <p className="warn-note" data-testid="reservations-error">
-          {error}
-        </p>
-      )}
-      {done && (
-        <p className="ok-note" data-testid="reservations-done">
-          {done}
-        </p>
-      )}
-      {!store && <p>Choose a store to see its reservations.</p>}
-      {store && !listing && !offline && !error && <p>Loading reservations…</p>}
+      <div className="page">
+        {stores.length > 1 && (
+          <label className="field">
+            <span>Store</span>
+            <select
+              className="input"
+              data-testid="reservations-store"
+              value={store}
+              onChange={(e) => {
+                setPicked(e.target.value);
+                setListing(null);
+              }}
+            >
+              <option value="">Choose a store</option>
+              {stores.map((s) => (
+                <option key={s.code} value={s.code}>
+                  {s.code} · {s.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {offlineNote}
+        {error && (
+          <Note tone="error" testId="reservations-error">
+            {error}
+          </Note>
+        )}
+        {done && (
+          <Note tone="success" role="status" testId="reservations-done">
+            {done}
+          </Note>
+        )}
+        {!store && <EmptyState>Choose a store to see its reservations.</EmptyState>}
+        {store && !listing && !offline && !error && <Loading label="Loading reservations" />}
 
-      {shown?.voucher && <Voucher reservation={shown} onClose={() => setShown(null)} />}
+        {shown?.voucher && <Voucher reservation={shown} onClose={() => setShown(null)} />}
 
-      {listing && terms && (
-        <>
-          {!listing.switched_on ? (
-            <p className="warn-note" data-testid="reservations-switched-off">
-              Customer reservations are switched off at {listing.store}. No new reservation can be
-              made; the ones below can still be collected, cancelled and refunded.
+        {listing && terms && !listing.switched_on && (
+          <Note tone="warn" testId="reservations-switched-off">
+            Customer reservations are switched off at {listing.store}. No new reservation can be
+            made; the ones below can still be collected, cancelled and refunded.
+          </Note>
+        )}
+
+        {listing && terms && listing.switched_on && adding && (
+          <Section heading="New reservation" testId="reservation-form">
+            <p className="muted-cell" data-testid="reservation-length">
+              Held for {terms.days} days, until {dayText(terms.collect_by)}
+              {terms.sale_period ? " (shorter while the end-of-season sale is running)" : ""}.
             </p>
-          ) : (
-            <section className="card section-card" data-testid="reservation-form">
-              <h2 className="h3">New reservation</h2>
-              <p className="muted-cell" data-testid="reservation-length">
-                Held for {terms.days} days, until {dayText(terms.collect_by)}
-                {terms.sale_period ? " (shorter while the end-of-season sale is running)" : ""}.
-              </p>
-              <div className="form-grid">
-                <label className="field">
-                  <span>Customer name</span>
-                  <input
-                    className="input"
-                    data-testid="reservation-name"
-                    value={draft.customer_name}
-                    onChange={(e) => setDraft({ ...draft, customer_name: e.target.value })}
-                  />
-                </label>
-                <label className="field">
-                  <span>Mobile</span>
-                  <input
-                    className="input"
-                    inputMode="tel"
-                    data-testid="reservation-mobile"
-                    value={draft.customer_mobile}
-                    onChange={(e) => setDraft({ ...draft, customer_mobile: e.target.value })}
-                  />
-                </label>
-              </div>
+            <div className="form-grid">
               <label className="field">
-                <span>Scan or type each piece's barcode</span>
+                <span>Customer name</span>
                 <input
                   className="input"
-                  data-testid="reservation-scan"
-                  value={scan}
-                  onChange={(e) => setScan(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      addPiece();
-                    }
-                  }}
+                  data-testid="reservation-name"
+                  value={draft.customer_name}
+                  onChange={(e) => setDraft({ ...draft, customer_name: e.target.value })}
                 />
               </label>
-              {draft.lines.length > 0 && (
-                <ul className="plain-list" data-testid="reservation-lines">
-                  {draft.lines.map((l) => (
-                    <li key={l.barcode} data-testid={`reservation-line-${l.barcode}`}>
-                      {l.barcode} × {l.qty}{" "}
-                      <button
-                        type="button"
-                        className="btn btn-sm"
-                        onClick={() =>
-                          setDraft({ ...draft, lines: draft.lines.filter((x) => x !== l) })
-                        }
-                      >
-                        Remove
-                      </button>
-                    </li>
+              <label className="field">
+                <span>Mobile</span>
+                <input
+                  className="input"
+                  inputMode="tel"
+                  data-testid="reservation-mobile"
+                  value={draft.customer_mobile}
+                  onChange={(e) => setDraft({ ...draft, customer_mobile: e.target.value })}
+                />
+              </label>
+            </div>
+            <label className="field">
+              <span>Scan or type each piece's barcode</span>
+              <input
+                className="input"
+                data-testid="reservation-scan"
+                value={scan}
+                onChange={(e) => setScan(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addPiece();
+                  }
+                }}
+              />
+            </label>
+            {draft.lines.length > 0 && (
+              <ul className="order-pieces" data-testid="reservation-lines">
+                {draft.lines.map((l) => (
+                  <li key={l.barcode} data-testid={`reservation-line-${l.barcode}`}>
+                    <span>
+                      <span className="mono">{l.barcode}</span> × {l.qty}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      onClick={() =>
+                        setDraft({ ...draft, lines: draft.lines.filter((x) => x !== l) })
+                      }
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <div className="form-grid">
+              <label className="field">
+                <span>Advance in rupees (optional)</span>
+                <input
+                  className="input"
+                  inputMode="decimal"
+                  data-testid="reservation-advance"
+                  value={draft.advance}
+                  onChange={(e) => setDraft({ ...draft, advance: e.target.value })}
+                />
+              </label>
+              {withAdvance && (
+                <fieldset className="field">
+                  <legend>Paid by</legend>
+                  {TENDERS.map((t) => (
+                    <label key={t.value} className="radio">
+                      <input
+                        type="radio"
+                        name="reservation-mode"
+                        data-testid={`reservation-mode-${t.value}`}
+                        checked={draft.mode === t.value}
+                        onChange={() => setDraft({ ...draft, mode: t.value as Tender })}
+                      />{" "}
+                      {t.label}
+                    </label>
                   ))}
-                </ul>
+                </fieldset>
               )}
-              <div className="form-grid">
+              {withAdvance && draft.mode !== "cash" && (
                 <label className="field">
-                  <span>Advance in rupees (optional)</span>
+                  <span>Card or UPI reference (optional)</span>
                   <input
                     className="input"
-                    inputMode="decimal"
-                    data-testid="reservation-advance"
-                    value={draft.advance}
-                    onChange={(e) => setDraft({ ...draft, advance: e.target.value })}
+                    data-testid="reservation-reference"
+                    value={draft.reference}
+                    onChange={(e) => setDraft({ ...draft, reference: e.target.value })}
                   />
                 </label>
-                {withAdvance && (
-                  <fieldset className="field">
-                    <legend>Paid by</legend>
-                    {TENDERS.map((t) => (
-                      <label key={t.value} className="radio">
-                        <input
-                          type="radio"
-                          name="reservation-mode"
-                          data-testid={`reservation-mode-${t.value}`}
-                          checked={draft.mode === t.value}
-                          onChange={() => setDraft({ ...draft, mode: t.value as Tender })}
-                        />{" "}
-                        {t.label}
-                      </label>
-                    ))}
-                  </fieldset>
-                )}
-                {withAdvance && draft.mode !== "cash" && (
-                  <label className="field">
-                    <span>Card or UPI reference (optional)</span>
-                    <input
-                      className="input"
-                      data-testid="reservation-reference"
-                      value={draft.reference}
-                      onChange={(e) => setDraft({ ...draft, reference: e.target.value })}
-                    />
-                  </label>
-                )}
-              </div>
-              <p className="muted-cell" data-testid="reservation-terms">
-                {withAdvance ? terms.terms_with_advance : terms.terms_without_advance}
-              </p>
+              )}
+            </div>
+            <p className="muted-cell" data-testid="reservation-terms">
+              {withAdvance ? terms.terms_with_advance : terms.terms_without_advance}
+            </p>
+            <div className="order-actions">
               <button
                 type="button"
                 className="btn btn-primary"
@@ -387,118 +437,297 @@ export function ReservationsPage() {
               >
                 Reserve
               </button>
-            </section>
-          )}
-
-          <section className="card section-card" data-testid="reservation-list">
-            <h2 className="h3">Reservations at {listing.store}</h2>
-            <p className="muted-cell">
-              To collect: at Billing, press Reservation pickup and type the reservation number.
-            </p>
-            <div className="toolbar">
-              <input
-                className="input"
-                aria-label="Find a reservation"
-                placeholder="Reservation number, voucher number or mobile"
-                data-testid="reservation-search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") void load(query.trim());
-                }}
-              />
-              <button
-                type="button"
-                className="btn"
-                disabled={offline}
-                onClick={() => void load(query.trim())}
-              >
-                Find
-              </button>
             </div>
-            {listing.reservations.length === 0 ? (
-              <p data-testid="reservation-none">No reservations to show.</p>
-            ) : (
-              // One card per reservation, stacked: a real layout at 375 px on
-              // the shop floor (PRD §5.2 rule 2), not a squeezed table.
-              <ul className="reservation-cards" data-testid="reservation-cards">
-                {listing.reservations.map((r) => {
-                  const chip = statusChip(r.status);
-                  return (
-                    <li
-                      key={r.id}
-                      className="reservation-card"
-                      data-testid={`reservation-${r.ref}`}
+          </Section>
+        )}
+
+        {listing && terms && (
+          <Section heading={`Reservations at ${listing.store}`} testId="reservation-list">
+            <div className="orders-bar">
+              <FilterChips label="Status">
+                {STATUSES.map((s) => (
+                  <FilterChip
+                    key={s}
+                    pressed={filter === s}
+                    count={rows.filter((r) => r.status === s).length}
+                    onClick={() => setFilter(filter === s ? "" : s)}
+                    testId={`reservation-show-${s}`}
+                  >
+                    {statusChip(s).label}
+                  </FilterChip>
+                ))}
+              </FilterChips>
+              <SearchBox
+                label="Find a reservation"
+                placeholder="Reservation number, voucher number or mobile"
+                testId="reservation-search"
+                value={query}
+                onChange={search}
+              />
+            </div>
+            {refundsDue.length > 0 && (
+              <Note tone="warn" testId="reservation-refunds-due">
+                An advance is due back:{" "}
+                {refundsDue.map((r, i) => (
+                  <span key={r.id}>
+                    {i > 0 && "; "}
+                    <Link
+                      className="link"
+                      to={{ search: `?open=${encodeURIComponent(r.ref)}` }}
+                      onClick={() => setFilter("")}
                     >
-                      <div className="reservation-card-head">
-                        <strong>{r.ref}</strong> <StatusChip status={chip.label} tone={chip.tone} />
-                      </div>
-                      <p>
-                        {r.customer_name} · <span className="muted-cell">{r.customer_mobile}</span>
-                      </p>
-                      <ul className="plain-list">
-                        {r.pieces.map((p) => (
-                          <li key={p.line_no}>
-                            {itemLabel(p.item)} × {p.qty}
-                          </li>
-                        ))}
-                      </ul>
-                      <p>
-                        Collect by {dayText(r.collect_by)}
-                        {r.status === "active" && (
-                          <span className="muted-cell"> · {daysLeftText(r.days_left)}</span>
-                        )}
-                      </p>
-                      <p data-testid={`reservation-advance-${r.ref}`}>{advanceText(r)}</p>
-                      <div className="toolbar">
-                        {r.voucher && (
-                          <button type="button" className="btn" onClick={() => setShown(r)}>
-                            Voucher
-                          </button>
-                        )}
-                        {r.status === "active" && (
-                          <>
-                            <button
-                              type="button"
-                              className="btn"
-                              data-testid={`reservation-cancel-customer-${r.ref}`}
-                              disabled={!writable}
-                              onClick={() => void cancel(r, "customer")}
-                            >
-                              Customer cancels
-                            </button>
-                            <button
-                              type="button"
-                              className="btn"
-                              data-testid={`reservation-cancel-store-${r.ref}`}
-                              disabled={!writable}
-                              onClick={() => void cancel(r, "store")}
-                            >
-                              Store cancels
-                            </button>
-                          </>
-                        )}
-                        {r.advance_outcome === "refund_due" && (
-                          <button
-                            type="button"
-                            className="btn btn-primary"
-                            data-testid={`reservation-refund-${r.ref}`}
-                            disabled={!writable}
-                            onClick={() => void refund(r)}
-                          >
-                            Refund {formatINR(r.advance_balance_paise)}
-                          </button>
-                        )}
-                      </div>
-                    </li>
-                  );
-                })}
-              </ul>
+                      {r.ref}
+                    </Link>
+                    , {formatINR(r.advance_balance_paise)} to {r.customer_name}
+                  </span>
+                ))}
+                .
+              </Note>
             )}
-          </section>
-        </>
-      )}
+            <SplitView
+              pane={
+                open && (
+                  <ReservationPane
+                    key={open.id}
+                    reservation={open}
+                    writable={writable}
+                    onVoucher={() => setShown(open)}
+                    onCancel={(by) => void cancel(open, by)}
+                    onRefund={() => void refund(open)}
+                  />
+                )
+              }
+            >
+              {rows.length === 0 ? (
+                <EmptyState testId="reservation-none">No reservations to show.</EmptyState>
+              ) : showing.length === 0 ? (
+                <EmptyState>No {statusChip(filter).label.toLowerCase()} reservations.</EmptyState>
+              ) : (
+                <div className="table-wrap capped">
+                  <table className="data" data-testid="reservation-cards">
+                    <thead>
+                      <tr>
+                        <th scope="col">Reservation</th>
+                        <th scope="col">Customer</th>
+                        <th scope="col">Pieces</th>
+                        <th scope="col">Collect by</th>
+                        <th scope="col" className="p2">
+                          Reserved
+                        </th>
+                        <th scope="col" className="p3">
+                          Voucher
+                        </th>
+                        <th scope="col" className="num">
+                          Advance
+                        </th>
+                        <th scope="col">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {showing.map((r) => {
+                        const chip = statusChip(r.status);
+                        const selected = r.id === open?.id;
+                        const pieces = r.pieces.reduce((n, p) => n + p.qty, 0);
+                        return (
+                          <tr
+                            key={r.id}
+                            className={selected ? "is-selected" : undefined}
+                            data-testid={`reservation-${r.ref}`}
+                          >
+                            <td>
+                              <Link
+                                className="order-ref"
+                                to={{ search: `?open=${encodeURIComponent(r.ref)}` }}
+                                aria-current={selected ? "true" : undefined}
+                              >
+                                {r.ref}
+                              </Link>
+                            </td>
+                            <td>
+                              <span className="order-who">{r.customer_name}</span>
+                              <span className="sub">{r.customer_mobile}</span>
+                            </td>
+                            <td>
+                              {r.pieces.map((p) => itemLabel(p.item)).join(", ")}
+                              <span className="sub">
+                                {pieces === 1 ? "1 piece" : `${pieces} pieces`}
+                              </span>
+                            </td>
+                            <td>
+                              {dayText(r.collect_by)}
+                              {r.status === "active" && (
+                                <span className="sub">{daysLeftText(r.days_left)}</span>
+                              )}
+                            </td>
+                            <td className="p2">{dayText(r.reserved_on)}</td>
+                            <td className="p3 mono">{r.voucher?.number ?? "—"}</td>
+                            <td className="num">{advanceText(r)}</td>
+                            <td>
+                              <Status tone={toneOf(chip.tone)}>{chip.label}</Status>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </SplitView>
+          </Section>
+        )}
+      </div>
     </div>
+  );
+}
+
+/** The library's chip tones as Status dots: navy (closed) reads as grey. */
+function toneOf(tone: string): StatusTone {
+  return tone === "navy" ? "grey" : (tone as StatusTone);
+}
+
+/** One reservation, open beside the list: who, until when, the advance, the
+ *  pieces held, and what can still be done with it. */
+function ReservationPane({
+  reservation: r,
+  writable,
+  onVoucher,
+  onCancel,
+  onRefund,
+}: {
+  reservation: Reservation;
+  writable: boolean;
+  onVoucher: () => void;
+  onCancel: (by: "customer" | "store") => void;
+  onRefund: () => void;
+}) {
+  const chip = statusChip(r.status);
+  const total = r.pieces.reduce((sum, p) => sum + (p.item.mrp_paise ?? 0) * p.qty, 0);
+  const priced = r.pieces.every((p) => p.item.mrp_paise != null);
+  return (
+    <Pane label={`Reservation ${r.ref}`} testId="reservation-pane">
+      <div className="order-pane-head">
+        <div>
+          <div className="order-pane-title">
+            <h2 className="heading">{r.ref}</h2>
+            <Status tone={toneOf(chip.tone)}>{chip.label}</Status>
+          </div>
+          <p className="order-sub">Reserved {dayText(r.reserved_on)}</p>
+        </div>
+        <Link
+          className="btn btn-sm order-close"
+          to={{ search: "" }}
+          aria-label="Close the reservation"
+        >
+          <X size={16} aria-hidden="true" />
+        </Link>
+      </div>
+      <dl className="dl">
+        <dt>Customer</dt>
+        <dd>
+          <span className="order-who">{r.customer_name}</span>, {r.customer_mobile}
+        </dd>
+        <dt>Collect by</dt>
+        <dd>
+          {dayText(r.collect_by)}
+          {r.status === "active" && `, ${daysLeftText(r.days_left).toLowerCase()}`}
+        </dd>
+        <dt>Advance</dt>
+        <dd data-testid={`reservation-advance-${r.ref}`}>{advanceText(r)}</dd>
+        {r.voucher && (
+          <>
+            <dt>Receipt voucher</dt>
+            <dd className="mono">{r.voucher.number}</dd>
+          </>
+        )}
+        {r.sale_doc_number && (
+          <>
+            <dt>Bill</dt>
+            <dd className="mono">{r.sale_doc_number}</dd>
+          </>
+        )}
+        {r.close_reason && (
+          <>
+            <dt>Closed</dt>
+            <dd>{r.close_reason}</dd>
+          </>
+        )}
+      </dl>
+      <Section heading="Pieces held" level={3}>
+        <ul className="order-pieces">
+          {r.pieces.map((p) => (
+            <li key={p.line_no}>
+              <span>
+                {itemLabel(p.item)} × {p.qty}
+              </span>
+              <span className="num">
+                {p.item.mrp_paise != null ? formatINR(p.item.mrp_paise * p.qty) : "—"}
+              </span>
+              <span className="order-sub mono">{p.barcode}</span>
+            </li>
+          ))}
+          {priced && r.pieces.length > 1 && (
+            <li className="order-who">
+              <span>{r.pieces.length} lines</span>
+              <span className="num">{formatINR(total)}</span>
+            </li>
+          )}
+        </ul>
+      </Section>
+      {r.status === "active" && (
+        <Note>
+          To collect: at Billing, press Reservation pickup and type the reservation number.
+        </Note>
+      )}
+      {(r.voucher || r.advance_outcome === "refund_due") && (
+        <div className="order-actions">
+          {r.voucher && (
+            <button type="button" className="btn" onClick={onVoucher}>
+              <Printer size={16} aria-hidden="true" /> Voucher
+            </button>
+          )}
+          {r.advance_outcome === "refund_due" && (
+            <button
+              type="button"
+              className="btn btn-cta"
+              data-testid={`reservation-refund-${r.ref}`}
+              disabled={!writable}
+              onClick={onRefund}
+            >
+              Refund {formatINR(r.advance_balance_paise)}
+            </button>
+          )}
+        </div>
+      )}
+      {r.status === "active" && (
+        <div className="order-cancel">
+          <span className="order-cancel-label">Cancel the reservation</span>
+          <div className="order-actions">
+            <button
+              type="button"
+              className="btn btn-danger"
+              data-testid={`reservation-cancel-customer-${r.ref}`}
+              disabled={!writable}
+              onClick={() => onCancel("customer")}
+            >
+              Customer cancels
+            </button>
+            <button
+              type="button"
+              className="btn btn-danger"
+              data-testid={`reservation-cancel-store-${r.ref}`}
+              disabled={!writable}
+              onClick={() => onCancel("store")}
+            >
+              Store cancels
+            </button>
+          </div>
+          <p className="order-sub">
+            The pieces go back on the counter. The advance is kept or refunded as the voucher's
+            terms say.
+          </p>
+        </div>
+      )}
+    </Pane>
   );
 }
 
@@ -507,34 +736,35 @@ function Voucher({ reservation, onClose }: { reservation: Reservation; onClose: 
   const v = reservation.voucher;
   if (!v) return null;
   return (
-    <section className="card section-card" data-testid="reservation-voucher">
-      <h2 className="h3">Receipt voucher {v.number}</h2>
-      <p>
-        {v.store_name} · GSTIN {v.store_gstin}
-        <br />
-        Date {dayText(v.issued_on)} · Reservation {reservation.ref}
-      </p>
-      <p>
-        Received from {reservation.customer_name} ({reservation.customer_mobile}):{" "}
-        <strong>{formatINR(v.amount_paise)}</strong> by {v.mode.toUpperCase()}
-        {v.reference ? ` (${v.reference})` : ""}.
-      </p>
-      <ul className="plain-list">
-        {reservation.pieces.map((p) => (
-          <li key={p.line_no}>
-            {itemLabel(p.item)} × {p.qty}
-          </li>
-        ))}
-      </ul>
-      <p data-testid="reservation-voucher-terms">{reservation.terms}</p>
-      <div className="toolbar">
-        <button type="button" className="btn" onClick={() => window.print()}>
-          Print
+    <Section heading={`Receipt voucher ${v.number}`} testId="reservation-voucher">
+      <Box className="order-voucher">
+        <p>
+          {v.store_name} · GSTIN {v.store_gstin}
+          <br />
+          Date {dayText(v.issued_on)} · Reservation {reservation.ref}
+        </p>
+        <p>
+          Received from {reservation.customer_name} ({reservation.customer_mobile}):{" "}
+          <strong>{formatINR(v.amount_paise)}</strong> by {v.mode.toUpperCase()}
+          {v.reference ? ` (${v.reference})` : ""}.
+        </p>
+        <ul className="plain-list">
+          {reservation.pieces.map((p) => (
+            <li key={p.line_no}>
+              {itemLabel(p.item)} × {p.qty}
+            </li>
+          ))}
+        </ul>
+        <p data-testid="reservation-voucher-terms">{reservation.terms}</p>
+      </Box>
+      <div className="order-actions">
+        <button type="button" className="btn btn-primary" onClick={() => window.print()}>
+          <Printer size={16} aria-hidden="true" /> Print
         </button>
         <button type="button" className="btn" onClick={onClose}>
           Close
         </button>
       </div>
-    </section>
+    </Section>
   );
 }

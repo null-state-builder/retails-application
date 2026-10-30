@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, KeyRound } from "lucide-react";
+import { KeyRound } from "lucide-react";
 
+import { Note } from "../../components/Note";
 import { Money } from "../../lib/format";
 import { CASH_VARIANCE, LATE_RETURN, whoAuthorised } from "../../till/pin";
 import type { Ask, Authorisation, AuthorisationKind } from "../../till/pin";
@@ -177,10 +178,10 @@ export function ManagerPin({
         </ul>
 
         {managers.length === 0 ? (
-          <p className="warn-note" data-testid="bill-pin-nobody">
+          <Note tone="warn" testId="bill-pin-nobody">
             No manager of this store has a counter PIN yet. One is set from Till &amp; Sync, by the
             manager themselves - and only somebody who may approve selling here can hold one.
-          </p>
+          </Note>
         ) : (
           <>
             <div className="field">
@@ -204,15 +205,14 @@ export function ManagerPin({
               />
             </div>
             {refused && (
-              <p className="bill-alert" data-testid="bill-pin-refused">
-                <AlertTriangle size={15} />
+              <Note tone="warn" testId="bill-pin-refused">
                 {refused}
-              </p>
+              </Note>
             )}
             {waiting && (
-              <p className="warn-note" data-testid="bill-pin-waiting">
+              <Note tone="warn" testId="bill-pin-waiting">
                 Too many wrong PINs. This waits half a minute before it will take another.
-              </p>
+              </Note>
             )}
             <p className="muted-cell">{footnote}</p>
             <button

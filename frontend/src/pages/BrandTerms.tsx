@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { Box, Section } from "../components/Section";
+import { Status, type StatusTone } from "../components/Status";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
@@ -10,6 +13,14 @@ import type { CommercialModel, TermsDraft } from "../lib/brandTerms";
 import { formatDateTime } from "../lib/format";
 
 type Summary = ApiRead<ApiSchemas["BrandTermsSummary"]>;
+
+const TONES: StatusTone[] = ["green", "amber", "red", "blue", "purple"];
+
+/** `statusChip` names its tone as a v1 chip class; Status takes the bare tone. */
+function statusTone(chip: string): StatusTone {
+  const tone = chip.replace(/^chip-/, "");
+  return TONES.find((t) => t === tone) ?? "grey";
+}
 type Detail = ApiRead<ApiSchemas["BrandTermsDetail"]>;
 type Proposal = Summary["waiting"][number];
 
@@ -193,35 +204,38 @@ export function BrandTermsPage() {
   const notes = (
     <>
       {error && (
-        <p className="warn-note" data-testid="brand-terms-error">
+        <Note tone="error" testId="brand-terms-error">
           {error}
-        </p>
+        </Note>
       )}
       {done && (
-        <p className="ok-note" data-testid="brand-terms-done">
+        <Note tone="success" role="status" testId="brand-terms-done">
           {done}
-        </p>
+        </Note>
       )}
     </>
   );
   const writable = !offline && !busy;
   const offlineNote = offline && (
-    <p className="warn-note" data-testid="brand-terms-offline" role="status">
-      {OFFLINE}
-      {online && (
-        <>
-          {" "}
+    <Note
+      tone="warn"
+      testId="brand-terms-offline"
+      role="status"
+      action={
+        online && (
           <button
             type="button"
-            className="btn"
+            className="btn btn-sm"
             data-testid="brand-terms-retry"
             onClick={() => void load(brandId)}
           >
             Try again
           </button>
-        </>
-      )}
-    </p>
+        )
+      }
+    >
+      {OFFLINE}
+    </Note>
   );
 
   if (!summary) {
@@ -230,9 +244,9 @@ export function BrandTermsPage() {
         <PageHeader title="Brand Terms" />
         {offlineNote}
         {error ? (
-          <p className="warn-note" data-testid="brand-terms-error">
+          <Note tone="error" testId="brand-terms-error">
             {error}
-          </p>
+          </Note>
         ) : (
           !offline && <p>Loading brand terms…</p>
         )}
@@ -250,10 +264,10 @@ export function BrandTermsPage() {
       />
       {offlineNote}
       {!summary.switched_on && (
-        <p className="warn-note" data-testid="brand-terms-switched-off">
+        <Note tone="warn" testId="brand-terms-switched-off">
           Brand terms are switched off at your stores. You can read them, but no change can be
           proposed or approved.
-        </p>
+        </Note>
       )}
       {!summary.can_propose && !summary.can_approve && (
         <p className="muted-cell" data-testid="brand-terms-read-only">
@@ -263,8 +277,7 @@ export function BrandTermsPage() {
       {!detail && notes}
 
       {summary.waiting.length > 0 && (
-        <section className="card section-card" data-testid="brand-terms-waiting">
-          <h2 className="h3">Waiting for the Owner</h2>
+        <Section heading="Waiting for the Owner" testId="brand-terms-waiting">
           <div className="table-wrap">
             <table className="data">
               <thead>
@@ -291,11 +304,11 @@ export function BrandTermsPage() {
                     <td>
                       {p.proposed_by || "Someone"}, {formatDateTime(p.proposed_at)}
                     </td>
-                    <td>
+                    <td className="act">
                       {p.mine ? (
                         <button
                           type="button"
-                          className="btn"
+                          className="btn btn-danger btn-sm"
                           data-testid={`brand-withdraw-${p.brand_code}`}
                           disabled={!writable}
                           onClick={() => void decide(p, "withdrawn")}
@@ -306,7 +319,7 @@ export function BrandTermsPage() {
                         <div className="toolbar">
                           <button
                             type="button"
-                            className="btn btn-primary"
+                            className="btn btn-primary btn-sm"
                             data-testid={`brand-approve-${p.brand_code}`}
                             disabled={!writable || !summary.switched_on}
                             onClick={() => void decide(p, "approved")}
@@ -323,7 +336,7 @@ export function BrandTermsPage() {
                           />
                           <button
                             type="button"
-                            className="btn"
+                            className="btn btn-sm"
                             data-testid={`brand-reject-${p.brand_code}`}
                             disabled={!writable}
                             onClick={() => void decide(p, "rejected")}
@@ -338,11 +351,14 @@ export function BrandTermsPage() {
               </tbody>
             </table>
           </div>
-        </section>
+        </Section>
       )}
 
-      <section className="card section-card" data-testid="brand-terms-unknown">
-        <h2 className="h3">Brands with an unknown model</h2>
+      <Section
+        heading="Brands with an unknown model"
+        ruled={summary.waiting.length > 0}
+        testId="brand-terms-unknown"
+      >
         {summary.unknown.length === 0 ? (
           <p className="muted-cell">
             Every brand has an approved model for each season selling now.
@@ -365,10 +381,9 @@ export function BrandTermsPage() {
             </ul>
           </>
         )}
-      </section>
+      </Section>
 
-      <section className="card section-card">
-        <h2 className="h3">Brands</h2>
+      <Section heading="Brands" ruled>
         <div className="table-wrap">
           <table className="data" data-testid="brand-terms-table">
             <thead>
@@ -390,18 +405,28 @@ export function BrandTermsPage() {
                   </td>
                   {b.seasons.map((s) => (
                     <td key={s.season_id} data-testid={`brand-model-${b.code}-${s.season_code}`}>
-                      {s.model ? modelLabel(s.model) : <span className="chip">Unknown</span>}
-                      {s.waiting && <span className="chip chip-amber">Change waiting</span>}
+                      {s.model ? modelLabel(s.model) : <Status tone="grey">Unknown</Status>}
+                      {s.waiting && (
+                        <>
+                          {" "}
+                          <Status tone="amber">Change waiting</Status>
+                        </>
+                      )}
                     </td>
                   ))}
                   <td data-testid={`brand-promotion-${b.code}`}>
                     {b.promotion_agreement ? "Yes" : "No"}
-                    {b.promotion_waiting && <span className="chip chip-amber">Change waiting</span>}
+                    {b.promotion_waiting && (
+                      <>
+                        {" "}
+                        <Status tone="amber">Change waiting</Status>
+                      </>
+                    )}
                   </td>
-                  <td>
+                  <td className="act">
                     <button
                       type="button"
-                      className="btn"
+                      className="btn btn-sm"
                       data-testid={`brand-open-${b.code}`}
                       onClick={() => open(b.id)}
                     >
@@ -413,7 +438,7 @@ export function BrandTermsPage() {
             </tbody>
           </table>
         </div>
-      </section>
+      </Section>
 
       {detail && (
         <BrandPanel
@@ -457,8 +482,7 @@ function BrandPanel({
   const canPropose = detail.can_propose && detail.switched_on;
   const firstCurrent = detail.seasons.find((s) => s.current) ?? detail.seasons[0];
   return (
-    <section className="card section-card" data-testid="brand-terms-detail">
-      <h2 className="h3">{detail.brand.name}</h2>
+    <Section heading={detail.brand.name} ruled testId="brand-terms-detail">
       {notes}
       <p className="muted-cell" data-testid="brand-setup-label">
         Setup, Brands calls it {detail.brand.setup_label}. That label has a default, so it is not
@@ -478,7 +502,7 @@ function BrandPanel({
         </p>
       )}
       {terms && (
-        <div className="card section-card" data-testid="brand-terms-form">
+        <Box data-testid="brand-terms-form">
           <div className="toolbar">
             <label className="field">
               <span>Season</span>
@@ -573,7 +597,7 @@ function BrandPanel({
               Cancel
             </button>
           </div>
-        </div>
+        </Box>
       )}
 
       <div className="table-wrap">
@@ -612,8 +636,13 @@ function BrandPanel({
                   <td className="num">{figure(row.discount_funding_percent, "%")}</td>
                   <td className="num">{figure(row.payment_days, "")}</td>
                   <td>
-                    <span className={`chip ${status.chip}`}>{status.label}</span>
-                    {row.in_force_today && <span className="chip chip-blue">In force today</span>}
+                    <Status tone={statusTone(status.chip)}>{status.label}</Status>
+                    {row.in_force_today && (
+                      <>
+                        {" "}
+                        <Status tone="blue">In force today</Status>
+                      </>
+                    )}
                     <div className="muted-cell">
                       Proposed by {row.proposed_by || "someone"}: {row.note}
                       {row.decided_by && `. ${status.label} by ${row.decided_by}`}
@@ -705,13 +734,18 @@ function BrandPanel({
           return (
             <li key={row.id}>
               From {row.applies_from}: {row.agreement ? "Yes" : "No"}{" "}
-              <span className={`chip ${status.chip}`}>{status.label}</span>
-              {row.in_force_today && <span className="chip chip-blue">In force today</span>} -{" "}
-              {row.note}
+              <Status tone={statusTone(status.chip)}>{status.label}</Status>
+              {row.in_force_today && (
+                <>
+                  {" "}
+                  <Status tone="blue">In force today</Status>
+                </>
+              )}{" "}
+              - {row.note}
             </li>
           );
         })}
       </ul>
-    </section>
+    </Section>
   );
 }

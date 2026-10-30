@@ -16,7 +16,6 @@
 import { useMemo, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
-  AlertTriangle,
   ArrowLeft,
   CalendarClock,
   PackageMinus,
@@ -33,9 +32,18 @@ import { Money } from "../lib/format";
 import { canCreateReturnToBrand, canWriteReturnToBrand } from "../lib/outbound-rbac";
 import { ScanScreen, type ScanResult, type ScanTarget } from "../components/ScanScreen";
 import { ApprovalPill, ApprovalTrail, isCleared, type ApprovalT } from "../components/approval";
-import { ListSearchBar } from "../components/SearchBox";
+import { FilterChip, FilterChips } from "../components/FilterChip";
+import { KpiStrip } from "../components/KpiStrip";
+import { Note } from "../components/Note";
+import { SearchBox } from "../components/SearchBox";
+import { Section } from "../components/Section";
+import { EmptyState } from "../components/States";
+import { Status, type StatusTone } from "../components/Status";
+import { INVENTORY_FOLD, foldTabsFor } from "../shell/navConfig";
+import { useWideScreen } from "../lib/useWideScreen";
 import "./Booking.css";
 import { PageHeader } from "../components/PageHeader";
+import { SegmentedControl } from "../components/SegmentedControl";
 
 // ---------------------------------------------------------------------------
 // Helpers & controlled vocab
@@ -49,12 +57,10 @@ function fmtDate(iso: string): string {
   });
 }
 
-const DS_TONE: Record<number, string> = { 0: "grey", 1: "green", 2: "red" };
+const DS_TONE: Record<number, StatusTone> = { 0: "grey", 1: "green", 2: "red" };
 const DS_LABEL: Record<number, string> = { 0: "Draft", 1: "Submitted", 2: "Cancelled" };
 function DocPill({ ds }: { ds: number }) {
-  return (
-    <span className={`chip chip-${DS_TONE[ds] ?? "grey"} status-pill`}>{DS_LABEL[ds] ?? ds}</span>
-  );
+  return <Status tone={DS_TONE[ds] ?? "grey"}>{DS_LABEL[ds] ?? ds}</Status>;
 }
 
 const RETURN_TYPE_LABEL: Record<string, string> = {
@@ -82,7 +88,7 @@ function windowText(days: number | null): string {
   return `${days} days left`;
 }
 
-function windowTone(days: number | null): string {
+function windowTone(days: number | null): StatusTone {
   if (days === null) return "grey";
   if (days < 0) return "red";
   if (days <= 14) return "amber";
@@ -225,16 +231,56 @@ interface TransferT {
 // List
 // ---------------------------------------------------------------------------
 
+/** Where a return stands, for the list's chips (mockup Return to Brand): a
+ *  draft is still in progress, a posted return waits for the brand's credit
+ *  note, and one with its credit note is done. */
+type RtvStage = "progress" | "owed" | "done" | "cancelled";
+
+function rtvStage(r: Pick<RTVT, "docstatus" | "credit_note">): RtvStage {
+  if (r.docstatus === 2) return "cancelled";
+  if (r.docstatus === 0) return "progress";
+  return r.credit_note ? "done" : "owed";
+}
+
+const RTV_FILTERS: { key: RtvStage | "all"; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "progress", label: "In progress" },
+  { key: "owed", label: "Credit note owed" },
+  { key: "done", label: "Done" },
+];
+
+/** How an empty chip says so: "No defective return is in progress." */
+const STAGE_EMPTY: Record<RtvStage, string> = {
+  progress: "is in progress",
+  owed: "is waiting for its credit note",
+  done: "has its credit note yet",
+  cancelled: "is cancelled",
+};
+
+const RETURN_TYPES = [
+  { key: "defective", label: "Defective / GR", icon: PackageMinus },
+  { key: "seasonal", label: "Season-end", icon: RotateCcw },
+] as const;
+
 export function RTVListPage() {
   const [params, setParams] = useSearchParams();
-  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { user, session, featuresOn } = useAuth();
   const tab = params.get("type") === "seasonal" ? "seasonal" : "defective";
   const [q, setQ] = useState("");
+  const [stage, setStage] = useState<RtvStage | "all">("all");
   const { data, loading } = useList<RTVT>("/outbound/rtvs", { return_type: tab, q });
   // Reaching this section is not the same as being allowed to send stock back:
   // a store person opens the list and marks damage, and the warehouse is the
   // one who raises the return (#75).
   const mayCreate = canCreateReturnToBrand(user);
+  // The earlier damage records stay readable from here (desktop redesign Q4),
+  // for whoever the Stock page draws that tab for.
+  const earlierDamage =
+    !!user &&
+    foldTabsFor(INVENTORY_FOLD, user, session?.display_actions ?? [], featuresOn).some(
+      (t) => t.slug === "damage-history",
+    );
 
   function setTab(next: string) {
     setParams((p) => {
@@ -243,84 +289,142 @@ export function RTVListPage() {
     });
   }
 
+  const counts = {
+    all: data.length,
+    progress: data.filter((r) => rtvStage(r) === "progress").length,
+    owed: data.filter((r) => rtvStage(r) === "owed").length,
+    done: data.filter((r) => rtvStage(r) === "done").length,
+    cancelled: 0,
+  };
+  const rows = stage === "all" ? data : data.filter((r) => rtvStage(r) === stage);
+  // The kind as a word inside a sentence: "No defective returns yet."
+  const kind = tab === "seasonal" ? "season-end" : "defective";
+
   return (
     <div className="page-pad">
       <PageHeader
+        title="Returns to brands"
+        lead={
+          <>
+            {/* Said only once the list has answered: no guessed count. */}
+            {!loading && data.length > 0 && (
+              <b data-testid="rtv-count">
+                {counts.progress} in progress · {counts.owed} credit{" "}
+                {counts.owed === 1 ? "note" : "notes"} owed.{" "}
+              </b>
+            )}
+            Pieces going back to a brand, within its return allowance, until the brand&apos;s credit
+            note arrives.
+          </>
+        }
         actions={
-          mayCreate && (
-            <Link className="btn btn-cta" to="/return-to-brand/new" data-testid="new-rtv-btn">
-              <Plus size={16} /> New return
-            </Link>
-          )
+          <>
+            {earlierDamage && (
+              <Link className="btn" to="/inventory?tab=damage-history" data-testid="rtv-earlier">
+                Earlier damage records
+              </Link>
+            )}
+            {mayCreate && (
+              <Link className="btn btn-primary" to="/return-to-brand/new" data-testid="new-rtv-btn">
+                <Plus size={16} /> New return
+              </Link>
+            )}
+          </>
         }
       />
 
-      <div
-        className="mode-toggle"
-        data-testid="rtv-type-toggle"
-        style={{ maxWidth: 520, marginBottom: 18 }}
-      >
-        <button
-          type="button"
-          className={`mode-btn ${tab === "defective" ? "active" : ""}`}
-          onClick={() => setTab("defective")}
-          data-testid="rtv-tab-defective"
-        >
-          <PackageMinus size={16} /> Defective / GR
-        </button>
-        <button
-          type="button"
-          className={`mode-btn ${tab === "seasonal" ? "active" : ""}`}
-          onClick={() => setTab("seasonal")}
-          data-testid="rtv-tab-seasonal"
-        >
-          <RotateCcw size={16} /> Season-end
-        </button>
+      <div className="toolbar">
+        {/* Two kinds of return, both visible: a switch, not two big buttons. */}
+        <SegmentedControl
+          label="Kind of return"
+          testId="rtv-type-toggle"
+          value={tab}
+          options={RETURN_TYPES.map(({ key, label, icon: Icon }) => ({
+            value: key,
+            label: (
+              <>
+                <Icon size={14} aria-hidden="true" /> {label}
+              </>
+            ),
+            testId: `rtv-tab-${key}`,
+          }))}
+          onChange={setTab}
+        />
+        <FilterChips label="Where it stands">
+          {RTV_FILTERS.map(({ key, label }) => (
+            <FilterChip
+              key={key}
+              pressed={stage === key}
+              onClick={() => setStage(key)}
+              count={loading ? "—" : counts[key]}
+              testId={`rtv-filter-${key}`}
+            >
+              {label}
+            </FilterChip>
+          ))}
+        </FilterChips>
+        <div className="spacer" />
+        <SearchBox
+          value={q}
+          onChange={setQ}
+          placeholder="Return number or brand"
+          label="Search returns to brand"
+          testId="rtv-search"
+        />
       </div>
-
-      <ListSearchBar
-        value={q}
-        onChange={setQ}
-        placeholder="Search returns — doc number, brand"
-        label="Search returns to brand"
-        testId="rtv-search"
-        noun="return"
-        count={data.length}
-        loading={loading}
-      />
 
       {loading ? (
         <p className="lead">Loading…</p>
-      ) : data.length === 0 ? (
-        <div className="card section-card" data-testid="rtv-empty">
+      ) : rows.length === 0 ? (
+        <EmptyState
+          testId="rtv-empty"
+          action={
+            mayCreate && !q && stage === "all" ? (
+              <Link className="btn" to="/return-to-brand/new">
+                <Plus size={14} /> New return
+              </Link>
+            ) : undefined
+          }
+        >
           {q
-            ? `No ${RETURN_TYPE_LABEL[tab]?.toLowerCase() || tab} matches “${q}”.`
-            : `No ${RETURN_TYPE_LABEL[tab]?.toLowerCase() || tab} returns yet.`}
-        </div>
+            ? `No ${kind} return matches “${q}”.`
+            : stage === "all"
+              ? `No ${kind} returns yet.`
+              : `No ${kind} return ${STAGE_EMPTY[stage as RtvStage]}.`}
+        </EmptyState>
       ) : (
-        <div className="table-wrap">
+        <div className="table-wrap capped">
           <table className="data" data-testid="rtv-table">
+            <caption className="sr-only">
+              Returns to brands, each with its pieces, value, window, credit note and status.
+            </caption>
             <thead>
               <tr>
-                <th>Doc #</th>
+                <th>Return</th>
                 <th>Brand</th>
                 <th>Store</th>
                 <th>Logistics</th>
-                <th className="num">Pcs</th>
+                <th className="num">Pieces</th>
                 <th className="num">Value</th>
                 <th>Window</th>
                 <th>Credit note</th>
                 <th>Status</th>
-                <th>Date</th>
+                <th>Raised</th>
               </tr>
             </thead>
             <tbody>
-              {data.map((r) => (
-                <tr key={r.id} data-testid={`rtv-row-${r.id}`}>
+              {rows.map((r) => (
+                <tr
+                  key={r.id}
+                  data-testid={`rtv-row-${r.id}`}
+                  onClick={() => navigate(`/return-to-brand/${r.id}`)}
+                  style={{ cursor: "pointer" }}
+                >
                   <td>
                     <Link
                       to={`/return-to-brand/${r.id}`}
                       className="link-cell mono"
+                      onClick={(e) => e.stopPropagation()}
                       data-testid={`rtv-link-${r.id}`}
                     >
                       <b>{r.doc_number || `Draft #${r.id}`}</b>
@@ -329,33 +433,35 @@ export function RTVListPage() {
                   <td>
                     {r.brand_name || "—"}
                     {r.commercial_label && (
-                      <span className="chip chip-grey" style={{ marginLeft: 6 }}>
+                      <span className="chip" style={{ marginLeft: 6 }}>
                         {r.commercial_label}
                       </span>
                     )}
                   </td>
                   <td>
-                    <b className="mono">{r.store_code}</b>
+                    <span className="mono">{r.store_code}</span>
                   </td>
                   <td>{r.logistics_route_label || routeLabel(r.logistics_route)}</td>
-                  <td className="num">{r.lines.reduce((s, l) => s + l.qty, 0)}</td>
+                  <td className="num">
+                    {r.lines.reduce((s, l) => s + l.qty, 0).toLocaleString("en-IN")}
+                  </td>
                   <td className="num">{r.value_paise ? <Money paise={r.value_paise} /> : "—"}</td>
                   <td>
                     {r.return_window_date ? (
-                      <span className={`chip chip-${windowTone(r.days_to_window)}`}>
+                      <Status tone={windowTone(r.days_to_window)}>
                         {windowText(r.days_to_window)}
-                      </span>
+                      </Status>
                     ) : (
                       "—"
                     )}
                   </td>
                   <td>
                     {r.credit_note ? (
-                      <span className="chip chip-green">
-                        Received {fmtDate(r.credit_note.received_on)}
-                      </span>
+                      <Status tone="green">Received {fmtDate(r.credit_note.received_on)}</Status>
+                    ) : r.docstatus === 1 ? (
+                      <Status tone="amber">Owed</Status>
                     ) : (
-                      <span className="chip chip-grey">Pending</span>
+                      "—"
                     )}
                   </td>
                   <td>
@@ -369,6 +475,44 @@ export function RTVListPage() {
         </div>
       )}
     </div>
+  );
+}
+
+/** The returns still moving, beside the one being read (layout L): drafts and
+ *  posted returns still owed a credit note, newest first. The same scoped read
+ *  the list makes, both kinds together. */
+function RTVQueue({ currentId }: { currentId: string }) {
+  const { data, loading } = useList<RTVT>("/outbound/rtvs");
+  const open = data.filter((r) => ["progress", "owed"].includes(rtvStage(r)));
+  if (loading || open.length === 0) return null;
+  return (
+    <nav
+      className="box side-queue"
+      style={{ padding: "var(--space-8) 0" }}
+      aria-label="Open returns"
+      data-testid="rtv-queue"
+    >
+      <p className="side-queue-head">
+        Open returns <span className="filter-chip-n">{open.length}</span>
+      </p>
+      <ul>
+        {open.map((r) => (
+          <li key={r.id}>
+            <Link
+              to={`/return-to-brand/${r.id}`}
+              className={`side-queue-item${String(r.id) === currentId ? " active" : ""}`}
+              aria-current={String(r.id) === currentId ? "page" : undefined}
+            >
+              <span className="side-queue-ref">{r.brand_name || "Return"}</span>
+              <span className="side-queue-meta">
+                <span className="mono">{r.doc_number || `Draft #${r.id}`}</span>
+                {rtvStage(r) === "owed" ? "Credit note owed" : "In progress"}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }
 
@@ -388,18 +532,22 @@ function CapMeter({ cap, thisReturnPaise }: { cap: CapT; thisReturnPaise: number
   const tone = over ? "red" : warn ? "amber" : "green";
 
   return (
-    <div className="card section-card" data-testid="rtv-cap-meter">
-      <p className="eyebrow">Allowed return — {cap.percent}% of what this brand delivered</p>
-      <h3 className="h3">
-        <Money paise={used} /> of <Money paise={cap.allowance_paise} />
-      </h3>
+    <Section
+      heading={`Allowed return — ${cap.percent}% of what this brand delivered`}
+      ruled
+      testId="rtv-cap-meter"
+    >
+      <p>
+        <b>
+          <Money paise={used} /> of <Money paise={cap.allowance_paise} />
+        </b>
+      </p>
       <div
         style={{
           height: 10,
-          borderRadius: 6,
+          borderRadius: "var(--radius-control)",
           background: "var(--line)",
           overflow: "hidden",
-          margin: "10px 0 8px",
         }}
       >
         <div
@@ -407,7 +555,7 @@ function CapMeter({ cap, thisReturnPaise }: { cap: CapT; thisReturnPaise: number
           style={{
             width: `${pct}%`,
             height: "100%",
-            background: `var(--chip-${tone}-fg, currentColor)`,
+            background: `var(--${tone})`,
           }}
         />
       </div>
@@ -417,15 +565,14 @@ function CapMeter({ cap, thisReturnPaise }: { cap: CapT; thisReturnPaise: number
       </p>
       {over ? (
         <p className="lead" data-testid="rtv-cap-exceeded">
-          <span className="chip chip-red">
-            <AlertTriangle size={13} /> Over the allowance by{" "}
-            <Money paise={used - cap.allowance_paise} />
-          </span>{" "}
+          <Status tone="red">
+            Over the allowance by <Money paise={used - cap.allowance_paise} />
+          </Status>{" "}
           Flagged for the approver — the return is not blocked.
         </p>
       ) : warn ? (
         <p className="lead" data-testid="rtv-cap-warning">
-          <span className="chip chip-amber">Close to the allowance</span>{" "}
+          <Status tone="amber">Close to the allowance</Status>{" "}
           <Money paise={cap.allowance_paise - used} /> left this season.
         </p>
       ) : (
@@ -433,7 +580,7 @@ function CapMeter({ cap, thisReturnPaise }: { cap: CapT; thisReturnPaise: number
           <Money paise={Math.max(0, cap.allowance_paise - used)} /> of room left.
         </p>
       )}
-    </div>
+    </Section>
   );
 }
 
@@ -579,11 +726,11 @@ export function RTVNewPage() {
         >
           <ArrowLeft size={15} /> Returns
         </Link>
-        <div className="card section-card" data-testid="rtv-new-denied">
-          <h1 className="h1 h2-rust">New Return to Brand</h1>
-          <p className="lead">
+        <div data-testid="rtv-new-denied">
+          <h1 className="h1">New Return to Brand</h1>
+          <Note tone="warn">
             A store may only mark damage; the warehouse creates and executes returns.
-          </p>
+          </Note>
         </div>
       </div>
     );
@@ -599,290 +746,295 @@ export function RTVNewPage() {
       >
         <ArrowLeft size={15} /> Returns
       </Link>
-      <h1 className="h1 h2-rust" style={{ marginBottom: 18 }}>
+      <h1 className="h1" style={{ marginBottom: 18 }}>
         New Return to Brand
       </h1>
 
-      <div className="card section-card">
-        <p className="eyebrow">Step 1 · Which brand, and how it travels</p>
-        <div className="form-row" style={{ marginTop: 10 }}>
-          <div className="field">
-            <label>Store</label>
-            {storeLocked && lockedStore ? (
-              <div className="store-lock" data-testid="rtv-store-locked">
-                {lockedStore.code} · {lockedStore.name}
-              </div>
-            ) : (
+      <div className="page">
+        <Section heading="Step 1 · Which brand, and how it travels">
+          <div className="form-row">
+            <div className="field">
+              <label>Store</label>
+              {storeLocked && lockedStore ? (
+                <div className="store-lock" data-testid="rtv-store-locked">
+                  {lockedStore.code} · {lockedStore.name}
+                </div>
+              ) : (
+                <select
+                  className="select"
+                  value={storeId}
+                  onChange={(e) => {
+                    setStoreId(e.target.value);
+                    setScans({});
+                  }}
+                  data-testid="rtv-store-select"
+                >
+                  <option value="">Select store…</option>
+                  {stores.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.code} · {s.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            <div className="field">
+              <label>Brand</label>
               <select
                 className="select"
-                value={storeId}
+                value={brandId}
                 onChange={(e) => {
-                  setStoreId(e.target.value);
+                  setBrandId(e.target.value);
                   setScans({});
                 }}
-                data-testid="rtv-store-select"
+                data-testid="rtv-brand-select"
               >
-                <option value="">Select store…</option>
-                {stores.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.code} · {s.name}
+                <option value="">Select brand…</option>
+                {brands.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
                   </option>
                 ))}
               </select>
-            )}
-          </div>
-          <div className="field">
-            <label>Brand</label>
-            <select
-              className="select"
-              value={brandId}
-              onChange={(e) => {
-                setBrandId(e.target.value);
-                setScans({});
-              }}
-              data-testid="rtv-brand-select"
-            >
-              <option value="">Select brand…</option>
-              {brands.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="field">
-            <label>Vendor</label>
-            <select
-              className="select"
-              value={vendorId}
-              onChange={(e) => setVendorId(e.target.value)}
-              data-testid="rtv-vendor-select"
-            >
-              <option value="">Select vendor…</option>
-              {vendors.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="field">
-            <label>Return type</label>
-            <select
-              className="select"
-              value={returnType}
-              onChange={(e) => {
-                setReturnType(e.target.value);
-                setScans({});
-              }}
-              data-testid="rtv-type-select"
-            >
-              <option value="defective">Defective / GR return</option>
-              <option value="seasonal">Season-end return</option>
-            </select>
-          </div>
-        </div>
-        <div className="form-row" style={{ marginTop: 14 }}>
-          <div className="field">
-            <label>How it gets back</label>
-            <select
-              className="select"
-              value={logisticsRoute}
-              onChange={(e) => setLogisticsRoute(e.target.value)}
-              data-testid="rtv-logistics-select"
-            >
-              <option value="">Select route…</option>
-              {LOGISTICS_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </div>
-          {logisticsRoute === "warehouse" && (
+            </div>
             <div className="field">
-              <label>Transfer that brought the pieces</label>
+              <label>Vendor</label>
               <select
                 className="select"
-                value={viaTransferId}
-                onChange={(e) => setViaTransferId(e.target.value)}
-                data-testid="rtv-via-transfer-select"
+                value={vendorId}
+                onChange={(e) => setVendorId(e.target.value)}
+                data-testid="rtv-vendor-select"
               >
-                <option value="">Select transfer…</option>
-                {transfers
-                  .filter((t) => t.doc_number)
-                  .map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.doc_number} → {t.destination_store_code}
-                    </option>
-                  ))}
+                <option value="">Select vendor…</option>
+                {vendors.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.name}
+                  </option>
+                ))}
               </select>
             </div>
-          )}
-          <div className="field">
-            <label>Notes</label>
-            <input
-              className="input"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Optional notes"
-              data-testid="rtv-notes"
-            />
+            <div className="field">
+              <label>Return type</label>
+              <select
+                className="select"
+                value={returnType}
+                onChange={(e) => {
+                  setReturnType(e.target.value);
+                  setScans({});
+                }}
+                data-testid="rtv-type-select"
+              >
+                <option value="defective">Defective / GR return</option>
+                <option value="seasonal">Season-end return</option>
+              </select>
+            </div>
           </div>
+          <div className="form-row" style={{ marginTop: 14 }}>
+            <div className="field">
+              <label>How it gets back</label>
+              <select
+                className="select"
+                value={logisticsRoute}
+                onChange={(e) => setLogisticsRoute(e.target.value)}
+                data-testid="rtv-logistics-select"
+              >
+                <option value="">Select route…</option>
+                {LOGISTICS_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {logisticsRoute === "warehouse" && (
+              <div className="field">
+                <label>Transfer that brought the pieces</label>
+                <select
+                  className="select"
+                  value={viaTransferId}
+                  onChange={(e) => setViaTransferId(e.target.value)}
+                  data-testid="rtv-via-transfer-select"
+                >
+                  <option value="">Select transfer…</option>
+                  {transfers
+                    .filter((t) => t.doc_number)
+                    .map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.doc_number} → {t.destination_store_code}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            )}
+            <div className="field">
+              <label>Notes</label>
+              <input
+                className="input"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Optional notes"
+                data-testid="rtv-notes"
+              />
+            </div>
+          </div>
+        </Section>
+
+        {/* Step 2 — the pool. Nothing here is typed: it is what the brand will take. */}
+        {brandId && (
+          <Section heading="Step 2 · What this brand will take back" ruled testId="rtv-pool">
+            {poolLoading ? (
+              <p className="lead">Loading the returnable pool…</p>
+            ) : !pool ? (
+              <p className="lead">Could not read the pool for this brand.</p>
+            ) : pool.excluded_reason ? (
+              <p className="lead" data-testid="rtv-pool-excluded">
+                {pool.excluded_reason}
+              </p>
+            ) : (
+              <>
+                <h3 className="heading">
+                  {pool.brand.name}
+                  <span className="chip" style={{ marginLeft: 8 }}>
+                    {pool.brand.commercial_label}
+                  </span>
+                  {pool.brand.return_window_days > 0 && (
+                    <span className="chip" style={{ marginLeft: 6 }}>
+                      <CalendarClock size={13} /> {pool.brand.return_window_days}-day window
+                    </span>
+                  )}
+                </h3>
+                {rows.length === 0 ? (
+                  <p className="lead" data-testid="rtv-pool-empty">
+                    {returnType === "defective"
+                      ? "Nothing confirmed damaged for this brand here. A store's damage flag has to be confirmed by the warehouse before the piece can go back."
+                      : "No season-end stock inside the return window for this brand here."}
+                  </p>
+                ) : (
+                  <div className="table-wrap">
+                    <table className="data" data-testid="rtv-pool-table">
+                      <thead>
+                        <tr>
+                          <th>Barcode</th>
+                          <th>Design</th>
+                          <th>Size</th>
+                          <th>Colour</th>
+                          <th>Store</th>
+                          <th className="num">Returnable</th>
+                          <th className="num">Cost</th>
+                          <th>Window</th>
+                          <th className="num">Scanned</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rows.map((r) => (
+                          <tr
+                            key={`${r.store}-${r.sku_code}`}
+                            data-testid={`rtv-pool-row-${r.sku_code}`}
+                          >
+                            <td>
+                              <b className="mono">{r.sku_code}</b>
+                            </td>
+                            <td>{r.design || "—"}</td>
+                            <td>{r.size || "—"}</td>
+                            <td>{r.color || "—"}</td>
+                            <td>
+                              <b className="mono">{r.store_code}</b>
+                            </td>
+                            <td className="num">{r.qty}</td>
+                            <td className="num">
+                              <Money paise={r.unit_cost_paise} />
+                            </td>
+                            <td>
+                              <Status tone={windowTone(r.days_left)}>
+                                {windowText(r.days_left)}
+                              </Status>
+                            </td>
+                            <td className="num">
+                              <b>{scans[r.sku_code] ?? 0}</b>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {expiredCount > 0 && (
+                  <p className="lead" style={{ fontSize: 13 }} data-testid="rtv-pool-expired">
+                    {expiredCount} more {expiredCount === 1 ? "holding is" : "holdings are"} past
+                    the return window and cannot go back. The window starts at the piece's first
+                    arrival here.
+                  </p>
+                )}
+
+                {rows.length > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    style={{ alignSelf: "flex-start" }}
+                    onClick={() => setScanning(true)}
+                    data-testid="rtv-scan-btn"
+                  >
+                    <ScanLine size={16} /> {scannedPieces ? "Scan again" : "Scan the pieces"}
+                  </button>
+                )}
+              </>
+            )}
+          </Section>
+        )}
+
+        {/* Step 3 — the allowance, live, against what this return uses. */}
+        {pool?.cap.applies && !pool.excluded_reason && (
+          <CapMeter cap={pool.cap} thisReturnPaise={scannedValue} />
+        )}
+
+        {scannedPieces > 0 && (
+          <Section heading="Ready to send back" ruled testId="rtv-scanned-summary">
+            <p>
+              <b>
+                {scannedPieces} pcs · <Money paise={scannedValue} />
+              </b>
+            </p>
+            <p className="lead" style={{ fontSize: 13 }}>
+              Valued from the books, not from this screen. It goes to the approvals inbox — a second
+              person clears it before any stock moves.
+            </p>
+          </Section>
+        )}
+
+        {scanning && pool && (
+          <ScanScreen
+            mode="RETURN"
+            docLabel={`${pool.brand.name} · ${RETURN_TYPE_LABEL[returnType]}`}
+            routeLabel={routeLabel(logisticsRoute)}
+            targets={targets}
+            strictExpected={false}
+            rejectReason="Not in this brand's returnable pool — it cannot go back on this return."
+            availableNoun={
+              returnType === "defective" ? "confirmed damaged here" : "returnable here"
+            }
+            confirmLabel="Use these pieces"
+            onConfirm={onScanned}
+            onClose={() => setScanning(false)}
+          />
+        )}
+
+        {error && (
+          <Note tone="error" testId="rtv-create-error">
+            {error}
+          </Note>
+        )}
+        <div>
+          <button
+            className="btn btn-primary btn-lg"
+            disabled={saving}
+            onClick={save}
+            data-testid="save-rtv-btn"
+          >
+            <RotateCcw size={16} /> {saving ? "Saving…" : "Create return (draft)"}
+          </button>
         </div>
       </div>
-
-      {/* Step 2 — the pool. Nothing here is typed: it is what the brand will take. */}
-      {brandId && (
-        <div className="card section-card" data-testid="rtv-pool">
-          <p className="eyebrow">Step 2 · What this brand will take back</p>
-          {poolLoading ? (
-            <p className="lead">Loading the returnable pool…</p>
-          ) : !pool ? (
-            <p className="lead">Could not read the pool for this brand.</p>
-          ) : pool.excluded_reason ? (
-            <p className="lead" data-testid="rtv-pool-excluded">
-              {pool.excluded_reason}
-            </p>
-          ) : (
-            <>
-              <h3 className="h3">
-                {pool.brand.name}
-                <span className="chip chip-grey" style={{ marginLeft: 8 }}>
-                  {pool.brand.commercial_label}
-                </span>
-                {pool.brand.return_window_days > 0 && (
-                  <span className="chip chip-grey" style={{ marginLeft: 6 }}>
-                    <CalendarClock size={13} /> {pool.brand.return_window_days}-day window
-                  </span>
-                )}
-              </h3>
-              {rows.length === 0 ? (
-                <p className="lead" data-testid="rtv-pool-empty">
-                  {returnType === "defective"
-                    ? "Nothing confirmed damaged for this brand here. A store's damage flag has to be confirmed by the warehouse before the piece can go back."
-                    : "No season-end stock inside the return window for this brand here."}
-                </p>
-              ) : (
-                <div className="table-wrap" style={{ marginTop: 10 }}>
-                  <table className="data" data-testid="rtv-pool-table">
-                    <thead>
-                      <tr>
-                        <th>Barcode</th>
-                        <th>Design</th>
-                        <th>Size</th>
-                        <th>Colour</th>
-                        <th>Store</th>
-                        <th className="num">Returnable</th>
-                        <th className="num">Cost</th>
-                        <th>Window</th>
-                        <th className="num">Scanned</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows.map((r) => (
-                        <tr
-                          key={`${r.store}-${r.sku_code}`}
-                          data-testid={`rtv-pool-row-${r.sku_code}`}
-                        >
-                          <td>
-                            <b className="mono">{r.sku_code}</b>
-                          </td>
-                          <td>{r.design || "—"}</td>
-                          <td>{r.size || "—"}</td>
-                          <td>{r.color || "—"}</td>
-                          <td>
-                            <b className="mono">{r.store_code}</b>
-                          </td>
-                          <td className="num">{r.qty}</td>
-                          <td className="num">
-                            <Money paise={r.unit_cost_paise} />
-                          </td>
-                          <td>
-                            <span className={`chip chip-${windowTone(r.days_left)}`}>
-                              {windowText(r.days_left)}
-                            </span>
-                          </td>
-                          <td className="num">
-                            <b>{scans[r.sku_code] ?? 0}</b>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
-              {expiredCount > 0 && (
-                <p className="lead" style={{ fontSize: 13 }} data-testid="rtv-pool-expired">
-                  {expiredCount} more {expiredCount === 1 ? "holding is" : "holdings are"} past the
-                  return window and cannot go back. The window starts at the piece's first arrival
-                  here.
-                </p>
-              )}
-
-              {rows.length > 0 && (
-                <button
-                  type="button"
-                  className="btn btn-cta"
-                  style={{ marginTop: 14 }}
-                  onClick={() => setScanning(true)}
-                  data-testid="rtv-scan-btn"
-                >
-                  <ScanLine size={16} /> {scannedPieces ? "Scan again" : "Scan the pieces"}
-                </button>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Step 3 — the allowance, live, against what this return uses. */}
-      {pool?.cap.applies && !pool.excluded_reason && (
-        <CapMeter cap={pool.cap} thisReturnPaise={scannedValue} />
-      )}
-
-      {scannedPieces > 0 && (
-        <div className="card section-card" data-testid="rtv-scanned-summary">
-          <p className="eyebrow">Ready to send back</p>
-          <h3 className="h3">
-            {scannedPieces} pcs · <Money paise={scannedValue} />
-          </h3>
-          <p className="lead" style={{ fontSize: 13 }}>
-            Valued from the books, not from this screen. It goes to the approvals inbox — a second
-            person clears it before any stock moves.
-          </p>
-        </div>
-      )}
-
-      {scanning && pool && (
-        <ScanScreen
-          mode="RETURN"
-          docLabel={`${pool.brand.name} · ${RETURN_TYPE_LABEL[returnType]}`}
-          routeLabel={routeLabel(logisticsRoute)}
-          targets={targets}
-          strictExpected={false}
-          rejectReason="Not in this brand's returnable pool — it cannot go back on this return."
-          availableNoun={returnType === "defective" ? "confirmed damaged here" : "returnable here"}
-          confirmLabel="Use these pieces"
-          onConfirm={onScanned}
-          onClose={() => setScanning(false)}
-        />
-      )}
-
-      {error && (
-        <div className="login-error" style={{ maxWidth: 480 }} data-testid="rtv-create-error">
-          {error}
-        </div>
-      )}
-      <button
-        className="btn btn-primary btn-lg"
-        disabled={saving}
-        onClick={save}
-        data-testid="save-rtv-btn"
-      >
-        <RotateCcw size={16} /> {saving ? "Saving…" : "Create return (draft)"}
-      </button>
     </div>
   );
 }
@@ -918,14 +1070,15 @@ function CreditNoteCard({ rtv, writable }: { rtv: RTVT; writable: boolean }) {
 
   if (rtv.credit_note) {
     return (
-      <div className="card section-card" data-testid="rtv-credit-note">
-        <p className="eyebrow">Credit note</p>
-        <h3 className="h3">Received {fmtDate(rtv.credit_note.received_on)}</h3>
+      <Section heading="Credit note" ruled testId="rtv-credit-note">
+        <p>
+          <Status tone="green">Received {fmtDate(rtv.credit_note.received_on)}</Status>
+        </p>
         <p className="lead" style={{ fontSize: 13 }}>
           {rtv.credit_note.reference || "No reference"} · recorded by{" "}
           {rtv.credit_note.recorded_by_name || "—"}
         </p>
-      </div>
+      </Section>
     );
   }
 
@@ -934,18 +1087,20 @@ function CreditNoteCard({ rtv, writable }: { rtv: RTVT; writable: boolean }) {
   // posted — this is status, not a payment.
   if (rtv.docstatus !== 1 || !writable) {
     return (
-      <div className="card section-card" data-testid="rtv-credit-note">
-        <p className="eyebrow">Credit note</p>
-        <h3 className="h3">Pending</h3>
-      </div>
+      <Section heading="Credit note" ruled testId="rtv-credit-note">
+        <p>
+          <Status tone="amber">Pending</Status>
+        </p>
+      </Section>
     );
   }
 
   return (
-    <div className="card section-card" data-testid="rtv-credit-note-form">
-      <p className="eyebrow">Credit note</p>
-      <h3 className="h3">Not received yet</h3>
-      <div className="form-row" style={{ marginTop: 10 }}>
+    <Section heading="Credit note" ruled testId="rtv-credit-note-form">
+      <p>
+        <Status tone="amber">Not received yet</Status>
+      </p>
+      <div className="form-row">
         <div className="field">
           <label>Received on</label>
           <input
@@ -968,26 +1123,40 @@ function CreditNoteCard({ rtv, writable }: { rtv: RTVT; writable: boolean }) {
         </div>
       </div>
       {error && (
-        <div className="login-error" data-testid="rtv-cn-error">
+        <Note tone="error" testId="rtv-cn-error">
           {error}
-        </div>
+        </Note>
       )}
       <button
         type="button"
         className="btn"
-        style={{ marginTop: 10 }}
         disabled={saving}
         onClick={record}
         data-testid="rtv-cn-save"
       >
         {saving ? "Recording…" : "Record credit note"}
       </button>
+    </Section>
+  );
+}
+
+/** `/return-to-brand/<id>`, with the open returns beside it on a wide screen
+ *  (layout L). */
+export function RTVDetailPage() {
+  const { id = "" } = useParams();
+  const wide = useWideScreen();
+  if (!wide) return <RTVDetail id={id} />;
+  return (
+    <div className="page-pad queue-split">
+      <RTVQueue currentId={id} />
+      <div className="queue-work">
+        <RTVDetail id={id} />
+      </div>
     </div>
   );
 }
 
-export function RTVDetailPage() {
-  const { id } = useParams();
+function RTVDetail({ id }: { id: string }) {
   const { user } = useAuth();
   const { data: r, loading } = useDoc<RTVT>(`/outbound/rtvs/${id}`);
   const writable = canWriteReturnToBrand(user);
@@ -1031,12 +1200,11 @@ export function RTVDetailPage() {
       </Link>
       <div className="toolbar">
         <div>
-          <p className="eyebrow">{r.doc_number || `Draft #${r.id}`}</p>
           <h1 className="h1">
             {r.brand_name || "Return"} — {r.store_code}
           </h1>
           <p className="lead">
-            {r.store_name}
+            <span className="mono">{r.doc_number || `Draft #${r.id}`}</span> · {r.store_name}
             {r.season ? ` · ${r.season}` : ""}
             {r.notes ? ` · ${r.notes}` : ""}
           </p>
@@ -1044,9 +1212,7 @@ export function RTVDetailPage() {
         <div className="spacer" />
         <DocPill ds={r.docstatus} />
         {r.docstatus === 0 && <ApprovalPill status={r.approval?.status ?? "pending"} />}
-        <span className={`chip chip-${r.return_type === "defective" ? "red" : "amber"}`}>
-          {RETURN_TYPE_LABEL[r.return_type] ?? r.return_type}
-        </span>
+        <span className="chip">{RETURN_TYPE_LABEL[r.return_type] ?? r.return_type}</span>
         {canSubmit && (
           <button
             type="button"
@@ -1060,120 +1226,113 @@ export function RTVDetailPage() {
         )}
       </div>
 
-      <div className="form-row" style={{ marginBottom: 18 }}>
-        <div className="card section-card">
-          <p className="eyebrow">Logistics</p>
-          <h3 className="h3">{r.logistics_route_label || routeLabel(r.logistics_route)}</h3>
-          {r.via_transfer_number && (
-            <p className="lead" style={{ marginTop: 4 }}>
-              via {r.via_transfer_number}
-            </p>
-          )}
-        </div>
-        <div className="card section-card">
-          <p className="eyebrow">Going back</p>
-          <h3 className="h3">{totalQty} pcs</h3>
-          <p className="lead" style={{ marginTop: 4 }}>
-            {r.value_paise ? <Money paise={r.value_paise} /> : "—"}
-          </p>
-        </div>
-        {r.return_window_date && (
-          <div className="card section-card">
-            <p className="eyebrow">Return window</p>
-            <h3 className="h3">{fmtDate(r.return_window_date)}</h3>
-            <p className="lead" style={{ marginTop: 4 }}>
-              <span
-                className={`chip chip-${windowTone(r.days_to_window)}`}
-                data-testid="rtv-window-countdown"
-              >
-                {windowText(r.days_to_window)}
-              </span>
-            </p>
-          </div>
-        )}
-        <div className="card section-card">
-          <p className="eyebrow">Date</p>
-          <h3 className="h3">{fmtDate(r.created_at)}</h3>
-        </div>
-      </div>
-
-      {/* The allowance as it stood when this return was raised (Rule 2) — not
-          recomputed, because the next arrival would move it under the approver. */}
-      {r.cap_allowance_paise > 0 && (
-        <div className="card section-card" data-testid="rtv-cap-snapshot">
-          <p className="eyebrow">Allowed return when this was raised — {r.cap_percent}%</p>
-          <h3 className="h3">
-            <Money paise={r.cap_used_before_paise + r.value_paise} /> of{" "}
-            <Money paise={r.cap_allowance_paise} />
-          </h3>
-          {r.cap_exceeded_by_paise > 0 && (
-            <p className="lead" data-testid="rtv-cap-flag">
-              <span className="chip chip-red">
-                <AlertTriangle size={13} /> Over by <Money paise={r.cap_exceeded_by_paise} />
-              </span>{" "}
-              Flagged, not blocked — the approver decided with this on screen.
-            </p>
-          )}
-        </div>
-      )}
-
-      <div className="form-row" style={{ marginBottom: 18 }}>
-        <CreditNoteCard rtv={r} writable={writable} />
-      </div>
-
-      <div style={{ marginBottom: 18 }}>
-        <ApprovalTrail
-          createdByName={r.created_by_name}
-          createdAt={r.created_at}
-          approval={r.approval}
-          history={r.approval_history}
-          askAgainPath={writable ? `/outbound/rtvs/${r.id}/request-approval` : undefined}
+      <div className="page">
+        <KpiStrip
+          label="Return"
+          items={[
+            {
+              label: "Logistics",
+              value: r.logistics_route_label || routeLabel(r.logistics_route),
+              detail: r.via_transfer_number ? `via ${r.via_transfer_number}` : undefined,
+            },
+            {
+              label: "Going back",
+              value: `${totalQty} pcs`,
+              detail: r.value_paise ? <Money paise={r.value_paise} /> : "—",
+            },
+            ...(r.return_window_date
+              ? [
+                  {
+                    label: "Return window",
+                    value: fmtDate(r.return_window_date),
+                    detail: (
+                      <Status tone={windowTone(r.days_to_window)} testId="rtv-window-countdown">
+                        {windowText(r.days_to_window)}
+                      </Status>
+                    ),
+                  },
+                ]
+              : []),
+            { label: "Date", value: fmtDate(r.created_at) },
+          ]}
         />
-      </div>
 
-      {error && (
-        <div className="login-error" style={{ maxWidth: 480 }} data-testid="rtv-detail-error">
-          {error}
+        {/* The allowance as it stood when this return was raised (Rule 2) — not
+          recomputed, because the next arrival would move it under the approver. */}
+        {r.cap_allowance_paise > 0 && (
+          <Section
+            heading={`Allowed return when this was raised — ${r.cap_percent}%`}
+            testId="rtv-cap-snapshot"
+          >
+            <p>
+              <b>
+                <Money paise={r.cap_used_before_paise + r.value_paise} /> of{" "}
+                <Money paise={r.cap_allowance_paise} />
+              </b>
+            </p>
+            {r.cap_exceeded_by_paise > 0 && (
+              <p className="lead" data-testid="rtv-cap-flag">
+                <Status tone="red">
+                  Over by <Money paise={r.cap_exceeded_by_paise} />
+                </Status>{" "}
+                Flagged, not blocked — the approver decided with this on screen.
+              </p>
+            )}
+          </Section>
+        )}
+
+        <CreditNoteCard rtv={r} writable={writable} />
+
+        <div>
+          <ApprovalTrail
+            createdByName={r.created_by_name}
+            createdAt={r.created_at}
+            approval={r.approval}
+            history={r.approval_history}
+            askAgainPath={writable ? `/outbound/rtvs/${r.id}/request-approval` : undefined}
+          />
         </div>
-      )}
 
-      <div className="table-wrap">
-        <table className="data" data-testid="rtv-detail-lines">
-          <thead>
-            <tr>
-              <th>Barcode</th>
-              <th>Design</th>
-              <th>Size</th>
-              <th>Colour</th>
-              <th>Brand</th>
-              <th>From</th>
-              <th className="num">Qty</th>
-              <th className="num">Cost</th>
-            </tr>
-          </thead>
-          <tbody>
-            {r.lines.map((l) => (
-              <tr key={l.id}>
-                <td>
-                  <b className="mono">{l.sku_code}</b>
-                </td>
-                <td>{l.design || "—"}</td>
-                <td>{l.size || "—"}</td>
-                <td>{l.color || "—"}</td>
-                <td>{l.brand || "—"}</td>
-                <td>
-                  <span className={`chip chip-${l.source === "quarantine" ? "red" : "amber"}`}>
-                    {l.source === "quarantine" ? "Quarantine" : "Season-end"}
-                  </span>
-                </td>
-                <td className="num">{l.qty}</td>
-                <td className="num">
-                  {l.unit_cost_paise ? <Money paise={l.unit_cost_paise} /> : "—"}
-                </td>
+        {error && (
+          <Note tone="error" testId="rtv-detail-error">
+            {error}
+          </Note>
+        )}
+
+        <div className="table-wrap">
+          <table className="data" data-testid="rtv-detail-lines">
+            <thead>
+              <tr>
+                <th>Barcode</th>
+                <th>Design</th>
+                <th>Size</th>
+                <th>Colour</th>
+                <th>Brand</th>
+                <th>From</th>
+                <th className="num">Qty</th>
+                <th className="num">Cost</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {r.lines.map((l) => (
+                <tr key={l.id}>
+                  <td>
+                    <b className="mono">{l.sku_code}</b>
+                  </td>
+                  <td>{l.design || "—"}</td>
+                  <td>{l.size || "—"}</td>
+                  <td>{l.color || "—"}</td>
+                  <td>{l.brand || "—"}</td>
+                  <td>{l.source === "quarantine" ? "Quarantine" : "Season-end"}</td>
+                  <td className="num">{l.qty}</td>
+                  <td className="num">
+                    {l.unit_cost_paise ? <Money paise={l.unit_cost_paise} /> : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

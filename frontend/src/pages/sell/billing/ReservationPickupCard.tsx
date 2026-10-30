@@ -73,7 +73,7 @@ export function ReservationPickupCard({
     return (
       <section className="bill-consent" data-testid="pickup-card">
         <div className="bill-customer-heading">
-          <p className="eyebrow">Reservation pickup</p>
+          <h3 className="heading">Reservation pickup</h3>
           <span data-testid="pickup-ref">{current.ref}</span>
         </div>
         <p className="muted-cell bill-consent-note" data-testid="pickup-advance">
@@ -82,7 +82,7 @@ export function ReservationPickupCard({
             : "No advance was paid."}
         </p>
         {!online && (
-          <p className="bill-alert bill-consent-note" data-testid="pickup-offline">
+          <p className="note note-warn bill-consent-note" data-testid="pickup-offline">
             {RESERVATION_OFFLINE_REFUSAL}
           </p>
         )}
@@ -148,7 +148,7 @@ export function ReservationPickupCard({
         </>
       )}
       {note && (
-        <p className="bill-alert bill-consent-note" data-testid="pickup-note">
+        <p className="note note-warn bill-consent-note" data-testid="pickup-note">
           {note}
         </p>
       )}

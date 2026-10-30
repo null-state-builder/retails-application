@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
+import { Note } from "../components/Note";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
+import { Status } from "../components/Status";
+import { Switch } from "../components/Switch";
 import { api, apiErrorCode, apiErrorMessage, goodsMeta } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
@@ -156,23 +160,26 @@ export function BrokenSizesPage() {
 
   const disabled = !online || busy;
   const offlineNote = (!online || lost) && (
-    <p className="warn-note" data-testid="broken-offline" role="status">
-      {OFFLINE}
-      {online && (
-        <>
-          {" "}
+    <Note
+      tone="warn"
+      testId="broken-offline"
+      role="status"
+      action={
+        online && (
           <button
             type="button"
-            className="btn"
+            className="btn btn-sm"
             data-testid="broken-retry"
             disabled={busy}
             onClick={() => void load(siteId)}
           >
             Try again
           </button>
-        </>
-      )}
-    </p>
+        )
+      }
+    >
+      {OFFLINE}
+    </Note>
   );
   const header = (
     <PageHeader
@@ -181,9 +188,9 @@ export function BrokenSizesPage() {
     />
   );
   const errorNote = (error || refused) && (
-    <p className="warn-note" data-testid="broken-error">
+    <Note tone="error" testId="broken-error">
       {error || refused}
-    </p>
+    </Note>
   );
 
   if (!data) {
@@ -215,11 +222,11 @@ export function BrokenSizesPage() {
       {offlineNote}
       {errorNote}
       {saved && (
-        <p className="ok-note" data-testid="broken-saved">
+        <Note tone="success" role="status" testId="broken-saved">
           {saved}
-        </p>
+        </Note>
       )}
-      <section className="card section-card">
+      <section className="section">
         <div className="toolbar">
           <label className="field">
             <span>Store</span>
@@ -250,13 +257,13 @@ export function BrokenSizesPage() {
         </div>
         <p data-testid="broken-measure">{measureText(data.measure)}</p>
         {!data.goods_records ? (
-          <p className="warn-note" data-testid="broken-legacy">
+          <Note tone="warn" testId="broken-legacy">
             This store's stock is not on the goods records yet, so its sizes cannot be checked.
-          </p>
+          </Note>
         ) : data.open.length === 0 ? (
-          <p className="ok-note" data-testid="broken-empty">
+          <Note tone="success" testId="broken-empty">
             No broken sizes open at this store.
-          </p>
+          </Note>
         ) : (
           <OpenAlerts rows={data.open} canAct={data.can_act} disabled={disabled} onAct={act} />
         )}
@@ -335,12 +342,18 @@ function OpenAlerts({
                   ) : (
                     "Not yet"
                   )}{" "}
-                  <span
-                    className={`chip ${row.outcome === "missed" ? "chip-amber" : ""}`}
-                    data-testid="broken-outcome"
+                  <Status
+                    tone={
+                      row.outcome === "missed"
+                        ? "amber"
+                        : row.outcome === "on_time"
+                          ? "green"
+                          : "grey"
+                    }
+                    testId="broken-outcome"
                   >
                     {outcomeText(row.outcome)}
-                  </span>
+                  </Status>
                 </td>
               </tr>
             ))}
@@ -387,7 +400,7 @@ function ActControls({
       />
       <button
         type="button"
-        className="btn"
+        className="btn btn-sm"
         data-testid="broken-record"
         disabled={disabled || needsNote}
         onClick={() => void onAct(row, action, note)}
@@ -400,8 +413,7 @@ function ActControls({
 
 function ClosedAlerts({ rows }: { rows: AlertRow[] }) {
   return (
-    <section className="card section-card" data-testid="broken-closed">
-      <h3 className="section-title">Recently closed</h3>
+    <Section heading="Recently closed" ruled testId="broken-closed">
       <div className="table-wrap">
         <table className="data">
           <thead>
@@ -437,7 +449,7 @@ function ClosedAlerts({ rows }: { rows: AlertRow[] }) {
           </tbody>
         </table>
       </div>
-    </section>
+    </Section>
   );
 }
 
@@ -470,8 +482,7 @@ function Rules({
   }
 
   return (
-    <section className="card section-card" data-testid="broken-rules">
-      <h3 className="section-title">Core sizes by category</h3>
+    <Section heading="Core sizes by category" ruled testId="broken-rules">
       <p className="muted-cell">
         A style-colour is broken when this share or more of its category's core sizes is missing at
         the store while it still has stock. A category with no core sizes is not checked.
@@ -497,12 +508,28 @@ function Rules({
                   <td>{categoryText(rule.category)}</td>
                   <td>{rule.core_sizes.join(", ")}</td>
                   <td className="num">{rule.missing_percent}% missing</td>
-                  <td>{rule.active ? "Yes" : "Removed"}</td>
+                  <td>
+                    {canSet ? (
+                      <Switch
+                        checked={rule.active}
+                        busy={disabled}
+                        ariaLabel={`${categoryText(rule.category)} rule in use`}
+                        testId={`broken-rule-toggle-${rule.category || "none"}`}
+                        onChange={(on) =>
+                          void onSave(rule.category, rule.core_sizes, rule.missing_percent, on)
+                        }
+                      />
+                    ) : rule.active ? (
+                      "On"
+                    ) : (
+                      "Off"
+                    )}
+                  </td>
                   {canSet && (
-                    <td>
+                    <td className="act">
                       <button
                         type="button"
-                        className="btn"
+                        className="btn btn-sm"
                         data-testid={`broken-rule-edit-${rule.category || "none"}`}
                         disabled={disabled}
                         onClick={() => {
@@ -513,22 +540,6 @@ function Rules({
                         }}
                       >
                         Edit
-                      </button>{" "}
-                      <button
-                        type="button"
-                        className="btn"
-                        data-testid={`broken-rule-toggle-${rule.category || "none"}`}
-                        disabled={disabled}
-                        onClick={() =>
-                          void onSave(
-                            rule.category,
-                            rule.core_sizes,
-                            rule.missing_percent,
-                            !rule.active,
-                          )
-                        }
-                      >
-                        {rule.active ? "Remove" : "Use again"}
                       </button>
                     </td>
                   )}
@@ -587,6 +598,6 @@ function Rules({
           </button>
         </div>
       )}
-    </section>
+    </Section>
   );
 }

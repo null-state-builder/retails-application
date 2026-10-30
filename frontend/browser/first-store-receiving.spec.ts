@@ -311,6 +311,7 @@ test.describe.serial("isolated receiving and inventory correction browser proof"
     await pair(page);
     await page.getByTestId("till-sync-now").click();
     if (!(await page.getByTestId("till-pause-state").count())) {
+      await page.getByTestId("till-pause-open").click();
       await page.getByTestId("till-pause-reason").fill("Fictional complete SOH browser count");
       await page.getByTestId("till-pause-go").click();
     }

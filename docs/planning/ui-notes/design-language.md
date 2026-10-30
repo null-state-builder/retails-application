@@ -1,26 +1,29 @@
-# Proposed design language for the screen review
+# KDPS design language
 
-**Status: reference proposal for the review, not a newly approved redesign.**
+**Status: superseded for visuals by Design System v2 (accepted 30 Oct 2026).**
 
-KDPS already has an approved visual direction in `frontend/src/index.css`: the
-**Warm** design language. The screen review should use that as its starting point
-and decide where existing screens follow it consistently. The goal is one
-recognisable KDPS interface, not another palette or a new component style.
+The source of truth for how KDPS looks is the Design System v2 artifact:
+<https://claude.ai/artifact/JqxBxwgM5VP8xfx95SPY2v> (tokens, type scale, density
+modes and one page per component), with the screen boards at
+<https://claude.ai/artifact/UoKEechRvH9MHkjEx2k7kM>. The rollout, its decisions
+and what each phase changed are in `docs/planning/design-system-v2-rollout.md`.
 
-## Visual foundation
+In the code:
 
-- Use the existing semantic tokens for paper, surface, inner surface, hairlines,
-  text, brand colours, status colours, radii and shadows. Do not introduce page
-  specific colour literals.
-- Preserve the warm paper / surface layering and its warm-charcoal dark theme.
-  Every semantic choice must work in both themes.
-- Use the system font already defined in the shared stylesheet. Reserve the
-  monospace token for identifiers, numbers and other compact machine-like values.
-- Prefer the existing card, field, button and table styles. Keep one primary
-  action visually clear; use secondary controls with the established treatments.
-- Treat spacing, input height, headings, page width and card padding as shared
-  design-system decisions. Compare existing screens before setting final values;
-  the Signup layout alone does not establish a universal measurement.
+- Tokens live in `frontend/src/index.css` (light and dark), density in
+  `data-density` (Counter, Desk, Compact). `yarn check:design-tokens` fails on any
+  off-scale size, heavy weight, colour, radius or shadow literal, and runs in
+  `npm run verify`.
+- Shared component styles are in `frontend/src/theme/components.css`, with a React
+  wrapper per component in `frontend/src/components/` (`Section`, `Status`, `Note`,
+  `KpiStrip`, `SegmentedControl`, `FilterChip`, `Switch`, `SettingRow`,
+  `SplitView`, `PageHeader`, `EmptyState`/`ErrorState`/`Loading`). Each file starts
+  with its contract.
+- The rules that decide most screens: red `btn-cta` only commits money or stock;
+  rust only marks where you are; places are links and actions are buttons; page
+  parts are Sections on paper, not cards; states are a dot and a word.
+
+The interaction and content principles below still apply unchanged.
 
 ## Interaction and content
 
@@ -45,17 +48,3 @@ recognisable KDPS interface, not another palette or a new component style.
   An identity check belongs on the action that saves, confirms or revises.
   Apply this when those screens are reviewed. It does not by itself approve a
   shared navigation change.
-
-## Review questions for the complete screen tour
-
-- Which visual patterns already work best in Today and Sell, and which are
-  repeated inconsistently elsewhere?
-- Which shared controls should be standardised, and which workflows need a
-  genuinely different interaction?
-- Does the Warm palette maintain readable contrast and clear statuses in both
-  themes and at every screen size?
-- Which areas are information-heavy enough to need progressive disclosure or a
-  clearer separation between daily work and review/history?
-
-Answer these after comparing the screens. Do not lock new spacing values, shared
-components or navigation structure from Signup alone.

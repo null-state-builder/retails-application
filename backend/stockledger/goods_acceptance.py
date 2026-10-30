@@ -1006,14 +1006,25 @@ class _Slice:
     location_id: uuid.UUID
 
 
-def _events(run: CommandRun | None, source: _Source) -> list[AcceptanceEvent]:
-    """Acceptance evidence of the version, including rows this command has not yet sealed."""
-    rows = list(AcceptanceEvent.objects.filter(official_line__version_id=source.version.pk))
+def _events(
+    run: CommandRun | None, source: _Source, line_id: uuid.UUID | None = None
+) -> list[AcceptanceEvent]:
+    """Acceptance evidence of the version, including rows this command has not yet sealed.
+
+    ``line_id`` narrows it to one line: a scan reads only its own line's evidence,
+    so a 5,000-line opening is not re-read once per scanned line.
+    """
+    found = AcceptanceEvent.objects.filter(official_line__version_id=source.version.pk)
+    if line_id is not None:
+        found = found.filter(official_line_id=line_id)
+    rows = list(found)
     if run is not None:
         rows.extend(
             row
             for row in run.evidence.pending
-            if isinstance(row, AcceptanceEvent) and str(row.official_line_id) in source.lines
+            if isinstance(row, AcceptanceEvent)
+            and str(row.official_line_id) in source.lines
+            and (line_id is None or row.official_line_id == line_id)
         )
     return rows
 
@@ -1129,7 +1140,7 @@ def _apply(run: CommandRun, session: AcceptanceSession, source: _Source, item: _
         return
     line = item.line
     slices = _open_slices(source, line)
-    known = _events(run, source)
+    known = _events(run, source, line.pk)
     checked = _portions(known, line.pk, ["checked_good"])
     if scan_.outcome == "checked_good":
         pool = _cut(slices, checked, inside=False)

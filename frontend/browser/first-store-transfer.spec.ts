@@ -196,6 +196,7 @@ test("TRF-01/03: scan and dispatch, Receiving link and bookmark, destination cou
     await pairTransferCounter(counter);
     if (!preservedPause) {
       await counter.getByTestId("till-sync-now").click();
+      await counter.getByTestId("till-pause-open").click();
       await expect(counter.getByTestId("till-pause-go")).toBeVisible();
       await counter
         .getByTestId("till-pause-reason")

@@ -16,6 +16,7 @@ from sell.alteration_views import (
     AlterationStepView,
 )
 from sell.cash_views import CashCountsView, CashMovementsView, CashPositionView
+from sell.day_close_views import DayCloseCloseView, DayCloseView, DaySummaryCheckView
 from sell.discount_views import DiscountReportView
 from sell.gift_voucher_views import GiftVoucherListView, GiftVoucherLookupView
 from sell.petty_cash_views import (
@@ -82,6 +83,14 @@ urlpatterns = [
     path("cash-count", CashPositionView.as_view(), name="sell-cash-position"),
     path("cash-counts", CashCountsView.as_view(), name="sell-cash-counts"),
     path("cash-movements", CashMovementsView.as_view(), name="sell-cash-movements"),
+    # Closing the business day: the summary tick and the manager-confirmed close.
+    path("day-close", DayCloseView.as_view(), name="sell-day-close"),
+    path(
+        "day-close/summary-check",
+        DaySummaryCheckView.as_view(),
+        name="sell-day-close-summary-check",
+    ),
+    path("day-close/close", DayCloseCloseView.as_view(), name="sell-day-close-close"),
     # Ticket 42: the store's petty cash box, its top-ups and its spends.
     path("petty-cash", PettyCashView.as_view(), name="sell-petty-cash"),
     path("petty-cash/float", PettyCashFloatView.as_view(), name="sell-petty-cash-float"),

@@ -1,21 +1,99 @@
-/* Bills (OPS-08): the day's work, and where each bill has got to.
-   It borrows the find-a-bill card styles next door - the two screens answer
-   different questions but draw the same object, and a bill should not look like
-   two different things depending on which door a person came through. */
+/* Bills (OPS-08): the day's work, and where each bill has got to - the list
+   on the left, the open bill in the record pane on the right (v2 SplitView). */
 
 .bills-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: 10px;
+  gap: var(--space-8) var(--space-12);
+  margin-bottom: var(--space-16);
 }
 .bills-bar .field {
   margin: 0;
 }
+.bills-bar .filter-chips {
+  min-height: var(--control);
+}
 /* The one box that grows: the dates are fixed-width by their own nature. */
-.bills-search {
-  flex: 1 1 240px;
-  min-width: 200px;
+.bills-bar .bills-search {
+  flex: 1 1 200px;
+  min-width: 180px;
+  max-width: 400px;
+  margin-left: auto;
+}
+
+/* A row opens its bill beside the list. */
+.bills-row {
+  cursor: pointer;
+}
+
+/* The bill number opens the bill: the row's keyboard handle. */
+.bills-billno {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  text-align: left;
+}
+.bills-billno:hover {
+  text-decoration: underline;
+}
+.bills-billno:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+.bills-customer {
+  font-weight: 600;
+}
+.bills-when {
+  white-space: nowrap;
+}
+
+/* ---------- the open bill, in the pane ---------- */
+.bills-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+}
+.bills-detail-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+.bills-detail-title .heading {
+  overflow-wrap: anywhere;
+}
+.bills-detail-sub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.bills-detail-close {
+  flex: none;
+  width: var(--control-sm);
+  padding: 0;
+}
+.bills-detail-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-8);
+}
+.bills-detail-actions .btn {
+  min-height: var(--control-counter);
+}
+/* The lines sit on the pane's own edges, under the heading. */
+.bills-detail-lines :is(th, td):first-child {
+  padding-left: 0;
+}
+.bills-detail-lines :is(th, td):last-child {
+  padding-right: 0;
 }
 
 /* What a bill was paid with, and how each part of it was proved. Laid out as
@@ -23,20 +101,52 @@
    tender and joining them with a "+" would blur which. */
 .bills-tenders {
   display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 18px;
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--hairline);
+  flex-direction: column;
+  gap: var(--space-8);
+  margin: 0;
+  font-size: var(--text);
 }
 .bills-tender {
-  display: inline-flex;
+  display: flex;
+  justify-content: space-between;
   align-items: baseline;
-  gap: 7px;
-  font-size: 13px;
+  gap: var(--space-16);
+}
+.bills-tender dt {
+  color: var(--ink2);
+}
+.bills-tender dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .bills-tender-proof {
-  color: var(--caption);
-  font-size: 11px;
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+.bills-tender-total {
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--line);
+  font-weight: 600;
+}
+.bills-tender-total dt {
+  color: var(--ink);
+}
+
+/* The receipt preview: the paper is black on white in both themes, because it
+   shows the paper (design system Receipt). 80 mm is the roll's width. */
+.bills-receipt-tray {
+  padding: var(--space-12) 0;
+  border-radius: var(--radius-control);
+  background: var(--inner);
+  overflow-x: auto;
+}
+.bills-receipt {
+  display: block;
+  width: 80mm;
+  margin: 0 auto;
+  border: 0;
+  /* White in both themes: it previews what the printer puts on paper. */
+  background: var(--print-paper);
 }

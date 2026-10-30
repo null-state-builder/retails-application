@@ -1,96 +1,105 @@
-/* Screen-level classes several pages share (ledgers, stock, masters, setup).
-   They lived in the legacy PT Mapper's stylesheet until OPS-18 deleted that screen. */
-.btn-sm {
-  padding: 5px 12px;
-  font-size: 12.5px;
-}
-
-.ok-note {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--green-bg, #e9f5ec);
-  border: 1px solid var(--green-bd, #bfe0c8);
-  color: var(--green, #2e7d4f);
-  border-radius: 10px;
-  padding: 10px 13px;
-  font-size: 13px;
-  margin-top: 12px;
-}
-
 /* wide table — scroll horizontally */
 .kdps-scroll {
   overflow-x: auto;
 }
+/* Wide enough to keep each column on one line, narrow enough to fit a 1366px
+   desktop beside the menu; past that it scrolls inside its own box. */
 .kdps-table {
-  min-width: 1500px;
-  font-size: 12.5px;
+  min-width: 1080px;
+  font-size: 14px;
 }
 .kdps-table th {
   white-space: nowrap;
-  font-size: 10.5px;
-  letter-spacing: 0.3px;
+  font-size: 12px;
+}
+/* On a desktop the header row stays in view while a long table scrolls in its
+   own box, so a column's name is never a scroll away from its numbers. */
+@media (min-width: 1024px) {
+  .kdps-scroll {
+    max-height: calc(100dvh - 240px);
+  }
+  .kdps-scroll .kdps-table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
 }
 .kdps-table td {
   white-space: nowrap;
 }
 
-/* Stock Ledger — summary cards */
+/* The ledgers' summary figures, drawn as the v2 KpiStrip: one unboxed strip
+   between two hairlines, the label above each figure. New screens use
+   components/KpiStrip.tsx. */
 .stat-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 14px;
+  display: flex;
+  flex-wrap: wrap;
   margin-top: 16px;
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
 }
-.stat-card {
-  padding: 16px 18px;
+.stat-grid > .stat-card {
+  flex: 1 1 160px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
+  padding: 12px 24px 12px 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.stat-grid > .stat-card + .stat-card {
+  padding-left: 24px;
+  border-left: 1px solid var(--hairline);
+}
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+/* Figures carry no icons (KpiStrip): the label names the figure, and rust is
+   kept for "where you are". */
+.stat-card > svg {
+  display: none;
 }
 .stat-value {
-  font-size: 26px;
-  font-weight: 800;
-  color: var(--ink, #1f2d4d);
-  line-height: 1.1;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 28px;
+  letter-spacing: -0.2px;
+  font-variant-numeric: tabular-nums;
 }
 .stat-label {
-  font-size: 12.5px;
-  color: var(--muted);
+  order: -1;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.32px;
+  color: var(--ink2);
 }
 
-/* Segmented control (Stock on Hand grouping) */
-.seg {
-  display: inline-flex;
-  gap: 4px;
-  padding: 4px;
-  margin-top: 16px;
-  background: var(--inner, #f4efe7);
-  border: 1px solid var(--hairline, #e7dfd3);
-  border-radius: 12px;
-}
-.seg-btn {
-  border: 0;
-  background: transparent;
-  padding: 7px 16px;
-  border-radius: 9px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
-  cursor: pointer;
-  transition:
-    background-color 0.15s,
-    color 0.15s;
-  display: inline-flex;
+/* Stock: the grouping strip and the search share one row under the totals,
+   and the view switch sits at the right end of the workspace's filter row. */
+.onhand-controls {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 7px;
+  gap: 8px 12px;
+  margin-top: 14px;
 }
-.seg-btn:hover {
-  color: var(--ink);
+.onhand-controls > .seg,
+.onhand-controls > .filter-bar,
+.filter-bar > .stock-views {
+  margin-top: 0;
 }
-.seg-btn.active {
-  background: var(--navy-fill);
-  color: #fff;
+.filter-bar > .stock-views {
+  margin-left: auto;
+}
+.stock-scope {
+  margin: 10px 0 0;
+  font-size: 13px;
 }
 
 /* Stock ledger pagination footer */
@@ -101,11 +110,11 @@
   padding: 12px 4px 2px;
 }
 .pager-info {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--muted);
 }
 .pager-page {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--ink);
   font-weight: 600;
 }
@@ -117,14 +126,35 @@
   gap: 10px;
   align-items: center;
 }
+/* Only a control sitting directly in the row takes a flex-basis. A control
+ * inside a column `.field` must not: there the basis becomes its height (the
+ * 160px-tall boxes on Reservations, Special orders and Opening stock). In a
+ * row, the labelled `.field` is the flex item and its control fills it. */
+/* A control wrapped in anything else (a picker, a label) keeps its width,
+ * but no flex-basis, which is meaningless outside the row. */
 .form-grid .input,
 .form-grid .select {
+  min-width: 160px;
+}
+.form-grid > .input,
+.form-grid > .select {
   min-width: 160px;
   flex: 1 1 160px;
   max-width: 280px;
 }
-.wide-form .input,
-.wide-form .select {
+.form-grid > .field {
+  flex: 1 1 200px;
+  min-width: 160px;
+  max-width: 340px;
+}
+.form-grid > .field :is(.input, .select) {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+}
+.wide-form > .input,
+.wide-form > .select,
+.wide-form > .field {
   max-width: 340px;
 }
 .check-row {
@@ -133,7 +163,7 @@
   gap: 8px;
   font-size: 13px;
   color: var(--muted);
-  font-weight: 700;
+  font-weight: 600;
   min-height: 42px;
 }
 .toggle-grid {
@@ -145,11 +175,11 @@
 .toggle-chip {
   border: 1px solid var(--hairline);
   background: var(--surface);
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   padding: 7px 12px;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--muted);
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
   transition:
     background-color 0.15s,
@@ -157,11 +187,11 @@
     color 0.15s;
 }
 .toggle-chip:hover {
-  border-color: var(--rust);
+  border-color: var(--navy2);
   color: var(--ink);
 }
 .toggle-chip.active {
   background: var(--navy-fill);
   border-color: var(--navy-fill);
-  color: #fff;
+  color: var(--on-fill);
 }

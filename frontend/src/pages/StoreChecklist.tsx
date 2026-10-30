@@ -10,8 +10,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Camera, Check, ClipboardCheck } from "lucide-react";
+import { Camera, Check } from "lucide-react";
 
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
 import { api, apiErrorMessage, apiUrl } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
@@ -21,6 +22,8 @@ import { dueByText, opensPath, progressText, tickKey } from "../lib/storeCheckli
 import { newUuid } from "../till/uuid";
 import "./Shared.css";
 import "./StoreChecklist.css";
+import { Section } from "../components/Section";
+import { StoreGate } from "../components/StoreGate";
 
 type Payload = ApiRead<ApiSchemas["ChecklistToday"]>;
 type List = Payload["lists"][number];
@@ -128,27 +131,30 @@ export function StoreChecklist({
   }
 
   const offlineNote = (!online || lost) && (
-    <p className="warn-note" data-testid="checklist-offline" role="status">
-      {OFFLINE}
-      {online && (
-        <>
-          {" "}
+    <Note
+      tone="warn"
+      role="status"
+      testId="checklist-offline"
+      action={
+        online && (
           <button
             type="button"
-            className="btn"
+            className="btn btn-sm"
             data-testid="checklist-retry"
             onClick={() => void load()}
           >
             Try again
           </button>
-        </>
-      )}
-    </p>
+        )
+      }
+    >
+      {OFFLINE}
+    </Note>
   );
   const errorNote = error && (
-    <p className="warn-note" data-testid="checklist-error">
+    <Note tone="error" testId="checklist-error">
       {error}
-    </p>
+    </Note>
   );
 
   if (!data) {
@@ -173,9 +179,9 @@ export function StoreChecklist({
       {offlineNote}
       {errorNote}
       {saved && (
-        <p className="ok-note" data-testid="checklist-saved">
+        <Note tone="success" role="status" testId="checklist-saved">
           {saved}
-        </p>
+        </Note>
       )}
       {data.lists.length === 0 ? (
         <p className="muted-cell" data-testid="checklist-none">
@@ -326,7 +332,7 @@ function ChecklistItem({
         <span className="cl-actions">
           <button
             type="button"
-            className="btn btn-sm btn-cta"
+            className="btn btn-sm btn-primary"
             data-testid="checklist-tick"
             disabled={disabled}
             onClick={() => void onTick(list, item, null)}
@@ -361,15 +367,9 @@ function ChecklistItem({
 /** Today's card on the store's Dashboard. Drawn only where the switch is on. */
 export function StoreChecklistCard({ store }: { store: string }) {
   return (
-    <div className="card panel dash-block" data-testid="checklist-card">
-      <div className="panel-head">
-        <p className="eyebrow">Today's checklist</p>
-        <h3 className="h3">
-          <ClipboardCheck size={16} /> Tasks for today
-        </h3>
-      </div>
+    <Section heading="Today's checklist" testId="checklist-card">
       <StoreChecklist store={store} compact />
-    </div>
+    </Section>
   );
 }
 
@@ -384,9 +384,11 @@ export function StoreChecklistPage() {
         title="Today's checklist"
         lead="The store's lists due today, and anything from the last few days whose time passed before it was ticked. Tick each item when it is done, with a photo if you want one."
       />
-      <div className="card section-card" data-testid="checklist-page">
-        <StoreChecklist store={store} />
-      </div>
+      <StoreGate purpose="the lists due today" bypass={Boolean(store)}>
+        <div data-testid="checklist-page">
+          <StoreChecklist store={store} />
+        </div>
+      </StoreGate>
     </div>
   );
 }

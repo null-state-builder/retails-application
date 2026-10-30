@@ -14,7 +14,7 @@
   align-items: center;
   gap: 5px;
   padding: 2px 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
@@ -29,9 +29,9 @@
   display: inline-flex;
   align-items: center;
   padding: 2px 9px;
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   white-space: nowrap;
   border: 1px solid transparent;
 }
@@ -57,7 +57,7 @@
 /* ------------------------------------------------------ Sections, stacks */
 
 .an-section {
-  margin-top: 26px;
+  margin-top: 16px;
 }
 
 .an-section-head {
@@ -73,7 +73,7 @@
 }
 
 .an-section-hint {
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--muted);
 }
 
@@ -100,7 +100,7 @@
   color: var(--muted);
   background: var(--surface);
   border: 1px dashed var(--hairline);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
 }
 
 .an-empty-line svg {
@@ -123,7 +123,7 @@
 }
 
 .an-tiles .stat-value {
-  font-size: 22px;
+  font-size: 24px;
 }
 
 .an-tiles .an-tile-today .stat-value {
@@ -156,14 +156,8 @@
   min-width: 0;
 }
 
-.an-topics .btn,
-.an-seg .btn {
+.an-topics .btn {
   min-height: 36px;
-}
-
-.an-seg {
-  display: inline-flex;
-  gap: 6px;
 }
 
 .an-count {
@@ -189,28 +183,11 @@
   height: 36px;
   max-width: 240px;
   padding: 0 10px;
-  border: 1px solid var(--sidebar-border);
-  border-radius: var(--radius-inner);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
   background: var(--surface);
   color: var(--ink);
-  font-size: 13.5px;
-}
-
-.an-check {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 36px;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--ink);
-  cursor: pointer;
-}
-
-.an-check input {
-  width: 16px;
-  height: 16px;
-  margin: 0;
+  font-size: 14px;
 }
 
 .an-showing {
@@ -219,7 +196,7 @@
   align-items: center;
   gap: 8px;
   margin: 0;
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--muted);
 }
 
@@ -235,9 +212,9 @@
   background: var(--surface);
   border: 1px solid var(--hairline);
   border-left: 4px solid var(--grey-bd);
-  border-radius: 0 var(--radius) var(--radius) 0;
+  border-radius: 0 var(--radius-box) var(--radius-box) 0;
   padding: 14px 16px 8px;
-  box-shadow: var(--shadow-rest);
+  box-shadow: none;
 }
 
 .an-group-late {
@@ -259,13 +236,13 @@
   flex: 1 1 220px;
   min-width: 0;
   margin: 0;
-  font-size: 15.5px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 600;
   color: var(--ink);
 }
 
 .an-group-count {
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--muted);
   white-space: nowrap;
@@ -273,7 +250,7 @@
 
 .an-help {
   margin: 6px 0 0;
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--muted);
 }
 
@@ -342,7 +319,7 @@
 }
 
 .an-age {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--caption);
   white-space: nowrap;
 }
@@ -356,7 +333,7 @@
   padding: 8px 0;
   background: none;
   border: none;
-  color: var(--rust);
+  color: var(--rust-ink);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -375,6 +352,30 @@
   background: var(--scrim-modal);
 }
 
+/* On a desktop the open exception docks beside its list (layout L): the list
+ * keeps its place and the next row is one click away. */
+.an-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(380px, 40%);
+  gap: 16px;
+  align-items: start;
+}
+.exc-drawer.an-drawer.an-drawer-docked {
+  position: sticky;
+  top: 12px;
+  inset: auto;
+  z-index: auto;
+  width: auto;
+  max-height: calc(100dvh - 120px);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-box);
+  box-shadow: none;
+}
+.an-row-open {
+  background: var(--selection);
+  box-shadow: inset 3px 0 0 var(--rust);
+}
+
 /* A panel beside the list, not a block under eighty rows of it. */
 .exc-drawer.an-drawer {
   position: fixed;
@@ -388,7 +389,7 @@
   border-left: 1px solid var(--hairline);
   border-radius: 0;
   box-shadow: var(--drawer-shadow);
-  padding: 20px 22px;
+  padding: 16px 18px;
   gap: 12px;
 }
 
@@ -412,7 +413,7 @@
 }
 
 .an-drawer-form label {
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--muted);
 }
@@ -456,7 +457,7 @@
   padding: 12px 16px;
   background: var(--surface);
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
 }
 
 .an-approval-main {
@@ -475,12 +476,12 @@
 }
 
 .an-approval-what {
-  font-weight: 700;
+  font-weight: 600;
   color: var(--ink);
 }
 
 .an-approval-value {
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
@@ -511,10 +512,8 @@
 .an-day-head {
   margin: 0 0 8px;
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.6px;
-  text-transform: uppercase;
-  color: var(--caption);
+  font-weight: 600;
+  color: var(--muted);
 }
 
 .an-notes-list,
@@ -536,7 +535,7 @@
   padding: 10px 14px;
   background: var(--surface);
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
 }
 
 .an-note-seen > .an-note-text {
@@ -568,7 +567,7 @@
 }
 
 .an-note-time {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--caption);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
@@ -603,7 +602,7 @@
 .an-deadline-kind {
   display: block;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--muted);
 }
 
@@ -622,7 +621,7 @@
   }
 
   .an-tiles .stat-value {
-    font-size: 19px;
+    font-size: 20px;
   }
 
   .an-approval-actions .input {

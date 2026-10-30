@@ -3,7 +3,10 @@ import { CircleAlert } from "lucide-react";
 import { Money } from "../../../lib/format";
 import type { CounterMode } from "./BillBar";
 
-/** The rail's fixed commit point, below the scrollable payment and customer tiles. */
+/** The rail's fixed commit point, below the scrollable customer and payment
+ *  sections: To pay at 44px, then Save & print (design system v2 TillLayout and
+ *  TotalsStrip - the one big figure, directly above the one action that commits
+ *  money). */
 export function RailFoot({
   blocked,
   saving,
@@ -14,8 +17,8 @@ export function RailFoot({
   onSave,
   duePaise = null,
 }: {
-  /** The amount due, shown beside Save & print only where the rail stacks
-   *  under the lines (tablet upright, phone); null while there is none yet. */
+  /** The amount due; null while there is none yet - a return before its
+   *  original bill is found. */
   duePaise?: number | null;
   blocked: string;
   saving: boolean;
@@ -35,6 +38,18 @@ export function RailFoot({
 
   return (
     <footer className="bill-rail-foot">
+      <p
+        className="bill-rail-due"
+        data-testid={duePaise !== null ? "bill-rail-due" : undefined}
+        data-ready={duePaise !== null ? undefined : "false"}
+      >
+        <span className="bill-rail-due-label" id="bill-due-label">
+          To pay
+        </span>
+        <output className="bill-due" data-testid="bill-due" aria-labelledby="bill-due-label">
+          {duePaise !== null ? <Money paise={duePaise} /> : <>Nothing yet &middot; ₹0</>}
+        </output>
+      </p>
       {blocked && (
         <p className="bill-rail-blocked" data-testid="bill-blocked">
           <CircleAlert size={14} />
@@ -42,14 +57,6 @@ export function RailFoot({
         </p>
       )}
       <div className="bill-rail-actions">
-        {duePaise !== null && (
-          <p className="bill-rail-due" data-testid="bill-rail-due">
-            <span>To pay</span>
-            <strong className="tabular">
-              <Money paise={duePaise} />
-            </strong>
-          </p>
-        )}
         <button
           type="button"
           className="btn bill-rail-reprint"
@@ -63,14 +70,19 @@ export function RailFoot({
         </button>
         <button
           type="button"
-          className="btn btn-cta bill-rail-save"
+          className="btn btn-cta btn-lg bill-rail-save"
           data-testid="bill-save"
           title={mode === "return" ? "Exchange & Print (F9)" : "Save & Print (F9)"}
+          aria-keyshortcuts="F9"
           disabled={Boolean(blocked) || saving}
           onClick={onSave}
         >
           {primaryLabel}
-          {!saving && <span className="bill-rail-key mono">F9</span>}
+          {!saving && (
+            <kbd className="bill-key" aria-hidden="true">
+              F9
+            </kbd>
+          )}
         </button>
       </div>
     </footer>

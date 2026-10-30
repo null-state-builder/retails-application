@@ -38,6 +38,7 @@ import {
   type BookingProgress,
 } from "../lib/goodsReceiving";
 import { useAuth } from "../auth/AuthContext";
+import { Note } from "../components/Note";
 import {
   BookingLinesTable,
   BookingPageHeader,
@@ -380,7 +381,7 @@ function CorrectionForm({
         </Field>
       </div>
       <button
-        className="btn btn-cta btn-sm"
+        className="btn btn-primary btn-sm"
         onClick={submit}
         disabled={busy || !reason}
         data-testid="gb-c-submit"
@@ -498,7 +499,7 @@ function ReceiptLinkForm({
         </Field>
       </div>
       <button
-        className="btn btn-cta btn-sm"
+        className="btn btn-primary btn-sm"
         onClick={submit}
         disabled={busy || !grnId || !bookingLine || !grnLine || !qty}
         data-testid="gb-l-submit"
@@ -605,7 +606,7 @@ export function GoodsBookingDetail({ bookingId }: { bookingId: string }) {
   // record on screen — tearing the panels down mid-reload would also take the
   // message that says what just happened, and whatever was half-typed with it.
   if (doc.loading && !doc.doc) return <p className="muted">Loading…</p>;
-  if (doc.failure) return <div className="warn-note">{doc.failure}</div>;
+  if (doc.failure) return <Note tone="error">{doc.failure}</Note>;
   if (!doc.doc) return <Denied what="booking" />;
 
   const booking = doc.doc;
@@ -652,7 +653,7 @@ export function GoodsBookingDetail({ bookingId }: { bookingId: string }) {
           {/* The same arrival step Goods arrived opens, with this booking
               already chosen (OPS-17, PRD §5.1). */}
           <Link
-            className="btn btn-cta"
+            className="btn btn-primary"
             to={`/goods/receive/new?booking=${encodeURIComponent(booking.id)}`}
             data-testid="gb-receive"
           >
@@ -685,7 +686,7 @@ export function GoodsBookingDetail({ bookingId }: { bookingId: string }) {
         <div className="bk-actions" data-testid="gb-actions">
           {allowed.includes("bookings.request_approval") && (
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               onClick={confirm}
               disabled={busy}
               data-testid="gb-confirm"

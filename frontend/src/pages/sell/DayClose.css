@@ -1,0 +1,204 @@
+/* Day close (R-POS-011 / R-FIN-015). House tokens only. A step that is done is
+   green, the one to do now carries the rust "where you are" mark, and a step
+   still to come is grey. The one red button on the page is Close the day. */
+
+.dayclose-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+}
+.dayclose-body > .note {
+  margin: 0;
+}
+
+/* Progress across the top: five numbered marks. */
+.dayclose-stepper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8) var(--space-24);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--muted);
+}
+.dayclose-stepper li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-8);
+}
+.dayclose-stepper b {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-round);
+  border: 1px solid var(--grey-bd);
+  background: var(--grey-bg);
+  color: var(--grey);
+  font-size: 12px;
+  font-weight: 600;
+}
+.dayclose-stepper-done {
+  color: var(--ink2);
+}
+.dayclose-stepper-done b {
+  border-color: var(--green-bd);
+  background: var(--green-bg);
+  color: var(--green);
+}
+.dayclose-stepper-now {
+  color: var(--rust-ink);
+  font-weight: 600;
+}
+.dayclose-stepper-now b {
+  border-color: var(--rust);
+  background: var(--rust);
+  color: var(--on-fill);
+}
+
+.dayclose-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  gap: var(--space-32);
+  align-items: start;
+}
+.dayclose-aside {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-24);
+}
+@media (max-width: 900px) {
+  .dayclose-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* The checklist: badge, words, and the place the step is done. */
+.dayclose-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dayclose-step {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: var(--space-12);
+  align-items: start;
+  padding: var(--space-12) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.dayclose-step:last-child {
+  border-bottom: 0;
+}
+.dayclose-step-now {
+  box-shadow: inset 3px 0 0 var(--rust);
+  padding-left: var(--space-12);
+}
+.dayclose-badge {
+  display: inline-grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-round);
+  border: 1px solid var(--grey-bd);
+  background: var(--grey-bg);
+  color: var(--grey);
+  font-size: 12px;
+  font-weight: 600;
+}
+.dayclose-step-done .dayclose-badge {
+  border-color: var(--green-bd);
+  background: var(--green-bg);
+  color: var(--green);
+}
+.dayclose-step-now .dayclose-badge {
+  border-color: var(--rust);
+  color: var(--rust-ink);
+  background: var(--surface);
+}
+.dayclose-step-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  min-width: 0;
+}
+.dayclose-step-title {
+  margin: 0;
+  font-size: var(--text);
+  font-weight: 600;
+  color: var(--ink);
+}
+.dayclose-step-open .dayclose-step-title {
+  color: var(--muted);
+}
+.dayclose-step-text {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink2);
+  max-width: var(--prose-max);
+}
+.dayclose-step-open .dayclose-step-text {
+  color: var(--muted);
+}
+
+.dayclose-inline {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-8);
+}
+.dayclose-inline > .note,
+.dayclose-close > .note {
+  margin: 0;
+}
+
+.dayclose-close {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+}
+.dayclose-close-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-12);
+}
+.dayclose-close-fields .field {
+  margin: 0;
+  min-width: 160px;
+}
+.dayclose-why {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.dayclose-sub {
+  margin: 0 0 var(--space-8);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+.dayclose-aside table.data {
+  margin-bottom: var(--space-8);
+}
+
+.dayclose-open {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.dayclose-open li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-12);
+  padding: var(--space-8) 0;
+  border-bottom: 1px solid var(--hairline);
+  font-size: 13px;
+  color: var(--ink2);
+}
+.dayclose-open li:last-child {
+  border-bottom: 0;
+}

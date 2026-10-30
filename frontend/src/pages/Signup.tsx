@@ -4,6 +4,8 @@ import { Link, Navigate, Outlet, useLocation } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
 import { KdpsLogo } from "../components/KdpsLogo";
+import { Note } from "../components/Note";
+import { Status } from "../components/Status";
 import { api, apiErrorCode, apiErrorMessage } from "../lib/api";
 import "./Signup.css";
 
@@ -12,8 +14,12 @@ export interface RegistrationState {
   pending_confirmation: boolean;
   message: string;
   synthetic: boolean;
+  /** A synthetic deployment's own one-tap logins, when the server has them. */
+  demo_logins?: DemoLogin[];
   options?: RegistrationOptions;
 }
+
+export type DemoLogin = { label: string; email: string; password: string };
 
 type Person = { name: string; email: string; staff_code: string; temporary_password: string };
 type Proposed = Omit<Person, "temporary_password"> & { role_code: string };
@@ -604,7 +610,7 @@ export function RegistrationFeedback({
 }) {
   if (Object.keys(errors).length) {
     return (
-      <div className="warn-note" role="alert">
+      <Note tone="error">
         <strong>Check these details</strong>
         <ul>
           {Object.entries(errors).map(([name, message]) => (
@@ -615,13 +621,13 @@ export function RegistrationFeedback({
             </li>
           ))}
         </ul>
-      </div>
+      </Note>
     );
   }
   return error ? (
-    <div role="alert" className="warn-note" data-testid="signup-error">
+    <Note tone="error" testId="signup-error">
       {error}
-    </div>
+    </Note>
   ) : null;
 }
 
@@ -684,8 +690,8 @@ export function RegistrationSummaryView({
 }) {
   const { company, store } = summary;
   const people = [
-    { ...summary.owner, role: "Owner", chip: "chip-navy" },
-    { ...summary.admin, role: "Admin", chip: "chip-blue" },
+    { ...summary.owner, role: "Owner", chip: "" },
+    { ...summary.admin, role: "Admin", chip: "" },
     ...summary.proposed_team.map((p) => ({
       ...p,
       role: `${roleLabel(p.role_code)} (proposed)`,
@@ -735,7 +741,7 @@ export function RegistrationSummaryView({
             <li key={`${p.role}-${p.email}`}>
               <span className="signup-people-name">
                 <strong>{p.name}</strong>
-                <span className={`chip ${p.chip}`}>{p.role}</span>
+                <span className={`chip ${p.chip}`.trim()}>{p.role}</span>
               </span>
               <span className="signup-people-email">{p.email}</span>
               <code>{p.staff_code}</code>
@@ -1277,9 +1283,9 @@ export function Signup() {
           }}
         />
         {notice && (
-          <p role="status" className="ok-note">
+          <Note tone="success" role="status">
             {notice}
-          </p>
+          </Note>
         )}
         {!state ? (
           <>
@@ -1291,23 +1297,23 @@ export function Signup() {
             )}
           </>
         ) : pending?.state === "registered" ? (
-          <section className="card signup-section">
+          <section className="signup-section">
             <h2>Company registered</h2>
             <p>Sign in and change your temporary password to continue store setup.</p>
-            <Link className="btn btn-cta" to="/login">
+            <Link className="btn btn-primary" to="/login">
               Sign in to continue setup
             </Link>
           </section>
         ) : !state.available ? (
-          <section className="card signup-section" data-testid="signup-closed">
+          <section className="signup-section" data-testid="signup-closed">
             <h2>Company signup is closed</h2>
             <p>{CLOSED}</p>
-            <Link className="btn btn-cta" to="/login">
+            <Link className="btn btn-primary" to="/login">
               Sign in
             </Link>
           </section>
         ) : !revisionMode && (state.pending_confirmation || pending) ? (
-          <section className="card signup-section">
+          <section className="signup-section">
             <div className="signup-confirm-header">
               <h2>Confirm company setup</h2>
               <button
@@ -1364,11 +1370,9 @@ export function Signup() {
                       </strong>
                       <p>{pending.summary?.[role].email}</p>
                     </div>
-                    <span
-                      className={`chip ${pending.confirmed?.[role] ? "chip-green" : "chip-amber"}`}
-                    >
+                    <Status tone={pending.confirmed?.[role] ? "green" : "amber"}>
                       {pending.confirmed?.[role] ? "Confirmed" : "Awaiting confirmation"}
-                    </span>
+                    </Status>
                   </div>
                 ))}
               </div>
@@ -1438,7 +1442,7 @@ export function Signup() {
                   company, store, people and exact access summary.
                 </label>
                 <button
-                  className="btn btn-cta"
+                  className="btn btn-primary"
                   onClick={() => void confirm()}
                   disabled={busy || !acknowledged}
                   data-testid="signup-confirm"
@@ -1451,7 +1455,7 @@ export function Signup() {
         ) : (
           <>
             {reviewing ? (
-              <section className="card signup-section" id="signup-review" tabIndex={-1}>
+              <section className="signup-section" id="signup-review" tabIndex={-1}>
                 <h2>Review setup</h2>
                 <p className="signup-section-lead">
                   Check each section. After saving, Owner and Admin each confirm this setup.
@@ -1485,7 +1489,7 @@ export function Signup() {
                   )}
                   <button
                     type="button"
-                    className="btn btn-cta"
+                    className="btn btn-primary"
                     disabled={busy}
                     onClick={() => void stage()}
                   >
@@ -1511,7 +1515,7 @@ export function Signup() {
                 data-testid="signup-form"
               >
                 {revisionMode && (
-                  <section className="card signup-section signup-edit-banner">
+                  <section className="signup-section signup-edit-banner">
                     <div>
                       <h2>Edit setup</h2>
                       <p>Editing the saved setup. Nothing changes until you save.</p>
@@ -1538,7 +1542,7 @@ export function Signup() {
                     </button>
                   </section>
                 )}
-                <section className="card signup-section" id="signup-section-company">
+                <section className="signup-section" id="signup-section-company">
                   <h2>Company</h2>
                   <div className="signup-grid">
                     <Input
@@ -1606,7 +1610,7 @@ export function Signup() {
                     />
                   </div>
                 </section>
-                <section className="card signup-section" id="signup-section-regional">
+                <section className="signup-section" id="signup-section-regional">
                   <h2>Regional settings</h2>
                   <p className="signup-section-lead">Only option in this release.</p>
                   <dl className="signup-values signup-regional">
@@ -1618,7 +1622,7 @@ export function Signup() {
                     ))}
                   </dl>
                 </section>
-                <section className="card signup-section" id="signup-section-store">
+                <section className="signup-section" id="signup-section-store">
                   <h2>First store</h2>
                   <div className="signup-grid">
                     <Input
@@ -1727,7 +1731,7 @@ export function Signup() {
                     />
                   </div>
                 </section>
-                <section className="card signup-section" id="signup-section-people">
+                <section className="signup-section" id="signup-section-people">
                   <h2>People</h2>
                   <p className="signup-section-lead">
                     Two different people. Each confirms separately on the next screen with their own
@@ -1739,7 +1743,7 @@ export function Signup() {
                         [
                           "owner",
                           "Owner",
-                          "chip-navy",
+                          "",
                           "Full authority across the company’s stores and brands.",
                           owner,
                           setOwner,
@@ -1748,7 +1752,7 @@ export function Signup() {
                         [
                           "admin",
                           "Admin",
-                          "chip-blue",
+                          "",
                           "Company administration. No protected business fields.",
                           admin,
                           setAdmin,
@@ -1758,7 +1762,7 @@ export function Signup() {
                     ).map(([who, title, chip, detail, value, set, index]) => (
                       <div className="signup-person" key={who}>
                         <h3>
-                          <span className={`chip ${chip}`}>{title}</span>
+                          <span className={`chip ${chip}`.trim()}>{title}</span>
                         </h3>
                         <p className="signup-muted">{detail}</p>
                         <PersonFields
@@ -1850,7 +1854,7 @@ export function Signup() {
                 </section>
                 <div className="signup-submit">
                   <button
-                    className="btn btn-cta"
+                    className="btn btn-primary"
                     disabled={busy || !options}
                     data-testid="signup-submit"
                   >

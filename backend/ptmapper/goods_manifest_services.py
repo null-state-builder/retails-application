@@ -96,6 +96,9 @@ APPROVE_OPENING = "pt.approve.opening"
 #: Fixed-role: the manifest owner and the variance approver are named by the
 #: accepted contract itself, not a configurable approval policy.
 MANIFEST_ACTION = "opening.manifest.approve"
+#: The opening preparer's action: what a maker confirming without a second person must
+#: still hold over the whole subject (``DecisionContext.auto``).
+PREPARE_OPENING = "pt.prepare.opening"
 VARIANCE_ACTION = "opening.variance.approve"
 MAX_ROWS = 5_000
 MONEY_FIELDS = frozenset({"basic_paise", "mrp_paise"})
@@ -715,9 +718,16 @@ def _decide_manifest(run: CommandRun, context: DecisionContext) -> dict[str, Any
     )
     if manifest is None:
         raise Refusal("NOT_FOUND", "That opening manifest was not found.")
-    context.access.require(MANIFEST_ACTION, site_id=manifest.site_id)
-    if not context.access.covers_all({MANIFEST_ACTION}, manifest_cells(manifest), {"cost"}):
-        raise Refusal("FIELD_DENIED", "Manifest approval requires protected valuation authority over its complete resource scope.", status=403)
+    if context.auto:
+        # No approver (``ptmapper.opening_auto``): the preparer who loaded it confirms,
+        # within their own valuation authority over its complete resource scope.
+        cells = manifest_cells(manifest)
+        if not any(context.access.covers_all({PREPARE_OPENING}, cells, {field}) for field in ("cost", "cost_own_pt")):
+            raise Refusal("ACTION_DENIED", "This manifest holds goods outside your opening preparation scope.", status=403)
+    else:
+        context.access.require(MANIFEST_ACTION, site_id=manifest.site_id)
+        if not context.access.covers_all({MANIFEST_ACTION}, manifest_cells(manifest), {"cost"}):
+            raise Refusal("FIELD_DENIED", "Manifest approval requires protected valuation authority over its complete resource scope.", status=403)
     version = manifest.current_version
     if version is None or version.content_hash != context.request.reviewed_hash:
         raise Refusal(
@@ -1301,14 +1311,17 @@ def _submitted_opening_subject(
         raise Refusal("REVISION_SUPERSEDED", "The submitted PT changed after it was reviewed.")
     checker = context.checker_id
     makers = {goods_pt.preparer_id, head.document.maker_id}
-    if str(checker) in {str(m) for m in makers if m}:
+    # No second person (``ptmapper.opening_auto``): the preparer confirms their own PT.
+    if not context.auto and str(checker) in {str(m) for m in makers if m}:
         raise Refusal("SELF_APPROVAL", "Someone who prepared this PT cannot also decide it.")
     return head, goods_pt, revision
 
 
 def _approve_opening(run: CommandRun, context: DecisionContext) -> dict[str, Any] | None:
     head, goods_pt, revision = _submitted_opening_subject(run, context)
-    require_complete_scope(context.access, head.document_id, APPROVE_OPENING)
+    if context.auto and context.access is None:
+        raise Refusal("ACTION_DENIED", "A named preparer confirms an opening PT.", status=403)
+    require_complete_scope(context.access, head.document_id, PREPARE_OPENING if context.auto else APPROVE_OPENING)
     context.enforce_policy(run)
     site_id = head.document.held_site_id
     manifest_version = goods_pt.manifest_version
@@ -1559,10 +1572,12 @@ def latest_season_corrections(row_ids: Iterable[uuid.UUID]) -> dict[uuid.UUID, i
     position, and asking row by row would cost a query per line on screen.
     """
     out: dict[uuid.UUID, int] = {}
-    for correction in OpeningSeasonCorrection.objects.filter(
-        manifest_row_id__in=list(row_ids)
-    ).order_by("recorded_at", "event_at"):
-        out[correction.manifest_row_id] = correction.to_season_id
+    for manifest_row_id, to_season_id in (
+        OpeningSeasonCorrection.objects.filter(manifest_row_id__in=list(row_ids))
+        .order_by("recorded_at", "event_at")
+        .values_list("manifest_row_id", "to_season_id")
+    ):
+        out[manifest_row_id] = to_season_id
     return out
 
 

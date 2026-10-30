@@ -21,6 +21,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Download, RefreshCw, Search } from "lucide-react";
 
+import { Section } from "../components/Section";
+import { Status } from "../components/Status";
 import { api, apiErrorMessage, apiUrl, goodsMeta } from "../lib/api";
 import {
   Denied,
@@ -94,33 +96,31 @@ function HealthPanel() {
   );
 
   return (
-    <section className="card section-card" data-testid="mon-health">
-      <div className="toolbar">
-        <div>
-          <p className="eyebrow">Operations health</p>
-          <h2 className="h3">
-            {attention > 0
-              ? `${attention} check${attention === 1 ? "" : "s"} need attention`
-              : "Everything within its threshold"}
-          </h2>
-          {health.value && (
-            // The worker's scheduled pass, not this page load: refreshing reads
-            // the last recorded result again and never runs a check.
-            <p className="lead" data-testid="mon-health-checked">
-              {health.value.checked_at
-                ? `Checked by the scheduled pass at ${formatDateTime(health.value.checked_at)}`
-                : "Checked: never — no scheduled pass has run yet"}
-            </p>
-          )}
-        </div>
-        <div className="spacer" />
+    <Section
+      heading={
+        attention > 0
+          ? `Operations health: ${attention} check${attention === 1 ? "" : "s"} need attention`
+          : "Operations health: everything within its threshold"
+      }
+      aside={
         <button className="btn btn-sm" onClick={health.reload} data-testid="mon-health-reload">
           <RefreshCw size={14} /> Refresh
         </button>
-      </div>
+      }
+      testId="mon-health"
+    >
+      {health.value && (
+        // The worker's scheduled pass, not this page load: refreshing reads
+        // the last recorded result again and never runs a check.
+        <p className="lead" data-testid="mon-health-checked">
+          {health.value.checked_at
+            ? `Checked by the scheduled pass at ${formatDateTime(health.value.checked_at)}`
+            : "Checked: never — no scheduled pass has run yet"}
+        </p>
+      )}
       {health.denied && <Denied what="operations health" />}
       {empty ?? (
-        <table className="table">
+        <table className="data">
           <thead>
             <tr>
               <th scope="col">Check</th>
@@ -138,12 +138,14 @@ function HealthPanel() {
               <tr key={item.code} data-testid={`mon-health-${item.code}`}>
                 <th scope="row">{healthLabel(item.code)}</th>
                 <td>
-                  <span
-                    className={item.state === "attention" ? "warn-note" : "muted"}
-                    data-testid={`mon-health-state-${item.code}`}
+                  <Status
+                    tone={
+                      item.state === "attention" ? "amber" : item.state === "ok" ? "green" : "grey"
+                    }
+                    testId={`mon-health-state-${item.code}`}
                   >
                     {healthStateLabel(item.state)}
-                  </span>
+                  </Status>
                 </td>
                 <td>
                   {item.observed}
@@ -174,7 +176,7 @@ function HealthPanel() {
           </tbody>
         </table>
       )}
-    </section>
+    </Section>
   );
 }
 
@@ -241,9 +243,7 @@ function ExportPanel() {
   }
 
   return (
-    <section className="card section-card" data-testid="mon-export">
-      <p className="eyebrow">Durable export</p>
-      <h2 className="h3">Stock, as a spreadsheet</h2>
+    <Section heading="Export stock as a spreadsheet" ruled testId="mon-export">
       <p className="lead">
         The file holds exactly the rows you may see. Money is whole paise; a piece whose value is
         not known says <em>unknown</em> rather than nought, and a total over a mix says so.
@@ -292,7 +292,12 @@ function ExportPanel() {
             data-testid="mon-export-value"
           />
         </Field>
-        <button className="btn btn-cta" type="submit" disabled={busy} data-testid="mon-export-run">
+        <button
+          className="btn btn-primary"
+          type="submit"
+          disabled={busy}
+          data-testid="mon-export-run"
+        >
           Ask for the file
         </button>
       </form>
@@ -320,7 +325,7 @@ function ExportPanel() {
           )}
         </div>
       )}
-    </section>
+    </Section>
   );
 }
 
@@ -350,9 +355,7 @@ function CommandLookup() {
   }
 
   return (
-    <section className="card section-card" data-testid="mon-command">
-      <p className="eyebrow">Command outcome</p>
-      <h2 className="h3">Did that command commit?</h2>
+    <Section heading="Command outcome: did that command commit?" ruled testId="mon-command">
       <Feedback error={error} ok="" />
       <form className="form-grid" onSubmit={look}>
         <Field id="mon-command-id" label="Command id">
@@ -381,7 +384,7 @@ function CommandLookup() {
           />
         </Field>
         <button
-          className="btn btn-cta"
+          className="btn btn-primary"
           type="submit"
           disabled={!commandId.trim()}
           data-testid="mon-command-look"
@@ -404,6 +407,6 @@ function CommandLookup() {
           )}
         </div>
       )}
-    </section>
+    </Section>
   );
 }

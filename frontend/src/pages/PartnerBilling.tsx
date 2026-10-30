@@ -7,7 +7,9 @@
 import { useEffect, useState } from "react";
 
 import { useAuth } from "../auth/AuthContext";
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
 import { api, apiErrorMessage } from "../lib/api";
 import { userCan } from "../shell/navConfig";
 
@@ -77,11 +79,11 @@ export function PartnerBillingPage() {
       {!canView ? (
         <p className="muted-cell">You do not have access to partner billing settings.</p>
       ) : (
-        <section className="card section-card" data-testid="billing-policy-card">
+        <Section heading="Billing policy" testId="billing-policy-card">
           {loading ? (
             <p>Loading policy…</p>
           ) : !loaded ? (
-            <p className="warn-note">{error || "Billing policy could not be loaded."}</p>
+            <Note tone="error">{error || "Billing policy could not be loaded."}</Note>
           ) : (
             <div className="form-grid wide-form">
               <label className="check-row">
@@ -112,13 +114,13 @@ export function PartnerBillingPage() {
               {saving && <p className="muted-cell">Saving…</p>}
             </div>
           )}
-          {error && <p className="warn-note">{error}</p>}
+          {error && loaded && <Note tone="error">{error}</Note>}
           {saved && (
-            <p className="ok-note" data-testid="billing-policy-saved">
+            <Note tone="success" role="status" testId="billing-policy-saved">
               {saved}
-            </p>
+            </Note>
           )}
-        </section>
+        </Section>
       )}
     </div>
   );

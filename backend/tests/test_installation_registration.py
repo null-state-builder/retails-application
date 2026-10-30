@@ -889,3 +889,49 @@ def test_genesis_adopts_the_unknown_historical_season_and_tax_rules_may_be_switc
     assert gate_lock(feature("tax-settings"), real=True) is None
     assert gate_lock(feature(HSN_ON_EVERY_ITEM), real=True) is None
     assert gate_lock(feature(GST_AFTER_DISCOUNT), real=True) is not None
+
+
+def _synthetic_bootstrap(email: str) -> Tenant:
+    from accounts.registration_services import deployment_key
+
+    tenant: Tenant = bootstrap_deployment(
+        deployment_key=deployment_key(), code="SYN-DEMO", name="Synthetic demo", timezone_name="Asia/Kolkata",
+        currency="INR", locale="en-IN", synthetic=True, admin_email=email, admin_name="Synthetic Owner",
+        admin_staff_code="SYN-OWN", admin_password="Bootstrap@123",
+    )
+    return tenant
+
+
+def test_public_demo_logins_are_only_active_logins_of_the_synthetic_deployment(settings: Any) -> None:
+    settings.DEBUG = True  # chips are a local-development aid
+    settings.KDPS_DEMO_LOGINS = json.dumps([
+        {"label": "Owner", "email": " SYN.OWNER@synthetic.demo ", "password": "pw-owner"},
+        {"label": "Ghost", "email": "nobody@synthetic.demo", "password": "pw-ghost"},
+        {"label": "Broken", "email": "syn.owner@synthetic.demo"},
+        "not an entry",
+    ])
+    assert public_state()["demo_logins"] == []  # no tenant yet
+    _synthetic_bootstrap("syn.owner@synthetic.demo")
+    state = public_state()
+    assert state["synthetic"] is True
+    assert state["demo_logins"] == [
+        {"label": "Owner", "email": "SYN.OWNER@synthetic.demo", "password": "pw-owner"},
+    ]
+    settings.DEBUG = False
+    assert public_state()["demo_logins"] == []  # a deployed API never hands out a password
+    settings.DEBUG = True
+    User.objects.filter(email="syn.owner@synthetic.demo").update(is_active=False)
+    assert public_state()["demo_logins"] == []
+    settings.KDPS_DEMO_LOGINS = "{not json"
+    User.objects.filter(email="syn.owner@synthetic.demo").update(is_active=True)
+    assert public_state()["demo_logins"] == []
+
+
+def test_real_registered_company_never_serves_demo_logins(proposal: dict[str, Any], settings: Any) -> None:
+    register(proposal)
+    settings.DEBUG = True
+    settings.KDPS_DEMO_LOGINS = json.dumps([
+        {"label": "Owner", "email": proposal["owner"]["email"], "password": "anything"},
+    ])
+    state = public_state()
+    assert state["synthetic"] is False and state["demo_logins"] == []

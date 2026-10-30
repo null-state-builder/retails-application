@@ -1,19 +1,23 @@
+/* Sign in and Change password: the deep navy hero on the left (kept from
+ * before v2 by the owner's choice: the contrast is the brand's), the form on
+ * the paper on the right. */
 .login {
-  display: flex;
-  height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  min-height: 100vh;
+  background: var(--paper);
 }
 
 .login-brand {
-  flex: 1;
-  background: var(--hero-navy);
-  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 48px;
+  background: var(--hero-navy);
   background-image:
-    radial-gradient(900px 500px at 18% 12%, rgba(196, 98, 63, 0.35), transparent 60%),
-    radial-gradient(700px 500px at 90% 90%, rgba(44, 62, 99, 0.6), transparent 55%);
+    radial-gradient(900px 500px at 18% 12%, var(--hero-glow-warm), transparent 60%),
+    radial-gradient(700px 500px at 90% 90%, var(--hero-glow-cool), transparent 55%);
+  color: var(--on-fill);
 }
 /* A width, not a max-width: this is a flex item, so left to itself it shrinks
    to whatever the lockup and the sub-line happen to measure. */
@@ -21,95 +25,149 @@
   width: 320px;
   max-width: 100%;
 }
-/* The lockup at its own ratio (width wins over the component's height prop),
-   with "Operating System" as a quiet sub-line under it. `.login-brand` is
-   white text on the navy hero, so the logo's `currentColor` lettering and
-   needle come out white here - in both themes, since the hero is deliberately
-   not re-valued in dark mode (index.css). */
+/* The lockup at its own ratio; its `currentColor` lettering comes out white. */
 .login-logo {
   display: block;
   width: 100%;
   height: auto;
 }
 .login-title {
-  font-size: 15px;
+  margin: 20px 0 0 4px;
+  font-size: 16px;
+  line-height: 24px;
   font-weight: 600;
   letter-spacing: 3.4px;
   text-transform: uppercase;
-  color: #cdd4e2;
-  margin: 20px 0 0 4px;
+  color: var(--hero-ink-2);
 }
 
 .login-panel {
-  flex: 1;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px;
-  background: var(--paper);
-  position: relative;
+  padding: 72px 32px 40px;
 }
 .login-theme {
   position: absolute;
-  top: 20px;
-  right: 20px;
+  top: 24px;
+  right: 32px;
+}
+.login-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 400px;
+  max-width: 100%;
 }
 .login-card {
-  width: 100%;
-  max-width: 384px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   background: var(--surface);
   border: 1px solid var(--hairline);
-  border-radius: 18px;
-  box-shadow: var(--shadow-hover);
-  padding: 34px 32px;
+  border-radius: var(--radius-box);
+  padding: 32px;
 }
-.login-error {
-  background: var(--red-bg);
-  border: 1px solid var(--red-bd);
-  color: var(--red);
-  padding: 10px 13px;
-  border-radius: 10px;
+.login-card .lead {
+  margin: 4px 0 0;
+}
+.login-card .field .input {
+  min-height: 44px;
+  font-size: 16px;
+}
+/* The show-password eye sits inside the field's right edge. */
+.login-pw {
+  position: relative;
+}
+.login-pw .input {
+  padding-right: 44px;
+}
+.login-pw-toggle {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.login-pw-toggle:hover {
+  color: var(--ink);
+}
+.login-pw-toggle:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 1px;
+}
+.login-help {
+  margin: 0;
   font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 14px;
+  color: var(--muted);
 }
-.login-success {
-  background: var(--green-bg);
-  border: 1px solid var(--green-bd);
-  color: var(--green);
-  padding: 10px 13px;
-  border-radius: 10px;
+.login-register {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 0 4px;
   font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 14px;
+  color: var(--muted);
 }
+.login-register a {
+  font-weight: 600;
+}
+
+/* Demo logins: the local test server only, so set apart by a dashed edge. */
 .login-demo {
-  margin-top: 22px;
-  border-top: 1px dashed var(--hairline);
-  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-box);
 }
 .login-demo > span {
-  font-size: 11.5px;
-  font-weight: 700;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-  color: var(--caption);
+  font-size: 12px;
+  color: var(--muted);
 }
 .login-demo-chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px;
-  margin-top: 10px;
+  gap: 6px;
 }
 .login-demo-chips .chip {
   cursor: pointer;
+  border-color: var(--line);
+  background: var(--surface);
+  color: var(--ink2);
 }
-.login-demo-chips .chip:hover {
-  filter: brightness(0.97);
+.login-demo-chips .chip:hover:not(:disabled) {
+  color: var(--ink);
+  border-color: var(--muted);
 }
 
 @media (max-width: 880px) {
+  .login {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .login-brand {
     display: none;
+  }
+  .login-panel {
+    padding: 72px 16px 32px;
+  }
+  .login-theme {
+    top: 16px;
+    right: 16px;
+  }
+  .login-card {
+    padding: 24px;
   }
 }

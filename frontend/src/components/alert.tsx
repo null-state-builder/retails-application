@@ -10,6 +10,7 @@ import { alertCountSchedulePath } from "../lib/countSchedule";
 import { alertChecklistPath } from "../lib/storeChecklists";
 import { alertSorPath } from "../lib/sorAgeing";
 import { alertAgeingPath } from "../lib/stockAgeing";
+import type { StatusTone } from "./Status";
 
 export interface AlertT {
   id: number;
@@ -71,7 +72,7 @@ export function fmtAlertWhen(iso: string): string {
 /** Red once the deadline is blown past, amber inside the last week, else the
  *  screen doesn't need to shout - the same "amber inside the last fortnight"
  *  idea the return-to-brand screen already uses. */
-export function daysLeftTone(days: number | null): string {
+export function daysLeftTone(days: number | null): StatusTone {
   if (days === null) return "grey";
   if (days < 0) return "red";
   if (days <= 7) return "amber";

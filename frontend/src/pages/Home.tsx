@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import type { ReactNode } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   AlertTriangle,
   ArrowLeftRight,
   Banknote,
   Boxes,
-  CheckCircle2,
   ClipboardList,
   GripVertical,
   Inbox,
@@ -18,10 +18,20 @@ import {
 
 import { api } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
+import { KpiStrip } from "../components/KpiStrip";
+import { Note } from "../components/Note";
+import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
+import { Status } from "../components/Status";
 import { Money } from "../lib/format";
 import { userCan } from "../shell/navConfig";
-import { unitContextLabel } from "../shell/unitSwitcher";
 import { StoreDashboard } from "./StoreDashboard";
+import {
+  queueRows,
+  todayHeading,
+  waitingSentence,
+  type DashboardPayload,
+} from "./storeDashboardModel";
 import "./Home.css";
 
 interface Summary {
@@ -34,15 +44,9 @@ interface Summary {
   open_season: string | null;
 }
 
-function greeting() {
-  const h = new Date().getHours();
-  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+function plural(n: number, one: string, many: string): string {
+  return `${n.toLocaleString("en-IN")} ${n === 1 ? one : many}`;
 }
-const today = new Date().toLocaleDateString("en-IN", {
-  weekday: "long",
-  day: "numeric",
-  month: "long",
-});
 
 // Every tile is one of two things and says which: a number the ledgers can
 // answer today, or a screen that is not built. It is never an invented figure.
@@ -76,7 +80,7 @@ const DASH_VISIBLE_KEY = "kdps-dashboard-card-visible";
 /** A count that has not arrived yet is "…", not zero — an empty ledger and an
  *  unanswered request must not look the same. */
 function num(value: number | null, suffix = ""): React.ReactNode {
-  return value === null ? "…" : `${value}${suffix}`;
+  return value === null ? "…" : `${value.toLocaleString("en-IN")}${suffix}`;
 }
 
 function Kpi({
@@ -102,7 +106,7 @@ function Kpi({
 }) {
   return (
     <button
-      className="kpi card"
+      className="kpi"
       onClick={onOpen}
       draggable
       onDragStart={onDragStart}
@@ -117,9 +121,9 @@ function Kpi({
       <div className="kpi-top">
         <span className="kpi-ic">{icon}</span>
         <span className="kpi-label">
-          {label} {state === "unbuilt" && <span className="sample-tag">Not built</span>}
+          {label} {state === "unbuilt" && <Status>Not built</Status>}
         </span>
-        <GripVertical size={14} className="kpi-grip" />
+        <GripVertical size={14} className="kpi-grip" aria-hidden="true" />
       </div>
       <div className="kpi-value mono">{value}</div>
       {sub && <div className="kpi-sub">{sub}</div>}
@@ -137,11 +141,7 @@ function NetworkPanel({ s }: { s: Summary | null }) {
     ["Seasons", s?.seasons ?? "—"],
   ];
   return (
-    <div className="card panel">
-      <div className="panel-head">
-        <p className="eyebrow">Live counts</p>
-        <h3 className="h3">Network at a glance</h3>
-      </div>
+    <Section heading="Network at a glance">
       <div className="net-grid">
         {rows.map(([k, v]) => (
           <div className="net-cell" key={k}>
@@ -151,11 +151,11 @@ function NetworkPanel({ s }: { s: Summary | null }) {
         ))}
       </div>
       {s?.open_season && (
-        <div className="net-foot">
-          Open season <span className="chip chip-green">{s.open_season}</span>
-        </div>
+        <p className="net-foot">
+          Open season <Status tone="green">{s.open_season}</Status>
+        </p>
       )}
-    </div>
+    </Section>
   );
 }
 
@@ -193,88 +193,64 @@ function TrialBalancePanel({ canSeeMoney }: { canSeeMoney: boolean }) {
     loadBooksHealth(canSeeMoney, setH, () => setDenied(true));
   }, [canSeeMoney]);
   if (!canSeeMoney || denied) return null;
-  const balanced = h?.balanced ?? true;
+  // Not "Books tie" before the books have been read: an unread state is not a
+  // balanced one.
+  const balanced = h?.balanced ?? null;
   return (
-    <div className="card panel" data-testid="trial-balance-panel">
-      <div className="panel-head">
-        <p className="eyebrow">Books health · value ledger</p>
-        <h3 className="h3">Equation of state</h3>
-      </div>
-      <div
-        data-testid="trial-balance-state"
-        style={{
-          display: "flex",
-          gap: 12,
-          alignItems: "center",
-          padding: "12px 14px",
-          borderRadius: 12,
-          marginBottom: 12,
-          background: balanced ? "rgba(var(--green-rgb), 0.08)" : "rgba(var(--rust-rgb), 0.10)",
-          color: balanced ? "var(--green)" : "var(--rust)",
-        }}
+    <Section heading="Books health" testId="trial-balance-panel">
+      {/* No tick while the books are still being read: a tick is an answer. */}
+      <Note
+        tone={balanced === null ? "info" : balanced ? "success" : "error"}
+        role="status"
+        testId="trial-balance-state"
       >
-        {balanced ? <CheckCircle2 size={20} /> : <AlertTriangle size={20} />}
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <b>{balanced ? "Books tie" : "Out of balance"}</b>
-          <span style={{ fontSize: 13, opacity: 0.85 }}>
-            Trial balance{" "}
-            <b className="mono">
-              <Money paise={h?.trial_balance_paise ?? 0} />
-            </b>{" "}
-            · {h?.voucher_count ?? 0} vouchers · {h?.leg_count ?? 0} legs
-          </span>
-        </div>
-      </div>
-      <div className="net-grid">
-        <div className="net-cell">
-          <span className="net-num mono">
-            <Money paise={h?.assets_paise ?? 0} short />
-          </span>
-          <span className="net-label">Stock, cash & clearing</span>
-        </div>
-        <div className="net-cell">
-          <span className="net-num mono">
-            <Money paise={h?.liabilities_paise ?? 0} short />
-          </span>
-          <span className="net-label">Payables, tax & contra</span>
-        </div>
-      </div>
-    </div>
+        <b>
+          {balanced === null ? "Reading the books…" : balanced ? "Books tie" : "Out of balance"}
+        </b>{" "}
+        Trial balance{" "}
+        <b className="mono">
+          <Money paise={h?.trial_balance_paise} />
+        </b>{" "}
+        · {h?.voucher_count ?? "—"} vouchers · {h?.leg_count ?? "—"} legs
+      </Note>
+      <KpiStrip
+        label="Value ledger"
+        items={[
+          { label: "Stock, cash & clearing", value: <Money paise={h?.assets_paise} short /> },
+          { label: "Payables, tax & contra", value: <Money paise={h?.liabilities_paise} short /> },
+        ]}
+      />
+    </Section>
   );
 }
 
-function CollectionsBand() {
+function CollectionsBand({ ruled = false }: { ruled?: boolean | undefined }) {
   return (
-    <div className="band band-edge">
-      <div className="band-head">
-        <h3 className="h3">Collections</h3>
-        <span className="chip chip-blue">Coming soon</span>
-      </div>
-      <p className="ai-line">
+    <Section heading="Collections" ruled={ruled} aside={<Status tone="blue">Coming soon</Status>}>
+      <p className="home-copy">
         This section will show cash, UPI, card clearing, deposits, and bank-audit status once the
         collections slice is enabled.
       </p>
-    </div>
+    </Section>
   );
 }
 
-function MorningBrief() {
+function MorningBrief({ ruled = false }: { ruled?: boolean | undefined }) {
   return (
-    <div className="band band-ai">
-      <div className="band-head">
-        <h3 className="h3">Morning brief</h3>
-        <span className="chip chip-purple">
-          <Sparkles size={12} /> AI · preview
-        </span>
-      </div>
-      <p className="ai-line">
+    <Section
+      heading="Morning brief"
+      ruled={ruled}
+      aside={<Status tone="purple">AI · preview</Status>}
+    >
+      <p className="home-copy">
         Coming soon: this area will show a suggest-only morning summary for sales, stock,
         exceptions, and follow-ups. Every operational action will still need human approval.
       </p>
-      <div className="ai-fence">
-        ✦ AI never writes stock, money or Tally. It opens drafts a human approves.
-      </div>
-    </div>
+      <Note>
+        <Sparkles size={14} aria-hidden="true" className="home-ai-mark" /> AI never writes stock,
+        money or Tally. It opens drafts a human approves.
+      </Note>
+    </Section>
   );
 }
 
@@ -318,10 +294,7 @@ function DashboardConfigurator({
     <div className="modal-backdrop" data-testid="dashboard-config-modal" onClick={onClose}>
       <div className="modal dashboard-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <div>
-            <p className="eyebrow">Dashboard</p>
-            <h3 className="h3">Choose cards</h3>
-          </div>
+          <h3 className="h3">Choose dashboard cards</h3>
           <button className="btn btn-sm" onClick={onClose} data-testid="dashboard-config-close">
             <X size={14} /> Close
           </button>
@@ -339,9 +312,10 @@ function DashboardConfigurator({
                 <b>
                   {c.label}
                   {c.state === "unbuilt" && (
-                    <span className="sample-tag" style={{ marginLeft: 6 }}>
-                      Not built
-                    </span>
+                    <>
+                      {" "}
+                      <Status>Not built</Status>
+                    </>
                   )}
                 </b>
                 <small>{c.purpose}</small>
@@ -354,26 +328,27 @@ function DashboardConfigurator({
   );
 }
 
+/** Places, so links drawn as large buttons (decision 5); the first is the navy
+ *  one. Red stays for the button that commits money or stock (decision 3). */
 function QuickActions({
   items,
 }: {
-  items: { label: string; to: string; icon: React.ReactNode; cta?: boolean }[];
+  items: { label: string; to: string; icon: React.ReactNode; primary?: boolean }[];
 }) {
-  const navigate = useNavigate();
   return (
-    <div className="quick-grid">
+    <nav className="home-quick" aria-label="Quick actions">
       {items.map((a) => (
-        <button
+        <Link
           key={a.label}
-          className={`quick-btn ${a.cta ? "quick-cta" : ""}`}
-          onClick={() => navigate(a.to)}
+          to={a.to}
+          className={`btn btn-lg home-quick-link ${a.primary ? "btn-primary" : ""}`}
           data-testid={`quick-${a.label.toLowerCase()}`}
         >
-          <span className="quick-ic">{a.icon}</span>
+          {a.icon}
           {a.label}
-        </button>
+        </Link>
       ))}
-    </div>
+    </nav>
   );
 }
 
@@ -392,6 +367,7 @@ export function Home() {
   const [payablePaise, setPayablePaise] = useState<number | null>(null);
   const [alertCount, setAlertCount] = useState<number | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
+  const [storeDay, setStoreDay] = useState<DashboardPayload | null>(null);
   const [dragCard, setDragCard] = useState<string | null>(null);
 
   // The books are finance-only on the server (`IsBooksKeeper`), so only ask for
@@ -421,7 +397,7 @@ export function Home() {
     if (canSeeMoney) {
       api
         .get("/finledger/vendor/ageing")
-        .then((r) => setPayablePaise(r.data.total_due_paise ?? 0))
+        .then((r) => setPayablePaise(r.data.total_due_paise ?? null))
         .catch(() => undefined);
     }
   }, [canSeeMoney]);
@@ -435,7 +411,7 @@ export function Home() {
         label: "Stock on hand",
         value: onHand === null ? "…" : <Money paise={onHand.value_paise} short />,
         sub: onHand
-          ? `${onHand.units_on_hand} pcs · ${onHand.lines} SKU lines`
+          ? `${onHand.units_on_hand.toLocaleString("en-IN")} pcs · ${onHand.lines.toLocaleString("en-IN")} SKU lines`
           : "From the stock ledger",
         purpose:
           "Stock value at book cost, from the stock ledger — the units and lines behind it are on Stock on Hand.",
@@ -528,8 +504,46 @@ export function Home() {
   const dashboardCards = orderedCards.filter((c) => visibleCards.includes(c.id));
 
   if (!user) return null;
-  const name = (user.full_name || user.username).split(" ")[0];
-  const ctx = unitContextLabel(activeStore);
+
+  // One sentence on where things stand, from what this page already reads.
+  let standing: ReactNode;
+  if (variant === "store") {
+    const place = activeStore?.name ?? storeDay?.store ?? "This store";
+    if (!storeDay) {
+      standing = `Reading ${place}'s day…`;
+    } else {
+      const t = storeDay.today;
+      const sales = !storeDay.sales_live ? (
+        <>Billing is not live at {place} yet.</>
+      ) : t.bills === 0 ? (
+        <>{place} has no bills yet today.</>
+      ) : (
+        <>
+          {place} has <b>{plural(t.bills, "bill", "bills")}</b> so far,{" "}
+          <b>
+            <Money paise={t.net_sales_paise} />
+          </b>{" "}
+          net.
+        </>
+      );
+      const rows = queueRows(storeDay, (section, capability) => userCan(user, section, capability));
+      standing = (
+        <>
+          {sales} {waitingSentence(rows)}
+        </>
+      );
+    }
+  } else {
+    const where = activeStore ? `At ${activeStore.name}` : "Across all business units";
+    standing =
+      inbox === null || alertCount === null
+        ? `${where}, reading what is waiting…`
+        : `${where}, ${
+            inbox === 0
+              ? "nothing waits for your approval"
+              : plural(inbox, "document waits", "documents wait") + " for your approval"
+          } and ${alertCount === 0 ? "no alerts are open" : plural(alertCount, "alert is", "alerts are") + " open"}.`;
+  }
 
   function toggleDashboardCard(id: string) {
     const next = visibleCards.includes(id)
@@ -576,32 +590,29 @@ export function Home() {
 
   return (
     <div className="page-pad home">
-      <header className="home-greet">
-        <h1 className="h1" data-testid="greeting">
-          {greeting()}, {name}
-        </h1>
-        <p className="lead">
-          {today} · here's your {variant === "store" || variant === "warehouse" ? "shift" : "day"}{" "}
-          at a glance
-          <span className="ctx-chip">{ctx}</span>
-        </p>
-        <button
-          className="btn btn-sm dash-config-btn"
-          onClick={() => setConfigOpen(true)}
-          data-testid="dashboard-config-button"
-        >
-          <Settings2 size={14} /> Configure dashboard
-        </button>
-      </header>
+      <PageHeader
+        title={todayHeading()}
+        titleTestId="greeting"
+        lead={standing}
+        actions={
+          <button
+            className="btn btn-sm"
+            onClick={() => setConfigOpen(true)}
+            data-testid="dashboard-config-button"
+          >
+            <Settings2 size={14} aria-hidden="true" /> Configure dashboard
+          </button>
+        }
+      />
 
       {variant === "store" ? (
         // The store's Home is the D10 Dashboard (#174) - one payload, one store,
         // its own shape. The configurable-tile grid below belongs to the network
         // and warehouse views and is deliberately not drawn here: a store's
         // screen is a fixed morning routine, not a board somebody rearranges.
-        <StoreDashboard />
+        <StoreDashboard onLoaded={setStoreDay} />
       ) : variant === "warehouse" ? (
-        <>
+        <div className="home-body">
           <QuickActions
             items={[
               // Receive Goods' one way in (OPS-17): the inbox, whose Goods arrived
@@ -610,7 +621,7 @@ export function Home() {
                 label: "Receive",
                 to: "/goods/receive",
                 icon: <PackageCheck size={20} />,
-                cta: true,
+                primary: true,
               },
               { label: "Count", to: "/stock-count", icon: <ClipboardList size={20} /> },
               { label: "Transfer", to: "/transfer", icon: <ArrowLeftRight size={20} /> },
@@ -621,21 +632,21 @@ export function Home() {
             <NetworkPanel s={summary} />
             <MorningBrief />
           </div>
-        </>
+        </div>
       ) : (
-        <>
+        <div className="home-body">
           {renderDashboardCards()}
           <div className="home-cols">
             <div className="home-stack">
               <TrialBalancePanel canSeeMoney={canSeeMoney} />
-              <CollectionsBand />
+              <CollectionsBand ruled={canSeeMoney} />
             </div>
             <div className="home-stack">
               <NetworkPanel s={summary} />
-              <MorningBrief />
+              <MorningBrief ruled />
             </div>
           </div>
-        </>
+        </div>
       )}
       {configOpen && (
         <DashboardConfigurator

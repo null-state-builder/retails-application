@@ -455,7 +455,7 @@ def site_ref(site: Any) -> dict[str, str]:
     return {"id": str(site.pk), "code": site.code, "name": site.name}
 
 
-def destinations(tenant_id: uuid.UUID, source_site_id: int) -> list[dict[str, str]]:
+def destinations(tenant_id: uuid.UUID, source_site_id: int) -> list[dict[str, Any]]:
     """Every site a transfer from ``source_site_id`` may be drafted to (OPS-11).
 
     Every other site of the same legal entity that moves goods through goods-v1
@@ -465,8 +465,12 @@ def destinations(tenant_id: uuid.UUID, source_site_id: int) -> list[dict[str, st
     is offered. A count freeze is not filtered out: it passes, and the draft
     says so in its own words rather than the site silently vanishing.
 
+    The source's linked sites come first and say so (``linked``): a store's
+    linked warehouse, or a warehouse's linked stores. The rest stay allowed.
+
     Name, code and kind only. Being offered a site to send to is not reading it.
     """
+    from masters.goods_services import linked_store_ids, linked_warehouse_id
     from masters.models import Store
 
     source = site_of(source_site_id)
@@ -484,10 +488,22 @@ def destinations(tenant_id: uuid.UUID, source_site_id: int) -> list[dict[str, st
         .exclude(pk=source.pk)
         .order_by("name", "pk")
     )
-    return [
-        {"id": str(site.pk), "code": site.code, "name": site.name, "kind": site.store_type}
+    if source.store_type == "warehouse":
+        linked = linked_store_ids(tenant_id, source.pk)
+    else:
+        warehouse = linked_warehouse_id(source)
+        linked = {warehouse} if warehouse is not None else set()
+    rows = [
+        {
+            "id": str(site.pk),
+            "code": site.code,
+            "name": site.name,
+            "kind": site.store_type,
+            "linked": site.pk in linked,
+        }
         for site in sites
     ]
+    return sorted(rows, key=lambda row: not row["linked"])
 
 
 def _require_same_entity(source: Any, destination: Any) -> None:
@@ -1055,6 +1071,52 @@ def decide_approval(run: CommandRun, transfer_id: uuid.UUID, context: Any) -> di
     if completed + 1 < len(steps):
         return {"_approval_pending": True, "state": "submitted", "completed_steps": completed + 1,
                 "total_steps": len(steps)}
+    return _approve_and_reserve(run, transfer, pt_head, goods_pt, correction, reason)
+
+
+def approve_without_second_person(run: CommandRun, transfer_id: uuid.UUID) -> bool:
+    """Approve a just-submitted warehouse → store transfer whose pinned policy needs no second person.
+
+    Its own command after the submit (the submit's draft lines are only readable once that command
+    ends). Anything else - another route, a changed transfer, a stale pin - is left submitted for a
+    normal approval, so a failure here never loses the transfer.
+    """
+    from outbound import transfer_authority
+
+    transfer, head = _locked(run, transfer_id, site_locked=True)
+    if transfer.state != GoodsTransfer.State.SUBMITTED:
+        return False
+    request = transfer_authority.request_for(transfer)
+    if request.state != "pending" or not transfer_authority.auto_approves(transfer, request):
+        return False
+    if str(run.principal.human_id) != str(_submitter(transfer)):
+        raise Refusal("ACTION_DENIED", "Only the person who sent this transfer confirms it.", status=403)
+    goods_pt = _pt_of(transfer)
+    pt_head = lock_heads(run, [goods_pt.document_id])[goods_pt.document_id]
+    transfer_authority.validate(run, transfer, head, pt_head, request)
+    transfer_authority.record_auto(run, request)
+    _approve_and_reserve(run, transfer, pt_head, goods_pt, None, transfer_authority.AUTO_REASON, auto=True)
+    return True
+
+
+def _approve_and_reserve(
+    run: CommandRun,
+    transfer: GoodsTransfer,
+    pt_head: DocumentHead,
+    goods_pt: GoodsPt | None,
+    correction: Any,
+    reason: str | None,
+    *,
+    auto: bool = False,
+) -> dict[str, Any]:
+    """Officialise the transfer PT and reserve its exact pieces (P07): the effect of the last approval.
+
+    ``auto``: no second person approved - the pinned policy lets a warehouse → store
+    transfer through on submit (``transfer_authority.auto_approves``).
+    """
+    pre_pt = transfer.custody == PRE_PT
+    if correction is not None:
+        from outbound import transfer_excess
     lines: list[tuple[uuid.UUID, Mapping[str, Any]]] = _official_lines_from_draft(pt_head)
     engine.lock_lots(
         run,
@@ -1145,7 +1207,7 @@ def decide_approval(run: CommandRun, transfer_id: uuid.UUID, context: Any) -> di
                 "pt_version_id": str(version.pk),
                 "reason": reason,
             }
-        ),
+        ) | ({"auto": True} if auto else {}),
     )
     run.audit_subject_key = f"transfer:{transfer.pk}"
     run.audit_site_id = transfer.source_site_id

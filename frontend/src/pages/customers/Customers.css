@@ -1,25 +1,74 @@
-/* Customers (store operations ticket 16): the facts on a customer's page and
-   the one destructive button, erase. */
+/* Customers (store operations ticket 16): the list and a customer's page.
+   Design system v2: sections on paper, one wide table, tokens only. */
 
-.customer-facts {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: 6px 16px;
-  margin: 8px 0 0;
+/* The list's search: a wide box, its button, and what it found. */
+.customers-find .searchbox {
+  min-height: var(--control);
+  padding-top: 0;
+  padding-bottom: 0;
+  flex: 1 1 320px;
+  max-width: 560px;
+  border-color: var(--line-strong);
+}
+.customers-count {
+  margin-left: var(--space-8);
+  font-size: 13px;
+  color: var(--muted);
+}
+.customer-name {
+  font-weight: 600;
+  color: var(--ink);
+}
+.customer-name:hover {
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
-.customer-facts dt {
-  color: var(--muted, #667);
-}
-
-.customer-facts dd {
+/* A customer's page. */
+.customer-back {
   margin: 0;
+  font-size: 13px;
+}
+.customer-sub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.customer-bill-no {
+  font-weight: 600;
+}
+.customer-flags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
 }
 
-.btn.btn-danger {
-  background: var(--red-bg);
-  color: var(--red);
-  border-color: var(--red-bd);
+/* What is held and the consents, side by side where there is room. */
+.customer-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr));
+  gap: 0 var(--gutter);
+  align-items: start;
+}
+
+/* The rights: the actions in a row, Erase on its own at the far end. */
+.customer-store {
+  max-width: 360px;
+}
+.customer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8);
+}
+.customer-erase {
+  margin-left: auto;
+}
+.customer-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
+  max-width: 640px;
 }
 
 @media (max-width: 480px) {

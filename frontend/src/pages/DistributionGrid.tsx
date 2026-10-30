@@ -28,7 +28,9 @@ import {
 
 import { api, apiErrorMessage } from "../lib/api";
 import { useList } from "../lib/hooks";
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { Box, Section } from "../components/Section";
 import {
   destinationOptions as filterDestinations,
   type LocationT,
@@ -435,12 +437,8 @@ export function DistributionGridPage() {
       />
 
       {outcome && (
-        <div
-          className="card section-card"
-          style={{ marginBottom: 18 }}
-          data-testid="distribution-outcome"
-        >
-          <p className="eyebrow">Drafts created</p>
+        <Box style={{ marginBottom: 18 }} data-testid="distribution-outcome">
+          <h2 className="heading">Drafts created</h2>
           {outcome.map((o) => (
             <div
               key={o.dest}
@@ -457,300 +455,303 @@ export function DistributionGridPage() {
           ))}
           <div className="toolbar" style={{ marginTop: 14 }}>
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               onClick={() => navigate("/transfer")}
               data-testid="distribution-view-transfers"
             >
               View transfers
             </button>
           </div>
-        </div>
+        </Box>
       )}
 
-      <div className="card section-card">
-        <p className="eyebrow">Step 1 · Source warehouse</p>
-        <select
-          className="select"
-          style={{ marginTop: 10, maxWidth: 320 }}
-          value={sourceId}
-          onChange={(e) => {
-            setSourceId(e.target.value);
-            setDestIds([]);
-            setStyles([]);
-            setWeightsCache({});
-            setOutcome(null);
-          }}
-          data-testid="distribution-source-select"
-        >
-          <option value="">Select warehouse…</option>
-          {warehouses.map((w) => (
-            <option key={w.id} value={w.id}>
-              {w.code} · {w.name}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {source && (
-        <div className="card section-card">
-          <p className="eyebrow">Step 2 · Destination stores</p>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 10 }}>
-            {destinationOptions.map((s) => (
-              <label key={s.id} className="check-row" data-testid={`distribution-dest-${s.code}`}>
-                <input
-                  type="checkbox"
-                  checked={destIds.includes(String(s.id))}
-                  onChange={() => toggleDest(String(s.id))}
-                />
-                {s.code}
-              </label>
+      <div className="page">
+        <Section heading="Step 1 · Source warehouse">
+          <select
+            className="select"
+            style={{ maxWidth: 320 }}
+            value={sourceId}
+            onChange={(e) => {
+              setSourceId(e.target.value);
+              setDestIds([]);
+              setStyles([]);
+              setWeightsCache({});
+              setOutcome(null);
+            }}
+            data-testid="distribution-source-select"
+          >
+            <option value="">Select warehouse…</option>
+            {warehouses.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.code} · {w.name}
+              </option>
             ))}
-          </div>
-          {destIds.some((d) => {
-            const s = destinationOptions.find((x) => String(x.id) === d);
-            return s && crossState(s);
-          }) && (
-            <div style={{ marginTop: 14 }}>
-              <p className="eyebrow">E-way bill (cross-state destinations)</p>
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 8 }}>
-                {destIds.map((d) => {
-                  const s = destinationOptions.find((x) => String(x.id) === d);
-                  if (!s || !crossState(s)) return null;
-                  return (
-                    <input
-                      key={d}
-                      className="input"
-                      placeholder={`${s.code} e-way bill no.`}
-                      value={ewayBills[d] || ""}
-                      onChange={(e) => setEwayBills({ ...ewayBills, [d]: e.target.value })}
-                      data-testid={`distribution-ewaybill-${s.code}`}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+          </select>
+        </Section>
 
-      {source && destIds.length > 0 && (
-        <div className="card section-card">
-          <p className="eyebrow">Step 3 · Add arrived SKUs</p>
-          <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-            <input
-              className="input"
-              placeholder="Search barcode, design, brand…"
-              value={term}
-              onChange={(e) => setTerm(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && void search()}
-              data-testid="distribution-sku-search"
-            />
-            <button
-              className="btn"
-              onClick={() => void search()}
-              disabled={searching}
-              data-testid="distribution-sku-search-btn"
-            >
-              {searching ? "Searching…" : "Search"}
-            </button>
-          </div>
-          {results.length > 0 && (
-            <div className="table-wrap" style={{ marginTop: 10 }}>
-              <table className="data">
-                <tbody>
-                  {results.map((r) => (
-                    <tr key={r.sku_code} data-testid={`distribution-result-${r.sku_code}`}>
-                      <td>
-                        <b className="mono">{r.sku_code}</b>
-                      </td>
-                      <td>{[r.design, r.color, r.size].filter(Boolean).join(" · ") || r.brand}</td>
-                      <td className="num">{r.qty} available</td>
-                      <td>
-                        <button
-                          className="btn btn-sm"
-                          onClick={() => void addRow(r)}
-                          data-testid={`distribution-add-${r.sku_code}`}
-                        >
-                          <Plus size={13} /> Add
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+        {source && (
+          <Section heading="Step 2 · Destination stores" ruled>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+              {destinationOptions.map((s) => (
+                <label key={s.id} className="check-row" data-testid={`distribution-dest-${s.code}`}>
+                  <input
+                    type="checkbox"
+                    checked={destIds.includes(String(s.id))}
+                    onChange={() => toggleDest(String(s.id))}
+                  />
+                  {s.code}
+                </label>
+              ))}
             </div>
-          )}
-
-          {styles.length > 0 && (
-            <div className="table-wrap" style={{ marginTop: 18 }}>
-              <p className="muted-cell" style={{ marginBottom: 8 }}>
-                Every style opens with the suggested split — last time this brand went to these
-                stores, weighted by each store's own size mix — pre-filled, with whatever is left
-                over held in the Buffer column. Edit any cell, or
-                <RefreshCw size={11} style={{ verticalAlign: "-1px", margin: "0 3px" }} />
-                re-split a style back to the suggestion. Click a style to open its size · colour
-                breakup.
-              </p>
-              <table className="data" data-testid="distribution-grid-table">
-                <thead>
-                  <tr>
-                    <th>Style / SKU</th>
-                    <th className="num">Available</th>
-                    {destIds.map((d) => {
-                      const s = destinationOptions.find((x) => String(x.id) === d);
-                      return (
-                        <th key={d} className="num">
-                          {s?.code}
-                        </th>
-                      );
-                    })}
-                    <th className="num">Buffer</th>
-                    <th className="num">Allocated</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {styles.map((group) => {
-                    const totals = styleTotals(group, destIds);
+            {destIds.some((d) => {
+              const s = destinationOptions.find((x) => String(x.id) === d);
+              return s && crossState(s);
+            }) && (
+              <div>
+                <h3 className="heading">E-way bill (cross-state destinations)</h3>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 8 }}>
+                  {destIds.map((d) => {
+                    const s = destinationOptions.find((x) => String(x.id) === d);
+                    if (!s || !crossState(s)) return null;
                     return (
-                      <Fragment key={group.id}>
-                        <tr data-testid={`distribution-style-${group.design}`}>
-                          <td>
-                            <button
-                              type="button"
-                              className="btn btn-sm"
-                              onClick={() => toggleStyle(group.id)}
-                              aria-expanded={group.expanded}
-                              data-testid={`distribution-style-toggle-${group.design}`}
-                            >
-                              {group.expanded ? (
-                                <ChevronDown size={13} />
-                              ) : (
-                                <ChevronRight size={13} />
-                              )}
-                            </button>{" "}
-                            <b>{group.design}</b>{" "}
-                            <span className="muted-cell">
-                              ({group.lines.length} {group.lines.length === 1 ? "line" : "lines"})
-                            </span>
-                          </td>
-                          <td className="num">{totals.available}</td>
-                          {destIds.map((d) => (
-                            <td key={d} className="num">
-                              {totals.byDest[d] || 0}
-                            </td>
-                          ))}
-                          <td className="num">{totals.buffer}</td>
-                          <td className="num">
-                            <b style={totals.over ? { color: "var(--red)" } : undefined}>
-                              {totals.allocated}
-                            </b>
-                          </td>
-                          <td>
-                            <button
-                              type="button"
-                              className="btn btn-sm"
-                              title="Re-split this style to the suggestion"
-                              onClick={() => void resplitStyle(group.id)}
-                              data-testid={`distribution-resplit-${group.design}`}
-                            >
-                              <RefreshCw size={13} />
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-sm"
-                              onClick={() => removeStyle(group.id)}
-                              data-testid={`distribution-remove-style-${group.design}`}
-                            >
-                              <Trash2 size={13} />
-                            </button>
-                          </td>
-                        </tr>
-                        {group.expanded &&
-                          group.lines.map((line) => {
-                            const total = lineTotal(line);
-                            const over = total > line.available;
-                            return (
-                              <tr
-                                key={line.sku_code}
-                                data-testid={`distribution-line-${line.sku_code}`}
+                      <input
+                        key={d}
+                        className="input"
+                        placeholder={`${s.code} e-way bill no.`}
+                        value={ewayBills[d] || ""}
+                        onChange={(e) => setEwayBills({ ...ewayBills, [d]: e.target.value })}
+                        data-testid={`distribution-ewaybill-${s.code}`}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </Section>
+        )}
+
+        {source && destIds.length > 0 && (
+          <Section heading="Step 3 · Add arrived SKUs" ruled>
+            <div style={{ display: "flex", gap: 10 }}>
+              <input
+                className="input"
+                placeholder="Search barcode, design, brand…"
+                value={term}
+                onChange={(e) => setTerm(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && void search()}
+                data-testid="distribution-sku-search"
+              />
+              <button
+                className="btn"
+                onClick={() => void search()}
+                disabled={searching}
+                data-testid="distribution-sku-search-btn"
+              >
+                {searching ? "Searching…" : "Search"}
+              </button>
+            </div>
+            {results.length > 0 && (
+              <div className="table-wrap">
+                <table className="data">
+                  <tbody>
+                    {results.map((r) => (
+                      <tr key={r.sku_code} data-testid={`distribution-result-${r.sku_code}`}>
+                        <td>
+                          <b className="mono">{r.sku_code}</b>
+                        </td>
+                        <td>
+                          {[r.design, r.color, r.size].filter(Boolean).join(" · ") || r.brand}
+                        </td>
+                        <td className="num">{r.qty} available</td>
+                        <td className="act">
+                          <button
+                            className="btn btn-sm"
+                            onClick={() => void addRow(r)}
+                            data-testid={`distribution-add-${r.sku_code}`}
+                          >
+                            <Plus size={13} /> Add
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {styles.length > 0 && (
+              <div className="table-wrap">
+                <p className="muted-cell" style={{ marginBottom: 8 }}>
+                  Every style opens with the suggested split — last time this brand went to these
+                  stores, weighted by each store's own size mix — pre-filled, with whatever is left
+                  over held in the Buffer column. Edit any cell, or
+                  <RefreshCw size={11} style={{ verticalAlign: "-1px", margin: "0 3px" }} />
+                  re-split a style back to the suggestion. Click a style to open its size · colour
+                  breakup.
+                </p>
+                <table className="data" data-testid="distribution-grid-table">
+                  <thead>
+                    <tr>
+                      <th>Style / SKU</th>
+                      <th className="num">Available</th>
+                      {destIds.map((d) => {
+                        const s = destinationOptions.find((x) => String(x.id) === d);
+                        return (
+                          <th key={d} className="num">
+                            {s?.code}
+                          </th>
+                        );
+                      })}
+                      <th className="num">Buffer</th>
+                      <th className="num">Allocated</th>
+                      <th />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {styles.map((group) => {
+                      const totals = styleTotals(group, destIds);
+                      return (
+                        <Fragment key={group.id}>
+                          <tr data-testid={`distribution-style-${group.design}`}>
+                            <td>
+                              <button
+                                type="button"
+                                className="btn btn-sm"
+                                onClick={() => toggleStyle(group.id)}
+                                aria-expanded={group.expanded}
+                                data-testid={`distribution-style-toggle-${group.design}`}
                               >
-                                <td style={{ paddingLeft: 28 }}>
-                                  <b className="mono">{line.sku_code}</b>{" "}
-                                  <span className="muted-cell">
-                                    {[line.color, line.size].filter(Boolean).join(" · ")}
-                                  </span>
-                                </td>
-                                <td className="num">{line.available}</td>
-                                {destIds.map((d) => (
-                                  <td key={d} className="num">
+                                {group.expanded ? (
+                                  <ChevronDown size={13} />
+                                ) : (
+                                  <ChevronRight size={13} />
+                                )}
+                              </button>{" "}
+                              <b>{group.design}</b>{" "}
+                              <span className="muted-cell">
+                                ({group.lines.length} {group.lines.length === 1 ? "line" : "lines"})
+                              </span>
+                            </td>
+                            <td className="num">{totals.available}</td>
+                            {destIds.map((d) => (
+                              <td key={d} className="num">
+                                {totals.byDest[d] || 0}
+                              </td>
+                            ))}
+                            <td className="num">{totals.buffer}</td>
+                            <td className="num">
+                              <b style={totals.over ? { color: "var(--red)" } : undefined}>
+                                {totals.allocated}
+                              </b>
+                            </td>
+                            <td className="act">
+                              <button
+                                type="button"
+                                className="btn btn-sm"
+                                title="Re-split this style to the suggestion"
+                                onClick={() => void resplitStyle(group.id)}
+                                data-testid={`distribution-resplit-${group.design}`}
+                              >
+                                <RefreshCw size={13} />
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-sm"
+                                onClick={() => removeStyle(group.id)}
+                                data-testid={`distribution-remove-style-${group.design}`}
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </td>
+                          </tr>
+                          {group.expanded &&
+                            group.lines.map((line) => {
+                              const total = lineTotal(line);
+                              const over = total > line.available;
+                              return (
+                                <tr
+                                  key={line.sku_code}
+                                  data-testid={`distribution-line-${line.sku_code}`}
+                                >
+                                  <td style={{ paddingLeft: 28 }}>
+                                    <b className="mono">{line.sku_code}</b>{" "}
+                                    <span className="muted-cell">
+                                      {[line.color, line.size].filter(Boolean).join(" · ")}
+                                    </span>
+                                  </td>
+                                  <td className="num">{line.available}</td>
+                                  {destIds.map((d) => (
+                                    <td key={d} className="num">
+                                      <input
+                                        className="input"
+                                        style={{ width: 64, textAlign: "right" }}
+                                        inputMode="numeric"
+                                        value={line.qtyByDest[d] || ""}
+                                        onChange={(e) =>
+                                          setQty(group.id, line.sku_code, d, e.target.value)
+                                        }
+                                        data-testid={`distribution-qty-${line.sku_code}-${d}`}
+                                      />
+                                    </td>
+                                  ))}
+                                  <td className="num">
                                     <input
                                       className="input"
                                       style={{ width: 64, textAlign: "right" }}
                                       inputMode="numeric"
-                                      value={line.qtyByDest[d] || ""}
+                                      value={line.buffer}
                                       onChange={(e) =>
-                                        setQty(group.id, line.sku_code, d, e.target.value)
+                                        setBuffer(group.id, line.sku_code, e.target.value)
                                       }
-                                      data-testid={`distribution-qty-${line.sku_code}-${d}`}
+                                      data-testid={`distribution-buffer-${line.sku_code}`}
                                     />
                                   </td>
-                                ))}
-                                <td className="num">
-                                  <input
-                                    className="input"
-                                    style={{ width: 64, textAlign: "right" }}
-                                    inputMode="numeric"
-                                    value={line.buffer}
-                                    onChange={(e) =>
-                                      setBuffer(group.id, line.sku_code, e.target.value)
-                                    }
-                                    data-testid={`distribution-buffer-${line.sku_code}`}
-                                  />
-                                </td>
-                                <td className="num">
-                                  <b style={over ? { color: "var(--red)" } : undefined}>{total}</b>
-                                </td>
-                                <td>
-                                  <button
-                                    className="btn btn-sm"
-                                    onClick={() => removeLine(group.id, line.sku_code)}
-                                    data-testid={`distribution-remove-${line.sku_code}`}
-                                  >
-                                    <Trash2 size={13} />
-                                  </button>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                      </Fragment>
-                    );
-                  })}
-                </tbody>
-              </table>
+                                  <td className="num">
+                                    <b style={over ? { color: "var(--red)" } : undefined}>
+                                      {total}
+                                    </b>
+                                  </td>
+                                  <td className="act">
+                                    <button
+                                      className="btn btn-sm"
+                                      onClick={() => removeLine(group.id, line.sku_code)}
+                                      data-testid={`distribution-remove-${line.sku_code}`}
+                                    >
+                                      <Trash2 size={13} />
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                        </Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {error && (
+              <Note tone="error" testId="distribution-error">
+                {error}
+              </Note>
+            )}
+
+            <div className="toolbar">
+              <span className="spacer" />
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={saving || styles.length === 0}
+                onClick={() => void submit()}
+                data-testid="distribution-submit"
+              >
+                <Send size={15} /> {saving ? "Creating drafts…" : "Create transfers"}
+              </button>
             </div>
-          )}
-
-          {error && (
-            <p className="warn-note" style={{ marginTop: 14 }} data-testid="distribution-error">
-              {error}
-            </p>
-          )}
-
-          <div className="toolbar" style={{ marginTop: 18 }}>
-            <span className="spacer" />
-            <button
-              type="button"
-              className="btn btn-cta"
-              disabled={saving || styles.length === 0}
-              onClick={() => void submit()}
-              data-testid="distribution-submit"
-            >
-              <Send size={15} /> {saving ? "Creating drafts…" : "Create transfers"}
-            </button>
-          </div>
-        </div>
-      )}
+          </Section>
+        )}
+      </div>
     </div>
   );
 }

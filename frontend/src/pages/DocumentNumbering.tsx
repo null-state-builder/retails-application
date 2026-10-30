@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { PageHeader } from "../components/PageHeader";
+import { Note } from "../components/Note";
+import { Section } from "../components/Section";
 import { api, apiErrorMessage, goodsMeta, typedApi } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 
@@ -100,7 +102,7 @@ export function DocumentNumberingPage() {
     return (
       <div className="page-pad">
         <PageHeader title="Document Numbering" />
-        {error ? <p className="warn-note">{error}</p> : <p>Loading document numbering…</p>}
+        {error ? <Note tone="error">{error}</Note> : <p>Loading document numbering…</p>}
       </div>
     );
   }
@@ -164,207 +166,203 @@ export function DocumentNumberingPage() {
         </p>
       )}
       {error && (
-        <p className="warn-note" data-testid="numbering-error">
+        <Note tone="error" testId="numbering-error">
           {error}
-        </p>
+        </Note>
       )}
       {saved && (
-        <p className="ok-note" data-testid="numbering-saved">
+        <Note tone="success" role="status" testId="numbering-saved">
           {saved}
-        </p>
+        </Note>
       )}
 
-      <section className="card section-card" data-testid="numbering-setting">
-        <h2 className="h3">When the new format starts</h2>
-        <p className="muted-cell">
-          The number format can change only on 1 April. Until the date below, every bill keeps
-          today's number. A store uses the new format only where it is switched on in Feature
-          Switches.
-        </p>
-        <p data-testid="numbering-starts">
-          {data.setting.started
-            ? `The new format started on ${data.setting.new_format_from}.`
-            : `The new format starts on ${data.setting.new_format_from}.`}
-        </p>
-        {data.can_change && (
-          <div className="toolbar">
-            <label className="field">
-              <span>Starts on (a 1 April)</span>
-              <input
-                className="input"
-                type="date"
-                data-testid="numbering-start-date"
-                min={data.today}
-                value={startsFrom}
-                onChange={(event) => setStartsFrom(event.target.value)}
-              />
-            </label>
-            <label className="field">
-              <span>Invoice numbers in one offline till block</span>
-              <input
-                className="input"
-                inputMode="numeric"
-                data-testid="numbering-block-size"
-                value={blockSize}
-                onChange={(event) => setBlockSize(event.target.value)}
-              />
-            </label>
-            <button
-              type="button"
-              className="btn btn-primary"
-              data-testid="numbering-setting-save"
-              disabled={busy}
-              onClick={saveSetting}
-            >
-              Save
-            </button>
-          </div>
-        )}
-      </section>
-
-      <section className="card section-card">
-        <h2 className="h3">Series</h2>
-        <div className="table-wrap">
-          <table className="data" data-testid="numbering-series">
-            <thead>
-              <tr>
-                <th>Document</th>
-                <th>Number</th>
-                <th>Prefix of</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.series.map((series) => (
-                <tr key={series.code}>
-                  <td>{series.name}</td>
-                  <td className="mono">{series.example.replace(/\/1$/, "/n")}</td>
-                  <td>{series.owner}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="card section-card">
-        <h2 className="h3">Sites</h2>
-        <div className="table-wrap">
-          <table className="data" data-testid="numbering-sites">
-            <thead>
-              <tr>
-                <th>Site</th>
-                <th>Prefix</th>
-                <th>New series</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.sites.map((site) => (
-                <tr key={site.id} data-testid={`numbering-site-${site.code}`}>
-                  <td>
-                    {site.name} ({site.code}){site.kind === "warehouse" ? " - warehouse" : ""}
-                  </td>
-                  <td>{prefixCell(`site-${site.code}`, site, { site_id: site.id })}</td>
-                  <td>{site.series_on ? "Switched on" : "Switched off"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="card section-card">
-        <h2 className="h3">Head office, one prefix per GSTIN</h2>
-        <div className="table-wrap">
-          <table className="data" data-testid="numbering-head-office">
-            <thead>
-              <tr>
-                <th>GSTIN</th>
-                <th>Prefix (debit notes)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.head_office.map((row) => (
-                <tr key={row.id} data-testid={`numbering-gstin-${row.gstin}`}>
-                  <td>
-                    {row.gstin} ({row.state_name})
-                  </td>
-                  <td>{prefixCell(`gstin-${row.gstin}`, row, { gstin_id: row.id })}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="card section-card">
-        <h2 className="h3">Offline till number blocks</h2>
-        {data.blocks.length === 0 ? (
-          <p className="muted-cell" data-testid="numbering-no-blocks">
-            No till holds a block of invoice numbers.
+      <div className="page">
+        <Section heading="When the new format starts" testId="numbering-setting">
+          <p className="muted-cell">
+            The number format can change only on 1 April. Until the date below, every bill keeps
+            today's number. A store uses the new format only where it is switched on in Feature
+            Switches.
           </p>
-        ) : (
+          <p data-testid="numbering-starts">
+            {data.setting.started
+              ? `The new format started on ${data.setting.new_format_from}.`
+              : `The new format starts on ${data.setting.new_format_from}.`}
+          </p>
+          {data.can_change && (
+            <div className="toolbar">
+              <label className="field">
+                <span>Starts on (a 1 April)</span>
+                <input
+                  className="input"
+                  type="date"
+                  data-testid="numbering-start-date"
+                  min={data.today}
+                  value={startsFrom}
+                  onChange={(event) => setStartsFrom(event.target.value)}
+                />
+              </label>
+              <label className="field">
+                <span>Invoice numbers in one offline till block</span>
+                <input
+                  className="input"
+                  inputMode="numeric"
+                  data-testid="numbering-block-size"
+                  value={blockSize}
+                  onChange={(event) => setBlockSize(event.target.value)}
+                />
+              </label>
+              <button
+                type="button"
+                className="btn btn-primary"
+                data-testid="numbering-setting-save"
+                disabled={busy}
+                onClick={saveSetting}
+              >
+                Save
+              </button>
+            </div>
+          )}
+        </Section>
+
+        <Section heading="Series" ruled>
           <div className="table-wrap">
-            <table className="data" data-testid="numbering-blocks">
+            <table className="data" data-testid="numbering-series">
               <thead>
                 <tr>
-                  <th>Counter</th>
-                  <th>Month</th>
-                  <th>Numbers</th>
+                  <th>Document</th>
+                  <th>Number</th>
+                  <th>Prefix of</th>
                 </tr>
               </thead>
               <tbody>
-                {data.blocks.map((block) => (
-                  <tr key={block.id}>
-                    <td>{block.counter}</td>
-                    <td>{block.month}</td>
-                    <td className="mono">
-                      {block.first_number} to {block.last_number}
-                    </td>
+                {data.series.map((series) => (
+                  <tr key={series.code}>
+                    <td>{series.name}</td>
+                    <td className="mono">{series.example.replace(/\/1$/, "/n")}</td>
+                    <td>{series.owner}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        )}
-      </section>
+        </Section>
 
-      <section className="card section-card">
-        <h2 className="h3">Cancelled numbers (GSTR-1 Table 13)</h2>
-        <p className="muted-cell">
-          At month end, every number in an offline till's block that no bill used is recorded as
-          cancelled. A number is never used again, and the gap stays visible here.
-        </p>
-        {data.cancelled.length === 0 ? (
-          <p className="muted-cell" data-testid="numbering-no-cancelled">
-            No number has been cancelled.
-          </p>
-        ) : (
+        <Section heading="Sites" ruled>
           <div className="table-wrap">
-            <table className="data" data-testid="numbering-cancelled">
+            <table className="data" data-testid="numbering-sites">
               <thead>
                 <tr>
-                  <th>Month</th>
+                  <th>Site</th>
                   <th>Prefix</th>
-                  <th className="num">Count</th>
-                  <th>From</th>
-                  <th>To</th>
+                  <th>New series</th>
                 </tr>
               </thead>
               <tbody>
-                {data.cancelled.map((row) => (
-                  <tr key={`${row.month}-${row.prefix}-${row.series}`}>
-                    <td>{row.month}</td>
-                    <td>{row.prefix}</td>
-                    <td className="num">{row.count}</td>
-                    <td className="mono">{row.first}</td>
-                    <td className="mono">{row.last}</td>
+                {data.sites.map((site) => (
+                  <tr key={site.id} data-testid={`numbering-site-${site.code}`}>
+                    <td>
+                      {site.name} ({site.code}){site.kind === "warehouse" ? " - warehouse" : ""}
+                    </td>
+                    <td>{prefixCell(`site-${site.code}`, site, { site_id: site.id })}</td>
+                    <td>{site.series_on ? "Switched on" : "Switched off"}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        )}
-      </section>
+        </Section>
+
+        <Section heading="Head office, one prefix per GSTIN" ruled>
+          <div className="table-wrap">
+            <table className="data" data-testid="numbering-head-office">
+              <thead>
+                <tr>
+                  <th>GSTIN</th>
+                  <th>Prefix (debit notes)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.head_office.map((row) => (
+                  <tr key={row.id} data-testid={`numbering-gstin-${row.gstin}`}>
+                    <td>
+                      {row.gstin} ({row.state_name})
+                    </td>
+                    <td>{prefixCell(`gstin-${row.gstin}`, row, { gstin_id: row.id })}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+
+        <Section heading="Offline till number blocks" ruled>
+          {data.blocks.length === 0 ? (
+            <p className="muted-cell" data-testid="numbering-no-blocks">
+              No till holds a block of invoice numbers.
+            </p>
+          ) : (
+            <div className="table-wrap">
+              <table className="data" data-testid="numbering-blocks">
+                <thead>
+                  <tr>
+                    <th>Counter</th>
+                    <th>Month</th>
+                    <th>Numbers</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.blocks.map((block) => (
+                    <tr key={block.id}>
+                      <td>{block.counter}</td>
+                      <td>{block.month}</td>
+                      <td className="mono">
+                        {block.first_number} to {block.last_number}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Section>
+
+        <Section heading="Cancelled numbers (GSTR-1 Table 13)" ruled>
+          <p className="muted-cell">
+            At month end, every number in an offline till's block that no bill used is recorded as
+            cancelled. A number is never used again, and the gap stays visible here.
+          </p>
+          {data.cancelled.length === 0 ? (
+            <p className="muted-cell" data-testid="numbering-no-cancelled">
+              No number has been cancelled.
+            </p>
+          ) : (
+            <div className="table-wrap">
+              <table className="data" data-testid="numbering-cancelled">
+                <thead>
+                  <tr>
+                    <th>Month</th>
+                    <th>Prefix</th>
+                    <th className="num">Count</th>
+                    <th>From</th>
+                    <th>To</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.cancelled.map((row) => (
+                    <tr key={`${row.month}-${row.prefix}-${row.series}`}>
+                      <td>{row.month}</td>
+                      <td>{row.prefix}</td>
+                      <td className="num">{row.count}</td>
+                      <td className="mono">{row.first}</td>
+                      <td className="mono">{row.last}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Section>
+      </div>
     </div>
   );
 }

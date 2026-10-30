@@ -27,15 +27,10 @@
   }
 }
 
-.mail-list-pane {
-  padding: 0 12px 10px;
+.mail-layout .mail-list-pane {
+  padding: 12px 12px 10px;
   max-height: calc(100vh - 220px);
   overflow-y: auto;
-}
-.mail-boxes {
-  display: flex;
-  border-bottom: 1px solid var(--hairline);
-  margin: 0 -12px;
 }
 .mail-search {
   padding: 10px 0 4px;
@@ -56,7 +51,7 @@
   border-bottom: 1px solid var(--hairline);
   background: transparent;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
 }
 .mail-row:hover {
   background: var(--inner);
@@ -79,11 +74,11 @@
 .mail-row-when {
   margin-left: auto;
   flex: none;
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--muted);
 }
 .mail-row-subject {
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--ink);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -100,7 +95,7 @@
    men with a colour vision deficiency, and this is the app's busiest signal. */
 .mail-row.unread .mail-row-from,
 .mail-row.unread .mail-row-subject {
-  font-weight: 700;
+  font-weight: 600;
 }
 .mail-row.unread {
   border-left: 2px solid var(--rust);
@@ -116,7 +111,7 @@
 }
 .mail-reader-subject {
   margin: 0;
-  font-size: 18px;
+  font-size: 16px;
   color: var(--ink);
   flex: 1;
 }
@@ -128,7 +123,7 @@
 }
 .mail-reader-meta {
   margin: 6px 0 0;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--muted);
 }
 .mail-reader-when {
@@ -148,16 +143,16 @@
   gap: 6px;
   padding: 6px 11px;
   border: 1px solid var(--hairline);
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: var(--inner);
   cursor: pointer;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--ink);
 }
 .mail-attachment:hover {
   border-color: var(--rust);
-  color: var(--rust);
+  color: var(--rust-ink);
 }
 .mail-attachment-size {
   color: var(--muted);
@@ -171,7 +166,7 @@
   width: 100%;
   margin-top: 14px;
   border: 1px solid var(--hairline);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: var(--mail-paper);
 }
 /* A plain-text body. `pre` for the line breaks, which a plain-text mail means
@@ -183,7 +178,7 @@
   margin-top: 14px;
   padding: 14px 16px;
   border: 1px solid var(--hairline);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: var(--inner);
   color: var(--ink);
   font:
@@ -208,7 +203,7 @@
   align-items: center;
   gap: 10px;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--ink);
 }
 .mail-composer-from {
@@ -228,11 +223,11 @@
   width: 100%;
   padding: 9px 12px;
   border: 1px solid var(--hairline);
-  border-radius: 9px;
+  border-radius: var(--radius-control);
   background: var(--inner);
   color: var(--ink);
   font: inherit;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 .mail-field::placeholder {
   color: var(--caption);
@@ -252,33 +247,8 @@
 }
 .mail-error {
   margin: 0;
-  font-size: 12.5px;
-  color: var(--brand-red);
-}
-
-.mail-warn {
-  margin-top: 12px;
-  padding: 11px 14px;
-  font-size: 13px;
-  color: var(--ink);
-  border-left: 3px solid var(--rust);
-}
-.mail-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 46px 24px;
-  text-align: center;
-  color: var(--muted);
-}
-.mail-empty-state h3 {
-  margin: 0;
-  color: var(--ink);
-}
-.mail-empty-state p {
-  margin: 0;
-  max-width: 420px;
+  font-size: 12px;
+  color: var(--red);
 }
 
 .mail-footer {
@@ -290,8 +260,10 @@
   gap: 6px;
   color: var(--muted);
 }
+/* Red as text takes the semantic --red, not --cta: --cta stays one dark red in
+   both themes for white text, and as text on the dark surface it is near 3:1. */
 .mail-disconnect:hover {
-  color: var(--brand-red);
+  color: var(--red);
 }
 .mail-disconnect-confirm {
   display: flex;

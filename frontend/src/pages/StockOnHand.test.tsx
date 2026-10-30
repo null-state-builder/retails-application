@@ -18,6 +18,11 @@ describe("resource-derived stock valuation", () => {
   it("does not present loading or denied quantity as an empty store", () => {
     expect(stockQuantity(undefined, true)).toBe("Loading…");
     expect(stockQuantity(undefined, false)).toBe("Unavailable");
-    expect(stockQuantity(0, false)).toBe(0);
+    expect(stockQuantity(0, false)).toBe("0");
+    expect(stockQuantity(15734, false)).toBe("15,734");
+  });
+
+  it("says a value is loading rather than unavailable while it loads", () => {
+    expect(renderToStaticMarkup(<StockValue paise={undefined} loading />)).toContain("Loading");
   });
 });

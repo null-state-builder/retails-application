@@ -18,3 +18,5 @@ from ptmapper.goods_models import (  # noqa: F401
     PrintJob,
 )
 from ptmapper.soh_models import SohImport, SohImportBatch, SohImportReview, SohImportRow  # noqa: F401
+from ptmapper.stock_sync_models import StockSync, StockSyncRow  # noqa: F401
+from ptmapper.legacy_sales_models import LegacySalesImport, LegacySalesRow  # noqa: F401

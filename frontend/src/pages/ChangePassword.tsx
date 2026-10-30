@@ -3,8 +3,9 @@ import { Navigate, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
 import { KdpsLogo } from "../components/KdpsLogo";
+import { Note } from "../components/Note";
 import { apiErrorMessage, authApi } from "../lib/api";
-import { ThemeToggle } from "../theme/ThemeToggle";
+import { SignInFrame } from "./Login";
 import "./Login.css";
 
 /** E239 (GSA-T03/ticket 03A): where a temporary-password session lands.
@@ -59,81 +60,75 @@ export function ChangePassword() {
   }
 
   return (
-    <div className="login">
-      <aside className="login-brand">
-        <div className="login-brand-inner">
-          <KdpsLogo className="login-logo" />
-          <h1 className="login-title">Operating System</h1>
-        </div>
-      </aside>
-
-      <main className="login-panel">
-        <div className="login-theme">
-          <ThemeToggle compact />
-        </div>
-        <form className="login-card" onSubmit={submit} data-testid="change-password-form">
-          <p className="eyebrow">Replace your password</p>
-          <h2 className="h2" style={{ marginBottom: 10 }}>
+    <SignInFrame>
+      <form
+        className="login-card"
+        onSubmit={submit}
+        data-testid="change-password-form"
+        aria-labelledby="change-password-h"
+      >
+        <div>
+          <h1 className="h1" id="change-password-h">
             Set your own password
-          </h2>
-          <p className="caption" style={{ marginBottom: 18 }}>
+          </h1>
+          <p className="lead">
             An administrator gave you a temporary password. Replace it with one only you know before
             you can do anything else.
           </p>
+        </div>
 
-          <div className="field" style={{ marginBottom: 14 }}>
-            <label htmlFor="current-password">Temporary (or current) password</label>
-            <input
-              id="current-password"
-              type="password"
-              autoComplete="current-password"
-              className="input"
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-              autoFocus
-              data-testid="current-password"
-            />
-          </div>
-          <div className="field" style={{ marginBottom: 14 }}>
-            <label htmlFor="new-password">New password</label>
-            <input
-              id="new-password"
-              type="password"
-              autoComplete="new-password"
-              className="input"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              data-testid="new-password"
-            />
-          </div>
-          <div className="field" style={{ marginBottom: 18 }}>
-            <label htmlFor="confirm-password">Confirm new password</label>
-            <input
-              id="confirm-password"
-              type="password"
-              autoComplete="new-password"
-              className="input"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              data-testid="confirm-password"
-            />
-          </div>
+        <div className="field">
+          <label htmlFor="current-password">Temporary (or current) password</label>
+          <input
+            id="current-password"
+            type="password"
+            autoComplete="current-password"
+            className="input"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            autoFocus
+            data-testid="current-password"
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="new-password">New password</label>
+          <input
+            id="new-password"
+            type="password"
+            autoComplete="new-password"
+            className="input"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            data-testid="new-password"
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="confirm-password">Confirm new password</label>
+          <input
+            id="confirm-password"
+            type="password"
+            autoComplete="new-password"
+            className="input"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            data-testid="confirm-password"
+          />
+        </div>
 
-          {error && (
-            <div className="login-error" data-testid="change-password-error">
-              {error}
-            </div>
-          )}
+        {error && (
+          <Note tone="error" testId="change-password-error">
+            {error}
+          </Note>
+        )}
 
-          <button
-            className="btn btn-cta btn-block btn-lg"
-            disabled={busy}
-            data-testid="change-password-submit"
-          >
-            {busy ? "Replacing…" : "Replace password"}
-          </button>
-        </form>
-      </main>
-    </div>
+        <button
+          className="btn btn-primary btn-block btn-lg"
+          disabled={busy}
+          data-testid="change-password-submit"
+        >
+          {busy ? "Replacing…" : "Replace password"}
+        </button>
+      </form>
+    </SignInFrame>
   );
 }

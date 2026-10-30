@@ -12,6 +12,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { FileCheck, Send } from "lucide-react";
 
+import { Note } from "../components/Note";
 import { goodsMeta } from "../lib/api";
 import { Field, useGoodsFetch } from "../lib/goodsScreen";
 import {
@@ -228,7 +229,7 @@ function CorrectiveForm({
           data-testid="corrective-reason"
         />
       </Field>
-      {problem && <div className="warn-note">{problem}</div>}
+      {problem && <Note tone="warn">{problem}</Note>}
       <button
         className="btn btn-sm"
         disabled={!ready}
@@ -260,7 +261,7 @@ export function CorrectivePanel({ detail, onRun }: { detail: TransferDetail; onR
     ...goodsMeta(),
   };
   return (
-    <div className="warn-note" data-testid="corrective-panel">
+    <Note tone="warn" testId="corrective-panel">
       <p>
         <strong>Corrective transfer</strong> for goods observed at the destination of{" "}
         <Link to={`/goods/transfers/${detail.corrective_for.id}`} data-testid="corrective-for">
@@ -316,6 +317,6 @@ export function CorrectivePanel({ detail, onRun }: { detail: TransferDetail; onR
           </button>
         </div>
       ) : null}
-    </div>
+    </Note>
   );
 }

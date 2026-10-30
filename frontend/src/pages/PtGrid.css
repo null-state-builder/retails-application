@@ -61,7 +61,7 @@
   display: inline-block;
   width: 11px;
   height: 11px;
-  border-radius: 3px;
+  border-radius: var(--radius-control);
   border: 1px solid var(--hairline);
 }
 
@@ -98,14 +98,14 @@
   gap: 8px 10px;
   padding: 10px 12px;
   border: 1px dashed var(--rule);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   background: var(--surface);
   font-size: 13px;
 }
 
 .ptg .ptg-tools-label {
-  font-size: 12.5px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--muted);
 }
 
@@ -134,14 +134,14 @@
   overflow: auto;
   max-height: 68vh;
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   background: var(--surface);
 }
 
 .ptg table.ptg-grid {
   border-collapse: separate;
   border-spacing: 0;
-  font-size: 12.5px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
   min-width: 100%;
 }
@@ -156,16 +156,19 @@
   background: var(--surface);
 }
 
+/* Header cells keep the body's 6px sides: the frozen columns' fixed widths
+   and `left` offsets below are sized for them. */
 .ptg .ptg-grid thead th {
   position: sticky;
   top: 0;
   z-index: 3;
+  padding-top: 7px;
+  padding-bottom: 7px;
   background: var(--inner);
+  border-bottom: 1px solid var(--line);
   color: var(--muted);
-  font-size: 10.5px;
-  font-weight: 700;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 600;
   text-align: left;
 }
 
@@ -209,7 +212,7 @@
   left: 254px;
   width: 104px;
   min-width: 104px;
-  box-shadow: 3px 0 4px -2px rgba(var(--navy-rgb), 0.18);
+  box-shadow: var(--pin-shadow);
 }
 
 .ptg .ptg-grid tr.ptg-row-dirty .ptg-fz-no {
@@ -268,8 +271,9 @@
   width: 100%;
   min-width: 70px;
   box-sizing: border-box;
+  min-height: 30px;
   border: 1px solid var(--rule);
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   padding: 3px 6px;
   font: inherit;
   background: var(--field-bg);
@@ -282,8 +286,8 @@
 
 .ptg .ptg-cell-input:focus {
   outline: none;
-  border-color: var(--rust);
-  box-shadow: 0 0 0 2px rgba(var(--rust-rgb), 0.15);
+  border-color: var(--focus-ring);
+  box-shadow: var(--focus-halo);
 }
 
 /* A KDPS work sheet check (wrong ITEM suggestion, sheet tax rule): a hint only. */
@@ -300,8 +304,8 @@
   background: var(--amber-bg);
   border: 1px solid var(--amber-bd);
   color: var(--amber);
-  font-size: 10px;
-  font-weight: 800;
+  font-size: 12px;
+  font-weight: 600;
   vertical-align: middle;
 }
 .ptg .ptg-file-text {
@@ -309,7 +313,7 @@
   max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 10.5px;
+  font-size: 12px;
   color: var(--muted);
   margin-top: 2px;
 }
@@ -325,10 +329,10 @@
   border: 1px solid var(--amber-bd);
   background: var(--surface);
   color: var(--amber);
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   padding: 1px 8px;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -341,9 +345,9 @@
   background: none;
   padding: 0;
   margin-top: 2px;
-  font-size: 10.5px;
-  font-weight: 700;
-  color: var(--rust);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--rust-ink);
   cursor: pointer;
   text-decoration: underline;
 }
@@ -361,21 +365,17 @@
   align-items: flex-start;
 }
 
-.ptg .ptg-item .chip {
-  font-size: 11px;
-}
-
 .ptg .ptg-row-issues summary {
   cursor: pointer;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--red);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .ptg .ptg-row-issues ul {
   margin: 4px 0 0;
   padding-left: 14px;
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--ink);
   white-space: normal;
 }
@@ -397,7 +397,7 @@
 
 .ptg .ptg-blockers {
   margin: 0;
-  padding: 10px 12px 10px 28px;
+  padding-left: 18px;
   font-size: 13px;
 }
 

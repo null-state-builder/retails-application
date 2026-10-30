@@ -54,7 +54,7 @@ describe("daily damage uses the canonical stock screen", () => {
     expect(html).toContain('data-testid="canonical-damage-workspace"');
     expect(html.match(/class="page-pad operations-page/g)).toHaveLength(1);
     expect(html).toContain('value="12" selected');
-    expect(html).toContain('btn-active" data-testid="stock-view-quarantine"');
+    expect(html).toContain('aria-pressed="true" data-testid="stock-view-quarantine"');
     expect(html).toContain("Find physical stock to report");
     expect(html).toContain('href="/goods/movements?site_id=12"');
     expect(html).toContain("Summary totals cover all stock in the selected scope");
@@ -69,7 +69,7 @@ describe("daily damage uses the canonical stock screen", () => {
     expect(draw("&site=27")).toContain('value="27" selected');
     expect(draw("&store=NEXT")).toContain('value="27" selected');
     expect(draw("&site_id=27&view=on-hand")).toContain(
-      'btn-active" data-testid="stock-view-on-hand"',
+      'aria-pressed="true" data-testid="stock-view-on-hand"',
     );
     expect(draw("&site=999")).toContain("Bookmarked site unavailable");
     expect(draw("&site=999")).not.toContain('value="12" selected');

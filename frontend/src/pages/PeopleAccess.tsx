@@ -30,7 +30,11 @@ import {
   type ResourceDTO,
 } from "../lib/goodsScreen";
 import { useAuth } from "../auth/AuthContext";
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
+import { SegmentedControl } from "../components/SegmentedControl";
+import { Status } from "../components/Status";
 import { CounterPinCard } from "../components/CounterPinCard";
 import { AssignmentReconciliationPanel } from "./AssignmentReconciliation";
 import { AdministrativeHistory } from "../components/AdministrativeHistory";
@@ -277,7 +281,7 @@ function PeopleListPanel({ onOpen }: { onOpen: (staffId: string) => void }) {
         <h3 className="h3">People</h3>
         <div className="spacer" />
         {canCreate && (
-          <button className="btn btn-cta" onClick={startCreate} data-testid="person-new-button">
+          <button className="btn btn-primary" onClick={startCreate} data-testid="person-new-button">
             <UserPlus size={15} /> New person
           </button>
         )}
@@ -293,7 +297,11 @@ function PeopleListPanel({ onOpen }: { onOpen: (staffId: string) => void }) {
       />
       <Feedback error={error} ok={ok} />
       {canCreate && open && (
-        <div className="card section-card" data-testid="person-editor">
+        <div
+          className="box"
+          style={{ marginBottom: "var(--space-16)" }}
+          data-testid="person-editor"
+        >
           <div className="toolbar" style={{ marginBottom: 12 }}>
             <h3 className="h3">Add a person</h3>
             <div className="spacer" />
@@ -389,7 +397,7 @@ function PeopleListPanel({ onOpen }: { onOpen: (staffId: string) => void }) {
               </div>
             )}
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               onClick={save}
               disabled={!form.site_id && !canCreateUnplaced}
               data-testid="person-save-button"
@@ -431,8 +439,8 @@ function PeopleListPanel({ onOpen }: { onOpen: (staffId: string) => void }) {
               </tr>
             ) : failure ? (
               <tr>
-                <td colSpan={4} className="warn-note">
-                  {failure}
+                <td colSpan={4}>
+                  <Status tone="red">{failure}</Status>
                 </td>
               </tr>
             ) : filtered.length === 0 ? (
@@ -453,9 +461,7 @@ function PeopleListPanel({ onOpen }: { onOpen: (staffId: string) => void }) {
                   <td>{row.data.display_name}</td>
                   <td>{siteName(meta, row.data.site_id)}</td>
                   <td>
-                    <span className={`chip chip-${row.state === "active" ? "green" : "red"}`}>
-                      {row.state}
-                    </span>
+                    <Status tone={row.state === "active" ? "green" : "grey"}>{row.state}</Status>
                   </td>
                 </tr>
               ))
@@ -544,7 +550,7 @@ function PersonTab({ doc, reload }: { doc: ResourceDTO<StaffData>; reload: () =>
     <div data-testid="pa-person-tab">
       <Feedback error={error} ok={ok} />
       {stepUp.dialog}
-      <div className="card section-card">
+      <div>
         <div className="form-grid wide-form">
           <div className="field">
             <label htmlFor="pa-staff-code">Staff code</label>
@@ -593,7 +599,7 @@ function PersonTab({ doc, reload }: { doc: ResourceDTO<StaffData>; reload: () =>
             Counts as a salesperson
           </label>
           {canEdit && (
-            <button className="btn btn-cta" onClick={save} data-testid="pa-person-save-button">
+            <button className="btn btn-primary" onClick={save} data-testid="pa-person-save-button">
               <Save size={15} /> Save
             </button>
           )}
@@ -610,8 +616,7 @@ function PersonTab({ doc, reload }: { doc: ResourceDTO<StaffData>; reload: () =>
       </div>
 
       {doc.state === "active" && canRetire && (
-        <div className="card section-card" style={{ marginTop: 12 }}>
-          <h3 className="h3">Retire this person</h3>
+        <Section level={3} heading="Retire this person" ruled>
           <p className="lead">Needs your password again — retiring staff is a privileged change.</p>
           {!retiring ? (
             <button
@@ -631,7 +636,7 @@ function PersonTab({ doc, reload }: { doc: ResourceDTO<StaffData>; reload: () =>
                 data-testid="pa-retire-reason-input"
               />
               <button
-                className="btn btn-cta"
+                className="btn btn-danger"
                 onClick={retire}
                 data-testid="pa-retire-confirm-button"
               >
@@ -646,13 +651,9 @@ function PersonTab({ doc, reload }: { doc: ResourceDTO<StaffData>; reload: () =>
               </button>
             </div>
           )}
-        </div>
+        </Section>
       )}
-      {doc.state === "retired" && (
-        <div className="card section-card" style={{ marginTop: 12 }} data-testid="pa-retired-note">
-          Retired.
-        </div>
-      )}
+      {doc.state === "retired" && <Note testId="pa-retired-note">Retired.</Note>}
     </div>
   );
 }
@@ -696,17 +697,18 @@ function AssignmentTab({ doc, reload }: { doc: ResourceDTO<StaffData>; reload: (
   return (
     <div data-testid="pa-assignment-tab">
       <Feedback error={error} ok={ok} />
-      <div className="card section-card">
+      <div>
         <p className="lead">
           Current site: <b>{siteName(meta, doc.data.site_id)}</b>
           {doc.data.effective_from && ` (since ${fmtDate(doc.data.effective_from)})`}
         </p>
       </div>
       {canAssign && doc.state === "active" && (
-        <div className="card section-card" style={{ marginTop: 12 }}>
-          <h3 className="h3">
-            {doc.data.site_id === null ? "Assign to a site" : "Move to a new site"}
-          </h3>
+        <Section
+          level={3}
+          heading={doc.data.site_id === null ? "Assign to a site" : "Move to a new site"}
+          ruled
+        >
           <div className="form-grid wide-form">
             <div className="field">
               <label htmlFor="pa-assign-site">New site</label>
@@ -746,11 +748,11 @@ function AssignmentTab({ doc, reload }: { doc: ResourceDTO<StaffData>; reload: (
                 data-testid="pa-assign-reason-input"
               />
             </div>
-            <button className="btn btn-cta" onClick={assign} data-testid="pa-assign-button">
+            <button className="btn btn-primary" onClick={assign} data-testid="pa-assign-button">
               Move
             </button>
           </div>
-        </div>
+        </Section>
       )}
     </div>
   );
@@ -875,7 +877,7 @@ function LoginTab({
       <Feedback error={error} ok={ok} />
       {stepUp.dialog}
       {!login.summary ? (
-        <div className="card section-card">
+        <div>
           <p className="lead" data-testid="pa-no-login">
             This person has no login yet.
           </p>
@@ -923,7 +925,7 @@ function LoginTab({
                 I confirmed this person's identity and ownership of this login email
               </label>
               <button
-                className="btn btn-cta"
+                className="btn btn-primary"
                 onClick={createLogin}
                 data-testid="pa-login-create-button"
               >
@@ -933,20 +935,20 @@ function LoginTab({
           )}
         </div>
       ) : (
-        <div className="card section-card" data-testid="pa-login-existing">
+        <div data-testid="pa-login-existing">
           <p className="lead">
             <b>{login.detail.doc?.data.email ?? login.summary.data.email}</b>{" "}
-            <span className={`chip chip-${login.summary.data.active ? "green" : "red"}`}>
+            <Status tone={login.summary.data.active ? "green" : "grey"}>
               {login.summary.data.active ? "active" : "inactive"}
-            </span>{" "}
+            </Status>{" "}
             {/* GSA-T03/ticket 03A: true until this login's own change-password
                 (E239) succeeds - a restricted session server-side, not merely a
                 hint here (`accounts.authentication.enforce_password_change_restriction`). */}
             {(login.detail.doc?.data.must_change_password ??
               login.summary.data.must_change_password) && (
-              <span className="chip chip-amber" data-testid="pa-login-must-change-password">
+              <Status tone="amber" testId="pa-login-must-change-password">
                 must replace temporary password
-              </span>
+              </Status>
             )}
           </p>
           {canManage && !editing && (
@@ -1026,7 +1028,7 @@ function LoginTab({
                 </label>
               )}
               <button
-                className="btn btn-cta"
+                className="btn btn-primary"
                 onClick={saveLogin}
                 data-testid="pa-login-save-button"
               >
@@ -1069,7 +1071,7 @@ function HistoryTab({
   const canReview = hold(session, "access.review");
   if (!hold(session, "audit.view")) {
     return (
-      <div className="card section-card" data-testid="pa-history-tab">
+      <div data-testid="pa-history-tab">
         <p className="lead" data-testid="pa-history-no-access">
           You cannot read history.
         </p>
@@ -1131,7 +1133,7 @@ function PersonDetailView({
 
   if (denied) return <Denied what="person" />;
   if (loading) return <div data-testid="pa-person-loading">Loading…</div>;
-  if (failure) return <div className="warn-note">{failure}</div>;
+  if (failure) return <Note tone="error">{failure}</Note>;
   if (!doc) return null;
 
   return (
@@ -1143,24 +1145,23 @@ function PersonDetailView({
         <h3 className="h3" style={{ marginLeft: 8 }}>
           {doc.data.display_name}
         </h3>
-        <span className="chip chip-blue" data-testid="pa-has-login-badge" style={{ marginLeft: 8 }}>
-          {login.summary ? "Has login" : "No login"}
+        <span style={{ marginLeft: 8 }}>
+          <Status tone="blue" testId="pa-has-login-badge">
+            {login.summary ? "Has login" : "No login"}
+          </Status>
         </span>
       </div>
-      <div className="pa-tabs" role="tablist" aria-label="Person">
-        {PERSON_TABS.map((t) => (
-          <button
-            key={t}
-            role="tab"
-            aria-selected={tab === t}
-            className={`pa-tab ${tab === t ? "active" : ""}`}
-            onClick={() => onTab(t)}
-            data-testid={`person-tab-${t}`}
-          >
-            {PERSON_TAB_LABEL[t]}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        label="Person"
+        className="pa-tabs"
+        options={PERSON_TABS.map((t) => ({
+          value: t,
+          label: PERSON_TAB_LABEL[t],
+          testId: `person-tab-${t}`,
+        }))}
+        value={tab}
+        onChange={onTab}
+      />
       <div className="pa-tab-panel">
         {tab === "person" && <PersonTab doc={doc} reload={reload} />}
         {tab === "login" && <LoginTab staff={doc} login={login} />}
@@ -1209,9 +1210,9 @@ function PrivilegedChangesPanel({
   if (denied) return <Denied what="privileged changes" />;
   if (!canReview) {
     return (
-      <div className="card section-card" data-testid="pa-privileged-no-access">
+      <p className="lead" data-testid="pa-privileged-no-access">
         You cannot review privileged changes.
-      </div>
+      </p>
     );
   }
 
@@ -1269,8 +1270,8 @@ function PrivilegedChangesPanel({
               </tr>
             ) : failure ? (
               <tr>
-                <td colSpan={5} className="warn-note">
-                  {failure}
+                <td colSpan={5}>
+                  <Status tone="red">{failure}</Status>
                 </td>
               </tr>
             ) : items.length === 0 ? (
@@ -1291,9 +1292,7 @@ function PrivilegedChangesPanel({
                     </span>
                   </td>
                   <td>
-                    <span className={`chip chip-${row.state === "reviewed" ? "green" : "amber"}`}>
-                      {row.state}
-                    </span>
+                    <Status tone={row.state === "reviewed" ? "green" : "amber"}>{row.state}</Status>
                     {row.data.reviews.length > 0 && (
                       <div className="lead" style={{ fontSize: 12 }}>
                         {row.data.reviews

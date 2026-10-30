@@ -1,5 +1,6 @@
 import { Monitor, Moon, Sun } from "lucide-react";
 
+import { SegmentedControl } from "../components/SegmentedControl";
 import type { ThemePreference } from "./theme";
 import { useTheme } from "./theme";
 
@@ -12,26 +13,24 @@ const OPTIONS: { value: ThemePreference; label: string; Icon: typeof Sun }[] = [
 export function ThemeToggle({ compact = false }: { compact?: boolean }) {
   const { preference, setPreference } = useTheme();
   return (
-    <div
-      className={`theme-seg ${compact ? "theme-seg-compact" : ""}`}
-      data-testid="theme-toggle"
-      role="group"
-    >
-      {OPTIONS.map(({ value, label, Icon }) => (
-        <button
-          key={value}
-          type="button"
-          className={`theme-seg-btn ${preference === value ? "active" : ""}`}
-          onClick={() => setPreference(value)}
-          aria-pressed={preference === value}
-          aria-label={label}
-          title={label}
-          data-testid={`theme-option-${value}`}
-        >
-          <Icon size={14} />
-          {!compact && <span>{label}</span>}
-        </button>
-      ))}
-    </div>
+    <SegmentedControl
+      label="Theme"
+      className={compact ? "theme-seg-compact" : ""}
+      testId="theme-toggle"
+      value={preference}
+      options={OPTIONS.map(({ value, label, Icon }) => ({
+        value,
+        label: (
+          <>
+            <Icon size={14} aria-hidden="true" />
+            {!compact && <span>{label}</span>}
+          </>
+        ),
+        ariaLabel: label,
+        title: label,
+        testId: `theme-option-${value}`,
+      }))}
+      onChange={setPreference}
+    />
   );
 }

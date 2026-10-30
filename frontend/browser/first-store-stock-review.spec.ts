@@ -68,6 +68,7 @@ for (const width of [1440, 1366, 768, 375]) {
     await loginProof(page, "manager");
     await pairProof(page);
     await page.getByTestId("till-sync-now").click();
+    await page.getByTestId("till-pause-open").click();
     await expect(page.getByTestId("till-pause-go")).toBeVisible();
     await page
       .getByTestId("till-pause-reason")

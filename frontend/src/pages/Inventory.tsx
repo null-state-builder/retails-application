@@ -4,10 +4,11 @@
 
 import { useMemo } from "react";
 import type { ReactElement } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
 import { canAccess } from "../auth/routeAccess";
+import { Note } from "../components/Note";
 import { HostedPageContext } from "../components/PageHeader";
 import { INVENTORY_FOLD, foldTabsFor, resolveFoldTab } from "../shell/navConfig";
 import { BrokenSizesPage } from "./BrokenSizes";
@@ -50,21 +51,35 @@ export function InventoryPage() {
   const active = resolveFoldTab(tabs, params.get("tab"));
   const Panel = active ? PANELS[active.slug] : undefined;
 
+  // Damage & Quarantine is the Quarantine view of Stock on hand now (desktop
+  // redesign Q3); its tab keeps its gate, and an old link lands on the view.
+  if (active?.slug === "damage" && tabs.some((t) => t.slug === "stock")) {
+    return (
+      <Navigate
+        replace
+        to={`/inventory?${stockParams(params, { tab: "stock", view: "quarantine" })}`}
+      />
+    );
+  }
+
   // The route guard already refuses anyone with no tab, so this is the belt to
   // its braces - and it says so rather than rendering a blank page.
   if (!active || !Panel) {
     return (
       <div className="page-pad">
-        <p className="warn-note" data-testid="inventory-no-tabs">
+        <Note tone="warn" testId="inventory-no-tabs">
           You have no inventory screens on your account.
-        </p>
+        </Note>
       </div>
     );
   }
 
-  // Page-level tabs, deliberately not the `.seg` pill strip the screens
-  // themselves use for their own groupings: on Stock on Hand the two sit one
-  // above the other, and two identical controls in a row read as an accident.
+  // Page-level places: each one changes the route, so they are links drawn as a
+  // `.seg` (design system v2, decision 5), the current one marked with
+  // aria-current. Rust marks only "where you are" in the shell's nav, never
+  // these. "damage" is a view of Stock on hand, not a tab of its own, wherever
+  // the Stock tab is there to carry it.
+  const asView = tabs.some((t) => t.slug === "stock") ? new Set(["damage"]) : new Set<string>();
   const daily = new Set(["stock", "damage", "returns"]);
   const tabLink = (t: (typeof tabs)[number]) => (
     <Link
@@ -72,7 +87,7 @@ export function InventoryPage() {
       // A goods-v1 line opens its own screen (GSA-T02); only a panel tab
       // stays on this page.
       to={t.link ? t.entry : `/inventory?${stockParams(params, { tab: t.slug })}`}
-      className={`page-tab ${t.slug === active.slug ? "active" : ""}`}
+      className={`seg-btn${t.slug === active.slug ? " active" : ""}`}
       aria-current={t.slug === active.slug ? "page" : undefined}
       data-testid={`inventory-tab-${t.slug}`}
     >
@@ -81,29 +96,38 @@ export function InventoryPage() {
   );
   const reviewTabs = tabs.filter((tab) => !daily.has(tab.slug));
   const strip = (
-    <div data-testid="inventory-tabs">
-      <nav aria-label="Daily stock operations" data-testid="inventory-daily-tabs">
-        <p className="eyebrow">Daily stock operations</p>
-        <div className="page-tabs">{tabs.filter((tab) => daily.has(tab.slug)).map(tabLink)}</div>
-        {tabs.some((tab) => tab.slug === "assigned-counts") && (
-          <p className="muted" data-testid="inventory-assigned-counts-inactive">
-            Blind counts freeze sales and stock movements. Trading stores must sync and pause their
-            online counter before starting; a different authorised person approves the reviewed
-            result before closure. Count schedules and earlier evidence are in Review &amp; history.
-          </p>
-        )}
+    <div className="inventory-strip" data-testid="inventory-tabs">
+      <nav
+        className="inventory-strip-daily"
+        aria-label="Daily stock operations"
+        data-testid="inventory-daily-tabs"
+      >
+        <div className="seg">
+          {tabs.filter((tab) => daily.has(tab.slug) && !asView.has(tab.slug)).map(tabLink)}
+        </div>
       </nav>
-      <details open={!daily.has(active.slug)} data-testid="inventory-review-tabs">
+      <details
+        className="inventory-strip-review"
+        open={!daily.has(active.slug)}
+        data-testid="inventory-review-tabs"
+      >
         <summary>Review &amp; history</summary>
-        <div className="page-tabs">
+        <div className="seg">
           {reviewTabs.map(tabLink)}
           {user && canAccess("/roadmap", user, session?.display_actions ?? [], featuresOn) && (
-            <Link className="page-tab" to="/roadmap">
+            <Link className="seg-btn" to="/roadmap">
               Application roadmap
             </Link>
           )}
         </div>
       </details>
+      {active.slug === "assigned-counts" && (
+        <p className="muted inventory-strip-note" data-testid="inventory-assigned-counts-inactive">
+          Blind counts freeze sales and stock movements. Trading stores must sync and pause their
+          online counter before starting; a different authorised person approves the reviewed result
+          before closure. Count schedules and earlier evidence are in Review &amp; history.
+        </p>
+      )}
     </div>
   );
 

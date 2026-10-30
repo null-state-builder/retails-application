@@ -35,6 +35,7 @@ import {
   Field,
   hold,
   PickerField,
+  useAllPages,
   usePagedPicker,
   useResourceDoc,
   useResourceList,
@@ -42,7 +43,11 @@ import {
   type ResourceDTO,
 } from "../lib/goodsScreen";
 import { useAuth } from "../auth/AuthContext";
+import { FilterChip, FilterChips } from "../components/FilterChip";
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { SegmentedControl } from "../components/SegmentedControl";
+import { Status } from "../components/Status";
 import "./Organisation.css";
 
 // --------------------------------------------------------------------------
@@ -264,16 +269,19 @@ function EntitiesPanel({
         <h3 className="h3">Legal entities</h3>
         <div className="spacer" />
         {canReadHistory && (
-          <button
-            className="btn btn-sm"
-            onClick={() => setShowRetired((shown) => !shown)}
-            data-testid="entities-retired-toggle"
-          >
-            {showRetired ? "Show active" : "Show retired"}
-          </button>
+          <SegmentedControl
+            label="Which to show"
+            testId="entities-retired-toggle"
+            value={showRetired ? "retired" : "active"}
+            options={[
+              { value: "active", label: "Active" },
+              { value: "retired", label: "Retired" },
+            ]}
+            onChange={(v) => setShowRetired(v === "retired")}
+          />
         )}
         {canEdit && (
-          <button className="btn btn-cta" onClick={add} data-testid="entity-new-button">
+          <button className="btn btn-primary" onClick={add} data-testid="entity-new-button">
             <Plus size={15} /> New legal entity
           </button>
         )}
@@ -290,7 +298,11 @@ function EntitiesPanel({
         />
       )}
       {canEdit && open && (
-        <div className="card section-card" data-testid="entity-editor">
+        <div
+          className="box"
+          style={{ marginBottom: "var(--space-16)" }}
+          data-testid="entity-editor"
+        >
           <div className="toolbar" style={{ marginBottom: 12 }}>
             <h3 className="h3">{editing ? "Edit legal entity" : "Create legal entity"}</h3>
             <div className="spacer" />
@@ -332,7 +344,7 @@ function EntitiesPanel({
               data-testid="entity-books-code-input"
             />
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               onClick={save}
               disabled={!form.code || !form.name}
               data-testid="entity-save-button"
@@ -360,8 +372,8 @@ function EntitiesPanel({
               </tr>
             ) : failure ? (
               <tr>
-                <td colSpan={5} className="warn-note">
-                  {failure}
+                <td colSpan={5}>
+                  <Status tone="red">{failure}</Status>
                 </td>
               </tr>
             ) : items.length === 0 ? (
@@ -375,13 +387,11 @@ function EntitiesPanel({
                     <b className="mono">{row.data.code}</b>
                   </td>
                   <td>{row.data.name}</td>
-                  <td className="mono" style={{ fontSize: 12.5 }}>
+                  <td className="mono" style={{ fontSize: 12 }}>
                     {row.data.pan || "—"}
                   </td>
                   <td>
-                    <span className={`chip chip-${row.state === "active" ? "green" : "red"}`}>
-                      {row.state}
-                    </span>
+                    <Status tone={row.state === "active" ? "green" : "grey"}>{row.state}</Status>
                   </td>
                   {(canEdit || canReadHistory) && (
                     <td>
@@ -553,17 +563,20 @@ function RegistrationsPanel({
         <h3 className="h3">Registrations</h3>
         <div className="spacer" />
         {canReadHistory && (
-          <button
-            className="btn btn-sm"
-            onClick={() => setShowRetired((shown) => !shown)}
-            data-testid="registrations-retired-toggle"
-          >
-            {showRetired ? "Show active" : "Show retired"}
-          </button>
+          <SegmentedControl
+            label="Which to show"
+            testId="registrations-retired-toggle"
+            value={showRetired ? "retired" : "active"}
+            options={[
+              { value: "active", label: "Active" },
+              { value: "retired", label: "Retired" },
+            ]}
+            onChange={(v) => setShowRetired(v === "retired")}
+          />
         )}
         {canEdit && (
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             onClick={add}
             disabled={!entities.items.length}
             data-testid="registration-new-button"
@@ -584,7 +597,11 @@ function RegistrationsPanel({
         />
       )}
       {canEdit && open && (
-        <div className="card section-card" data-testid="registration-editor">
+        <div
+          className="box"
+          style={{ marginBottom: "var(--space-16)" }}
+          data-testid="registration-editor"
+        >
           <div className="toolbar" style={{ marginBottom: 12 }}>
             <h3 className="h3">{editing ? "Edit registration" : "Create registration"}</h3>
             <div className="spacer" />
@@ -628,7 +645,7 @@ function RegistrationsPanel({
               data-testid="registration-state-name-input"
             />
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               onClick={save}
               disabled={!form.entity_id || !form.gstin || !form.state_code || !form.state_name}
               data-testid="registration-save-button"
@@ -656,8 +673,8 @@ function RegistrationsPanel({
               </tr>
             ) : failure ? (
               <tr>
-                <td colSpan={5} className="warn-note">
-                  {failure}
+                <td colSpan={5}>
+                  <Status tone="red">{failure}</Status>
                 </td>
               </tr>
             ) : items.length === 0 ? (
@@ -673,9 +690,7 @@ function RegistrationsPanel({
                   <td>{row.data.state_name}</td>
                   <td>{nameOf(row.data.entity_id)}</td>
                   <td>
-                    <span className={`chip chip-${row.state === "active" ? "green" : "red"}`}>
-                      {row.state}
-                    </span>
+                    <Status tone={row.state === "active" ? "green" : "grey"}>{row.state}</Status>
                   </td>
                   {(canEdit || canReadHistory) && (
                     <td>
@@ -734,8 +749,53 @@ const blankSite = {
   entity_id: "",
   registration_id: "",
   counter_count: 0,
+  linked_warehouse_id: "",
   permitted_operations: [] as string[],
 };
+
+/** A store's linked warehouse: an active warehouse of the same legal entity
+ *  (the server refuses anything else as LINKED_WAREHOUSE_INVALID). */
+function LinkedWarehouseSelect({
+  entityId,
+  value,
+  onChange,
+  testId,
+}: {
+  entityId: string;
+  value: string;
+  onChange: (id: string) => void;
+  testId: string;
+}) {
+  const { items, loading, failure } = useAllPages<ResourceDTO<SiteData>>(
+    entityId ? "/goods-v1/masters/stores" : null,
+  );
+  const warehouses = items.filter(
+    (row) => row.data.type === "warehouse" && String(row.data.entity_id) === entityId,
+  );
+  return (
+    <Field
+      id={testId}
+      label="Linked warehouse"
+      hint={failure || "Transfers to and from this store offer it first."}
+    >
+      <select
+        id={testId}
+        className="select"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={!entityId || loading}
+        data-testid={testId}
+      >
+        <option value="">{loading ? "Loading…" : "No linked warehouse"}</option>
+        {warehouses.map((row) => (
+          <option key={row.id} value={String(row.id)}>
+            {row.data.name} ({row.data.code})
+          </option>
+        ))}
+      </select>
+    </Field>
+  );
+}
 
 function operationsFor(type: string): readonly string[] {
   // Warehouses (and DCs) never see a selling capability at all — never mind
@@ -743,6 +803,13 @@ function operationsFor(type: string): readonly string[] {
   return type === "store" || type === "concession"
     ? OPERATIONS
     : OPERATIONS.filter((o) => o !== "sell");
+}
+
+function LinkedWarehouseName({ id }: { id: string | null }) {
+  const { doc, loading } = useResourceDoc<SiteData>(id ? `/goods-v1/masters/stores/${id}` : null);
+  if (!id) return <div>None</div>;
+  if (loading) return <div>Loading…</div>;
+  return <div>{doc ? `${doc.data.name} (${doc.data.code})` : `Site ${id}`}</div>;
 }
 
 function SiteListView({ onOpen }: { onOpen: (id: string) => void }) {
@@ -809,6 +876,7 @@ function SiteListView({ onOpen }: { onOpen: (id: string) => void }) {
       entity_id: form.entity_id,
       registration_id: form.registration_id,
       counter_count: form.type === "store" || form.type === "concession" ? form.counter_count : 0,
+      linked_warehouse_id: form.type === "store" ? form.linked_warehouse_id || null : null,
       permitted_operations: form.permitted_operations,
       brand_ids: [],
     };
@@ -833,16 +901,19 @@ function SiteListView({ onOpen }: { onOpen: (id: string) => void }) {
         <h3 className="h3">Sites</h3>
         <div className="spacer" />
         {canReadHistory && (
-          <button
-            className="btn btn-sm"
-            onClick={() => setShowRetired((shown) => !shown)}
-            data-testid="sites-retired-toggle"
-          >
-            {showRetired ? "Show active" : "Show retired"}
-          </button>
+          <SegmentedControl
+            label="Which to show"
+            testId="sites-retired-toggle"
+            value={showRetired ? "retired" : "active"}
+            options={[
+              { value: "active", label: "Active" },
+              { value: "retired", label: "Retired" },
+            ]}
+            onChange={(v) => setShowRetired(v === "retired")}
+          />
         )}
         {canEdit && (
-          <button className="btn btn-cta" onClick={add} data-testid="site-new-button">
+          <button className="btn btn-primary" onClick={add} data-testid="site-new-button">
             <Plus size={15} /> New site
           </button>
         )}
@@ -850,7 +921,7 @@ function SiteListView({ onOpen }: { onOpen: (id: string) => void }) {
       <Feedback error={error} ok={ok} />
       {stepUp.dialog}
       {canEdit && open && (
-        <div className="card section-card" data-testid="site-editor">
+        <div className="box" style={{ marginBottom: "var(--space-16)" }} data-testid="site-editor">
           <div className="toolbar" style={{ marginBottom: 12 }}>
             <h3 className="h3">Create site</h3>
             <div className="spacer" />
@@ -884,6 +955,7 @@ function SiteListView({ onOpen }: { onOpen: (id: string) => void }) {
                 setForm({
                   ...form,
                   type: e.target.value as SiteData["type"],
+                  linked_warehouse_id: "",
                   permitted_operations: [],
                 })
               }
@@ -908,7 +980,9 @@ function SiteListView({ onOpen }: { onOpen: (id: string) => void }) {
               noun="legal entity"
               placeholder="Select legal entity…"
               value={form.entity_id}
-              onChange={(id) => setForm({ ...form, entity_id: id, registration_id: "" })}
+              onChange={(id) =>
+                setForm({ ...form, entity_id: id, registration_id: "", linked_warehouse_id: "" })
+              }
               picker={entities}
             />
             <PickerField
@@ -932,27 +1006,34 @@ function SiteListView({ onOpen }: { onOpen: (id: string) => void }) {
                 data-testid="site-counter-count-input"
               />
             )}
+            {form.type === "store" && (
+              <LinkedWarehouseSelect
+                entityId={form.entity_id}
+                value={form.linked_warehouse_id}
+                onChange={(id) => setForm({ ...form, linked_warehouse_id: id })}
+                testId="site-linked-warehouse-select"
+              />
+            )}
           </div>
           <div style={{ marginTop: 12 }}>
-            <p className="eyebrow" style={{ marginBottom: 6 }}>
+            <p className="muted-cell" style={{ margin: "0 0 6px" }}>
               Permitted operations — a preset never makes this site ready; see its Readiness tab
             </p>
-            <div className="chip-picker" data-testid="site-operations-picker">
+            <FilterChips label="Permitted operations" testId="site-operations-picker">
               {operationsFor(form.type).map((op) => (
-                <button
+                <FilterChip
                   key={op}
-                  type="button"
-                  className={`chip chip-pick ${form.permitted_operations.includes(op) ? "chip-green" : ""}`}
+                  pressed={form.permitted_operations.includes(op)}
                   onClick={() => toggleOp(op)}
-                  data-testid={`site-operation-${op}`}
+                  testId={`site-operation-${op}`}
                 >
                   {op}
-                </button>
+                </FilterChip>
               ))}
-            </div>
+            </FilterChips>
           </div>
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             style={{ marginTop: 12 }}
             onClick={save}
             disabled={!form.code || !form.name || !form.entity_id || !form.registration_id}
@@ -980,8 +1061,8 @@ function SiteListView({ onOpen }: { onOpen: (id: string) => void }) {
               </tr>
             ) : failure ? (
               <tr>
-                <td colSpan={5} className="warn-note">
-                  {failure}
+                <td colSpan={5}>
+                  <Status tone="red">{failure}</Status>
                 </td>
               </tr>
             ) : items.length === 0 ? (
@@ -1001,17 +1082,11 @@ function SiteListView({ onOpen }: { onOpen: (id: string) => void }) {
                   </td>
                   <td>{row.data.name}</td>
                   <td>
-                    <span
-                      className={`chip chip-${row.data.type === "warehouse" ? "navy" : "green"}`}
-                    >
-                      {row.data.type}
-                    </span>
+                    <span className="chip">{row.data.type}</span>
                   </td>
                   <td>{row.data.city || "—"}</td>
                   <td>
-                    <span className={`chip chip-${row.state === "active" ? "green" : "amber"}`}>
-                      {row.state}
-                    </span>
+                    <Status tone={row.state === "active" ? "green" : "amber"}>{row.state}</Status>
                   </td>
                 </tr>
               ))
@@ -1053,7 +1128,7 @@ function SiteDetailView({
   if (loading) return <p className="lead">Loading…</p>;
   if (denied) return <Denied what="site" />;
   if (failure || !doc)
-    return <div className="warn-note">{failure || "This site could not be loaded."}</div>;
+    return <Note tone="error">{failure || "This site could not be loaded."}</Note>;
 
   return (
     <div data-testid="org-site-detail">
@@ -1066,20 +1141,17 @@ function SiteDetailView({
       <h3 className="h3" data-testid="site-detail-title">
         {doc.data.name} <span className="mono muted-cell">({doc.data.code})</span>
       </h3>
-      <div className="org-tabs" role="tablist" aria-label="Site sections">
-        {SITE_TABS.map((t) => (
-          <button
-            key={t}
-            role="tab"
-            aria-selected={tab === t}
-            className={`org-tab ${tab === t ? "active" : ""}`}
-            onClick={() => onTab(t)}
-            data-testid={`site-tab-${t}`}
-          >
-            {TAB_LABEL[t]}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        label="Site sections"
+        className="org-tabs"
+        options={SITE_TABS.map((t) => ({
+          value: t,
+          label: TAB_LABEL[t],
+          testId: `site-tab-${t}`,
+        }))}
+        value={tab}
+        onChange={onTab}
+      />
       {tab === "overview" && <SiteOverviewTab siteId={siteId} doc={doc} reload={reload} />}
       {tab === "sbus" && <SiteSbusTab siteId={siteId} />}
       {tab === "locations" && <SiteLocationsTab siteId={siteId} siteType={doc.data.type} />}
@@ -1109,6 +1181,7 @@ function SiteOverviewTab({
     entity_id: doc.data.entity_id ?? "",
     registration_id: doc.data.registration_id ?? "",
     counter_count: doc.data.counter_count ?? 0,
+    linked_warehouse_id: doc.data.linked_warehouse_id ? String(doc.data.linked_warehouse_id) : "",
     permitted_operations: doc.data.permitted_operations ?? [],
   }));
   // Both search and page (ticket 02D) rather than trusting a fixed first page
@@ -1154,6 +1227,7 @@ function SiteOverviewTab({
           entity_id: form.entity_id,
           registration_id: form.registration_id,
           counter_count: form.counter_count,
+          linked_warehouse_id: form.type === "store" ? form.linked_warehouse_id || null : null,
           permitted_operations: form.permitted_operations,
           ...goodsMeta(doc.revision),
         }),
@@ -1188,7 +1262,7 @@ function SiteOverviewTab({
       <Feedback error={error} ok={ok} />
       {stepUp.dialog}
       {!editing ? (
-        <div className="card section-card">
+        <div>
           <dl className="form-grid wide-form" style={{ rowGap: 6 }}>
             <div>
               <b>Type</b>
@@ -1198,6 +1272,12 @@ function SiteOverviewTab({
               <b>City</b>
               <div>{doc.data.city || "—"}</div>
             </div>
+            {doc.data.type === "store" && (
+              <div data-testid="site-overview-linked-warehouse">
+                <b>Linked warehouse</b>
+                <LinkedWarehouseName id={doc.data.linked_warehouse_id ?? null} />
+              </div>
+            )}
             <div>
               <b>Permitted operations</b>
               <div>{(doc.data.permitted_operations || []).join(", ") || "None yet"}</div>
@@ -1229,7 +1309,11 @@ function SiteOverviewTab({
           )}
         </div>
       ) : (
-        <div className="card section-card" data-testid="site-overview-editor">
+        <div
+          className="box"
+          style={{ marginBottom: "var(--space-16)" }}
+          data-testid="site-overview-editor"
+        >
           <div className="form-grid wide-form">
             <input
               className="input"
@@ -1258,7 +1342,9 @@ function SiteOverviewTab({
               noun="legal entity"
               placeholder="Select legal entity…"
               value={form.entity_id}
-              onChange={(id) => setForm({ ...form, entity_id: id, registration_id: "" })}
+              onChange={(id) =>
+                setForm({ ...form, entity_id: id, registration_id: "", linked_warehouse_id: "" })
+              }
               picker={entities}
             />
             <PickerField
@@ -1281,27 +1367,34 @@ function SiteOverviewTab({
                 data-testid="site-overview-counter-input"
               />
             )}
+            {form.type === "store" && (
+              <LinkedWarehouseSelect
+                entityId={form.entity_id}
+                value={form.linked_warehouse_id}
+                onChange={(id) => setForm({ ...form, linked_warehouse_id: id })}
+                testId="site-overview-linked-warehouse-select"
+              />
+            )}
           </div>
           <div style={{ marginTop: 12 }}>
-            <p className="eyebrow" style={{ marginBottom: 6 }}>
+            <p className="muted-cell" style={{ margin: "0 0 6px" }}>
               Permitted operations
             </p>
-            <div className="chip-picker">
+            <FilterChips label="Permitted operations">
               {operationsFor(form.type).map((op) => (
-                <button
+                <FilterChip
                   key={op}
-                  type="button"
-                  className={`chip chip-pick ${form.permitted_operations.includes(op) ? "chip-green" : ""}`}
+                  pressed={form.permitted_operations.includes(op)}
                   onClick={() => toggleOp(op)}
-                  data-testid={`site-overview-operation-${op}`}
+                  testId={`site-overview-operation-${op}`}
                 >
                   {op}
-                </button>
+                </FilterChip>
               ))}
-            </div>
+            </FilterChips>
           </div>
           <div className="toolbar" style={{ marginTop: 12 }}>
-            <button className="btn btn-cta" onClick={save} data-testid="site-overview-save">
+            <button className="btn btn-primary" onClick={save} data-testid="site-overview-save">
               <Save size={15} /> Save
             </button>
             <button
@@ -1353,8 +1446,8 @@ function SiteSbusTab({ siteId }: { siteId: string }) {
               </tr>
             ) : failure ? (
               <tr>
-                <td colSpan={4} className="warn-note">
-                  {failure}
+                <td colSpan={4}>
+                  <Status tone="red">{failure}</Status>
                 </td>
               </tr>
             ) : sbus.length === 0 ? (
@@ -1373,9 +1466,9 @@ function SiteSbusTab({ siteId }: { siteId: string }) {
                     )}
                   </td>
                   <td>
-                    <span className={`chip chip-${s.state === "retired" ? "red" : "green"}`}>
+                    <Status tone={s.state === "retired" ? "grey" : "green"}>
                       {s.state === "retired" ? "Retired" : "Active"}
-                    </span>
+                    </Status>
                   </td>
                 </tr>
               ))
@@ -1505,7 +1598,7 @@ function LocationRow({
             <span className="muted-cell">
               {LOCATION_KIND_LABEL[node.data.kind] ?? node.data.kind}
             </span>
-            {node.state === "retired" && <span className="chip chip-red">Retired</span>}
+            {node.state === "retired" && <Status>Retired</Status>}
             {canEdit && node.state !== "retired" && (
               <>
                 <button
@@ -1530,7 +1623,7 @@ function LocationRow({
           </>
         )}
       </div>
-      {error && <div className="warn-note">{error}</div>}
+      {error && <Note tone="error">{error}</Note>}
       {stepUp.dialog}
       {node.children.length > 0 && (
         <ul className="org-loc-tree">
@@ -1602,7 +1695,7 @@ function SiteLocationsTab({ siteId, siteType }: { siteId: string; siteType: stri
         <div className="spacer" />
         {canEdit && (
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             onClick={() => setOpen((o) => !o)}
             data-testid="location-new-button"
           >
@@ -1613,7 +1706,11 @@ function SiteLocationsTab({ siteId, siteType }: { siteId: string; siteType: stri
       <Feedback error={error} ok={ok} />
       {stepUp.dialog}
       {canEdit && open && (
-        <div className="card section-card" data-testid="location-editor">
+        <div
+          className="box"
+          style={{ marginBottom: "var(--space-16)" }}
+          data-testid="location-editor"
+        >
           <div className="form-grid wide-form">
             <input
               className="input"
@@ -1648,7 +1745,7 @@ function SiteLocationsTab({ siteId, siteType }: { siteId: string; siteType: stri
               ))}
             </select>
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               onClick={create}
               disabled={!name}
               data-testid="location-create-button"
@@ -1666,7 +1763,7 @@ function SiteLocationsTab({ siteId, siteType }: { siteId: string; siteType: stri
       {loading ? (
         <p className="lead">Loading…</p>
       ) : failure ? (
-        <div className="warn-note">{failure}</div>
+        <Note tone="error">{failure}</Note>
       ) : tree.length === 0 ? (
         <p className="lead" data-testid="locations-empty">
           No locations yet.
@@ -1691,7 +1788,7 @@ function SiteLocationsTab({ siteId, siteType }: { siteId: string; siteType: stri
 
 function ReadinessCard({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <div className="card section-card">
+    <div className="box">
       <h3 className="h3">{title}</h3>
       {children}
     </div>
@@ -1833,7 +1930,7 @@ function SiteReadinessTab({ siteId }: { siteId: string }) {
   if (loading) return <p className="lead">Loading…</p>;
   if (denied) return <Denied what="site" />;
   if (failure || !doc)
-    return <div className="warn-note">{failure || "Readiness could not be loaded."}</div>;
+    return <Note tone="error">{failure || "Readiness could not be loaded."}</Note>;
 
   const checks = doc.data.checks;
   const failing = checks.filter((c) => !c.passed);
@@ -1857,9 +1954,9 @@ function SiteReadinessTab({ siteId }: { siteId: string }) {
         </Field>
       )}
       <div className="toolbar" style={{ marginBottom: 12 }}>
-        <span className="chip chip-navy" data-testid="site-lifecycle">
+        <Status tone="blue" testId="site-lifecycle">
           {doc.data.lifecycle}
-        </span>
+        </Status>
         {canRun && (
           <button
             className="btn btn-sm"
@@ -1873,7 +1970,7 @@ function SiteReadinessTab({ siteId }: { siteId: string }) {
         <div className="spacer" />
         {canApprove && !doc.data.goods_ready && failing.length === 0 && (
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             onClick={() => act("approve_goods")}
             disabled={busy}
             data-testid="readiness-approve-goods-button"
@@ -1902,7 +1999,7 @@ function SiteReadinessTab({ siteId }: { siteId: string }) {
             </p>
             {canApprove && !doc.data.opening_setup_ready && (
               <button
-                className="btn btn-cta"
+                className="btn btn-primary"
                 onClick={() => act("approve_opening_setup")}
                 disabled={busy || failing.length > 0}
                 data-testid="readiness-approve-opening-button"
@@ -1927,9 +2024,7 @@ function SiteReadinessTab({ siteId }: { siteId: string }) {
           </p>
           {checks.map((c) => (
             <div className="org-check-row" key={c.key} data-testid={`readiness-check-${c.key}`}>
-              <span className={`chip chip-${c.passed ? "green" : "red"}`}>
-                {c.passed ? "OK" : "Missing"}
-              </span>
+              <Status tone={c.passed ? "green" : "red"}>{c.passed ? "OK" : "Missing"}</Status>
               <span>
                 <b>{c.key.replace(/_/g, " ")}</b>
                 {!c.passed && c.reason && <div className="muted-cell">{c.reason}</div>}
@@ -1947,9 +2042,7 @@ function SiteReadinessTab({ siteId }: { siteId: string }) {
             <>
               {sellingChecks.map((c) => (
                 <div className="org-check-row" key={c.key} data-testid={`selling-check-${c.key}`}>
-                  <span className={`chip chip-${c.passed ? "green" : "red"}`}>
-                    {c.passed ? "OK" : "Missing"}
-                  </span>
+                  <Status tone={c.passed ? "green" : "red"}>{c.passed ? "OK" : "Missing"}</Status>
                   <span>
                     <b>{c.key.replace(/_/g, " ")}</b>
                     {!c.passed && c.reason && <div className="muted-cell">{c.reason}</div>}
@@ -1958,7 +2051,7 @@ function SiteReadinessTab({ siteId }: { siteId: string }) {
               ))}
               {canApprove && !doc.data.sell_ready && (
                 <button
-                  className="btn btn-cta"
+                  className="btn btn-primary"
                   onClick={() => act("approve_sell")}
                   disabled={busy || sellingGaps.length > 0}
                   data-testid="readiness-approve-sell-button"
@@ -2011,7 +2104,7 @@ function SiteClosureTab({ siteId }: { siteId: string }) {
   if (loading) return <p className="lead">Loading…</p>;
   if (denied) return <Denied what="site" />;
   if (failure || !doc)
-    return <div className="warn-note">{failure || "Closure detail could not be loaded."}</div>;
+    return <Note tone="error">{failure || "Closure detail could not be loaded."}</Note>;
 
   const residuals = doc.data.residuals;
   const items: { code: string; label: string; qty: number | null; field?: string }[] = [
@@ -2100,15 +2193,15 @@ function SiteClosureTab({ siteId }: { siteId: string }) {
       </div>
       <p className="muted-cell" data-testid="closure-completeness">
         Measurement:{" "}
-        <span className={`chip chip-${residuals.completeness === "complete" ? "green" : "amber"}`}>
+        <Status tone={residuals.completeness === "complete" ? "green" : "amber"}>
           {residuals.completeness}
-        </span>
+        </Status>
         {residuals.completeness !== "complete" &&
           " — closing is blocked until this site's stock can be fully measured."}
       </p>
       {canApprove && doc.data.lifecycle === "active" && (
         <button
-          className="btn btn-cta"
+          className="btn btn-primary"
           onClick={startClosing}
           disabled={busy || residuals.completeness !== "complete"}
           data-testid="closure-start-button"
@@ -2188,7 +2281,7 @@ function TenantPanel() {
   if (loading) return <p className="lead">Loading…</p>;
   if (denied) return <Denied what="tenant profile" />;
   if (failure || !doc)
-    return <div className="warn-note">{failure || "The tenant profile could not be loaded."}</div>;
+    return <Note tone="error">{failure || "The tenant profile could not be loaded."}</Note>;
 
   return (
     <div data-testid="org-tenant-panel">
@@ -2196,7 +2289,7 @@ function TenantPanel() {
       <Feedback error={error} ok={ok} />
       {stepUp.dialog}
       {!editing ? (
-        <div className="card section-card">
+        <div>
           <dl className="form-grid wide-form" style={{ rowGap: 6 }}>
             <div>
               <b>Code</b>
@@ -2222,11 +2315,11 @@ function TenantPanel() {
               <b>Business profile</b>
               <div data-testid="tenant-business-profile">
                 {doc.data.business_profile_version_id ? (
-                  <span className="chip chip-green">Approved reference set</span>
+                  <Status tone="green">Approved reference set</Status>
                 ) : (
-                  <span className="chip chip-amber">
+                  <Status tone="amber">
                     No approved business profile yet — prepared and approved in ticket 04
-                  </span>
+                  </Status>
                 )}
               </div>
             </div>
@@ -2249,7 +2342,11 @@ function TenantPanel() {
           )}
         </div>
       ) : (
-        <div className="card section-card" data-testid="tenant-editor">
+        <div
+          className="box"
+          style={{ marginBottom: "var(--space-16)" }}
+          data-testid="tenant-editor"
+        >
           <div className="form-grid wide-form">
             <input
               className="input"
@@ -2281,7 +2378,7 @@ function TenantPanel() {
             />
           </div>
           <div className="toolbar" style={{ marginTop: 12 }}>
-            <button className="btn btn-cta" onClick={save} data-testid="tenant-save-button">
+            <button className="btn btn-primary" onClick={save} data-testid="tenant-save-button">
               <Save size={15} /> Save
             </button>
             <button

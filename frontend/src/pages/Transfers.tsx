@@ -10,13 +10,18 @@
 // server's answers; this screen shows them and opens the record where the work
 // actually happens.
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ArrowDownLeft, ArrowUpRight, Plus } from "lucide-react";
 
 import { useAuth } from "../auth/AuthContext";
+import { canAccess } from "../auth/routeAccess";
+import { FilterChip, FilterChips } from "../components/FilterChip";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { SegmentedControl } from "../components/SegmentedControl";
 import { SearchBox } from "../components/SearchBox";
+import { EmptyState } from "../components/States";
+import { Status } from "../components/Status";
 import { formatDateTime } from "../lib/format";
 import { Field, listState, useAllPages } from "../lib/goodsScreen";
 import {
@@ -28,7 +33,7 @@ import {
   type TransferFilterKey,
   type TransferSummary,
 } from "../lib/goodsTransfers";
-import { NewTransferPanel } from "./TransferDetail";
+import { NewTransferPanel, transferTone } from "./TransferDetail";
 
 const DIRECTIONS = [
   { key: "both", label: "Both ways" },
@@ -38,6 +43,24 @@ const DIRECTIONS = [
 
 type DirectionKey = (typeof DIRECTIONS)[number]["key"];
 
+/** The next step on a movement, in words, from where this site stands. Words
+ *  rather than a button: the list carries no per-row grant, so it says what
+ *  happens next and the record decides who may do it. */
+function nextStep(state: string, way: "in" | "out"): string {
+  switch (state) {
+    case "draft":
+      return way === "out" ? "Finish and submit" : "Being drafted";
+    case "submitted":
+      return "Waiting for approval";
+    case "approved":
+      return way === "out" ? "Pack and dispatch" : "Waiting for dispatch";
+    case "dispatching":
+      return way === "in" ? "Receive" : "On the road";
+    default:
+      return "—";
+  }
+}
+
 function siteLabel(sites: { id: string; code: string; name: string }[], id: string | null): string {
   if (!id) return "—";
   const found = sites.find((site) => String(site.id) === String(id));
@@ -45,7 +68,7 @@ function siteLabel(sites: { id: string; code: string; name: string }[], id: stri
 }
 
 export function TransfersPage() {
-  const { session } = useAuth();
+  const { user, session, featuresOn } = useAuth();
   const navigate = useNavigate();
   const sites = useMemo(() => session?.sites ?? [], [session]);
   const [siteId, setSiteId] = useState<string>(sites[0]?.id ?? "");
@@ -62,9 +85,15 @@ export function TransfersPage() {
     site ? `/goods-v1/outbound/transfers?site=${site}&limit=100` : null,
   );
 
-  const rows = list.items
+  const thisWay = list.items.filter(
+    (row) => direction === "both" || directionOf(row, site) === direction,
+  );
+  // How many of this direction's movements each stage chip holds. Only once the
+  // whole list is in: a count of a list still loading, or one that failed, is
+  // not a zero, so the chips then show no number at all.
+  const counted = !list.loading && !list.failure && !list.denied;
+  const rows = thisWay
     .filter((row) => matchesFilter(row, filter))
-    .filter((row) => direction === "both" || directionOf(row, site) === direction)
     .filter((row) => {
       if (!term.trim()) return true;
       const hay = [row.number ?? "", TRANSFER_STATE_LABEL[row.state] ?? row.state]
@@ -84,13 +113,23 @@ export function TransfersPage() {
         title="Transfers"
         lead="Stock moving between this site and another, in both directions, with the stage each movement has reached."
         actions={
-          <button
-            className="btn btn-cta"
-            onClick={() => setDrafting((open) => !open)}
-            data-testid="transfers-new"
-          >
-            <Plus size={14} /> New transfer
-          </button>
+          <>
+            {/* The legacy records are off the menu (desktop redesign Q4) but
+                stay readable until they retire (SO-03 C07): this is their way
+                in, for whoever their own gate opens. */}
+            {user && canAccess("/transfer", user, session?.display_actions ?? [], featuresOn) && (
+              <Link className="btn" to="/transfer" data-testid="transfers-earlier">
+                Earlier transfer records
+              </Link>
+            )}
+            <button
+              className="btn btn-primary"
+              onClick={() => setDrafting((open) => !open)}
+              data-testid="transfers-new"
+            >
+              <Plus size={14} /> New transfer
+            </button>
+          </>
         }
       />
 
@@ -123,21 +162,36 @@ export function TransfersPage() {
             </select>
           </Field>
         )}
-        <Field id="transfers-direction" label="Direction">
-          <select
-            id="transfers-direction"
-            className="select"
-            value={direction}
-            onChange={(e) => setDirection(e.target.value as DirectionKey)}
-            data-testid="transfers-direction"
-          >
-            {DIRECTIONS.map((d) => (
-              <option key={d.key} value={d.key}>
-                {d.label}
-              </option>
-            ))}
-          </select>
-        </Field>
+        {/* Three choices, all visible: a switch, not a dropdown to open. */}
+        <SegmentedControl
+          label="Direction"
+          className="transfers-direction"
+          testId="transfers-direction"
+          value={direction}
+          options={DIRECTIONS.map((d) => ({
+            value: d.key,
+            label: d.label,
+            testId: `transfers-direction-${d.key}`,
+          }))}
+          onChange={setDirection}
+        />
+        {/* The stage counts are the filter (mockup Transfers): each chip's number
+            is exactly what pressing it shows, and only once the whole list is in. */}
+        <FilterChips label="Stage" testId="transfers-chips">
+          {TRANSFER_FILTERS.map((chip) => (
+            <FilterChip
+              key={chip.key}
+              pressed={filter === chip.key}
+              onClick={() => setFilter(chip.key)}
+              count={
+                counted ? thisWay.filter((row) => matchesFilter(row, chip.key)).length : undefined
+              }
+              testId={`transfers-chip-${chip.key}`}
+            >
+              {chip.label}
+            </FilterChip>
+          ))}
+        </FilterChips>
         <div className="spacer" />
         <SearchBox
           value={term}
@@ -148,31 +202,13 @@ export function TransfersPage() {
         />
       </div>
 
-      <div className="toolbar" data-testid="transfers-chips">
-        {TRANSFER_FILTERS.map((chip) => (
-          <button
-            key={chip.key}
-            className={`btn btn-sm${filter === chip.key ? " btn-cta" : ""}`}
-            onClick={() => setFilter(chip.key)}
-            aria-pressed={filter === chip.key}
-            data-testid={`transfers-chip-${chip.key}`}
-          >
-            {chip.label}
-          </button>
-        ))}
-      </div>
-
       {list.denied ? (
-        <div className="card section-card" data-testid="transfers-denied">
-          <p className="eyebrow">Not found</p>
-          <h3 className="h3">There are no transfers here for you</h3>
-          <p className="lead">
-            Either this site does not exist, or it is outside what you may see.
-          </p>
-        </div>
+        <EmptyState heading="There are no transfers here for you" testId="transfers-denied">
+          Either this site does not exist, or it is outside what you may see.
+        </EmptyState>
       ) : (
         (state ?? (
-          <div className="table-wrap">
+          <div className="table-wrap capped">
             <table className="data" data-testid="transfers-table">
               <caption className="sr-only">
                 Transfers touching this site, each with its direction, stage and what is on the
@@ -180,13 +216,20 @@ export function TransfersPage() {
               </caption>
               <thead>
                 <tr>
-                  <th>Way</th>
-                  <th>Number</th>
-                  <th>Other site</th>
-                  <th>Stage</th>
-                  <th className="num">Shipments</th>
-                  <th className="num">On the road</th>
-                  <th>Started</th>
+                  <th scope="col">Transfer</th>
+                  <th scope="col">Other site</th>
+                  <th scope="col">Stage</th>
+                  <th scope="col" className="num p2">
+                    Shipments
+                  </th>
+                  <th scope="col" className="num">
+                    On the road
+                  </th>
+                  <th scope="col">Started</th>
+                  <th scope="col">Next step</th>
+                  <th scope="col" className="p3">
+                    What it means
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -202,59 +245,57 @@ export function TransfersPage() {
                       style={{ cursor: "pointer" }}
                     >
                       <td>
-                        <span className="chip chip-navy">
-                          {way === "out" ? (
-                            <>
-                              <ArrowUpRight size={13} /> Sending
-                            </>
-                          ) : (
-                            <>
-                              <ArrowDownLeft size={13} /> Receiving
-                            </>
-                          )}
-                        </span>
-                      </td>
-                      <td>
-                        <button
-                          className="btn btn-sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/goods/transfers/${row.id}`);
-                          }}
+                        {/* A place, so a link; the row's own click goes to the same place. */}
+                        <Link
+                          className={row.number ? "mono" : undefined}
+                          to={`/goods/transfers/${row.id}`}
+                          onClick={(e) => e.stopPropagation()}
                           data-testid={`transfer-open-${row.id}`}
                         >
                           {row.number ?? "Not numbered yet"}
-                        </button>
-                        {row.custody === "quarantine" ? (
-                          <span
-                            className="chip chip-amber"
-                            title="Held goods that stay in quarantine at both sites"
-                            data-testid={`transfer-custody-${row.id}`}
-                          >
-                            Quarantine
-                          </span>
-                        ) : row.custody === "pre_pt" ? (
-                          <span
-                            className="chip chip-amber"
-                            title="Damaged goods not yet on a PT: held at both sites, value unknown"
-                            data-testid={`transfer-custody-${row.id}`}
-                          >
-                            Pre-PT damaged
-                          </span>
-                        ) : null}
+                        </Link>
+                        <span className="sub">
+                          {way === "out" ? (
+                            <>
+                              <ArrowUpRight size={13} aria-hidden="true" /> Sending
+                            </>
+                          ) : (
+                            <>
+                              <ArrowDownLeft size={13} aria-hidden="true" /> Receiving
+                            </>
+                          )}
+                          {row.custody === "quarantine" ? (
+                            <span
+                              title="Held goods that stay in quarantine at both sites"
+                              data-testid={`transfer-custody-${row.id}`}
+                            >
+                              {" "}
+                              · <Status tone="amber">Quarantine</Status>
+                            </span>
+                          ) : row.custody === "pre_pt" ? (
+                            <span
+                              title="Damaged goods not yet on a PT: held at both sites, value unknown"
+                              data-testid={`transfer-custody-${row.id}`}
+                            >
+                              {" "}
+                              · <Status tone="amber">Pre-PT damaged</Status>
+                            </span>
+                          ) : null}
+                        </span>
                       </td>
                       <td>{siteLabel([...sites, row.source_site, row.destination_site], other)}</td>
                       <td data-testid={`transfer-state-${row.id}`}>
-                        <span
-                          className={`chip chip-${row.state === "completed" ? "green" : "amber"}`}
-                        >
+                        <Status tone={transferTone(row.state)}>
                           {TRANSFER_STATE_LABEL[row.state] ?? row.state}
-                        </span>
-                        <span className="muted"> {TRANSFER_STATE_HELP[row.state]}</span>
+                        </Status>
                       </td>
-                      <td className="num">{row.dispatch_count}</td>
+                      <td className="num p2">{row.dispatch_count}</td>
                       <td className="num">{row.in_transit_qty}</td>
                       <td>{formatDateTime(row.created_at)}</td>
+                      <td className="transfers-next" data-testid={`transfer-next-${row.id}`}>
+                        {nextStep(row.state, way === "out" ? "out" : "in")}
+                      </td>
+                      <td className="p3 muted">{TRANSFER_STATE_HELP[row.state]}</td>
                     </tr>
                   );
                 })}

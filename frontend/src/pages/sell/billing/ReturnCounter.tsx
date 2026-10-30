@@ -5,6 +5,8 @@ import { describeOriginal, refundFor, returnableQty } from "../../../till/exchan
 import type { OriginalLine, PickedReturn, PickedReturns } from "../../../till/exchange";
 import type { FoundBill } from "../../../till/original";
 import type { TillKnownCustomer } from "../../../till/types";
+import { Note } from "../../../components/Note";
+import { SegmentedControl } from "../../../components/SegmentedControl";
 
 export type ReturnSearchKey = "mobile" | "name";
 
@@ -60,19 +62,15 @@ export function ReturnCustomerSearch({
         )}
       </div>
       <div className="return-customer-form">
-        <div className="bill-mode" role="group" aria-label="Search customer by">
-          {(["mobile", "name"] as const).map((key) => (
-            <button
-              key={key}
-              type="button"
-              className={`bill-mode-button ${searchKey === key ? "is-active" : ""}`}
-              aria-pressed={searchKey === key}
-              onClick={() => onSearchKey(key)}
-            >
-              {key === "mobile" ? "Mobile" : "Name"}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          label="Search customer by"
+          value={searchKey}
+          options={[
+            { value: "mobile", label: "Mobile" },
+            { value: "name", label: "Name" },
+          ]}
+          onChange={onSearchKey}
+        />
         <input
           className="input"
           autoComplete="off"
@@ -88,7 +86,7 @@ export function ReturnCustomerSearch({
         />
         <button
           type="button"
-          className="btn btn-cta"
+          className="btn btn-primary"
           data-testid="return-customer-submit"
           disabled={looking || !term.trim()}
           onClick={onSearch}
@@ -98,7 +96,7 @@ export function ReturnCustomerSearch({
       </div>
       {customers.length > 0 && (
         <div className="return-known-customers" data-testid="return-known-customers">
-          <span className="eyebrow">Known customers</span>
+          <span className="bill-label">Known customers</span>
           <div>
             {customers.map((customer) => (
               <button
@@ -114,7 +112,7 @@ export function ReturnCustomerSearch({
           </div>
         </div>
       )}
-      {error && <p className="bill-alert">{error}</p>}
+      {error && <p className="note note-warn">{error}</p>}
       {matches?.length === 0 && !error && (
         <p className="muted-cell">No bill this counter can see matches that customer.</p>
       )}
@@ -177,7 +175,7 @@ export function AgainstBill({
     <section className="return-against" data-testid="return-against-bill">
       <header className="return-against-head">
         <div>
-          <span className="eyebrow">Against bill</span>
+          <span className="bill-label">Against bill</span>
           <strong className="mono">{found.original.doc_number}</strong>
           <span className="muted-cell">
             {formatDateTime(found.billed_at)}
@@ -202,9 +200,9 @@ export function AgainstBill({
       </header>
 
       {late && (
-        <p className="warn-note" data-testid="return-late">
+        <Note tone="warn" testId="return-late">
           This bill is past the {windowDays}-day return window. Save &amp; Print will ask a manager.
-        </p>
+        </Note>
       )}
 
       <div className="return-lines-wrap">
@@ -336,7 +334,7 @@ export function RecentBills({
   return (
     <div className="bill-recent-panel" data-testid="bill-recent-panel">
       <div className="bill-recent-head">
-        <p className="eyebrow">Recent bills</p>
+        <h3 className="heading">Recent bills</h3>
         <span className="muted-cell">Pick one to start return</span>
       </div>
       <div className="bill-recent-rows">

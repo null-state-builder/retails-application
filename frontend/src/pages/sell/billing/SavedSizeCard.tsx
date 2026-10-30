@@ -90,7 +90,7 @@ function SizesFor({ mobile, online }: { mobile: string; online: boolean }) {
   return (
     <section className="bill-consent" data-testid="saved-sizes">
       <div className="bill-customer-heading">
-        <p className="eyebrow">Saved sizes</p>
+        <h3 className="heading">Saved sizes</h3>
         <span>Learned from this customer's bills</span>
       </div>
       {problem ? (
@@ -234,7 +234,7 @@ function CorrectionForm({
         </p>
       )}
       {message && (
-        <p className="bill-alert bill-consent-note" data-testid="saved-size-message">
+        <p className="note note-warn bill-consent-note" data-testid="saved-size-message">
           {message}
         </p>
       )}

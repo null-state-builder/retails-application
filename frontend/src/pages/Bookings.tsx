@@ -17,11 +17,17 @@ import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom"
 import { FileUp, Plus, Send, Sparkles, Trash2, XCircle } from "lucide-react";
 
 import { useAuth } from "../auth/AuthContext";
-import { ListSearchBar } from "../components/SearchBox";
+import { SearchBox } from "../components/SearchBox";
+import { Note } from "../components/Note";
+import { Box, Section } from "../components/Section";
+import { EmptyState, ErrorState } from "../components/States";
+import { canAccess } from "../auth/routeAccess";
+import { useWideScreen } from "../lib/useWideScreen";
+import { isOver, type OtbBudget, type OtbList } from "../lib/openToBuy";
 import { userCan } from "../shell/navConfig";
 import { api, apiErrorMessage } from "../lib/api";
 import { useDoc, useList } from "../lib/hooks";
-import { formatINR, rupeesToPaise } from "../lib/format";
+import { Money, formatDay, formatINR, rupeesToPaise } from "../lib/format";
 import {
   engineOfId,
   engineOfStore,
@@ -30,6 +36,8 @@ import {
   legacyCard,
   legacyStatus,
   lineTotals,
+  STATUS_WORD,
+  type BookingCard,
   type BookingEngine,
   type BookingFilter,
   type GoodsBookingRow,
@@ -38,10 +46,10 @@ import {
 import { canFill, expandLine, splitWords, type SizeCurveFill } from "../lib/sizeCurve";
 import { SizeCurveLineFill, SizeCurveNote, useSizeCurves } from "./BookingSizeCurve";
 import {
-  BookingCardLink,
   BookingFormTotals,
   BookingLinesTable,
   BookingPageHeader,
+  BookingStatusChip,
   BookingTiles,
 } from "../components/BookingBits";
 import {
@@ -56,6 +64,7 @@ import {
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import "./Booking.css";
+import { SegmentedControl } from "../components/SegmentedControl";
 
 interface BookingT extends LegacyBookingRow {
   season_name: string;
@@ -89,9 +98,38 @@ interface BookingLineT {
 
 const FILTERS: { key: BookingFilter; label: string }[] = [
   { key: "open", label: "Open" },
+  { key: "waiting", label: "Waiting for approval" },
   { key: "done", label: "Done" },
   { key: "all", label: "All" },
 ];
+
+/** Every booking this person may read, from both engines, as the same cards.
+ *  Each engine is read only by someone it answers - a `booking: view` section
+ *  for the older one, a goods-v1 booking grant for the other. The list and the
+ *  queue beside an open booking read the same thing. */
+export function useBookingCards() {
+  const { user, session } = useAuth();
+  const readsLegacy = userCan(user, "booking", "view");
+  const readsGoods = readsGoodsBookings(session);
+  const legacy = useList<LegacyBookingRow>(readsLegacy ? "/bookings" : null);
+  const goods = useGoodsBookingSummaries(readsGoods);
+  const loading = (readsLegacy && legacy.loading) || (readsGoods && goods.loading);
+  const cards = useMemo(
+    () => [
+      ...(readsLegacy ? legacy.data.map(legacyCard) : []),
+      ...(readsGoods ? goods.value.map((row) => goodsCard(row as GoodsBookingRow)) : []),
+    ],
+    [readsLegacy, readsGoods, legacy.data, goods.value],
+  );
+  return { cards, loading, failure: goods.failure };
+}
+
+/** Pieces arrived against booked, in words a row can hold. */
+function arrivedWords(card: BookingCard): string {
+  if (card.booked <= 0) return "—";
+  const booked = card.booked.toLocaleString("en-IN");
+  return card.arrived > 0 ? `${card.arrived.toLocaleString("en-IN")} of ${booked}` : booked;
+}
 
 export function BookingsPage() {
   const { user, session } = useAuth();
@@ -107,82 +145,261 @@ export function BookingsPage() {
     if (asked) navigate(`/booking/${asked}`, { replace: true });
   }, [asked, navigate]);
 
-  // Each engine is read only by someone it answers - a `booking: view` section
-  // for the older one, a goods-v1 booking grant for the other.
-  const readsLegacy = userCan(user, "booking", "view");
-  const readsGoods = readsGoodsBookings(session);
-  const legacy = useList<LegacyBookingRow>(readsLegacy ? "/bookings" : null);
-  const goods = useGoodsBookingSummaries(readsGoods);
-  const loading = (readsLegacy && legacy.loading) || (readsGoods && goods.loading);
-
-  const cards = useMemo(
-    () => [
-      ...(readsLegacy ? legacy.data.map(legacyCard) : []),
-      ...(readsGoods ? goods.value.map((row) => goodsCard(row as GoodsBookingRow)) : []),
-    ],
-    [readsLegacy, readsGoods, legacy.data, goods.value],
-  );
+  const { cards, loading, failure } = useBookingCards();
   const { shown, counts } = filterCards(cards, filter, q);
   const canPlace = userCan(user, "booking", "operate") || managesGoodsBookings(session);
 
   return (
     <OperationsPage data-testid="bookings-list">
       <PageHeader
+        lead={
+          <>
+            {/* Said only once both engines have answered: no guessed count. */}
+            {!loading && cards.length > 0 && (
+              <b data-testid="bookings-count">
+                {counts.open.toLocaleString("en-IN")} open
+                {counts.waiting ? `, ${counts.waiting} waiting for approval` : ""}.{" "}
+              </b>
+            )}
+            Orders placed with brands before the season, checked against open-to-buy before they go
+            out.
+          </>
+        }
         actions={
           canPlace && (
-            <Link className="btn btn-cta" to="/booking/new" data-testid="new-booking-btn">
+            <Link className="btn btn-primary" to="/booking/new" data-testid="new-booking-btn">
               <Plus size={16} /> New booking
             </Link>
           )
         }
       />
 
-      <ListSearchBar
-        value={q}
-        onChange={setQ}
-        placeholder="Search bookings — number, brand, vendor, season, store"
-        label="Search bookings"
-        testId="bookings-search"
-        noun="booking"
-        count={shown.length}
-        loading={loading}
-      />
+      <OpenToBuyStrip />
 
-      <div className="seg bk-chips" role="tablist" aria-label="Which bookings">
-        {FILTERS.map(({ key, label }) => (
-          <button
-            key={key}
-            role="tab"
-            aria-selected={filter === key}
-            className={`seg-btn ${filter === key ? "active" : ""}`}
-            onClick={() => setFilter(key)}
-            data-testid={`bookings-filter-${key}`}
-          >
-            {label}
-            <span className="count">{counts[key]}</span>
-          </button>
-        ))}
+      {/* Status chips with their counts are the filter (rulebook 3, 11); the
+          search is last on the same bar. */}
+      <div className="toolbar">
+        <div className="filter-chips" role="group" aria-label="Which bookings">
+          {FILTERS.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              className="filter-chip"
+              aria-pressed={filter === key}
+              onClick={() => setFilter(key)}
+              data-testid={`bookings-filter-${key}`}
+            >
+              {label}
+              <span className="filter-chip-n">{loading ? "—" : counts[key]}</span>
+            </button>
+          ))}
+        </div>
+        <div className="spacer" />
+        <SearchBox
+          value={q}
+          onChange={setQ}
+          placeholder="Number, brand, vendor, season or store"
+          label="Search bookings"
+          testId="bookings-search"
+        />
       </div>
 
-      {goods.failure && <div className="warn-note">{goods.failure}</div>}
+      {failure && <Note tone="error">{failure}</Note>}
       {loading ? (
         <p className="lead">Loading…</p>
       ) : shown.length === 0 ? (
-        <div className="card section-card" data-testid="bookings-empty">
+        <EmptyState
+          testId="bookings-empty"
+          action={
+            canPlace && !q ? (
+              <Link className="btn" to="/booking/new">
+                <Plus size={14} /> New booking
+              </Link>
+            ) : undefined
+          }
+        >
           {q
             ? `No booking matches “${q}”. Try the number, the brand, the vendor, the season or the store.`
             : filter === "open"
               ? "No open bookings."
-              : "No bookings here yet."}
-        </div>
+              : filter === "waiting"
+                ? "No booking is waiting for approval."
+                : "No bookings here yet."}
+        </EmptyState>
       ) : (
-        <div className="card-grid" data-testid="bookings-grid">
-          {shown.map((card) => (
-            <BookingCardLink key={`${card.engine}:${card.id}`} card={card} />
-          ))}
+        <div className="table-wrap capped">
+          <table className="data" data-testid="bookings-table">
+            <caption className="sr-only">
+              Bookings with brands, each with its season, store, pieces and status.
+            </caption>
+            <thead>
+              <tr>
+                <th>Booking</th>
+                <th>Brand</th>
+                <th>Season</th>
+                <th>Store</th>
+                <th className="num">Pieces</th>
+                <th>Expected</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((card) => (
+                <tr
+                  key={`${card.engine}:${card.id}`}
+                  onClick={() => navigate(`/booking/${card.id}`)}
+                  style={{ cursor: "pointer" }}
+                  data-testid={`booking-row-${card.id}`}
+                  data-engine={card.engine}
+                >
+                  <td>
+                    <Link
+                      className="mono"
+                      to={`/booking/${card.id}`}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {card.number ?? "No number yet"}
+                    </Link>
+                  </td>
+                  <td>
+                    {card.brand || "—"}
+                    {card.vendor && card.vendor !== card.brand && (
+                      <div className="muted">{card.vendor}</div>
+                    )}
+                  </td>
+                  <td>{card.season || "—"}</td>
+                  <td>{card.store || "—"}</td>
+                  <td className="num" data-testid="booking-row-progress">
+                    {arrivedWords(card)}
+                  </td>
+                  <td>{card.expected ? formatDay(card.expected) : "—"}</td>
+                  <td>
+                    <BookingStatusChip status={card.status} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
+      {!loading && shown.length > 0 && (
+        <p className="muted bk-foot" data-testid="bookings-shown">
+          {shown.length.toLocaleString("en-IN")} of {cards.length.toLocaleString("en-IN")} bookings.
+          Pieces read arrived of booked once anything has arrived.
+        </p>
+      )}
     </OperationsPage>
+  );
+}
+
+/** Open-to-buy at the top of Bookings (mockup Booking): what is left to book
+ *  per brand and season, at cost, from the server's own figures. Drawn only for
+ *  someone the Open-to-Buy screen opens for, since every figure is at cost. */
+function OpenToBuyStrip() {
+  const { user, session, featuresOn } = useAuth();
+  const allowed =
+    !!user && canAccess("/booking/open-to-buy", user, session?.display_actions ?? [], featuresOn);
+  const [budgets, setBudgets] = useState<OtbBudget[] | null>(null);
+  useEffect(() => {
+    if (!allowed) return;
+    let live = true;
+    api
+      .get<OtbList>("/goods-v1/open-to-buy")
+      .then((r) => live && setBudgets(r.data.budgets))
+      .catch(() => live && setBudgets(null));
+    return () => {
+      live = false;
+    };
+  }, [allowed]);
+  if (!allowed || !budgets || budgets.length === 0) return null;
+  // Tightest first: the budget closest to running out is the one to look at.
+  const shown = [...budgets]
+    .sort((a, b) => Number(a.open_to_buy_paise) - Number(b.open_to_buy_paise))
+    .slice(0, 6);
+  return (
+    <Section
+      heading="Open-to-buy"
+      testId="bookings-otb"
+      aside={
+        <Link to="/booking/open-to-buy" data-testid="bookings-otb-all">
+          {budgets.length > shown.length ? `All ${budgets.length} budgets` : "Budgets"}
+        </Link>
+      }
+    >
+      <p className="muted">Budget at cost, less open bookings and goods received</p>
+      <div className="otb-strip-grid">
+        {shown.map((b) => {
+          const budget = Number(b.budget_paise);
+          const used = Number(b.open_paise) + Number(b.received_paise);
+          const pct = budget > 0 ? Math.min(100, Math.round((used / budget) * 100)) : 100;
+          const over = isOver(b.open_to_buy_paise);
+          return (
+            <div key={b.id} className="otb-tile" data-testid={`bookings-otb-${b.id}`}>
+              <div className="otb-tile-name">
+                {b.brand.name} · {b.season.name}
+                {b.site && <span className="muted"> · {b.site.code}</span>}
+              </div>
+              <div className={`otb-tile-left${over ? " over" : ""}`}>
+                {over ? (
+                  <>
+                    <Money paise={-Number(b.open_to_buy_paise)} short /> over
+                  </>
+                ) : (
+                  <>
+                    <Money paise={Number(b.open_to_buy_paise)} short /> left
+                  </>
+                )}
+              </div>
+              <div className="bk-prog-bar" aria-hidden>
+                <div
+                  className={`bk-prog-fill${over ? " over" : ""}`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <div className="muted otb-tile-meta">
+                Booked <Money paise={used} short /> of <Money paise={budget} short />
+                {b.cost_missing_pieces > 0 &&
+                  ` · ${b.cost_missing_pieces.toLocaleString("en-IN")} pcs with no cost not counted`}
+                {!b.switched_on && " · switched off"}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Section>
+  );
+}
+
+/** The open bookings beside the one being read (layout L): the next booking is
+ *  a click away instead of a trip back to the list. The same reads the list
+ *  makes; it opens nothing the list would not. */
+function BookingQueue({ currentId }: { currentId: string }) {
+  const { cards, loading } = useBookingCards();
+  const { shown } = filterCards(cards, "open", "");
+  if (loading || shown.length === 0) return null;
+  return (
+    <nav className="box side-queue" aria-label="Open bookings" data-testid="booking-queue">
+      <p className="side-queue-head">
+        Open bookings <span className="filter-chip-n">{shown.length}</span>
+      </p>
+      <ul>
+        {shown.map((card) => (
+          <li key={`${card.engine}:${card.id}`}>
+            <Link
+              to={`/booking/${card.id}`}
+              className={`side-queue-item${card.id === currentId ? " active" : ""}`}
+              aria-current={card.id === currentId ? "page" : undefined}
+            >
+              <span className="side-queue-ref">{card.brand || "Booking"}</span>
+              <span className="side-queue-meta">
+                <span className="mono">{card.number ?? "No number yet"}</span>
+                {STATUS_WORD[card.status]}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </nav>
   );
 }
 
@@ -546,11 +763,8 @@ export function BookingNewPage() {
       <PageHeader title="New booking" />
 
       {canLegacy && (
-        <div className="card section-card">
-          <p className="eyebrow">Optional · The vendor's document</p>
-          <h3 className="h3" style={{ marginBottom: 12 }}>
-            Upload it and the lines are filled in for you
-          </h3>
+        <Section heading="The vendor's document (optional)">
+          <p className="lead">Upload it and the lines are filled in for you.</p>
           <label className="dropzone" data-testid="booking-dropzone">
             <input
               type="file"
@@ -571,22 +785,17 @@ export function BookingNewPage() {
               </span>
             )}
           </label>
-          {aiNote && (
-            <div className="ai-note" data-testid="ai-note">
-              <Sparkles size={14} /> {aiNote}
-            </div>
-          )}
+          {aiNote && <Note testId="ai-note">{aiNote}</Note>}
           {warn && (
-            <div className="warn-note" data-testid="ai-warn">
+            <Note tone="warn" testId="ai-warn">
               {warn}
-            </div>
+            </Note>
           )}
-        </div>
+        </Section>
       )}
 
-      <div className="card section-card">
-        <p className="eyebrow">The booking</p>
-        <div className="form-row" style={{ marginTop: 10 }}>
+      <Section heading="The booking" ruled={canLegacy}>
+        <div className="form-row">
           <div className="field">
             <label htmlFor="gb-destination">Store (where the goods go)</label>
             <select
@@ -710,23 +919,21 @@ export function BookingNewPage() {
             </>
           )}
         </div>
-      </div>
+      </Section>
 
-      <div className="card section-card">
-        <div className="toolbar" style={{ marginBottom: 10 }}>
-          <div>
-            <p className="eyebrow">Lines</p>
-            <h3 className="h3">What is booked</h3>
-          </div>
-          <div className="spacer" />
+      <Section
+        heading="What is booked"
+        ruled
+        aside={
           <button
-            className="btn"
+            className="btn btn-sm"
             onClick={() => setLines((l) => [...l, emptyLine()])}
             data-testid="gb-add-line"
           >
             <Plus size={15} /> Add line
           </button>
-        </div>
+        }
+      >
         {showCost && (
           <p className="hint" style={{ marginBottom: 10 }}>
             Cost per piece is a guide only. The PT still sets the cost that counts.
@@ -741,9 +948,9 @@ export function BookingNewPage() {
           />
         ))}
         {curveNote && (
-          <p className="ok-note" role="status" data-testid="gb-curve-filled">
+          <Note tone="success" role="status" testId="gb-curve-filled">
             {curveNote}
-          </p>
+          </Note>
         )}
         <div className="lines-scroll">
           <table className="lines-table" data-testid="gb-draft-lines">
@@ -906,16 +1113,12 @@ export function BookingNewPage() {
           mrpPaise={totals.mrpPaise}
           showCost={showCost}
         />
-      </div>
+      </Section>
 
       {error && (
-        <div
-          className="warn-note"
-          style={{ maxWidth: 560, marginBottom: 12 }}
-          data-testid="gb-error"
-        >
+        <Note tone="error" testId="gb-error">
           {error}
-        </div>
+        </Note>
       )}
       <button
         className="btn btn-primary btn-lg"
@@ -982,16 +1185,13 @@ function EndBooking({ booking, onDone }: { booking: BookingT; onDone: () => void
   }
 
   return (
-    <div className="card section-card" style={{ marginBottom: 18 }} data-testid="end-booking-panel">
+    <Box style={{ marginBottom: 18 }} data-testid="end-booking-panel">
       <div className="toolbar" style={{ marginBottom: 10 }}>
-        <div>
-          <p className="eyebrow">Ending this booking</p>
-          <h3 className="h3">
-            {action === "cancel"
-              ? "Cancel — nothing has arrived"
-              : `Close early — ${booking.open_qty} piece(s) will not come`}
-          </h3>
-        </div>
+        <h3 className="h3">
+          {action === "cancel"
+            ? "Cancel — nothing has arrived"
+            : `Close early — ${booking.open_qty} piece(s) will not come`}
+        </h3>
         <div className="spacer" />
         <button
           className="btn btn-sm"
@@ -1001,26 +1201,23 @@ function EndBooking({ booking, onDone }: { booking: BookingT; onDone: () => void
           Keep it open
         </button>
       </div>
-      <div className="seg" style={{ marginBottom: 10 }}>
-        <button
-          className={`seg-btn ${action === "close" ? "active" : ""}`}
-          onClick={() => setAction("close")}
-          data-testid="end-action-close"
-        >
-          Close early
-        </button>
-        <button
-          className={`seg-btn ${action === "cancel" ? "active" : ""}`}
-          onClick={() => setAction("cancel")}
-          disabled={!nothingReceived}
-          title={
-            nothingReceived ? undefined : "Goods have already arrived — close it early instead"
-          }
-          data-testid="end-action-cancel"
-        >
-          Cancel
-        </button>
-      </div>
+      <SegmentedControl
+        label="How it ends"
+        value={action}
+        onChange={setAction}
+        options={[
+          { value: "close", label: "Close early", testId: "end-action-close" },
+          {
+            value: "cancel",
+            label: "Cancel",
+            testId: "end-action-cancel",
+            disabled: !nothingReceived,
+            title: nothingReceived
+              ? undefined
+              : "Goods have already arrived — close it early instead",
+          },
+        ]}
+      />
       <input
         className="input"
         placeholder="Why is this booking ending? (e.g. season over, vendor sent 60 pcs short)"
@@ -1029,12 +1226,12 @@ function EndBooking({ booking, onDone }: { booking: BookingT; onDone: () => void
         data-testid="end-booking-reason"
       />
       {error && (
-        <div className="warn-note" style={{ marginTop: 10 }} data-testid="end-booking-error">
+        <Note tone="error" testId="end-booking-error">
           {error}
-        </div>
+        </Note>
       )}
       <button
-        className="btn btn-cta"
+        className="btn btn-danger"
         style={{ marginTop: 12 }}
         disabled={reason.trim().length < 3 || saving}
         onClick={submit}
@@ -1046,7 +1243,7 @@ function EndBooking({ booking, onDone }: { booking: BookingT; onDone: () => void
             ? "Cancel this booking"
             : "Close this booking early"}
       </button>
-    </div>
+    </Box>
   );
 }
 
@@ -1072,7 +1269,7 @@ function SendBookingForApproval({ booking, onDone }: { booking: BookingT; onDone
   return (
     <>
       <button
-        className="btn btn-cta"
+        className="btn btn-primary"
         disabled={saving}
         onClick={submit}
         data-testid="booking-send-approval"
@@ -1080,9 +1277,9 @@ function SendBookingForApproval({ booking, onDone }: { booking: BookingT; onDone
         <Send size={15} /> {saving ? "Sending…" : "Send to Owner for approval"}
       </button>
       {error && (
-        <span className="warn-note" data-testid="booking-send-error">
+        <Note tone="error" testId="booking-send-error">
           {error}
-        </span>
+        </Note>
       )}
     </>
   );
@@ -1098,9 +1295,11 @@ function LegacyBookingDetail({ id }: { id: string }) {
   if (error) {
     return (
       <OperationsPage>
-        <div className="card section-card" data-testid="booking-missing">
-          That booking was not found.
-        </div>
+        <ErrorState
+          heading="That booking was not found."
+          message={apiErrorMessage(error)}
+          testId="booking-missing"
+        />
       </OperationsPage>
     );
   }
@@ -1155,19 +1354,17 @@ function LegacyBookingDetail({ id }: { id: string }) {
       )}
 
       {b.status === "submitted" && (
-        <div className="card section-card" data-testid="booking-waiting-note">
-          <p className="eyebrow">Waiting for the Owner</p>
-          <p className="lead">
-            It is on the Owner's Action Needed. Goods cannot be received against it until the Owner
-            approves it.
-          </p>
-        </div>
+        <Note testId="booking-waiting-note">
+          <b>Waiting for the Owner.</b> It is on the Owner's Action Needed. Goods cannot be received
+          against it until the Owner approves it.
+        </Note>
       )}
 
       {ended && (
-        <div className="card section-card" data-testid="booking-ended-note">
-          <p className="eyebrow">{b.status === "cancelled" ? "Cancelled" : "Closed early"}</p>
-          <h3 className="h3">{b.close_reason || "No reason recorded"}</h3>
+        <Section
+          heading={`${b.status === "cancelled" ? "Cancelled" : "Closed early"}: ${b.close_reason || "No reason recorded"}`}
+          testId="booking-ended-note"
+        >
           <p className="lead">
             {b.closed_by_name ? `${b.closed_by_name} · ` : ""}
             {b.closed_at ? new Date(b.closed_at).toLocaleString("en-IN") : ""}
@@ -1175,7 +1372,7 @@ function LegacyBookingDetail({ id }: { id: string }) {
               ? ` · ${b.open_qty} piece(s) did not come`
               : ""}
           </p>
-        </div>
+        </Section>
       )}
 
       <BookingTiles
@@ -1191,15 +1388,24 @@ function LegacyBookingDetail({ id }: { id: string }) {
   );
 }
 
-/** `/booking/<id>`: a number opens the older engine, a uuid opens goods-v1. */
+/** `/booking/<id>`: a number opens the older engine, a uuid opens goods-v1.
+ *  On a wide screen the open bookings sit beside it (layout L). */
 export function BookingDetailPage() {
   const { id = "" } = useParams();
-  if (engineOfId(id) === "goods") {
-    return (
+  const wide = useWideScreen();
+  const detail =
+    engineOfId(id) === "goods" ? (
       <OperationsPage>
         <GoodsBookingDetail bookingId={id} />
       </OperationsPage>
+    ) : (
+      <LegacyBookingDetail id={id} />
     );
-  }
-  return <LegacyBookingDetail id={id} />;
+  if (!wide) return detail;
+  return (
+    <div className="page-pad queue-split booking-split">
+      <BookingQueue currentId={id} />
+      <div className="queue-work">{detail}</div>
+    </div>
+  );
 }

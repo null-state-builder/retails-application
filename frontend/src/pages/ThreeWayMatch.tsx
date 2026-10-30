@@ -11,6 +11,7 @@
 import { useEffect, useState } from "react";
 import { Scale } from "lucide-react";
 
+import { Note } from "../components/Note";
 import { api, apiErrorCode, apiErrorMessage } from "../lib/api";
 import { formatPaiseString } from "../lib/format";
 import type { ResourceDTO } from "../lib/goodsScreen";
@@ -100,15 +101,15 @@ export function ThreeWayPanel({
         <Scale size={15} /> Booked, invoiced and counted
       </h4>
       {state.kind === "offline" && (
-        <div className="warn-note" data-testid="twm-offline">
+        <Note tone="warn" testId="twm-offline">
           You are offline, so the match cannot be read now. Counting is not affected. It shows again
           as soon as the connection is back.
-        </div>
+        </Note>
       )}
       {state.kind === "failed" && (
-        <div className="warn-note" data-testid="twm-failed">
+        <Note tone="error" testId="twm-failed">
           {state.message}
-        </div>
+        </Note>
       )}
       {state.kind === "ready" && <ThreeWayTable data={state.data} />}
     </section>

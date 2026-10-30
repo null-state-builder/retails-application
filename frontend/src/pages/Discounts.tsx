@@ -21,10 +21,12 @@
 // screen invented.
 
 import { useState } from "react";
-import { AlertTriangle, BadgePercent, HandCoins, Receipt } from "lucide-react";
-
+import { KpiStrip } from "../components/KpiStrip";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
+import { SegmentedControl } from "../components/SegmentedControl";
+import { Status } from "../components/Status";
 import { useDoc } from "../lib/hooks";
 import "./Booking.css";
 import "./OffersPrice.css";
@@ -117,17 +119,16 @@ export function DiscountsPage() {
       <PageHeader lead="Every rupee that came off a ticket, and every rupee that should have. The rules did most of it; where a person decided instead, they are named - and where the till missed an offer a piece was entitled to, it is listed on its own bill, on its own date." />
 
       <div className="filter-bar">
-        {PRESETS.map((p) => (
-          <button
-            key={p.key}
-            type="button"
-            className={`chip chip-pick${preset.key === p.key ? " chip-navy" : ""}`}
-            onClick={() => setPreset(p)}
-            data-testid={`discounts-window-${p.key}`}
-          >
-            {p.label}
-          </button>
-        ))}
+        <SegmentedControl
+          label="Window"
+          options={PRESETS.map((p) => ({
+            value: p.key,
+            label: p.label,
+            testId: `discounts-window-${p.key}`,
+          }))}
+          value={preset.key}
+          onChange={(key) => setPreset(PRESETS.find((p) => p.key === key) ?? INITIAL_PRESET)}
+        />
         {data && (
           <span className="hint">
             {data.from} → {data.to}
@@ -139,50 +140,40 @@ export function DiscountsPage() {
         <p className="lead">Loading…</p>
       ) : (
         <>
-          <div className="kpi-row" style={{ marginTop: 18 }}>
-            <div className="card kpi" data-testid="kpi-discount">
-              <p className="eyebrow">
-                <BadgePercent size={13} /> Came off the ticket
-              </p>
-              <p className="kpi-value rust">{money(data.totals.disc_paise)}</p>
-              <p className="kpi-note">
-                {data.totals.discount_pct ?? "0"}% of {money(data.totals.gross_paise)} at MRP
-              </p>
-            </div>
-            <div className="card kpi" data-testid="kpi-net">
-              <p className="eyebrow">
-                <Receipt size={13} /> Collected
-              </p>
-              <p className="kpi-value">{money(data.totals.net_paise)}</p>
-              <p className="kpi-note">
-                {data.totals.bills} bill{data.totals.bills === 1 ? "" : "s"} · {data.totals.lines}{" "}
-                line{data.totals.lines === 1 ? "" : "s"}
-              </p>
-            </div>
-            <div className="card kpi" data-testid="kpi-keyed">
-              <p className="eyebrow">
-                <HandCoins size={13} /> A person decided
-              </p>
-              <p className="kpi-value">{money(data.keyed_in.disc_paise)}</p>
-              <p className="kpi-note">
-                keyed in at the counter, on {data.keyed_in.lines} line
-                {data.keyed_in.lines === 1 ? "" : "s"}
-              </p>
-            </div>
-            <div className="card kpi" data-testid="kpi-missed">
-              <p className="eyebrow">
-                <AlertTriangle size={13} /> Owed, not given
-              </p>
-              <p className="kpi-value rust">{money(data.not_applied.missed_paise)}</p>
-              <p className="kpi-note">
-                {data.not_applied.open_flags} bill
-                {data.not_applied.open_flags === 1 ? "" : "s"} still open
-              </p>
-            </div>
-          </div>
+          <KpiStrip
+            label="The window"
+            items={[
+              {
+                label: "Came off the ticket",
+                value: money(data.totals.disc_paise),
+                detail: `${data.totals.discount_pct ?? "0"}% of ${money(data.totals.gross_paise)} at MRP`,
+                testId: "kpi-discount",
+              },
+              {
+                label: "Collected",
+                value: money(data.totals.net_paise),
+                detail: `${data.totals.bills} bill${data.totals.bills === 1 ? "" : "s"} · ${data.totals.lines} line${data.totals.lines === 1 ? "" : "s"}`,
+                testId: "kpi-net",
+              },
+              {
+                label: "A person decided",
+                value: money(data.keyed_in.disc_paise),
+                detail: `keyed in at the counter, on ${data.keyed_in.lines} line${data.keyed_in.lines === 1 ? "" : "s"}`,
+                testId: "kpi-keyed",
+              },
+              {
+                label: "Owed, not given",
+                value: money(data.not_applied.missed_paise),
+                detail: `${data.not_applied.open_flags} bill${data.not_applied.open_flags === 1 ? "" : "s"} still open`,
+                testId: "kpi-missed",
+              },
+            ]}
+          />
 
-          <div className="card section-card" data-testid="discounts-by-offer">
-            <p className="eyebrow">What each rule cost, and whose scheme it is</p>
+          <Section
+            heading="What each rule cost, and whose scheme it is"
+            testId="discounts-by-offer"
+          >
             {data.by_offer.length === 0 ? (
               <p className="hint">No rule priced a line in this window.</p>
             ) : (
@@ -201,13 +192,7 @@ export function DiscountsPage() {
                     {data.by_offer.map((row) => (
                       <tr key={row.offer_id} data-testid={`by-offer-${row.offer_id}`}>
                         <td>{row.name}</td>
-                        <td>
-                          <span
-                            className={`chip chip-${row.funder === "brand" ? "blue" : "purple"}`}
-                          >
-                            {row.funder === "brand" ? "brand's scheme" : "KDPS markdown"}
-                          </span>
-                        </td>
+                        <td>{row.funder === "brand" ? "brand's scheme" : "KDPS markdown"}</td>
                         <td>{row.layer}</td>
                         <td className="num tabular">{row.lines}</td>
                         <td className="num tabular">{money(row.disc_paise)}</td>
@@ -217,13 +202,10 @@ export function DiscountsPage() {
                 </table>
               </div>
             )}
-          </div>
+          </Section>
 
-          <div className="card section-card" data-testid="discounts-not-applied">
-            <p className="eyebrow">
-              <AlertTriangle size={13} /> Eligible, and not given
-            </p>
-            <p className="hint" style={{ marginTop: 0 }}>
+          <Section heading="Eligible, and not given" ruled testId="discounts-not-applied">
+            <p className="hint">
               The rulebook priced these lines one way and the till charged another. Listed on the
               bill and the date they actually happened — nothing here is moved into a different
               month.
@@ -252,11 +234,9 @@ export function DiscountsPage() {
                         <td>{row.store_code}</td>
                         <td className="num tabular">{money(row.missed_paise)}</td>
                         <td>
-                          <span
-                            className={`chip chip-${row.status === "open" ? "amber" : "green"}`}
-                          >
+                          <Status tone={row.status === "open" ? "amber" : "green"}>
                             {row.status}
-                          </span>
+                          </Status>
                         </td>
                       </tr>
                     ))}
@@ -264,12 +244,9 @@ export function DiscountsPage() {
                 </table>
               </div>
             )}
-          </div>
+          </Section>
 
-          <div className="card section-card" data-testid="discounts-keyed-in">
-            <p className="eyebrow">
-              <HandCoins size={13} /> Keyed in at the counter
-            </p>
+          <Section heading="Keyed in at the counter" ruled testId="discounts-keyed-in">
             {data.keyed_in.by_person.length === 0 ? (
               <p className="hint">Nobody keyed a discount in this window.</p>
             ) : (
@@ -296,10 +273,9 @@ export function DiscountsPage() {
                 </table>
               </div>
             )}
-          </div>
+          </Section>
 
-          <div className="card section-card" data-testid="discounts-by-brand">
-            <p className="eyebrow">Where it landed, by brand</p>
+          <Section heading="Where it landed, by brand" ruled testId="discounts-by-brand">
             {data.by_brand.length === 0 ? (
               <p className="hint">No discount in this window.</p>
             ) : (
@@ -326,7 +302,7 @@ export function DiscountsPage() {
                 </table>
               </div>
             )}
-          </div>
+          </Section>
         </>
       )}
     </OperationsPage>

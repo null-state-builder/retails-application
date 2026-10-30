@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { PageHeader } from "../components/PageHeader";
+import { Note } from "../components/Note";
+import { Section } from "../components/Section";
 import { api, apiErrorMessage } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
@@ -180,14 +182,14 @@ export function TaskChecklistsPage() {
     />
   );
   const offlineNote = (!online || lost) && (
-    <p className="warn-note" data-testid="tcl-offline" role="status">
+    <Note tone="warn" role="status" testId="tcl-offline">
       {OFFLINE}
-    </p>
+    </Note>
   );
   const errorNote = error && (
-    <p className="warn-note" data-testid="tcl-error">
+    <Note tone="error" testId="tcl-error">
       {error}
-    </p>
+    </Note>
   );
 
   if (!data) {
@@ -209,9 +211,9 @@ export function TaskChecklistsPage() {
       {offlineNote}
       {errorNote}
       {saved && (
-        <p className="ok-note" data-testid="tcl-saved">
+        <Note tone="success" role="status" testId="tcl-saved">
           {saved}
-        </p>
+        </Note>
       )}
       {data.stores_on.length === 0 && (
         <p className="muted-cell" data-testid="tcl-off">
@@ -219,233 +221,238 @@ export function TaskChecklistsPage() {
         </p>
       )}
 
-      <section className="card section-card" data-testid="tcl-list">
-        <h3 className="section-title">Checklists</h3>
-        {data.templates.length === 0 ? (
-          <p className="muted-cell" data-testid="tcl-empty">
-            No checklist is set yet.
-          </p>
-        ) : (
-          data.templates.map((t) => (
-            <div className="cl-list" key={t.id} data-testid={`tcl-row-${t.name}`}>
-              <div className="cl-list-head">
-                <b>{t.name}</b>
-                <span className="cl-when">{everyText(t)}</span>
+      <div className="page">
+        <Section heading="Checklists" testId="tcl-list">
+          {data.templates.length === 0 ? (
+            <p className="muted-cell" data-testid="tcl-empty">
+              No checklist is set yet.
+            </p>
+          ) : (
+            data.templates.map((t) => (
+              <div className="cl-list" key={t.id} data-testid={`tcl-row-${t.name}`}>
+                <div className="cl-list-head">
+                  <b>{t.name}</b>
+                  <span className="cl-when">{everyText(t)}</span>
+                </div>
+                <ul className="cl-items">
+                  {t.items.map((item) => (
+                    <li className="cl-item" key={item.id}>
+                      <span className="cl-text">
+                        {item.text}
+                        {item.opens && (
+                          <span className="cl-meta">
+                            Opens:{" "}
+                            {data.opens.find((o) => o.key === item.opens)?.name ?? item.opens}
+                          </span>
+                        )}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+                {data.can_edit && (
+                  <p className="cl-actions" style={{ marginTop: 8 }}>
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      data-testid="tcl-edit"
+                      disabled={disabled}
+                      onClick={() => {
+                        pending.current.delete(`${URL}/${t.id}`);
+                        setEditing(t.id);
+                        setDraft(draftOf(t));
+                      }}
+                    >
+                      Change
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm"
+                      data-testid="tcl-stop"
+                      disabled={disabled}
+                      onClick={() =>
+                        void send(
+                          `${URL}/${t.id}/stop`,
+                          { expected_revision: t.revision },
+                          `Checklist stopped: ${t.name}.`,
+                        )
+                      }
+                    >
+                      Stop
+                    </button>
+                  </p>
+                )}
               </div>
-              <ul className="cl-items">
-                {t.items.map((item) => (
-                  <li className="cl-item" key={item.id}>
-                    <span className="cl-text">
-                      {item.text}
-                      {item.opens && (
-                        <span className="cl-meta">
-                          Opens: {data.opens.find((o) => o.key === item.opens)?.name ?? item.opens}
-                        </span>
-                      )}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-              {data.can_edit && (
-                <p className="cl-actions" style={{ marginTop: 8 }}>
-                  <button
-                    type="button"
-                    className="btn btn-sm"
-                    data-testid="tcl-edit"
+            ))
+          )}
+        </Section>
+
+        {data.can_edit && (
+          <Section
+            heading={editing ? "Change the checklist" : "Set a checklist"}
+            ruled
+            testId="tcl-form"
+          >
+            <div className="form-grid">
+              <label className="field">
+                <span>Name</span>
+                <input
+                  className="input"
+                  data-testid="tcl-name"
+                  maxLength={80}
+                  value={draft.name}
+                  disabled={disabled}
+                  onChange={(e) => edit({ ...draft, name: e.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>How often</span>
+                <select
+                  className="select"
+                  data-testid="tcl-every"
+                  value={draft.every}
+                  disabled={disabled}
+                  onChange={(e) => edit({ ...draft, every: e.target.value })}
+                >
+                  {EVERY_CHOICES.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {draft.every === "week" && (
+                <label className="field">
+                  <span>On</span>
+                  <select
+                    className="select"
+                    data-testid="tcl-weekday"
+                    value={draft.weekday}
                     disabled={disabled}
-                    onClick={() => {
-                      pending.current.delete(`${URL}/${t.id}`);
-                      setEditing(t.id);
-                      setDraft(draftOf(t));
+                    onChange={(e) => edit({ ...draft, weekday: e.target.value })}
+                  >
+                    {WEEKDAYS.map((day, index) => (
+                      <option key={day} value={index}>
+                        {day}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+              {draft.every === "month" && (
+                <label className="field">
+                  <span>Day of the month</span>
+                  <input
+                    type="number"
+                    className="input"
+                    data-testid="tcl-day"
+                    min={1}
+                    max={31}
+                    value={draft.day_of_month}
+                    disabled={disabled}
+                    onChange={(e) => edit({ ...draft, day_of_month: e.target.value })}
+                  />
+                </label>
+              )}
+              <label className="field">
+                <span>Due by (empty: the end of the day)</span>
+                <input
+                  type="time"
+                  className="input"
+                  data-testid="tcl-due-by"
+                  value={draft.due_by}
+                  disabled={disabled}
+                  onChange={(e) => edit({ ...draft, due_by: e.target.value })}
+                />
+              </label>
+            </div>
+
+            <p className="cl-missed-head" style={{ color: "var(--caption)", marginTop: 14 }}>
+              Items
+            </p>
+            <ul className="cl-items" data-testid="tcl-items">
+              {draft.items.map((item, index) => (
+                <li className="cl-item" key={index}>
+                  <input
+                    className="input cl-text"
+                    data-testid="tcl-item-text"
+                    maxLength={200}
+                    placeholder="What to do"
+                    value={item.text}
+                    disabled={disabled}
+                    onChange={(e) => {
+                      const items = [...draft.items];
+                      items[index] = { ...item, text: e.target.value };
+                      edit({ ...draft, items });
+                    }}
+                  />
+                  <select
+                    className="select"
+                    data-testid="tcl-item-opens"
+                    value={item.opens}
+                    disabled={disabled}
+                    onChange={(e) => {
+                      const items = [...draft.items];
+                      items[index] = { ...item, opens: e.target.value };
+                      edit({ ...draft, items });
                     }}
                   >
-                    Change
-                  </button>
+                    {data.opens.map((o) => (
+                      <option key={o.key} value={o.key}>
+                        {o.key ? `Opens: ${o.name}` : "Opens nothing"}
+                      </option>
+                    ))}
+                  </select>
                   <button
                     type="button"
                     className="btn btn-sm"
-                    data-testid="tcl-stop"
-                    disabled={disabled}
+                    data-testid="tcl-item-remove"
+                    disabled={disabled || draft.items.length === 1}
                     onClick={() =>
-                      void send(
-                        `${URL}/${t.id}/stop`,
-                        { expected_revision: t.revision },
-                        `Checklist stopped: ${t.name}.`,
-                      )
+                      edit({ ...draft, items: draft.items.filter((_, i) => i !== index) })
                     }
                   >
-                    Stop
+                    Remove
                   </button>
-                </p>
-              )}
-            </div>
-          ))
-        )}
-      </section>
-
-      {data.can_edit && (
-        <section className="card section-card" data-testid="tcl-form">
-          <h3 className="section-title">{editing ? "Change the checklist" : "Set a checklist"}</h3>
-          <div className="form-grid">
-            <label className="field">
-              <span>Name</span>
-              <input
-                className="input"
-                data-testid="tcl-name"
-                maxLength={80}
-                value={draft.name}
-                disabled={disabled}
-                onChange={(e) => edit({ ...draft, name: e.target.value })}
-              />
-            </label>
-            <label className="field">
-              <span>How often</span>
-              <select
-                className="select"
-                data-testid="tcl-every"
-                value={draft.every}
-                disabled={disabled}
-                onChange={(e) => edit({ ...draft, every: e.target.value })}
-              >
-                {EVERY_CHOICES.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {draft.every === "week" && (
-              <label className="field">
-                <span>On</span>
-                <select
-                  className="select"
-                  data-testid="tcl-weekday"
-                  value={draft.weekday}
-                  disabled={disabled}
-                  onChange={(e) => edit({ ...draft, weekday: e.target.value })}
-                >
-                  {WEEKDAYS.map((day, index) => (
-                    <option key={day} value={index}>
-                      {day}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-            {draft.every === "month" && (
-              <label className="field">
-                <span>Day of the month</span>
-                <input
-                  type="number"
-                  className="input"
-                  data-testid="tcl-day"
-                  min={1}
-                  max={31}
-                  value={draft.day_of_month}
-                  disabled={disabled}
-                  onChange={(e) => edit({ ...draft, day_of_month: e.target.value })}
-                />
-              </label>
-            )}
-            <label className="field">
-              <span>Due by (empty: the end of the day)</span>
-              <input
-                type="time"
-                className="input"
-                data-testid="tcl-due-by"
-                value={draft.due_by}
-                disabled={disabled}
-                onChange={(e) => edit({ ...draft, due_by: e.target.value })}
-              />
-            </label>
-          </div>
-
-          <p className="cl-missed-head" style={{ color: "var(--caption)", marginTop: 14 }}>
-            Items
-          </p>
-          <ul className="cl-items" data-testid="tcl-items">
-            {draft.items.map((item, index) => (
-              <li className="cl-item" key={index}>
-                <input
-                  className="input cl-text"
-                  data-testid="tcl-item-text"
-                  maxLength={200}
-                  placeholder="What to do"
-                  value={item.text}
-                  disabled={disabled}
-                  onChange={(e) => {
-                    const items = [...draft.items];
-                    items[index] = { ...item, text: e.target.value };
-                    edit({ ...draft, items });
-                  }}
-                />
-                <select
-                  className="select"
-                  data-testid="tcl-item-opens"
-                  value={item.opens}
-                  disabled={disabled}
-                  onChange={(e) => {
-                    const items = [...draft.items];
-                    items[index] = { ...item, opens: e.target.value };
-                    edit({ ...draft, items });
-                  }}
-                >
-                  {data.opens.map((o) => (
-                    <option key={o.key} value={o.key}>
-                      {o.key ? `Opens: ${o.name}` : "Opens nothing"}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className="btn btn-sm"
-                  data-testid="tcl-item-remove"
-                  disabled={disabled || draft.items.length === 1}
-                  onClick={() =>
-                    edit({ ...draft, items: draft.items.filter((_, i) => i !== index) })
-                  }
-                >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
-          <p className="cl-actions" style={{ marginTop: 10, justifyContent: "flex-start" }}>
-            <button
-              type="button"
-              className="btn btn-sm"
-              data-testid="tcl-item-add"
-              disabled={disabled || draft.items.length >= 30}
-              onClick={() =>
-                edit({ ...draft, items: [...draft.items, { id: "", text: "", opens: "" }] })
-              }
-            >
-              Add an item
-            </button>
-            <button
-              type="button"
-              className="btn btn-cta"
-              data-testid="tcl-save"
-              disabled={!canSave}
-              onClick={() => void save()}
-            >
-              {editing ? "Save changes" : "Save checklist"}
-            </button>
-            {editing && (
+                </li>
+              ))}
+            </ul>
+            <p className="cl-actions" style={{ marginTop: 10, justifyContent: "flex-start" }}>
               <button
                 type="button"
-                className="btn"
-                onClick={() => {
-                  setEditing(null);
-                  setDraft(EMPTY);
-                }}
+                className="btn btn-sm"
+                data-testid="tcl-item-add"
+                disabled={disabled || draft.items.length >= 30}
+                onClick={() =>
+                  edit({ ...draft, items: [...draft.items, { id: "", text: "", opens: "" }] })
+                }
               >
-                Cancel
+                Add an item
               </button>
-            )}
-          </p>
-        </section>
-      )}
+              <button
+                type="button"
+                className="btn btn-primary"
+                data-testid="tcl-save"
+                disabled={!canSave}
+                onClick={() => void save()}
+              >
+                {editing ? "Save changes" : "Save checklist"}
+              </button>
+              {editing && (
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() => {
+                    setEditing(null);
+                    setDraft(EMPTY);
+                  }}
+                >
+                  Cancel
+                </button>
+              )}
+            </p>
+          </Section>
+        )}
+      </div>
     </div>
   );
 }

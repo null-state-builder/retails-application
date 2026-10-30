@@ -22,7 +22,10 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, CornerUpLeft, PackageX, ShieldAlert, X } from "lucide-react";
+import { Check, CornerUpLeft, ShieldAlert, X } from "lucide-react";
+import { Note } from "./Note";
+import { SegmentedControl } from "./SegmentedControl";
+import { Status } from "./Status";
 
 import "./ScanScreen.css";
 
@@ -328,24 +331,33 @@ export function ScanScreen({
         // Two big targets, not a checkbox: the operator is holding a piece in
         // one hand and a phone in the other, and the mode has to be readable
         // at a glance while the next 200 pieces go through.
-        <div className="scan-modes" data-testid="scan-mode-toggle">
-          <button
-            type="button"
-            className={`scan-mode ${asDamaged ? "" : "active"}`}
-            onClick={() => setAsDamaged(false)}
-            data-testid="scan-mode-good"
-          >
-            <Check size={16} /> Good
-          </button>
-          <button
-            type="button"
-            className={`scan-mode danger ${asDamaged ? "active" : ""}`}
-            onClick={() => setAsDamaged(true)}
-            data-testid="scan-mode-damaged"
-          >
-            <ShieldAlert size={16} /> Damaged
-          </button>
-        </div>
+        <SegmentedControl<"good" | "damaged">
+          label="Scan pieces as"
+          testId="scan-mode-toggle"
+          className={`scan-modes ${asDamaged ? "is-damaged" : ""}`}
+          value={asDamaged ? "damaged" : "good"}
+          onChange={(value) => setAsDamaged(value === "damaged")}
+          options={[
+            {
+              value: "good",
+              label: (
+                <>
+                  <Check size={16} aria-hidden="true" /> Good
+                </>
+              ),
+              testId: "scan-mode-good",
+            },
+            {
+              value: "damaged",
+              label: (
+                <>
+                  <ShieldAlert size={16} aria-hidden="true" /> Damaged
+                </>
+              ),
+              testId: "scan-mode-damaged",
+            },
+          ]}
+        />
       )}
 
       <div
@@ -369,14 +381,14 @@ export function ScanScreen({
       {exceptions && (totalDamaged > 0 || totalExtras > 0) && (
         <div className="scan-tallies" data-testid="scan-tallies">
           {totalDamaged > 0 && (
-            <span className="chip chip-amber" data-testid="scan-damaged-tally">
-              <ShieldAlert size={13} /> {totalDamaged} damaged → quarantine
-            </span>
+            <Status tone="amber" testId="scan-damaged-tally">
+              {totalDamaged} damaged → quarantine
+            </Status>
           )}
           {totalExtras > 0 && (
-            <span className="chip chip-amber" data-testid="scan-extras-tally">
-              <PackageX size={13} /> {totalExtras} extra, not on this transfer
-            </span>
+            <Status tone="amber" testId="scan-extras-tally">
+              {totalExtras} extra, not on this transfer
+            </Status>
           )}
         </div>
       )}
@@ -471,19 +483,24 @@ export function ScanScreen({
         </div>
       )}
 
-      {error ? (
-        <div className="scan-error" data-testid="scan-error">
-          {error}
+      {/* One note at a time, held just above the confirm button. */}
+      {(error || hasMismatch || short > 0) && (
+        <div className="scan-float-note">
+          {error ? (
+            <Note tone="error" testId="scan-error">
+              {error}
+            </Note>
+          ) : hasMismatch ? (
+            <Note tone="warn" testId="scan-mismatch-note">
+              Scanned ≠ planned — the transfer will carry a mismatch flag.
+            </Note>
+          ) : (
+            <Note tone="warn" testId="scan-short-note">
+              {short} piece(s) not scanned — they stay in transit until a senior closes the gap.
+            </Note>
+          )}
         </div>
-      ) : hasMismatch ? (
-        <div className="scan-mismatch-note" data-testid="scan-mismatch-note">
-          Scanned ≠ planned — the transfer will carry a mismatch flag.
-        </div>
-      ) : short > 0 ? (
-        <div className="scan-mismatch-note" data-testid="scan-short-note">
-          {short} piece(s) not scanned — they stay in transit until a senior closes the gap.
-        </div>
-      ) : null}
+      )}
 
       <div className="scan-foot">
         <button

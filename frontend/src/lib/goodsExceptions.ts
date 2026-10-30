@@ -130,6 +130,7 @@ const KIND_LABEL: Record<string, string> = {
   export_failed: "Export failed",
   opening_variance: "Opening stock variance",
   opening_origin_unavailable: "Opening origin unavailable",
+  stock_sync_review: "SOH sync needs review",
   stock_hold_active: "Stock on hold",
   privileged_change_review: "Privileged change to review",
   setup_configuration_invalid: "Store setup missing or invalid",
@@ -223,6 +224,7 @@ const REASON_LABEL: Record<string, string> = {
   TRANSIT_SHORTAGE: "Arrived short",
   PRINT_FAILED: "Print failed",
   COUNT_NOT_DONE: "Not counted by its day",
+  SOH_MISMATCH: "Differs from the legacy SOH",
 };
 
 /** A reason code as words — the fixed label where one is known, else the code
@@ -411,6 +413,15 @@ const RESOLUTION_ROUTES: {
     match: "confirm-origin-unavailable",
     label: "Review the opening manifest",
     build: () => "/goods/opening",
+  },
+  {
+    // Store test run: an applied legacy SOH sync whose rows differ from the
+    // book (`stock_sync_review`, one per sync). The server names the action,
+    // not a path, so only its `stock_sync:<id>` subject opens Legacy sync,
+    // where each flagged row is acknowledged.
+    match: "opening.import.stage",
+    label: "Review the SOH sync",
+    build: (subjectId) => (subjectId.startsWith("stock_sync:") ? "/goods/stock-sync" : null),
   },
   {
     // GSA-T03 (ticket 03D): a privileged change waiting for a different

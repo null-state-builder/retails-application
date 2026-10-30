@@ -121,10 +121,10 @@ for (const width of WIDTHS) {
     await expect(main.getByTestId("dashboard-loading")).toHaveCount(0);
     await expect(main.getByTestId("dashboard-error")).toHaveCount(0);
     await expect(main.getByRole("heading", { name: "The day so far", exact: true })).toBeVisible();
-    await expect(main.getByTestId("today-bills").locator(".net-num")).toHaveText(
+    await expect(main.getByTestId("today-bills").locator(".kpi-v")).toHaveText(
       String(data.today.bills),
     );
-    await expect(main.getByTestId("today-pieces").locator(".net-num")).toHaveText(
+    await expect(main.getByTestId("today-pieces").locator(".kpi-v")).toHaveText(
       String(data.today.pieces),
     );
     await expect(main.getByTestId("today-collections")).toContainText("Cash");
@@ -311,12 +311,14 @@ for (const width of WIDTHS) {
       });
       await page.goto("/goods/counts");
       try {
-        await expect(page.getByText("Loading…", { exact: true })).toBeVisible();
+        // The skeleton (components/States.tsx `Loading`) names itself to
+        // assistive technology; it shows no visible "Loading…" text.
+        await expect(page.getByRole("status", { name: "Loading" })).toBeVisible();
         await expectFrame(page, width);
       } finally {
         release();
       }
-      await expect(page.getByText("Loading…", { exact: true })).toBeHidden();
+      await expect(page.getByRole("status", { name: "Loading" })).toBeHidden();
       await page.unroute("**/api/goods-v1/outbound/stocktakes");
     });
 

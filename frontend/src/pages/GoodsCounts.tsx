@@ -43,6 +43,10 @@ import {
 } from "../lib/goodsCounts";
 import { OperationsPage, OperationsTable } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { Note } from "../components/Note";
+import { Box, Section } from "../components/Section";
+import { Status } from "../components/Status";
+import type { StatusTone } from "../components/Status";
 
 const STOCKTAKES = "/goods-v1/outbound/stocktakes";
 const PASSES = "/goods-v1/outbound/count-sessions";
@@ -62,15 +66,34 @@ function refusalIssues(e: unknown): Issue[] {
 function Issues({ issues, testId }: { issues: Issue[]; testId: string }) {
   if (issues.length === 0) return null;
   return (
-    <ul className="warn-note" data-testid={testId}>
-      {issues.map((issue, index) => (
-        <li key={`${issue.code}-${index}`} data-code={issue.code}>
-          {issue.message}
-        </li>
-      ))}
-    </ul>
+    <Note tone="error" testId={testId}>
+      <ul>
+        {issues.map((issue, index) => (
+          <li key={`${issue.code}-${index}`} data-code={issue.code}>
+            {issue.message}
+          </li>
+        ))}
+      </ul>
+    </Note>
   );
 }
+
+/** A count's state as a dot and a word: waiting on someone is amber, done is
+ *  green, a count that changed nothing is grey. */
+const STATE_TONE: Record<string, StatusTone> = {
+  requested: "blue",
+  open: "amber",
+  review: "amber",
+  closed: "green",
+  cancelled: "grey",
+};
+
+const PASS_TONE: Record<string, StatusTone> = {
+  open: "amber",
+  submitted: "blue",
+  selected: "green",
+  superseded: "grey",
+};
 
 // ---------------------------------------------------------------------------
 // The counts at your sites, and starting one
@@ -133,8 +156,7 @@ export function GoodsCountsPage() {
       />
 
       {canCount && (
-        <section className="card section-card" data-testid="cnt-start">
-          <h3 className="h3">Start a count</h3>
+        <Section heading="Start a count" testId="cnt-start">
           <p className="lead">
             A non-trading site needs its approved declaration. A trading store must first sync and
             pause its online counter in Sell. Starting freezes sales and stock movements until
@@ -159,7 +181,7 @@ export function GoodsCountsPage() {
               </select>
             </Field>
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               disabled={!siteId || busy}
               onClick={start}
               data-testid="cnt-start-go"
@@ -169,45 +191,50 @@ export function GoodsCountsPage() {
           </div>
           <Feedback error={error} ok="" />
           <Issues issues={issues} testId="cnt-start-issues" />
-        </section>
+        </Section>
       )}
 
-      <section className="card section-card">
-        <h3 className="h3">Counts</h3>
+      <Section heading="Counts" ruled={canCount}>
         {state ?? (
           <OperationsTable label="Stock counts">
-            <table data-testid="cnt-list">
+            <table className="data" data-testid="cnt-list">
               <thead>
                 <tr>
                   <th>Count</th>
                   <th>Site</th>
                   <th>What</th>
-                  <th>State</th>
                   <th>Frozen since</th>
                   <th className="num">Passes</th>
+                  <th>State</th>
                 </tr>
               </thead>
               <tbody>
                 {list.value.map((row) => (
                   <tr key={row.id} data-testid="cnt-row" data-count={row.id} data-state={row.state}>
                     <td>
-                      <Link to={`/goods/counts/${row.id}`} data-testid="cnt-open-link">
-                        <code className="mono">{row.number ?? row.id}</code>
+                      <Link
+                        className="mono"
+                        to={`/goods/counts/${row.id}`}
+                        data-testid="cnt-open-link"
+                      >
+                        {row.number ?? row.id}
                       </Link>
                     </td>
                     <td>
                       {row.site.name} ({row.site.code})
                     </td>
                     <td>{scopeWords(row.scope)}</td>
-                    <td>
-                      {STATE_LABEL[row.state] ?? row.state}
-                      {row.stale_passes > 0 && (
-                        <span className="warn-note"> · {row.stale_passes} pass(es) left idle</span>
-                      )}
-                    </td>
                     <td>{row.frozen_at ? formatDateTime(row.frozen_at) : "-"}</td>
                     <td className="num">
                       {row.submitted_passes} submitted · {row.open_passes} counting
+                    </td>
+                    <td>
+                      <Status tone={STATE_TONE[row.state]}>
+                        {STATE_LABEL[row.state] ?? row.state}
+                      </Status>
+                      {row.stale_passes > 0 && (
+                        <span className="sub">{row.stale_passes} pass(es) left idle</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -215,7 +242,7 @@ export function GoodsCountsPage() {
             </table>
           </OperationsTable>
         )}
-      </section>
+      </Section>
     </OperationsPage>
   );
 }
@@ -248,9 +275,15 @@ export function GoodsCountDetailPage() {
     return (
       <OperationsPage>
         <PageHeader title="Stock count" />
-        <p className={detail.failure ? "warn-note" : "muted"} role="status">
-          {detail.failure || "Loading…"}
-        </p>
+        {detail.failure ? (
+          <Note tone="warn" role="status">
+            {detail.failure}
+          </Note>
+        ) : (
+          <p className="muted" role="status">
+            Loading…
+          </p>
+        )}
       </OperationsPage>
     );
   const words = progressWords(count.progress);
@@ -277,32 +310,33 @@ export function GoodsCountDetailPage() {
         }
       />
 
-      <section
-        className={
-          count.progress === "differences_pending"
-            ? "card section-card warn-note"
-            : "card section-card"
-        }
-        data-testid="cnt-progress"
-        data-progress={count.progress}
-      >
-        <h3 className="h3" data-testid="cnt-progress-title">
-          {words.title}
-        </h3>
-        <p className="lead">{words.body}</p>
-        <p className="muted">
-          {STATE_LABEL[count.state] ?? count.state}
-          {count.frozen_at && ` · frozen since ${formatDateTime(count.frozen_at)}`} · started by{" "}
-          {count.started_by.name || "-"}
-        </p>
-        {count.decision && (
-          <p className="muted" data-testid="cnt-decision">
-            Closed by {count.decision.decided_by.name || "-"} on{" "}
-            {formatDateTime(count.decision.decided_at)} over {count.decision.lines} line(s), all
-            reviewed.
+      <div data-testid="cnt-progress" data-progress={count.progress}>
+        <Section
+          heading={<span data-testid="cnt-progress-title">{words.title}</span>}
+          aside={
+            <Status tone={STATE_TONE[count.state]}>
+              {STATE_LABEL[count.state] ?? count.state}
+            </Status>
+          }
+        >
+          {count.progress === "differences_pending" ? (
+            <Note tone="warn">{words.body}</Note>
+          ) : (
+            <p>{words.body}</p>
+          )}
+          <p className="muted">
+            {count.frozen_at && `Frozen since ${formatDateTime(count.frozen_at)} · `}Started by{" "}
+            {count.started_by.name || "-"}
           </p>
-        )}
-      </section>
+          {count.decision && (
+            <p className="muted" data-testid="cnt-decision">
+              Closed by {count.decision.decided_by.name || "-"} on{" "}
+              {formatDateTime(count.decision.decided_at)} over {count.decision.lines} line(s), all
+              reviewed.
+            </p>
+          )}
+        </Section>
+      </div>
 
       <Feedback error={error} ok={ok} />
 
@@ -323,8 +357,7 @@ export function GoodsCountDetailPage() {
         <CancelPanel count={count} onDone={done} onError={failed} />
       )}
 
-      <section className="card section-card">
-        <h3 className="h3">History</h3>
+      <Section heading="History" ruled>
         <ol data-testid="cnt-history">
           {count.history.map((item) => (
             <li key={item.id} data-kind={item.kind}>
@@ -333,20 +366,19 @@ export function GoodsCountDetailPage() {
             </li>
           ))}
         </ol>
-      </section>
+      </Section>
     </OperationsPage>
   );
 }
 
 function PassesTable({ count }: { count: CountDetail }) {
   return (
-    <section className="card section-card">
-      <h3 className="h3">Passes</h3>
+    <Section heading="Passes" ruled>
       {count.passes.length === 0 ? (
         <p className="muted">Nobody has started counting yet.</p>
       ) : (
         <OperationsTable label="Count passes">
-          <table data-testid="cnt-passes">
+          <table className="data" data-testid="cnt-passes">
             <thead>
               <tr>
                 <th>Counter</th>
@@ -372,10 +404,10 @@ function PassesTable({ count }: { count: CountDetail }) {
                     {row.reason_code ? ` (${row.reason_code})` : ""}
                   </td>
                   <td>
-                    {PASS_STATE_LABEL[row.state] ?? row.state}
-                    {row.stale && (
-                      <span className="warn-note"> · left idle - resume to continue</span>
-                    )}
+                    <Status tone={PASS_TONE[row.state]}>
+                      {PASS_STATE_LABEL[row.state] ?? row.state}
+                    </Status>
+                    {row.stale && <span className="sub">Left idle - resume to continue</span>}
                   </td>
                   <td>{row.last_activity_at ? formatDateTime(row.last_activity_at) : "-"}</td>
                   <td className="num">{row.observed_qty ?? "-"}</td>
@@ -385,7 +417,7 @@ function PassesTable({ count }: { count: CountDetail }) {
           </table>
         </OperationsTable>
       )}
-    </section>
+    </Section>
   );
 }
 
@@ -428,8 +460,7 @@ function MyPass({
 
   if (!passId) {
     return (
-      <section className="card section-card" data-testid="cnt-my-pass">
-        <h3 className="h3">Count</h3>
+      <Section heading="Count" ruled testId="cnt-my-pass">
         <p className="lead">
           Start your pass. You count what is physically there; nothing tells you how many there
           should be.
@@ -451,11 +482,16 @@ function MyPass({
               ))}
             </select>
           </Field>
-          <button className="btn btn-cta" disabled={busy} onClick={openPass} data-testid="cnt-open">
+          <button
+            className="btn btn-primary"
+            disabled={busy}
+            onClick={openPass}
+            data-testid="cnt-open"
+          >
             <ScanLine size={14} /> Start counting
           </button>
         </div>
-      </section>
+      </Section>
     );
   }
   if (!pass.value) return <p className="muted">{pass.failure || "Loading your pass…"}</p>;
@@ -578,209 +614,221 @@ function PassPanel({
     (Boolean(skuId) || Boolean(description.trim()));
 
   return (
-    <section className="card section-card" data-testid="cnt-my-pass" data-pass={pass.id}>
-      <h3 className="h3">Your pass {pass.pass_no}</h3>
-      <p className="lead" data-testid="cnt-pass-scope">
-        {pass.scope.label}
-        {pass.reason_code ? ` - recount asked because: ${pass.reason_code}` : ""}
-      </p>
-      {pass.scope.cells.length > 0 && (
-        <ul data-testid="cnt-recount-cells">
-          {pass.scope.cells.map((cell) => (
-            <li key={`${cell.location_id}-${cell.sku_id ?? cell.description}`}>
-              {itemWords(cell)} at {cell.location_name}
-            </li>
-          ))}
-        </ul>
-      )}
+    <div data-testid="cnt-my-pass" data-pass={pass.id}>
+      <Section heading={`Your pass ${pass.pass_no}`} ruled>
+        <p className="lead" data-testid="cnt-pass-scope">
+          {pass.scope.label}
+          {pass.reason_code ? ` - recount asked because: ${pass.reason_code}` : ""}
+        </p>
+        {pass.scope.cells.length > 0 && (
+          <ul data-testid="cnt-recount-cells">
+            {pass.scope.cells.map((cell) => (
+              <li key={`${cell.location_id}-${cell.sku_id ?? cell.description}`}>
+                {itemWords(cell)} at {cell.location_name}
+              </li>
+            ))}
+          </ul>
+        )}
 
-      {pass.stale && (
-        <div className="warn-note" data-testid="cnt-stale">
-          This pass was left idle for a day. Nothing counted is lost, but it must be resumed before
-          you count on or submit it.{" "}
-          <button className="btn btn-sm" disabled={busy} onClick={resume} data-testid="cnt-resume">
-            <RotateCcw size={14} /> Resume
+        {pass.stale && (
+          <Note
+            tone="warn"
+            testId="cnt-stale"
+            action={
+              <button
+                className="btn btn-sm"
+                disabled={busy}
+                onClick={resume}
+                data-testid="cnt-resume"
+              >
+                <RotateCcw size={14} /> Resume
+              </button>
+            }
+          >
+            This pass was left idle for a day. Nothing counted is lost, but it must be resumed
+            before you count on or submit it.
+          </Note>
+        )}
+
+        <div className="form-grid">
+          <Field id="cnt-location" label="Where you are counting">
+            <select
+              id="cnt-location"
+              className="select"
+              value={locationId}
+              onChange={(e) => setLocationId(e.target.value)}
+              data-testid="cnt-location"
+            >
+              {pass.locations.map((row) => (
+                <option key={row.id} value={row.id}>
+                  {row.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field id="cnt-tag" label="Tag or barcode">
+            <input
+              id="cnt-tag"
+              className="input"
+              value={tag}
+              onChange={(e) => {
+                setTag(e.target.value);
+                setFound(null);
+                setSkuId("");
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && tag.trim()) void lookUp();
+              }}
+              data-testid="cnt-tag"
+            />
+          </Field>
+          <button
+            className="btn btn-sm"
+            disabled={!tag.trim()}
+            onClick={lookUp}
+            data-testid="cnt-lookup"
+          >
+            <Search size={14} /> What is it?
           </button>
         </div>
-      )}
 
-      <div className="form-grid">
-        <Field id="cnt-location" label="Where you are counting">
-          <select
-            id="cnt-location"
-            className="select"
-            value={locationId}
-            onChange={(e) => setLocationId(e.target.value)}
-            data-testid="cnt-location"
-          >
-            {pass.locations.map((row) => (
-              <option key={row.id} value={row.id}>
-                {row.name}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field id="cnt-tag" label="Tag or barcode">
-          <input
-            id="cnt-tag"
-            className="input"
-            value={tag}
-            onChange={(e) => {
-              setTag(e.target.value);
-              setFound(null);
-              setSkuId("");
-            }}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && tag.trim()) void lookUp();
-            }}
-            data-testid="cnt-tag"
-          />
-        </Field>
-        <button
-          className="btn btn-sm"
-          disabled={!tag.trim()}
-          onClick={lookUp}
-          data-testid="cnt-lookup"
-        >
-          <Search size={14} /> What is it?
-        </button>
-      </div>
-
-      {found && found.result === "resolved" && (
-        <p className="ok-note" data-testid="cnt-item">
-          {found.candidates[0] ? candidateWords(found.candidates[0]) : "No candidate found"}
-        </p>
-      )}
-      {found && found.result === "ambiguous" && (
-        <Field id="cnt-candidate" label="Which item is it?">
-          <select
-            id="cnt-candidate"
-            className="select"
-            value={skuId}
-            onChange={(e) => setSkuId(e.target.value)}
-            data-testid="cnt-candidate"
-          >
-            <option value="">Choose</option>
-            {found.candidates.map((candidate) => (
-              <option key={candidate.sku_id} value={candidate.sku_id}>
-                {candidateWords(candidate)}
-              </option>
-            ))}
-          </select>
-        </Field>
-      )}
-      {describing && (
-        <Field
-          id="cnt-description"
-          label="Describe it"
-          hint={
-            found?.result === "unknown"
-              ? "No item is known by that tag. Describe what you see; nobody invents an item for it."
-              : "No tag? Describe what you see."
-          }
-        >
-          <input
-            id="cnt-description"
-            className="input"
-            aria-describedby="cnt-description-hint"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            data-testid="cnt-description"
-          />
-        </Field>
-      )}
-      <div className="form-grid">
-        <Field
-          id="cnt-condition"
-          label="Condition"
-          hint="Damaged pieces are counted as damaged. Report the damage too - the count does not stop it."
-        >
-          <select
-            id="cnt-condition"
-            className="select"
-            aria-describedby="cnt-condition-hint"
-            value={condition}
-            onChange={(e) => setCondition(e.target.value as CountCondition)}
-            data-testid="cnt-condition"
-          >
-            {CONDITIONS.filter((c) => !skuId || c !== "unidentified").map((c) => (
-              <option key={c} value={c}>
-                {CONDITION_LABEL[c]}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field id="cnt-qty" label="How many">
-          <input
-            id="cnt-qty"
-            className="input"
-            type="number"
-            min={1}
-            value={qty}
-            onChange={(e) => setQty(Number(e.target.value))}
-            data-testid="cnt-qty"
-          />
-        </Field>
-        <button
-          className="btn btn-cta"
-          disabled={!canRecord}
-          onClick={record}
-          data-testid="cnt-record"
-        >
-          <ClipboardCheck size={14} /> Record
-        </button>
-      </div>
-      <Issues issues={issues} testId="cnt-scan-issues" />
-
-      <h4 className="h4">Counted so far: {pass.observed_qty}</h4>
-      {pass.observations.length > 0 && (
-        <OperationsTable label="Recorded observations">
-          <table data-testid="cnt-observations">
-            <thead>
-              <tr>
-                <th>Where</th>
-                <th>Item</th>
-                <th>Condition</th>
-                <th className="num">Pieces</th>
-                <th>When</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pass.observations.map((row) => (
-                <tr key={row.scan_key} data-testid="cnt-observation">
-                  <td>{row.location_name}</td>
-                  <td>{itemWords(row)}</td>
-                  <td>{CONDITION_LABEL[row.condition as CountCondition] ?? row.condition}</td>
-                  <td className="num">{row.qty}</td>
-                  <td>{formatDateTime(row.actual_at)}</td>
-                </tr>
+        {found && found.result === "resolved" && (
+          <Note tone="success" testId="cnt-item">
+            {found.candidates[0] ? candidateWords(found.candidates[0]) : "No candidate found"}
+          </Note>
+        )}
+        {found && found.result === "ambiguous" && (
+          <Field id="cnt-candidate" label="Which item is it?">
+            <select
+              id="cnt-candidate"
+              className="select"
+              value={skuId}
+              onChange={(e) => setSkuId(e.target.value)}
+              data-testid="cnt-candidate"
+            >
+              <option value="">Choose</option>
+              {found.candidates.map((candidate) => (
+                <option key={candidate.sku_id} value={candidate.sku_id}>
+                  {candidateWords(candidate)}
+                </option>
               ))}
-            </tbody>
-          </table>
-        </OperationsTable>
-      )}
+            </select>
+          </Field>
+        )}
+        {describing && (
+          <Field
+            id="cnt-description"
+            label="Describe it"
+            hint={
+              found?.result === "unknown"
+                ? "No item is known by that tag. Describe what you see; nobody invents an item for it."
+                : "No tag? Describe what you see."
+            }
+          >
+            <input
+              id="cnt-description"
+              className="input"
+              aria-describedby="cnt-description-hint"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              data-testid="cnt-description"
+            />
+          </Field>
+        )}
+        <div className="form-grid">
+          <Field
+            id="cnt-condition"
+            label="Condition"
+            hint="Damaged pieces are counted as damaged. Report the damage too - the count does not stop it."
+          >
+            <select
+              id="cnt-condition"
+              className="select"
+              aria-describedby="cnt-condition-hint"
+              value={condition}
+              onChange={(e) => setCondition(e.target.value as CountCondition)}
+              data-testid="cnt-condition"
+            >
+              {CONDITIONS.filter((c) => !skuId || c !== "unidentified").map((c) => (
+                <option key={c} value={c}>
+                  {CONDITION_LABEL[c]}
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field id="cnt-qty" label="How many">
+            <input
+              id="cnt-qty"
+              className="input"
+              type="number"
+              min={1}
+              value={qty}
+              onChange={(e) => setQty(Number(e.target.value))}
+              data-testid="cnt-qty"
+            />
+          </Field>
+          <button
+            className="btn btn-primary"
+            disabled={!canRecord}
+            onClick={record}
+            data-testid="cnt-record"
+          >
+            <ClipboardCheck size={14} /> Record
+          </button>
+        </div>
+        <Issues issues={issues} testId="cnt-scan-issues" />
 
-      <div className="form-grid">
-        <label className="checkbox" htmlFor="cnt-affirm">
-          <input
-            id="cnt-affirm"
-            type="checkbox"
-            checked={affirmed}
-            onChange={(e) => setAffirmed(e.target.checked)}
-            data-testid="cnt-affirm"
-          />{" "}
-          I have counted the whole assigned area, including empty locations.
-        </label>
-        <button
-          className="btn btn-cta"
-          disabled={busy || pass.stale}
-          onClick={submit}
-          data-testid="cnt-submit"
-        >
-          <Send size={14} /> Submit my pass
-        </button>
-      </div>
-    </section>
+        <h4 className="h4">Counted so far: {pass.observed_qty}</h4>
+        {pass.observations.length > 0 && (
+          <OperationsTable label="Recorded observations">
+            <table className="data" data-testid="cnt-observations">
+              <thead>
+                <tr>
+                  <th>Where</th>
+                  <th>Item</th>
+                  <th>Condition</th>
+                  <th className="num">Pieces</th>
+                  <th>When</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pass.observations.map((row) => (
+                  <tr key={row.scan_key} data-testid="cnt-observation">
+                    <td>{row.location_name}</td>
+                    <td>{itemWords(row)}</td>
+                    <td>{CONDITION_LABEL[row.condition as CountCondition] ?? row.condition}</td>
+                    <td className="num">{row.qty}</td>
+                    <td>{formatDateTime(row.actual_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </OperationsTable>
+        )}
+
+        <div className="form-grid">
+          <label className="checkbox" htmlFor="cnt-affirm">
+            <input
+              id="cnt-affirm"
+              type="checkbox"
+              checked={affirmed}
+              onChange={(e) => setAffirmed(e.target.checked)}
+              data-testid="cnt-affirm"
+            />{" "}
+            I have counted the whole assigned area, including empty locations.
+          </label>
+          {/* Submitting hands the pass to review; it commits no stock. */}
+          <button
+            className="btn btn-primary"
+            disabled={busy || pass.stale}
+            onClick={submit}
+            data-testid="cnt-submit"
+          >
+            <Send size={14} /> Submit my pass
+          </button>
+        </div>
+      </Section>
+    </div>
   );
 }
 
@@ -811,10 +859,9 @@ function ReviewPanel({
 
   if (!submitted) {
     return (
-      <section className="card section-card" data-testid="cnt-review">
-        <h3 className="h3">Review</h3>
+      <Section heading="Review" ruled testId="cnt-review">
         <p className="muted">Nothing has been submitted yet.</p>
-      </section>
+      </Section>
     );
   }
   const report = variance.value;
@@ -909,9 +956,8 @@ function ReviewPanel({
   }
 
   return (
-    <section className="card section-card" data-testid="cnt-review">
+    <Section heading="Review against the book" ruled testId="cnt-review">
       {stepUp.dialog}
-      <h3 className="h3">Review against the book</h3>
       <p className="lead">
         The book is the site's stock at the moment the count froze it. Unscanned stock counts as
         zero found.
@@ -924,13 +970,13 @@ function ReviewPanel({
             : "Not every location is counted exactly once yet."}
       </p>
       {report.uncovered_locations.length > 0 && (
-        <p className="warn-note" data-testid="cnt-uncovered">
+        <Note tone="warn" testId="cnt-uncovered">
           Not counted: {report.uncovered_locations.map((row) => row.name).join(", ")}
-        </p>
+        </Note>
       )}
       <Issues issues={report.issues as unknown as Issue[]} testId="cnt-review-issues" />
       <OperationsTable label="Count variance">
-        <table data-testid="cnt-variance">
+        <table className="data" data-testid="cnt-variance">
           <thead>
             <tr>
               <th>Recount</th>
@@ -985,9 +1031,9 @@ function ReviewPanel({
         The earlier count is kept; the recount is used in its place, never added to it.
       </p>
       {source.mixed && (
-        <p className="warn-note" data-testid="cnt-recount-mixed">
+        <Note tone="warn" testId="cnt-recount-mixed">
           The ticked lines were counted in different passes. Ask for one recount per pass.
-        </p>
+        </Note>
       )}
       {count.allowed_actions.includes("recount") && (
         <div className="form-grid">
@@ -1028,7 +1074,7 @@ function ReviewPanel({
       )}
 
       {count.approval && (
-        <div className="card section-card" data-testid="cnt-approval">
+        <Box data-testid="cnt-approval">
           <p>
             Review {count.approval.state}: remove {count.approval.removed_qty} unit(s) at recorded
             purchase cost ₹{(Number(count.approval.removed_value_paise) / 100).toFixed(2)}. Reason:{" "}
@@ -1066,7 +1112,7 @@ function ReviewPanel({
               </button>
             </div>
           )}
-        </div>
+        </Box>
       )}
       {count.allowed_actions.includes("submit_review") && report.complete && (
         <div className="form-grid">
@@ -1080,7 +1126,7 @@ function ReviewPanel({
             />
           </Field>
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             disabled={busy || !reason.trim()}
             onClick={submitReview}
             data-testid="cnt-submit-review"
@@ -1096,7 +1142,7 @@ function ReviewPanel({
           </button>
         </div>
       )}
-    </section>
+    </Section>
   );
 }
 
@@ -1134,8 +1180,7 @@ function CancelPanel({
   }
 
   return (
-    <section className="card section-card" data-testid="cnt-cancel-panel">
-      <h3 className="h3">Cancel the count</h3>
+    <Section heading="Cancel the count" ruled testId="cnt-cancel-panel">
       <p className="muted">
         Cancelling keeps every pass and scan, changes no stock and lifts the site's freeze.
       </p>
@@ -1159,7 +1204,7 @@ function CancelPanel({
           />
         </Field>
         <button
-          className="btn btn-sm"
+          className="btn btn-danger"
           disabled={busy || !reason.trim()}
           onClick={cancel}
           data-testid="cnt-cancel"
@@ -1167,6 +1212,6 @@ function CancelPanel({
           <XCircle size={14} /> Cancel the count
         </button>
       </div>
-    </section>
+    </Section>
   );
 }

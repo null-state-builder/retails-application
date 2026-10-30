@@ -29,8 +29,12 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "../auth/AuthContext";
+import { Note } from "../components/Note";
 import { OperationsPage, OperationsTable } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { Box, Section } from "../components/Section";
+import { ErrorState, Loading } from "../components/States";
+import { Status, type StatusTone } from "../components/Status";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import { formatDateTime, formatPaiseString } from "../lib/format";
 import {
@@ -113,10 +117,32 @@ interface SiteRef {
   name: string;
 }
 
+/** A site the server offers as a transfer destination. */
+interface DestinationRef extends SiteRef {
+  linked?: boolean;
+}
+
 function siteLabel(sites: SiteRef[], id: string | null): string {
   if (!id) return "—";
   const found = sites.find((site) => String(site.id) === String(id));
   return found ? `${found.name} (${found.code})` : `#${id}`;
+}
+
+/** A movement's stage as a dot and a word: grey while drafted or closed,
+ *  amber while it waits for approval, blue while reserved or on the road,
+ *  green once every piece is accounted for. */
+export function transferTone(state: string): StatusTone {
+  switch (state) {
+    case "submitted":
+      return "amber";
+    case "approved":
+    case "dispatching":
+      return "blue";
+    case "completed":
+      return "green";
+    default:
+      return "grey";
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -178,7 +204,9 @@ export function NewTransferPanel({
   // person's session: a store person reads one site, their own, and a list
   // built from that offers nowhere to send (OPS-11). The server offers every
   // other site of the same company that can receive, by name and code only.
-  const offered = useGoodsFetch<{ items: SiteRef[] }, SiteRef[]>(
+  // The source's linked site (a store's warehouse, a warehouse's stores) comes
+  // first and is marked; the others stay allowed.
+  const offered = useGoodsFetch<{ items: DestinationRef[] }, DestinationRef[]>(
     `${TRANSFERS}/destinations?source_site_id=${sourceSiteId}`,
     (r) => r.items ?? [],
     [],
@@ -361,16 +389,15 @@ export function NewTransferPanel({
   );
 
   return (
-    <section className="card section-card" data-testid="transfer-new-panel">
-      <h3 className="h3">New transfer</h3>
+    <Section heading="New transfer" testId="transfer-new-panel">
       <p className="lead">
         Choose where the goods are going and how many of each to send. Drafting reserves nothing — a
         different person approves the movement, and that approval is what reserves the pieces.
       </p>
       {heldPool ? (
-        <p className="warn-note" data-testid="transfer-new-quarantine-note">
+        <Note tone="warn" testId="transfer-new-quarantine-note">
           {CUSTODY_HELP[custody]}
-        </p>
+        </Note>
       ) : null}
       <Feedback error={error} ok="" />
       <div className="form-grid">
@@ -390,7 +417,15 @@ export function NewTransferPanel({
             <option value="pre_pt">Damaged goods not yet on a PT (they stay held)</option>
           </select>
         </Field>
-        <Field id="transfer-destination" label="Send to">
+        <Field
+          id="transfer-destination"
+          label="Send to"
+          hint={
+            offered.value.find((site) => site.id === destination)?.linked
+              ? "Linked site"
+              : undefined
+          }
+        >
           <select
             id="transfer-destination"
             className="select"
@@ -400,7 +435,7 @@ export function NewTransferPanel({
           >
             {offered.value.map((site) => (
               <option key={site.id} value={site.id}>
-                {site.name} ({site.code})
+                {site.name} ({site.code}){site.linked ? " · linked" : ""}
               </option>
             ))}
           </select>
@@ -495,7 +530,7 @@ export function NewTransferPanel({
       )}
       <div className="toolbar">
         <button
-          className="btn btn-cta"
+          className="btn btn-primary"
           disabled={busy || !destination || chosen.length === 0 || overdrawn}
           onClick={create}
           data-testid="transfer-new-create"
@@ -506,7 +541,7 @@ export function NewTransferPanel({
           Cancel
         </button>
       </div>
-    </section>
+    </Section>
   );
 }
 
@@ -570,7 +605,11 @@ export function TransferDetailPage() {
     return (
       <OperationsPage>
         <PageHeader title="Transfer" />
-        <p className="muted">{read.failure || "Loading…"}</p>
+        {read.failure ? (
+          <ErrorState heading="This transfer could not load" message={read.failure} />
+        ) : (
+          <Loading />
+        )}
       </OperationsPage>
     );
   }
@@ -594,163 +633,171 @@ export function TransferDetailPage() {
       <Feedback error={error} ok={ok} />
       {dialog}
 
-      <section className="card section-card" data-testid="transfer-summary">
-        <p className="eyebrow" data-testid="transfer-state">
-          {TRANSFER_STATE_LABEL[detail.state] ?? detail.state}
-        </p>
-        <p className="lead">{TRANSFER_STATE_HELP[detail.state]}</p>
-        {isHeldCustody(detail.custody) ? (
-          <p className="warn-note" data-testid="transfer-custody" data-custody={detail.custody}>
-            <strong>{CUSTODY_LABEL[detail.custody]}.</strong> {CUSTODY_HELP[detail.custody]}
-          </p>
-        ) : null}
-        <dl className="kv">
-          <dt>Drafted by</dt>
-          <dd>{detail.drafted_by.name || detail.drafted_by.id}</dd>
-          <dt>Approved by</dt>
-          <dd data-testid="transfer-approver">
-            {detail.approved_by?.name ?? "Nobody yet — a different person has to"}
-          </dd>
-          <dt>Approved</dt>
-          <dd data-testid="transfer-approved">{detail.approved_qty}</dd>
-          <dt>Sent so far</dt>
-          <dd data-testid="transfer-dispatched">{detail.dispatched_qty}</dd>
-          <dt>Cancelled before leaving</dt>
-          <dd data-testid="transfer-cancelled">{detail.cancelled_qty}</dd>
-          <dt>Still reserved at the sender</dt>
-          <dd data-testid="transfer-reserved">{detail.reserved_qty}</dd>
-          <dt>On the road</dt>
-          <dd data-testid="transfer-in-transit">{detail.in_transit_qty}</dd>
-          <dt>Never arrived</dt>
-          <dd data-testid="transfer-short">{detail.short_qty}</dd>
-          <dt>Resolved as shortage</dt>
-          <dd data-testid="transfer-shortage-resolved">{detail.shortage_resolved_qty}</dd>
-          <dt>Came back to the sender</dt>
-          <dd data-testid="transfer-returned">{detail.returned_qty}</dd>
-          <dt>Arrived that nobody sent</dt>
-          <dd data-testid="transfer-excess">{detail.excess_qty}</dd>
-          <dt>Balance</dt>
-          <dd data-testid="transfer-balance" data-balanced={String(detail.reconciliation.balanced)}>
-            {detail.reconciliation.approved} approved = {detail.reconciliation.dispatched} sent +{" "}
-            {detail.reconciliation.reserved} still reserved + {detail.reconciliation.cancelled}{" "}
-            cancelled
-          </dd>
-        </dl>
-
-        <CorrectivePanel detail={detail} onRun={command} />
-        <div className="toolbar" data-testid="transfer-actions">
-          {may("submit") && (
-            <button
-              className="btn btn-cta"
-              onClick={() =>
-                command(
-                  "/submit",
-                  {},
-                  "Sent for approval. The exact pieces are frozen; nothing is reserved until somebody approves it.",
-                )
-              }
-              data-testid="transfer-submit"
+      <div className="page">
+        <Section
+          heading={
+            <Status tone={transferTone(detail.state)} testId="transfer-state">
+              {TRANSFER_STATE_LABEL[detail.state] ?? detail.state}
+            </Status>
+          }
+          testId="transfer-summary"
+        >
+          <p className="lead">{TRANSFER_STATE_HELP[detail.state]}</p>
+          {isHeldCustody(detail.custody) ? (
+            <div data-testid="transfer-custody" data-custody={detail.custody}>
+              <Note tone="warn">
+                <b>{CUSTODY_LABEL[detail.custody]}.</b> {CUSTODY_HELP[detail.custody]}
+              </Note>
+            </div>
+          ) : null}
+          <dl className="kv">
+            <dt>Drafted by</dt>
+            <dd>{detail.drafted_by.name || detail.drafted_by.id}</dd>
+            <dt>Approved by</dt>
+            <dd data-testid="transfer-approver">
+              {detail.approved_by?.name ?? "Nobody yet — a different person has to"}
+            </dd>
+            <dt>Approved</dt>
+            <dd data-testid="transfer-approved">{detail.approved_qty}</dd>
+            <dt>Sent so far</dt>
+            <dd data-testid="transfer-dispatched">{detail.dispatched_qty}</dd>
+            <dt>Cancelled before leaving</dt>
+            <dd data-testid="transfer-cancelled">{detail.cancelled_qty}</dd>
+            <dt>Still reserved at the sender</dt>
+            <dd data-testid="transfer-reserved">{detail.reserved_qty}</dd>
+            <dt>On the road</dt>
+            <dd data-testid="transfer-in-transit">{detail.in_transit_qty}</dd>
+            <dt>Never arrived</dt>
+            <dd data-testid="transfer-short">{detail.short_qty}</dd>
+            <dt>Resolved as shortage</dt>
+            <dd data-testid="transfer-shortage-resolved">{detail.shortage_resolved_qty}</dd>
+            <dt>Came back to the sender</dt>
+            <dd data-testid="transfer-returned">{detail.returned_qty}</dd>
+            <dt>Arrived that nobody sent</dt>
+            <dd data-testid="transfer-excess">{detail.excess_qty}</dd>
+            <dt>Balance</dt>
+            <dd
+              data-testid="transfer-balance"
+              data-balanced={String(detail.reconciliation.balanced)}
             >
-              <Send size={14} /> Send for approval
-            </button>
-          )}
-          {detail.approval && (
-            <p className="muted" data-testid="transfer-approval-route">
-              Review {detail.approval.completed_steps} of {detail.approval.total_steps} complete ·{" "}
-              {detail.approval.current_label}
-            </p>
-          )}
-          {may("approve") && <ApproveForm onRun={command} />}
-          {may("cancel_outstanding") && <CancelForm onRun={command} />}
-        </div>
-      </section>
+              {detail.reconciliation.approved} approved = {detail.reconciliation.dispatched} sent +{" "}
+              {detail.reconciliation.reserved} still reserved + {detail.reconciliation.cancelled}{" "}
+              cancelled
+            </dd>
+          </dl>
 
-      <section className="card section-card" data-testid="transfer-lines">
-        <h3 className="h3">What is being sent</h3>
-        <OperationsTable label="Transfer lines">
-          <table>
-            <thead>
-              <tr>
-                <th>Item</th>
-                <th>From</th>
-                <th className="num">Approved</th>
-                <th className="num">Still reserved</th>
-              </tr>
-            </thead>
-            <tbody>
-              {detail.lines.map((line) => (
-                <tr key={line.line_key} data-testid="transfer-line">
-                  <td>{line.description || line.sku_id || "Not identified"}</td>
-                  <td>
-                    {line.grn_id ? (
-                      <Link
-                        to={`/goods/receive/grn/${line.grn_id}?step=discrepancies`}
-                        data-testid="transfer-line-grn"
-                      >
-                        {prePtSource(line)}
-                      </Link>
-                    ) : (
-                      <LineOrigins line={line} />
-                    )}
-                  </td>
-                  <td className="num">{line.qty}</td>
-                  <td className="num" data-testid={`transfer-outstanding-${line.line_key}`}>
-                    {outstandingOf(detail, line.line_key)}
-                  </td>
+          <CorrectivePanel detail={detail} onRun={command} />
+          <div className="toolbar" data-testid="transfer-actions">
+            {may("submit") && (
+              <button
+                className="btn btn-primary"
+                onClick={() =>
+                  command(
+                    "/submit",
+                    {},
+                    "Sent for approval. The exact pieces are frozen; nothing is reserved until somebody approves it.",
+                  )
+                }
+                data-testid="transfer-submit"
+              >
+                <Send size={14} /> Send for approval
+              </button>
+            )}
+            {detail.approval && (
+              <p className="muted" data-testid="transfer-approval-route">
+                Review {detail.approval.completed_steps} of {detail.approval.total_steps} complete ·{" "}
+                {detail.approval.current_label}
+              </p>
+            )}
+            {may("approve") && <ApproveForm onRun={command} />}
+            {may("cancel_outstanding") && <CancelForm onRun={command} />}
+          </div>
+        </Section>
+
+        <Section heading="What is being sent" ruled testId="transfer-lines">
+          <OperationsTable label="Transfer lines">
+            <table>
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>From</th>
+                  <th className="num">Approved</th>
+                  <th className="num">Still reserved</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </OperationsTable>
-        {may("dispatch") && (
-          <PreparationPanel detail={detail} onDone={done} onFail={failed} onRun={command} />
-        )}
-      </section>
+              </thead>
+              <tbody>
+                {detail.lines.map((line) => (
+                  <tr key={line.line_key} data-testid="transfer-line">
+                    <td>{line.description || line.sku_id || "Not identified"}</td>
+                    <td>
+                      {line.grn_id ? (
+                        <Link
+                          to={`/goods/receive/grn/${line.grn_id}?step=discrepancies`}
+                          data-testid="transfer-line-grn"
+                        >
+                          {prePtSource(line)}
+                        </Link>
+                      ) : (
+                        <LineOrigins line={line} />
+                      )}
+                    </td>
+                    <td className="num">{line.qty}</td>
+                    <td className="num" data-testid={`transfer-outstanding-${line.line_key}`}>
+                      {outstandingOf(detail, line.line_key)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </OperationsTable>
+          {may("dispatch") && (
+            <PreparationPanel detail={detail} onDone={done} onFail={failed} onRun={command} />
+          )}
+        </Section>
 
-      <section className="card section-card" data-testid="transfer-dispatches">
-        <h3 className="h3">Shipments</h3>
-        <p className="lead">
-          One approved movement may take several shipments. Each is received as one whole shipment;
-          there is no staged partial receipt inside one of them.
-        </p>
-        {detail.dispatches.length === 0 ? (
-          <p className="muted">Nothing has left yet.</p>
-        ) : (
-          detail.dispatches.map((record) => (
-            <ShipmentCard
-              key={record.id}
-              detail={detail}
-              record={record}
-              sites={sites}
-              onRun={command}
-            />
-          ))
-        )}
-      </section>
+        <Section heading="Shipments" ruled testId="transfer-dispatches">
+          <p className="lead">
+            One approved movement may take several shipments. Each is received as one whole
+            shipment; there is no staged partial receipt inside one of them.
+          </p>
+          {detail.dispatches.length === 0 ? (
+            <p className="muted">Nothing has left yet.</p>
+          ) : (
+            detail.dispatches.map((record) => (
+              <ShipmentCard
+                key={record.id}
+                detail={detail}
+                record={record}
+                sites={sites}
+                onRun={command}
+              />
+            ))
+          )}
+        </Section>
 
-      <section className="card section-card" data-testid="transfer-history">
-        <h3 className="h3">History</h3>
-        <OperationsTable label="Transfer history">
-          <table>
-            <thead>
-              <tr>
-                <th>What happened</th>
-                <th>Where</th>
-                <th>When</th>
-              </tr>
-            </thead>
-            <tbody>
-              {detail.events.map((event) => (
-                <tr key={event.id} data-testid="transfer-event" data-kind={event.kind}>
-                  <td>{transferEventWords(event)}</td>
-                  <td>{siteLabel(sites, event.site_id)}</td>
-                  <td>{formatDateTime(event.actual_at)}</td>
+        <Section heading="History" ruled testId="transfer-history">
+          <OperationsTable label="Transfer history">
+            <table>
+              <thead>
+                <tr>
+                  <th>What happened</th>
+                  <th>Where</th>
+                  <th>When</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </OperationsTable>
-      </section>
+              </thead>
+              <tbody>
+                {detail.events.map((event) => (
+                  <tr key={event.id} data-testid="transfer-event" data-kind={event.kind}>
+                    <td>{transferEventWords(event)}</td>
+                    <td>{siteLabel(sites, event.site_id)}</td>
+                    <td>{formatDateTime(event.actual_at)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </OperationsTable>
+        </Section>
+      </div>
     </OperationsPage>
   );
 }
@@ -913,7 +960,7 @@ function CancelForm({ onRun }: { onRun: Runner }) {
         />
       </Field>
       <button
-        className="btn btn-sm"
+        className="btn btn-sm btn-danger"
         disabled={!reason}
         onClick={() =>
           onRun(
@@ -1030,7 +1077,7 @@ function PreparationPanel({
           transfer; whatever is not sent stays reserved until it is sent or cancelled.
         </p>
         <button
-          className="btn btn-cta"
+          className="btn btn-primary"
           disabled={busy}
           onClick={() => start(false)}
           data-testid="transfer-prepare"
@@ -1150,7 +1197,7 @@ function PreparationPanel({
             </select>
           </Field>
         )}
-        {problem && tag.trim() ? <div className="warn-note">{problem}</div> : null}
+        {problem && tag.trim() ? <Note tone="warn">{problem}</Note> : null}
         <button
           className="btn btn-sm"
           disabled={busy || !tag.trim()}
@@ -1254,15 +1301,14 @@ function ShipmentCard({
   const may = (action: string) => detail.allowed_actions.includes(action);
   const note = outstandingNote(record);
   return (
-    <div
-      className="card"
+    <Box
       data-testid={`shipment-${record.sequence_no}`}
       data-dispatch={record.id}
       data-state={record.state}
     >
-      <p className="eyebrow" data-testid="shipment-state">
+      <h3 className="heading" data-testid="shipment-state">
         Shipment {record.sequence_no} · {dispatchStateWords(record.state, detail.custody).label}
-      </p>
+      </h3>
       <p className="lead">{dispatchStateWords(record.state, detail.custody).help}</p>
       <dl className="kv">
         <dt>From → to</dt>
@@ -1410,7 +1456,7 @@ function ShipmentCard({
       {record.state === "counted" && may("accept") ? (
         <AcceptForm record={record} detail={detail} sites={sites} onRun={onRun} />
       ) : null}
-    </div>
+    </Box>
   );
 }
 
@@ -1633,9 +1679,9 @@ function CountForm({
       >
         <PackagePlus size={14} /> Goods nobody sent
       </button>
-      {problems.length > 0 && <div className="warn-note">{problems[0]}</div>}
+      {problems.length > 0 && <Note tone="warn">{problems[0]}</Note>}
       <button
-        className="btn btn-cta"
+        className="btn btn-primary"
         disabled={problems.length > 0}
         onClick={() => {
           const body: CountBody = {
@@ -1778,7 +1824,7 @@ function AcceptForm({
           </tbody>
         </table>
       </OperationsTable>
-      {problem && <div className="warn-note">{problem}</div>}
+      {problem && <Note tone="warn">{problem}</Note>}
       <button
         className="btn btn-cta"
         disabled={!locationId || Boolean(problem) || chosen.length === 0}
@@ -2017,7 +2063,7 @@ function ReturnForm({
           data-testid={`return-evidence-${record.sequence_no}`}
         />
       </Field>
-      {problem && <div className="warn-note">{problem}</div>}
+      {problem && <Note tone="warn">{problem}</Note>}
       <button
         className="btn btn-sm"
         disabled={!reason.trim() || total === 0 || Boolean(problem)}
@@ -2290,7 +2336,7 @@ function ShortageForm({
           data-testid={`shortage-recount-${record.sequence_no}`}
         />
       </Field>
-      {problem && <div className="warn-note">{problem}</div>}
+      {problem && <Note tone="warn">{problem}</Note>}
       <button
         className="btn btn-sm"
         disabled={!ready}

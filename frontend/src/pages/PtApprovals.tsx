@@ -11,9 +11,11 @@
 // reconciliation, and a `REVISION_SUPERSEDED` banner appears the moment that
 // PT has moved past the revision this approval names.
 import { useEffect, useState } from "react";
-import { AlertTriangle, CheckCircle2, Clock, History, ShieldAlert } from "lucide-react";
+import { CheckCircle2, Clock, History } from "lucide-react";
 import { Link } from "react-router-dom";
 
+import { Note } from "../components/Note";
+import { Box } from "../components/Section";
 import { api, apiErrorCode, apiErrorMessage, goodsMeta } from "../lib/api";
 import {
   Denied,
@@ -53,7 +55,7 @@ const PT_ACTIONS = new Set(["pt.approve.receipt", "pt.approve.opening", "pt.reve
 function ConfigBadge({ id, label }: { id: string | null; label: string }) {
   if (!id) return null;
   return (
-    <span className="chip chip-navy" data-testid={`pt-badge-${label.toLowerCase()}`}>
+    <span className="chip" data-testid={`pt-badge-${label.toLowerCase()}`}>
       {label} #{id.slice(0, 8)}
     </span>
   );
@@ -159,14 +161,14 @@ function ApprovalViewer({ approval, onDone }: { approval: ApprovalDTO; onDone: (
 
   if (pt.denied) return <Denied what="PT" />;
   if (pt.loading && !ptDoc) return <p className="muted">Loading…</p>;
-  if (pt.failure) return <div className="warn-note">{pt.failure}</div>;
+  if (pt.failure) return <Note tone="error">{pt.failure}</Note>;
   if (!ptDoc) return <Denied what="PT" />;
 
   return (
-    <div className="card section-card pt-approval-viewer" data-testid="pt-approval-viewer">
+    <Box className="pt-approval-viewer" data-testid="pt-approval-viewer">
       <div className="toolbar">
         <h3 className="h3">{approval.parent_document?.number ?? ptDoc.number ?? approval.title}</h3>
-        <span className="chip chip-navy" data-testid="pt-approval-revision">
+        <span className="chip" data-testid="pt-approval-revision">
           Revision {approval.subject_revision}
         </span>
       </div>
@@ -183,13 +185,12 @@ function ApprovalViewer({ approval, onDone }: { approval: ApprovalDTO; onDone: (
       </p>
 
       {superseded && (
-        <div className="warn-note" data-testid="pt-revision-superseded">
-          <AlertTriangle size={14} /> REVISION_SUPERSEDED — this PT has changed since it was
-          submitted.{" "}
+        <Note tone="warn" testId="pt-revision-superseded">
+          REVISION_SUPERSEDED — this PT has changed since it was submitted.{" "}
           <Link to={ptWorkPath({ pt: documentId })} data-testid="pt-review-current">
             Review the current revision
           </Link>
-        </div>
+        </Note>
       )}
 
       <div className="pt-badges" data-testid="pt-approval-badges">
@@ -216,9 +217,9 @@ function ApprovalViewer({ approval, onDone }: { approval: ApprovalDTO; onDone: (
       </dl>
 
       {reconciliation && !reconciliation.passed && (
-        <div className="warn-note" data-testid="pt-approval-recon-failed">
+        <Note tone="warn" testId="pt-approval-recon-failed">
           The reconciliation did not pass: {reconciliation.issues.map((i) => i.message).join("; ")}
-        </div>
+        </Note>
       )}
 
       <h4 className="gr-h4">
@@ -256,9 +257,9 @@ function ApprovalViewer({ approval, onDone }: { approval: ApprovalDTO; onDone: (
       {approval.state === "pending" && (
         <div className="toolbar pt-approval-actions">
           {selfApproval ? (
-            <p className="warn-note" data-testid="pt-self-approval">
-              <ShieldAlert size={14} /> You cannot approve a PT you prepared or reviewed.
-            </p>
+            <Note tone="warn" testId="pt-self-approval">
+              You cannot approve a PT you prepared or reviewed.
+            </Note>
           ) : (
             <button
               className="btn btn-cta"
@@ -373,7 +374,7 @@ function ApprovalViewer({ approval, onDone }: { approval: ApprovalDTO; onDone: (
           Prepare a supplement for this receipt
         </Link>
       )}
-    </div>
+    </Box>
   );
 }
 

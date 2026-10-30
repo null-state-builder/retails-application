@@ -75,7 +75,7 @@ export function SpecialOrderCollectCard({
     return (
       <section className="bill-consent" data-testid="special-collect-card">
         <div className="bill-customer-heading">
-          <p className="eyebrow">Special order collection</p>
+          <h3 className="heading">Special order collection</h3>
           <span data-testid="special-collect-ref">{current.ref}</span>
         </div>
         <p className="muted-cell bill-consent-note" data-testid="special-collect-advance">
@@ -84,7 +84,7 @@ export function SpecialOrderCollectCard({
             : "No advance was paid."}
         </p>
         {!online && (
-          <p className="bill-alert bill-consent-note" data-testid="special-collect-offline">
+          <p className="note note-warn bill-consent-note" data-testid="special-collect-offline">
             {SPECIAL_ORDER_OFFLINE_REFUSAL}
           </p>
         )}
@@ -150,7 +150,7 @@ export function SpecialOrderCollectCard({
         </>
       )}
       {note && (
-        <p className="bill-alert bill-consent-note" data-testid="special-collect-note">
+        <p className="note note-warn bill-consent-note" data-testid="special-collect-note">
           {note}
         </p>
       )}

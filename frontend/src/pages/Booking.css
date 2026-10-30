@@ -2,103 +2,60 @@
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
   flex-wrap: wrap;
 }
 .toolbar .spacer {
   flex: 1;
 }
 
-.status-pill {
-  font-size: 11.5px;
-}
-
-/* booking / receive cards */
-.card-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
-  gap: 16px;
-}
-.bk-card {
-  padding: 18px 20px;
-  cursor: pointer;
-  transition:
-    box-shadow 0.15s,
-    transform 0.15s;
-}
-.bk-card:hover {
-  box-shadow: var(--shadow-hover);
-  transform: translateY(-1px);
-}
-.bk-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
 .bk-num {
   font-family: var(--mono);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--navy);
   font-size: 14px;
 }
-.bk-brand {
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--ink);
-}
-.bk-meta {
-  font-size: 12.5px;
-  color: var(--muted);
-  margin-top: 2px;
-}
-.bk-prog {
-  margin-top: 14px;
-}
 .bk-prog-bar {
   height: 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: var(--inner);
   overflow: hidden;
 }
 .bk-prog-fill {
   height: 100%;
-  background: var(--rust);
-  border-radius: 999px;
-}
-.bk-prog-meta {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: var(--muted);
-  margin-top: 6px;
+  background: var(--navy);
+  border-radius: var(--radius-round);
 }
 
 /* line editor */
 .lines-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13.5px;
+  font-size: 14px;
 }
 .lines-table th {
   text-align: left;
-  padding: 9px 10px;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
   color: var(--muted);
-  border-bottom: 1px solid var(--hairline);
+  background: var(--inner);
+  border-bottom: 1px solid var(--line);
 }
 .lines-table td {
-  padding: 6px 8px;
+  padding: 7px 12px;
   border-bottom: 1px solid var(--hairline);
+}
+.lines-table tbody tr:hover td {
+  background: var(--row-hover);
 }
 .lines-table input {
   width: 100%;
-  padding: 8px 10px;
-  border: 1px solid var(--sidebar-border);
-  border-radius: 8px;
-  font-size: 13.5px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  font-size: 14px;
   background: var(--surface);
 }
 .lines-table input.num {
@@ -116,8 +73,8 @@
 }
 
 .section-card {
-  padding: 22px 24px;
-  margin-bottom: 18px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
 }
 .form-row {
   display: grid;
@@ -126,9 +83,9 @@
 }
 .select {
   width: 100%;
-  padding: 11px 12px;
-  border: 1px solid var(--sidebar-border);
-  border-radius: var(--radius-inner);
+  padding: 9px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
   font-size: 14px;
   background: var(--surface);
   color: var(--ink);
@@ -137,7 +94,7 @@
 .dropzone {
   display: block;
   border: 2px dashed var(--sidebar-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-box);
   padding: 26px;
   text-align: center;
   background: var(--inner);
@@ -150,42 +107,11 @@
   border-color: var(--rust);
   background: var(--dropzone-hover);
 }
-.ai-note {
-  background: var(--band-ai-bg);
-  border: 1px solid var(--band-ai-bd);
-  color: var(--purple);
-  border-radius: 10px;
-  padding: 10px 13px;
-  font-size: 13px;
-  margin-top: 12px;
-}
-.warn-note {
-  background: var(--amber-bg);
-  border: 1px solid var(--amber-bd);
-  color: var(--amber);
-  border-radius: 10px;
-  padding: 10px 13px;
-  font-size: 13px;
-  margin-top: 12px;
-}
-/* base `.ok-note` lives in Shared.css (StockOnHand imports both); only its
-   dismiss-button additions live here. */
-.ok-note .spacer {
-  flex: 1;
-}
-.ok-note button {
-  background: none;
-  border: 0;
-  color: inherit;
-  cursor: pointer;
-  font-size: 16px;
-  line-height: 1;
-  padding: 0 4px;
-}
+
 .filter-bar {
   display: flex;
-  gap: 10px;
-  margin-top: 14px;
+  gap: 8px;
+  margin-top: 12px;
   flex-wrap: wrap;
   align-items: center;
 }
@@ -196,7 +122,7 @@
   align-items: center;
   gap: 0;
   border: 1px solid var(--hairline);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   overflow: hidden;
 }
 .qty-stepper button {
@@ -213,7 +139,7 @@
 }
 .qty-stepper button:hover:not(:disabled) {
   background: rgba(var(--rust-rgb), 0.12);
-  color: var(--rust);
+  color: var(--rust-ink);
 }
 .qty-stepper button:disabled {
   opacity: 0.4;
@@ -226,8 +152,8 @@
   border-left: 1px solid var(--hairline);
   border-right: 1px solid var(--hairline);
   text-align: center;
-  font-size: 17px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 600;
   background: var(--surface);
   color: var(--ink);
 }
@@ -252,9 +178,9 @@
   width: 100%;
   max-width: 760px;
   background: var(--surface);
-  border-radius: 18px;
-  box-shadow: var(--shadow-hover);
-  padding: 26px 28px;
+  border-radius: var(--radius-box);
+  box-shadow: var(--shadow-float);
+  padding: 20px 22px;
 }
 .modal-head {
   display: flex;
@@ -271,47 +197,15 @@
   margin-top: 14px;
   font-size: 13px;
   font-weight: 600;
-  color: var(--rust);
+  color: var(--rust-ink);
 }
-.mode-toggle {
-  display: flex;
-  gap: 10px;
-  margin-top: 12px;
-  flex-wrap: wrap;
-}
-.mode-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 18px;
-  border-radius: 12px;
-  cursor: pointer;
-  border: 1.5px solid var(--sidebar-border);
-  background: var(--surface);
-  color: var(--muted);
-  font-size: 14px;
-  font-weight: 600;
-  transition:
-    border-color 0.15s,
-    color 0.15s,
-    background-color 0.15s;
-}
-.mode-btn:hover {
-  border-color: var(--rust);
-  color: var(--ink);
-}
-.mode-btn.active {
-  border-color: var(--navy);
-  background: var(--inner);
-  color: var(--navy);
-  box-shadow: inset 0 0 0 1px var(--navy);
-}
+
 .store-lock {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   padding: 11px 14px;
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   background: var(--inner);
   border: 1px solid var(--hairline);
   color: var(--navy);
@@ -328,11 +222,11 @@
 .variance-tag {
   display: inline-block;
   margin-left: 8px;
-  font-size: 10px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.4px;
   color: var(--amber);
-  font-weight: 700;
+  font-weight: 600;
 }
 .link-cell {
   color: var(--navy);
@@ -358,7 +252,7 @@
     border: 0 !important;
   }
   .pt-print table.data {
-    font-size: 9.5px;
+    font-size: 12px;
     width: 100%;
   }
   .pt-print table.data th,
@@ -367,48 +261,18 @@
   }
 }
 
-/* One Bookings screen: tiles, the form's totals and the line editor on a phone */
-.bk-tiles {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 12px;
-  margin-bottom: 18px;
-}
-.bk-tile {
-  padding: 14px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-.bk-tile-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
-}
-.bk-tile-value {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--ink);
-}
 .bk-totals {
   display: flex;
   flex-wrap: wrap;
   gap: 8px 24px;
   justify-content: flex-end;
   padding: 12px 4px 0;
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--muted);
 }
 .bk-totals strong {
   color: var(--ink);
   margin-left: 6px;
-}
-.bk-chips {
-  margin-bottom: 16px;
-}
-.bk-chips .seg-btn .count {
-  margin-left: 6px;
-  opacity: 0.7;
 }
 .lines-table .line-cost {
   color: var(--muted);
@@ -427,4 +291,35 @@
   gap: 10px;
   align-items: center;
   margin-bottom: 18px;
+}
+
+/* Bookings list (desktop redesign, layout L). */
+.bk-foot {
+  margin-top: 10px;
+  font-size: 13px;
+}
+.bk-prog-fill.over {
+  background: var(--rust);
+}
+
+.otb-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.otb-tile-name {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.otb-tile-left {
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.otb-tile-left.over {
+  color: var(--rust-ink);
+}
+.otb-tile-meta {
+  font-size: 12px;
 }

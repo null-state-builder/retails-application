@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 
 import { useAuth } from "../auth/AuthContext";
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
 import { api, apiErrorMessage } from "../lib/api";
 import { userCan } from "../shell/navConfig";
 
@@ -69,8 +71,7 @@ export function SellPolicySettingsPage() {
     <div className="page-pad">
       <PageHeader title="Settings" lead="Counter controls" />
       {canManage ? (
-        <section className="card section-card" data-testid="sell-policy-card">
-          <h2 className="h3">Manual discounts</h2>
+        <Section heading="Manual discounts" testId="sell-policy-card">
           <p className="muted-cell">
             These are head-office limits. The counter applies them offline and cannot use a manager
             PIN to go past them.
@@ -79,7 +80,7 @@ export function SellPolicySettingsPage() {
             <p>Loading policy…</p>
           ) : !loaded ? (
             <div>
-              <p className="warn-note">{error || "Counter policy could not be loaded."}</p>
+              <Note tone="error">{error || "Counter policy could not be loaded."}</Note>
               <button
                 type="button"
                 className="btn"
@@ -115,7 +116,7 @@ export function SellPolicySettingsPage() {
               </label>
               <button
                 type="button"
-                className="btn btn-cta"
+                className="btn btn-primary"
                 data-testid="sell-policy-save"
                 disabled={saving}
                 onClick={() => void save()}
@@ -124,9 +125,13 @@ export function SellPolicySettingsPage() {
               </button>
             </div>
           )}
-          {error && <p className="warn-note">{error}</p>}
-          {saved && <p className="ok-note">{saved}</p>}
-        </section>
+          {loaded && error && <Note tone="error">{error}</Note>}
+          {saved && (
+            <Note tone="success" role="status">
+              {saved}
+            </Note>
+          )}
+        </Section>
       ) : (
         <p className="muted-cell">You do not have access to counter discount settings.</p>
       )}

@@ -19,9 +19,9 @@
 //     the whole shelf; the server sends the first few hundred and the true count,
 //     and this says so rather than letting a short list read as a complete one.
 import { useMemo, useState } from "react";
-import { CalendarClock, Layers, Search, Tag } from "lucide-react";
-
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
+import { EmptyState } from "../components/States";
 import { useDoc } from "../lib/hooks";
 import { formatINR } from "../lib/format";
 import { withQuery } from "../lib/query";
@@ -107,7 +107,7 @@ export function RunningOffersPage() {
           // Only where there is a choice to make. One site is not a picker.
           sites.length > 1 && (
             <label className="field" style={{ maxWidth: 240 }}>
-              <span className="eyebrow">Site</span>
+              <span>Site</span>
               <select
                 className="input"
                 value={String(data?.site?.id ?? "")}
@@ -128,12 +128,9 @@ export function RunningOffersPage() {
       {loading ? (
         <p className="lead">Loading…</p>
       ) : offers.length === 0 ? (
-        <div className="card section-card" data-testid="running-empty">
-          <p className="eyebrow">
-            <Tag size={15} /> Nothing running
-          </p>
+        <EmptyState heading="Nothing running" testId="running-empty">
           No offer applies at this site on {data ? fmtDay(data.day) : "this day"}.
-        </div>
+        </EmptyState>
       ) : (
         <div data-testid="running-offers">
           {offers.map((row) => (
@@ -161,34 +158,18 @@ function OfferCard({ row }: { row: RunningOffer }) {
   }, [row.items, term]);
 
   return (
-    <div className="card section-card" data-testid={`running-offer-${row.id}`}>
-      <div className="toolbar">
-        <div>
-          <p className="eyebrow">
-            <Tag size={13} />{" "}
-            <span data-testid={`running-source-${row.id}`}>{sourceLabel(row)}</span>
-          </p>
-          <h3 className="h3">{row.name}</h3>
-          <p className="lead" data-testid={`running-reward-${row.id}`}>
-            Gives {row.reward}. Asks: {row.trigger}.
-          </p>
-        </div>
-        <span className="spacer" />
-        <div style={{ textAlign: "right" }}>
-          <span className="chip chip-grey">
-            <Layers size={12} /> {LAYER_LABEL[row.layer] ?? row.layer}
-          </span>{" "}
-          <span
-            className={`chip chip-${row.combinable ? "blue" : "grey"}`}
-            data-testid={`running-stacks-${row.id}`}
-          >
-            {row.combinable ? "Stacks on top" : "On its own"}
-          </span>
-          <p className="hint">
-            <CalendarClock size={12} /> {when(row)}
-          </p>
-        </div>
-      </div>
+    <Section heading={row.name} ruled testId={`running-offer-${row.id}`}>
+      <p className="lead" data-testid={`running-reward-${row.id}`}>
+        Gives {row.reward}. Asks: {row.trigger}.
+      </p>
+      <p className="hint">
+        <span data-testid={`running-source-${row.id}`}>{sourceLabel(row)}</span> ·{" "}
+        {LAYER_LABEL[row.layer] ?? row.layer} ·{" "}
+        <span data-testid={`running-stacks-${row.id}`}>
+          {row.combinable ? "Stacks on top" : "On its own"}
+        </span>{" "}
+        · {when(row)}
+      </p>
 
       <button
         type="button"
@@ -202,9 +183,7 @@ function OfferCard({ row }: { row: RunningOffer }) {
       {open && (
         <>
           <label className="field" style={{ maxWidth: 320, marginTop: 10 }}>
-            <span className="eyebrow">
-              <Search size={13} /> Barcode, description or season
-            </span>
+            <span>Barcode, description or season</span>
             <input
               className="input"
               value={term}
@@ -236,7 +215,7 @@ function OfferCard({ row }: { row: RunningOffer }) {
                 <tbody>
                   {shown.map((item) => (
                     <tr key={`${item.barcode}-${item.season}`}>
-                      <td>{item.barcode}</td>
+                      <td className="mono">{item.barcode}</td>
                       <td>{item.description}</td>
                       <td>{item.season}</td>
                       <td className="num">{formatINR(item.mrp_paise)}</td>
@@ -248,7 +227,7 @@ function OfferCard({ row }: { row: RunningOffer }) {
           )}
         </>
       )}
-    </div>
+    </Section>
   );
 }
 

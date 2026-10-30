@@ -56,7 +56,7 @@ body.sidebar-resizing .sidebar {
 }
 .nav::-webkit-scrollbar-thumb {
   background: rgba(var(--navy-rgb), 0.16);
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   border: 2px solid transparent;
   background-clip: content-box;
 }
@@ -85,7 +85,7 @@ body.sidebar-resizing .sidebar {
   width: 2px;
   height: 52px;
   transform: translateY(-50%);
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: transparent;
   transition: background-color 0.15s;
 }
@@ -122,10 +122,10 @@ body.sidebar-resizing .sidebar-resizer::after {
 }
 
 .nav {
-  padding: 4px 12px 20px;
+  padding: 2px 10px 16px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 1px;
 }
 .nav-group {
   padding: 2px 0;
@@ -134,9 +134,9 @@ body.sidebar-resizing .sidebar-resizer::after {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 7px 10px;
-  min-height: 44px;
-  border-radius: 10px;
+  padding: 4px 10px;
+  min-height: 38px;
+  border-radius: var(--radius-control);
   position: relative;
   transition:
     background-color 0.12s,
@@ -161,43 +161,45 @@ body.sidebar-resizing .sidebar-resizer::after {
   transform: rotate(0deg);
 }
 .nav-group-label.holds-active {
-  color: var(--rust);
+  color: var(--ink);
+  font-weight: 600;
 }
+/* Each section's icon is in its business area's colour (v2.1), so the menu
+   reads as parts of the business before it reads as words. */
 .nav-ic {
-  width: 30px;
-  height: 30px;
+  width: 24px;
+  height: 24px;
   border-radius: 0;
   background: transparent;
   border: 0;
+  color: var(--area);
   display: flex;
   align-items: center;
   justify-content: center;
   flex: none;
 }
-.nav-group-toggle:has(+ .nav-items .nav-item.active) .nav-ic {
-  color: var(--rust) !important;
-}
+/* Section heads are the menu's landmarks: 14px 600 in ink, sentence case. */
 .nav-group-label {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: var(--caption);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
 }
 /* A one-line row is a link the whole way across, so its transient interaction
    state covers the icon as well as the label. */
 .nav-grouplink {
-  font-size: 14.5px;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--navy);
+  color: var(--ink);
 }
+/* Where you are: a solid tile in the area's tint, ink text and a 3px bar in
+   the area's colour. */
 .nav-grouplink.active {
-  background: rgba(var(--rust-rgb), 0.14);
-  color: var(--rust);
-  font-weight: 700;
-}
-.nav-grouplink.active .nav-ic {
-  color: var(--rust) !important;
+  background: var(--area-tint);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow:
+    inset 3px 0 0 var(--area),
+    inset 0 0 0 1px var(--area-line);
 }
 /* #96's grouping heading, which nested section heads one step in, is gone:
    D10 folds those sections onto one page instead, and a fold draws as a plain
@@ -206,15 +208,18 @@ body.sidebar-resizing .sidebar-resizer::after {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  margin: 2px 0 2px 40px;
+  margin: 1px 0 6px 21px;
+  padding-left: 11px;
+  border-left: 1px solid var(--sidebar-border);
 }
 .nav-item {
   display: flex;
   align-items: center;
-  font-size: 13.5px;
-  color: var(--muted);
-  padding: 7px 11px;
-  border-radius: 10px;
+  font-size: 14px;
+  color: var(--ink2);
+  padding: 4px 10px;
+  min-height: 30px;
+  border-radius: var(--radius-control);
   transition:
     background-color 0.12s,
     color 0.12s;
@@ -227,9 +232,12 @@ body.sidebar-resizing .sidebar-resizer::after {
   cursor: grabbing;
 }
 .nav-item.active {
-  background: rgba(var(--rust-rgb), 0.14);
-  color: var(--rust);
-  font-weight: 700;
+  background: var(--area-tint);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow:
+    inset 3px 0 0 var(--area),
+    inset 0 0 0 1px var(--area-line);
 }
 
 /* ---------- icon rail (#230) ----------
@@ -242,28 +250,27 @@ body.sidebar-resizing .sidebar-resizer::after {
   padding: 4px 8px 20px;
 }
 
+/* Rail items are 44 x 40 (v2 Rail). */
 .rail-link,
 .rail-flyout-trigger {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  min-height: 44px;
-  padding: 4px 0;
+  width: 44px;
+  min-height: 40px;
+  padding: 0;
   border: 0;
   background: transparent;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   cursor: pointer;
   position: relative;
 }
 .rail-link.active,
 .rail-flyout-trigger.active {
-  background: rgba(var(--rust-rgb), 0.14);
-}
-.rail-link.active .nav-ic,
-.rail-flyout-trigger.active .nav-ic {
-  background: transparent;
-  color: var(--rust) !important;
+  background: var(--area-tint);
+  box-shadow:
+    inset 3px 0 0 var(--area),
+    inset 0 0 0 1px var(--area-line);
 }
 
 /* Hover and press are transient state layers; keyboard focus remains visible
@@ -275,7 +282,7 @@ body.sidebar-resizing .sidebar-resizer::after {
 .rail-flyout-trigger:hover,
 .sidebar-rail-toggle:hover,
 .profile-btn:hover {
-  background: rgba(var(--rust-rgb), 0.08);
+  background: var(--inner-hover);
 }
 .nav-group-toggle:active,
 .nav-grouplink:active,
@@ -284,7 +291,7 @@ body.sidebar-resizing .sidebar-resizer::after {
 .rail-flyout-trigger:active,
 .sidebar-rail-toggle:active,
 .profile-btn:active {
-  background: rgba(var(--rust-rgb), 0.14);
+  background: var(--inner);
 }
 .nav-grouplink:not(.active):hover,
 .nav-item:not(.active):hover {
@@ -316,17 +323,18 @@ body.sidebar-resizing .sidebar-resizer::after {
   flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--hairline);
-  border-radius: 14px;
-  box-shadow: var(--shadow-hover);
+  border-radius: var(--radius-overlay);
+  box-shadow: var(--shadow-float);
   padding: 7px;
   overflow-y: auto;
   max-height: 420px; /* kept in step with `FLYOUT_MAX_HEIGHT` in AppShell.tsx */
 }
+.rail-flyout .nav-item {
+  min-height: 34px;
+}
 .rail-flyout-head {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--caption);
   padding: 8px 10px 6px;
 }
@@ -366,8 +374,8 @@ body.sidebar-resizing .sidebar-resizer::after {
   border-bottom: 1px solid var(--hairline);
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 0 22px;
+  gap: 14px;
+  padding: 0 14px 0 18px;
 }
 /* The two side groups: equal flexible halves, so the search box between them
    sits centred against the window itself. `min-width: 0` lets either half
@@ -390,16 +398,36 @@ body.sidebar-resizing .sidebar-resizer::after {
 .topbar-logo-mark {
   display: none;
 }
+/* The traced logo draws its needle in near-black, which vanishes on the dark
+   top bar. In dark mode it takes the ink token; the ribbon keeps its colours. */
+html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
+  fill: var(--ink);
+}
+/* Baseline B1: a synthetic tenant says so on every screen, beside the logo. */
+.test-env-badge {
+  flex: none;
+  padding: 3px 8px;
+  border: 1px solid var(--amber-bd);
+  border-radius: var(--radius-round);
+  background: var(--amber-bg);
+  color: var(--amber);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
 /* Sizing lives on .search-wrap (GlobalSearch.css) — it anchors the results
    panel; this rule is the pill itself. */
 .topbar-search {
   display: flex;
   align-items: center;
   gap: 9px;
-  background: var(--inner);
-  border: 1px solid var(--hairline);
-  border-radius: 999px;
-  padding: 8px 15px;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  padding: 8px 12px;
+  color: var(--muted);
+}
+.topbar-search input::placeholder {
   color: var(--caption);
 }
 .topbar-search input {
@@ -418,19 +446,19 @@ body.sidebar-resizing .sidebar-resizer::after {
 .topbar-right {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
   flex: 1 1 0;
   min-width: 0;
   justify-content: flex-end;
 }
 .icon-btn {
   position: relative;
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  border: 1px solid var(--hairline);
-  background: var(--surface);
-  color: var(--navy);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-control);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--ink2);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -458,11 +486,11 @@ body.sidebar-resizing .sidebar-resizer::after {
   min-width: 17px;
   height: 17px;
   padding: 0 4px;
-  border-radius: 9px;
-  background: var(--brand-red);
-  color: #fff;
-  font-size: 10.5px;
-  font-weight: 800;
+  border-radius: var(--radius-control);
+  background: var(--cta);
+  color: var(--on-fill);
+  font-size: 12px;
+  font-weight: 600;
   line-height: 17px;
   text-align: center;
   border: 1.5px solid var(--surface);
@@ -471,6 +499,22 @@ body.sidebar-resizing .sidebar-resizer::after {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
+}
+/* A new screen fades in over 100ms, opacity only: no rise, and the shell
+   around it never animates (v2 Motion). The shell stays mounted, so only the
+   screen's own root is new and only it plays this. */
+.content > * {
+  animation: kd-fade var(--dur-1) linear both;
+}
+@keyframes kd-fade {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .content > * {
+    animation: none;
+  }
 }
 
 /* ---------- the bell popup (#226) ----------
@@ -491,8 +535,8 @@ body.sidebar-resizing .sidebar-resizer::after {
   flex-direction: column;
   background: var(--surface);
   border: 1px solid var(--hairline);
-  border-radius: 14px;
-  box-shadow: var(--shadow-hover);
+  border-radius: var(--radius-overlay);
+  box-shadow: var(--shadow-float);
   overflow: hidden;
 }
 /* Each popup carries its own name: with one feed per popup there are no tabs,
@@ -504,19 +548,19 @@ body.sidebar-resizing .sidebar-resizer::after {
   flex: none;
   padding: 12px 14px 9px;
   border-bottom: 1px solid var(--hairline);
-  font-size: 13.5px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--ink);
 }
 .bell-title-count {
   min-width: 18px;
   height: 18px;
   padding: 0 5px;
-  border-radius: 9px;
-  background: var(--brand-red);
-  color: #fff;
-  font-size: 10.5px;
-  font-weight: 800;
+  border-radius: var(--radius-control);
+  background: var(--cta);
+  color: var(--on-fill);
+  font-size: 12px;
+  font-weight: 600;
   line-height: 18px;
   text-align: center;
 }
@@ -542,8 +586,8 @@ body.sidebar-resizing .sidebar-resizer::after {
   align-items: center;
   gap: 6px;
   margin: 0 0 3px;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   letter-spacing: 0.3px;
   text-transform: uppercase;
   color: var(--caption);
@@ -556,25 +600,23 @@ body.sidebar-resizing .sidebar-resizer::after {
 }
 .bell-value {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--ink);
 }
 .bell-row-title {
   margin: 0;
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--ink);
 }
 .bell-row-meta {
   margin: 2px 0 0;
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--muted);
 }
 .bell-day-head {
   margin: 10px 0 2px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--caption);
 }
 /* The Action Needed popup's two blocks. One shape, two colours: navy for
@@ -584,12 +626,12 @@ body.sidebar-resizing .sidebar-resizer::after {
   margin: 6px 0 10px;
   border: 1px solid var(--hairline);
   border-left: 3px solid var(--card-tone);
-  border-radius: 10px;
+  border-radius: var(--radius-box);
   background: var(--inner);
   overflow: hidden;
 }
 .bell-card-exceptions {
-  --card-tone: var(--rust);
+  --card-tone: var(--rust-ink);
 }
 .bell-card-head {
   display: flex;
@@ -603,7 +645,7 @@ body.sidebar-resizing .sidebar-resizer::after {
   width: 28px;
   height: 28px;
   flex: none;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   color: var(--card-tone);
   background: color-mix(in srgb, var(--card-tone) 14%, transparent);
 }
@@ -614,22 +656,22 @@ body.sidebar-resizing .sidebar-resizer::after {
 }
 .bell-card-name h3 {
   margin: 0;
-  font-size: 13.5px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--ink);
 }
 .bell-card-hint {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--muted);
 }
 .bell-card-count {
   margin-left: auto;
   min-width: 22px;
   padding: 1px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   text-align: center;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   color: var(--card-tone);
   background: color-mix(in srgb, var(--card-tone) 14%, transparent);
 }
@@ -658,14 +700,14 @@ body.sidebar-resizing .sidebar-resizer::after {
   flex: 1;
 }
 .bell-item-what {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ink);
 }
 .bell-item-times {
   margin-left: 6px;
   white-space: nowrap;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--card-tone);
 }
 .bell-item-why {
@@ -676,7 +718,7 @@ body.sidebar-resizing .sidebar-resizer::after {
   white-space: nowrap;
 }
 .bell-item-meta {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--caption);
 }
 .bell-item .bell-value {
@@ -686,9 +728,9 @@ body.sidebar-resizing .sidebar-resizer::after {
 .bell-due {
   flex: none;
   padding: 2px 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--muted);
   border: 1px solid var(--hairline);
@@ -704,7 +746,7 @@ body.sidebar-resizing .sidebar-resizer::after {
   gap: 6px;
   margin: 0;
   padding: 4px 12px 12px;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--muted);
 }
 .bell-card-all {
@@ -728,9 +770,9 @@ body.sidebar-resizing .sidebar-resizer::after {
 .bell-all {
   display: block;
   padding: 9px 4px 4px;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
-  color: var(--rust);
+  color: var(--rust-ink);
 }
 
 .bell-history {
@@ -747,8 +789,8 @@ body.sidebar-resizing .sidebar-resizer::after {
   border: none;
   background: transparent;
   cursor: pointer;
-  font-size: 12.5px;
-  font-weight: 700;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--caption);
 }
 .bell-history-toggle:hover {
@@ -763,10 +805,10 @@ body.sidebar-resizing .sidebar-resizer::after {
   flex: 1;
   padding: 5px 6px;
   border: 1px solid var(--hairline);
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: var(--inner);
   cursor: pointer;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--muted);
 }
@@ -776,8 +818,8 @@ body.sidebar-resizing .sidebar-resizer::after {
 .bell-range.active {
   background: rgba(var(--rust-rgb), 0.12);
   border-color: var(--rust);
-  color: var(--rust);
-  font-weight: 700;
+  color: var(--rust-ink);
+  font-weight: 600;
 }
 
 /* ---------- switcher / dropdowns ---------- */
@@ -788,12 +830,12 @@ body.sidebar-resizing .sidebar-resizer::after {
   display: flex;
   align-items: center;
   gap: 9px;
-  background: var(--inner);
-  border: 1px solid var(--hairline);
-  border-radius: 999px;
-  padding: 7px 13px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  padding: 8px 12px;
   cursor: pointer;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--navy);
   transition: background-color 0.15s;
@@ -863,20 +905,20 @@ body.sidebar-resizing .sidebar-resizer::after {
   min-width: 268px;
   background: var(--surface);
   border: 1px solid var(--hairline);
-  border-radius: 14px;
-  box-shadow: var(--shadow-hover);
+  border-radius: var(--radius-overlay);
+  box-shadow: var(--shadow-float);
   padding: 7px;
 }
 .avatar {
   width: 34px;
   height: 34px;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: var(--navy-fill);
-  color: #fff;
+  color: var(--on-fill);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
+  font-weight: 600;
   font-size: 13px;
   flex: none;
 }
@@ -887,12 +929,12 @@ body.sidebar-resizing .sidebar-resizer::after {
   text-align: left;
 }
 .user-name {
-  font-size: 13.5px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--ink);
 }
 .user-role {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--muted);
 }
 
@@ -909,8 +951,8 @@ body.sidebar-resizing .sidebar-resizer::after {
   min-width: 268px;
   background: var(--surface);
   border: 1px solid var(--hairline);
-  border-radius: 14px;
-  box-shadow: var(--shadow-hover);
+  border-radius: var(--radius-overlay);
+  box-shadow: var(--shadow-float);
   padding: 7px;
   overflow: hidden;
 }
@@ -919,10 +961,8 @@ body.sidebar-resizing .sidebar-resizer::after {
   right: 0;
 }
 .dropdown-head {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--caption);
   padding: 8px 12px 6px;
 }
@@ -936,8 +976,8 @@ body.sidebar-resizing .sidebar-resizer::after {
   border: none;
   background: transparent;
   cursor: pointer;
-  border-radius: 9px;
-  font-size: 13.5px;
+  border-radius: var(--radius-box);
+  font-size: 14px;
   color: var(--ink);
   text-align: left;
   transition: background-color 0.12s;
@@ -947,13 +987,13 @@ body.sidebar-resizing .sidebar-resizer::after {
 }
 .dropdown-item.active {
   background: rgba(var(--rust-rgb), 0.12);
-  color: var(--rust);
-  font-weight: 700;
+  color: var(--rust-ink);
+  font-weight: 600;
 }
 /* The store code, beside the name rather than inside it. */
 .dropdown-hint {
   font-family: var(--mono);
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--caption);
 }
@@ -967,44 +1007,13 @@ body.sidebar-resizing .sidebar-resizer::after {
   padding: 8px 12px 10px;
 }
 .dropdown-theme > span {
-  font-size: 13.5px;
+  font-size: 14px;
   color: var(--muted);
   font-weight: 600;
 }
-.theme-seg {
-  display: inline-flex;
-  gap: 2px;
-  padding: 3px;
-  background: var(--inner);
-  border: 1px solid var(--hairline);
-  border-radius: 999px;
-}
-.theme-seg-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--muted);
-  border-radius: 999px;
-  padding: 5px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    background-color 0.12s,
-    color 0.12s;
-}
-.theme-seg-btn:hover {
-  color: var(--ink);
-}
-.theme-seg-btn.active {
-  background: var(--surface);
-  border-color: var(--hairline);
-  color: var(--ink);
-}
-.theme-seg-compact .theme-seg-btn {
-  padding: 6px;
+/* The theme picker is a SegmentedControl; compact shows icons only. */
+.theme-seg-compact .seg-btn {
+  padding: 0 8px;
 }
 
 /* ---------- mobile (off-canvas drawer) ---------- */
@@ -1193,7 +1202,7 @@ body.sidebar-resizing .sidebar-resizer::after {
     display: block !important;
     margin: 0 !important;
     padding: 0 !important;
-    background: #fff !important;
+    background: var(--print-paper) !important;
   }
 }
 
@@ -1207,34 +1216,36 @@ body.sidebar-resizing .sidebar-resizer::after {
  * you can go, the title is where you are. Deliberately not `.seg`, the joined
  * navy tray a screen uses for its own groupings - these are free-standing
  * buttons, rust when active, so the two controls never read as one. */
+/* Section tabs: sibling pages of one section, so they are links. A hairline
+   under the row; the page you are on is ink with the rust "where you are" bar. */
 .page-tabs {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin: 0 0 16px;
+  gap: var(--space-24);
+  margin: 0 0 var(--space-24);
+  border-bottom: 1px solid var(--hairline);
 }
 .page-tab {
-  padding: 7px 14px;
-  font-size: 13.5px;
-  font-weight: 600;
+  margin-bottom: -1px;
+  padding: var(--space-8) 0;
+  border-bottom: 2px solid transparent;
   color: var(--muted);
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  border-radius: 10px;
-  transition:
-    color 0.15s,
-    background-color 0.15s,
-    border-color 0.15s;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  text-decoration: none;
 }
 .page-tab:hover {
   color: var(--ink);
-  background: var(--inner);
+}
+.page-tab:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
 }
 .page-tab.active {
-  color: var(--rust);
-  background: rgba(var(--rust-rgb), 0.12);
-  border-color: var(--rust);
-  font-weight: 700;
+  color: var(--ink);
+  font-weight: 600;
+  border-bottom-color: var(--rust);
 }
 /* ---------- mail: the top-bar popup only ----------
    Reuses the bell's popup shell wholesale — `.bell-popup`, `.bell-list`,
@@ -1254,7 +1265,7 @@ body.sidebar-resizing .sidebar-resizer::after {
   cursor: pointer;
   font: inherit;
   font-weight: 600;
-  color: var(--rust);
+  color: var(--rust-ink);
 }
 .link-btn:hover {
   text-decoration: underline;
@@ -1269,8 +1280,8 @@ body.sidebar-resizing .sidebar-resizer::after {
   border-bottom: 1px solid var(--hairline);
 }
 .mail-pop-title {
-  font-size: 13.5px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--ink);
 }
 .mail-pop-address {
@@ -1279,7 +1290,7 @@ body.sidebar-resizing .sidebar-resizer::after {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--muted);
 }
 .mail-connect {
@@ -1324,4 +1335,52 @@ body.sidebar-resizing .sidebar-resizer::after {
   height: 7px;
   border-radius: 50%;
   background: var(--caption);
+}
+
+/* The stock fold's strip (Inventory.tsx): the daily tabs and the Review &
+   history disclosure share one row, so the screen's own header is not pushed
+   a third of the way down a desktop window. */
+.inventory-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 6px 10px;
+  margin: 0 0 14px;
+}
+.inventory-strip .page-tabs {
+  margin: 0;
+}
+.inventory-strip-review {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.inventory-strip-review > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 7px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink2);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-box);
+}
+.inventory-strip-review > summary::-webkit-details-marker {
+  display: none;
+}
+.inventory-strip-review > summary::after {
+  content: " ▾";
+  color: var(--muted);
+}
+.inventory-strip-review[open] > summary::after {
+  content: " ▴";
+}
+.inventory-strip-review[open] {
+  flex-basis: 100%;
+}
+.inventory-strip-note {
+  flex-basis: 100%;
+  margin: 2px 0 0;
+  font-size: 13px;
 }

@@ -8,7 +8,7 @@
   margin: 0;
   padding: 6px 10px;
   border: 1px dashed var(--amber);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   color: var(--muted);
   font-size: 12px;
 }
@@ -24,12 +24,6 @@
   align-items: baseline;
   gap: 8px;
   justify-content: space-between;
-}
-.plus-head .eyebrow {
-  margin: 0;
-  color: var(--muted);
-  font-size: 12px;
-  letter-spacing: 0.08em;
 }
 .plus-head > span {
   color: var(--caption);
@@ -61,7 +55,7 @@
 .plus-note {
   margin: 0;
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: 12px;
 }
 .plus-link {
   align-self: flex-start;
@@ -87,7 +81,7 @@
   background: none;
   color: var(--muted);
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
 }
 .plus-demo {
   display: flex;
@@ -101,7 +95,7 @@
 .plus-demo button {
   padding: 4px 10px;
   border: 1px solid var(--hairline);
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: var(--surface);
   color: var(--muted);
   font: inherit;
@@ -114,7 +108,7 @@
   gap: 6px;
   margin: 0;
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: 12px;
 }
 .plus-who {
   display: flex;
@@ -131,7 +125,7 @@
 }
 .plus-who strong {
   color: var(--ink);
-  font-size: 15px;
+  font-size: 14px;
 }
 .plus-avatar {
   display: inline-flex;
@@ -145,9 +139,9 @@
 }
 .plus-tier {
   padding: 3px 10px;
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   border: 1px solid var(--hairline);
   color: var(--muted);
 }
@@ -169,9 +163,9 @@
   gap: 6px;
   padding: 4px 10px;
   border: 1px solid var(--hairline);
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: var(--inner);
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--ink);
 }
 .plus-chips li.is-warn {
@@ -195,7 +189,7 @@
   gap: 8px;
   margin: 0;
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: 12px;
 }
 .plus-dot {
   width: 8px;
@@ -213,13 +207,13 @@
 .plus-stepper output {
   min-width: 56px;
   text-align: center;
-  font-size: 17px;
+  font-size: 16px;
 }
 .plus-step {
   width: 40px;
   height: 40px;
   padding: 0;
-  font-size: 18px;
+  font-size: 16px;
 }
 .plus-line {
   display: flex;
@@ -260,7 +254,7 @@
   padding: 4px;
   list-style: none;
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   background: var(--surface);
 }
 .plus-menu button {
@@ -271,7 +265,7 @@
   height: 40px;
   padding: 0 10px;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   background: none;
   color: var(--ink);
   font: inherit;
@@ -289,7 +283,7 @@
 }
 .plus-bar {
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   background: var(--inner);
   overflow: hidden;
 }
@@ -307,37 +301,21 @@
   gap: 6px;
   align-items: center;
   flex-wrap: wrap;
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--muted);
-}
-.plus-due button {
-  height: 32px;
-  padding: 0 12px;
-  border: 1px solid var(--hairline);
-  border-radius: 999px;
-  background: var(--surface);
-  color: var(--ink);
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-}
-.plus-due button.is-on {
-  background: var(--navy-fill);
-  border-color: var(--navy-fill);
-  color: #fff;
 }
 .plus-refusal {
   margin: 0;
   padding: 8px 10px;
   border: 1px solid var(--red);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   color: var(--red);
   font-size: 13px;
 }
 .plus-ruling {
   padding: 2px 8px;
   border: 1px solid var(--amber);
-  border-radius: 999px;
+  border-radius: var(--radius-round);
   color: var(--amber);
   font-size: 12px;
 }
@@ -357,9 +335,9 @@
   gap: 10px;
   width: 100%;
   max-width: 380px;
-  padding: 20px;
+  padding: 18px;
   border: 1px solid var(--hairline);
-  border-radius: var(--radius);
+  border-radius: var(--radius-box);
   background: var(--surface);
 }
 .plus-sheet h3 {
@@ -374,7 +352,7 @@
   }
   .plus-sheet {
     max-width: none;
-    border-radius: var(--radius) var(--radius) 0 0;
+    border-radius: var(--radius-box) var(--radius-box) 0 0;
   }
 }
 @media (pointer: coarse) {
@@ -383,9 +361,6 @@
   .plus-step,
   .plus-menu button {
     min-height: 44px;
-    height: 44px;
-  }
-  .plus-due button {
     height: 44px;
   }
   .plus-x {

@@ -19,6 +19,8 @@ legacy one that happens to answer inside the namespace (#303).
 
 from __future__ import annotations
 
+import logging
+
 import uuid
 from typing import Any
 
@@ -37,7 +39,7 @@ from accounts.goods_api import (
     parse_meta,
 )
 from accounts.principal import AccessContext
-from core.commands import CommandResult, CommandRun
+from core.commands import CommandResult, CommandRun, CommandSpec, execute_command
 from core.refusals import Refusal
 from outbound import transfer_excess, transfer_returns, transfer_shortages, transfers
 from outbound.goods_models import GapResolution, GoodsTransfer, TransferDispatch, TransferReturn
@@ -58,6 +60,8 @@ REFUSAL_RESPONSE: dict[str, Any] = {
 
 _READ_REFUSALS = (400, 401, 403, 404, 503)
 _WRITE_REFUSALS = (400, 401, 403, 404, 409, 422, 503)
+
+logger = logging.getLogger(__name__)
 
 
 def _responses(status: int, schema: dict[str, Any], codes: tuple[int, ...]) -> dict[int, Any]:
@@ -1207,15 +1211,18 @@ DESTINATION: dict[str, Any] = {
     "type": "object",
     "description": (
         "One site a transfer from the named source may be drafted to: its name, "
-        "code and kind (`store` or `warehouse`), and nothing it holds."
+        "code and kind (`store` or `warehouse`), and nothing it holds. `linked` "
+        "marks the source's linked site (a store's warehouse, or a warehouse's "
+        "stores), which the list puts first."
     ),
     "properties": {
         "id": {"type": "string"},
         "code": {"type": "string"},
         "name": {"type": "string"},
         "kind": {"type": "string", "enum": ["store", "warehouse"]},
+        "linked": {"type": "boolean"},
     },
-    "required": ["id", "code", "name", "kind"],
+    "required": ["id", "code", "name", "kind", "linked"],
 }
 
 
@@ -1551,7 +1558,13 @@ class TransferSubmitView(_TransferCommandView):
     action_name = "stock.transfer.submit"
 
     def gate(self, access: AccessContext, transfer: GoodsTransfer) -> int:
+        from outbound import transfer_authority
+
         access.require(transfers.ALLOCATE_ACTION, site_id=transfer.source_site_id)
+        if transfer_authority.may_auto_approve(transfer):
+            # No approve screen follows a warehouse → store transfer that needs no
+            # second person, so the sender confirms it is them here.
+            access.require_step_up()
         return transfer.source_site_id
 
     def run(self, run: CommandRun, transfer: GoodsTransfer, body: dict[str, Any]) -> CommandResult:
@@ -1576,12 +1589,38 @@ class TransferSubmitView(_TransferCommandView):
             "and each line keeps the GRN's evidence with its value `unknown`. "
             "Refusals: STATE_CONFLICT (not a draft), INSUFFICIENT_ELIGIBLE_STOCK "
             "(not enough eligible pieces in the transfer's pool), NOT_FOUND, "
-            "ACTION_DENIED."
+            "ACTION_DENIED. Where the pinned policy sets `auto_approve_warehouse_to_store` "
+            "(a warehouse → its store, ordinary custody), the sender confirms their password "
+            "and the transfer is approved by them straight after, recorded as "
+            "`NO_APPROVAL_REQUIRED`; if that step is refused the transfer stays submitted."
         ),
         responses=_responses(200, TRANSFER_DETAIL, _WRITE_REFUSALS),
     )
     def post(self, request: Request, pk: uuid.UUID) -> Response:
-        return super().post(request, pk)
+        response = super().post(request, pk)
+        transfer = GoodsTransfer.objects.get(pk=pk)
+        from outbound import transfer_authority
+
+        if transfer.state == GoodsTransfer.State.SUBMITTED and transfer_authority.may_auto_approve(transfer):
+            # A warehouse → store transfer that needs no second person is approved by
+            # its sender straight after the submit; a replayed submit replays this too.
+            access = self.access(request)
+            meta = parse_meta(request.data, revision_bound=False)
+
+            def approve(run: CommandRun) -> CommandResult:
+                transfers.approve_without_second_person(run, transfer.pk)
+                return CommandResult(resource_type="transfer", resource_id=str(transfer.pk))
+
+            try:
+                execute_command(access.principal(), CommandSpec(
+                    action="stock.transfer.approve", command_id=uuid.uuid5(meta.command_id, "no-second-person"),
+                    business_input={"transfer_id": str(transfer.pk), "auto": True},
+                    subject_key=f"transfer:{pk}", site_id=transfer.source_site_id), approve)
+            except Refusal:
+                # The submit stands; the transfer waits for a normal approval instead.
+                logger.warning("Transfer %s was submitted but not approved without a second person", pk, exc_info=True)
+            response = Response(_detail(access, pk), status=response.status_code)
+        return response
 
 
 class TransferApproveView(_TransferCommandView):

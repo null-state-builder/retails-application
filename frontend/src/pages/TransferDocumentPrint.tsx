@@ -12,6 +12,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, Printer, RotateCcw } from "lucide-react";
 
+import { useAuth } from "../auth/AuthContext";
+import { Note } from "../components/Note";
 import { api, apiErrorCode, apiErrorMessage } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
 import { formatDateTime, formatPaiseString } from "../lib/format";
@@ -22,6 +24,7 @@ import {
   type TransferDocument,
   type TransferDocumentLine,
 } from "../lib/goodsTransfers";
+import { TEST_MARK } from "../lib/testEnvironment";
 import "./Booking.css";
 
 const TRANSFERS = "/goods-v1/outbound/transfers";
@@ -32,7 +35,7 @@ const OFFLINE =
 function Party({ label, party }: { label: string; party: TransferDocument["source"] }) {
   return (
     <div data-testid={`document-${label.toLowerCase()}`}>
-      <p className="eyebrow">{label}</p>
+      <h2 className="heading">{label}</h2>
       <p>
         <strong>{party.legal_name}</strong>
         <br />
@@ -46,6 +49,28 @@ function Party({ label, party }: { label: string; party: TransferDocument["sourc
 }
 
 /** Every transport detail the dispatch recorded, the e-way reference named. */
+/** Top and bottom of a test tenant's document (baseline B1): never a real one. */
+function TestMark({ where }: { where: "top" | "bottom" }) {
+  return (
+    <p
+      data-testid={`document-test-mark-${where}`}
+      style={{
+        margin: "8px 0",
+        padding: "6px 8px",
+        border: "2px solid #000",
+        textAlign: "center",
+        fontWeight: 800,
+        fontSize: 18,
+        letterSpacing: 0.5,
+        color: "#000",
+        background: "#fff",
+      }}
+    >
+      {TEST_MARK}
+    </p>
+  );
+}
+
 function transportWords(transport: Record<string, unknown>): string {
   const details = Object.entries(transport)
     .filter(([key, value]) => key !== "eway_reference" && typeof value === "string" && value)
@@ -65,6 +90,8 @@ function money(line: TransferDocumentLine, key: keyof TransferDocumentLine): str
 
 export function TransferDocumentPage() {
   const { id = "", dispatchId = "" } = useParams();
+  const { session } = useAuth();
+  const testEnvironment = Boolean(session?.test_environment);
   const [document, setDocument] = useState<TransferDocument | null>(null);
   const [denied, setDenied] = useState(false);
   const [none, setNone] = useState(false);
@@ -142,7 +169,7 @@ export function TransferDocumentPage() {
         <div className="spacer" />
         <button
           type="button"
-          className="btn btn-cta"
+          className="btn btn-primary"
           disabled={!document}
           onClick={() => window.print()}
           data-testid="document-print"
@@ -151,30 +178,41 @@ export function TransferDocumentPage() {
         </button>
       </div>
       {offline && (
-        <p className="warn-note pt-print-hide" data-testid="document-offline" role="status">
-          {OFFLINE}{" "}
-          {online && (
-            <button
-              type="button"
-              className="btn btn-sm"
-              onClick={() => void load()}
-              data-testid="document-retry"
-            >
-              <RotateCcw size={14} /> Try again
-            </button>
-          )}
-        </p>
+        <div className="pt-print-hide">
+          <Note
+            tone="warn"
+            role="status"
+            testId="document-offline"
+            action={
+              online && (
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  onClick={() => void load()}
+                  data-testid="document-retry"
+                >
+                  <RotateCcw size={14} /> Try again
+                </button>
+              )
+            }
+          >
+            {OFFLINE}
+          </Note>
+        </div>
       )}
       {error && (
-        <p className="warn-note pt-print-hide" data-testid="document-error">
-          {error}
-        </p>
+        <div className="pt-print-hide">
+          <Note tone="error" testId="document-error">
+            {error}
+          </Note>
+        </div>
       )}
       {!document ? (
         <p className="muted">{offline || error ? "" : "Loading…"}</p>
       ) : (
         <article data-testid="transfer-document" data-kind={document.kind}>
-          <p className="eyebrow">
+          {testEnvironment && <TestMark where="top" />}
+          <p className="muted">
             {document.kind === "tax_invoice"
               ? "Tax invoice · stock transfer between registrations"
               : "Delivery challan · stock transfer, not a sale"}
@@ -203,10 +241,10 @@ export function TransferDocumentPage() {
             <Party label="To" party={document.destination} />
           </div>
           {!document.values_shown && (
-            <p className="warn-note" data-testid="document-values-hidden">
+            <Note tone="warn" testId="document-values-hidden">
               The values and tax on this document are shown only to a login allowed to see cost. Ask
               head office to print it with values.
-            </p>
+            </Note>
           )}
           <div className="table-wrap">
             <table className="data" data-testid="document-lines">
@@ -280,6 +318,7 @@ export function TransferDocumentPage() {
               </>
             )}
           </dl>
+          {testEnvironment && <TestMark where="bottom" />}
         </article>
       )}
     </div>

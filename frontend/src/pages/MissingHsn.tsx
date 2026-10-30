@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { Note } from "../components/Note";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { apiErrorMessage, typedApi } from "../lib/api";
@@ -44,9 +45,9 @@ export function MissingHsnPage() {
         lead="Pieces at the store whose HSN is missing or is not an HSN. Where tax settings are on, the till still bills them, at the rate set for an HSN no rule covers, and flags the bill. Fix the HSN on the PT they came in on."
       />
       {error && (
-        <p className="warn-note" data-testid="missing-hsn-error">
+        <Note tone="error" testId="missing-hsn-error">
           {error}
-        </p>
+        </Note>
       )}
       {!data ? (
         !error && <p>Loading…</p>
@@ -55,7 +56,7 @@ export function MissingHsnPage() {
           HSN on every item is not switched on at any store you work at.
         </p>
       ) : (
-        <section className="card section-card">
+        <section className="section">
           <div className="toolbar">
             <label className="field">
               <span>Store</span>
@@ -74,9 +75,9 @@ export function MissingHsnPage() {
             </label>
           </div>
           {data.items.length === 0 ? (
-            <p className="ok-note" data-testid="missing-hsn-empty">
+            <Note tone="success" testId="missing-hsn-empty">
               Every item at this store has an HSN.
-            </p>
+            </Note>
           ) : (
             <div className="table-wrap">
               <table className="data" data-testid="missing-hsn-table">

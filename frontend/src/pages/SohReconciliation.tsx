@@ -107,9 +107,9 @@ export function SohReconciliationPanel({
 
   if (!source.data.requires_inventory_reconciliation) return null;
   return (
-    <section className="panel">
+    <section className="section ruled">
       {stepUp.dialog}
-      <h3>Update this store from a later SOH export</h3>
+      <h3 className="heading">Update this store from a later SOH export</h3>
       <p>
         Pause and reconcile every till online first. Export a fresh full-store SOH with its exact
         cutoff, record the physical count and obtain independent source approval. This count
@@ -157,7 +157,7 @@ export function SohReconciliationPanel({
           </label>
           <br />
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             disabled={busy || !reasonCode.trim() || !fullExport || !physical || !omissions}
             onClick={() =>
               run(async () => {
@@ -275,7 +275,7 @@ export function SohReconciliationPanel({
           )}
           {count.allowed_actions.includes("submit") && (
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               disabled={busy}
               onClick={() =>
                 run(async () => {

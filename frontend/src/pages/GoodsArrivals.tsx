@@ -22,6 +22,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, ClipboardCheck, Plus, Trash2, X } from "lucide-react";
 import { Link } from "react-router-dom";
 
+import { Note } from "../components/Note";
+import { Status } from "../components/Status";
 import { api, apiErrorCode, apiErrorMessage, goodsMeta } from "../lib/api";
 import {
   Denied,
@@ -435,7 +437,7 @@ export function NewArrival({
       )}
 
       <button
-        className="btn btn-cta"
+        className="btn btn-primary"
         onClick={save}
         disabled={busy || !ready}
         data-testid="ga-save"
@@ -553,9 +555,9 @@ function RowIdentityPanel({
   }
   if (state.failure) {
     return (
-      <p className="warn-note" data-testid={`ga-identity-${index}-failed`}>
+      <Note tone="warn" testId={`ga-identity-${index}-failed`}>
         {state.failure}
-      </p>
+      </Note>
     );
   }
   if (!state.resolution) return null;
@@ -570,9 +572,9 @@ function RowIdentityPanel({
   }
   if (resolution.result === "unknown") {
     return (
-      <p className="warn-note" data-testid={`ga-identity-${index}-unknown`}>
+      <Note tone="warn" testId={`ga-identity-${index}-unknown`}>
         {resolutionMessage(resolution)}
-      </p>
+      </Note>
     );
   }
   return (
@@ -687,7 +689,7 @@ function HandoverPanel({
               </button>
               <div className="spacer" />
               <button
-                className="btn btn-cta"
+                className="btn btn-primary"
                 onClick={onHandOver}
                 disabled={busy || !toHumanId.trim() || !reason.trim()}
                 data-testid="ga-handover-submit"
@@ -1039,10 +1041,10 @@ function CountPanel({
         {open.failure ? (
           // A failed read is not "there is no count". Offering "Start the count"
           // here would invite a second count beside one that may well exist.
-          <p className="warn-note" data-testid="ga-count-unknown">
+          <Note tone="warn" testId="ga-count-unknown">
             This delivery's count could not be read, so it is not known whether one is already under
             way. {open.failure}
-          </p>
+          </Note>
         ) : (
           <p className="gr-hint">
             You are recorded as both the counter and the person entering it. If you cannot finish
@@ -1051,7 +1053,7 @@ function CountPanel({
         )}
         <Feedback error={error} ok={ok} />
         <button
-          className="btn btn-cta"
+          className="btn btn-primary"
           onClick={open.failure ? reload : openSession}
           disabled={busy}
           data-testid={open.failure ? "ga-count-retry" : "ga-count-open"}
@@ -1273,7 +1275,7 @@ function CountPanel({
         </button>
         <div className="spacer" />
         <button
-          className="btn btn-cta"
+          className="btn btn-primary"
           onClick={record}
           disabled={busy || unchosen.length > 0}
           data-testid="ga-record"
@@ -1282,10 +1284,10 @@ function CountPanel({
         </button>
       </div>
       {unchosen.length > 0 && (
-        <p className="warn-note" data-testid="ga-needs-choice">
+        <Note tone="warn" testId="ga-needs-choice">
           {unchosen.length} row(s) scanned a code that matches more than one product. Choose which
           product each one is before recording them.
-        </p>
+        </Note>
       )}
 
       {recorded.length > 0 && (
@@ -1340,7 +1342,7 @@ function CountPanel({
           later, on a PT.
         </p>
         <button
-          className="btn btn-cta"
+          className="btn btn-primary"
           onClick={issue}
           disabled={busy || recorded.length === 0}
           data-testid="ga-issue"
@@ -1520,7 +1522,7 @@ function InvoicePanel({
         </button>
         <div className="spacer" />
         <button
-          className="btn btn-cta btn-sm"
+          className="btn btn-primary btn-sm"
           onClick={submit}
           disabled={busy || !number || !date || badCost || matchPending}
           data-testid="ga-inv-submit"
@@ -1563,7 +1565,7 @@ export function ArrivalPanel({
   // record on screen — tearing the panels down mid-reload would also take the
   // message that says what just happened, and whatever was half-typed with it.
   if (doc.loading && !doc.doc) return <p className="muted">Loading…</p>;
-  if (doc.failure) return <div className="warn-note">{doc.failure}</div>;
+  if (doc.failure) return <Note tone="error">{doc.failure}</Note>;
   if (!doc.doc) return <Denied what="arrival" />;
 
   const arrival = doc.doc;
@@ -1572,9 +1574,9 @@ export function ArrivalPanel({
     <div data-testid="ga-detail">
       <div className="toolbar">
         <h3 className="h3">Arrival at {siteName(mySites, arrival.data.site_id)}</h3>
-        <span className={`chip chip-${arrival.state === "counted" ? "green" : "amber"}`}>
+        <Status tone={arrival.state === "counted" ? "green" : "amber"}>
           {arrival.state === "counted" ? "Counted" : "Waiting to be counted"}
-        </span>
+        </Status>
         <div className="spacer" />
         {onClose && (
           <button className="btn btn-sm" onClick={onClose} data-testid="ga-detail-close">
@@ -1621,9 +1623,9 @@ export function ArrivalPanel({
       )}
 
       {issued ? (
-        <div className="ok-note" data-testid="ga-issued">
+        <Note tone="success" role="status" testId="ga-issued">
           GRN issued. <Link to={deliveryStepPath("grn", issued, "grn")}>Open the GRN</Link>
-        </div>
+        </Note>
       ) : (
         <>
           {section !== "count" && <InvoicePanel arrival={arrival} onDone={doc.reload} />}

@@ -92,7 +92,7 @@ export function AlterationChargeCard({
         </>
       )}
       {note && (
-        <p className="bill-alert bill-consent-note" data-testid="alteration-note">
+        <p className="note note-warn bill-consent-note" data-testid="alteration-note">
           {note}
         </p>
       )}

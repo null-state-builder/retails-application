@@ -1,0 +1,286 @@
+/* First-store setup: a store summary with the three server gates, then the four
+ * steps on one rail. A step's node turns green only when every readiness check
+ * mapped to it passes; the rail is the page's one visual flourish. */
+.fss {
+  max-width: 980px;
+}
+
+.fss-store {
+  margin: 8px 0 16px;
+}
+.fss-store-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 10px 14px;
+}
+.fss-store-name {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--navy);
+  letter-spacing: -0.3px;
+}
+.fss-store-code {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--muted);
+}
+.fss-store-sub {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+.fss-store-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+}
+
+/* gates: Opening setup, Goods, Selling, joined like a track */
+.fss-gates {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  flex: 1 1 auto;
+}
+.fss-gate {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.fss-gate + .fss-gate::before {
+  content: "";
+  width: 28px;
+  height: 2px;
+  border-radius: var(--radius-control);
+  background: var(--hairline);
+  margin-right: 2px;
+}
+.fss-gate.is-on {
+  color: var(--green);
+}
+.fss-gate.is-on + .fss-gate.is-on::before {
+  background: var(--green-bd);
+}
+.fss-gate-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid var(--grey-bd);
+  background: var(--surface);
+}
+.fss-gate.is-on .fss-gate-dot {
+  border-color: var(--green);
+  background: var(--green);
+}
+
+/* steps */
+.fss-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.fss-step {
+  position: relative;
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  column-gap: 18px;
+  padding-bottom: 16px;
+}
+.fss-step:last-child {
+  padding-bottom: 0;
+}
+/* the rail between nodes */
+.fss-step:not(:last-child)::before {
+  content: "";
+  position: absolute;
+  left: 19px;
+  top: 44px;
+  bottom: 4px;
+  width: 2px;
+  border-radius: var(--radius-control);
+  background: var(--hairline);
+}
+.fss-step.is-clear:not(:last-child)::before {
+  background: var(--green-bd);
+}
+.fss-node {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--navy);
+  background: var(--surface);
+  border: 2px solid var(--sidebar-border);
+}
+.fss-step.is-open .fss-node {
+  border-color: var(--rust);
+  color: var(--rust-ink);
+}
+.fss-step.is-clear .fss-node {
+  border-color: var(--green);
+  background: var(--green);
+  color: var(--surface);
+}
+.fss-node svg {
+  width: 18px;
+  height: 18px;
+}
+
+.fss-body {
+  min-width: 0;
+}
+.fss-body-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.fss-body-head h2 {
+  margin: 0;
+  font-size: 16px;
+  color: var(--navy);
+  flex: 1 1 260px;
+}
+.fss-summary {
+  margin: 8px 0 0;
+  max-width: 68ch;
+  line-height: 1.55;
+}
+.fss-who {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+/* tasks: rows, not a wall of identical buttons */
+.fss-tasks {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 8px;
+}
+.fss-task {
+  display: block;
+  height: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-control);
+  background: var(--inner);
+  color: var(--ink);
+  text-decoration: none;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+}
+.fss-task:hover {
+  background: var(--inner-hover);
+  border-color: var(--sidebar-border);
+}
+.fss-task:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 2px;
+}
+.fss-task b {
+  display: block;
+  font-size: 14px;
+  color: var(--navy);
+}
+.fss-task span {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.fss-task.is-cta {
+  background: var(--navy-fill);
+  border-color: var(--navy-fill);
+}
+.fss-task.is-cta:hover {
+  background: var(--navy-fill-hover);
+}
+.fss-task.is-cta b,
+.fss-task.is-cta span {
+  color: var(--surface);
+}
+
+/* what the server still blocks on */
+.fss-blockers {
+  margin: 16px 0 0;
+}
+.fss-blockers ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.fss-blockers li + li {
+  margin-top: 2px;
+}
+
+.fss-people {
+  margin-top: 14px;
+  overflow-x: auto;
+}
+
+.fss-more {
+  margin-top: 14px;
+  font-size: 14px;
+  color: var(--muted);
+}
+.fss-more summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--navy);
+  width: fit-content;
+}
+.fss-more summary:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 2px;
+  border-radius: var(--radius-control);
+}
+.fss-more p {
+  margin: 8px 0 0;
+  max-width: 72ch;
+  line-height: 1.55;
+}
+
+@media (max-width: 640px) {
+  .fss-step {
+    grid-template-columns: 30px 1fr;
+    column-gap: 12px;
+  }
+  .fss-node {
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
+  }
+  .fss-step:not(:last-child)::before {
+    left: 14px;
+    top: 34px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fss-task {
+    transition: none;
+  }
+}

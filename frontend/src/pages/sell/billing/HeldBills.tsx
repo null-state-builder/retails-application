@@ -37,8 +37,8 @@ export interface HeldBillsProps {
 export function HeldBills({ holds, toReview, blocked, onResume, onKeep, onLetGo }: HeldBillsProps) {
   const stale = new Set(toReview.map((hold) => hold.held_uuid));
   return (
-    <div className="card section-card bill-holds" data-testid="bill-holds">
-      <p className="eyebrow">Bills on hold</p>
+    <div className="box bill-holds" data-testid="bill-holds">
+      <h3 className="heading">Bills on hold</h3>
       {blocked && (
         <p className="muted-cell bill-holds-blocked" data-testid="bill-holds-blocked">
           {blocked}
@@ -72,7 +72,7 @@ export function HeldBills({ holds, toReview, blocked, onResume, onKeep, onLetGo 
               <div className="bill-hold-actions">
                 <button
                   type="button"
-                  className="btn btn-cta"
+                  className="btn btn-primary"
                   data-testid={`bill-hold-resume-${hold.held_uuid}`}
                   disabled={Boolean(blocked)}
                   onClick={() => onResume(hold)}

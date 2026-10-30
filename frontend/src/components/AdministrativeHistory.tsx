@@ -13,6 +13,8 @@ import {
   historyPath,
   type HistorySubjectKind,
 } from "../lib/administrativeHistory";
+import { Note } from "./Note";
+import { Section } from "./Section";
 
 type AdministrativeHistoryOperation =
   paths["/api/goods-v1/history/{subject_kind}/{subject_id}"]["get"];
@@ -109,16 +111,19 @@ export function AdministrativeHistory({
   }, [subjectKind, subjectId, refreshKey]);
 
   return (
-    <div className="card section-card" data-testid={testId}>
-      <div className="toolbar" style={{ marginBottom: 8 }}>
-        <h4 className="h3">
-          <History size={16} /> {title}
-        </h4>
-      </div>
+    <Section
+      level={3}
+      heading={
+        <>
+          <History size={16} aria-hidden="true" /> {title}
+        </>
+      }
+      testId={testId}
+    >
       {loading ? (
         <p className="lead">Loading history…</p>
       ) : error ? (
-        <p className="warn-note">{error}</p>
+        <Note tone="error">{error}</Note>
       ) : items.length === 0 ? (
         <p className="lead">No recorded changes yet.</p>
       ) : (
@@ -158,6 +163,6 @@ export function AdministrativeHistory({
           {loadingMore ? "Loading…" : "Show older history"}
         </button>
       )}
-    </div>
+    </Section>
   );
 }

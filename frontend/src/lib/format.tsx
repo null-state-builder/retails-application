@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Status, type StatusTone } from "../components/Status";
 
 /** Render integer paise as INR with Indian Lakh/Crore grouping. Never floats on
  *  any write path — this is display only (the value is computed once server-side). */
@@ -23,8 +24,16 @@ export function formatINR(paise: number, opts: { short?: boolean } = {}): string
   return `${sign}₹${grouped}`;
 }
 
-export function Money({ paise, short }: { paise: number; short?: boolean }) {
-  return <span className="tabular">{formatINR(paise, short === undefined ? {} : { short })}</span>;
+export function Money({ paise, short }: { paise: number | null | undefined; short?: boolean }) {
+  // Not loaded, not known: a dash, never ₹0.
+  if (paise === null || paise === undefined) return <span className="tabular">—</span>;
+  if (!short) return <span className="tabular">{formatINR(paise)}</span>;
+  // A tile shows lakhs and crores; the exact amount is one hover away.
+  return (
+    <span className="tabular" title={formatINR(paise)}>
+      {formatINR(paise, { short })}
+    </span>
+  );
 }
 
 /** Render a rupee decimal string the server already computed ("72450.00") as
@@ -99,6 +108,17 @@ export function formatDateTime(iso: string): string {
   });
 }
 
+/** A calendar day (`YYYY-MM-DD`) in words, as the day it is in India: "3 Feb
+ *  2027". Read as a day, never as an instant, so no timezone moves it. */
+export function formatDay(ymd: string): string {
+  return new Date(`${ymd}T00:00:00+05:30`).toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
 /** The single SKU-grain primitive: Brand · Style · Colour · Size — never style-only. */
 export function SkuLine({
   brand,
@@ -122,10 +142,10 @@ export function SkuLine({
   );
 }
 
-const STATUS_TONE: Record<string, string> = {
+const STATUS_TONE: Record<string, StatusTone> = {
   open: "green",
   eoss: "amber",
-  closed: "navy",
+  closed: "grey",
   ok: "green",
   matched: "green",
   pending: "amber",
@@ -134,28 +154,21 @@ const STATUS_TONE: Record<string, string> = {
   ai: "purple",
 };
 
-export function StatusChip({ status, tone }: { status: string; tone?: string }) {
-  const t = tone ?? STATUS_TONE[status.toLowerCase()] ?? "navy";
-  return <span className={`chip chip-${t}`}>{status}</span>;
+/** A state as a dot and a word (design system v2 `Status`). */
+export function StatusChip({ status, tone }: { status: string; tone?: StatusTone | undefined }) {
+  return <Status tone={tone ?? STATUS_TONE[status.toLowerCase()] ?? "grey"}>{status}</Status>;
 }
 
+/** The commercial model is a kind, not a state: a plain tag. */
 export function CommercialBadge({ label }: { label: string }) {
-  const tone =
-    label === "Outright"
-      ? "navy"
-      : label === "Correction"
-        ? "blue"
-        : label === "SOR"
-          ? "amber"
-          : "purple";
-  return <span className={`chip chip-${tone}`}>{label}</span>;
+  return <span className="chip">{label}</span>;
 }
 
 export function Stat({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
-      <div style={{ fontSize: 12.5, color: "var(--muted)", fontWeight: 600 }}>{label}</div>
-      <div style={{ fontSize: 18, fontWeight: 700, marginTop: 2 }} className="tabular">
+      <div style={{ fontSize: 12, color: "var(--muted)", fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 20, fontWeight: 600, marginTop: 2 }} className="tabular">
         {value}
       </div>
     </div>

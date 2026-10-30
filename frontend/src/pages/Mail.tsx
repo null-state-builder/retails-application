@@ -16,10 +16,13 @@
 // one" does to the unread flag on both sides — is `useMailbox`; this file is
 // what that looks like.
 import { useState } from "react";
-import { Inbox, Paperclip, RefreshCw, Reply, Send, Trash2, X } from "lucide-react";
+import { Paperclip, RefreshCw, Reply, Send, Trash2, X } from "lucide-react";
 
 import { PageHeader } from "../components/PageHeader";
 import { SearchBox } from "../components/SearchBox";
+import { Note } from "../components/Note";
+import { SegmentedControl } from "../components/SegmentedControl";
+import { EmptyState } from "../components/States";
 import { apiErrorMessage } from "../lib/api";
 import {
   MAIL_FOLDERS,
@@ -222,9 +225,7 @@ export function MailPage() {
     return (
       <>
         <PageHeader title="Mail" />
-        <div className="card mail-empty-state">
-          <p>Mail has not been set up on this server yet.</p>
-        </div>
+        <EmptyState>Mail has not been set up on this server yet.</EmptyState>
       </>
     );
   }
@@ -233,22 +234,23 @@ export function MailPage() {
     return (
       <>
         <PageHeader title="Mail" />
-        <div className="card mail-empty-state" data-testid="mail-page-connect">
-          <Inbox size={32} />
-          <h3>Read your KDPS mail here</h3>
-          <p>
-            Connect your KDPS Google account once, and your inbox appears in this system - beside
-            your bookings, your stock and your ledgers.
-          </p>
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => mailApi.connect()}
-            data-testid="mail-page-connect-button"
-          >
-            Connect my mail
-          </button>
-        </div>
+        <EmptyState
+          heading="Read your KDPS mail here"
+          action={
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => mailApi.connect()}
+              data-testid="mail-page-connect-button"
+            >
+              Connect my mail
+            </button>
+          }
+          testId="mail-page-connect"
+        >
+          Connect your KDPS Google account once, and your inbox appears in this system - beside your
+          bookings, your stock and your ledgers.
+        </EmptyState>
       </>
     );
   }
@@ -284,47 +286,47 @@ export function MailPage() {
       />
 
       {status?.status === "needs_reconnect" && (
-        <div className="card mail-warn" data-testid="mail-page-reconnect">
-          Google needs you to sign in again before more mail can arrive.{" "}
-          <button type="button" className="link-btn" onClick={() => mailApi.connect()}>
-            Reconnect
-          </button>
-        </div>
+        <Note
+          tone="warn"
+          testId="mail-page-reconnect"
+          action={
+            <button type="button" className="btn btn-sm" onClick={() => mailApi.connect()}>
+              Reconnect
+            </button>
+          }
+        >
+          Google needs you to sign in again before more mail can arrive.
+        </Note>
       )}
       {status?.last_sync_error && (
-        <div className="card mail-warn" data-testid="mail-page-sync-error">
+        <Note tone="error" testId="mail-page-sync-error">
           {status.last_sync_error}
-        </div>
+        </Note>
       )}
       {readError && (
-        <div className="card mail-warn" data-testid="mail-page-read-error">
+        <Note tone="error" testId="mail-page-read-error">
           {readError}
-        </div>
+        </Note>
       )}
 
       <div className="mail-layout">
-        <div className="card mail-list-pane">
-          <div className="mail-boxes" role="tablist">
-            {MAIL_FOLDERS.map(([key, text]) => (
-              <button
-                key={key}
-                type="button"
-                role="tab"
-                aria-selected={folder === key}
-                className={`bell-tab ${folder === key ? "active" : ""}`}
-                onClick={() => {
-                  setFolder(key);
-                  mailbox.closeReader();
-                }}
-                data-testid={`mail-box-${key}`}
-              >
-                {text}
-                {key === "inbox" && !!unreadCount && (
-                  <span className="bell-tab-count">{unreadCount}</span>
-                )}
-              </button>
-            ))}
-          </div>
+        <div className="box mail-list-pane">
+          {/* Which folder the list shows: a view switch, not a tab panel. */}
+          <SegmentedControl
+            label="Folder"
+            className="mail-boxes"
+            options={MAIL_FOLDERS.map(([key, text]) => ({
+              value: key,
+              label: text,
+              count: key === "inbox" && !!unreadCount ? unreadCount : undefined,
+              testId: `mail-box-${key}`,
+            }))}
+            value={folder}
+            onChange={(key) => {
+              setFolder(key);
+              mailbox.closeReader();
+            }}
+          />
 
           <div className="mail-search">
             <SearchBox
@@ -371,7 +373,7 @@ export function MailPage() {
           )}
         </div>
 
-        <div className="card mail-reader-pane">
+        <div className="box mail-reader-pane">
           {composing ? (
             <Composer
               replyTo={replyTo}
@@ -455,7 +457,7 @@ export function MailPage() {
             goes.
             <button
               type="button"
-              className="btn btn-cta"
+              className="btn btn-danger"
               onClick={() => {
                 setConfirmingDisconnect(false);
                 mailbox.disconnect();

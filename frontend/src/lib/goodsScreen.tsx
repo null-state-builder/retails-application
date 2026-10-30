@@ -11,6 +11,9 @@ import { X } from "lucide-react";
 import { api, apiErrorCode, apiErrorMessage, authApi, type ApiRead } from "./api";
 import type { paths } from "./api-schema";
 import { SearchBox } from "../components/SearchBox";
+import { Note } from "../components/Note";
+import { EmptyState, Loading } from "../components/States";
+import { Status } from "../components/Status";
 
 export interface ResourceDTO<T> {
   id: string;
@@ -44,14 +47,14 @@ export function Feedback({ error, ok }: { error: string; ok: string }) {
   return (
     <>
       {error && (
-        <div className="warn-note" role="alert" data-testid="org-error">
+        <Note tone="error" testId="org-error">
           {error}
-        </div>
+        </Note>
       )}
       {ok && (
-        <div className="ok-note" data-testid="org-ok">
+        <Note tone="success" testId="org-ok">
           {ok}
-        </div>
+        </Note>
       )}
     </>
   );
@@ -59,13 +62,9 @@ export function Feedback({ error, ok }: { error: string; ok: string }) {
 
 export function Denied({ what }: { what: string }) {
   return (
-    <div className="card section-card" data-testid="org-denied">
-      <p className="eyebrow">Not found</p>
-      <h3 className="h3">There is no {what} here for you</h3>
-      <p className="lead">
-        Either this does not exist, or it is outside what you may see (ADR-0003).
-      </p>
-    </div>
+    <EmptyState heading={`There is no ${what} here for you`} testId="org-denied">
+      Either this does not exist, or it is outside what you may see (ADR-0003).
+    </EmptyState>
   );
 }
 
@@ -209,11 +208,7 @@ export function useStepUp() {
           This change needs your password again — it has been more than a moment since you last
           confirmed it.
         </p>
-        {error && (
-          <p className="warn-note" role="alert">
-            {error}
-          </p>
-        )}
+        {error && <Note tone="error">{error}</Note>}
         <div className="form-grid">
           <label className="field" htmlFor={passwordId}>
             Password
@@ -231,7 +226,7 @@ export function useStepUp() {
             />
           </label>
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             type="submit"
             disabled={busy || !password}
             data-testid="org-stepup-confirm"
@@ -674,7 +669,11 @@ export function PickerField({
 }) {
   return (
     <Field id={id} label={label} hint={hint}>
-      {!disabled && (
+      {/* One control where one is enough: the select alone holds a list that
+          fits its first page (and its type-ahead finds a name). The search box
+          appears only when the list is paged, or a search is already running,
+          so it can still be cleared. */}
+      {!disabled && (picker.hasMore || picker.query.trim() !== "") && (
         <SearchBox
           value={picker.query}
           onChange={picker.setQuery}
@@ -699,7 +698,7 @@ export function PickerField({
           </option>
         ))}
       </select>
-      {picker.failure && <p className="warn-note">{picker.failure}</p>}
+      {picker.failure && <Note tone="warn">{picker.failure}</Note>}
       {/* A failed read is not an empty one: "none available" would misreport it. */}
       {!disabled && !picker.loading && !picker.failure && picker.options.length === 0 && (
         <p className="goods-hint" data-testid={`${id}-none`}>
@@ -773,8 +772,9 @@ export function listState(
   { loading, failure, empty }: { loading: boolean; failure: string; empty: boolean },
   emptyText: string,
 ): ReactNode | null {
-  if (loading) return <span className="muted">Loading…</span>;
-  if (failure) return <span className="warn-note">{failure}</span>;
+  if (loading) return <Loading />;
+  // A span, not a Note: the answer often sits in a table cell or a paragraph.
+  if (failure) return <Status tone="amber">{failure}</Status>;
   if (empty) return <span className="muted">{emptyText}</span>;
   return null;
 }

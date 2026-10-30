@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { Status } from "../components/Status";
 import { apiErrorMessage, typedApi } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 
@@ -44,9 +46,9 @@ export function StaffListPage() {
         lead="Who works at the store, who is active, and who can be named as the salesperson at the till."
       />
       {error && (
-        <p className="warn-note" data-testid="staff-list-error">
+        <Note tone="error" testId="staff-list-error">
           {error}
-        </p>
+        </Note>
       )}
       {!data ? (
         !error && <p>Loading the staff list…</p>
@@ -55,7 +57,7 @@ export function StaffListPage() {
           The staff list is not switched on at any store you work at.
         </p>
       ) : (
-        <section className="card section-card">
+        <>
           <div className="toolbar">
             <label className="field">
               <span>Store</span>
@@ -96,9 +98,9 @@ export function StaffListPage() {
                       <td>{row.display_name}</td>
                       <td className="mono">{row.staff_code}</td>
                       <td>
-                        <span className={row.active ? "chip" : "chip chip-muted"}>
+                        <Status tone={row.active ? "green" : "grey"}>
                           {row.active ? "Active" : "Not active"}
-                        </span>
+                        </Status>
                       </td>
                       <td>{row.salesperson ? "Yes" : "No"}</td>
                       <td>{day(row.assigned_from)}</td>
@@ -109,7 +111,7 @@ export function StaffListPage() {
               </table>
             </div>
           )}
-        </section>
+        </>
       )}
     </div>
   );

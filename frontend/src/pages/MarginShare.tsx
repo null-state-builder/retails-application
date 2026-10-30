@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
 import { api, apiErrorMessage } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
@@ -127,30 +128,35 @@ export function MarginSharePage() {
 
   const disabled = !online || busy;
   const offlineNote = (!online || lost) && (
-    <p className="warn-note" data-testid="margin-offline" role="status">
-      {OFFLINE}
-      {online && (
-        <>
-          {" "}
+    <Note
+      tone="warn"
+      testId="margin-offline"
+      role="status"
+      action={
+        online && (
           <button
             type="button"
-            className="btn"
+            className="btn btn-sm"
             data-testid="margin-retry"
             disabled={busy}
             onClick={() => void load(filters)}
           >
             Try again
           </button>
-        </>
-      )}
-    </p>
+        )
+      }
+    >
+      {OFFLINE}
+    </Note>
   );
   const lead =
     "For SOR and concession brands: each month's sales, split between the brand and KDPS by the brand's margin. A brand whose model or margin is unknown is listed, not split.";
   const estimate = (
-    <p className="warn-note" data-testid="margin-estimate" role="note">
-      <strong>{ESTIMATE}</strong>
-    </p>
+    <div role="note">
+      <Note tone="info" testId="margin-estimate">
+        <strong>{ESTIMATE}</strong>
+      </Note>
+    </div>
   );
 
   if (!data) {
@@ -160,9 +166,9 @@ export function MarginSharePage() {
         {estimate}
         {offlineNote}
         {error ? (
-          <p className="warn-note" data-testid="margin-error">
+          <Note tone="error" testId="margin-error">
             {error}
-          </p>
+          </Note>
         ) : (
           online && !lost && <p>Loading the margin share statement…</p>
         )}
@@ -178,153 +184,151 @@ export function MarginSharePage() {
       <PageHeader title="Margin Share" lead={lead} />
       {estimate}
       {offlineNote}
-      <section className="card section-card">
-        <div className="toolbar" data-testid="margin-filters">
-          <label className="field">
-            <span>Month</span>
-            <input
-              className="input"
-              type="month"
-              data-testid="margin-filter-month"
-              value={filters.month}
-              disabled={disabled}
-              onChange={(event) => event.target.value && set("month", event.target.value)}
-            />
-          </label>
-          <label className="field">
-            <span>Store</span>
-            <select
-              className="input"
-              data-testid="margin-filter-store"
-              value={filters.store}
-              disabled={disabled}
-              onChange={(event) => set("store", event.target.value)}
-            >
-              <option value="">All my stores</option>
-              {data.store_options.map((s) => (
-                <option key={s.id} value={s.code}>
-                  {s.name} ({s.code})
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>Brand</span>
-            <select
-              className="input"
-              data-testid="margin-filter-brand"
-              value={filters.brand}
-              disabled={disabled}
-              onChange={(event) => set("brand", event.target.value)}
-            >
-              <option value="">Every brand</option>
-              {oneBrand && !brands.some((b) => b.id === String(oneBrand.id)) && (
-                <option value={String(oneBrand.id)}>{oneBrand.name}</option>
-              )}
-              {brands.map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button
-            type="button"
-            className="btn btn-primary"
-            data-testid="margin-export"
+      <div className="toolbar" data-testid="margin-filters">
+        <label className="field">
+          <span>Month</span>
+          <input
+            className="input"
+            type="month"
+            data-testid="margin-filter-month"
+            value={filters.month}
             disabled={disabled}
-            onClick={() => void exportWorkbook()}
+            onChange={(event) => event.target.value && set("month", event.target.value)}
+          />
+        </label>
+        <label className="field">
+          <span>Store</span>
+          <select
+            className="input"
+            data-testid="margin-filter-store"
+            value={filters.store}
+            disabled={disabled}
+            onChange={(event) => set("store", event.target.value)}
           >
-            Export to Excel
-          </button>
-        </div>
-        <h2 className="h3" data-testid="margin-heading">
-          {oneBrand ? `Statement for ${oneBrand.name}` : "Every brand"} · {data.month}
-        </h2>
-        <p className="muted-cell" data-testid="margin-as-of">
-          {asOfText(data.as_of)}
-          {data.as_of &&
-            ` · the copy is brought up to date every ${data.refreshed_every_minutes} minutes`}
-          {` · ${data.stores.map((s) => s.code).join(", ")} · ${data.date_from} to ${data.date_to}`}
-        </p>
-        {error && (
-          <p className="warn-note" data-testid="margin-error">
-            {error}
-          </p>
-        )}
-        {data.missing.length > 0 && (
-          <div className="warn-note" data-testid="margin-missing">
-            <strong>Not included, or to check</strong>
-            <ul>
-              {data.missing.map((m) => (
-                <li key={m.code} data-testid={`margin-missing-${m.code}`}>
-                  {m.text}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {data.unknown_brands.length > 0 && (
-          <div className="warn-note" data-testid="margin-unknown">
-            <strong>Listed, not split: the model or margin is unknown</strong>
-            <ul>
-              {data.unknown_brands.map((u) => (
-                <li key={u.key} data-testid="margin-unknown-brand" data-key={u.key}>
-                  {u.label}: {u.lines} {u.lines === 1 ? "line" : "lines"},{" "}
-                  {gstCell(u.value_paise, "money")} ({u.reasons.join("; ")})
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {data.rows.length === 0 ? (
-          <p className="muted-cell" data-testid="margin-empty">
-            {busy
-              ? "Loading…"
-              : "No SOR or concession sales with a split in this month at these stores."}
-          </p>
-        ) : (
-          <div className="table-wrap">
-            <table className="data" data-testid="margin-table">
-              <thead>
-                <tr>
-                  {columns.map((c) => (
-                    <th
-                      key={c.key}
-                      className={alignsRight(c.kind) ? "num" : undefined}
-                      data-testid={`margin-col-${c.key}`}
-                    >
-                      {c.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {data.rows.map((row) => (
-                  <MarginRow
-                    key={row.key}
-                    row={row}
-                    columns={columns}
-                    open={oneBrand ? undefined : (id) => set("brand", id)}
-                    disabled={disabled}
-                  />
-                ))}
-              </tbody>
-              <tfoot>
-                <MarginRow row={data.total} columns={columns} total />
-              </tfoot>
-            </table>
-          </div>
-        )}
-        <details className="muted-cell" data-testid="margin-basis">
-          <summary>How these figures are worked out (formula {data.formula_version})</summary>
+            <option value="">All my stores</option>
+            {data.store_options.map((s) => (
+              <option key={s.id} value={s.code}>
+                {s.name} ({s.code})
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span>Brand</span>
+          <select
+            className="input"
+            data-testid="margin-filter-brand"
+            value={filters.brand}
+            disabled={disabled}
+            onChange={(event) => set("brand", event.target.value)}
+          >
+            <option value="">Every brand</option>
+            {oneBrand && !brands.some((b) => b.id === String(oneBrand.id)) && (
+              <option value={String(oneBrand.id)}>{oneBrand.name}</option>
+            )}
+            {brands.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        <button
+          type="button"
+          className="btn btn-primary"
+          data-testid="margin-export"
+          disabled={disabled}
+          onClick={() => void exportWorkbook()}
+        >
+          Export to Excel
+        </button>
+      </div>
+      <h2 className="h3" data-testid="margin-heading">
+        {oneBrand ? `Statement for ${oneBrand.name}` : "Every brand"} · {data.month}
+      </h2>
+      <p className="muted-cell" data-testid="margin-as-of">
+        {asOfText(data.as_of)}
+        {data.as_of &&
+          ` · the copy is brought up to date every ${data.refreshed_every_minutes} minutes`}
+        {` · ${data.stores.map((s) => s.code).join(", ")} · ${data.date_from} to ${data.date_to}`}
+      </p>
+      {error && (
+        <Note tone="error" testId="margin-error">
+          {error}
+        </Note>
+      )}
+      {data.missing.length > 0 && (
+        <Note tone="warn" testId="margin-missing">
+          <strong>Not included, or to check</strong>
           <ul>
-            {data.basis.map((line) => (
-              <li key={line}>{line}</li>
+            {data.missing.map((m) => (
+              <li key={m.code} data-testid={`margin-missing-${m.code}`}>
+                {m.text}
+              </li>
             ))}
           </ul>
-        </details>
-      </section>
+        </Note>
+      )}
+      {data.unknown_brands.length > 0 && (
+        <Note tone="warn" testId="margin-unknown">
+          <strong>Listed, not split: the model or margin is unknown</strong>
+          <ul>
+            {data.unknown_brands.map((u) => (
+              <li key={u.key} data-testid="margin-unknown-brand" data-key={u.key}>
+                {u.label}: {u.lines} {u.lines === 1 ? "line" : "lines"},{" "}
+                {gstCell(u.value_paise, "money")} ({u.reasons.join("; ")})
+              </li>
+            ))}
+          </ul>
+        </Note>
+      )}
+      {data.rows.length === 0 ? (
+        <p className="muted-cell" data-testid="margin-empty">
+          {busy
+            ? "Loading…"
+            : "No SOR or concession sales with a split in this month at these stores."}
+        </p>
+      ) : (
+        <div className="table-wrap">
+          <table className="data" data-testid="margin-table">
+            <thead>
+              <tr>
+                {columns.map((c) => (
+                  <th
+                    key={c.key}
+                    className={alignsRight(c.kind) ? "num" : undefined}
+                    data-testid={`margin-col-${c.key}`}
+                  >
+                    {c.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.rows.map((row) => (
+                <MarginRow
+                  key={row.key}
+                  row={row}
+                  columns={columns}
+                  open={oneBrand ? undefined : (id) => set("brand", id)}
+                  disabled={disabled}
+                />
+              ))}
+            </tbody>
+            <tfoot>
+              <MarginRow row={data.total} columns={columns} total />
+            </tfoot>
+          </table>
+        </div>
+      )}
+      <details className="muted-cell" data-testid="margin-basis">
+        <summary>How these figures are worked out (formula {data.formula_version})</summary>
+        <ul>
+          {data.basis.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      </details>
     </div>
   );
 }

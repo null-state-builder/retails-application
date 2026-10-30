@@ -239,6 +239,11 @@ class DocumentIdentity(TenantOwned):
         #: held at a store for a named customer. It authorises the hold and its
         #: end - pickup, cancellation or expiry by its own collect-by date.
         RESERVATION = "reservation"
+        #: A test tenant's nightly sync to the legacy software (store test run),
+        #: from its SOH or its sales report: it authorises putting the day's test
+        #: bills back and bringing the store to what the legacy book says. Never
+        #: a bill, a receipt or a tax document.
+        LEGACY_SYNC = "legacy_sync"
 
     kind = models.CharField(max_length=20)
     purpose = models.CharField(max_length=20, choices=Purpose.choices)

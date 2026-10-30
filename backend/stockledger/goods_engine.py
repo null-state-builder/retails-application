@@ -884,11 +884,13 @@ def active_encumbrances(
 ) -> tuple[dict[uuid.UUID, list[ranges.Interval]], dict[uuid.UUID, list[ranges.Interval]]]:
     """Live hold and reservation portions per lot, from the projections."""
     holds: dict[uuid.UUID, list[ranges.Interval]] = defaultdict(list)
-    for hold in ActiveHold.objects.filter(lot_id__in=lot_ids):
-        holds[hold.lot_id].append(bounds(hold.portion))
+    for lot_id, held in ActiveHold.objects.filter(lot_id__in=lot_ids).values_list("lot_id", "portion"):
+        holds[lot_id].append(bounds(held))
     reservations: dict[uuid.UUID, list[ranges.Interval]] = defaultdict(list)
-    for reservation in ActiveReservation.objects.filter(lot_id__in=lot_ids):
-        reservations[reservation.lot_id].append(bounds(reservation.portion))
+    for lot_id, reserved in ActiveReservation.objects.filter(lot_id__in=lot_ids).values_list(
+        "lot_id", "portion"
+    ):
+        reservations[lot_id].append(bounds(reserved))
     return holds, reservations
 
 
@@ -906,14 +908,35 @@ def physical_portions(site_id: int, *, sku_ids: Iterable[uuid.UUID] | None = Non
     return portions_from(queryset)
 
 
+_POSITION_FIELDS = (
+    "lot", "portion", "boundary", "site", "location", "transfer", "condition",
+    "sku", "origin", "value_basis_origin", "accepted_event", "description",
+)
+_BASIS_FIELDS = ("unit_cost", "mrp", "source_kind")
+
+
 def portions_from(queryset: Any) -> list[Portion]:
     """``Portion`` views of live ``Position`` rows (any boundary)."""
     out: list[Portion] = []
-    positions = list(queryset.select_related("location", "origin", "value_basis_origin", "lot"))
+    # Only the columns a ``Portion`` is built from: a site holds tens of thousands
+    # of positions, and the joined rows' other fields (evidence JSON above all)
+    # cost far more to build than the read itself.
+    positions = list(
+        queryset.select_related("location", "origin", "value_basis_origin", "lot").only(
+            *_POSITION_FIELDS,
+            "location__kind",
+            *(f"{basis}__{name}" for basis in ("origin", "value_basis_origin") for name in _BASIS_FIELDS),
+            "origin__source_time",
+            "origin__lineage_key",
+            "lot__source_time",
+        )
+    )
     live: dict[uuid.UUID, list[tuple[ranges.Interval, Origin]]] = defaultdict(list)
-    for row in LiveValueBasis.objects.filter(
-        lot_id__in=[position.lot_id for position in positions]
-    ).select_related("origin"):
+    for row in (
+        LiveValueBasis.objects.filter(lot_id__in=[position.lot_id for position in positions])
+        .select_related("origin")
+        .only("lot", "portion", "origin__sku", *(f"origin__{name}" for name in _BASIS_FIELDS))
+    ):
         live[row.lot_id].append((bounds(row.portion), row.origin))
 
     def append(

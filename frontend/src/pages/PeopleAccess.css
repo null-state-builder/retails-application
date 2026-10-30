@@ -51,47 +51,33 @@
 }
 
 .pa-layout .form-grid .field label {
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--muted);
 }
 
 .pa-row:hover {
-  background: var(--surface-hover, rgba(127, 127, 127, 0.08));
+  background: var(--row-hover);
 }
 
 .pa-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  border-bottom: 1px solid var(--border, #e2e2e2);
   margin-bottom: 16px;
-}
-
-.pa-tab {
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  padding: 8px 10px;
-  font-size: 13px;
-  cursor: pointer;
-  color: inherit;
-  opacity: 0.7;
-}
-
-.pa-tab.active {
-  opacity: 1;
-  border-bottom-color: var(--accent, currentColor);
-  font-weight: 600;
 }
 
 .pa-tab-panel {
   min-width: 0;
 }
 
+/* v2: a second part of a tab (Retire, Move) sits under a hairline, spaced
+ * from the form above it. */
+.pa-tab-panel .section.ruled {
+  margin-top: 16px;
+  padding-top: 16px;
+}
+
 .pa-check-group {
-  border: 1px solid var(--border, #e2e2e2);
-  border-radius: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
   padding: 8px 10px;
   display: flex;
   flex-wrap: wrap;
@@ -112,14 +98,4 @@
   gap: 6px;
   font-size: 13px;
   max-width: 100%;
-}
-
-@media (max-width: 400px) {
-  .pa-tabs {
-    gap: 0;
-  }
-  .pa-tab {
-    padding: 8px 6px;
-    font-size: 12px;
-  }
 }

@@ -11,7 +11,7 @@
 // to the receiving store at either end.
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, ShieldCheck, Truck } from "lucide-react";
+import { AlertTriangle, ShieldCheck } from "lucide-react";
 
 import { api, apiErrorMessage } from "../lib/api";
 import { useAuth } from "../auth/AuthContext";
@@ -19,7 +19,11 @@ import { useDoc, useList } from "../lib/hooks";
 import { Money } from "../lib/format";
 import { canCloseTransferGap } from "../lib/outbound-rbac";
 import { isCleared } from "../components/approval";
+import { KpiStrip } from "../components/KpiStrip";
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { Box, Section } from "../components/Section";
+import { EmptyState, Loading } from "../components/States";
 import { GapStatePill, ReceiptExceptions, fmtDate, type TransferT } from "./OutboundTransfers";
 import "./Booking.css";
 
@@ -149,9 +153,9 @@ function CloseGapForm({
         </p>
       )}
       {error && (
-        <div className="login-error" data-testid={`gap-error-${transfer.id}`}>
+        <Note tone="error" testId={`gap-error-${transfer.id}`}>
           {error}
-        </div>
+        </Note>
       )}
       <button
         className="btn btn-primary"
@@ -205,22 +209,17 @@ function GapCard({
   }
 
   return (
-    <div
-      className="card section-card"
-      style={{ marginBottom: 18 }}
-      data-testid={`gap-card-${transfer.id}`}
-    >
+    <Box data-testid={`gap-card-${transfer.id}`}>
       <div className="toolbar" style={{ marginBottom: 8 }}>
         <div>
-          <p className="eyebrow">
-            <Link to={`/transfer/${transfer.id}`} className="mono">
-              {transfer.doc_number || `Draft #${transfer.id}`}
-            </Link>
-          </p>
-          <h3 className="h3">
+          <h3 className="heading">
             {transfer.source_store_code} → {transfer.destination_store_code}
           </h3>
           <p className="lead">
+            <Link to={`/transfer/${transfer.id}`} className="mono">
+              {transfer.doc_number || `Draft #${transfer.id}`}
+            </Link>
+            {" · "}
             <b>{transfer.qty_in_transit} piece(s)</b> sent and never scanned in
             {transfer.receipt ? ` · received ${fmtDate(transfer.receipt.receipt_date)}` : ""}
             {transfer.receipt?.received_by_name ? ` by ${transfer.receipt.received_by_name}` : ""}
@@ -252,9 +251,9 @@ function GapCard({
                 : " Waiting for a second, senior person to approve it."}
           </p>
           {error && (
-            <div className="login-error" data-testid={`gap-post-error-${transfer.id}`}>
+            <Note tone="error" testId={`gap-post-error-${transfer.id}`}>
               {error}
-            </div>
+            </Note>
           )}
           {canClose && isCleared(closure.approval) && (
             <button
@@ -307,7 +306,7 @@ function GapCard({
           Only the Operations Head can close a gap.
         </p>
       )}
-    </div>
+    </Box>
   );
 }
 
@@ -336,96 +335,85 @@ export function InTransitPage() {
         lead="Stock that has left one location and not yet arrived at another. The sender is answerable for it until the receiver scans it in — so a carton lost on the bus is visible here, not vanished."
       />
 
-      {/* Gaps first: these are the ones somebody has to act on. */}
-      <h2 className="h2" style={{ marginBottom: 12 }}>
-        Gaps — sent ≠ received
-      </h2>
-      {gapsLoading ? (
-        <p className="lead">Loading…</p>
-      ) : gaps.length === 0 ? (
-        <div className="card section-card" data-testid="gaps-empty">
-          <p className="eyebrow">
-            <ShieldCheck size={15} /> Nothing open
-          </p>
-          Every transfer that has been received was received in full.
-        </div>
-      ) : (
-        gaps.map((t) => <GapCard key={t.id} transfer={t} canClose={canClose} onChanged={reload} />)
-      )}
+      <div className="page">
+        {/* Gaps first: these are the ones somebody has to act on. */}
+        <Section heading="Gaps — sent ≠ received">
+          {gapsLoading ? (
+            <Loading />
+          ) : gaps.length === 0 ? (
+            <EmptyState heading="Nothing open" testId="gaps-empty">
+              Every transfer that has been received was received in full.
+            </EmptyState>
+          ) : (
+            gaps.map((t) => (
+              <GapCard key={t.id} transfer={t} canClose={canClose} onChanged={reload} />
+            ))
+          )}
+        </Section>
 
-      {/* Then the plain in-transit position. */}
-      <h2 className="h2" style={{ marginTop: 28, marginBottom: 12 }}>
-        On the road
-      </h2>
-      {summary && (
-        <div className="form-row" style={{ marginBottom: 18 }}>
-          <div className="card section-card">
-            <p className="eyebrow">Pieces in transit</p>
-            <h3 className="h3" data-testid="transit-units">
-              {summary.units_in_transit}
-            </h3>
-          </div>
-          <div className="card section-card">
-            <p className="eyebrow">Value in transit</p>
-            <h3 className="h3">
-              <Money paise={summary.value_paise} />
-            </h3>
-          </div>
-          <div className="card section-card">
-            <p className="eyebrow">Open transfers</p>
-            <h3 className="h3">{summary.transfers}</h3>
-          </div>
-        </div>
-      )}
-      {transitLoading ? (
-        <p className="lead">Loading…</p>
-      ) : rows.length === 0 ? (
-        <div className="card section-card" data-testid="transit-empty">
-          <p className="eyebrow">
-            <Truck size={15} /> Nothing on the road
-          </p>
-          Every dispatched piece has been accounted for.
-        </div>
-      ) : (
-        <div className="table-wrap">
-          <table className="data" data-testid="transit-table">
-            <thead>
-              <tr>
-                <th>Transfer</th>
-                <th>From</th>
-                <th>To</th>
-                <th>SKU</th>
-                <th>Item</th>
-                <th className="num">Pieces</th>
-                <th className="num">Value</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={`${r.transfer_doc_number}-${r.sku_code}`}>
-                  <td>
-                    <b className="mono">{r.transfer_doc_number}</b>
-                  </td>
-                  <td>
-                    <b className="mono">{r.source_store_code}</b>
-                  </td>
-                  <td>
-                    <b className="mono">{r.destination_store_code}</b>
-                  </td>
-                  <td className="mono">{r.sku_code}</td>
-                  <td>{skuLabel(r)}</td>
-                  <td className="num">
-                    <b>{r.qty}</b>
-                  </td>
-                  <td className="num">
-                    <Money paise={r.value_paise} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+        {/* Then the plain in-transit position. */}
+        <Section heading="On the road" ruled>
+          {summary && (
+            <KpiStrip
+              label="In transit"
+              items={[
+                {
+                  label: "Pieces in transit",
+                  value: <span data-testid="transit-units">{summary.units_in_transit}</span>,
+                },
+                { label: "Value in transit", value: <Money paise={summary.value_paise} /> },
+                { label: "Open transfers", value: summary.transfers },
+              ]}
+            />
+          )}
+          {transitLoading ? (
+            <Loading />
+          ) : rows.length === 0 ? (
+            <EmptyState heading="Nothing on the road" testId="transit-empty">
+              Every dispatched piece has been accounted for.
+            </EmptyState>
+          ) : (
+            <div className="table-wrap">
+              <table className="data" data-testid="transit-table">
+                <thead>
+                  <tr>
+                    <th>Transfer</th>
+                    <th>From</th>
+                    <th>To</th>
+                    <th>SKU</th>
+                    <th>Item</th>
+                    <th className="num">Pieces</th>
+                    <th className="num">Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r) => (
+                    <tr key={`${r.transfer_doc_number}-${r.sku_code}`}>
+                      <td>
+                        <b className="mono">{r.transfer_doc_number}</b>
+                      </td>
+                      <td>
+                        <b className="mono">{r.source_store_code}</b>
+                      </td>
+                      <td>
+                        <b className="mono">{r.destination_store_code}</b>
+                      </td>
+                      <td className="mono">{r.sku_code}</td>
+                      <td>{skuLabel(r)}</td>
+                      <td className="num">
+                        <b>{r.qty}</b>
+                      </td>
+                      <td className="num">
+                        <Money paise={r.value_paise} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Section>
+      </div>
     </div>
   );
 }

@@ -9,10 +9,13 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { Box, Section } from "../components/Section";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import { rupeesToPaiseString, uploadEvidence } from "../lib/goodsPt";
 import { ptWorkPath } from "../lib/ptWork";
+import { PtOpeningPanel } from "./PtOpening";
 import { SohImportPanel } from "./SohImport";
 import {
   Denied,
@@ -311,7 +314,7 @@ function NewManifestForm({
   }
 
   return (
-    <div className="card section-card" data-testid="opening-new-manifest">
+    <Box data-testid="opening-new-manifest">
       <h3 className="h3">New opening manifest</h3>
       <Feedback error={error} ok="" />
       <div className="form-grid">
@@ -490,7 +493,7 @@ function NewManifestForm({
 
       <div className="form-actions">
         <button
-          className="btn btn-cta"
+          className="btn btn-primary"
           onClick={submit}
           disabled={busy || !batchKey}
           data-testid="opening-create-manifest"
@@ -498,7 +501,7 @@ function NewManifestForm({
           Create manifest
         </button>
       </div>
-    </div>
+    </Box>
   );
 }
 
@@ -556,7 +559,7 @@ function OriginUnavailableRow({
   }
 
   return (
-    <div className="card section-card" data-testid={`opening-origin-${row.source_row_key}`}>
+    <Box data-testid={`opening-origin-${row.source_row_key}`}>
       {stepUp.dialog}
       <h4 className="h4">Row {row.source_row_key}: older origin unknown</h4>
       <p className="muted">
@@ -585,7 +588,7 @@ function OriginUnavailableRow({
       </div>
       <div className="form-actions">
         <button
-          className="btn btn-cta"
+          className="btn btn-primary"
           onClick={confirm}
           disabled={busy}
           data-testid={`opening-origin-${row.source_row_key}-confirm`}
@@ -593,7 +596,7 @@ function OriginUnavailableRow({
           Confirm origin unavailable
         </button>
       </div>
-    </div>
+    </Box>
   );
 }
 
@@ -809,7 +812,7 @@ function VarianceRow({
   if (row.matches_verification) return null;
 
   return (
-    <div className="card section-card" data-testid={`opening-variance-${row.source_row_key}`}>
+    <Box data-testid={`opening-variance-${row.source_row_key}`}>
       {stepUp.dialog}
       <p className="lead">
         Row {row.source_row_key}: manifest says {row.row.qty}, verification found{" "}
@@ -817,7 +820,7 @@ function VarianceRow({
       </p>
       <Feedback error={error} ok="" />
       {row.variance ? (
-        <p className="ok-note">Variance accepted at {row.variance.accepted_qty}.</p>
+        <Note tone="success">Variance accepted at {row.variance.accepted_qty}.</Note>
       ) : row.variance_request_id ? (
         <div className="form-actions">
           <button
@@ -854,7 +857,7 @@ function VarianceRow({
             />
           </Field>
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             onClick={propose}
             disabled={busy}
             data-testid={`opening-variance-propose-${row.source_row_key}`}
@@ -863,7 +866,7 @@ function VarianceRow({
           </button>
         </div>
       ) : null}
-    </div>
+    </Box>
   );
 }
 
@@ -916,7 +919,7 @@ export function ManifestDetailView({
   // A real failure is named before the generic "not found" card: a manifest
   // being revised faster than it can be read is not a manifest the reader may
   // not see, and telling them so would send them to the wrong person.
-  if (failure) return <span className="warn-note">{failure}</span>;
+  if (failure) return <Note tone="error">{failure}</Note>;
   if (denied || !doc) return <Denied what="opening manifest" />;
 
   const manifest = doc.data;
@@ -969,20 +972,22 @@ export function ManifestDetailView({
   const unresolved = rows.filter((r) => !r.matches_verification && !r.variance);
 
   return (
-    <div className="card section-card" data-testid="opening-manifest-detail">
+    <Section
+      heading={`${manifest.batch_key} · ${doc.state}`}
+      aside={
+        <button className="btn btn-sm" onClick={onBack}>
+          ← Manifests
+        </button>
+      }
+      testId="opening-manifest-detail"
+    >
       {stepUp.dialog}
-      <button className="btn btn-sm" onClick={onBack}>
-        ← Manifests
-      </button>
-      <h3 className="h3">
-        {manifest.batch_key} · {doc.state}
-      </h3>
       <Feedback error={error} ok="" />
       {superseded && (
-        <p className="warn-note" data-testid="opening-superseded">
+        <Note tone="warn" testId="opening-superseded">
           This manifest was revised while it was on screen. These are its current rows; any variance
           proposed against the rows it replaced no longer counts. What you had typed has been kept.
-        </p>
+        </Note>
       )}
       <p className="muted" data-testid="opening-row-total">
         {rows.length === 1 ? "1 row" : `${rows.length} rows`}, all reviewed here.
@@ -991,16 +996,16 @@ export function ManifestDetailView({
           approve button reads as "nothing to decide" rather than "this could
           not be read" - the ticket's own failure mode on the error path. */}
       {(inboxDenied || inboxFailure) && (
-        <p className="warn-note" data-testid="opening-inbox-unread">
+        <Note tone="warn" testId="opening-inbox-unread">
           The approvals waiting on this manifest could not be read, so no decision is offered here.{" "}
           {inboxFailure}
-        </p>
+        </Note>
       )}
       {(exceptionsDenied || exceptionsFailure) && (
-        <p className="warn-note" data-testid="opening-exceptions-unread">
+        <Note tone="warn" testId="opening-exceptions-unread">
           Open investigations could not be read, so a row with an unknown older origin shows no
           closure here. {exceptionsFailure}
-        </p>
+        </Note>
       )}
       {manifestApproval && (
         <div className="form-actions">
@@ -1017,7 +1022,7 @@ export function ManifestDetailView({
           </button>
         </div>
       )}
-      <table className="table">
+      <table className="data">
         <thead>
           <tr>
             <th>Row</th>
@@ -1107,7 +1112,7 @@ export function ManifestDetailView({
       {manifest.approved && hold(session, "pt.prepare.opening") && (
         <div className="form-actions">
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             onClick={createOpeningPt}
             disabled={busy || unresolved.length > 0}
             data-testid="opening-create-pt"
@@ -1122,7 +1127,7 @@ export function ManifestDetailView({
           )}
         </div>
       )}
-    </div>
+    </Section>
   );
 }
 
@@ -1192,10 +1197,11 @@ export function GoodsOpeningPage() {
               </select>
             </Field>
           </div>
+          {siteId && <PtOpeningPanel key={`pt-${siteId}`} siteId={siteId} />}
           {siteId && <SohImportPanel key={siteId} siteId={siteId} />}
           {canPrepare && manifestPage.manual && !showForm && (
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               onClick={() => setShowForm(true)}
               data-testid="opening-new"
             >
@@ -1211,7 +1217,7 @@ export function GoodsOpeningPage() {
               }}
             />
           )}
-          <table className="table" data-testid="opening-manifest-list">
+          <table className="data" data-testid="opening-manifest-list">
             <thead>
               <tr>
                 <th>Batch</th>

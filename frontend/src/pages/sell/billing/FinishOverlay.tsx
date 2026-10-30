@@ -61,7 +61,6 @@ export function FinishOverlay({
             <Check size={22} strokeWidth={3} />
           </span>
           <div>
-            <p className="eyebrow">Done</p>
             <h2 id="bill-finish-title">{bill.exchange ? "Exchange saved" : "Bill saved"}</h2>
             {bill.tax_invoice_number && (
               <p className="mono" data-testid="bill-invoice-number">
@@ -73,7 +72,7 @@ export function FinishOverlay({
         </header>
 
         {printProblem && (
-          <p className="bill-alert bill-finish-print-problem" role="status">
+          <p className="note note-warn bill-finish-print-problem" role="status">
             <AlertTriangle size={16} />
             <span>{printProblem}</span>
           </p>

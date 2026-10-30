@@ -5,7 +5,6 @@
 // opens — `/transfer/new` is the new-transfer form, `/transfer/12` is transfer 12 — is
 // something a test can assert rather than something we hope React Router got
 // right. `id` is that assertion's handle; it never reaches the user.
-import type { ReactNode } from "react";
 import { matchRoutes } from "react-router-dom";
 import type { RouteObject } from "react-router-dom";
 
@@ -87,6 +86,7 @@ import { ReceiveHistoryPage, ReceiveInboxPage } from "./pages/ReceiveInbox";
 import { PtWorkPage } from "./pages/PtWork";
 // Goods-v1 opening stock for synthetic tenants (ticket 10, GSA-T10).
 import { GoodsOpeningPage } from "./pages/GoodsOpening";
+import { StockSyncPage } from "./pages/StockSync";
 import { GoodsOriginJourneyPage, GoodsStockPage } from "./pages/GoodsStock";
 // Goods-v1 labels and print jobs (ticket 11), beside the legacy TagPrint modal
 // (PriceList.tsx), which prints a different, unrelated floor price tag.
@@ -136,15 +136,10 @@ import BillsPage from "./pages/sell/Bills";
 import CustomerSearchPage from "./pages/sell/CustomerSearch";
 import TillPage from "./pages/sell/Till";
 import CashCountPage from "./pages/sell/CashCount";
-import { TillProvider } from "./till/TillProvider";
+import DayClosePage from "./pages/sell/DayClose";
 
 export type Room = "counter";
 type Screen = RouteObject & { id: string; path: string; room?: Room };
-
-/** A Sell screen, with the counter behind it. */
-function withTill(screen: ReactNode) {
-  return <TillProvider>{screen}</TillProvider>;
-}
 
 /** Screens that are built. Behaviour is unchanged from before the re-housing —
  *  only the address moved. */
@@ -202,6 +197,8 @@ const BUILT: Screen[] = [
   // file uses everywhere else (a document id must never shadow a section word).
   // Goods-v1 opening stock for synthetic tenants (ticket 10).
   { id: "goods-opening", path: "/goods/opening", element: <GoodsOpeningPage /> },
+  // Store test run: nightly stock sync to the legacy SOH (test tenant only).
+  { id: "goods-stock-sync", path: "/goods/stock-sync", element: <StockSyncPage /> },
   {
     id: "goods-stock-origin-journey",
     path: "/goods/stock/origins/:id",
@@ -283,27 +280,26 @@ const BUILT: Screen[] = [
   { id: "application-roadmap", path: "/roadmap", element: <ApplicationRoadmapPage /> },
   // Sell - the counter (#181) and the till layer's own surface (#180).
   //
-  // `TillProvider` wraps each screen rather than the app: opening a counter's
-  // local database means holding one store's price list, credit notes and
-  // manager PIN hashes, which a warehouse or head-office login has no business
-  // carrying.
-  //
-  // Billing declares the counter room instead of wrapping itself here:
-  // ProtectedRoute lifts its provider above AppShell so the live sync light can
-  // occupy the top bar. The other Sell screens remain route-local providers.
+  // The counter's screens declare the counter room, and ProtectedRoute switches
+  // the one `TillProvider` above the shell on for them. It is not on anywhere
+  // else: opening a counter's local database means holding one store's price
+  // list, credit notes and manager PIN hashes, which a warehouse or head-office
+  // login has no business carrying. Because the provider stays mounted, moving
+  // between these screens keeps the shell and the running counter.
   { id: "sell-billing", path: "/sell", room: "counter", element: <BillingPage /> },
-  { id: "sell-till", path: "/sell/till", element: withTill(<TillPage />) },
+  { id: "sell-till", path: "/sell/till", room: "counter", element: <TillPage /> },
   // Ticket 41: the day-close cash count, on the counter that took the cash.
-  { id: "sell-cash-count", path: "/sell/cash-count", element: withTill(<CashCountPage />) },
+  { id: "sell-cash-count", path: "/sell/cash-count", room: "counter", element: <CashCountPage /> },
+  { id: "sell-day-close", path: "/sell/day-close", room: "counter", element: <DayClosePage /> },
   // Ticket 19: the gift vouchers this store sold. Online only; no counter needed.
   { id: "sell-gift-vouchers", path: "/sell/gift-vouchers", element: <GiftVouchersPage /> },
   // What this counter has done, and where each bill has got to (OPS-08). It
-  // *is* `withTill`, unlike the customer search below, and for the opposite
+  // *is* in the counter room, unlike the customer search below, and for the opposite
   // reason: half of what it shows is this browser's own queue - the bills head
   // office has never heard of - and that is only readable with the counter's
   // database open.
-  { id: "sell-bills", path: "/sell/bills", element: withTill(<BillsPage />) },
-  // Find a bill and print it again (#185). No `withTill`, and that is the whole
+  { id: "sell-bills", path: "/sell/bills", room: "counter", element: <BillsPage /> },
+  // Find a bill and print it again (#185). Not in the counter room, and that is the whole
   // shape of the screen: it reads the *server's* bills, because the counter's
   // local copy holds only what it has not yet synced - last month's bill, or one
   // from the machine that was replaced, is only ever at head office. It also

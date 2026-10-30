@@ -17,6 +17,12 @@
 // device can print at all. So the browser adapter's probe answers that question
 // and says so, rather than returning a confident `true` that means nothing. The
 // screen's warning comes from the print *failing*, which is a fact.
+//
+// On a test tenant every document that passes through here is marked "not a
+// tax invoice" top and bottom (baseline B1, `lib/testEnvironment.ts`).
+
+import { isTestEnvironment } from "../lib/testEnvironment";
+import { markTestDocument } from "./receipt";
 
 /** Why printing did not happen, or that it did. */
 export interface PrintOutcome {
@@ -77,7 +83,7 @@ export const browserPrintAdapter: PrintAdapter = {
       // Off-screen rather than `display: none`: a frame that is not rendered has
       // nothing to print.
       frame.style.cssText = "position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;";
-      frame.srcdoc = html;
+      frame.srcdoc = isTestEnvironment() ? markTestDocument(html) : html;
       const painted = new Promise<boolean>((resolve) => {
         frame!.addEventListener("load", () => resolve(true), { once: true });
         window.setTimeout(() => resolve(false), PAINT_TIMEOUT_MS);

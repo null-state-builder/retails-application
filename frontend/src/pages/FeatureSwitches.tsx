@@ -2,6 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "../auth/AuthContext";
 import { PageHeader } from "../components/PageHeader";
+import { Switch } from "../components/Switch";
+import { Note } from "../components/Note";
+import { Section } from "../components/Section";
+import { Status } from "../components/Status";
 import { api, apiErrorMessage, goodsMeta, typedApi } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { formatDateTime } from "../lib/format";
@@ -85,7 +89,7 @@ export function FeatureSwitchesPage() {
     return (
       <div className="page-pad">
         <PageHeader title="Feature Switches" />
-        {error ? <p className="warn-note">{error}</p> : <p>Loading feature switches…</p>}
+        {error ? <Note tone="error">{error}</Note> : <p>Loading feature switches…</p>}
       </div>
     );
   }
@@ -101,148 +105,149 @@ export function FeatureSwitchesPage() {
           Only Admin can change a feature switch. You can see how each store is set.
         </p>
       )}
-      <section className="card section-card">
-        <div className="toolbar">
-          <label className="field">
-            <span>Store</span>
-            <select
-              className="input"
-              data-testid="feature-switches-store"
-              value={storeId ?? ""}
-              onChange={(event) => setStoreId(Number(event.target.value))}
-            >
-              {data.stores.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} ({s.code}){s.real ? "" : " - demo"}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        {data.features.length === 0 ? (
-          <p className="muted-cell" data-testid="feature-switches-empty">
-            No store feature can be switched yet.
-          </p>
-        ) : !store ? (
-          <p className="muted-cell">You have no store to set.</p>
-        ) : (
-          <div className="table-wrap">
-            <table className="data" data-testid="feature-switches-table">
-              <thead>
-                <tr>
-                  <th>Feature</th>
-                  <th>Waiting for</th>
-                  <th>On</th>
-                  <th>Mode</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.features.map((f) => {
-                  const state = states.get(f.key);
-                  if (!state) return null;
-                  const locked = !!state.locked_reason;
-                  const cannot = !data.can_change || busy !== null;
-                  return (
-                    <tr key={f.key} data-testid={`feature-row-${f.key}`}>
-                      <td>
-                        <strong>{f.name}</strong>
-                        {f.description && <div className="muted-cell">{f.description}</div>}
-                        {state.locked_reason && (
-                          <div className="warn-note" data-testid={`feature-locked-${f.key}`}>
-                            {state.locked_reason}
-                          </div>
-                        )}
-                      </td>
-                      <td>
-                        {f.gate ? (
-                          <span className="chip chip-amber" data-testid={`feature-gate-${f.key}`}>
-                            {f.gate}
-                          </span>
-                        ) : (
-                          <span className="muted-cell">Nothing</span>
-                        )}
-                      </td>
-                      <td>
-                        <label className="check-row">
-                          <input
-                            type="checkbox"
-                            data-testid={`feature-toggle-${f.key}`}
-                            checked={state.chosen}
-                            disabled={cannot || (locked && !state.chosen)}
-                            onChange={(event) => void change(f.key, event.target.checked)}
-                          />
-                          {state.enabled ? "On" : state.chosen ? "Chosen on, held off" : "Off"}
-                        </label>
-                      </td>
-                      <td>
-                        {f.has_modes ? (
-                          <select
-                            className="input"
-                            data-testid={`feature-mode-${f.key}`}
-                            value={state.mode}
-                            disabled={cannot}
-                            onChange={(event) =>
-                              void change(f.key, state.chosen, event.target.value)
-                            }
-                          >
-                            <option value="manual">Manual</option>
-                            <option value="connected">Connected provider</option>
-                          </select>
-                        ) : (
-                          <span className="muted-cell">Manual only</span>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-        {error && (
-          <p className="warn-note" data-testid="feature-switches-error">
-            {error}
-          </p>
-        )}
-        {saved && (
-          <p className="ok-note" data-testid="feature-switches-saved">
-            {saved}
-          </p>
-        )}
-      </section>
-      <section className="card section-card">
-        <h2 className="h3">Recent changes</h2>
-        {data.changes.length === 0 ? (
-          <p className="muted-cell">No switch has been changed yet.</p>
-        ) : (
-          <div className="table-wrap">
-            <table className="data" data-testid="feature-switches-changes">
-              <thead>
-                <tr>
-                  <th>When</th>
-                  <th>Who</th>
-                  <th>Store</th>
-                  <th>Feature</th>
-                  <th>Before</th>
-                  <th>After</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.changes.map((c) => (
-                  <tr key={c.id}>
-                    <td>{formatDateTime(c.at)}</td>
-                    <td>{c.by}</td>
-                    <td>{storeCode.get(c.store_id) ?? c.store_id}</td>
-                    <td>{featureName.get(c.feature_key) ?? c.feature_key}</td>
-                    <td>{describe(c.before)}</td>
-                    <td>{describe(c.after)}</td>
-                  </tr>
+      <div className="page">
+        <div>
+          <div className="toolbar">
+            <label className="field">
+              <span>Store</span>
+              <select
+                className="input"
+                data-testid="feature-switches-store"
+                value={storeId ?? ""}
+                onChange={(event) => setStoreId(Number(event.target.value))}
+              >
+                {data.stores.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} ({s.code}){s.real ? "" : " - demo"}
+                  </option>
                 ))}
-              </tbody>
-            </table>
+              </select>
+            </label>
           </div>
-        )}
-      </section>
+          {data.features.length === 0 ? (
+            <p className="muted-cell" data-testid="feature-switches-empty">
+              No store feature can be switched yet.
+            </p>
+          ) : !store ? (
+            <p className="muted-cell">You have no store to set.</p>
+          ) : (
+            <div className="table-wrap">
+              <table className="data" data-testid="feature-switches-table">
+                <thead>
+                  <tr>
+                    <th>Feature</th>
+                    <th>Waiting for</th>
+                    <th>On</th>
+                    <th>Mode</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.features.map((f) => {
+                    const state = states.get(f.key);
+                    if (!state) return null;
+                    const locked = !!state.locked_reason;
+                    const cannot = !data.can_change || busy !== null;
+                    return (
+                      <tr key={f.key} data-testid={`feature-row-${f.key}`}>
+                        <td>
+                          <strong>{f.name}</strong>
+                          {f.description && <div className="muted-cell">{f.description}</div>}
+                          {state.locked_reason && (
+                            <div>
+                              <Status tone="amber" testId={`feature-locked-${f.key}`}>
+                                {state.locked_reason}
+                              </Status>
+                            </div>
+                          )}
+                        </td>
+                        <td>
+                          {f.gate ? (
+                            <Status tone="amber" testId={`feature-gate-${f.key}`}>
+                              {f.gate}
+                            </Status>
+                          ) : (
+                            <span className="muted-cell">Nothing</span>
+                          )}
+                        </td>
+                        <td>
+                          <Switch
+                            checked={state.chosen}
+                            held={state.chosen && !state.enabled}
+                            busy={cannot || (locked && !state.chosen)}
+                            ariaLabel={f.name}
+                            testId={`feature-toggle-${f.key}`}
+                            onChange={(on) => void change(f.key, on)}
+                          />
+                        </td>
+                        <td>
+                          {f.has_modes ? (
+                            <select
+                              className="input"
+                              data-testid={`feature-mode-${f.key}`}
+                              value={state.mode}
+                              disabled={cannot}
+                              onChange={(event) =>
+                                void change(f.key, state.chosen, event.target.value)
+                              }
+                            >
+                              <option value="manual">Manual</option>
+                              <option value="connected">Connected provider</option>
+                            </select>
+                          ) : (
+                            <span className="muted-cell">Manual only</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {error && (
+            <Note tone="error" testId="feature-switches-error">
+              {error}
+            </Note>
+          )}
+          {saved && (
+            <Note tone="success" role="status" testId="feature-switches-saved">
+              {saved}
+            </Note>
+          )}
+        </div>
+        <Section heading="Recent changes" ruled>
+          {data.changes.length === 0 ? (
+            <p className="muted-cell">No switch has been changed yet.</p>
+          ) : (
+            <div className="table-wrap">
+              <table className="data" data-testid="feature-switches-changes">
+                <thead>
+                  <tr>
+                    <th>When</th>
+                    <th>Who</th>
+                    <th>Store</th>
+                    <th>Feature</th>
+                    <th>Before</th>
+                    <th>After</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.changes.map((c) => (
+                    <tr key={c.id}>
+                      <td>{formatDateTime(c.at)}</td>
+                      <td>{c.by}</td>
+                      <td>{storeCode.get(c.store_id) ?? c.store_id}</td>
+                      <td>{featureName.get(c.feature_key) ?? c.feature_key}</td>
+                      <td>{describe(c.before)}</td>
+                      <td>{describe(c.after)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Section>
+      </div>
     </div>
   );
 }

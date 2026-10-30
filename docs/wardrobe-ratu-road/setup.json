@@ -1,0 +1,31 @@
+{
+  "_note": "Store test run for The Wardrobe, Ratu Road (owner decisions 28 Oct 2026). Synthetic company and PAN; real people's names, test-only logins. The owner (K D Singh, kdsingh@wardrobe.test) is the deployment's bootstrap admin, so is not listed. Roles: owner, store_person, warehouse, it_admin, warehouse_manager, operations_head. Sites: store, warehouse or all. chip=false keeps a login off the sign-in page; salesperson=true places the person at the store and lists them on its till. opening.approval=false: the store opens from its PT files with no second person (alpha; recorded as NO_APPROVAL_REQUIRED decisions).",
+  "entity": {
+    "code": "syn-wardrobe",
+    "name": "The Wardrobe Retail Pvt Ltd (synthetic)",
+    "pan": "AAATW5555E",
+    "state_code": "20",
+    "state_name": "Jharkhand",
+    "city": "Ranchi"
+  },
+  "store": {"code": "WRR", "name": "The Wardrobe"},
+  "warehouse": {"code": "RNC-WH", "name": "Warehouse Ranchi"},
+  "transfers": {"warehouse_to_store_approval": false},
+  "opening": {"approval": false},
+  "people": [
+    {"email": "debanjan@wardrobe.test", "name": "Debanjan", "staff_code": "WRR-SM-01", "label": "Store manager", "salesperson": true,
+     "roles": [{"role": "store_person", "sites": "store"}, {"role": "warehouse", "sites": "warehouse"}]},
+    {"email": "cashier1@wardrobe.test", "name": "Cashier 1", "staff_code": "WRR-CS-01", "label": "Cashier 1", "salesperson": true,
+     "roles": [{"role": "store_person", "sites": "store"}]},
+    {"email": "cashier2@wardrobe.test", "name": "Cashier 2", "staff_code": "WRR-CS-02", "label": "Cashier 2", "salesperson": true,
+     "roles": [{"role": "store_person", "sites": "store"}]},
+    {"email": "priyo@wardrobe.test", "name": "Priyo", "staff_code": "OPS-01", "label": "Operations head",
+     "roles": [{"role": "operations_head", "sites": "all"}]},
+    {"email": "tanmay@wardrobe.test", "name": "Tanmay", "staff_code": "WH-01", "label": "Warehouse (Tanmay)",
+     "roles": [{"role": "warehouse", "sites": "warehouse"}]},
+    {"email": "mahender@wardrobe.test", "name": "Mahender", "staff_code": "WH-02", "label": "Warehouse (Mahender)",
+     "roles": [{"role": "warehouse", "sites": "warehouse"}]},
+    {"email": "preparer@wardrobe.test", "name": "Opening preparer (system)", "staff_code": "SYS-PREP",
+     "chip": false, "roles": [{"role": "warehouse", "sites": ["store", "warehouse"]}, {"role": "it_admin", "sites": "all"}]}
+  ]
+}

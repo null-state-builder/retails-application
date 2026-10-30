@@ -7,16 +7,27 @@
 // list, instead of a phone call - and give the draft that answers it something
 // to point back at.
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
 import { OperationsPage, OperationsTable } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
+import { EmptyState } from "../components/States";
+import { Status, type StatusTone } from "../components/Status";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import { formatDateTime } from "../lib/format";
 import { Feedback, Field, listState, useAllPages, useGoodsFetch } from "../lib/goodsScreen";
 import { REQUEST_STATE_LABEL, type TransferRequestRow } from "../lib/goodsTransfers";
 
 const REQUESTS = "/goods-v1/outbound/transfer-requests";
+
+/** Where a request got to, as a dot and a word. */
+const REQUEST_TONE: Record<TransferRequestRow["state"], StatusTone> = {
+  open: "amber",
+  drafted: "blue",
+  closed: "green",
+};
 
 interface StockRow {
   sku_id: string | null;
@@ -65,6 +76,7 @@ export function TransferRequestsPage() {
   );
 
   const chosen = stock.value.filter((row) => Number(asks[row.sku_id]) > 0);
+  const pieces = chosen.reduce((sum, row) => sum + Number(asks[row.sku_id]), 0);
 
   async function raise() {
     setBusy(true);
@@ -108,141 +120,167 @@ export function TransferRequestsPage() {
       />
       <Feedback error={error} ok={ok} />
 
-      <section className="card section-card" data-testid="request-new">
-        <h3 className="h3">Ask for stock</h3>
-        <div className="form-grid">
-          {sites.length > 1 && (
-            <Field id="request-site" label="For this site">
+      <div className="page">
+        <Section heading="Ask for stock" testId="request-new">
+          <div className="form-grid">
+            {sites.length > 1 && (
+              <Field id="request-site" label="For this site">
+                <select
+                  id="request-site"
+                  className="select"
+                  value={site}
+                  onChange={(e) => setSiteId(e.target.value)}
+                  data-testid="request-site"
+                >
+                  {sites.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({s.code})
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
+            <Field id="request-source" label="Ask">
               <select
-                id="request-site"
+                id="request-source"
                 className="select"
-                value={site}
-                onChange={(e) => setSiteId(e.target.value)}
-                data-testid="request-site"
+                value={source}
+                onChange={(e) => setSourceId(e.target.value)}
+                data-testid="request-source"
               >
-                {sites.map((s) => (
+                {others.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name} ({s.code})
                   </option>
                 ))}
               </select>
             </Field>
-          )}
-          <Field id="request-source" label="Ask">
-            <select
-              id="request-source"
-              className="select"
-              value={source}
-              onChange={(e) => setSourceId(e.target.value)}
-              data-testid="request-source"
-            >
-              {others.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name} ({s.code})
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field id="request-note" label="Note">
-            <input
-              id="request-note"
-              className="input"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              data-testid="request-note"
-            />
-          </Field>
-        </div>
-        {listState(
-          { loading: stock.loading, failure: stock.failure, empty: stock.value.length === 0 },
-          "That site has nothing it can send right now.",
-        ) ?? (
-          <OperationsTable label="Available stock to request">
-            <table data-testid="request-lines">
-              <thead>
-                <tr>
-                  <th>Item</th>
-                  <th className="num">They can send</th>
-                  <th className="num">Ask for</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stock.value.map((row) => (
-                  <tr key={row.sku_id}>
-                    <td>{row.description}</td>
-                    <td className="num">{row.available}</td>
-                    <td className="num">
-                      <input
-                        className="input"
-                        type="number"
-                        min={0}
-                        value={asks[row.sku_id] ?? ""}
-                        aria-label={`Ask for how many of ${row.description}`}
-                        onChange={(e) =>
-                          setAsks((current) => ({ ...current, [row.sku_id]: e.target.value }))
-                        }
-                        data-testid={`request-qty-${row.sku_id}`}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </OperationsTable>
-        )}
-        <button
-          className="btn btn-cta"
-          disabled={busy || !source || chosen.length === 0}
-          onClick={raise}
-          data-testid="request-raise"
-        >
-          Send this request
-        </button>
-      </section>
-
-      {list.denied ? (
-        <div className="card section-card" data-testid="requests-denied">
-          <p className="eyebrow">Not found</p>
-          <h3 className="h3">There are no requests here for you</h3>
-          <p className="lead">
-            Either this site does not exist, or it is outside what you may see.
-          </p>
-        </div>
-      ) : (
-        (state ?? (
-          <div className="table-wrap">
-            <table className="data" data-testid="requests-table">
-              <caption className="sr-only">
-                Requests this site has raised and requests other sites have raised of it.
-              </caption>
-              <thead>
-                <tr>
-                  <th>Asked</th>
-                  <th>Asked of</th>
-                  <th>For</th>
-                  <th className="num">Lines</th>
-                  <th>By</th>
-                  <th>Where it got to</th>
-                </tr>
-              </thead>
-              <tbody>
-                {list.items.map((row) => (
-                  <tr key={row.id} data-testid={`request-row-${row.id}`} data-state={row.state}>
-                    <td>{formatDateTime(row.requested_at)}</td>
-                    <td>{siteName(sites, row.source_site_id)}</td>
-                    <td>{siteName(sites, row.destination_site_id)}</td>
-                    <td className="num">{row.lines.length}</td>
-                    <td>{row.requested_by.name || row.requested_by.id}</td>
-                    <td data-testid={`request-state-${row.id}`}>
-                      {REQUEST_STATE_LABEL[row.state] ?? row.state}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <Field id="request-note" label="Note">
+              <input
+                id="request-note"
+                className="input"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                data-testid="request-note"
+              />
+            </Field>
           </div>
-        ))
-      )}
+          {listState(
+            { loading: stock.loading, failure: stock.failure, empty: stock.value.length === 0 },
+            "That site has nothing it can send right now.",
+          ) ?? (
+            <OperationsTable label="Available stock to request">
+              <table data-testid="request-lines">
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th className="num">They can send</th>
+                    <th className="num">Ask for</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stock.value.map((row) => (
+                    <tr key={row.sku_id}>
+                      <td>{row.description}</td>
+                      <td className="num">{row.available}</td>
+                      <td className="num">
+                        <input
+                          className="input"
+                          type="number"
+                          min={0}
+                          value={asks[row.sku_id] ?? ""}
+                          aria-label={`Ask for how many of ${row.description}`}
+                          onChange={(e) =>
+                            setAsks((current) => ({ ...current, [row.sku_id]: e.target.value }))
+                          }
+                          data-testid={`request-qty-${row.sku_id}`}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </OperationsTable>
+          )}
+          <div className="toolbar">
+            <button
+              className="btn btn-primary"
+              disabled={busy || !source || chosen.length === 0}
+              onClick={raise}
+              data-testid="request-raise"
+            >
+              Send this request
+            </button>
+            <span className="muted">
+              {chosen.length > 0
+                ? `${chosen.length} line${chosen.length === 1 ? "" : "s"}, ${pieces} piece${
+                    pieces === 1 ? "" : "s"
+                  }. `
+                : ""}
+              Nothing is reserved by asking.
+            </span>
+          </div>
+        </Section>
+
+        <Section heading="Requests" ruled>
+          {list.denied ? (
+            <EmptyState heading="There are no requests here for you" testId="requests-denied">
+              Either this site does not exist, or it is outside what you may see.
+            </EmptyState>
+          ) : (
+            (state ?? (
+              <div className="table-wrap">
+                <table className="data" data-testid="requests-table">
+                  <caption className="sr-only">
+                    Requests this site has raised and requests other sites have raised of it.
+                  </caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">Asked</th>
+                      <th scope="col">Who asked whom</th>
+                      <th scope="col" className="num">
+                        Lines
+                      </th>
+                      <th scope="col">By</th>
+                      <th scope="col">Where it got to</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {list.items.map((row) => (
+                      <tr key={row.id} data-testid={`request-row-${row.id}`} data-state={row.state}>
+                        <td>{formatDateTime(row.requested_at)}</td>
+                        <td>
+                          {siteName(sites, row.destination_site_id)} asked{" "}
+                          {siteName(sites, row.source_site_id)}
+                          <span className="sub">
+                            {String(row.destination_site_id) === String(site)
+                              ? "Asked by this site"
+                              : "Asked of this site"}
+                          </span>
+                        </td>
+                        <td className="num">{row.lines.length}</td>
+                        <td>{row.requested_by.name || row.requested_by.id}</td>
+                        <td>
+                          <Status tone={REQUEST_TONE[row.state]} testId={`request-state-${row.id}`}>
+                            {REQUEST_STATE_LABEL[row.state] ?? row.state}
+                          </Status>
+                          {row.transfer_id ? (
+                            <span className="sub">
+                              <Link to={`/goods/transfers/${row.transfer_id}`}>
+                                Open the transfer
+                              </Link>
+                            </span>
+                          ) : null}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))
+          )}
+        </Section>
+      </div>
     </OperationsPage>
   );
 }

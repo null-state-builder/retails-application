@@ -404,8 +404,7 @@ class ExceptionListView(GoodsAPIView):
             if sites is not None and site_id not in sites:
                 raise Refusal("NOT_FOUND", "That site was not found.")
             queryset = queryset.filter(site_id=site_id)
-        rows = list(queryset)
-        window, cursor = paginate(rows, params)
+        window, cursor = paginate(queryset, params)
         now = timezone.now()
         return Response(page([exception_dto(r, now) for r in window], cursor))
 

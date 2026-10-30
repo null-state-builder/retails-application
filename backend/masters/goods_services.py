@@ -276,6 +276,88 @@ def ensure_site_sbus(tenant_id: uuid.UUID, site: Store, brand_ids: list[int]) ->
     return created
 
 
+# --------------------------------------------------------------------------
+# Store ↔ warehouse link (store-warehouse-link)
+# --------------------------------------------------------------------------
+
+
+def _linked_refusal(code: str, message: str) -> Refusal:
+    return Refusal(
+        "LINKED_WAREHOUSE_INVALID",
+        message,
+        status=422,
+        issues=[issue(code, message, field="linked_warehouse_id")],
+    )
+
+
+def _link_id(raw: Any) -> int | None:
+    if raw in (None, ""):
+        return None
+    try:
+        return int(str(raw))
+    except ValueError:
+        raise _linked_refusal("INVALID", "linked_warehouse_id must name a site.") from None
+
+
+def validate_linked_warehouse(
+    tenant_id: uuid.UUID, site_id: int | None, payload: dict[str, Any], entity: LegalEntity
+) -> None:
+    """A store's linked warehouse: an active warehouse of the store's own legal entity.
+
+    Only a ``store`` site may name one, and a warehouse that stores already link
+    to cannot stop being a warehouse while they do.
+    """
+    linked = _link_id(payload.get("linked_warehouse_id"))
+    if linked is not None:
+        if payload.get("type") != "store":
+            raise _linked_refusal(
+                "NOT_A_STORE_SITE", "Only a store site can have a linked warehouse."
+            )
+        warehouse = (
+            Store.objects.select_related("gstin")
+            .filter(pk=linked, tenant_id=tenant_id, is_active=True)
+            .first()
+        )
+        if warehouse is None:
+            raise _linked_refusal("NOT_FOUND", "The linked warehouse is not an active site.")
+        if warehouse.store_type != "warehouse":
+            raise _linked_refusal("NOT_A_WAREHOUSE", "The linked site is not a warehouse.")
+        if not warehouse.gstin_id or warehouse.gstin.legal_entity_id != entity.pk:
+            raise _linked_refusal(
+                "OTHER_ENTITY", "The linked warehouse belongs to a different legal entity."
+            )
+    if site_id is not None and payload.get("type") != "warehouse":
+        if linked_store_ids(tenant_id, site_id):
+            raise _linked_refusal(
+                "WAREHOUSE_IN_USE",
+                "Stores link to this warehouse; unlink them before changing its type.",
+            )
+
+
+def linked_warehouse_id(site: Store) -> int | None:
+    """The warehouse the store's current site record links to, if any."""
+    latest = latest_master_version(site.tenant_id, "site", str(site.pk))
+    payload = (latest.payload if latest else None) or {}
+    if payload.get("type") != "store":
+        return None
+    try:
+        return _link_id(payload.get("linked_warehouse_id"))
+    except Refusal:
+        return None
+
+
+def linked_store_ids(tenant_id: uuid.UUID, warehouse_id: int) -> set[int]:
+    """The stores whose current site record links to ``warehouse_id``."""
+    found: set[int] = set()
+    for version in latest_versions_by_kind(tenant_id, "site"):
+        payload = version.payload or {}
+        if payload.get("type") == "store" and str(payload.get("linked_warehouse_id")) == str(
+            warehouse_id
+        ):
+            found.add(int(version.target_key))
+    return found
+
+
 def site_guard_for(site: Store) -> SiteGuard | None:
     return SiteGuard.objects.filter(site=site).first()
 
@@ -285,8 +367,9 @@ def site_guard_for(site: Store) -> SiteGuard | None:
 # --------------------------------------------------------------------------
 
 
-#: The numbering series receiving issues: GRN, counter-GRN and receipt PT.
-READINESS_SERIES = ("GRN", "CGRN", "RPT")
+#: The numbering series receiving and transfers issue: GRN, counter-GRN, receipt PT
+#: and transfer PT.
+READINESS_SERIES = ("GRN", "CGRN", "RPT", "TPT")
 #: Stock residual quantities a closure must see decided, in reporting order.
 STOCK_RESIDUALS = ("physical_qty", "transit_qty", "unvalued_qty", "reserved_qty")
 DECISION_KEYS = frozenset({"code", "message", "field", "line_key", "quantity"})
@@ -346,6 +429,7 @@ def compute_readiness_checks(site: Store, now: datetime) -> list[dict[str, Any]]
         _business_profile_check(tenant_id, now),
         _working_calendar_check(tenant_id, now),
         _receipt_configuration_check(site, now),
+        _linked_transfer_approval_check(site, now),
         _staff_check(site, now),
     ]
     return checks
@@ -546,6 +630,41 @@ def _receipt_configuration_check(site: Store, now: datetime) -> dict[str, Any]:
         "receipt_configuration",
         not gaps,
         "Receiving is not configured: " + "; ".join(gaps) + ".",
+        overridable=True,
+    )
+
+
+def _linked_transfer_approval_check(site: Store, now: datetime) -> dict[str, Any]:
+    """A store and its linked warehouse share one transfer approval policy per brand.
+
+    The same coverage a transfer's submission demands (``transfer_authority``). A
+    store without a linked warehouse has nothing to prove here.
+    """
+    from outbound.transfer_authority import shared_policy
+
+    warehouse_id = linked_warehouse_id(site) if site.store_type == "store" else None
+    gaps: list[str] = []
+    if warehouse_id is not None:
+        brands: list[int | None] = [
+            b
+            for b in Sbu.objects.filter(site=site, retired_at__isnull=True).values_list(
+                "brand_id", flat=True
+            )
+            if b is not None
+        ]
+        for brand in brands or [None]:
+            try:
+                shared_policy(
+                    site.tenant_id, now, (site.pk, warehouse_id), [brand] if brand else []
+                )
+            except Refusal:
+                gaps.append(f"brand {brand}" if brand else "the site")
+    return _check(
+        "transfer_approval",
+        not gaps,
+        "No transfer approval policy covers this store and its linked warehouse for: "
+        + ", ".join(gaps)
+        + ".",
         overridable=True,
     )
 
@@ -764,6 +883,7 @@ SETUP_RESOLUTION_ACTIONS: dict[str, list[str]] = {
     "business_profile": ["masters/configurations"],
     "working_calendar": ["masters/configurations"],
     "receipt_configuration": ["masters/configurations"],
+    "transfer_approval": ["masters/configurations"],
     "staff_assigned": ["accounts/admin/staff/{id}/assign"],
 }
 
@@ -1333,6 +1453,12 @@ CONFIG_SCHEMAS: dict[str, Checker] = {
             "value_max": _optional(_money),
             "step_up": _optional(_boolean),
             "unknown_value": _optional(_choice("refuse", "quantity_only")),
+            # Owner decision (The Wardrobe, 28 Oct 2026): a warehouse → store transfer
+            # is approved by its submitter, recorded as such (`outbound.transfers`).
+            "auto_approve_warehouse_to_store": _optional(_boolean),
+            # Owner decision (The Wardrobe, 29 Oct 2026): no approvals while a test store
+            # opens; its preparer confirms each step (`ptmapper.opening_auto`).
+            "auto_approve_test_store_opening": _optional(_boolean),
         }
     ),
     "reasons": _object(
@@ -1615,6 +1741,16 @@ def _check_rules(  # noqa: C901 - one branch per configuration kind with cross-f
     if kind == "approval":
         if not payload["roles"] or any(not step["roles"] for step in payload.get("steps") or []):
             raise config_invalid("payload.roles", "every approval route needs explicit roles")
+        if payload.get("auto_approve_warehouse_to_store"):
+            if payload["action"] != "pt.approve.transfer":
+                raise config_invalid("payload.auto_approve_warehouse_to_store", "applies only to transfer approval")
+            if payload.get("steps"):
+                raise config_invalid("payload.auto_approve_warehouse_to_store", "needs a single-step route")
+        if payload.get("auto_approve_test_store_opening"):
+            if payload["action"] != "pt.approve.opening":
+                raise config_invalid("payload.auto_approve_test_store_opening", "applies only to opening approval")
+            if payload.get("steps"):
+                raise config_invalid("payload.auto_approve_test_store_opening", "needs a single-step route")
     if kind == "reasons":
         codes = [code["code"] for code in payload["codes"]]
         if len(set(codes)) != len(codes):

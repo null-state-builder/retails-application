@@ -175,7 +175,7 @@ def _configured_empty(data: dict[str, Any], *, kind: str = "new", approve_sell: 
             "manual_discount_cap_percent": "10", "manual_discount_on_offer_lines": False,
             "return_window_days": 15,
         })
-        for document_kind in ("GRN", "CGRN", "RPT"):
+        for document_kind in ("GRN", "CGRN", "RPT", "TPT"):
             prepare_series(world.tenant.pk, site.gstin.legal_entity, document_kind)
         proof.staff = Staff.objects.create(tenant=world.tenant, human_id=proof.manager.human_id, salesperson=True)
         command(proof.owner, "proof.empty.staff", lambda run: open_assignment(

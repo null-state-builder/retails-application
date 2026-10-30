@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { Note } from "../components/Note";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { SegmentedControl } from "../components/SegmentedControl";
 import { api, apiErrorMessage } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
@@ -12,12 +14,38 @@ import {
   isEstimate,
 } from "../lib/brandPerformance";
 import type { BrandPerformanceFilters, BrandPerformanceGroupBy } from "../lib/brandPerformance";
-import { alignsRight, blobErrorMessage, gstCell } from "../lib/gstReport";
-import type { GstColumn, GstRow } from "../lib/gstReport";
+import {
+  alignsRight,
+  blobErrorMessage,
+  columnHeading,
+  gstCell,
+  maskUnknownFigures,
+} from "../lib/gstReport";
+import type { FigureSources, GstColumn, GstRow } from "../lib/gstReport";
 import { asOfText } from "../lib/salesReport";
 import "./Shared.css";
 
 type Payload = ApiRead<ApiSchemas["BrandPerformance"]>;
+
+/** The columns worked out from the second copies this report reads: unknown,
+ *  not nought, while that copy is missing (`STOCK_NOT_BUILT`,
+ *  `COMMISSION_NOT_BUILT`). Sales figures are the main copy's. */
+const BRAND_SOURCES: FigureSources = {
+  copies: {
+    STOCK: [
+      "received",
+      "sell_through_pct",
+      "on_hand",
+      "avg_age_days",
+      "dead_pieces",
+      "ended_pieces",
+      "aged_pct",
+      "stock_cost_paise",
+      "gmroi",
+    ],
+    COMMISSION: ["commission_paise", "earned_pct"],
+  },
+};
 
 const OFFLINE = "Reports need a connection. Reconnect to see or export this report.";
 
@@ -122,23 +150,26 @@ export function BrandPerformanceReportPage() {
 
   const disabled = !online || busy;
   const offlineNote = (!online || lost) && (
-    <p className="warn-note" data-testid="brand-performance-offline" role="status">
-      {OFFLINE}
-      {online && (
-        <>
-          {" "}
+    <Note
+      tone="warn"
+      testId="brand-performance-offline"
+      role="status"
+      action={
+        online && (
           <button
             type="button"
-            className="btn"
+            className="btn btn-sm"
             data-testid="brand-performance-retry"
             disabled={busy}
             onClick={() => void load(filters)}
           >
             Try again
           </button>
-        </>
-      )}
-    </p>
+        )
+      }
+    >
+      {OFFLINE}
+    </Note>
   );
   const lead = "How each brand sells, what it earns and how old its stock is, at each store.";
 
@@ -148,9 +179,9 @@ export function BrandPerformanceReportPage() {
         <PageHeader title="Brand Performance" lead={lead} />
         {offlineNote}
         {error ? (
-          <p className="warn-note" data-testid="brand-performance-error">
+          <Note tone="error" testId="brand-performance-error">
             {error}
-          </p>
+          </Note>
         ) : (
           online && !lost && <p>Loading the brand performance report…</p>
         )}
@@ -159,158 +190,153 @@ export function BrandPerformanceReportPage() {
   }
 
   const columns = data.columns as GstColumn[];
-  const rows = data.rows as unknown as GstRow[];
-  const total = data.total as unknown as GstRow;
+  const rows = (data.rows as unknown as GstRow[]).map((row) =>
+    maskUnknownFigures(row, columns, data.missing, BRAND_SOURCES),
+  );
+  const total = maskUnknownFigures(
+    data.total as unknown as GstRow,
+    columns,
+    data.missing,
+    BRAND_SOURCES,
+  );
   const estimates = data.estimate_fields;
 
   return (
     <OperationsPage>
       <PageHeader title="Brand Performance" lead={lead} />
       {offlineNote}
-      <section className="card section-card">
-        <div className="toolbar" data-testid="brand-performance-filters">
-          <label className="field">
-            <span>Store</span>
-            <select
-              className="input"
-              data-testid="brand-performance-filter-store"
-              value={filters.store}
-              disabled={disabled}
-              onChange={(event) => set("store", event.target.value)}
-            >
-              <option value="">All my stores</option>
-              {data.store_options.map((s) => (
-                <option key={s.id} value={s.code}>
-                  {s.name} ({s.code})
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>From</span>
-            <input
-              className="input"
-              type="date"
-              data-testid="brand-performance-filter-from"
-              value={filters.date_from}
-              disabled={disabled}
-              onChange={(event) => set("date_from", event.target.value)}
-            />
-          </label>
-          <label className="field">
-            <span>To</span>
-            <input
-              className="input"
-              type="date"
-              data-testid="brand-performance-filter-to"
-              value={filters.date_to}
-              disabled={disabled}
-              onChange={(event) => set("date_to", event.target.value)}
-            />
-          </label>
-          <button
-            type="button"
-            className="btn btn-primary"
-            data-testid="brand-performance-export"
+      <div className="toolbar" data-testid="brand-performance-filters">
+        <label className="field">
+          <span>Store</span>
+          <select
+            className="input"
+            data-testid="brand-performance-filter-store"
+            value={filters.store}
             disabled={disabled}
-            onClick={() => void exportWorkbook()}
+            onChange={(event) => set("store", event.target.value)}
           >
-            Export to Excel
-          </button>
-        </div>
-        <div
-          className="seg"
-          role="tablist"
-          aria-label="Group by"
-          data-testid="brand-performance-groupings"
-          style={{ flexWrap: "wrap" }}
+            <option value="">All my stores</option>
+            {data.store_options.map((s) => (
+              <option key={s.id} value={s.code}>
+                {s.name} ({s.code})
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span>From</span>
+          <input
+            className="input"
+            type="date"
+            data-testid="brand-performance-filter-from"
+            value={filters.date_from}
+            disabled={disabled}
+            onChange={(event) => set("date_from", event.target.value)}
+          />
+        </label>
+        <label className="field">
+          <span>To</span>
+          <input
+            className="input"
+            type="date"
+            data-testid="brand-performance-filter-to"
+            value={filters.date_to}
+            disabled={disabled}
+            onChange={(event) => set("date_to", event.target.value)}
+          />
+        </label>
+        <button
+          type="button"
+          className="btn btn-primary"
+          data-testid="brand-performance-export"
+          disabled={disabled}
+          onClick={() => void exportWorkbook()}
         >
-          {BRAND_PERFORMANCE_GROUPINGS.map((v) => (
-            <button
-              key={v.key}
-              type="button"
-              role="tab"
-              aria-selected={filters.group_by === v.key}
-              className={`seg-btn ${filters.group_by === v.key ? "active" : ""}`}
-              data-testid={`brand-performance-group-${v.key}`}
-              disabled={disabled}
-              onClick={() => set("group_by", v.key as BrandPerformanceGroupBy)}
-            >
-              {v.label}
-            </button>
-          ))}
-        </div>
-        <p className="muted-cell" data-testid="brand-performance-as-of">
-          {asOfText(data.as_of)}
-          {data.as_of &&
-            ` · the copy is brought up to date every ${data.refreshed_every_minutes} minutes`}
-          {` · ${data.stores.map((s) => s.code).join(", ")} · ${data.date_from} to ${data.date_to}`}
-        </p>
-        {data.estimate_note && (
-          <p className="warn-note" data-testid="brand-performance-estimate" role="note">
+          Export to Excel
+        </button>
+      </div>
+      <SegmentedControl
+        label="Group by"
+        testId="brand-performance-groupings"
+        disabled={disabled}
+        value={filters.group_by as BrandPerformanceGroupBy}
+        options={BRAND_PERFORMANCE_GROUPINGS.map((v) => ({
+          value: v.key as BrandPerformanceGroupBy,
+          label: v.label,
+          testId: `brand-performance-group-${v.key}`,
+        }))}
+        onChange={(next) => set("group_by", next)}
+      />
+      <p className="muted-cell" data-testid="brand-performance-as-of">
+        {asOfText(data.as_of)}
+        {data.as_of &&
+          ` · the copy is brought up to date every ${data.refreshed_every_minutes} minutes`}
+        {` · ${data.stores.map((s) => s.code).join(", ")} · ${data.date_from} to ${data.date_to}`}
+      </p>
+      {data.estimate_note && (
+        <div role="note">
+          <Note tone="info" testId="brand-performance-estimate">
             <strong>Estimates.</strong> {data.estimate_note}
-          </p>
-        )}
-        {error && (
-          <p className="warn-note" data-testid="brand-performance-error">
-            {error}
-          </p>
-        )}
-        {data.missing.length > 0 && (
-          <div className="warn-note" data-testid="brand-performance-missing">
-            <strong>Not included, or to check</strong>
-            <ul>
-              {data.missing.map((m) => (
-                <li key={m.code} data-testid={`brand-performance-missing-${m.code}`}>
-                  {m.text}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {rows.length === 0 ? (
-          <p className="muted-cell" data-testid="brand-performance-empty">
-            {busy
-              ? "Loading…"
-              : "Nothing sold, received or in stock in this period at these stores."}
-          </p>
-        ) : (
-          <div className="table-wrap">
-            <table className="data" data-testid="brand-performance-table">
-              <thead>
-                <tr>
-                  {columns.map((c) => (
-                    <th
-                      key={c.key}
-                      className={alignsRight(c.kind) ? "num" : undefined}
-                      data-testid={`brand-performance-col-${c.key}`}
-                      data-estimate={isEstimate(c.key, estimates) ? "true" : undefined}
-                    >
-                      {c.label}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row, index) => (
-                  <BrandPerformanceRow key={String(row.key ?? index)} row={row} columns={columns} />
-                ))}
-              </tbody>
-              <tfoot>
-                <BrandPerformanceRow row={total} columns={columns} total />
-              </tfoot>
-            </table>
-          </div>
-        )}
-        <details className="muted-cell" data-testid="brand-performance-basis">
-          <summary>How these figures are worked out (formula {data.formula_version})</summary>
+          </Note>
+        </div>
+      )}
+      {error && (
+        <Note tone="error" testId="brand-performance-error">
+          {error}
+        </Note>
+      )}
+      {data.missing.length > 0 && (
+        <Note tone="warn" testId="brand-performance-missing">
+          <strong>Not included, or to check</strong>
           <ul>
-            {data.basis.map((line) => (
-              <li key={line}>{line}</li>
+            {data.missing.map((m) => (
+              <li key={m.code} data-testid={`brand-performance-missing-${m.code}`}>
+                {m.text}
+              </li>
             ))}
           </ul>
-        </details>
-      </section>
+        </Note>
+      )}
+      {rows.length === 0 ? (
+        <p className="muted-cell" data-testid="brand-performance-empty">
+          {busy ? "Loading…" : "Nothing sold, received or in stock in this period at these stores."}
+        </p>
+      ) : (
+        <div className="table-wrap">
+          <table className="data freeze-first" data-testid="brand-performance-table">
+            <thead>
+              <tr>
+                {columns.map((c) => (
+                  <th
+                    key={c.key}
+                    className={alignsRight(c.kind) ? "num" : undefined}
+                    data-testid={`brand-performance-col-${c.key}`}
+                    data-estimate={isEstimate(c.key, estimates) ? "true" : undefined}
+                  >
+                    {columnHeading(c.label)}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, index) => (
+                <BrandPerformanceRow key={String(row.key ?? index)} row={row} columns={columns} />
+              ))}
+            </tbody>
+            <tfoot>
+              <BrandPerformanceRow row={total} columns={columns} total />
+            </tfoot>
+          </table>
+        </div>
+      )}
+      <details className="muted-cell" data-testid="brand-performance-basis">
+        <summary>How these figures are worked out (formula {data.formula_version})</summary>
+        <ul>
+          {data.basis.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      </details>
     </OperationsPage>
   );
 }

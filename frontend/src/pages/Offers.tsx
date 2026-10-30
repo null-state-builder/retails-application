@@ -16,12 +16,14 @@
 // The authoring screens are their own tickets; this is the surface the pilot
 // store needs on day one.
 
-import { CalendarClock, Layers, Plus, Tag } from "lucide-react";
+import { CalendarClock, Plus } from "lucide-react";
 
 import { Link } from "react-router-dom";
 
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { EmptyState } from "../components/States";
+import { Status, type StatusTone } from "../components/Status";
 import { useAuth } from "../auth/AuthContext";
 import { meetsCapability } from "../shell/navConfig";
 import { useList } from "../lib/hooks";
@@ -49,7 +51,7 @@ const LAYER_LABEL: Record<string, string> = {
 };
 
 /** Live is green, ended is grey, anything on its way is amber. */
-const STATUS_TONE: Record<string, string> = {
+const STATUS_TONE: Record<string, StatusTone> = {
   live: "green",
   draft: "amber",
   approved: "amber",
@@ -94,12 +96,9 @@ export function OffersPage() {
       {loading ? (
         <p className="lead">Loading…</p>
       ) : data.length === 0 ? (
-        <div className="card section-card" data-testid="offers-empty">
-          <p className="eyebrow">
-            <Tag size={15} /> Nothing running
-          </p>
+        <EmptyState heading="Nothing running" testId="offers-empty">
           No offers apply at this store today.
-        </div>
+        </EmptyState>
       ) : (
         <div className="table-wrap">
           <table className="data" data-testid="offers-table">
@@ -116,10 +115,6 @@ export function OffersPage() {
               {data.map((row) => (
                 <tr key={row.id} data-testid={`offer-row-${row.id}`}>
                   <td>
-                    <p className="eyebrow">
-                      <Tag size={13} /> {row.brand || "Storewide"}
-                      {row.is_fallback && " · default"}
-                    </p>
                     {mayAuthor ? (
                       <Link className="link-cell" to={`/offers/${row.id}`}>
                         {row.one_liner}
@@ -127,15 +122,12 @@ export function OffersPage() {
                     ) : (
                       row.one_liner
                     )}
-                    <span className="muted-cell" style={{ display: "block" }}>
-                      {row.name}
+                    <span className="sub">
+                      {row.brand || "Storewide"}
+                      {row.is_fallback && " · default"} · {row.name}
                     </span>
                   </td>
-                  <td>
-                    <span className="chip chip-grey">
-                      <Layers size={12} /> {LAYER_LABEL[row.layer] ?? row.layer}
-                    </span>
-                  </td>
+                  <td>{LAYER_LABEL[row.layer] ?? row.layer}</td>
                   <td style={{ whiteSpace: "nowrap" }}>
                     <CalendarClock size={12} style={{ marginRight: 4 }} />
                     {when(row)}
@@ -144,9 +136,9 @@ export function OffersPage() {
                     {row.combinable ? "Stacks on top" : "On its own"}
                   </td>
                   <td>
-                    <span className={`chip chip-${STATUS_TONE[row.status] ?? "grey"}`}>
+                    <Status tone={STATUS_TONE[row.status] ?? "grey"}>
                       {row.awaiting_approval ? "waiting for approval" : row.status}
-                    </span>
+                    </Status>
                   </td>
                 </tr>
               ))}

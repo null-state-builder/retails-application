@@ -54,8 +54,8 @@ def stored_number(text: str) -> Decimal:
     return Decimal(repr(float(text)))
 
 
-def read_rows(data: bytes, *, max_rows: int | None = None) -> Iterator[tuple[int, tuple[Any, ...]]]:
-    """``(row number, values)`` for each stored row of the first sheet, numbers exact.
+def read_rows(data: bytes, *, max_rows: int | None = None, sheet_index: int = 0) -> Iterator[tuple[int, tuple[Any, ...]]]:
+    """``(row number, values)`` for each stored row of one sheet (the first by default), numbers exact.
 
     Stops after ``max_rows`` rows, so an oversized file is never read in full.
 
@@ -64,7 +64,7 @@ def read_rows(data: bytes, *, max_rows: int | None = None) -> Iterator[tuple[int
     """
     workbook = load_workbook(io.BytesIO(data), read_only=True, data_only=True)
     try:
-        sheet = workbook.worksheets[0]
+        sheet = workbook.worksheets[sheet_index]
         # types-openpyxl omits these private reader internals. This parser is
         # intentionally coupled to the pinned openpyxl implementation.
         with sheet._get_source() as source:  # type: ignore[attr-defined]

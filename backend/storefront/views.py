@@ -92,9 +92,11 @@ _DASHBOARD_RESPONSE = {
             "properties": {
                 "day_close": {
                     "type": "object",
+                    "required": ["date", "state", "closed_at"],
                     "properties": {
                         "date": {"type": "string", "format": "date"},
-                        "state": {"type": "string"},
+                        "state": {"type": "string", "enum": ["open", "closed", "off"]},
+                        "closed_at": {"type": "string", "format": "date-time", "nullable": True},
                     },
                 },
                 "mtd_net_paise": {"type": "integer"},

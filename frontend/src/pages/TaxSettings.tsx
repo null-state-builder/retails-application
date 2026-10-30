@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { PageHeader } from "../components/PageHeader";
+import { Note } from "../components/Note";
+import { Section } from "../components/Section";
+import { Status } from "../components/Status";
 import { api, apiErrorMessage, goodsMeta, typedApi } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { formatDateTime, formatINR, paiseToRupees, rupeesToPaise } from "../lib/format";
@@ -146,7 +149,7 @@ export function TaxSettingsPage() {
     return (
       <div className="page-pad">
         <PageHeader title="Tax Settings" />
-        {error ? <p className="warn-note">{error}</p> : <p>Loading tax settings…</p>}
+        {error ? <Note tone="error">{error}</Note> : <p>Loading tax settings…</p>}
       </div>
     );
   }
@@ -163,100 +166,106 @@ export function TaxSettingsPage() {
         </p>
       )}
       {data.gate && (
-        <p className="warn-note" data-testid="tax-settings-gate">
+        <Note tone="warn" testId="tax-settings-gate">
           Waiting for {data.gate}. Until then a real store keeps version 1, the tax slab table.
-        </p>
+        </Note>
       )}
 
-      <section className="card section-card">
-        <h2 className="h3">Stores</h2>
-        {data.stores.length === 0 ? (
-          <p className="muted-cell">You have no store to see.</p>
-        ) : (
-          <div className="table-wrap">
-            <table className="data" data-testid="tax-settings-stores">
-              <thead>
-                <tr>
-                  <th>Store</th>
-                  <th>Taxed today by</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.stores.map((store) => (
-                  <tr key={store.id} data-testid={`tax-store-${store.code}`}>
-                    <td>
-                      {store.name} ({store.code}){store.real ? "" : " - demo"}
-                    </td>
-                    <td>
-                      {store.rules_on
-                        ? `Version ${store.version_today}`
-                        : "Version 1 (tax slabs). Tax settings are switched off here."}
-                    </td>
+      <div className="page">
+        <Section heading="Stores">
+          {data.stores.length === 0 ? (
+            <p className="muted-cell">You have no store to see.</p>
+          ) : (
+            <div className="table-wrap">
+              <table className="data" data-testid="tax-settings-stores">
+                <thead>
+                  <tr>
+                    <th>Store</th>
+                    <th>Taxed today by</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {data.stores.map((store) => (
+                    <tr key={store.id} data-testid={`tax-store-${store.code}`}>
+                      <td>
+                        {store.name} ({store.code}){store.real ? "" : " - demo"}
+                      </td>
+                      <td>
+                        {store.rules_on
+                          ? `Version ${store.version_today}`
+                          : "Version 1 (tax slabs). Tax settings are switched off here."}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </Section>
+
+        {data.can_change && !draft && (
+          <p>
+            <button
+              type="button"
+              className="btn btn-primary"
+              data-testid="tax-new-version"
+              onClick={() => {
+                setSaved("");
+                setError("");
+                setDraft(startFrom(data));
+              }}
+            >
+              New version
+            </button>
+          </p>
         )}
-      </section>
 
-      {data.can_change && !draft && (
-        <p>
-          <button
-            type="button"
-            className="btn btn-primary"
-            data-testid="tax-new-version"
-            onClick={() => {
-              setSaved("");
-              setError("");
-              setDraft(startFrom(data));
-            }}
-          >
-            New version
-          </button>
-        </p>
-      )}
+        {draft && (
+          <VersionForm
+            draft={draft}
+            today={data.today}
+            number={data.latest_version + 1}
+            busy={busy}
+            onChange={setDraft}
+            onSave={() => void save()}
+            onCancel={() => setDraft(null)}
+          />
+        )}
+        {error && (
+          <Note tone="error" testId="tax-settings-error">
+            {error}
+          </Note>
+        )}
+        {saved && (
+          <Note tone="success" role="status" testId="tax-settings-saved">
+            {saved}
+          </Note>
+        )}
 
-      {draft && (
-        <VersionForm
-          draft={draft}
-          today={data.today}
-          number={data.latest_version + 1}
-          busy={busy}
-          onChange={setDraft}
-          onSave={() => void save()}
-          onCancel={() => setDraft(null)}
-        />
-      )}
-      {error && (
-        <p className="warn-note" data-testid="tax-settings-error">
-          {error}
-        </p>
-      )}
-      {saved && (
-        <p className="ok-note" data-testid="tax-settings-saved">
-          {saved}
-        </p>
-      )}
-
-      {data.versions.map((version) => (
-        <VersionCard key={version.version} version={version} />
-      ))}
+        {data.versions.map((version) => (
+          <VersionCard key={version.version} version={version} />
+        ))}
+      </div>
     </div>
   );
 }
 
 function VersionCard({ version }: { version: Version }) {
   return (
-    <section className="card section-card" data-testid={`tax-version-${version.version}`}>
-      <h2 className="h3">
-        Version {version.version}{" "}
-        {version.legacy ? (
-          <span className="chip">Tax slab table</span>
-        ) : (
-          <span className="chip chip-amber">Applies from {version.applies_from}</span>
-        )}
-      </h2>
+    <Section
+      heading={
+        <>
+          Version {version.version}{" "}
+          {version.legacy ? (
+            <span className="chip">Tax slab table</span>
+          ) : (
+            <Status tone="amber">Applies from {version.applies_from}</Status>
+          )}
+        </>
+      }
+      ruled
+      testId={`tax-version-${version.version}`}
+    >
       <p className="muted-cell">
         {version.legacy
           ? version.note
@@ -334,7 +343,7 @@ function VersionCard({ version }: { version: Version }) {
           if earlier).
         </p>
       )}
-    </section>
+    </Section>
   );
 }
 
@@ -361,8 +370,7 @@ function VersionForm({
       rules: draft.rules.map((rule, i) => (i === index ? { ...rule, ...patch } : rule)),
     });
   return (
-    <section className="card section-card" data-testid="tax-version-form">
-      <h2 className="h3">New version {number}</h2>
+    <Section heading={`New version ${number}`} ruled testId="tax-version-form">
       <p className="muted-cell">
         A piece priced P, tax included and after discount, takes the lower rate when P ÷ (1 + the
         lower rate) is at or under the price line, otherwise the higher rate. A rate-schedule rule
@@ -677,7 +685,7 @@ function VersionForm({
           Cancel
         </button>
       </p>
-    </section>
+    </Section>
   );
 }
 

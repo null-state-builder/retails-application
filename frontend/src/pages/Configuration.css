@@ -7,6 +7,48 @@
 
 .cfg-layout {
   align-items: flex-start;
+  gap: 16px;
+}
+
+/* A narrow menu and a detail column whose content is capped at a readable
+ * width, so the page does not tip to either side on a wide screen. The menu
+ * is kept compact so every kind fits on screen without scrolling. */
+.cfg-layout .org-nav {
+  flex-basis: 208px;
+}
+.cfg-layout .org-nav-item {
+  padding: 5px 10px;
+}
+.cfg-layout .org-nav-group:last-child {
+  margin-bottom: 0;
+}
+.cfg-layout .org-detail > * {
+  max-width: 880px;
+}
+
+/* On a desktop the page fills the content area: the header and menu stay put
+ * and only the detail column scrolls. The menu scrolls itself only when the
+ * window is too short to show it whole. */
+@media (min-width: 861px) {
+  .cfg-page {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 0;
+  }
+  .cfg-page > .cfg-layout {
+    flex: 1 1 auto;
+    min-height: 0;
+    align-items: stretch;
+  }
+  .cfg-layout .org-nav,
+  .cfg-layout .org-detail {
+    overflow-y: auto;
+    padding-bottom: 28px;
+  }
+  .cfg-layout .org-nav {
+    padding-bottom: 12px;
+  }
 }
 
 @media (max-width: 860px) {
@@ -15,18 +57,23 @@
   }
 }
 
+/* Save and send sit at the right edge, under the Close button they mirror. */
+.cfg-layout .cfg-actions {
+  justify-content: flex-end;
+}
+
 .cfg-layout .h4 {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--navy2);
   margin: 0 0 6px;
 }
 
 .cfg-layout .h5 {
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--ink);
   margin: 12px 0 4px;
@@ -59,13 +106,13 @@
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  font-size: 13.5px;
+  font-size: 14px;
   padding: 4px 0;
 }
 
 .cfg-layout .cfg-directions {
   border: 1px solid var(--sidebar-border);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   padding: 8px 12px;
   margin: 12px 0;
 }
@@ -85,7 +132,7 @@
   gap: 8px;
   padding: 10px 0;
   border-bottom: 1px solid var(--sidebar-border);
-  font-size: 13.5px;
+  font-size: 14px;
 }
 
 .cfg-layout .cfg-wizard-item:last-child {
@@ -119,4 +166,428 @@
   .cfg-layout .cfg-wizard-item {
     align-items: flex-start;
   }
+}
+
+/* One grid for every two-up block — the period row and the calendar share it,
+ * so their columns sit on the same vertical axis down the page. */
+.cfg-layout .cfg-two {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 16px 32px;
+}
+@media (max-width: 720px) {
+  .cfg-layout .cfg-two {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Working calendar editor: working days | closed dates, then the timezone. */
+.cfg-layout .cfg-calendar {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Both calendar columns share one anatomy — label and count, a hint, a 48px
+ * control row, then what follows — so their rows line up across the card. */
+.cfg-layout .cfg-sect {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.cfg-layout .cfg-sect-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.cfg-layout .cfg-sect-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.cfg-layout .cfg-sect-count {
+  font-size: 12px;
+  color: var(--caption);
+  font-variant-numeric: tabular-nums;
+}
+.cfg-layout .cfg-sect > .goods-hint {
+  margin: 0 0 4px;
+}
+
+.cfg-layout .cfg-week {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+/* A week strip: seven equal toggles, joined like a calendar row. */
+.cfg-layout .cfg-week-days {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  height: 48px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  overflow: hidden;
+  background: var(--surface);
+}
+.cfg-layout .cfg-day {
+  position: relative;
+  cursor: pointer;
+}
+.cfg-layout .cfg-day + .cfg-day {
+  border-left: 1px solid var(--line);
+}
+.cfg-layout .cfg-day input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.cfg-layout .cfg-day span[aria-hidden] {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  transition:
+    background-color 0.12s,
+    color 0.12s;
+}
+.cfg-layout .cfg-day:hover input:not(:checked) + span {
+  background: var(--row-hover);
+}
+.cfg-layout .cfg-day input:checked + span {
+  background: var(--navy-fill);
+  color: var(--surface);
+}
+.cfg-layout .cfg-day input:focus-visible + span {
+  outline: 2px solid var(--rust);
+  outline-offset: -3px;
+}
+/* Presets: two equal halves under the strip, whatever their label length. */
+.cfg-layout .cfg-presets {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 6px;
+}
+.cfg-layout .cfg-presets .btn {
+  width: 100%;
+  height: 40px;
+}
+
+.cfg-layout .cfg-holiday-add,
+.cfg-layout .cfg-entry-add {
+  display: flex;
+  gap: 8px;
+  height: 48px;
+}
+.cfg-layout .cfg-holiday-add .input,
+.cfg-layout .cfg-entry-add .input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 100%;
+}
+.cfg-layout .cfg-holiday-add .btn,
+.cfg-layout .cfg-entry-add .btn {
+  height: 100%;
+  white-space: nowrap;
+}
+.cfg-layout .cfg-holiday-list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-control);
+  background: var(--field-bg);
+  max-height: 188px;
+  overflow-y: auto;
+}
+.cfg-layout .cfg-holiday-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 40px;
+  padding: 4px 6px 4px 14px;
+  font-size: 14px;
+}
+.cfg-layout .cfg-holiday-list li + li {
+  border-top: 1px solid var(--hairline);
+}
+.cfg-layout .cfg-holiday-when {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.cfg-layout .cfg-holiday-when .goods-hint {
+  font-size: 12px;
+}
+.cfg-layout .cfg-holiday-list time {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.cfg-layout .cfg-holiday-list li.cfg-holiday-empty {
+  color: var(--muted);
+  font-size: 13px;
+}
+.cfg-layout .cfg-holiday-remove {
+  white-space: nowrap;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 6px 10px;
+  border-radius: var(--radius-control);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.cfg-layout .cfg-holiday-remove:hover {
+  background: var(--red-bg);
+  color: var(--red);
+}
+.cfg-layout .cfg-holiday-remove:focus-visible {
+  outline: 2px solid var(--navy);
+}
+
+/* Timezone: a quiet row closing the card, on the same two columns — the
+ * control under working days, its explanation under closed dates. */
+.cfg-layout .cfg-calendar-foot {
+  align-items: center;
+  row-gap: 6px;
+  padding-top: 18px;
+  border-top: 1px solid var(--hairline);
+}
+.cfg-layout .cfg-tz {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.cfg-layout .cfg-tz label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.cfg-layout .cfg-tz .input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cfg-layout .cfg-day span[aria-hidden] {
+    transition: none;
+  }
+}
+
+/* A configuration line on its kind's list: state and reach, the period, the
+ * few values that say what the change is, then the next step. */
+.cfg-layout .cfg-line-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.cfg-layout .cfg-line-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+}
+.cfg-layout .cfg-line-scope {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--navy2);
+}
+.cfg-layout .cfg-line-period {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.cfg-layout .cfg-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px 24px;
+  margin: 16px 0 0;
+  padding: 14px 0;
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+}
+.cfg-layout .cfg-summary > div {
+  min-width: 0;
+}
+.cfg-layout .cfg-summary dt {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 3px;
+}
+.cfg-layout .cfg-summary dd {
+  margin: 0;
+  font-size: 14px;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cfg-layout .cfg-line-next {
+  margin: 12px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.cfg-layout .cfg-line .table-wrap {
+  margin-top: 12px;
+}
+
+/* Business profile: three groups in one card, in the order the PRD asks for
+ * them (R-ORG-005) — what receiving needs, the expected scale, then the
+ * people and systems later features read. Each group says why it is asked. */
+.cfg-layout .cfg-bp {
+  display: flex;
+  flex-direction: column;
+}
+.cfg-layout .cfg-bp-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.cfg-layout .cfg-bp-group + .cfg-bp-group {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+}
+.cfg-layout .cfg-bp-head .h4 {
+  margin: 0 0 2px;
+}
+.cfg-layout .cfg-bp-head .goods-hint {
+  margin: 0;
+}
+/* The one accent on the card: the group that gates receiving. */
+.cfg-layout .cfg-bp-gate .cfg-bp-head {
+  border-left: 3px solid var(--rust);
+  padding-left: 11px;
+  margin-left: -14px;
+}
+.cfg-layout .cfg-bp textarea.input {
+  resize: vertical;
+  min-height: 48px;
+}
+.cfg-layout .cfg-bp input[type="number"] {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Expected scale: short numbers, four to a row, so the card reads as a
+ * table of estimates rather than a column of boxes. */
+.cfg-layout .cfg-bp-scale {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: start;
+  gap: 16px;
+}
+@media (max-width: 720px) {
+  .cfg-layout .cfg-bp-scale {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Entries added to a list: quiet removable pills under the add row. */
+.cfg-layout .cfg-entries {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0 0;
+  padding: 0;
+}
+.cfg-layout .cfg-entries li {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 100%;
+  padding: 3px 3px 3px 12px;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-round);
+  background: var(--inner);
+  font-size: 14px;
+  color: var(--ink);
+}
+.cfg-layout .cfg-entries li span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cfg-layout .cfg-entries button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border: 0;
+  border-radius: var(--radius-round);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+.cfg-layout .cfg-entries button:hover {
+  background: var(--red-bg);
+  color: var(--red);
+}
+.cfg-layout .cfg-entries button:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 1px;
+}
+
+/* Billing counters: one row per store, the name and a narrow number. */
+.cfg-layout .cfg-counters {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-control);
+  background: var(--field-bg);
+}
+.cfg-layout .cfg-counters li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 6px 6px 6px 14px;
+  font-size: 14px;
+}
+.cfg-layout .cfg-counters li + li {
+  border-top: 1px solid var(--hairline);
+}
+.cfg-layout .cfg-counters label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cfg-layout .cfg-counters .input {
+  width: 96px;
+  flex: none;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  text-align: right;
+}
+
+/* v2: the parts of a draft and the lines of a kind sit on the page, divided by
+ * a hairline rather than each held in a card. */
+.cfg-layout .cfg-part,
+.cfg-layout .cfg-line {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+}
+.cfg-layout .cfg-impact {
+  margin-top: 16px;
 }

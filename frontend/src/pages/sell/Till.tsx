@@ -1,17 +1,15 @@
 import { useState } from "react";
+import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import {
-  AlertTriangle,
-  Check,
-  HardDriveDownload,
-  RefreshCw,
-  Replace,
-  Volume2,
-  VolumeX,
-} from "lucide-react";
+import { AlertTriangle, CircleCheck, HardDriveDownload, RefreshCw } from "lucide-react";
 
+import { Note } from "../../components/Note";
 import { PageHeader } from "../../components/PageHeader";
+import { Section } from "../../components/Section";
+import { Status } from "../../components/Status";
 import { useAuth } from "../../auth/AuthContext";
+import { SettingRow, Settings } from "../../components/SettingRow";
+import { Switch } from "../../components/Switch";
 import { api, apiErrorMessage } from "../../lib/api";
 import { Money, formatDateTime } from "../../lib/format";
 import { userCan } from "../../shell/navConfig";
@@ -31,37 +29,38 @@ import "./Till.css";
 //
 // The till spine's own surface. The billing screen (#181) sits on top of this
 // layer and shows the same sync light in its header; this page is where a store
-// person, or whoever they ring, can see the whole of it: what came down, what is
-// waiting to go up, which bill number we are on, and - the one thing that ever
-// needs a human - a bill the server would not take.
+// person, or whoever they ring, can see the whole of it.
+//
+// Laid out for the cashier's glance first (desktop redesign, grilled 29 Oct
+// 2026). One status band answers "can I bill, and has everything gone?" - the
+// next bill number, how far head office has got, and every problem as a row
+// with its own fix, worst first. Below it sit the work lists (paper re-entry,
+// the queue), the counter tasks a manager opens, and this person's own
+// settings. The right-hand rail is the facts somebody reads down the phone.
 //
 // Nothing here is money the person can change. There is no edit affordance on a
 // queued bill by construction: it is printed, it is paid for, and the only two
 // honest outcomes are that the server takes it or that somebody is told about it.
 //
-// It is also where a counter is put back together (#189), which is why the two
-// recovery cards sit at the top rather than with the counts. Both of them move
-// the number the next customer's bill will carry, so both are buttons somebody
-// presses and neither happens on its own:
+// Two things here move the number the next customer's bill will carry, so both
+// are buttons somebody presses and neither happens on its own:
 //
-//   · **Recover this counter** - the browser threw the local database away, the
-//     till is refusing to bill, and this takes the whole dataset again and asks
-//     head office how far the store's series has got.
-//   · **Move the counter to this machine** - the deliberate handover. A manager's
-//     act, with a reason, and it hands back the bills the old machine never sent
-//     so the store can key them in from the printed copies.
+//   · **Recover this counter** (#189) - the browser threw the local database
+//     away, and this takes the whole dataset again and asks head office how far
+//     the store's series has got.
+//   · **Move the counter to this machine** - a manager's act, with a reason. It
+//     registers this device as the replacement, which records the handover on
+//     the server, and lists the bills the old machine never sent so the store
+//     can key them in from the printed copies.
 
 export default function TillPage() {
-  const [pairingCode, setPairingCode] = useState("");
-  const [pairingMessage, setPairingMessage] = useState("");
   const { engine, till, accessError } = useTill();
 
   if (!engine || !till) return <NoCounter reason={accessError} />;
 
   return (
-    <div className="page-pad">
+    <div className="page-pad till-page">
       <PageHeader
-        lead="What this counter holds offline, and what it still owes head office."
         actions={
           <div className="till-actions">
             <SyncLight />
@@ -72,394 +71,312 @@ export default function TillPage() {
               disabled={till.busy}
               onClick={() => void engine.syncNow()}
             >
-              <RefreshCw size={15} className={till.busy ? "till-spin" : ""} />
+              <RefreshCw size={16} className={till.busy ? "till-spin" : ""} />
               {till.busy ? "Syncing…" : "Sync now"}
             </button>
           </div>
         }
       />
 
-      {till.status.colour !== "green" && (
-        <p
-          className={till.status.colour === "red" ? "till-alert" : "warn-note"}
-          data-testid="till-status-reason"
-        >
-          {till.status.colour === "red" && <AlertTriangle size={15} />}
-          {till.status.reason}
-        </p>
-      )}
-
-      {/* The page has already narrowed both to non-null, so the recovery cards
-          take them as props rather than reaching for the context again - one
-          way in, and no optional chaining over a value that cannot be null. */}
-      {till.storageLost && <RecoverCounter engine={engine} busy={till.busy} />}
-
-      {till.legacyStorageQuarantined && (
-        <section className="card" role="status">
-          <h3>Earlier counter data needs review</h3>
-          <p>
-            This browser contains an earlier store-label cache. Its bills and stock are preserved
-            and have not been uploaded or copied into this counter. Ask Owner or Admin to reconcile
-            it against the original tenant and device before recovering any bills.
-          </p>
-        </section>
-      )}
-
-      <Registration engine={engine} till={till} />
-
-      <Handover engine={engine} till={till} />
-
-      <PauseForTransfer engine={engine} till={till} />
-
-      {till.onlineAlpha && (
-        <section className="card">
-          <h3>{till.devicePaired ? "Counter pairing" : "Pair this browser"}</h3>
-          <p>Enter the one-time counter pairing code supplied by Owner or Admin.</p>
-          <label>
-            Pairing code{" "}
-            <input
-              type="password"
-              value={pairingCode}
-              onChange={(event) => setPairingCode(event.target.value)}
-              autoComplete="off"
-            />
-          </label>
-          <button
-            className="btn btn-primary"
-            onClick={() =>
-              void engine
-                .pairDevice(pairingCode)
-                .then(() => {
-                  setPairingCode("");
-                  setPairingMessage("This browser is paired.");
-                })
-                .catch((error) => setPairingMessage(String(error.message)))
-            }
-          >
-            Pair counter
-          </button>
-          <p role="status">{pairingMessage}</p>
-        </section>
-      )}
-      {till.halt && (
-        <div className="card till-halt" data-testid="till-halt">
-          <h2 className="h3">Bill {till.halt.doc_number} was not accepted</h2>
-          <p className="till-halt-why">{till.halt.message}</p>
-          <p className="muted-cell">
-            Nothing has been lost - the bill is still here, and every bill behind it is waiting on
-            this one. Selling continues on the next number. Refused at{" "}
-            {formatDateTime(till.halt.at)} · {till.halt.code}
-          </p>
-          <button
-            type="button"
-            className="btn"
-            data-testid="till-halt-retry"
-            onClick={() => void engine.retryHalted()}
-          >
-            Try this bill again
-          </button>
+      <div className="till-layout">
+        <div className="till-main">
+          <StatusBand engine={engine} till={till} />
+          {till.handover && <PaperReentry engine={engine} till={till} handover={till.handover} />}
+          {till.queue.length > 0 && <QueueTable till={till} />}
+          <CounterTasks engine={engine} till={till} />
+          <PersonalSettings engine={engine} muted={till.muted} />
+          <TestBill />
         </div>
-      )}
-
-      <div className="till-grid">
-        <section className="card till-card">
-          <h2 className="h3">This counter</h2>
-          <Row label="Store" value={till.storeCode} />
-          <Row label="Next bill number" value={till.nextNumber} testId="till-next-number" />
-          <Row
-            label="Price list last synced"
-            value={till.syncedAt ? formatDateTime(till.syncedAt) : "Never"}
-          />
-          <Row label="Connection" value={till.online ? "Online" : "Offline"} />
-        </section>
-
-        <section className="card till-card">
-          <h2 className="h3">Head office has</h2>
-          {till.register ? (
-            <>
-              <Row label="Financial year" value={till.register.fy} />
-              <Row
-                label="Last bill accepted"
-                value={String(till.register.last_accepted_seq)}
-                testId="till-register-last"
-              />
-              <Row
-                label="Bill series open"
-                value={till.register.series_open ? "Yes" : "No - bills will not sync"}
-              />
-              <Row
-                label="Numbers never received"
-                value={
-                  till.register.hole_count
-                    ? `${till.register.hole_count} (${till.register.holes.slice(0, 8).join(", ")}${
-                        till.register.hole_count > 8 ? "…" : ""
-                      })`
-                    : "None"
-                }
-              />
-            </>
-          ) : (
-            <p className="muted-cell">Not asked yet - sync to find out.</p>
-          )}
-        </section>
-
-        <section className="card till-card">
-          <h2 className="h3">Held locally</h2>
-          <Row label="Pieces (barcode × season)" value={String(till.counts.items)} />
-          <Row label="Stock rows" value={String(till.counts.stock)} />
-          <Row label="Offers" value={String(till.counts.offers)} />
-          <Row label="Salespeople" value={String(till.counts.salespeople)} />
-          <Row label="Managers who can authorise" value={String(till.counts.managers)} />
-          <Row label="Tax slabs" value={String(till.counts.gstSlabs)} />
-          <Row
-            label="Tax settings"
-            value={taxSettingsNote(till.taxSettings)}
-            testId="till-tax-settings"
-          />
-          <Row
-            label="Invoice numbers"
-            value={numberingNote(till.numbering)}
-            testId="till-invoice-numbers"
-          />
-          <Row
-            label="Offline refusals"
-            value={till.onlineOnlyRefusals ? "On: offline, no B2B bill and no credit note" : "Off"}
-            testId="till-online-only"
-          />
-          <Row
-            label="Manager PIN"
-            value={
-              till.managerPinRules ? "On: another manager's own PIN, never the cashier's" : "Off"
-            }
-            testId="till-manager-pin"
-          />
-          <Row label="Customers known" value={String(till.counts.customers)} />
-        </section>
+        <FactsRail till={till} />
       </div>
-
-      <h2 className="h3 till-queue-heading">
-        Waiting to sync <span className="chip">{till.pending}</span>
-      </h2>
-      {till.queue.length === 0 ? (
-        <p className="muted-cell" data-testid="till-queue-empty">
-          Nothing waiting. Every bill this counter has printed is with head office.
-        </p>
-      ) : (
-        <div className="table-wrap">
-          <table className="data" data-testid="till-queue">
-            <thead>
-              <tr>
-                <th>Bill</th>
-                <th>Billed at</th>
-                <th>Lines</th>
-                <th className="num">Net</th>
-                <th className="num">Tries</th>
-                <th>Last answer</th>
-              </tr>
-            </thead>
-            <tbody>
-              {till.queue.map((bill) => (
-                <tr key={bill.idempotency_uuid}>
-                  <td>{bill.doc_number}</td>
-                  <td>{formatDateTime(bill.billed_at)}</td>
-                  <td>{bill.lines.length}</td>
-                  <td className="num">
-                    <Money paise={bill.totals.net_paise} />
-                  </td>
-                  <td className="num">{bill.attempts}</td>
-                  <td className="muted-cell">{bill.last_error || "not tried yet"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      <ScanSounds engine={engine} muted={till.muted} />
-      <CounterPin />
-      <TestBill />
     </div>
   );
 }
 
-/**
- * Which device this store's counter is, and how long it may keep billing (OPS-09).
- *
- * The one card on this page that answers a question the counter cannot answer for
- * itself: *may I bill right now, with no network?* Three states, and all three
- * are shown rather than inferred, because a counter that is about to stop taking
- * bills is a thing a store person has to be able to see coming.
- *
- *   · **Not registered.** This store has no counter, or has one somewhere else. A
- *     manager registers the device; a second machine registering beside the first
- *     is refused, and the card says what that means in words rather than showing
- *     a code.
- *   · **Registered, window open.** The series this device owns, and roughly how
- *     long it has left. Renew is offered at any time and costs nothing - it needs
- *     a line, which is exactly the evidence the window stands on.
- *   · **Registered, window closed.** The counter will not start a new bill.
- *     Nothing recorded is lost, the queue still drains, and the card says so -
- *     the failure mode to avoid is a store person deciding the day's takings have
- *     gone and doing something drastic about it.
- */
-function Registration({ engine, till }: { engine: TillEngine; till: TillSnapshot }) {
-  const { user } = useAuth();
+// -- small shared pieces -------------------------------------------------------
+
+/** A button's outcome: the refusal in words, or what changed. One per action, so
+ *  two cards never share a sentence. */
+function useOutcome() {
   const [failed, setFailed] = useState("");
   const [said, setSaid] = useState("");
-  const [replacing, setReplacing] = useState(false);
-  const [reason, setReason] = useState("");
-  const mayRegister = userCan(user, "sell", "approve");
-  const identity = till.device?.identity ?? null;
-  const registered = Boolean(identity?.registered);
-
-  async function renew() {
+  async function run(work: () => Promise<unknown>, done = ""): Promise<boolean> {
     setFailed("");
     setSaid("");
     try {
-      await engine.renew();
-      setSaid("Billing window renewed for another 24 hours.");
+      await work();
+      setSaid(done);
+      return true;
     } catch (error) {
       setFailed(messageOf(error));
+      return false;
     }
   }
+  return { failed, said, run, setSaid };
+}
 
-  async function register(replace: boolean) {
-    setFailed("");
-    setSaid("");
-    try {
-      await engine.registerTill({ replace, reason: reason.trim() });
-      setReplacing(false);
-      setReason("");
-      setSaid("This device is now the store's counter.");
-    } catch (error) {
-      setFailed(messageOf(error));
-    }
-  }
-
+function Outcome({ failed, said, id }: { failed: string; said: string; id: string }) {
   return (
-    <section className="card till-card" data-testid="till-registration">
-      <h2 className="h3">This device as the counter</h2>
-      <Row
-        label="Registered"
-        value={registered ? `Yes · counter ${identity?.counter_id}` : "No"}
-        testId="till-registered"
-      />
-      {registered && (
-        <>
-          <Row
-            label="Bill series"
-            value={identity?.series_prefix ?? ""}
-            testId="till-series-prefix"
-          />
-          <Row
-            label="Billing window"
-            value={
-              till.authority.until
-                ? `${describeAuthority(till.authority)} (until ${formatDateTime(
-                    till.authority.until,
-                  )})`
-                : describeAuthority(till.authority)
-            }
-            testId="till-authority"
-          />
-          <Row
-            label="Stock version held"
-            value={
-              identity?.working_set_version === null || identity?.working_set_version === undefined
-                ? "—"
-                : String(identity.working_set_version)
-            }
-            testId="till-working-set"
-          />
-        </>
-      )}
-      {!registered && (
-        <p className="muted-cell" data-testid="till-not-registered">
-          This machine is not the store&rsquo;s registered counter. Until it is, it numbers bills
-          the way this store always has and has no 24-hour offline window of its own.
-        </p>
-      )}
-      {till.authority.expired && (
-        <p className="till-alert" data-testid="till-authority-expired">
-          <AlertTriangle size={15} />
-          {AUTHORITY_EXPIRED}. Every bill already taken is safe and still queued; this counter
-          cannot start a new one until it renews.
-        </p>
-      )}
+    <>
       {failed && (
-        <p className="till-alert" data-testid="till-registration-failed">
-          <AlertTriangle size={15} />
+        <Note tone="error" testId={`${id}-failed`}>
           {failed}
-        </p>
+        </Note>
       )}
       {said && (
-        <p className="ok-note" data-testid="till-registration-said">
-          <Check size={15} />
+        <Note tone="success" role="status" testId={`${id}-said`}>
           {said}
-        </p>
+        </Note>
       )}
-      <div className="till-actions">
-        {registered && (
-          <button
-            type="button"
-            className="btn"
-            data-testid="till-renew"
-            disabled={till.busy || !till.online}
-            onClick={() => void renew()}
-          >
-            <RefreshCw size={15} className={till.busy ? "till-spin" : ""} />
-            {till.busy ? "Renewing…" : "Renew"}
-          </button>
+    </>
+  );
+}
+
+function messageOf(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+// -- the status band -----------------------------------------------------------
+
+type Tone = "green" | "amber" | "red";
+
+/**
+ * The one place the page says how the counter is.
+ *
+ * The ledger is the signature: the next bill number, large, and the short track
+ * behind it - how far head office has accepted, and what is still waiting here.
+ * That gap is what store people ring about, so it is drawn rather than left for
+ * somebody to subtract.
+ *
+ * Problems are rows inside the band, worst first, each with the one button that
+ * fixes it. Only the first fix is the page's red action: a healthy counter has
+ * no red button at all.
+ */
+function StatusBand({ engine, till }: { engine: TillEngine; till: TillSnapshot }) {
+  const { user } = useAuth();
+  const mayRegister = userCan(user, "sell", "approve");
+  const registered = Boolean(till.device?.identity?.registered);
+
+  const problems: { key: string; tone: Tone; node: (cta: boolean) => ReactNode }[] = [];
+  if (till.storageLost) {
+    problems.push({
+      key: "lost",
+      tone: "red",
+      node: (cta) => <RecoverRow engine={engine} busy={till.busy} cta={cta} />,
+    });
+  }
+  if (till.authority.expired) {
+    problems.push({
+      key: "expired",
+      tone: "red",
+      node: (cta) => <ExpiredRow engine={engine} till={till} cta={cta} />,
+    });
+  }
+  if (till.halt) {
+    const halt = till.halt;
+    problems.push({
+      key: "halt",
+      tone: "red",
+      node: (cta) => (
+        <ProblemRow
+          testId="till-halt"
+          title={`Bill ${halt.doc_number} was not accepted`}
+          action={
+            <button
+              type="button"
+              className={cta ? "btn btn-primary" : "btn"}
+              data-testid="till-halt-retry"
+              onClick={() => void engine.retryHalted()}
+            >
+              Try this bill again
+            </button>
+          }
+        >
+          <p className="till-halt-why">{halt.message}</p>
+          <p className="till-problem-text">
+            The bill is kept. Later bills wait behind it; new bills carry on. Refused at{" "}
+            {formatDateTime(halt.at)} ({halt.code}).
+          </p>
+        </ProblemRow>
+      ),
+    });
+  }
+  if (till.pause) {
+    problems.push({
+      key: "pause",
+      tone: "amber",
+      node: (cta) => <PausedRow engine={engine} till={till} cta={cta} />,
+    });
+  }
+  if (!registered) {
+    problems.push({
+      key: "unregistered",
+      tone: "amber",
+      node: (cta) => <UnregisteredRow engine={engine} till={till} cta={cta} may={mayRegister} />,
+    });
+  }
+  if (till.legacyStorageQuarantined) {
+    problems.push({
+      key: "legacy",
+      tone: "amber",
+      node: () => (
+        <ProblemRow title="Earlier counter data needs review" role="status">
+          <p className="till-problem-text">
+            This browser holds bills and stock from an earlier store cache. They are kept and not
+            uploaded. Ask Owner or Admin to reconcile them before recovering any bills.
+          </p>
+        </ProblemRow>
+      ),
+    });
+  }
+
+  const tone: Tone = problems.some((p) => p.tone === "red")
+    ? "red"
+    : till.status.colour === "red"
+      ? "red"
+      : problems.length || till.status.colour === "amber"
+        ? "amber"
+        : "green";
+
+  // The offline window is shown whenever there is one to renew, problems or not:
+  // a counter paused for a transfer still needs its window kept open.
+  const showWindow = registered && !till.authority.expired;
+
+  return (
+    <section className={`till-band till-band-${tone}`} data-testid="till-band" data-tone={tone}>
+      <Ledger till={till} />
+      <div className="till-band-rest">
+        {problems.length > 0 && (
+          <div className="till-problems">
+            {problems.map((p, i) => (
+              <div key={p.key} className={`till-problem till-problem-${p.tone}`}>
+                {p.node(i === 0)}
+              </div>
+            ))}
+          </div>
         )}
-        {mayRegister && !registered && (
-          <button
-            type="button"
-            className="btn btn-cta"
-            data-testid="till-register"
-            disabled={till.busy || !till.online}
-            onClick={() => void register(false)}
-          >
-            Register this device
-          </button>
-        )}
-        {mayRegister && registered && !replacing && (
-          <button
-            type="button"
-            className="btn"
-            data-testid="till-replace-open"
-            onClick={() => setReplacing(true)}
-          >
-            <Replace size={15} /> Replace the counter device
-          </button>
+        {(problems.length === 0 || showWindow) && (
+          <div className="till-band-foot">
+            {problems.length === 0 && (
+              <div className="till-band-say">
+                {tone === "green" ? (
+                  <CircleCheck size={20} className="till-band-icon" aria-hidden="true" />
+                ) : (
+                  <AlertTriangle size={20} className="till-band-icon" aria-hidden="true" />
+                )}
+                <div>
+                  <p className="till-band-sentence" data-testid="till-status-reason">
+                    {headline(till)}
+                  </p>
+                  <p className="till-band-meta">
+                    {till.syncedAt
+                      ? `Last synced ${formatDateTime(till.syncedAt)}`
+                      : "Not synced yet"}
+                  </p>
+                </div>
+              </div>
+            )}
+            {showWindow && <BillingWindow engine={engine} till={till} />}
+          </div>
         )}
       </div>
-      {mayRegister && replacing && (
-        <div className="till-handover-ask" data-testid="till-replace-ask">
-          <p className="muted-cell">
-            The new device gets its own counter number, so no bill it prints can read the same as
-            one the old machine printed. Bills the old machine never sent stay missing until
-            somebody keys them in from their printed copies.
-          </p>
-          <label className="field">
-            <span>Why is the counter moving?</span>
-            <input
-              value={reason}
-              data-testid="till-replace-reason"
-              onChange={(event) => setReason(event.target.value)}
-            />
-          </label>
-          <button
-            type="button"
-            className="btn btn-cta"
-            data-testid="till-replace-go"
-            disabled={till.busy || !reason.trim() || !till.online}
-            onClick={() => void register(true)}
-          >
-            Replace the counter device
-          </button>
-        </div>
-      )}
     </section>
+  );
+}
+
+/** The band's sentence on a counter with nothing to fix. */
+function headline(till: TillSnapshot): string {
+  return till.status.colour === "green" ? "All bills sent." : till.status.reason;
+}
+
+/** The offline window and its renewal, beside the sentence it qualifies. */
+function BillingWindow({ engine, till }: { engine: TillEngine; till: TillSnapshot }) {
+  const renewal = useOutcome();
+  const { authority } = till;
+  return (
+    <>
+      <div className="till-window">
+        <span className="till-window-text" data-testid="till-authority">
+          {authority.until
+            ? `Offline billing open until ${shortDateTime(authority.until)}`
+            : describeAuthority(authority)}
+        </span>
+        <button
+          type="button"
+          className="btn"
+          data-testid="till-renew"
+          disabled={till.busy || !till.online}
+          onClick={() =>
+            void renewal.run(() => engine.renew(), "Billing window renewed for another 24 hours.")
+          }
+        >
+          {till.busy ? "Renewing…" : "Renew"}
+        </button>
+      </div>
+      <Outcome failed={renewal.failed} said={renewal.said} id="till-registration" />
+    </>
+  );
+}
+
+/** The next bill number, and where the bills behind it are. Drawn left to right
+ *  the way a bill travels: from this counter to head office. */
+function Ledger({ till }: { till: TillSnapshot }) {
+  const accepted = till.register?.last_accepted_seq;
+  const waiting = till.pending;
+  return (
+    <div className="till-ledger" data-testid="till-summary">
+      <div className="till-ledger-next">
+        <span className="till-ledger-label">Next bill</span>
+        <span className="till-ledger-number" data-testid="till-next-number">
+          {till.nextNumber || "—"}
+        </span>
+      </div>
+      <ol
+        className={`till-flow${waiting ? " till-flow-waiting" : ""}`}
+        aria-label="Where the bills are"
+      >
+        <li className="till-flow-stop">
+          <span className="till-flow-label">Waiting on this counter</span>
+          <span className="till-flow-value till-flow-here">{waiting}</span>
+        </li>
+        <li className="till-flow-stop till-flow-end">
+          <span className="till-flow-label">
+            {accepted === undefined ? "Head office not checked" : "Accepted by head office"}
+          </span>
+          <span className={`till-flow-value${accepted === undefined ? "" : " till-flow-accepted"}`}>
+            {accepted ?? "—"}
+          </span>
+        </li>
+      </ol>
+    </div>
+  );
+}
+
+function ProblemRow({
+  title,
+  action,
+  children,
+  testId,
+  role,
+  stage,
+}: {
+  title: string;
+  action?: ReactNode;
+  children?: ReactNode;
+  testId?: string;
+  role?: string;
+  stage?: string;
+}) {
+  return (
+    <div className="till-problem-row" data-testid={testId} role={role} data-stage={stage}>
+      <div className="till-problem-body">
+        <h2 className="till-problem-title">
+          <AlertTriangle size={15} /> {title}
+        </h2>
+        {children}
+      </div>
+      {action && <div className="till-problem-action">{action}</div>}
+    </div>
   );
 }
 
@@ -470,190 +387,202 @@ function Registration({ engine, till }: { engine: TillEngine; till: TillSnapshot
  * out of that state: until this succeeds the Billing screen will not take a
  * bill, because a counter that does not know its own number would print one that
  * is already on a posted bill.
- *
- * The card says what the counter will be on afterwards rather than merely "done",
- * which is the whole of the acceptance criterion's "no silent counter reset" -
- * the number a store's bills carry has moved, and somebody should read it.
  */
-function RecoverCounter({ engine, busy }: { engine: TillEngine; busy: boolean }) {
-  const [failed, setFailed] = useState("");
-
-  async function recover() {
-    setFailed("");
-    try {
-      await engine.recover();
-    } catch (error) {
-      setFailed(messageOf(error));
-    }
-  }
-
+function RecoverRow({ engine, busy, cta }: { engine: TillEngine; busy: boolean; cta: boolean }) {
+  const outcome = useOutcome();
   return (
-    <section className="card till-recover" data-testid="till-recover">
-      <h2 className="h3">
-        <AlertTriangle size={16} /> This counter lost its local data
-      </h2>
-      <p className="till-halt-why">
-        The browser cleared what this till had stored - the price list, and the bill number it was
-        on. Nothing that had already synced is lost, but this device does not know where the
-        store&rsquo;s bill numbers have got to, so it will not take a bill until it has asked.
-      </p>
-      <p className="muted-cell">
-        Recovering takes the whole price list again and asks head office how far this store&rsquo;s
-        bills have got. The next bill number will move; the screen will say what it moved to.
-      </p>
-      {failed && (
-        <p className="till-alert" data-testid="till-recover-failed">
-          <AlertTriangle size={15} />
-          {failed}
-        </p>
-      )}
-      <button
-        type="button"
-        className="btn btn-cta"
-        data-testid="till-recover-go"
-        disabled={busy}
-        onClick={() => void recover()}
+    <>
+      <ProblemRow
+        testId="till-recover"
+        title="This counter lost its local data"
+        action={
+          <button
+            type="button"
+            className={cta ? "btn btn-primary" : "btn"}
+            data-testid="till-recover-go"
+            disabled={busy}
+            onClick={() => void outcome.run(() => engine.recover())}
+          >
+            <HardDriveDownload size={15} />
+            {busy ? "Recovering…" : "Recover this counter"}
+          </button>
+        }
       >
-        <HardDriveDownload size={15} />
-        {busy ? "Recovering…" : "Recover this counter"}
-      </button>
-    </section>
+        <p className="till-problem-text">
+          Synced bills are safe. Recover to fetch the price list and the latest bill number before
+          billing.
+        </p>
+      </ProblemRow>
+      <Outcome failed={outcome.failed} said="" id="till-recover" />
+    </>
+  );
+}
+
+/** The window closed: nothing recorded is lost, and the queue still drains. */
+function ExpiredRow({
+  engine,
+  till,
+  cta,
+}: {
+  engine: TillEngine;
+  till: TillSnapshot;
+  cta: boolean;
+}) {
+  const outcome = useOutcome();
+  return (
+    <>
+      <ProblemRow
+        testId="till-authority-expired"
+        title={AUTHORITY_EXPIRED}
+        action={
+          <button
+            type="button"
+            className={cta ? "btn btn-primary" : "btn"}
+            data-testid="till-renew"
+            disabled={till.busy || !till.online}
+            onClick={() =>
+              void outcome.run(() => engine.renew(), "Billing window renewed for another 24 hours.")
+            }
+          >
+            <RefreshCw size={15} className={till.busy ? "till-spin" : ""} />
+            {till.busy ? "Renewing…" : "Renew"}
+          </button>
+        }
+      >
+        <p className="till-problem-text">Saved bills are safe. Renew to bill again.</p>
+      </ProblemRow>
+      <Outcome failed={outcome.failed} said={outcome.said} id="till-registration" />
+    </>
   );
 }
 
 /**
- * The register handover, and the paper re-entry it leaves behind (#189, grill Q1).
+ * Billing paused for a transfer or a reviewed count (change PRD §10.2).
  *
- * Two things in one card because they are one job with a gap in the middle: a
- * manager moves the store's counter onto this machine, and then somebody works
- * through the receipts the old machine printed and never sent.
- *
- * The list survives a reload and the ticks survive the queue draining, because
- * the work does: a drawer of forty receipts is an afternoon, and a list that
- * reset when a bill synced would have somebody keying the same one twice.
- *
- * The move itself is offered only to a manager - the same rung the server gates
- * it at - and the list is shown to whoever is standing here, because keying a
- * receipt back in is ordinary counter work.
+ * Everything shown is the engine's own state, which is what the commit itself
+ * reads: a card that asked the server instead could say "paused" about a
+ * counter that is not. There is no clock on whoever approves the transfer - the
+ * counter stays paused until somebody resumes it.
  */
-function Handover({ engine, till }: { engine: TillEngine; till: TillSnapshot }) {
-  const { user } = useAuth();
-  const [reason, setReason] = useState("");
-  const [failed, setFailed] = useState("");
-  const [said, setSaid] = useState("");
-  const [asking, setAsking] = useState(false);
+function PausedRow({
+  engine,
+  till,
+  cta,
+}: {
+  engine: TillEngine;
+  till: TillSnapshot;
+  cta: boolean;
+}) {
+  const outcome = useOutcome();
+  const pause = till.pause;
+  if (!pause) return null;
   const busy = till.busy;
-  const mayHandOver = userCan(user, "sell", "approve");
-  const handover = till.handover;
-
-  if (!mayHandOver && !handover) return null;
-
-  async function move() {
-    setFailed("");
-    setSaid("");
-    try {
-      await engine.handOver(reason.trim());
-      setReason("");
-      setAsking(false);
-      // The counter's own number, not the one the server suggested. They are the
-      // same in every ordinary case - and where they are not, it is because the
-      // two clocks disagree about the financial year and the till has declined
-      // to move (see `reconcileRegister`). Reporting the server's figure there
-      // would tell somebody the counter had gone somewhere it had not.
-      setSaid(
-        "This machine is now the counter for this store. The next bill is " +
-          `${engine.getSnapshot().nextNumber}.`,
-      );
-    } catch (error) {
-      setFailed(messageOf(error));
-    }
-  }
-
   return (
-    <section className="card till-handover" data-testid="till-handover">
-      <h2 className="h3">Register handover</h2>
-
-      {mayHandOver && !asking && (
-        <>
-          <p className="muted-cell">
-            Use this when the counter machine has been replaced or will not come back. This device
-            takes over the store&rsquo;s bill numbers, and whatever the old machine printed but
-            never sent is listed here to be keyed back in from the printed copies.
-          </p>
-          <button
-            type="button"
-            className="btn"
-            data-testid="till-handover-open"
-            onClick={() => {
-              setAsking(true);
-              setSaid("");
-            }}
-          >
-            <Replace size={15} />
-            Move the counter to this machine
-          </button>
-        </>
-      )}
-
-      {mayHandOver && asking && (
-        <>
-          <p className="muted-cell">
-            Say what happened. It is recorded against your name, and it is what explains the gap in
-            this store&rsquo;s bill numbers to whoever asks later.
-          </p>
-          <div className="field">
-            <label htmlFor="till-handover-reason">Why is the counter moving?</label>
-            <input
-              id="till-handover-reason"
-              className="input"
-              data-testid="till-handover-reason"
-              autoComplete="off"
-              disabled={busy}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-            />
-          </div>
-          <div className="till-handover-actions">
+    <>
+      <ProblemRow
+        testId="till-pause-state"
+        stage={pause.stage}
+        title={
+          pause.stage === "pausing"
+            ? "Billing paused. Waiting for head office to release the stock."
+            : pause.stage === "resuming"
+              ? "Billing paused until a fresh stock copy arrives."
+              : "Billing paused. Stock released for the transfer or count."
+        }
+        action={
+          <div className="till-actions">
+            {pause.stage === "pausing" && (
+              <button
+                type="button"
+                className="btn"
+                data-testid="till-pause-retry"
+                disabled={busy}
+                onClick={() =>
+                  void outcome.run(
+                    () => engine.pauseForTransfer(pause.reason),
+                    "Stock released. Continue the transfer or count.",
+                  )
+                }
+              >
+                Ask head office again
+              </button>
+            )}
             <button
               type="button"
-              className="btn btn-cta"
-              data-testid="till-handover-go"
-              disabled={busy || !reason.trim()}
-              onClick={() => void move()}
-            >
-              {busy ? "Moving…" : "Move the counter here"}
-            </button>
-            <button
-              type="button"
-              className="btn"
+              className={cta ? "btn btn-primary" : "btn"}
+              data-testid="till-pause-resume"
               disabled={busy}
-              onClick={() => {
-                setAsking(false);
-                setFailed("");
-              }}
+              onClick={() =>
+                void outcome.run(() => engine.resume(), "Billing resumed with fresh stock.")
+              }
             >
-              Cancel
+              {busy ? "Working…" : "Resume billing"}
             </button>
           </div>
-        </>
-      )}
-
-      {failed && (
-        <p className="till-alert" data-testid="till-handover-failed">
-          <AlertTriangle size={15} />
-          {failed}
+        }
+      >
+        <p className="till-problem-text" data-testid="till-pause-warning">
+          Reason: {pause.reason}. Resume when the transfer or count is done.
         </p>
-      )}
-      {said && (
-        <p className="ok-note" data-testid="till-handover-said">
-          {said}
-        </p>
-      )}
-
-      {handover && <PaperReentry engine={engine} till={till} handover={handover} />}
-    </section>
+      </ProblemRow>
+      <Outcome failed={outcome.failed} said={outcome.said} id="till-pause" />
+    </>
   );
 }
+
+/**
+ * Not this store's counter (OPS-09). A manager registers the device; a second
+ * machine registering beside the first is refused, and the refusal comes back
+ * in words.
+ */
+function UnregisteredRow({
+  engine,
+  till,
+  cta,
+  may,
+}: {
+  engine: TillEngine;
+  till: TillSnapshot;
+  cta: boolean;
+  may: boolean;
+}) {
+  const outcome = useOutcome();
+  return (
+    <>
+      <ProblemRow
+        testId="till-not-registered"
+        title="Not this store's counter"
+        action={
+          may && (
+            <button
+              type="button"
+              className={cta ? "btn btn-primary" : "btn"}
+              data-testid="till-register"
+              disabled={till.busy || !till.online}
+              onClick={() =>
+                void outcome.run(
+                  () => engine.registerTill({ replace: false, reason: "" }),
+                  "This device is now the store's counter.",
+                )
+              }
+            >
+              Register this device
+            </button>
+          )
+        }
+      >
+        <p className="till-problem-text">
+          {may
+            ? "No 24-hour offline window until this device is registered."
+            : "No 24-hour offline window. Ask a manager to register this device."}
+        </p>
+      </ProblemRow>
+      <Outcome failed={outcome.failed} said={outcome.said} id="till-registration" />
+    </>
+  );
+}
+
+// -- work lists ----------------------------------------------------------------
 
 /**
  * The drawer of printed bills the old machine never sent.
@@ -694,24 +623,24 @@ function PaperReentry({
   const stillHidden = Math.max(0, (till.register?.hole_count ?? 0) - outstanding.length);
 
   return (
-    <div className="till-reentry" data-testid="till-reentry">
-      <h3 className="h3">Bills to key in from the printed copies</h3>
-      <p className="muted-cell">
-        Handed over {formatDateTime(handover.at)}. These numbers were printed on the old machine and
-        never reached head office. Find each printed copy and enter it again under the same number -
-        the customer keeps the one they have.
-        {stillHidden > 0 && (
-          <>
-            {" "}
-            {stillHidden} more are missing than can be listed at once; they appear here as these are
-            entered and sync.
-          </>
-        )}
+    <Section
+      heading="Bills to key in from the printed copies"
+      aside={
+        <span className="till-progress">
+          {ticked.length} of {listed.length} keyed in
+        </span>
+      }
+      className="till-reentry"
+      testId="till-reentry"
+    >
+      <p className="till-text">
+        Handed over {formatDateTime(handover.at)}. Key in each printed bill under its own number.
+        {stillHidden > 0 && <> {stillHidden} more appear as these sync.</>}
       </p>
 
       {listed.length === 0 ? (
-        <p className="muted-cell" data-testid="till-reentry-none">
-          Nothing left to enter - head office has every bill this list named.
+        <p className="till-text" data-testid="till-reentry-none">
+          Nothing left to enter.
         </p>
       ) : (
         <ul className="till-reentry-list">
@@ -719,9 +648,9 @@ function PaperReentry({
             <li key={seq} className={done.has(seq) ? "till-reentry-done" : ""}>
               <span className="till-reentry-no">Bill {seq}</span>
               {done.has(seq) ? (
-                <span className="ok-note" data-testid={`till-reentry-done-${seq}`}>
-                  <Check size={14} /> keyed in
-                </span>
+                <Status tone="green" testId={`till-reentry-done-${seq}`}>
+                  Keyed in
+                </Status>
               ) : (
                 <Link className="btn" data-testid={`till-reentry-${seq}`} to={`/sell?paper=${seq}`}>
                   Enter this bill
@@ -746,7 +675,112 @@ function PaperReentry({
       >
         {outstanding.length > 0 ? `${outstanding.length} still to enter` : "Put this list away"}
       </button>
-    </div>
+    </Section>
+  );
+}
+
+/** Shown only while something is waiting: an empty queue is already the 0 in
+ *  the band, and a heading over nothing is noise. A refused bill leads. */
+function QueueTable({ till }: { till: TillSnapshot }) {
+  const halted = till.halt?.doc_number;
+  const rows = [...till.queue].sort(
+    (a, b) => Number(b.doc_number === halted) - Number(a.doc_number === halted),
+  );
+  return (
+    <Section
+      heading={
+        <>
+          Waiting to sync <span className="till-count">{till.pending}</span>
+        </>
+      }
+      ruled
+    >
+      <div className="table-wrap">
+        <table className="data" data-testid="till-queue">
+          <thead>
+            <tr>
+              <th>Bill</th>
+              <th>Billed at</th>
+              <th className="num">Net ₹</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((bill) => {
+              const refused = bill.doc_number === halted;
+              return (
+                <tr key={bill.idempotency_uuid} className={refused ? "till-queue-refused" : ""}>
+                  <td>{bill.doc_number}</td>
+                  <td>{formatDateTime(bill.billed_at)}</td>
+                  <td className="num">
+                    <Money paise={bill.totals.net_paise} />
+                  </td>
+                  <td className={refused ? "" : "muted-cell"}>{queueStatus(bill, refused)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </Section>
+  );
+}
+
+function queueStatus(bill: TillSnapshot["queue"][number], refused: boolean): string {
+  if (refused) return "Not accepted";
+  if (!bill.attempts) return "Not tried yet";
+  const tries = `Tried ${bill.attempts} ${bill.attempts === 1 ? "time" : "times"}`;
+  return bill.last_error ? `${tries}: ${bill.last_error}` : tries;
+}
+
+// -- counter tasks -------------------------------------------------------------
+
+/** The jobs somebody opens on purpose. Each is one line until its button is
+ *  pressed, and then asks for its reason in place. */
+function CounterTasks({ engine, till }: { engine: TillEngine; till: TillSnapshot }) {
+  const { user } = useAuth();
+  const mayMove = userCan(user, "sell", "approve") && Boolean(till.device?.identity?.registered);
+  const showPause = !till.pause;
+  if (!showPause && !mayMove && !till.onlineAlpha) return null;
+  return (
+    <Section heading="Counter tasks" ruled>
+      <Settings>
+        {showPause && <PauseTask engine={engine} till={till} />}
+        {mayMove && <MoveTask engine={engine} till={till} />}
+        {till.onlineAlpha && <PairTask engine={engine} paired={till.devicePaired} />}
+      </Settings>
+    </Section>
+  );
+}
+
+function TaskRow({
+  title,
+  text,
+  open,
+  button,
+  children,
+  after,
+  testId,
+}: {
+  title: string;
+  text: ReactNode;
+  open: boolean;
+  button?: ReactNode;
+  /** The form, shown while the task is open. */
+  children?: ReactNode;
+  /** The outcome, shown whether or not the form is open. */
+  after?: ReactNode;
+  testId?: string;
+}) {
+  return (
+    <SettingRow
+      title={title}
+      description={text}
+      control={button}
+      more={open ? <div className="till-task-form">{children}</div> : undefined}
+      after={after}
+      testId={testId}
+    />
   );
 }
 
@@ -757,140 +791,278 @@ function PaperReentry({
  * transfer out of the store can be approved. Anand, 25 September 2026 (change
  * PRD §10.2): the store's own person pauses billing here and lets the stock go
  * in one step, and nothing is billed until they resume and the counter has
- * taken a fresh copy of the shelf. There is no clock on whoever approves the
- * transfer - the counter stays paused until somebody resumes it.
- *
- * Everything shown is the engine's own state, which is what the commit itself
- * reads: a card that asked the server instead could say "paused" about a
- * counter that is not.
+ * taken a fresh copy of the shelf. Once paused, the band carries it.
  */
-function PauseForTransfer({ engine, till }: { engine: TillEngine; till: TillSnapshot }) {
+function PauseTask({ engine, till }: { engine: TillEngine; till: TillSnapshot }) {
+  const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
-  const [failed, setFailed] = useState("");
-  const [said, setSaid] = useState("");
-  const { pause, allocationVersion, busy } = till;
+  const outcome = useOutcome();
+  const busy = till.busy;
 
-  async function run(work: () => Promise<void>, done: string) {
-    setFailed("");
-    setSaid("");
-    try {
-      await work();
-      setReason("");
-      setSaid(done);
-    } catch (error) {
-      setFailed(messageOf(error));
-    }
+  if (till.allocationVersion === null) {
+    return (
+      <TaskRow
+        title="Pause for a transfer or count"
+        open={false}
+        text={
+          <span data-testid="till-pause-none">
+            This counter holds no stock. A stock count still needs a pause with every bill synced.
+          </span>
+        }
+      />
+    );
   }
 
   return (
-    <section className="card till-card" data-testid="till-pause">
-      <h2 className="h3">Pause for a transfer or reviewed stock count</h2>
-      {pause && (
-        <>
-          <p className="till-alert" data-testid="till-pause-state" data-stage={pause.stage}>
-            <AlertTriangle size={15} />
-            {pause.stage === "pausing"
-              ? "Billing is paused, but head office has not confirmed the release yet."
-              : pause.stage === "resuming"
-                ? "Billing stays paused until a fresh stock copy has arrived."
-                : "Billing is paused and the stock is released. A transfer or reviewed stock count can proceed once its other checks pass."}
-          </p>
-          <p className="muted-cell">Reason: {pause.reason}</p>
-          <p className="muted-cell" data-testid="till-pause-warning">
-            Resume once the transfer or stock count is complete, or you no longer need it. A stock
-            count freezes billing until it is approved or cancelled. Resuming before a transfer or
-            count starts requires a new pause before it can proceed.
-          </p>
-          <div className="till-actions">
-            {pause.stage === "pausing" && (
-              <button
-                type="button"
-                className="btn btn-secondary"
-                data-testid="till-pause-retry"
-                disabled={busy}
-                onClick={() =>
-                  void run(
-                    () => engine.pauseForTransfer(pause.reason),
-                    "Released. Continue the transfer or reviewed stock count after its other checks pass.",
-                  )
+    <TaskRow
+      testId="till-pause"
+      title="Pause for a transfer or count"
+      open={open}
+      after={<Outcome failed={outcome.failed} said={outcome.said} id="till-pause" />}
+      text={
+        <span data-testid="till-pause-held">
+          All bills must be synced first. Billing stays off until you resume it.
+        </span>
+      }
+      button={
+        <button
+          type="button"
+          className="btn"
+          data-testid="till-pause-open"
+          onClick={() => {
+            setOpen(true);
+            outcome.setSaid("");
+          }}
+        >
+          Pause billing
+        </button>
+      }
+    >
+      <div className="till-inline-form">
+        <div className="field">
+          <label htmlFor="till-pause-reason">Reason</label>
+          <input
+            id="till-pause-reason"
+            className="input"
+            data-testid="till-pause-reason"
+            autoComplete="off"
+            disabled={busy}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
+        </div>
+        <button
+          type="button"
+          className="btn btn-primary"
+          data-testid="till-pause-go"
+          disabled={busy || !reason.trim()}
+          onClick={() =>
+            void outcome
+              .run(() => engine.pauseForTransfer(reason), "Paused. Continue the transfer or count.")
+              .then((ok) => {
+                if (ok) {
+                  setReason("");
+                  setOpen(false);
                 }
-              >
-                Ask head office again
-              </button>
-            )}
-            <button
-              type="button"
-              className="btn btn-cta"
-              data-testid="till-pause-resume"
-              disabled={busy}
-              onClick={() =>
-                void run(() => engine.resume(), "Billing is back on, with a fresh stock copy.")
-              }
-            >
-              {busy ? "Working…" : "Resume billing"}
-            </button>
-          </div>
-        </>
-      )}
-      {!pause && allocationVersion === null && (
-        <p className="muted-cell" data-testid="till-pause-none">
-          This counter is holding no stock. A reviewed stock count still requires a recorded pause
-          and a fully reconciled bill frontier.
-        </p>
-      )}
-      {!pause && allocationVersion !== null && (
-        <>
-          <p className="muted-cell" data-testid="till-pause-held">
-            This counter holds the store&rsquo;s stock (working set {allocationVersion}). Before a
-            transfer or reviewed stock count, pause billing. Every bill must have synced first.
-            Billing stays paused, even if the line drops or the browser restarts, until you resume
-            it here.
-          </p>
-          <div className="field">
-            <label htmlFor="till-pause-reason">Why is billing being paused?</label>
-            <input
-              id="till-pause-reason"
-              className="input"
-              data-testid="till-pause-reason"
-              autoComplete="off"
-              disabled={busy}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-            />
-          </div>
-          <button
-            type="button"
-            className="btn btn-cta"
-            data-testid="till-pause-go"
-            disabled={busy || !reason.trim()}
-            onClick={() =>
-              void run(
-                () => engine.pauseForTransfer(reason),
-                "Paused and released. Continue the transfer or reviewed stock count after its other checks pass.",
-              )
-            }
-          >
-            {busy ? "Working…" : "Pause billing and release the stock"}
-          </button>
-        </>
-      )}
-      {failed && (
-        <p className="till-alert" data-testid="till-pause-failed">
-          <AlertTriangle size={15} />
-          {failed}
-        </p>
-      )}
-      {said && (
-        <p className="ok-note" data-testid="till-pause-said">
-          {said}
-        </p>
-      )}
-    </section>
+              })
+          }
+        >
+          {busy ? "Working…" : "Pause billing"}
+        </button>
+        <button type="button" className="btn" disabled={busy} onClick={() => setOpen(false)}>
+          Cancel
+        </button>
+      </div>
+    </TaskRow>
   );
 }
 
-function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+/**
+ * The counter moves onto this machine (#189, OPS-09).
+ *
+ * One action with one reason: registering this device as the replacement is what
+ * retires the old one and writes the store's handover row on the server, so the
+ * page never asks for a second handover on top - that would record one move
+ * twice. The engine then builds the key-in list from the register it re-reads.
+ *
+ * Offered only to a manager - the same rung the server gates it at.
+ */
+function MoveTask({ engine, till }: { engine: TillEngine; till: TillSnapshot }) {
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const outcome = useOutcome();
+  const busy = till.busy;
+
+  async function move() {
+    const ok = await outcome.run(() =>
+      engine.registerTill({ replace: true, reason: reason.trim() }),
+    );
+    if (!ok) return;
+    // The counter's own number, not one the server suggested: where the two
+    // clocks disagree about the financial year the till declines to move (see
+    // `reconcileRegister`), and reporting the server's figure would say the
+    // counter had gone somewhere it had not.
+    const after = engine.getSnapshot();
+    const toKey = after.handover?.hole_count ?? 0;
+    outcome.setSaid(
+      `This machine is now the counter. Next bill is ${after.nextNumber}.` +
+        (toKey ? ` ${toKey} ${toKey === 1 ? "bill" : "bills"} to key in.` : ""),
+    );
+    setReason("");
+    setOpen(false);
+  }
+
+  return (
+    <TaskRow
+      testId="till-handover"
+      title="Move the counter to this machine"
+      open={open}
+      after={<Outcome failed={outcome.failed} said={outcome.said} id="till-move" />}
+      text="Use when the counter machine is replaced or broken. Bills it never sent are listed to key in."
+      button={
+        <button
+          type="button"
+          className="btn"
+          data-testid="till-move-open"
+          onClick={() => {
+            setOpen(true);
+            outcome.setSaid("");
+          }}
+        >
+          Move the counter
+        </button>
+      }
+    >
+      <div className="till-inline-form">
+        <div className="field">
+          <label htmlFor="till-move-reason">Reason (recorded with your name)</label>
+          <input
+            id="till-move-reason"
+            className="input"
+            data-testid="till-move-reason"
+            autoComplete="off"
+            disabled={busy}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+          />
+        </div>
+        <button
+          type="button"
+          className="btn btn-primary"
+          data-testid="till-move-go"
+          disabled={busy || !reason.trim() || !till.online}
+          onClick={() => void move()}
+        >
+          {busy ? "Moving…" : "Move the counter here"}
+        </button>
+        <button type="button" className="btn" disabled={busy} onClick={() => setOpen(false)}>
+          Cancel
+        </button>
+      </div>
+    </TaskRow>
+  );
+}
+
+function PairTask({ engine, paired }: { engine: TillEngine; paired: boolean }) {
+  // An unpaired browser cannot bill, so its code box starts open.
+  const [open, setOpen] = useState(!paired);
+  const [code, setCode] = useState("");
+  const [message, setMessage] = useState("");
+  return (
+    <TaskRow
+      title={paired ? "Pair this counter again" : "Pair this browser"}
+      open={open}
+      after={message && <p role="status">{message}</p>}
+      text="Enter the one-time pairing code from Owner or Admin."
+      button={
+        <button type="button" className="btn" onClick={() => setOpen(true)}>
+          Enter code
+        </button>
+      }
+    >
+      <div className="till-inline-form">
+        <label className="field">
+          <span>Pairing code</span>
+          <input
+            className="input"
+            type="password"
+            value={code}
+            onChange={(event) => setCode(event.target.value)}
+            autoComplete="off"
+          />
+        </label>
+        <button
+          type="button"
+          className="btn btn-primary"
+          disabled={!code}
+          onClick={() =>
+            void engine
+              .pairDevice(code)
+              .then(() => {
+                setCode("");
+                setOpen(false);
+                setMessage("This browser is paired.");
+              })
+              .catch((error) => setMessage(String(error.message)))
+          }
+        >
+          Pair counter
+        </button>
+        <button type="button" className="btn" onClick={() => setOpen(false)}>
+          Cancel
+        </button>
+      </div>
+    </TaskRow>
+  );
+}
+
+// -- this counter and you ------------------------------------------------------
+
+function PersonalSettings({ engine, muted }: { engine: TillEngine; muted: boolean }) {
+  return (
+    <Section heading="This counter and you" ruled>
+      <Settings>
+        <ScanSounds engine={engine} muted={muted} />
+        <CounterPin />
+      </Settings>
+    </Section>
+  );
+}
+
+/**
+ * The counter's noise, on or off (#247, grill Q8).
+ *
+ * Per counter rather than per person, because that is what it is about: one
+ * till stands next to the music and another sits in a back office. Turning it
+ * on plays the tone it is turning on, which is the only honest way to answer
+ * "is the sound working?".
+ *
+ * A switch with its state beside it, not a button named after the opposite
+ * state: "Turn the sounds off" read as the setting and was the widest button
+ * on the page.
+ */
+function ScanSounds({ engine, muted }: { engine: TillEngine; muted: boolean }) {
+  return (
+    <SettingRow
+      title="Scan sounds"
+      titleId="till-sound-title"
+      description="A tick on a good scan, a buzz on a problem. This counter only."
+      control={
+        <Switch
+          checked={!muted}
+          ariaLabelledBy="till-sound-title"
+          testId="till-sound-toggle"
+          stateTestId="till-sound-state"
+          onChange={(on) => {
+            void engine.setMuted(!on);
+            // Turning it back on plays the tick, so the answer to "did that
+            // work?" is the sound itself rather than a sentence about it.
+            if (on) playTone("tick", false);
+          }}
+        />
+      }
+    />
+  );
 }
 
 /**
@@ -917,6 +1089,7 @@ function CounterPin() {
   // Held here rather than re-read from `/me`: the only thing it changes is a
   // sentence, and the person who just set a PIN knows they have one.
   const [hasPin, setHasPin] = useState(Boolean(user?.has_till_pin));
+  const [open, setOpen] = useState(false);
 
   if (!user?.may_set_till_pin) return null;
 
@@ -930,7 +1103,8 @@ function CounterPin() {
       setPin("");
       setPassword("");
       setHasPin(true);
-      setSaid("Your counter PIN is set. This does not grant approval authority.");
+      setOpen(false);
+      setSaid("Your counter PIN is set. Tills pick it up on their next sync.");
     } catch (error) {
       setFailed(apiErrorMessage(error));
     } finally {
@@ -939,110 +1113,230 @@ function CounterPin() {
   }
 
   return (
-    <section className="card till-card till-pin-card">
-      <h2 className="h3">Your counter PIN</h2>
-      <p className="muted-cell">
-        {hasPin
-          ? "You have one. Setting a new one replaces it everywhere on the next sync."
-          : "Set your personal counter PIN. Approval actions require their own authorised review."}
-      </p>
-
-      <div className="field">
-        <label htmlFor="till-pin-new">New PIN (4 to 6 digits)</label>
-        <input
-          id="till-pin-new"
-          className="input"
-          data-testid="till-pin-new"
-          type="password"
-          inputMode="numeric"
-          autoComplete="off"
-          disabled={saving}
-          value={pin}
-          onChange={(e) => setPin(e.target.value)}
-        />
-      </div>
-      <div className="field">
-        <label htmlFor="till-pin-password">Your password</label>
-        <input
-          id="till-pin-password"
-          className="input"
-          data-testid="till-pin-password"
-          type="password"
-          autoComplete="current-password"
-          disabled={saving}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-      </div>
-
-      {failed && (
-        <p className="till-alert" data-testid="till-pin-failed">
-          <AlertTriangle size={15} />
-          {failed}
-        </p>
-      )}
-      {said && (
-        <p className="ok-note" data-testid="till-pin-said">
-          {said}
-        </p>
-      )}
-
-      <button
-        type="button"
-        className="btn"
-        data-testid="till-pin-save"
-        disabled={saving || !pin || !password}
-        onClick={() => void save()}
-      >
-        {saving ? "Setting…" : "Set my PIN"}
-      </button>
-    </section>
-  );
-}
-
-/**
- * The counter's noise, on or off (#247, grill Q8).
- *
- * Here rather than on the Billing screen, and per counter rather than per
- * person, because that is what it is about: one till stands next to the music
- * and another sits in a back office, and neither is head office's decision or a
- * cashier's login's. It is one switch and it takes effect on the next scan.
- *
- * Pressing it plays the tone it is turning on, which is the only honest way to
- * answer "is the sound working?" - a shop with the machine's volume down would
- * otherwise turn the setting on and off all afternoon.
- */
-function ScanSounds({ engine, muted }: { engine: TillEngine; muted: boolean }) {
-  return (
-    <section className="card till-card till-sound-card">
-      <h2 className="h3">Scan sounds</h2>
-      <p className="muted-cell">
-        A short tick when a scan puts a piece on the bill, and a different, lower buzz when it does
-        not - an unknown tag, or a piece still waiting to be told which season it is. Set on this
-        counter, and it stays set.
-      </p>
-      <div className="till-sound-row">
+    <TaskRow
+      testId="till-pin"
+      title="Your counter PIN"
+      open={open}
+      after={
+        <>
+          {failed && (
+            <Note tone="error" testId="till-pin-failed">
+              {failed}
+            </Note>
+          )}
+          {said && (
+            <Note tone="success" role="status" testId="till-pin-said">
+              {said}
+            </Note>
+          )}
+        </>
+      }
+      text={
+        hasPin
+          ? "Set. Used for manager approvals at the counter."
+          : "Not set. Used for manager approvals at the counter."
+      }
+      button={
         <button
           type="button"
           className="btn"
-          data-testid="till-sound-toggle"
-          aria-pressed={!muted}
+          data-testid="till-pin-open"
           onClick={() => {
-            void engine.setMuted(!muted);
-            // Turning it back on plays the tick, so the answer to "did that
-            // work?" is the sound itself rather than a sentence about it.
-            if (muted) playTone("tick", false);
+            setOpen(true);
+            setSaid("");
           }}
         >
-          {muted ? <VolumeX size={15} /> : <Volume2 size={15} />}
-          {muted ? "Turn the sounds on" : "Turn the sounds off"}
+          {hasPin ? "Change PIN" : "Set PIN"}
         </button>
-        <span className="muted-cell" data-testid="till-sound-state">
-          {muted ? "Silent." : "This counter ticks and buzzes."}
-        </span>
+      }
+    >
+      <div className="till-inline-form">
+        <div className="field">
+          <label htmlFor="till-pin-new">New PIN (4–6 digits)</label>
+          <input
+            id="till-pin-new"
+            className="input"
+            data-testid="till-pin-new"
+            type="password"
+            inputMode="numeric"
+            autoComplete="off"
+            disabled={saving}
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+          />
+        </div>
+        <div className="field">
+          <label htmlFor="till-pin-password">Your password</label>
+          <input
+            id="till-pin-password"
+            className="input"
+            data-testid="till-pin-password"
+            type="password"
+            autoComplete="current-password"
+            disabled={saving}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </div>
+        <button
+          type="button"
+          className="btn btn-primary"
+          data-testid="till-pin-save"
+          disabled={saving || !pin || !password}
+          onClick={() => void save()}
+        >
+          {saving ? "Setting…" : "Set my PIN"}
+        </button>
+        <button type="button" className="btn" disabled={saving} onClick={() => setOpen(false)}>
+          Cancel
+        </button>
       </div>
-    </section>
+    </TaskRow>
   );
+}
+
+// -- the facts rail ------------------------------------------------------------
+
+/**
+ * What somebody reads down the phone: which device this is, what head office has
+ * taken, and the rules the counter is billing by. Read off the same snapshot the
+ * band uses - a second place to look, never a second source.
+ */
+function FactsRail({ till }: { till: TillSnapshot }) {
+  const identity = till.device?.identity ?? null;
+  const registered = Boolean(identity?.registered);
+  const [allCounts, setAllCounts] = useState(false);
+
+  return (
+    <aside className="box till-rail" aria-label="Counter details">
+      <section className="till-facts" data-testid="till-registration">
+        <h2 className="till-facts-head">Counter</h2>
+        <Row label="Store" value={till.storeCode} />
+        <Row label="Connection" value={till.online ? "Online" : "Offline"} />
+        <Row
+          label="Counter"
+          value={registered ? (identity?.counter_id ?? "") : "Not registered"}
+          testId="till-registered"
+        />
+        {registered && (
+          <>
+            <Row
+              label="Bill series"
+              value={identity?.series_prefix ?? ""}
+              testId="till-series-prefix"
+            />
+            <Row
+              label="Stock version"
+              value={
+                identity?.working_set_version === null ||
+                identity?.working_set_version === undefined
+                  ? "—"
+                  : String(identity.working_set_version)
+              }
+              testId="till-working-set"
+            />
+          </>
+        )}
+      </section>
+
+      <section className="till-facts">
+        <h2 className="till-facts-head">Head office</h2>
+        {till.register ? (
+          <>
+            <Row label="Financial year" value={till.register.fy} />
+            <Row
+              label="Last accepted"
+              value={String(till.register.last_accepted_seq)}
+              testId="till-register-last"
+            />
+            <Row
+              label="Bill series open"
+              value={till.register.series_open ? "Yes" : "No, bills will not sync"}
+            />
+            <Row
+              label="Missing numbers"
+              value={
+                till.register.hole_count
+                  ? `${till.register.hole_count} (${till.register.holes.slice(0, 8).join(", ")}${
+                      till.register.hole_count > 8 ? "…" : ""
+                    })`
+                  : "None"
+              }
+            />
+          </>
+        ) : (
+          <p className="till-text">Not checked yet. Sync to find out.</p>
+        )}
+      </section>
+
+      <section className="till-facts">
+        <h2 className="till-facts-head">Rules</h2>
+        <Row
+          label="Tax settings"
+          value={taxSettingsNote(till.taxSettings)}
+          testId="till-tax-settings"
+        />
+        <Row
+          label="Invoice numbers"
+          value={numberingNote(till.numbering)}
+          testId="till-invoice-numbers"
+        />
+        <Row
+          label="Offline limits"
+          value={till.onlineOnlyRefusals ? "No B2B bills or credit notes" : "Off"}
+          testId="till-online-only"
+        />
+        <Row
+          label="Manager PIN"
+          value={till.managerPinRules ? "Another manager's, never the cashier's" : "Off"}
+          testId="till-manager-pin"
+        />
+      </section>
+
+      {/* Items and stock lines always show; the other counts behind a button,
+          since anything that is clicked on this page is a button. */}
+      <section className="till-facts">
+        <div className="till-facts-bar">
+          <h2 className="till-facts-head">Local copy</h2>
+          <button
+            type="button"
+            className="btn btn-sm"
+            aria-expanded={allCounts}
+            aria-controls="till-local-more"
+            onClick={() => setAllCounts(!allCounts)}
+          >
+            {allCounts ? "Show less" : "Show all"}
+          </button>
+        </div>
+        <Row label="Items" value={count(till.counts.items)} />
+        <Row label="Stock lines" value={count(till.counts.stock)} />
+        <div id="till-local-more" hidden={!allCounts}>
+          <Row label="Offers" value={count(till.counts.offers)} />
+          <Row label="Salespeople" value={count(till.counts.salespeople)} />
+          <Row label="Managers" value={count(till.counts.managers)} />
+          <Row label="Customers" value={count(till.counts.customers)} />
+          <Row label="Tax slabs" value={count(till.counts.gstSlabs)} />
+        </div>
+      </section>
+    </aside>
+  );
+}
+
+/** A date and time without the year when it is this year: a window that closes
+ *  tomorrow does not need "2026" to be read. */
+function shortDateTime(iso: string): string {
+  const when = new Date(iso);
+  return when.toLocaleString("en-IN", {
+    day: "numeric",
+    month: "short",
+    ...(when.getFullYear() === new Date().getFullYear() ? {} : { year: "numeric" }),
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function count(n: number): string {
+  return n.toLocaleString("en-IN");
 }
 
 /** Which tax settings version this counter bills by today, from what it holds
@@ -1066,6 +1360,8 @@ function Row({ label, value, testId }: { label: string; value: string; testId?: 
   );
 }
 
+// -- no counter ----------------------------------------------------------------
+
 function NoCounter({ reason }: { reason?: string }) {
   const { user } = useAuth();
   const { recoverPending } = useTill();
@@ -1085,33 +1381,43 @@ function NoCounter({ reason }: { reason?: string }) {
   }
   return (
     <div className="page-pad">
-      <PageHeader lead="Your store's counter and access." />
-      <p className="warn-note" data-testid="till-no-counter">
-        {reason ||
-          (singleStore
-            ? "The counter is unavailable. Complete store setup and confirm this login's store access, then retry."
-            : "A counter signs in to one store. Use the store login for billing; company setup is available from First store setup.")}
-      </p>
-      {singleStore && (
-        <button className="btn" type="button" onClick={() => window.location.reload()}>
-          Retry counter access
-        </button>
-      )}
-      {recoverPending && (
-        <button
-          className="btn"
-          type="button"
-          disabled={recovering}
-          onClick={() => void checkPending()}
-        >
-          {recovering ? "Checking sale…" : "Check unresolved sale"}
-        </button>
-      )}
-      {recoveryMessage && <p role="status">{recoveryMessage}</p>}
-      <CounterPin />
+      <PageHeader />
+      <div className="till-main till-no-counter">
+        <Note tone="warn" testId="till-no-counter">
+          {reason ||
+            (singleStore
+              ? "The counter is unavailable. Complete store setup and confirm this login's store access, then retry."
+              : "A counter signs in to one store. Use the store login for billing; company setup is available from First store setup.")}
+        </Note>
+        {(singleStore || recoverPending) && (
+          <div className="till-actions">
+            {singleStore && (
+              <button className="btn" type="button" onClick={() => window.location.reload()}>
+                Retry counter access
+              </button>
+            )}
+            {recoverPending && (
+              <button
+                className="btn"
+                type="button"
+                disabled={recovering}
+                onClick={() => void checkPending()}
+              >
+                {recovering ? "Checking sale…" : "Check unresolved sale"}
+              </button>
+            )}
+          </div>
+        )}
+        {recoveryMessage && <p role="status">{recoveryMessage}</p>}
+        <Settings>
+          <CounterPin />
+        </Settings>
+      </div>
     </div>
   );
 }
+
+// -- development ---------------------------------------------------------------
 
 /**
  * Prove the spine without the billing screen.
@@ -1143,26 +1449,30 @@ function TestBill() {
   }
 
   return (
-    <section className="card till-card till-dev">
-      <h2 className="h3">Development only</h2>
-      <p className="muted-cell">
-        Numbers one piece from the local price list at its ticket price, queues it, and lets the
-        sync engine take it to the server - the whole spine, without the billing screen.
-      </p>
-      <button
-        type="button"
-        className="btn"
-        data-testid="till-test-bill"
-        disabled={working}
-        onClick={() => void queueOne()}
-      >
-        {working ? "Queueing…" : "Queue a test bill"}
-      </button>
-      {note && (
-        <p className="till-dev-note" data-testid="till-test-bill-note">
-          {note}
-        </p>
-      )}
+    <section className="till-dev">
+      <SettingRow
+        level={2}
+        title="Development only"
+        description="Queues a one-piece bill from the local price list and syncs it."
+        control={
+          <button
+            type="button"
+            className="btn"
+            data-testid="till-test-bill"
+            disabled={working}
+            onClick={() => void queueOne()}
+          >
+            {working ? "Queueing…" : "Queue test bill"}
+          </button>
+        }
+        after={
+          note && (
+            <p className="till-dev-note" data-testid="till-test-bill-note">
+              {note}
+            </p>
+          )
+        }
+      />
     </section>
   );
 }

@@ -1,19 +1,14 @@
 // The pieces the one Bookings screen draws the same way for both booking
-// engines: the status chip, the list card, the booking page's header, tiles and
+// engines: the status chip, the booking page's header, tiles and
 // lines table, and the form's totals. Each takes plain, already-read facts, so
 // neither engine's page leaks its wire shape into the other (and neither reads
 // the other's API through here).
 import type { ReactNode } from "react";
-import { Link } from "react-router-dom";
 
+import { KpiStrip } from "./KpiStrip";
 import { PageHeader } from "./PageHeader";
-import {
-  arrivedPercent,
-  STATUS_TONE,
-  STATUS_WORD,
-  type BookingCard,
-  type BookingStatus,
-} from "../lib/bookingModel";
+import { Status, type StatusTone } from "./Status";
+import { STATUS_TONE, STATUS_WORD, type BookingStatus } from "../lib/bookingModel";
 import { formatINR } from "../lib/format";
 
 /** Paise as rupees, or a dash when nobody gave the figure (never ₹0). */
@@ -22,42 +17,12 @@ export function moneyOrDash(paise: number | null | undefined): string {
 }
 
 export function BookingStatusChip({ status }: { status: BookingStatus }) {
+  // A closed booking is settled, so it reads grey like any other closed record.
+  const tone = STATUS_TONE[status] === "navy" ? "grey" : (STATUS_TONE[status] as StatusTone);
   return (
-    <span className={`chip chip-${STATUS_TONE[status]} status-pill`} data-testid="booking-status">
+    <Status tone={tone} testId="booking-status">
       {STATUS_WORD[status]}
-    </span>
-  );
-}
-
-/** One booking in the list, whichever engine holds it. */
-export function BookingCardLink({ card }: { card: BookingCard }) {
-  const pct = arrivedPercent(card.booked, card.arrived);
-  const meta = [card.vendor, card.season, card.store ? `→ ${card.store}` : ""].filter(Boolean);
-  return (
-    <Link
-      to={`/booking/${card.id}`}
-      className="card bk-card"
-      data-testid={`booking-card-${card.id}`}
-      data-engine={card.engine}
-    >
-      <div className="bk-card-top">
-        <span className="bk-num">{card.number ?? "No number yet"}</span>
-        <BookingStatusChip status={card.status} />
-      </div>
-      <div className="bk-brand">{card.brand}</div>
-      {meta.length > 0 && <div className="bk-meta">{meta.join(" · ")}</div>}
-      <div className="bk-prog">
-        <div className="bk-prog-bar">
-          <div className="bk-prog-fill" style={{ width: `${pct}%` }} />
-        </div>
-        <div className="bk-prog-meta">
-          <span data-testid="booking-card-progress">
-            {card.arrived} of {card.booked} received
-          </span>
-          <span>{card.expected ? `Expected ${card.expected}` : `${pct}%`}</span>
-        </div>
-      </div>
-    </Link>
+    </Status>
   );
 }
 
@@ -98,17 +63,6 @@ export function BookingPageHeader({
   );
 }
 
-function Tile({ label, value, testId }: { label: string; value: ReactNode; testId?: string }) {
-  return (
-    <div className="card bk-tile">
-      <span className="bk-tile-label">{label}</span>
-      <strong className="bk-tile-value tabular" data-testid={testId}>
-        {value}
-      </strong>
-    </div>
-  );
-}
-
 /** Booked · Arrived · Still to come · Total cost · MRP value. Total cost is
  *  drawn only for someone allowed to see cost (`costPaise` undefined hides it). */
 export function BookingTiles({
@@ -126,19 +80,25 @@ export function BookingTiles({
   mrpPaise: number | null;
   toComeTestId?: string;
 }) {
+  const value = (text: string, testId?: string) => (
+    <span className="tabular" data-testid={testId}>
+      {text}
+    </span>
+  );
   return (
-    <div className="bk-tiles" data-testid="booking-tiles">
-      <Tile label="Booked" value={`${booked} pcs`} />
-      <Tile label="Arrived" value={`${arrived} pcs`} />
-      <Tile
-        label="Still to come"
-        value={`${toCome} pcs`}
-        {...(toComeTestId ? { testId: toComeTestId } : {})}
+    <div data-testid="booking-tiles">
+      <KpiStrip
+        label="Booking totals"
+        items={[
+          { label: "Booked", value: value(`${booked} pcs`) },
+          { label: "Arrived", value: value(`${arrived} pcs`) },
+          { label: "Still to come", value: value(`${toCome} pcs`, toComeTestId) },
+          ...(costPaise !== undefined
+            ? [{ label: "Total cost", value: value(moneyOrDash(costPaise), "booking-total-cost") }]
+            : []),
+          { label: "MRP value", value: value(moneyOrDash(mrpPaise), "booking-mrp-value") },
+        ]}
       />
-      {costPaise !== undefined && (
-        <Tile label="Total cost" value={moneyOrDash(costPaise)} testId="booking-total-cost" />
-      )}
-      <Tile label="MRP value" value={moneyOrDash(mrpPaise)} testId="booking-mrp-value" />
     </div>
   );
 }
