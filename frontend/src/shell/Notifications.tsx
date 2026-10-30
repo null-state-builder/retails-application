@@ -35,8 +35,13 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import { useQueryClient } from "@tanstack/react-query";
+
 import { useAuth } from "../auth/AuthContext";
 import { api } from "../lib/api";
+import { useCachedGet, type CachedRead } from "../lib/cachedQuery";
+import { useCacheScope } from "../lib/hooks";
+import { fetchUrl, queryKeyFor } from "../lib/queryCache";
 import type { Page } from "../lib/goodsScreen";
 import {
   ageWords,
@@ -105,6 +110,26 @@ const LOADING = (
     Loading…
   </p>
 );
+
+/** A cached read as the bell's three states: still loading, failed, or rows. */
+function loadable<T>(read: CachedRead<T[]>): Loadable<T> {
+  if (read.error) return null;
+  return read.data === undefined ? "loading" : read.data;
+}
+
+/** Ask again on every navigation (not on the first render, which already
+ *  asks): the bell is on every screen and must not keep a stale count. */
+function useRecountOnNavigation(pathname: string, ...reloads: Array<() => void>) {
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    reloads.forEach((reload) => reload());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+}
 
 function loaded<T>(feed: Loadable<T> | undefined): Feed<T> {
   return Array.isArray(feed) ? feed : null;
@@ -746,8 +771,16 @@ function NoticeButton({
 export function AlertsButton() {
   const { session } = useAuth();
   const canSeeNotes = holdsExceptions(session);
-  const [alerts, setAlerts] = useState<Feed<AlertT>>([]);
-  const [notes, setNotes] = useState<Loadable<NotificationRow>>("loading");
+  // Through the shared cache, under the same key as the Alerts page's list.
+  const alertsRead = useCachedGet<AlertT[]>("/alerts");
+  const alerts: Feed<AlertT> = alertsRead.error ? null : (alertsRead.data ?? []);
+  const notesRead = useCachedGet<Page<NotificationRow>, NotificationRow[]>(
+    canSeeNotes ? "/goods-v1/alerts?limit=100" : null,
+    { select: (r) => r?.items ?? [] },
+  );
+  const notes = loadable(notesRead);
+  const scope = useCacheScope();
+  const client = useQueryClient();
   // One plain stamp, `null` meaning "no stamp" - which is what the contract
   // says an absent row means, and so also the honest answer while the read is
   // in flight or after it fails. It errs towards showing the count: a button
@@ -756,40 +789,33 @@ export function AlertsButton() {
   const [seenAt, setSeenAt] = useState<string | null>(null);
   const { pathname } = useLocation();
 
+  // A fresh read of the alerts, whatever the cache holds: stamping "read" is
+  // only honest over a list that was actually just fetched. It lands in the
+  // same cache entry, so the badge and the Alerts page see it too.
   const loadAlerts = useCallback(
     () =>
-      api
-        .get("/alerts")
-        .then((r) => {
-          const rows = (r.data ?? []) as AlertT[];
-          setAlerts(rows);
-          return rows;
+      client
+        .fetchQuery({
+          queryKey: queryKeyFor(scope, "/alerts"),
+          queryFn: ({ signal }) => fetchUrl<AlertT[]>("/alerts", signal),
+          staleTime: 0,
         })
-        .catch(() => {
-          setAlerts(null);
-          return null;
-        }),
-    [],
+        .then((rows) => rows ?? [])
+        .catch(() => null),
+    [client, scope],
   );
 
-  // Re-counted on every navigation, not once per session.
+  // Re-counted on every navigation, not once per session. The stamp is a
+  // per-person marker read alongside, not cached.
   useEffect(() => {
-    void loadAlerts();
     api
       .get("/alerts/seen")
       .then((r) => setSeenAt(r.data?.seen_at ?? null))
       .catch(() => setSeenAt(null));
-  }, [loadAlerts, pathname]);
-
+  }, [pathname]);
   // Unread goods notifications: read one by one on the Alerts page (E187), so
   // opening this popup never marks them - it only stamps the deadlines.
-  useEffect(() => {
-    if (!canSeeNotes) return;
-    api
-      .get<Page<NotificationRow>>("/goods-v1/alerts?limit=100")
-      .then((r) => setNotes(r.data?.items ?? []))
-      .catch(() => setNotes(null));
-  }, [canSeeNotes, pathname]);
+  useRecountOnNavigation(pathname, alertsRead.reload, notesRead.reload);
 
   /**
    * Opening the popup is what "reading" means, so it stamps - but only over a
@@ -865,45 +891,44 @@ export function ActionNeededButton() {
   // a page they may not see would be a dead end.
   const canSeeGoods = (canSeeApprovals || canSeeExc) && holdsGoodsApprovals(session);
 
-  const [approvals, setApprovals] = useState<Loadable<ApprovalT>>("loading");
-  const [goods, setGoods] = useState<Loadable<ApprovalDTO>>("loading");
-  const [exceptions, setExceptions] = useState<Loadable<ExceptionRow>>("loading");
   const { pathname } = useLocation();
 
-  // Re-counted on every navigation *and* whenever a decision is made, not once
+  // Through the shared cache (the Approvals page reads the same keys), and
+  // re-counted on every navigation *and* whenever a decision is made, not once
   // per session: clearing the last item used to leave the old bell insisting
   // one document was still waiting, right beside a page saying nothing was.
-  const refresh = useCallback(() => {
-    if (canSeeApprovals) {
-      api
-        .get("/approvals/inbox")
-        .then((r) => setApprovals(r.data ?? []))
-        .catch(() => setApprovals(null));
-    }
-    if (canSeeGoods) {
-      api
-        .get<Page<ApprovalDTO>>("/goods-v1/approvals/inbox?limit=100")
-        .then((r) => setGoods(r.data?.items ?? []))
-        .catch(() => setGoods(null));
-    }
-    if (canSeeExc) {
-      // Open only, as the page's table shows (the endpoint also returns
-      // resolved rows). No live stream here: the top bar is on every screen,
-      // and navigation already recounts; the page keeps its live dot.
-      api
-        .get<Page<ExceptionRow>>("/goods-v1/exceptions?limit=100")
-        .then((r) =>
-          setExceptions(sortExceptions((r.data?.items ?? []).filter((x) => x.state === "open"))),
-        )
-        .catch(() => setExceptions(null));
-    }
-  }, [canSeeApprovals, canSeeExc, canSeeGoods]);
+  const approvalsRead = useCachedGet<ApprovalT[]>(canSeeApprovals ? "/approvals/inbox" : null, {
+    select: (r) => r ?? [],
+  });
+  const goodsRead = useCachedGet<Page<ApprovalDTO>, ApprovalDTO[]>(
+    canSeeGoods ? "/goods-v1/approvals/inbox?limit=100" : null,
+    { select: (r) => r?.items ?? [] },
+  );
+  // Open only, as the page's table shows (the endpoint also returns resolved
+  // rows). No live stream here: the top bar is on every screen, and navigation
+  // already recounts; the page keeps its live dot.
+  const exceptionsRead = useCachedGet<Page<ExceptionRow>, ExceptionRow[]>(
+    canSeeExc ? "/goods-v1/exceptions?limit=100" : null,
+    { select: (r) => sortExceptions((r?.items ?? []).filter((x) => x.state === "open")) },
+  );
+  const approvals = loadable(approvalsRead);
+  const goods = loadable(goodsRead);
+  const exceptions = loadable(exceptionsRead);
 
+  const { reload: reloadApprovals } = approvalsRead;
+  const { reload: reloadGoods } = goodsRead;
+  const { reload: reloadExceptions } = exceptionsRead;
+  const refresh = useCallback(() => {
+    reloadApprovals();
+    reloadGoods();
+    reloadExceptions();
+  }, [reloadApprovals, reloadGoods, reloadExceptions]);
+
+  useRecountOnNavigation(pathname, refresh);
   useEffect(() => {
-    refresh();
     window.addEventListener(APPROVALS_CHANGED, refresh);
     return () => window.removeEventListener(APPROVALS_CHANGED, refresh);
-  }, [refresh, pathname]);
+  }, [refresh]);
 
   if (!canSeeApprovals && !canSeeExc) return null;
 

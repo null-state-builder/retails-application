@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -16,7 +16,7 @@ import {
   X,
 } from "lucide-react";
 
-import { api } from "../lib/api";
+import { useCachedGet } from "../lib/cachedQuery";
 import { useAuth } from "../auth/AuthContext";
 import { KpiStrip } from "../components/KpiStrip";
 import { Note } from "../components/Note";
@@ -168,31 +168,16 @@ interface Health {
   voucher_count: number;
 }
 
-/** Fetches Books Health only when the caller can see money — the same
- *  predicate that decides whether the card renders — so a role without money
- *  read never fires the request just to eat the 403 it would get back (#236). */
-export function loadBooksHealth(
-  canSeeMoney: boolean,
-  onLoaded: (h: Health) => void,
-  onDenied: () => void,
-): void {
-  if (!canSeeMoney) return;
-  api
-    .get("/finledger/health")
-    .then((r) => onLoaded(r.data))
-    .catch(() => onDenied());
-}
-
 function TrialBalancePanel({ canSeeMoney }: { canSeeMoney: boolean }) {
-  const [h, setH] = useState<Health | null>(null);
-  const [denied, setDenied] = useState(false);
-  useEffect(() => {
-    // A capability that regains money access after an earlier failure must get
-    // a clean retry, not stay hidden behind a stale denial.
-    setDenied(false);
-    loadBooksHealth(canSeeMoney, setH, () => setDenied(true));
-  }, [canSeeMoney]);
-  if (!canSeeMoney || denied) return null;
+  // Books Health is asked only when the caller can see money — the same
+  // predicate that decides whether the card renders — so a role without money
+  // read never fires the request just to eat the 403 it would get back (#236).
+  // A capability that regains money access gets a clean read: the cache key
+  // carries the person's roles. Money is never trusted from memory: a cached
+  // copy shows at once but is asked again on every visit.
+  const read = useCachedGet<Health>(canSeeMoney ? "/finledger/health" : null, { kind: "doc" });
+  const h = read.error ? null : (read.data ?? null);
+  if (!canSeeMoney || read.error) return null;
   // Not "Books tie" before the books have been read: an unread state is not a
   // balanced one.
   const balanced = h?.balanced ?? null;
@@ -361,11 +346,6 @@ interface OnHandSummary {
 export function Home() {
   const { user, activeStore } = useAuth();
   const navigate = useNavigate();
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [inbox, setInbox] = useState<number | null>(null);
-  const [onHand, setOnHand] = useState<OnHandSummary | null>(null);
-  const [payablePaise, setPayablePaise] = useState<number | null>(null);
-  const [alertCount, setAlertCount] = useState<number | null>(null);
   const [configOpen, setConfigOpen] = useState(false);
   const [storeDay, setStoreDay] = useState<DashboardPayload | null>(null);
   const [dragCard, setDragCard] = useState<string | null>(null);
@@ -375,32 +355,26 @@ export function Home() {
   // explain away is a worse answer than not offering the tile.
   const canSeeMoney = userCan(user, "money", "manage");
 
-  useEffect(() => {
-    // Every number below comes from the endpoint that owns it. A failure leaves
-    // the tile at "…" rather than substituting a figure.
-    api
-      .get("/masters/summary")
-      .then((r) => setSummary(r.data))
-      .catch(() => undefined);
-    api
-      .get("/approvals/inbox")
-      .then((r) => setInbox(r.data?.length ?? 0))
-      .catch(() => undefined);
-    api
-      .get("/stockledger/on-hand")
-      .then((r) => setOnHand(r.data.summary))
-      .catch(() => undefined);
-    api
-      .get("/alerts")
-      .then((r) => setAlertCount(r.data?.length ?? 0))
-      .catch(() => undefined);
-    if (canSeeMoney) {
-      api
-        .get("/finledger/vendor/ageing")
-        .then((r) => setPayablePaise(r.data.total_due_paise ?? null))
-        .catch(() => undefined);
-    }
-  }, [canSeeMoney]);
+  // Every number below comes from the endpoint that owns it, read through the
+  // shared cache: a revisit shows the last figures at once and refreshes them
+  // behind. A failure leaves the tile at "…" rather than substituting a figure.
+  const summary = useCachedGet<Summary>("/masters/summary", { kind: "doc" }).data ?? null;
+  const inbox =
+    useCachedGet<unknown[] | null, number>("/approvals/inbox", { select: (r) => r?.length ?? 0 })
+      .data ?? null;
+  const onHand =
+    useCachedGet<{ summary: OnHandSummary }, OnHandSummary>("/stockledger/on-hand", {
+      kind: "doc",
+      select: (r) => r.summary,
+    }).data ?? null;
+  const alertCount =
+    useCachedGet<unknown[] | null, number>("/alerts", { select: (r) => r?.length ?? 0 }).data ??
+    null;
+  const payablePaise =
+    useCachedGet<{ total_due_paise?: number | null }, number | null>(
+      canSeeMoney ? "/finledger/vendor/ageing" : null,
+      { kind: "doc", select: (r) => r.total_due_paise ?? null },
+    ).data ?? null;
 
   const variant = user?.landing_page ?? "owner";
 
