@@ -384,7 +384,7 @@ _CALL = re.compile(
     r"\b(?:(?P<client>api|typedApi|authApi|axios)\."
     r"(?P<method>get|post|put|patch|delete|request|me|login|logout|csrf|stepUp|changePassword)"
     r"|(?P<function>fetch|EventSource|useList|useDoc|useGoodsFetch|useAllPages|"
-    r"useResourceList|useResourceDoc|useResourceListRaw))\b"
+    r"useResourceList|useResourceDoc|useResourceListRaw|useCachedGet))\b"
 )
 
 
