@@ -49,7 +49,7 @@
   padding: 10px 12px;
   background: var(--inner);
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   font-size: 13px;
 }
 
@@ -127,10 +127,10 @@
 
 .exc-drawer {
   border: 1px solid var(--hairline);
-  border-radius: var(--radius);
+  border-radius: var(--radius-box);
   padding: 16px;
   background: var(--surface);
-  box-shadow: var(--shadow-rest);
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -144,7 +144,7 @@
 
 .exc-drawer-resolve {
   border: 1px dashed var(--hairline);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   padding: 10px 12px;
 }
 

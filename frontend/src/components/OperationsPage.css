@@ -72,7 +72,7 @@
 .operations-table-scroll {
   overflow-x: auto;
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   background: var(--surface);
 }
 

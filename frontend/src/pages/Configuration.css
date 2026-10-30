@@ -112,7 +112,7 @@
 
 .cfg-layout .cfg-directions {
   border: 1px solid var(--sidebar-border);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   padding: 8px 12px;
   margin: 12px 0;
 }
@@ -228,7 +228,7 @@
   grid-template-columns: repeat(7, minmax(0, 1fr));
   height: 48px;
   border: 1px solid var(--line);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   overflow: hidden;
   background: var(--surface);
 }
@@ -302,7 +302,7 @@
   margin: 6px 0 0;
   padding: 0;
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   background: var(--field-bg);
   max-height: 188px;
   overflow-y: auto;
@@ -552,7 +552,7 @@
   margin: 2px 0 0;
   padding: 0;
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   background: var(--field-bg);
 }
 .cfg-layout .cfg-counters li {

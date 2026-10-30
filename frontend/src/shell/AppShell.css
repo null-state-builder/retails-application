@@ -329,7 +329,7 @@ body.sidebar-resizing .sidebar-resizer::after {
   background: var(--surface);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-overlay);
-  box-shadow: var(--shadow-hover);
+  box-shadow: var(--shadow-float);
   padding: 7px;
   overflow-y: auto;
   max-height: 420px; /* kept in step with `FLYOUT_MAX_HEIGHT` in AppShell.tsx */
@@ -428,7 +428,7 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   gap: 9px;
   background: var(--paper);
   border: 1px solid var(--line);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   padding: 8px 12px;
   color: var(--muted);
 }
@@ -541,7 +541,7 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   background: var(--surface);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-overlay);
-  box-shadow: var(--shadow-hover);
+  box-shadow: var(--shadow-float);
   overflow: hidden;
 }
 /* Each popup carries its own name: with one feed per popup there are no tabs,
@@ -837,7 +837,7 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   gap: 9px;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   padding: 8px 12px;
   cursor: pointer;
   font-size: 14px;
@@ -911,7 +911,7 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   background: var(--surface);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-overlay);
-  box-shadow: var(--shadow-hover);
+  box-shadow: var(--shadow-float);
   padding: 7px;
 }
 .avatar {
@@ -957,7 +957,7 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   background: var(--surface);
   border: 1px solid var(--hairline);
   border-radius: var(--radius-overlay);
-  box-shadow: var(--shadow-hover);
+  box-shadow: var(--shadow-float);
   padding: 7px;
   overflow: hidden;
 }
@@ -1207,7 +1207,7 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
     display: block !important;
     margin: 0 !important;
     padding: 0 !important;
-    background: #fff !important;
+    background: var(--print-paper) !important;
   }
 }
 

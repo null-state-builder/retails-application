@@ -1,8 +1,7 @@
 /* KDPS design language v2 (30 Oct 2026). Token values come from the design
    system artifact's tokens.css; the reasons are in docs/planning/
    design-system-v2-rollout.md. IBM Plex Sans for everything, IBM Plex Mono for
-   identifiers only. v1 names (--radius, --radius-inner, --shadow-rest,
-   --shadow-hover) stay as aliases until Phase 6.
+   identifiers only.
    DARK MODE: every color must be a token; dark overrides live in the single
    `html[data-theme="dark"]` block below. Never hardcode a hex outside :root. */
 :root {
@@ -70,10 +69,6 @@
   --band-ai-bg: #f3edfb;
   --band-ai-bd: #e2d6f4;
 
-  --radius: var(--radius-box); /* v1 alias, removed in Phase 6 */
-  --radius-inner: var(--radius-control); /* v1 alias */
-  --shadow-rest: none; /* v2: nothing in the page flow has a shadow */
-  --shadow-hover: var(--shadow-float);
   /* Rings drawn with box-shadow. Focus is rust, like --focus-ring; the ok and
      error halos sit round a status dot or the scan bar. */
   --focus-halo: 0 0 0 2px var(--rust-glow);
@@ -88,10 +83,17 @@
      so the light theme is unchanged; only the dark block re-values them. */
   /* A mail body is somebody else's HTML, written against white. Recolouring it
      for dark mode is how a sender's own dark-on-light table goes invisible, so
-     these two stay put in both themes, theme-invariant on purpose. Mirrored as literals inside the sandboxed
-     frame, which no custom property can reach (see BODY_RESET in Mail.tsx). */
+     these two stay put in both themes, theme-invariant on purpose. Mirrored as
+     literals inside the sandboxed frame, which no custom property can reach
+     (see BODY_RESET in Mail.tsx). */
   --mail-paper: #ffffff;
   --mail-paper-ink: #222222;
+  /* What comes out of a printer is white paper and black ink in both themes:
+     labels, tags, receipts and their on-screen previews. */
+  --print-paper: #ffffff;
+  --print-ink: #000000;
+  /* A key hint sitting on a filled (red or navy) button. */
+  --on-fill-line: rgba(255, 255, 255, 0.45);
   --navy-fill: #1f2d4d; /* navy as a solid fill under white text */
   --navy-fill-hover: #2c3e63;
   --navy-rgb: 31, 45, 77; /* for rgba(var(--navy-rgb), a) washes */
@@ -721,7 +723,7 @@ a {
   width: 100%;
   padding: 9px 12px;
   border: 1px solid var(--line);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   font-size: 14px;
   background: var(--surface);
   color: var(--ink);
@@ -809,8 +811,8 @@ a {
 .card {
   background: var(--surface);
   border: 1px solid var(--hairline);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-rest);
+  border-radius: var(--radius-box);
+  box-shadow: none;
 }
 
 /* sku line */
@@ -853,9 +855,9 @@ a {
 .table-wrap {
   overflow: auto;
   border: 1px solid var(--hairline);
-  border-radius: var(--radius);
+  border-radius: var(--radius-box);
   background: var(--surface);
-  box-shadow: var(--shadow-rest);
+  box-shadow: none;
 }
 table.data {
   width: 100%;

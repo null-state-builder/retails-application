@@ -89,7 +89,7 @@
   width: 100%;
   padding: 9px 12px;
   border: 1px solid var(--line);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   font-size: 14px;
   background: var(--surface);
   color: var(--ink);
@@ -98,7 +98,7 @@
 .dropzone {
   display: block;
   border: 2px dashed var(--sidebar-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-box);
   padding: 26px;
   text-align: center;
   background: var(--inner);
@@ -217,8 +217,8 @@
   width: 100%;
   max-width: 760px;
   background: var(--surface);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-hover);
+  border-radius: var(--radius-box);
+  box-shadow: var(--shadow-float);
   padding: 20px 22px;
 }
 .modal-head {
@@ -270,7 +270,7 @@
   align-items: center;
   gap: 8px;
   padding: 11px 14px;
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   background: var(--inner);
   border: 1px solid var(--hairline);
   color: var(--navy);

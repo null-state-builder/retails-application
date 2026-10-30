@@ -15,14 +15,14 @@
   flex-wrap: wrap;
   gap: 8px;
   padding: 10px;
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   background: var(--inner);
 }
 
 .labels-label {
   padding: 4px;
-  border-radius: 4px;
-  background: #fff;
+  border-radius: var(--radius-control);
+  background: var(--print-paper);
 }
 
 .labels-label svg {

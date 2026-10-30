@@ -111,7 +111,7 @@
   gap: 8px;
   border: 1px solid color-mix(in srgb, var(--amber) 60%, var(--sidebar-border));
   background: color-mix(in srgb, var(--amber) 8%, transparent);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   padding: 8px 12px;
   font-size: 13px;
   margin-bottom: 10px;
@@ -137,7 +137,7 @@
 
 .accept-layout .acc-conditions {
   border: 1px solid var(--sidebar-border);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   padding: 8px 10px;
   margin: 10px 0;
 }

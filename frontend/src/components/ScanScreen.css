@@ -121,7 +121,7 @@
 .scan-mode {
   flex: 1 1 0;
   height: 46px;
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   border: 1px solid var(--line, rgba(var(--navy-rgb), 0.3));
   background: transparent;
   color: var(--ink);
@@ -247,7 +247,7 @@
 .scan-undo {
   flex: 0 0 auto;
   padding: 0 16px;
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   border: 1px solid var(--line, rgba(var(--navy-rgb), 0.3));
   background: transparent;
   color: var(--ink);
@@ -261,7 +261,7 @@
   flex: 1 1 auto;
   height: 54px;
   border: none;
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   background: var(--navy-fill);
   color: var(--on-fill);
   font-size: 16px;

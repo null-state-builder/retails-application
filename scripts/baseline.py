@@ -36,7 +36,7 @@ def backend_checks() -> None:
 
 
 def frontend_checks() -> None:
-    for script in ("typecheck", "lint", "format:check", "test"):
+    for script in ("typecheck", "lint", "format:check", "check:design-tokens", "test"):
         execute(["yarn", script], cwd=FRONTEND)
 
 

@@ -8,7 +8,7 @@
   margin: 0;
   padding: 6px 10px;
   border: 1px dashed var(--amber);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   color: var(--muted);
   font-size: 12px;
 }
@@ -260,7 +260,7 @@
   padding: 4px;
   list-style: none;
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   background: var(--surface);
 }
 .plus-menu button {
@@ -314,7 +314,7 @@
   margin: 0;
   padding: 8px 10px;
   border: 1px solid var(--red);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   color: var(--red);
   font-size: 13px;
 }
@@ -343,7 +343,7 @@
   max-width: 380px;
   padding: 18px;
   border: 1px solid var(--hairline);
-  border-radius: var(--radius);
+  border-radius: var(--radius-box);
   background: var(--surface);
 }
 .plus-sheet h3 {
@@ -358,7 +358,7 @@
   }
   .plus-sheet {
     max-width: none;
-    border-radius: var(--radius) var(--radius) 0 0;
+    border-radius: var(--radius-box) var(--radius-box) 0 0;
   }
 }
 @media (pointer: coarse) {

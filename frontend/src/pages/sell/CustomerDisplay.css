@@ -115,7 +115,7 @@
 .cdisplay-upi {
   padding: 16px;
   border: 1px solid var(--hairline);
-  border-radius: var(--radius);
+  border-radius: var(--radius-box);
   text-align: center;
 }
 
@@ -154,7 +154,7 @@
   min-width: 160px;
   padding: 18px 28px;
   font-size: 24px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-box);
   border: 1px solid var(--navy-fill);
   background: var(--navy-fill);
   color: var(--on-fill);

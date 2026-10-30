@@ -28,7 +28,7 @@
   margin: 16px 0 0;
   padding: 14px 18px;
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   background: var(--inner);
   font-size: 14px;
 }
@@ -109,7 +109,7 @@
   margin: 0 0 16px;
   padding: 12px 14px;
   border: 1px solid var(--amber-bd);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   background: var(--amber-bg);
   color: var(--ink);
   font-size: 14px;
@@ -127,7 +127,7 @@
   gap: 4px 16px;
   min-width: 0;
   padding: 6px 12px;
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   background: var(--inner);
 }
 .signup-code .field {
@@ -209,7 +209,7 @@
 }
 .signup-regional {
   padding: 16px;
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   background: var(--inner);
 }
 
@@ -230,7 +230,7 @@
   gap: 12px;
   border: 1px solid var(--hairline);
   padding: 16px;
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   cursor: pointer;
 }
 .signup-choice.selected {
@@ -261,7 +261,7 @@
   min-width: 0;
   padding: 18px;
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
 }
 .signup-person h3 {
   margin: 0;
@@ -285,7 +285,7 @@
   margin: 16px 0;
   padding: 16px;
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
 }
 .signup-team-head {
   display: flex;
@@ -311,7 +311,7 @@
   min-width: 0;
   padding: 18px;
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
 }
 .signup-summary-head {
   display: flex;
@@ -424,7 +424,7 @@
   gap: 12px;
   padding: 16px;
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   overflow-wrap: anywhere;
 }
 .signup-person-status p {
@@ -440,7 +440,7 @@
   gap: 12px;
   justify-items: start;
   padding: 18px;
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   background: var(--inner);
 }
 .signup-credentials > * {
@@ -482,7 +482,7 @@
   margin: 16px 0;
   padding: 16px;
   border: 1px solid var(--hairline);
-  border-radius: var(--radius);
+  border-radius: var(--radius-box);
   background: var(--surface);
 }
 .signup-progress-title {

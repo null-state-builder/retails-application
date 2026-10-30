@@ -147,7 +147,6 @@
   width: 80mm;
   margin: 0 auto;
   border: 0;
-  /* White in both themes: the theme-invariant paper token (shared with Mail's
-     sandboxed frame, which shows somebody else's paper the same way). */
-  background: var(--mail-paper);
+  /* White in both themes: it previews what the printer puts on paper. */
+  background: var(--print-paper);
 }

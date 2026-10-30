@@ -17,7 +17,7 @@
 .planned-medallion {
   width: 48px;
   height: 48px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-box);
   background: var(--inner);
   border: 1px solid var(--hairline);
   display: flex;
@@ -49,7 +49,7 @@
 .planned-notes {
   margin-top: 16px;
   padding: 16px 18px;
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   background: var(--inner);
   border: 1px solid var(--hairline);
 }

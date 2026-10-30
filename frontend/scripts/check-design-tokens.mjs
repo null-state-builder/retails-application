@@ -1,7 +1,8 @@
 // Design System v2 guard (docs/planning/design-system-v2-rollout.md, Phase 0).
 // Reports CSS that bypasses the v2 tokens: half-pixel or off-scale font sizes,
 // heavy weights, colour literals outside the token files, and radius or shadow
-// literals. Report-only by default; `--strict` fails on any finding (Phase 6).
+// literals. `yarn check:design-tokens` runs it with `--strict`, which fails on any
+// finding; that is part of `npm run verify`, so CI fails on it too.
 //
 //   node scripts/check-design-tokens.mjs            summary by rule and file
 //   node scripts/check-design-tokens.mjs --list     every finding with its line

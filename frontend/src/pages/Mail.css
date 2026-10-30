@@ -171,7 +171,7 @@
   width: 100%;
   margin-top: 14px;
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   background: var(--mail-paper);
 }
 /* A plain-text body. `pre` for the line breaks, which a plain-text mail means
@@ -183,7 +183,7 @@
   margin-top: 14px;
   padding: 14px 16px;
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   background: var(--inner);
   color: var(--ink);
   font:
@@ -228,7 +228,7 @@
   width: 100%;
   padding: 9px 12px;
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   background: var(--inner);
   color: var(--ink);
   font: inherit;

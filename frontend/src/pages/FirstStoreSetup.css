@@ -184,7 +184,7 @@
   height: 100%;
   padding: 12px 14px;
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
   background: var(--inner);
   color: var(--ink);
   text-decoration: none;
@@ -230,7 +230,7 @@
   padding: 12px 14px;
   border: 1px solid var(--amber-bd);
   background: var(--amber-bg);
-  border-radius: var(--radius-inner);
+  border-radius: var(--radius-control);
 }
 .fss-blockers p {
   margin: 0 0 6px;
