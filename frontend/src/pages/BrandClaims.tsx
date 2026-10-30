@@ -3,6 +3,8 @@ import { Link, useParams } from "react-router-dom";
 
 import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { UpdatedAgo } from "../components/UpdatedAgo";
+import { useCachedGet } from "../lib/cachedQuery";
 import { Section } from "../components/Section";
 import { Status, type StatusTone } from "../components/Status";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
@@ -51,7 +53,6 @@ function today(): string {
 export function BrandClaimsPage() {
   const { id } = useParams();
   const [month, setMonth] = useState("");
-  const [list, setList] = useState<BrandClaimList | null>(null);
   const [claim, setClaim] = useState<BrandClaimDetail | null>(null);
   const [acceptNote, setAcceptNote] = useState("");
   const [settle, setSettle] = useState<SettleDraft>({
@@ -60,14 +61,35 @@ export function BrandClaimsPage() {
     rupees: "",
     reason: "",
   });
-  const [error, setError] = useState("");
+  const [commandError, setError] = useState("");
   const [done, setDone] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
-  const [lost, setLost] = useState(false);
+  const [commandLost, setLost] = useState(false);
   const [busy, setBusy] = useState(false);
   /** The press whose answer was lost, if any (`commandIdFor`). */
   const pending = useRef<Pending | null>(null);
   const request = useRef(0);
+
+  // The month's list reads through the shared cache: a revisit shows it at once
+  // and refreshes it behind. The open claim stays a direct read - it seeds the
+  // settle form, which must only be reset when the claim itself moves on.
+  const listRead = useCachedGet<BrandClaimList>(PAGE_API, { params: { month } });
+  const list = listRead.data ?? null;
+  const lost = commandLost || (listRead.error != null && isConnectionLost(listRead.error));
+  const error =
+    commandError ||
+    (listRead.error != null && !isConnectionLost(listRead.error)
+      ? apiErrorMessage(listRead.error)
+      : "");
+  useEffect(() => {
+    if (listRead.updatedAt) setLost(false);
+  }, [listRead.updatedAt]);
+  // Opened from the menu: show the month the server chose.
+  const defaultMonth = !id && !month && !listRead.loading ? listRead.data?.month : undefined;
+  useEffect(() => {
+    if (defaultMonth) setMonth(defaultMonth);
+  }, [defaultMonth]);
+  const { reload: reloadList } = listRead;
 
   const shown = useRef<{ id: number; revision: number } | null>(null);
   /** Show `fresh`, keeping what was typed when it is the same claim at the same
@@ -91,23 +113,20 @@ export function BrandClaimsPage() {
       return;
     }
     const mine = ++request.current;
+    reloadList();
     try {
-      const [l, c] = await Promise.all([
-        api.get<BrandClaimList>(PAGE_API, { params: month ? { month } : {} }),
-        id ? api.get<BrandClaimDetail>(`${PAGE_API}/${id}`) : Promise.resolve(null),
-      ]);
+      const c = id ? await api.get<BrandClaimDetail>(`${PAGE_API}/${id}`) : null;
       if (mine !== request.current) return;
       setLost(false);
-      setList(l.data);
       // Opened from an alert or a link: show the claim's own month.
-      if (!month) setMonth(c ? c.data.month : l.data.month);
+      if (c) setMonth((current) => current || c.data.month);
       openClaim(c ? c.data : null);
     } catch (reason) {
       if (mine !== request.current) return;
       if (isConnectionLost(reason)) setLost(true);
       else setError(apiErrorMessage(reason));
     }
-  }, [id, month, openClaim]);
+  }, [id, openClaim, reloadList]);
 
   useEffect(() => {
     void load();
@@ -198,6 +217,7 @@ export function BrandClaimsPage() {
       <PageHeader
         title="Brand Claims"
         lead="At month end, the brand-funded share of each store's discounts becomes a claim on the brand, settled by the brand's commercial credit note."
+        actions={<UpdatedAgo updatedAt={listRead.updatedAt} fetching={listRead.fetching} />}
       />
       {offline && (
         <Note

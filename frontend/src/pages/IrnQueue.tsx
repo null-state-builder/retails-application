@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { FileCheck2, Link2Off, ReceiptText } from "lucide-react";
 
 import { api, apiErrorMessage } from "../lib/api";
@@ -7,6 +7,8 @@ import type { B2bTaxKind } from "../till/gstin";
 import { Money } from "../lib/format";
 import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { UpdatedAgo } from "../components/UpdatedAgo";
+import { useCachedGet } from "../lib/cachedQuery";
 import { SegmentedControl } from "../components/SegmentedControl";
 import { EmptyState } from "../components/States";
 import { Status } from "../components/Status";
@@ -168,27 +170,22 @@ function RecordPanel({ row, onDone }: { row: IrnRowT; onDone: () => void }) {
 
 export default function IrnQueue() {
   const [tab, setTab] = useState<IrnStatus>("pending");
-  const [queue, setQueue] = useState<QueueT>();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const load = useCallback(() => {
-    setLoading(true);
-    setError("");
-    api
-      .get("/sell/irn-queue", { params: { status: tab } })
-      .then((r) => setQueue(r.data))
-      .catch((e) => setError(apiErrorMessage(e)))
-      .finally(() => setLoading(false));
-  }, [tab]);
-
-  useEffect(load, [load]);
+  // Through the shared cache: a tab seen before shows at once and is read again
+  // behind it; `loading` is true only until the current tab's answer is in.
+  const read = useCachedGet<QueueT>("/sell/irn-queue", { params: { status: tab } });
+  const queue = read.data;
+  const loading = read.loading;
+  const error = read.error ? apiErrorMessage(read.error) : "";
+  const load = read.reload;
 
   const rows = queue?.rows ?? [];
 
   return (
     <div className="page-pad">
-      <PageHeader lead="Business bills waiting on an e-invoice reference. Thirty days from the sale." />
+      <PageHeader
+        lead="Business bills waiting on an e-invoice reference. Thirty days from the sale."
+        actions={<UpdatedAgo updatedAt={read.updatedAt} fetching={read.fetching} />}
+      />
 
       {queue && queue.overdue_count > 0 && (
         <Note tone="warn" testId="irn-overdue-banner">

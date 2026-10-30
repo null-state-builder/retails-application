@@ -11,6 +11,7 @@ import { api, apiErrorMessage } from "../lib/api";
 import { KpiStrip } from "../components/KpiStrip";
 import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { UpdatedAgo } from "../components/UpdatedAgo";
 import { Money } from "../lib/format";
 import { useDoc } from "../lib/hooks";
 import { settlementReceiptHtml } from "../lib/settlementReceipt";
@@ -74,6 +75,8 @@ export function PartnerDuesPage() {
     data: resp,
     loading,
     reload: reloadDues,
+    updatedAt,
+    fetching,
   } = useDoc<PartnerDuesResponse>("/outbound/partner-dues");
   const { data: settlements, reload: reloadSettlements } = useDoc<{ rows: SettlementRow[] }>(
     isFinance ? "/outbound/partner-settlements" : null,
@@ -145,7 +148,10 @@ export function PartnerDuesPage() {
 
   return (
     <div className="page-pad" data-testid="partner-dues-page">
-      <PageHeader lead="What every partner store owes so far, at Purchase Price, net of what Accounts has recorded as received. Nothing here edits a past entry — a correction is a reversing settlement, same as every other KDPS ledger." />
+      <PageHeader
+        lead="What every partner store owes so far, at Purchase Price, net of what Accounts has recorded as received. Nothing here edits a past entry — a correction is a reversing settlement, same as every other KDPS ledger."
+        actions={<UpdatedAgo updatedAt={updatedAt} fetching={fetching} />}
+      />
       {loading ? (
         <p>Loading…</p>
       ) : stores.length === 0 ? (

@@ -8,11 +8,12 @@
  *  It is a reading, never a step: nothing here holds up counting. Offline, the
  *  panel says so and reads again when the connection comes back. */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Scale } from "lucide-react";
 
 import { Note } from "../components/Note";
-import { api, apiErrorCode, apiErrorMessage } from "../lib/api";
+import { apiErrorCode, apiErrorMessage } from "../lib/api";
+import { useCachedGet } from "../lib/cachedQuery";
 import { formatPaiseString } from "../lib/format";
 import type { ResourceDTO } from "../lib/goodsScreen";
 import { bookedNote, qty, resultWords, type ThreeWayData } from "../lib/threeWayMatch";
@@ -38,45 +39,41 @@ export function useThreeWay(
   arrivalId: string | null | undefined,
   refresh: string | number = 0,
 ): ThreeWayState {
-  const [state, setState] = useState<ThreeWayState>({ kind: "loading" });
-  const [tick, setTick] = useState(0);
+  // Through the shared cache: an arrival opened before shows its match at once
+  // and is read again behind it.
+  const read = useCachedGet<ResourceDTO<ThreeWayData>, ThreeWayData>(
+    arrivalId ? `/goods-v1/inbound/arrivals/${arrivalId}/three-way-match` : null,
+    { kind: "doc", select: (r) => r.data, keepPrevious: false },
+  );
+  const { reload } = read;
 
   useEffect(() => {
-    const again = () => setTick((t) => t + 1);
-    window.addEventListener("online", again);
-    return () => window.removeEventListener("online", again);
-  }, []);
+    window.addEventListener("online", reload);
+    return () => window.removeEventListener("online", reload);
+  }, [reload]);
 
+  // A changed GRN or invoice asks again (not on first sight: that read is the
+  // cache's own).
+  const lastRefresh = useRef(refresh);
   useEffect(() => {
-    if (!arrivalId) {
-      setState({ kind: "off" });
-      return;
+    if (lastRefresh.current === refresh) return;
+    lastRefresh.current = refresh;
+    reload();
+  }, [refresh, reload]);
+
+  if (!arrivalId) return { kind: "off" };
+  if (read.error) {
+    const e = read.error;
+    const code = apiErrorCode(e);
+    const answered = Boolean((e as { response?: unknown })?.response);
+    if (code === "FEATURE_OFF" || code === "ACTION_DENIED" || code === "NOT_FOUND") {
+      return { kind: "off" };
     }
-    let live = true;
-    setState((now) =>
-      now.kind === "ready" && now.data.arrival_id === arrivalId ? now : { kind: "loading" },
-    );
-    api
-      .get<ResourceDTO<ThreeWayData>>(`/goods-v1/inbound/arrivals/${arrivalId}/three-way-match`)
-      .then((r) => live && setState({ kind: "ready", data: r.data.data }))
-      .catch((e) => {
-        if (!live) return;
-        const code = apiErrorCode(e);
-        const answered = Boolean((e as { response?: unknown })?.response);
-        if (code === "FEATURE_OFF" || code === "ACTION_DENIED" || code === "NOT_FOUND") {
-          setState({ kind: "off" });
-        } else if (!answered || !navigator.onLine) {
-          setState({ kind: "offline" });
-        } else {
-          setState({ kind: "failed", message: apiErrorMessage(e) });
-        }
-      });
-    return () => {
-      live = false;
-    };
-  }, [arrivalId, refresh, tick]);
-
-  return state;
+    if (!answered || !navigator.onLine) return { kind: "offline" };
+    return { kind: "failed", message: apiErrorMessage(e) };
+  }
+  if (read.data) return { kind: "ready", data: read.data };
+  return { kind: "loading" };
 }
 
 function money(value: string | null | undefined): string {

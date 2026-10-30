@@ -10,13 +10,15 @@
 // The single write on this screen is against an *exception*, and clearing one is
 // a statement about somebody's attention, never a correction to a bill (A7).
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Check, EyeOff, RefreshCw } from "lucide-react";
 
 import { api, apiErrorMessage } from "../lib/api";
 import { Money } from "../lib/format";
 import { PageHeader } from "../components/PageHeader";
+import { UpdatedAgo } from "../components/UpdatedAgo";
+import { useCachedGet } from "../lib/cachedQuery";
 import { OperationsPage } from "../components/OperationsPage";
 import { KpiStrip } from "../components/KpiStrip";
 import type { Kpi } from "../components/KpiStrip";
@@ -24,7 +26,6 @@ import { Note } from "../components/Note";
 import { Section } from "../components/Section";
 import { EmptyState, Loading } from "../components/States";
 import { Status } from "../components/Status";
-import { useAuth } from "../auth/AuthContext";
 import { tillToday } from "../till/pricing";
 import "./DaySummary.css";
 import { StorePicker, useNeedsStore } from "../components/StoreGate";
@@ -285,6 +286,8 @@ function ClearPanel({ flag, onDone }: { flag: FlagT; onDone: () => void }) {
   );
 }
 
+const NO_FLAGS: FlagT[] = [];
+
 const DAY_LEAD =
   "What the counter took, and what the day left open. Read-only - the day is agreed at store close.";
 
@@ -303,18 +306,11 @@ export default function DaySummary() {
 }
 
 function DaySummaryScreen() {
-  const { activeStore } = useAuth();
   const [params, setParams] = useSearchParams();
   // The store's own day, not the browser's UTC one - the same helper the till
   // prices its offers by, because "today" flipping at 18:30 IST is the defect
   // that class of bug already produced once.
   const day = params.get("date") || tillToday();
-  const [summary, setSummary] = useState<SummaryT>();
-  const [open, setOpen] = useState<FlagT[]>([]);
-  const [settled, setSettled] = useState<FlagT[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const requestVersion = useRef(0);
 
   // **Open exceptions are never narrowed to the picked day; settled ones are.**
   // They are the work, and this is the rule the IRN queue already holds to: a
@@ -323,34 +319,39 @@ function DaySummaryScreen() {
   // from that row and being told "nothing to look at" because the picker had
   // defaulted to this morning would be the card lying about itself. The picker
   // still governs the money above and the history behind.
+  //
+  // Read through the shared cache, keyed by person, store and role (the store
+  // is the one this screen is gated on, and the one the unit header carries):
+  // a day seen before shows at once and is read again behind it.
+  const summaryRead = useCachedGet<SummaryT>("/store/cash-summary", {
+    params: { date: day },
+    kind: "doc",
+  });
+  const openRead = useCachedGet<{ rows: FlagT[] }>("/sell/flags", {
+    params: { status: "open" },
+  });
+  const dayRead = useCachedGet<{ rows: FlagT[] }>("/sell/flags", {
+    params: { date: day, status: "all" },
+  });
+  const loading = summaryRead.loading || openRead.loading || dayRead.loading;
+  const fetching = summaryRead.fetching || openRead.fetching || dayRead.fetching;
+  const failed = summaryRead.error ?? openRead.error ?? dayRead.error;
+  const error = failed ? apiErrorMessage(failed) : "";
+  const summary = failed ? undefined : summaryRead.data;
+  const open = openRead.data?.rows ?? NO_FLAGS;
+  const dayRows = dayRead.data?.rows;
+  const settled = useMemo(
+    () => (dayRows ?? NO_FLAGS).filter((row) => row.status !== "open"),
+    [dayRows],
+  );
+  const { reload: reloadSummary } = summaryRead;
+  const { reload: reloadOpen } = openRead;
+  const { reload: reloadDay } = dayRead;
   const load = useCallback(() => {
-    const version = ++requestVersion.current;
-    const headers = { "X-KDPS-Unit": activeStore?.id == null ? "" : String(activeStore.id) };
-    setLoading(true);
-    setError("");
-    setSummary(undefined);
-    setOpen([]);
-    setSettled([]);
-    Promise.all([
-      api.get("/store/cash-summary", { params: { date: day }, headers }),
-      api.get("/sell/flags", { params: { status: "open" }, headers }),
-      api.get("/sell/flags", { params: { date: day, status: "all" }, headers }),
-    ])
-      .then(([s, live, ofDay]) => {
-        if (version !== requestVersion.current) return;
-        setSummary(s.data);
-        setOpen(live.data.rows as FlagT[]);
-        setSettled((ofDay.data.rows as FlagT[]).filter((row) => row.status !== "open"));
-      })
-      .catch((e) => {
-        if (version === requestVersion.current) setError(apiErrorMessage(e));
-      })
-      .finally(() => {
-        if (version === requestVersion.current) setLoading(false);
-      });
-  }, [day, activeStore?.id]);
-
-  useEffect(load, [load]);
+    reloadSummary();
+    reloadOpen();
+    reloadDay();
+  }, [reloadSummary, reloadOpen, reloadDay]);
 
   return (
     <OperationsPage>
@@ -358,6 +359,7 @@ function DaySummaryScreen() {
         lead={DAY_LEAD}
         actions={
           <>
+            <UpdatedAgo updatedAt={summaryRead.updatedAt} fetching={fetching} />
             {summary && <span className="muted-cell">{summary.store}</span>}
             <label className="sr-only" htmlFor="day-summary-date">
               Day
@@ -371,7 +373,7 @@ function DaySummaryScreen() {
               onChange={(e) => setParams(e.target.value ? { date: e.target.value } : {})}
               data-testid="day-picker"
             />
-            <button className="btn" data-testid="day-retry" disabled={loading} onClick={load}>
+            <button className="btn" data-testid="day-retry" disabled={fetching} onClick={load}>
               <RefreshCw size={15} aria-hidden="true" /> Read again
             </button>
           </>
