@@ -41,7 +41,7 @@ How the KDPS Design Language v2 moves from the design artifacts into `frontend/`
 
 ## Phases
 
-### Phase 0: prepare (½ day)
+### Phase 0: prepare (½ day) — done 30 Oct 2026 (`6629b2b`)
 
 - Commit or park the uncommitted `src/pages/sell/Till.css` and `Till.tsx` changes that are on the branch now, so v2 starts from a clean tree.
 - Add `browser/visual-baseline.spec.ts`.
@@ -70,10 +70,12 @@ How the KDPS Design Language v2 moves from the design artifacts into `frontend/`
 - **Base type:** body 14/20, letter-spacing 0.16px, `b, strong { font-weight: 600 }`.
 - **Browser chrome:** update `META_LIGHT` and `META_DARK` in `theme/theme.ts` and the inline script in `index.html` to the new paper colours (`#f7f6f3`, `#1d1c1a`).
 - **Density:**
-  - Write `data-density` on `<html>` from the role at sign-in: `store_person` → `counter`, managers → `desk`, head office and warehouse → `compact`.
-  - A person's override is stored with their profile (a Profile setting).
+  - Write `data-density` on `<html>` from the role at sign-in: `store_person` → `counter`, everyone else → `desk`. Compact is opt-in, as the design system's Density spec says.
+  - A person's override is read from `kdps-density` in the browser for now (`theme/density.ts`); storing it with their profile needs an API change and is a follow-up.
   - Add the density blocks from the design system's `bundle.css`.
   - Add a `src/theme/layout.ts` that exports the breakpoints for code that needs them (pane docking, column priority).
+- **Button sizes follow density** (decision 7): Desk 13px/600 on 36px, Counter 14px/600 on 44px, Compact 13px/600 on 32px, through a `--btn-text` token beside `--control`. Commit buttons (Take payment, Save & print, Post goods) stay 44px in every density. Till & Sync's page-only 13px override is deleted.
+- **Links** (decision 6): `a` and `.link` are underlined in `--navy`, with a 2px underline offset, everywhere.
 
 **Result:** every screen in the new colours, typeface and base size, with nothing restructured yet.
 
@@ -101,18 +103,21 @@ Each area's PR shows its before and after screenshots.
 
 Map each design-system component onto what exists, extending a component rather than adding a parallel one.
 
-| v2 component                                      | App today                                                    | Change                                                                                                                                                                                   |
-| ------------------------------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Section                                           | `.card`, `.section-card`, `.stat-card` used as page dividers | new `Section` (`heading` + optional link, unboxed); `.box` kept for tables, record pane and bill                                                                                         |
-| KpiStrip                                          | `StatTile`, `.stat-grid`                                     | one lead figure with a same-weekday sentence, then an unboxed strip                                                                                                                      |
-| Status (Chip)                                     | tone chips across `index.css` and `Shared.css`               | `.status` dot + word; filled `.chip` only for amber/red/blue states that need action                                                                                                     |
-| Table                                             | `.kdps-table`, `.data-table`, `.ledger-table`                | row height from density, 16px cell padding, `.pin-col`, `.p2` from 1600 and `.p3` from 1920, a "Columns (n hidden)" menu, a single last-cell action menu                                 |
-| SplitView pane                                    | `.split` + `.aside`, breakpoint 1100                         | `.pane`, border-left only, docks from 1200. 360px default, resizable 320–440, width stored per person. 420px from 1600. The sidebar folds to the rail while a record is open below 1600. |
-| PageHeader                                        | `components/PageHeader.tsx`                                  | title 20/600 navy; a lead sentence stating where things stand; a hairline under it                                                                                                       |
-| EmptyState, ErrorState                            | `components/States.tsx`                                      | left-aligned, a heading, one line, the action                                                                                                                                            |
-| Note                                              | `.note` variants                                             | 3px left bar, ink text                                                                                                                                                                   |
-| Buttons                                           | `.btn-*`                                                     | radius 4. `btn-cta` only for the one action that commits money or stock; delete and void become `btn-danger` (audit the 78 files using `btn-cta`).                                       |
-| SegmentedControl, FilterChip, SearchBox, Combobox | existing                                                     | v2 styles; no API change                                                                                                                                                                 |
+| v2 component                                      | App today                                                    | Change                                                                                                                                                                                                                                     |
+| ------------------------------------------------- | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Section                                           | `.card`, `.section-card`, `.stat-card` used as page dividers | new `Section` (`heading` + optional link, unboxed); `.box` kept for tables, record pane and bill                                                                                                                                           |
+| KpiStrip                                          | `StatTile`, `.stat-grid`                                     | one lead figure with a same-weekday sentence, then an unboxed strip                                                                                                                                                                        |
+| Status (Chip)                                     | tone chips across `index.css` and `Shared.css`               | `.status` dot + word; filled `.chip` only for amber/red/blue states that need action                                                                                                                                                       |
+| Table                                             | `.kdps-table`, `.data-table`, `.ledger-table`                | row height from density, 16px cell padding, `.pin-col`, `.p2` from 1600 and `.p3` from 1920, a "Columns (n hidden)" menu, a single last-cell action menu                                                                                   |
+| SplitView pane                                    | `.split` + `.aside`, breakpoint 1100                         | `.pane`, border-left only, docks from 1200. 360px default, resizable 320–440, width stored per person. 420px from 1600. The sidebar folds to the rail while a record is open below 1600.                                                   |
+| PageHeader                                        | `components/PageHeader.tsx`                                  | title 20/600 navy; a lead sentence stating where things stand; a hairline under it                                                                                                                                                         |
+| EmptyState, ErrorState                            | `components/States.tsx`                                      | left-aligned, a heading, one line, the action                                                                                                                                                                                              |
+| Note                                              | `.note` variants                                             | 3px left bar, ink text                                                                                                                                                                                                                     |
+| Buttons                                           | `.btn-*`                                                     | radius 4. `btn-cta` only for the one action that commits money or stock; delete and void become `btn-danger` (audit the 78 files using `btn-cta`).                                                                                         |
+| SegmentedControl, FilterChip, SearchBox, Combobox | existing                                                     | v2 styles; no API change                                                                                                                                                                                                                   |
+| Switch                                            | `.till-switch` (Till), checkboxes and label-flipping buttons | one `Switch` for settings that save on flip, with "On" / "Off" written beside it (decision 8). First users: Feature Switches (with a third state, "On, held off"), a product's no-discount setting, broken-size rules, Till's scan sounds. |
+| SettingRow                                        | `TaskRow` in `Till.tsx`; hand-built rows in settings pages   | title and sentence on the left, the control in a right column at least 140px wide, an inline form opening below (decision 9)                                                                                                               |
+| View filters                                      | "Show retired", "Only mine" and similar checkboxes           | `FilterChip`s in the list toolbar. Where the filter swaps the whole list (Organisation's "Show retired"), a two-option `SegmentedControl`: Active / Retired (decision 10).                                                                 |
 
 Write each component's contract from its design-system README into a short comment at the top of the component file.
 
@@ -183,12 +188,19 @@ In order of cashier traffic. Each screen is one PR, built to its board on the ca
 
 Phases 1–2 can ship as one visible release, so the whole app changes look at once. Phases 3–6 ship screen by screen behind no flag, because each screen is complete when it lands.
 
-## Decisions needed before Phase 1
+## Decisions (accepted 30 Oct 2026)
 
-| #   | Question                                                                                                     | Recommendation                                                                                                            |
+| #   | Question                                                                                                     | Decision                                                                                                                  |
 | --- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
 | 1   | Cashier density outside the counter workspaces (Bills, Customers, Stock)                                     | **Counter everywhere for `store_person`.** One setting is simpler to train, and the person can switch to Desk in Profile. |
 | 2   | Billing shortcuts. The research suggests Alt keys (Lightspeed style); the app and staff use F2/F3/F4/F9/Esc. | **Keep the F-keys.** They are one press, already taught, and printed on the boards. Update the TillLayout spec to match.  |
 | 3   | Red as the commit colour                                                                                     | **Keep `cta` red for the one action that commits money or stock.** Delete and void move to red outline and text.          |
 | 4   | Rust                                                                                                         | **Keep rust's one job:** where you are (active nav, focus, current step, last scan). It leaves charts and decoration.     |
 | 5   | Ship Phases 1–2 as one release or area by area                                                               | **One release.** A half-switched app looks broken; the token aliases keep the risk low.                                   |
+| 6   | Buttons or links                                                                                             | **Actions are buttons, places are links.** Every link looks the same: underlined, in the link colour.                     |
+| 7   | Button size                                                                                                  | **By density:** Desk 13/600 on 36px, Counter 14/600 on 44px, Compact 13/600 on 32px. Commit buttons stay 44px.            |
+| 8   | On/off settings                                                                                              | **`Switch`** with "On" / "Off" beside it, saved the moment it is flipped. Two named options use a `SegmentedControl`.     |
+| 9   | Rows of settings with a control on the right                                                                 | **`SettingRow`** shared component, control column at least 140px. Table rows and status-band rows keep their own layout.  |
+| 10  | View filters                                                                                                 | **Filter chips** in the list toolbar; a filter that swaps the whole list is a two-option `SegmentedControl`.              |
+
+Decisions 6–10 came from the Till & Sync design session; the 22 two-option controls it found, built six ways today, all move to `SegmentedControl` in Phase 3.
