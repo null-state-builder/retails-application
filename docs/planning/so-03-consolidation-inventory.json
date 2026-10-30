@@ -6653,27 +6653,6 @@
       "lifecycle": "temporary_supported_legacy"
     },
     {
-      "id": "S2819",
-      "kind": "api_consumer",
-      "key_regex": "^api_consumer:frontend/src/pages/Bookings\\.tsx:10df4562a3fd$",
-      "primary_id": "C04",
-      "lifecycle": "temporary_supported_legacy"
-    },
-    {
-      "id": "S2820",
-      "kind": "api_consumer",
-      "key_regex": "^api_consumer:frontend/src/pages/Bookings\\.tsx:b80008a07916$",
-      "primary_id": "C04",
-      "lifecycle": "temporary_supported_legacy"
-    },
-    {
-      "id": "S2821",
-      "kind": "api_consumer",
-      "key_regex": "^api_consumer:frontend/src/pages/Bookings\\.tsx:d365507bf4b5$",
-      "primary_id": "C04",
-      "lifecycle": "temporary_supported_legacy"
-    },
-    {
       "id": "S0849",
       "kind": "api_consumer",
       "key_regex": "^api_consumer:frontend/src/pages/BrandClaims\\.tsx:c0dcf14f10e4$",
@@ -24273,15 +24252,15 @@
         "C15"
       ],
       "lifecycle": "temporary_supported_legacy",
-      "authorization": "opening.import.stage at the exact store in one scoped assignment; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. SITE-before-DOCUMENT lock order.",
-      "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. New barcodes are staged as a C05 top-up SohImport for review, never invented.",
+      "authorization": "opening.import.stage at the exact store in one scoped assignment (store_person, warehouse or operations_head; owner keeps it for visibility) for upload, preview, apply, discard, the review row list and acknowledge; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. A stale export is refused at upload and apply (STOCK_SYNC_STALE); the same file and export time is a no-op. SITE-before-DOCUMENT lock order.",
+      "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. Every row that differs from the book is categorised (SOH_ONLY, PT_ONLY, SOH_ABOVE, SOH_BELOW, MRP_DIFFERS) with book and SOH MRP and flagged to the store's store_person through one stock_sync_review exception per sync, never one per row. SOH-only barcodes are flagged only: no item, stock or top-up SohImport is created (the old _top_up path is removed); they become real only when a PT containing them is opened. Acknowledging a row records review_state/reviewed_by/reviewed_at and changes no stock or item.",
       "acceptance_evidence": "backend/tests/test_legacy_sync.py on the exact revision; store test run browser journey recorded in docs/planning/store-test-run-runbook.md.",
       "removal_condition": "Retire with the store test run at real-store cutover (SO-22): the synthetic tenant is closed and no real tenant can reach these surfaces.",
       "migration_requirements": "Test-tenant coexistence decision: docs/planning/store-test-run-decision.md. Test bills are reversed from their own sale journal (goods-v1 bill cancel does not restore stock); a reversed portion is never reversed twice. A sales report covered by an applied SOH is refused.",
       "access_contract": {
         "trace_status": "pending",
         "required_action": "opening.import.stage",
-        "reviewed_chain": "ptmapper.stock_sync_views / legacy_sales_views -> AccessContext.require(opening.import.stage, site) -> stock_sync_services / legacy_sales_services (require_test_store) -> stockledger.goods_engine P22 post."
+        "reviewed_chain": "ptmapper.stock_sync_views (upload, detail, rows, rows/acknowledge, apply/discard) / legacy_sales_views -> AccessContext.require(opening.import.stage, site) -> stock_sync_services / legacy_sales_services (require_test_store) -> stockledger.goods_engine P22 post; one alerts.goods_services stock_sync_review exception per applied sync, resolved when every flagged row is acknowledged."
       }
     },
     {
@@ -24297,15 +24276,15 @@
         "C15"
       ],
       "lifecycle": "temporary_supported_legacy",
-      "authorization": "opening.import.stage at the exact store in one scoped assignment; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. SITE-before-DOCUMENT lock order.",
-      "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. New barcodes are staged as a C05 top-up SohImport for review, never invented.",
+      "authorization": "opening.import.stage at the exact store in one scoped assignment (store_person, warehouse or operations_head; owner keeps it for visibility) for upload, preview, apply, discard, the review row list and acknowledge; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. A stale export is refused at upload and apply (STOCK_SYNC_STALE); the same file and export time is a no-op. SITE-before-DOCUMENT lock order.",
+      "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. Every row that differs from the book is categorised (SOH_ONLY, PT_ONLY, SOH_ABOVE, SOH_BELOW, MRP_DIFFERS) with book and SOH MRP and flagged to the store's store_person through one stock_sync_review exception per sync, never one per row. SOH-only barcodes are flagged only: no item, stock or top-up SohImport is created (the old _top_up path is removed); they become real only when a PT containing them is opened. Acknowledging a row records review_state/reviewed_by/reviewed_at and changes no stock or item.",
       "acceptance_evidence": "backend/tests/test_legacy_sync.py on the exact revision; store test run browser journey recorded in docs/planning/store-test-run-runbook.md.",
       "removal_condition": "Retire with the store test run at real-store cutover (SO-22): the synthetic tenant is closed and no real tenant can reach these surfaces.",
       "migration_requirements": "Test-tenant coexistence decision: docs/planning/store-test-run-decision.md. Test bills are reversed from their own sale journal (goods-v1 bill cancel does not restore stock); a reversed portion is never reversed twice. A sales report covered by an applied SOH is refused.",
       "access_contract": {
         "trace_status": "pending",
         "required_action": "opening.import.stage",
-        "reviewed_chain": "ptmapper.stock_sync_views / legacy_sales_views -> AccessContext.require(opening.import.stage, site) -> stock_sync_services / legacy_sales_services (require_test_store) -> stockledger.goods_engine P22 post."
+        "reviewed_chain": "ptmapper.stock_sync_views (upload, detail, rows, rows/acknowledge, apply/discard) / legacy_sales_views -> AccessContext.require(opening.import.stage, site) -> stock_sync_services / legacy_sales_services (require_test_store) -> stockledger.goods_engine P22 post; one alerts.goods_services stock_sync_review exception per applied sync, resolved when every flagged row is acknowledged."
       }
     },
     {
@@ -24405,36 +24384,6 @@
       "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
     },
     {
-      "id": "STORE-TEST-505",
-      "kind": "api_consumer",
-      "key_regex": "^api_consumer:frontend/src/pages/StockSync\\.tsx:1f9245765ef0$",
-      "primary_id": "C08",
-      "lifecycle": "temporary_supported_legacy",
-      "related_ids": [
-        "A00",
-        "C05",
-        "C06",
-        "C10",
-        "C15"
-      ],
-      "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
-    },
-    {
-      "id": "STORE-TEST-506",
-      "kind": "api_consumer",
-      "key_regex": "^api_consumer:frontend/src/pages/StockSync\\.tsx:d4066fc2fff0$",
-      "primary_id": "C08",
-      "lifecycle": "temporary_supported_legacy",
-      "related_ids": [
-        "A00",
-        "C05",
-        "C06",
-        "C10",
-        "C15"
-      ],
-      "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
-    },
-    {
       "id": "STORE-TEST-106",
       "kind": "migration",
       "key_regex": "^migration:core\\.migrations\\.0013_legacy_sync$",
@@ -24452,7 +24401,7 @@
     {
       "id": "STORE-TEST-107",
       "kind": "migration",
-      "key_regex": "^migration:ptmapper\\.migrations\\.(0020_legacy_sync|0021_stock_sync_discarded_source)$",
+      "key_regex": "^migration:ptmapper\\.migrations\\.(0020_legacy_sync|0021_stock_sync_discarded_source|0022_stock_sync_review)$",
       "primary_id": "C08",
       "lifecycle": "temporary_supported_legacy",
       "related_ids": [
@@ -24507,7 +24456,8 @@
         "C10",
         "C15"
       ],
-      "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
+      "removal_condition": "Retire with the store test run at real-store cutover (SO-22).",
+      "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. Every row that differs from the book is categorised (SOH_ONLY, PT_ONLY, SOH_ABOVE, SOH_BELOW, MRP_DIFFERS) with book and SOH MRP and flagged to the store's store_person through one stock_sync_review exception per sync, never one per row. SOH-only barcodes are flagged only: no item, stock or top-up SohImport is created (the old _top_up path is removed); they become real only when a PT containing them is opened. Acknowledging a row records review_state/reviewed_by/reviewed_at and changes no stock or item."
     },
     {
       "id": "STORE-TEST-111",
@@ -24522,7 +24472,8 @@
         "C10",
         "C15"
       ],
-      "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
+      "removal_condition": "Retire with the store test run at real-store cutover (SO-22).",
+      "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. Every row that differs from the book is categorised (SOH_ONLY, PT_ONLY, SOH_ABOVE, SOH_BELOW, MRP_DIFFERS) with book and SOH MRP and flagged to the store's store_person through one stock_sync_review exception per sync, never one per row. SOH-only barcodes are flagged only: no item, stock or top-up SohImport is created (the old _top_up path is removed); they become real only when a PT containing them is opened. Acknowledging a row records review_state/reviewed_by/reviewed_at and changes no stock or item."
     },
     {
       "id": "STORE-TEST-112",
@@ -24626,7 +24577,8 @@
         "C10",
         "C15"
       ],
-      "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
+      "removal_condition": "Retire with the store test run at real-store cutover (SO-22).",
+      "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. Every row that differs from the book is categorised (SOH_ONLY, PT_ONLY, SOH_ABOVE, SOH_BELOW, MRP_DIFFERS) with book and SOH MRP and flagged to the store's store_person through one stock_sync_review exception per sync, never one per row. SOH-only barcodes are flagged only: no item, stock or top-up SohImport is created (the old _top_up path is removed); they become real only when a PT containing them is opened. Acknowledging a row records review_state/reviewed_by/reviewed_at and changes no stock or item."
     },
     {
       "id": "STORE-TEST-120",
@@ -24641,7 +24593,8 @@
         "C10",
         "C15"
       ],
-      "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
+      "removal_condition": "Retire with the store test run at real-store cutover (SO-22).",
+      "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. Every row that differs from the book is categorised (SOH_ONLY, PT_ONLY, SOH_ABOVE, SOH_BELOW, MRP_DIFFERS) with book and SOH MRP and flagged to the store's store_person through one stock_sync_review exception per sync, never one per row. SOH-only barcodes are flagged only: no item, stock or top-up SohImport is created (the old _top_up path is removed); they become real only when a PT containing them is opened. Acknowledging a row records review_state/reviewed_by/reviewed_at and changes no stock or item."
     },
     {
       "id": "STORE-TEST-121",
@@ -24674,6 +24627,38 @@
       "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
     },
     {
+      "id": "STORE-TEST-123",
+      "kind": "api_consumer",
+      "key_regex": "^api_consumer:frontend/src/pages/StockSync\\.tsx:1f9245765ef0$",
+      "primary_id": "C08",
+      "lifecycle": "temporary_supported_legacy",
+      "related_ids": [
+        "A00",
+        "C05",
+        "C06",
+        "C10",
+        "C15"
+      ],
+      "callers": "frontend/src/pages/StockSync.tsx GET stock-syncs/{id}/rows: the flagged-row review list.",
+      "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
+    },
+    {
+      "id": "STORE-TEST-124",
+      "kind": "api_consumer",
+      "key_regex": "^api_consumer:frontend/src/pages/StockSync\\.tsx:d4066fc2fff0$",
+      "primary_id": "C08",
+      "lifecycle": "temporary_supported_legacy",
+      "related_ids": [
+        "A00",
+        "C05",
+        "C06",
+        "C10",
+        "C15"
+      ],
+      "callers": "frontend/src/pages/StockSync.tsx POST stock-syncs/{id}/rows/acknowledge: marks flagged rows seen.",
+      "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
+    },
+    {
       "id": "STORE-TEST-200",
       "kind": "navigation",
       "key_regex": "^navigation:receive_goods:/goods/stock\\-sync$",
@@ -24703,7 +24688,7 @@
     {
       "id": "STORE-TEST-400",
       "kind": "command",
-      "key_regex": "^command:(load_test_store|load_pt_opening)$",
+      "key_regex": "^command:(load_test_store|open_test_store)$",
       "primary_id": "C05",
       "related_ids": [
         "A00",
@@ -24712,13 +24697,13 @@
         "C08"
       ],
       "lifecycle": "temporary_supported_legacy",
-      "authorization": "Operator shell only; refuses a non-synthetic tenant. Drives the canonical SOH → manifest → opening PT → acceptance writers with distinct synthetic people.",
+      "authorization": "Operator shell only; refuses a non-synthetic tenant. load_test_store builds the store, people and approval policies (with --setup it publishes the pt.approve.opening policy carrying auto_approve_test_store_opening from setup.json opening.approval=false). open_test_store stages the PT as --uploader, who must hold opening.import.stage at the store, and queues the same opening_load job the upload does (pt_opening_services.request_load: the uploader, or an owner while approvals are on); --foreground runs it in-process under the same advisory lock.",
       "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
     },
     {
       "id": "STORE-TEST-401",
       "kind": "module",
-      "key_regex": "^module:(accounts\\.management\\.commands\\.load_test_store|ptmapper\\.management\\.commands\\.load_pt_opening)$",
+      "key_regex": "^module:(accounts\\.management\\.commands\\.load_test_store|ptmapper\\.management\\.commands\\.open_test_store)$",
       "primary_id": "C05",
       "related_ids": [
         "A00",
@@ -24727,7 +24712,7 @@
         "C08"
       ],
       "lifecycle": "temporary_supported_legacy",
-      "authorization": "Operator shell only; refuses a non-synthetic tenant. Drives the canonical SOH → manifest → opening PT → acceptance writers with distinct synthetic people.",
+      "authorization": "Operator shell only; refuses a non-synthetic tenant. load_test_store builds the store, people and approval policies (with --setup it publishes the pt.approve.opening policy carrying auto_approve_test_store_opening from setup.json opening.approval=false). open_test_store stages the PT as --uploader, who must hold opening.import.stage at the store, and queues the same opening_load job the upload does (pt_opening_services.request_load: the uploader, or an owner while approvals are on); --foreground runs it in-process under the same advisory lock.",
       "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
     },
     {
@@ -24742,7 +24727,46 @@
         "C08"
       ],
       "lifecycle": "temporary_supported_legacy",
-      "authorization": "Operator shell only; refuses a non-synthetic tenant. Drives the canonical SOH → manifest → opening PT → acceptance writers with distinct synthetic people.",
+      "authorization": "Operator shell only; refuses a non-synthetic tenant. Drives the canonical SOH → manifest → opening PT → acceptance writers one idempotent step at a time (OpeningDriver.next_step) as the store's opening preparer; each approval is either the preparer's NO_APPROVAL_REQUIRED decision under the flagged policy or waits for a normal approver.",
+      "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
+    },
+    {
+      "id": "STORE-TEST-403",
+      "kind": "command",
+      "key_regex": "^command:sync_soh$",
+      "primary_id": "C08",
+      "related_ids": [
+        "A00",
+        "C05",
+        "C06",
+        "C10",
+        "C15"
+      ],
+      "lifecycle": "temporary_supported_legacy",
+      "authorization": "Operator shell only; refuses a non-synthetic tenant. Runs the same stock_sync_services commands as the Legacy sync page as --uploader's own login, refused unless it holds opening.import.stage at the store; only the web password re-entry is skipped.",
+      "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. Every row that differs from the book is categorised (SOH_ONLY, PT_ONLY, SOH_ABOVE, SOH_BELOW, MRP_DIFFERS) with book and SOH MRP and flagged to the store's store_person through one stock_sync_review exception per sync, never one per row. SOH-only barcodes are flagged only: no item, stock or top-up SohImport is created (the old _top_up path is removed); they become real only when a PT containing them is opened. Acknowledging a row records review_state/reviewed_by/reviewed_at and changes no stock or item.",
+      "removal_condition": "Retire with the store test run at real-store cutover (SO-22).",
+      "access_contract": {
+        "trace_status": "pending",
+        "required_action": "opening.import.stage",
+        "reviewed_chain": "ptmapper.management.commands.sync_soh -> AccessContext.require(opening.import.stage, site) -> execute_command -> stock_sync_services stage/apply (require_test_store) -> stockledger.goods_engine P22 post."
+      }
+    },
+    {
+      "id": "STORE-TEST-404",
+      "kind": "module",
+      "key_regex": "^module:ptmapper\\.management\\.commands\\.sync_soh$",
+      "primary_id": "C08",
+      "related_ids": [
+        "A00",
+        "C05",
+        "C06",
+        "C10",
+        "C15"
+      ],
+      "lifecycle": "temporary_supported_legacy",
+      "authorization": "Operator shell only; refuses a non-synthetic tenant. Runs the same stock_sync_services commands as the Legacy sync page as --uploader's own login, refused unless it holds opening.import.stage at the store; only the web password re-entry is skipped.",
+      "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. Every row that differs from the book is categorised (SOH_ONLY, PT_ONLY, SOH_ABOVE, SOH_BELOW, MRP_DIFFERS) with book and SOH MRP and flagged to the store's store_person through one stock_sync_review exception per sync, never one per row. SOH-only barcodes are flagged only: no item, stock or top-up SohImport is created (the old _top_up path is removed); they become real only when a PT containing them is opened. Acknowledging a row records review_state/reviewed_by/reviewed_at and changes no stock or item.",
       "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
     },
     {
@@ -24757,15 +24781,15 @@
         "C08"
       ],
       "lifecycle": "temporary_supported_legacy",
-      "authorization": "Upload: opening.import.stage at the exact store. Load: opening.manifest.approve with cost and financial on every source cell, a recent step-up, and a caller who neither uploaded nor prepared the source. Both refused with TEST_TENANT_ONLY unless the tenant is synthetic (stock_sync_services.require_test_store). The load then runs as three distinct synthetic people through the canonical opening writers.",
-      "data_ownership": "Store test run only: the legacy software is the only real book. PT workbooks become one SohImport (normalised evidence workbook, original file hashes in metadata; cost = P RATE by owner decision 28 Oct 2026). Stock moves only through the canonical SOH -> manifest -> opening PT -> acceptance writers; problem rows are excluded with their reason, never invented.",
+      "authorization": "Upload: opening.import.stage at the exact store (store_person, warehouse or operations_head; owner keeps it for visibility). While the pt.approve.opening policy in force carries auto_approve_test_store_opening, the upload queues the opening_load job (opening.load.enqueue) and every source, manifest and opening PT decision is recorded APPROVED with reason NO_APPROVAL_REQUIRED by the preparer (the maker), with no step-up, after approvals.goods_policy.enforce_auto rechecks the pinned policy is still in force and still flagged; there is no fallback, and without the flag each request waits for its normal approver. Load/resume: the uploader, who still holds opening.import.stage, or - only while approvals are on - an owner holding opening.manifest.approve with cost and financial on every source cell. Both refused with TEST_TENANT_ONLY unless the tenant is synthetic (stock_sync_services.require_test_store).",
+      "data_ownership": "Store test run only: the legacy software is the only real book. PT workbooks become one SohImport (normalised evidence workbook, original file hashes in metadata; the same parsed file again is the same source; cost = P RATE by owner decision 28 Oct 2026). Stock moves only through the canonical SOH -> manifest -> opening PT -> acceptance writers, run by the opening_load job as the store's opening preparer; problem rows are excluded with their reason, never invented. Later PTs open only barcodes the store does not have yet.",
       "acceptance_evidence": "backend/tests/test_pt_opening.py on the exact revision; store test run browser journey recorded in docs/planning/store-test-run-runbook.md.",
       "removal_condition": "Retire with the store test run at real-store cutover (SO-22): the synthetic tenant is closed and no real tenant can reach these surfaces.",
       "migration_requirements": "Test-tenant coexistence decision: docs/planning/store-test-run-decision.md. A second full opening stays refused (SOH_RECONCILIATION_REQUIRED); an SOH sync before any opening is refused (OPENING_REQUIRED).",
       "access_contract": {
         "trace_status": "pending",
-        "required_action": "opening.import.stage / opening.manifest.approve",
-        "reviewed_chain": "ptmapper.soh_views SohImportPtUploadView / SohImportLoadView -> AccessContext.require / covers_all -> pt_opening_services.check (require_test_store, SELF_APPROVAL) -> accounts.test_store_loader.OpeningDriver -> soh_services / goods_manifest_services / goods_acceptance."
+        "required_action": "opening.import.stage / opening.load.enqueue / opening.manifest.approve",
+        "reviewed_chain": "ptmapper.soh_views SohImportPtUploadView / SohImportLoadView -> AccessContext.require(opening.import.stage) -> soh_services.create_source -> pt_opening_services.enqueue / request_load (require_test_store, may_load) -> core.outbox opening_load -> pt_opening_services.run_load (advisory lock, preparer job_access) -> accounts.test_store_loader.OpeningDriver.next_step -> soh_services / goods_manifest_services / goods_acceptance; decisions via approvals.goods_services.decide_without_second_person + ptmapper.opening_auto rule."
       }
     },
     {
@@ -24794,7 +24818,31 @@
         "C08"
       ],
       "lifecycle": "temporary_supported_legacy",
-      "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
+      "removal_condition": "Retire with the store test run at real-store cutover (SO-22).",
+      "authorization": "Queues and runs a test store's opening load as a durable core.outbox job (opening_load, command opening.load.enqueue), never a web thread. request_load admits the uploader, or an owner with opening.manifest.approve (cost, financial) only while approvals are on; refuses a real store, a withdrawn or finished source and a store with no opening preparer. The job acts as the preparer through a session-free AccessContext compiled from current RoleAssignments (job_access, as files.goods_exports.requester_access).",
+      "data_ownership": "Progress only in SohImport.reconciliation.quick_load (outside the review hash); running state is the job's own OutboxIntent. A session-level pg advisory lock per source replaces the 30-minute stale lock; each job works about 90 s then queues its continuation (uuid5 request key) inside the 120 s lease. All stock and document writes stay with the canonical opening writers."
+    },
+    {
+      "id": "STORE-TEST-503",
+      "kind": "job_handler",
+      "key_regex": "^job_handler:opening_load$",
+      "primary_id": "C05",
+      "related_ids": [
+        "A00",
+        "C01",
+        "C06",
+        "C08"
+      ],
+      "lifecycle": "temporary_supported_legacy",
+      "authorization": "Queues and runs a test store's opening load as a durable core.outbox job (opening_load, command opening.load.enqueue), never a web thread. request_load admits the uploader, or an owner with opening.manifest.approve (cost, financial) only while approvals are on; refuses a real store, a withdrawn or finished source and a store with no opening preparer. The job acts as the preparer through a session-free AccessContext compiled from current RoleAssignments (job_access, as files.goods_exports.requester_access).",
+      "data_ownership": "Progress only in SohImport.reconciliation.quick_load (outside the review hash); running state is the job's own OutboxIntent. A session-level pg advisory lock per source replaces the 30-minute stale lock; each job works about 90 s then queues its continuation (uuid5 request key) inside the 120 s lease. All stock and document writes stay with the canonical opening writers.",
+      "acceptance_evidence": "backend/tests/test_pt_opening.py and test_opening_auto_approval.py on the exact revision; scripts/rehearse_store_opening.sh --twice results recorded against that revision.",
+      "removal_condition": "Retire with the store test run at real-store cutover (SO-22): the synthetic tenant is closed and no real tenant can reach these surfaces.",
+      "access_contract": {
+        "trace_status": "pending",
+        "required_action": "opening.load.enqueue",
+        "reviewed_chain": "ptmapper.apps registers opening_load -> pt_opening_services.run_load -> source_lock (pg_try_advisory_lock) -> preparer_for/job_access -> drive -> accounts.test_store_loader.OpeningDriver.next_step -> canonical opening writers; continuation via enqueue(after=...)."
+      }
     },
     {
       "id": "STORE-TEST-504",
@@ -24811,69 +24859,7 @@
       "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
     },
     {
-      "id": "STORE-TEST-600",
-      "kind": "command",
-      "key_regex": "^command:open_test_store$",
-      "primary_id": "C05",
-      "related_ids": [
-        "A00",
-        "C01",
-        "C06",
-        "C08"
-      ],
-      "lifecycle": "temporary_supported_legacy",
-      "authorization": "Operator shell only; exactly one synthetic tenant and require_test_store refuse a real store. --uploader is an active login whose AccessContext comes from accounts.principal.access_for_user (effective RoleAssignments) and must cover opening.import.stage at the store; queueing the load re-checks pt_opening_services.may_load. The job then acts as the store's opening preparer.",
-      "data_ownership": "Store test run only. PT workbooks become one SohImport (normalised evidence workbook) staged through accounts.test_store_loader.OpeningDriver; stock moves only through the canonical SOH -> manifest -> opening PT -> acceptance writers, queued as one opening_load outbox job.",
-      "acceptance_evidence": "backend/tests/test_pt_opening.py on the exact revision; store test run journey in docs/planning/store-test-run-runbook.md.",
-      "removal_condition": "Retire with the store test run at real-store cutover (SO-22): the synthetic tenant is closed and no real tenant can reach these surfaces.",
-      "migration_requirements": "Test-tenant coexistence decision: docs/planning/store-test-run-decision.md. A second full opening stays refused (SOH_RECONCILIATION_REQUIRED); an SOH sync before any opening is refused (OPENING_REQUIRED).",
-      "access_contract": {
-        "trace_status": "pending",
-        "required_action": "opening.import.stage / opening.load.enqueue",
-        "reviewed_chain": "open_test_store -> tenant_context(synthetic) -> require_test_store -> pt_opening_services.job_access (access_for_user) -> covers_all(opening.import.stage) -> OpeningDriver.stage -> request_load (may_load, preparer_for) -> execute_command(opening.load.enqueue) -> opening_load job."
-      }
-    },
-    {
-      "id": "STORE-TEST-601",
-      "kind": "module",
-      "key_regex": "^module:ptmapper\\.management\\.commands\\.open_test_store$",
-      "primary_id": "C05",
-      "related_ids": [
-        "A00",
-        "C01",
-        "C06",
-        "C08"
-      ],
-      "lifecycle": "temporary_supported_legacy",
-      "authorization": "Operator shell only; exactly one synthetic tenant and require_test_store refuse a real store. --uploader is an active login whose AccessContext comes from accounts.principal.access_for_user (effective RoleAssignments) and must cover opening.import.stage at the store; queueing the load re-checks pt_opening_services.may_load. The job then acts as the store's opening preparer.",
-      "data_ownership": "Store test run only. PT workbooks become one SohImport (normalised evidence workbook) staged through accounts.test_store_loader.OpeningDriver; stock moves only through the canonical SOH -> manifest -> opening PT -> acceptance writers, queued as one opening_load outbox job.",
-      "removal_condition": "Retire with the store test run at real-store cutover (SO-22): the synthetic tenant is closed and no real tenant can reach these surfaces."
-    },
-    {
-      "id": "STORE-TEST-602",
-      "kind": "job_handler",
-      "key_regex": "^job_handler:opening_load$",
-      "primary_id": "C05",
-      "related_ids": [
-        "A00",
-        "C01",
-        "C06",
-        "C08"
-      ],
-      "lifecycle": "temporary_supported_legacy",
-      "authorization": "Runs only from an opening_load intent queued by execute_command(opening.load.enqueue) after may_load; acts as the store's opening preparer rebuilt from current RoleAssignments (pt_opening_services.preparer_for -> access_for_user) before every step; _loadable refuses a real store, a withdrawn or already loaded source.",
-      "data_ownership": "Store test run only. PT workbooks become one SohImport (normalised evidence workbook) staged through accounts.test_store_loader.OpeningDriver; stock moves only through the canonical SOH -> manifest -> opening PT -> acceptance writers, queued as one opening_load outbox job.",
-      "acceptance_evidence": "backend/tests/test_pt_opening.py on the exact revision.",
-      "removal_condition": "Retire with the store test run at real-store cutover (SO-22): the synthetic tenant is closed and no real tenant can reach these surfaces.",
-      "migration_requirements": "Test-tenant coexistence decision: docs/planning/store-test-run-decision.md. A second full opening stays refused (SOH_RECONCILIATION_REQUIRED); an SOH sync before any opening is refused (OPENING_REQUIRED).",
-      "access_contract": {
-        "trace_status": "pending",
-        "required_action": "opening.import.stage / stock.accept / opening.import.prepare",
-        "reviewed_chain": "core.outbox worker -> tenant_context(intent tenant) -> pt_opening_services.run_load -> source_lock -> drive -> driver_for -> preparer_for (access_for_user of the source's preparer, covers opening.import.stage, stock.accept and opening.import.prepare with cost) -> OpeningDriver steps -> soh_services / goods_manifest_services / goods_acceptance; continuation re-queued via execute_command(opening.load.enqueue)."
-      }
-    },
-    {
-      "id": "STORE-TEST-603",
+      "id": "STORE-TEST-505",
       "kind": "module",
       "key_regex": "^module:ptmapper\\.opening_auto$",
       "primary_id": "C05",
@@ -24883,65 +24869,44 @@
         "C15"
       ],
       "lifecycle": "temporary_supported_legacy",
-      "authorization": "No new authority: registers approvals.goods_services auto rules for the SOH source, opening manifest and opening PT approvals. decide_without_second_person lets only the request's maker confirm, and only while the pt.approve.opening policy in force at a non-real store carries auto_approve_test_store_opening; the policy is locked and rechecked before commit. Otherwise the request stays pending (AUTO_APPROVAL_NOT_ALLOWED), never a fallback.",
-      "data_ownership": "Writes nothing itself; the decision is an ApprovalDecision APPROVED with NO_APPROVAL_REQUIRED naming the flagged policy version (C15 evidence).",
-      "acceptance_evidence": "backend/tests/test_pt_opening.py and approvals auto-decision tests on the exact revision.",
-      "removal_condition": "Retire with the store test run at real-store cutover (SO-22): the synthetic tenant is closed and no real tenant can reach these surfaces."
+      "authorization": "Domain rule for approvals.goods_services.register_auto_rule / decide_without_second_person (C15 core, with approvals.goods_policy.enforce_auto): returns the pt.approve.opening policy version in force at the store only when the store is not real (masters.store_features.is_real_store) and the policy carries auto_approve_test_store_opening (closed schema in masters.goods_services, opening approval only, single-step route). Registered for soh_import and manifest opening.manifest.approve and document pt.approve.opening. The caller must be the request's maker; the pinned policy is rechecked in force and flagged; otherwise AUTO_APPROVAL_NOT_ALLOWED and the request stays pending. No fallback to another permission source.",
+      "data_ownership": "Writes nothing itself. Each decision is one APPROVED ApprovalDecision with reason NO_APPROVAL_REQUIRED by the maker, pinning the policy version, so the approval evidence trail is kept.",
+      "acceptance_evidence": "backend/tests/test_opening_auto_approval.py (flag on; denied on a real store, without the flag, after the flag is removed, for a non-maker; transfers unaffected) on the exact revision.",
+      "removal_condition": "Retire with the store test run at real-store cutover (SO-22): remove this rule and its registration in ptmapper.apps, and the auto_approve_test_store_opening schema key; decide_without_second_person must then have no test-store rule registered."
     },
     {
-      "id": "STORE-TEST-604",
-      "kind": "command",
-      "key_regex": "^command:sync_soh$",
-      "primary_id": "C08",
+      "id": "STORE-TEST-506",
+      "kind": "operational_file",
+      "key_regex": "^operational_file:scripts/(rehearse_store_opening\\.sh|rehearsal_assert\\.py)$",
+      "primary_id": "C05",
       "related_ids": [
-        "A00",
-        "C05",
-        "C06",
-        "C10",
-        "C15"
+        "C08",
+        "P00"
       ],
       "lifecycle": "temporary_supported_legacy",
-      "authorization": "Operator shell only; exactly one synthetic tenant and stock_sync_services.require_test_store refuse a real store. --uploader gets a fresh stepped-up ServerSession (test_store_loader.access_for -> resolve_access) and must hold opening.import.stage at the exact store; each step runs through execute_command, which replays the demand before commit.",
-      "data_ownership": "Store test run only: the legacy software is the only real book. Runs the same stock_sync_services commands as the Legacy sync page: one StockSync with its uploaded evidence, stock moved only through one P22 journal batch per apply, never a bill, tax document or GL entry.",
-      "acceptance_evidence": "backend/tests/test_legacy_sync.py on the exact revision; store test run journey in docs/planning/store-test-run-runbook.md.",
-      "removal_condition": "Retire with the store test run at real-store cutover (SO-22): the synthetic tenant is closed and no real tenant can reach these surfaces.",
-      "access_contract": {
-        "trace_status": "pending",
-        "required_action": "opening.import.stage",
-        "reviewed_chain": "sync_soh -> tenant_context(synthetic) -> test_store_loader.access_for -> AccessContext.require(opening.import.stage, site) -> require_test_store -> files.goods_services.stage_upload -> execute_command -> stock_sync_services.create_sync / apply -> stockledger.goods_engine P22 post."
-      }
-    },
-    {
-      "id": "STORE-TEST-605",
-      "kind": "module",
-      "key_regex": "^module:ptmapper\\.management\\.commands\\.sync_soh$",
-      "primary_id": "C08",
-      "related_ids": [
-        "A00",
-        "C05",
-        "C06",
-        "C10",
-        "C15"
-      ],
-      "lifecycle": "temporary_supported_legacy",
-      "authorization": "Operator shell only; exactly one synthetic tenant and stock_sync_services.require_test_store refuse a real store. --uploader gets a fresh stepped-up ServerSession (test_store_loader.access_for -> resolve_access) and must hold opening.import.stage at the exact store; each step runs through execute_command, which replays the demand before commit.",
-      "removal_condition": "Retire with the store test run at real-store cutover (SO-22): the synthetic tenant is closed and no real tenant can reach these surfaces."
-    },
-    {
-      "id": "STORE-TEST-606",
-      "kind": "migration",
-      "key_regex": "^migration:ptmapper\\.migrations\\.0022_stock_sync_review$",
-      "primary_id": "C08",
-      "related_ids": [
-        "A00",
-        "C05",
-        "C06",
-        "C10",
-        "C15"
-      ],
-      "lifecycle": "temporary_supported_legacy",
-      "data_ownership": "Adds review state, category and MRP evidence to StockSyncRow (store test run only); reviewed_by links HumanIdentity with PROTECT.",
+      "data_ownership": "Local only: rebuilds deploy/compose.rehearsal.yaml from empty, opens the store from the git-ignored PT and SOH and asserts totals; never touches the server.",
       "removal_condition": "Retire with the store test run at real-store cutover (SO-22)."
+    },
+    {
+      "id": "S2819",
+      "kind": "api_consumer",
+      "key_regex": "^api_consumer:frontend/src/pages/Bookings\\.tsx:10df4562a3fd$",
+      "primary_id": "C04",
+      "lifecycle": "temporary_supported_legacy"
+    },
+    {
+      "id": "S2820",
+      "kind": "api_consumer",
+      "key_regex": "^api_consumer:frontend/src/pages/Bookings\\.tsx:b80008a07916$",
+      "primary_id": "C04",
+      "lifecycle": "temporary_supported_legacy"
+    },
+    {
+      "id": "S2821",
+      "kind": "api_consumer",
+      "key_regex": "^api_consumer:frontend/src/pages/Bookings\\.tsx:d365507bf4b5$",
+      "primary_id": "C04",
+      "lifecycle": "temporary_supported_legacy"
     },
     {
       "id": "DESKTOP-NAV-001",
@@ -57958,8 +57923,8 @@
           "C15"
         ],
         "lifecycle": "temporary_supported_legacy",
-        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. New barcodes are staged as a C05 top-up SohImport for review, never invented.",
-        "authorization": "opening.import.stage at the exact store in one scoped assignment; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. SITE-before-DOCUMENT lock order.",
+        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. Every row that differs from the book is categorised (SOH_ONLY, PT_ONLY, SOH_ABOVE, SOH_BELOW, MRP_DIFFERS) with book and SOH MRP and flagged to the store's store_person through one stock_sync_review exception per sync, never one per row. SOH-only barcodes are flagged only: no item, stock or top-up SohImport is created (the old _top_up path is removed); they become real only when a PT containing them is opened. Acknowledging a row records review_state/reviewed_by/reviewed_at and changes no stock or item.",
+        "authorization": "opening.import.stage at the exact store in one scoped assignment (store_person, warehouse or operations_head; owner keeps it for visibility) for upload, preview, apply, discard, the review row list and acknowledge; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. A stale export is refused at upload and apply (STOCK_SYNC_STALE); the same file and export time is a no-op. SITE-before-DOCUMENT lock order.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
@@ -58052,7 +58017,7 @@
         "access_contract": {
           "trace_status": "pending",
           "required_action": "opening.import.stage",
-          "reviewed_chain": "ptmapper.stock_sync_views / legacy_sales_views -> AccessContext.require(opening.import.stage, site) -> stock_sync_services / legacy_sales_services (require_test_store) -> stockledger.goods_engine P22 post."
+          "reviewed_chain": "ptmapper.stock_sync_views (upload, detail, rows, rows/acknowledge, apply/discard) / legacy_sales_views -> AccessContext.require(opening.import.stage, site) -> stock_sync_services / legacy_sales_services (require_test_store) -> stockledger.goods_engine P22 post; one alerts.goods_services stock_sync_review exception per applied sync, resolved when every flagged row is acknowledged."
         },
         "consumer_trace": {
           "status": "untraced",
@@ -58083,8 +58048,8 @@
           "C15"
         ],
         "lifecycle": "temporary_supported_legacy",
-        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. New barcodes are staged as a C05 top-up SohImport for review, never invented.",
-        "authorization": "opening.import.stage at the exact store in one scoped assignment; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. SITE-before-DOCUMENT lock order.",
+        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. Every row that differs from the book is categorised (SOH_ONLY, PT_ONLY, SOH_ABOVE, SOH_BELOW, MRP_DIFFERS) with book and SOH MRP and flagged to the store's store_person through one stock_sync_review exception per sync, never one per row. SOH-only barcodes are flagged only: no item, stock or top-up SohImport is created (the old _top_up path is removed); they become real only when a PT containing them is opened. Acknowledging a row records review_state/reviewed_by/reviewed_at and changes no stock or item.",
+        "authorization": "opening.import.stage at the exact store in one scoped assignment (store_person, warehouse or operations_head; owner keeps it for visibility) for upload, preview, apply, discard, the review row list and acknowledge; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. A stale export is refused at upload and apply (STOCK_SYNC_STALE); the same file and export time is a no-op. SITE-before-DOCUMENT lock order.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
@@ -58177,7 +58142,7 @@
         "access_contract": {
           "trace_status": "pending",
           "required_action": "opening.import.stage",
-          "reviewed_chain": "ptmapper.stock_sync_views / legacy_sales_views -> AccessContext.require(opening.import.stage, site) -> stock_sync_services / legacy_sales_services (require_test_store) -> stockledger.goods_engine P22 post."
+          "reviewed_chain": "ptmapper.stock_sync_views (upload, detail, rows, rows/acknowledge, apply/discard) / legacy_sales_views -> AccessContext.require(opening.import.stage, site) -> stock_sync_services / legacy_sales_services (require_test_store) -> stockledger.goods_engine P22 post; one alerts.goods_services stock_sync_review exception per applied sync, resolved when every flagged row is acknowledged."
         },
         "consumer_trace": {
           "status": "untraced",
@@ -58208,8 +58173,8 @@
           "C15"
         ],
         "lifecycle": "temporary_supported_legacy",
-        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. New barcodes are staged as a C05 top-up SohImport for review, never invented.",
-        "authorization": "opening.import.stage at the exact store in one scoped assignment; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. SITE-before-DOCUMENT lock order.",
+        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. Every row that differs from the book is categorised (SOH_ONLY, PT_ONLY, SOH_ABOVE, SOH_BELOW, MRP_DIFFERS) with book and SOH MRP and flagged to the store's store_person through one stock_sync_review exception per sync, never one per row. SOH-only barcodes are flagged only: no item, stock or top-up SohImport is created (the old _top_up path is removed); they become real only when a PT containing them is opened. Acknowledging a row records review_state/reviewed_by/reviewed_at and changes no stock or item.",
+        "authorization": "opening.import.stage at the exact store in one scoped assignment (store_person, warehouse or operations_head; owner keeps it for visibility) for upload, preview, apply, discard, the review row list and acknowledge; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. A stale export is refused at upload and apply (STOCK_SYNC_STALE); the same file and export time is a no-op. SITE-before-DOCUMENT lock order.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
@@ -58304,7 +58269,7 @@
         "access_contract": {
           "trace_status": "pending",
           "required_action": "opening.import.stage",
-          "reviewed_chain": "ptmapper.stock_sync_views / legacy_sales_views -> AccessContext.require(opening.import.stage, site) -> stock_sync_services / legacy_sales_services (require_test_store) -> stockledger.goods_engine P22 post."
+          "reviewed_chain": "ptmapper.stock_sync_views (upload, detail, rows, rows/acknowledge, apply/discard) / legacy_sales_views -> AccessContext.require(opening.import.stage, site) -> stock_sync_services / legacy_sales_services (require_test_store) -> stockledger.goods_engine P22 post; one alerts.goods_services stock_sync_review exception per applied sync, resolved when every flagged row is acknowledged."
         },
         "consumer_trace": {
           "status": "static_frontend_callsite",
@@ -59453,8 +59418,8 @@
           "C15"
         ],
         "lifecycle": "temporary_supported_legacy",
-        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. New barcodes are staged as a C05 top-up SohImport for review, never invented.",
-        "authorization": "opening.import.stage at the exact store in one scoped assignment; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. SITE-before-DOCUMENT lock order.",
+        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. Every row that differs from the book is categorised (SOH_ONLY, PT_ONLY, SOH_ABOVE, SOH_BELOW, MRP_DIFFERS) with book and SOH MRP and flagged to the store's store_person through one stock_sync_review exception per sync, never one per row. SOH-only barcodes are flagged only: no item, stock or top-up SohImport is created (the old _top_up path is removed); they become real only when a PT containing them is opened. Acknowledging a row records review_state/reviewed_by/reviewed_at and changes no stock or item.",
+        "authorization": "opening.import.stage at the exact store in one scoped assignment (store_person, warehouse or operations_head; owner keeps it for visibility) for upload, preview, apply, discard, the review row list and acknowledge; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. A stale export is refused at upload and apply (STOCK_SYNC_STALE); the same file and export time is a no-op. SITE-before-DOCUMENT lock order.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
@@ -59545,7 +59510,7 @@
         "access_contract": {
           "trace_status": "pending",
           "required_action": "opening.import.stage",
-          "reviewed_chain": "ptmapper.stock_sync_views / legacy_sales_views -> AccessContext.require(opening.import.stage, site) -> stock_sync_services / legacy_sales_services (require_test_store) -> stockledger.goods_engine P22 post."
+          "reviewed_chain": "ptmapper.stock_sync_views (upload, detail, rows, rows/acknowledge, apply/discard) / legacy_sales_views -> AccessContext.require(opening.import.stage, site) -> stock_sync_services / legacy_sales_services (require_test_store) -> stockledger.goods_engine P22 post; one alerts.goods_services stock_sync_review exception per applied sync, resolved when every flagged row is acknowledged."
         },
         "consumer_trace": {
           "status": "untraced",
@@ -59576,8 +59541,8 @@
           "C15"
         ],
         "lifecycle": "temporary_supported_legacy",
-        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. New barcodes are staged as a C05 top-up SohImport for review, never invented.",
-        "authorization": "opening.import.stage at the exact store in one scoped assignment; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. SITE-before-DOCUMENT lock order.",
+        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. Every row that differs from the book is categorised (SOH_ONLY, PT_ONLY, SOH_ABOVE, SOH_BELOW, MRP_DIFFERS) with book and SOH MRP and flagged to the store's store_person through one stock_sync_review exception per sync, never one per row. SOH-only barcodes are flagged only: no item, stock or top-up SohImport is created (the old _top_up path is removed); they become real only when a PT containing them is opened. Acknowledging a row records review_state/reviewed_by/reviewed_at and changes no stock or item.",
+        "authorization": "opening.import.stage at the exact store in one scoped assignment (store_person, warehouse or operations_head; owner keeps it for visibility) for upload, preview, apply, discard, the review row list and acknowledge; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. A stale export is refused at upload and apply (STOCK_SYNC_STALE); the same file and export time is a no-op. SITE-before-DOCUMENT lock order.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
@@ -59672,7 +59637,7 @@
         "access_contract": {
           "trace_status": "pending",
           "required_action": "opening.import.stage",
-          "reviewed_chain": "ptmapper.stock_sync_views / legacy_sales_views -> AccessContext.require(opening.import.stage, site) -> stock_sync_services / legacy_sales_services (require_test_store) -> stockledger.goods_engine P22 post."
+          "reviewed_chain": "ptmapper.stock_sync_views (upload, detail, rows, rows/acknowledge, apply/discard) / legacy_sales_views -> AccessContext.require(opening.import.stage, site) -> stock_sync_services / legacy_sales_services (require_test_store) -> stockledger.goods_engine P22 post; one alerts.goods_services stock_sync_review exception per applied sync, resolved when every flagged row is acknowledged."
         },
         "consumer_trace": {
           "status": "static_frontend_callsite",
@@ -119192,8 +119157,8 @@
           "C15"
         ],
         "lifecycle": "temporary_supported_legacy",
-        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. New barcodes are staged as a C05 top-up SohImport for review, never invented.",
-        "authorization": "opening.import.stage at the exact store in one scoped assignment; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. SITE-before-DOCUMENT lock order.",
+        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. Every row that differs from the book is categorised (SOH_ONLY, PT_ONLY, SOH_ABOVE, SOH_BELOW, MRP_DIFFERS) with book and SOH MRP and flagged to the store's store_person through one stock_sync_review exception per sync, never one per row. SOH-only barcodes are flagged only: no item, stock or top-up SohImport is created (the old _top_up path is removed); they become real only when a PT containing them is opened. Acknowledging a row records review_state/reviewed_by/reviewed_at and changes no stock or item.",
+        "authorization": "opening.import.stage at the exact store in one scoped assignment (store_person, warehouse or operations_head; owner keeps it for visibility) for upload, preview, apply, discard, the review row list and acknowledge; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. A stale export is refused at upload and apply (STOCK_SYNC_STALE); the same file and export time is a no-op. SITE-before-DOCUMENT lock order.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
@@ -119286,7 +119251,7 @@
         "access_contract": {
           "trace_status": "pending",
           "required_action": "opening.import.stage",
-          "reviewed_chain": "ptmapper.stock_sync_views / legacy_sales_views -> AccessContext.require(opening.import.stage, site) -> stock_sync_services / legacy_sales_services (require_test_store) -> stockledger.goods_engine P22 post."
+          "reviewed_chain": "ptmapper.stock_sync_views (upload, detail, rows, rows/acknowledge, apply/discard) / legacy_sales_views -> AccessContext.require(opening.import.stage, site) -> stock_sync_services / legacy_sales_services (require_test_store) -> stockledger.goods_engine P22 post; one alerts.goods_services stock_sync_review exception per applied sync, resolved when every flagged row is acknowledged."
         },
         "consumer_trace": {
           "status": "untraced",
@@ -119317,8 +119282,8 @@
           "C15"
         ],
         "lifecycle": "temporary_supported_legacy",
-        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. New barcodes are staged as a C05 top-up SohImport for review, never invented.",
-        "authorization": "opening.import.stage at the exact store in one scoped assignment; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. SITE-before-DOCUMENT lock order.",
+        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. Every row that differs from the book is categorised (SOH_ONLY, PT_ONLY, SOH_ABOVE, SOH_BELOW, MRP_DIFFERS) with book and SOH MRP and flagged to the store's store_person through one stock_sync_review exception per sync, never one per row. SOH-only barcodes are flagged only: no item, stock or top-up SohImport is created (the old _top_up path is removed); they become real only when a PT containing them is opened. Acknowledging a row records review_state/reviewed_by/reviewed_at and changes no stock or item.",
+        "authorization": "opening.import.stage at the exact store in one scoped assignment (store_person, warehouse or operations_head; owner keeps it for visibility) for upload, preview, apply, discard, the review row list and acknowledge; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. A stale export is refused at upload and apply (STOCK_SYNC_STALE); the same file and export time is a no-op. SITE-before-DOCUMENT lock order.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
@@ -119411,7 +119376,7 @@
         "access_contract": {
           "trace_status": "pending",
           "required_action": "opening.import.stage",
-          "reviewed_chain": "ptmapper.stock_sync_views / legacy_sales_views -> AccessContext.require(opening.import.stage, site) -> stock_sync_services / legacy_sales_services (require_test_store) -> stockledger.goods_engine P22 post."
+          "reviewed_chain": "ptmapper.stock_sync_views (upload, detail, rows, rows/acknowledge, apply/discard) / legacy_sales_views -> AccessContext.require(opening.import.stage, site) -> stock_sync_services / legacy_sales_services (require_test_store) -> stockledger.goods_engine P22 post; one alerts.goods_services stock_sync_review exception per applied sync, resolved when every flagged row is acknowledged."
         },
         "consumer_trace": {
           "status": "untraced",
@@ -120485,8 +120450,8 @@
           "C08"
         ],
         "lifecycle": "temporary_supported_legacy",
-        "data_ownership": "Store test run only: the legacy software is the only real book. PT workbooks become one SohImport (normalised evidence workbook, original file hashes in metadata; cost = P RATE by owner decision 28 Oct 2026). Stock moves only through the canonical SOH -> manifest -> opening PT -> acceptance writers; problem rows are excluded with their reason, never invented.",
-        "authorization": "Upload: opening.import.stage at the exact store. Load: opening.manifest.approve with cost and financial on every source cell, a recent step-up, and a caller who neither uploaded nor prepared the source. Both refused with TEST_TENANT_ONLY unless the tenant is synthetic (stock_sync_services.require_test_store). The load then runs as three distinct synthetic people through the canonical opening writers.",
+        "data_ownership": "Store test run only: the legacy software is the only real book. PT workbooks become one SohImport (normalised evidence workbook, original file hashes in metadata; the same parsed file again is the same source; cost = P RATE by owner decision 28 Oct 2026). Stock moves only through the canonical SOH -> manifest -> opening PT -> acceptance writers, run by the opening_load job as the store's opening preparer; problem rows are excluded with their reason, never invented. Later PTs open only barcodes the store does not have yet.",
+        "authorization": "Upload: opening.import.stage at the exact store (store_person, warehouse or operations_head; owner keeps it for visibility). While the pt.approve.opening policy in force carries auto_approve_test_store_opening, the upload queues the opening_load job (opening.load.enqueue) and every source, manifest and opening PT decision is recorded APPROVED with reason NO_APPROVAL_REQUIRED by the preparer (the maker), with no step-up, after approvals.goods_policy.enforce_auto rechecks the pinned policy is still in force and still flagged; there is no fallback, and without the flag each request waits for its normal approver. Load/resume: the uploader, who still holds opening.import.stage, or - only while approvals are on - an owner holding opening.manifest.approve with cost and financial on every source cell. Both refused with TEST_TENANT_ONLY unless the tenant is synthetic (stock_sync_services.require_test_store).",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
@@ -120613,8 +120578,8 @@
         },
         "access_contract": {
           "trace_status": "pending",
-          "required_action": "opening.import.stage / opening.manifest.approve",
-          "reviewed_chain": "ptmapper.soh_views SohImportPtUploadView / SohImportLoadView -> AccessContext.require / covers_all -> pt_opening_services.check (require_test_store, SELF_APPROVAL) -> accounts.test_store_loader.OpeningDriver -> soh_services / goods_manifest_services / goods_acceptance."
+          "required_action": "opening.import.stage / opening.load.enqueue / opening.manifest.approve",
+          "reviewed_chain": "ptmapper.soh_views SohImportPtUploadView / SohImportLoadView -> AccessContext.require(opening.import.stage) -> soh_services.create_source -> pt_opening_services.enqueue / request_load (require_test_store, may_load) -> core.outbox opening_load -> pt_opening_services.run_load (advisory lock, preparer job_access) -> accounts.test_store_loader.OpeningDriver.next_step -> soh_services / goods_manifest_services / goods_acceptance; decisions via approvals.goods_services.decide_without_second_person + ptmapper.opening_auto rule."
         },
         "consumer_trace": {
           "status": "static_frontend_callsite",
@@ -120646,8 +120611,8 @@
           "C08"
         ],
         "lifecycle": "temporary_supported_legacy",
-        "data_ownership": "Store test run only: the legacy software is the only real book. PT workbooks become one SohImport (normalised evidence workbook, original file hashes in metadata; cost = P RATE by owner decision 28 Oct 2026). Stock moves only through the canonical SOH -> manifest -> opening PT -> acceptance writers; problem rows are excluded with their reason, never invented.",
-        "authorization": "Upload: opening.import.stage at the exact store. Load: opening.manifest.approve with cost and financial on every source cell, a recent step-up, and a caller who neither uploaded nor prepared the source. Both refused with TEST_TENANT_ONLY unless the tenant is synthetic (stock_sync_services.require_test_store). The load then runs as three distinct synthetic people through the canonical opening writers.",
+        "data_ownership": "Store test run only: the legacy software is the only real book. PT workbooks become one SohImport (normalised evidence workbook, original file hashes in metadata; the same parsed file again is the same source; cost = P RATE by owner decision 28 Oct 2026). Stock moves only through the canonical SOH -> manifest -> opening PT -> acceptance writers, run by the opening_load job as the store's opening preparer; problem rows are excluded with their reason, never invented. Later PTs open only barcodes the store does not have yet.",
+        "authorization": "Upload: opening.import.stage at the exact store (store_person, warehouse or operations_head; owner keeps it for visibility). While the pt.approve.opening policy in force carries auto_approve_test_store_opening, the upload queues the opening_load job (opening.load.enqueue) and every source, manifest and opening PT decision is recorded APPROVED with reason NO_APPROVAL_REQUIRED by the preparer (the maker), with no step-up, after approvals.goods_policy.enforce_auto rechecks the pinned policy is still in force and still flagged; there is no fallback, and without the flag each request waits for its normal approver. Load/resume: the uploader, who still holds opening.import.stage, or - only while approvals are on - an owner holding opening.manifest.approve with cost and financial on every source cell. Both refused with TEST_TENANT_ONLY unless the tenant is synthetic (stock_sync_services.require_test_store).",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
@@ -120774,8 +120739,8 @@
         },
         "access_contract": {
           "trace_status": "pending",
-          "required_action": "opening.import.stage / opening.manifest.approve",
-          "reviewed_chain": "ptmapper.soh_views SohImportPtUploadView / SohImportLoadView -> AccessContext.require / covers_all -> pt_opening_services.check (require_test_store, SELF_APPROVAL) -> accounts.test_store_loader.OpeningDriver -> soh_services / goods_manifest_services / goods_acceptance."
+          "required_action": "opening.import.stage / opening.load.enqueue / opening.manifest.approve",
+          "reviewed_chain": "ptmapper.soh_views SohImportPtUploadView / SohImportLoadView -> AccessContext.require(opening.import.stage) -> soh_services.create_source -> pt_opening_services.enqueue / request_load (require_test_store, may_load) -> core.outbox opening_load -> pt_opening_services.run_load (advisory lock, preparer job_access) -> accounts.test_store_loader.OpeningDriver.next_step -> soh_services / goods_manifest_services / goods_acceptance; decisions via approvals.goods_services.decide_without_second_person + ptmapper.opening_auto rule."
         },
         "consumer_trace": {
           "status": "static_frontend_callsite",
@@ -120959,8 +120924,8 @@
           "C15"
         ],
         "lifecycle": "temporary_supported_legacy",
-        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. New barcodes are staged as a C05 top-up SohImport for review, never invented.",
-        "authorization": "opening.import.stage at the exact store in one scoped assignment; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. SITE-before-DOCUMENT lock order.",
+        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. Every row that differs from the book is categorised (SOH_ONLY, PT_ONLY, SOH_ABOVE, SOH_BELOW, MRP_DIFFERS) with book and SOH MRP and flagged to the store's store_person through one stock_sync_review exception per sync, never one per row. SOH-only barcodes are flagged only: no item, stock or top-up SohImport is created (the old _top_up path is removed); they become real only when a PT containing them is opened. Acknowledging a row records review_state/reviewed_by/reviewed_at and changes no stock or item.",
+        "authorization": "opening.import.stage at the exact store in one scoped assignment (store_person, warehouse or operations_head; owner keeps it for visibility) for upload, preview, apply, discard, the review row list and acknowledge; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. A stale export is refused at upload and apply (STOCK_SYNC_STALE); the same file and export time is a no-op. SITE-before-DOCUMENT lock order.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
@@ -121051,7 +121016,7 @@
         "access_contract": {
           "trace_status": "pending",
           "required_action": "opening.import.stage",
-          "reviewed_chain": "ptmapper.stock_sync_views / legacy_sales_views -> AccessContext.require(opening.import.stage, site) -> stock_sync_services / legacy_sales_services (require_test_store) -> stockledger.goods_engine P22 post."
+          "reviewed_chain": "ptmapper.stock_sync_views (upload, detail, rows, rows/acknowledge, apply/discard) / legacy_sales_views -> AccessContext.require(opening.import.stage, site) -> stock_sync_services / legacy_sales_services (require_test_store) -> stockledger.goods_engine P22 post; one alerts.goods_services stock_sync_review exception per applied sync, resolved when every flagged row is acknowledged."
         },
         "consumer_trace": {
           "status": "untraced",
@@ -121082,8 +121047,8 @@
           "C15"
         ],
         "lifecycle": "temporary_supported_legacy",
-        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. New barcodes are staged as a C05 top-up SohImport for review, never invented.",
-        "authorization": "opening.import.stage at the exact store in one scoped assignment; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. SITE-before-DOCUMENT lock order.",
+        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. Every row that differs from the book is categorised (SOH_ONLY, PT_ONLY, SOH_ABOVE, SOH_BELOW, MRP_DIFFERS) with book and SOH MRP and flagged to the store's store_person through one stock_sync_review exception per sync, never one per row. SOH-only barcodes are flagged only: no item, stock or top-up SohImport is created (the old _top_up path is removed); they become real only when a PT containing them is opened. Acknowledging a row records review_state/reviewed_by/reviewed_at and changes no stock or item.",
+        "authorization": "opening.import.stage at the exact store in one scoped assignment (store_person, warehouse or operations_head; owner keeps it for visibility) for upload, preview, apply, discard, the review row list and acknowledge; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. A stale export is refused at upload and apply (STOCK_SYNC_STALE); the same file and export time is a no-op. SITE-before-DOCUMENT lock order.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
@@ -121178,7 +121143,7 @@
         "access_contract": {
           "trace_status": "pending",
           "required_action": "opening.import.stage",
-          "reviewed_chain": "ptmapper.stock_sync_views / legacy_sales_views -> AccessContext.require(opening.import.stage, site) -> stock_sync_services / legacy_sales_services (require_test_store) -> stockledger.goods_engine P22 post."
+          "reviewed_chain": "ptmapper.stock_sync_views (upload, detail, rows, rows/acknowledge, apply/discard) / legacy_sales_views -> AccessContext.require(opening.import.stage, site) -> stock_sync_services / legacy_sales_services (require_test_store) -> stockledger.goods_engine P22 post; one alerts.goods_services stock_sync_review exception per applied sync, resolved when every flagged row is acknowledged."
         },
         "consumer_trace": {
           "status": "static_frontend_callsite",
@@ -121211,8 +121176,8 @@
           "C15"
         ],
         "lifecycle": "temporary_supported_legacy",
-        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. New barcodes are staged as a C05 top-up SohImport for review, never invented.",
-        "authorization": "opening.import.stage at the exact store in one scoped assignment; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. SITE-before-DOCUMENT lock order.",
+        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. Every row that differs from the book is categorised (SOH_ONLY, PT_ONLY, SOH_ABOVE, SOH_BELOW, MRP_DIFFERS) with book and SOH MRP and flagged to the store's store_person through one stock_sync_review exception per sync, never one per row. SOH-only barcodes are flagged only: no item, stock or top-up SohImport is created (the old _top_up path is removed); they become real only when a PT containing them is opened. Acknowledging a row records review_state/reviewed_by/reviewed_at and changes no stock or item.",
+        "authorization": "opening.import.stage at the exact store in one scoped assignment (store_person, warehouse or operations_head; owner keeps it for visibility) for upload, preview, apply, discard, the review row list and acknowledge; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. A stale export is refused at upload and apply (STOCK_SYNC_STALE); the same file and export time is a no-op. SITE-before-DOCUMENT lock order.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
@@ -121303,7 +121268,7 @@
         "access_contract": {
           "trace_status": "pending",
           "required_action": "opening.import.stage",
-          "reviewed_chain": "ptmapper.stock_sync_views / legacy_sales_views -> AccessContext.require(opening.import.stage, site) -> stock_sync_services / legacy_sales_services (require_test_store) -> stockledger.goods_engine P22 post."
+          "reviewed_chain": "ptmapper.stock_sync_views (upload, detail, rows, rows/acknowledge, apply/discard) / legacy_sales_views -> AccessContext.require(opening.import.stage, site) -> stock_sync_services / legacy_sales_services (require_test_store) -> stockledger.goods_engine P22 post; one alerts.goods_services stock_sync_review exception per applied sync, resolved when every flagged row is acknowledged."
         },
         "consumer_trace": {
           "status": "untraced",
@@ -173676,7 +173641,7 @@
         "data_ownership": "Tenant-owned goods counts with legacy store-linked count/correction history",
         "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
         "callers": {
-          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "declared": "frontend/src/pages/StockSync.tsx GET stock-syncs/{id}/rows: the flagged-row review list.",
           "static_backend_importers": [],
           "static_frontend_importers": [],
           "frontend_api_callsites": []
@@ -173709,7 +173674,7 @@
         "migration_requirements": "Map snapshots, blind passes, recounts, variances, reasons, approval bands and corrections to one journal. Later full SOH snapshots belong to C08/SO-08 retained correction/count, never another opening. The narrow sole-online-alpha trading snapshot adapter is implemented in outbound.goods_soh_reconciliation with exact persisted pause/frontier, SITE-before-DOCUMENT lock order and actual concurrency denial proof. Initial-parent repeat protection is implemented in ptmapper.soh_services. Generic non-trading counts retain their existing gate. Only zero/reduction closure is supported; gains, encumbrances, nonordinary custody, offline frontiers and real-tenant acceptance remain inactive or pending. SohImport independently reviewed source and cutoff -> outbound.goods_soh_views Start/Detail/Mutation -> goods_soh_reconciliation begin/submit/cancel/_decide -> SiteGuard SITE lock before RegisteredTill DOCUMENT lock -> snapshot_pause_evidence persisted TillPause, allocation/frontier/reservation/UUID reconciliation -> frozen canonical GoodsStocktake book -> independent versioned count.review -> zero-close or P13 reduction at original origin cost -> retained journal and goods stock readers; access revalidation before commit and DTO delivery. Fresh source inputs, stable identity/governance, working set, book/journal watermark, count reasons and approval versions are rechecked. Full offline till reconciliation and gains/encumbered/nonordinary differences remain unsupported/inactive.",
         "acceptance_evidence": "Reconcile before/after balances and preserve approval evidence. Later full SOH snapshots belong to C08/SO-08, using the retained goods count/correction journey; they must not replay opening balances or historical source movements. Pending dependencies: ptmapper.soh_services.requires_inventory_reconciliation and apply_batch initial-parent fence; outbound.goods_counts.start_count/current_declaration SiteGuard freeze and journal snapshot; C10/SO-09 registered-till pause, unresolved UUID outcomes and numbered-bill reconciliation; C06 retained stock journal/readers. Trading-store counts remain inactive until the separately approved R-INV-009/ST-INV-3/OQ-57 pause, source cutoff and independent delta review contracts have current evidence.",
         "removal_condition": "Retire with the store test run at real-store cutover (SO-22).",
-        "rule_id": "STORE-TEST-505"
+        "rule_id": "STORE-TEST-123"
       },
       {
         "kind": "api_consumer",
@@ -173849,7 +173814,7 @@
         "data_ownership": "Tenant-owned goods counts with legacy store-linked count/correction history",
         "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
         "callers": {
-          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "declared": "frontend/src/pages/StockSync.tsx POST stock-syncs/{id}/rows/acknowledge: marks flagged rows seen.",
           "static_backend_importers": [],
           "static_frontend_importers": [],
           "frontend_api_callsites": []
@@ -173882,7 +173847,7 @@
         "migration_requirements": "Map snapshots, blind passes, recounts, variances, reasons, approval bands and corrections to one journal. Later full SOH snapshots belong to C08/SO-08 retained correction/count, never another opening. The narrow sole-online-alpha trading snapshot adapter is implemented in outbound.goods_soh_reconciliation with exact persisted pause/frontier, SITE-before-DOCUMENT lock order and actual concurrency denial proof. Initial-parent repeat protection is implemented in ptmapper.soh_services. Generic non-trading counts retain their existing gate. Only zero/reduction closure is supported; gains, encumbrances, nonordinary custody, offline frontiers and real-tenant acceptance remain inactive or pending. SohImport independently reviewed source and cutoff -> outbound.goods_soh_views Start/Detail/Mutation -> goods_soh_reconciliation begin/submit/cancel/_decide -> SiteGuard SITE lock before RegisteredTill DOCUMENT lock -> snapshot_pause_evidence persisted TillPause, allocation/frontier/reservation/UUID reconciliation -> frozen canonical GoodsStocktake book -> independent versioned count.review -> zero-close or P13 reduction at original origin cost -> retained journal and goods stock readers; access revalidation before commit and DTO delivery. Fresh source inputs, stable identity/governance, working set, book/journal watermark, count reasons and approval versions are rechecked. Full offline till reconciliation and gains/encumbered/nonordinary differences remain unsupported/inactive.",
         "acceptance_evidence": "Reconcile before/after balances and preserve approval evidence. Later full SOH snapshots belong to C08/SO-08, using the retained goods count/correction journey; they must not replay opening balances or historical source movements. Pending dependencies: ptmapper.soh_services.requires_inventory_reconciliation and apply_batch initial-parent fence; outbound.goods_counts.start_count/current_declaration SiteGuard freeze and journal snapshot; C10/SO-09 registered-till pause, unresolved UUID outcomes and numbered-bill reconciliation; C06 retained stock journal/readers. Trading-store counts remain inactive until the separately approved R-INV-009/ST-INV-3/OQ-57 pause, source cutoff and independent delta review contracts have current evidence.",
         "removal_condition": "Retire with the store test run at real-store cutover (SO-22).",
-        "rule_id": "STORE-TEST-506"
+        "rule_id": "STORE-TEST-124"
       },
       {
         "kind": "api_consumer",
@@ -186168,7 +186133,7 @@
         ],
         "lifecycle": "temporary_supported_legacy",
         "data_ownership": "Tenant-owned goods receiving/PT evidence with legacy receiving history",
-        "authorization": "Operator shell only; refuses a non-synthetic tenant. Drives the canonical SOH → manifest → opening PT → acceptance writers with distinct synthetic people.",
+        "authorization": "Operator shell only; refuses a non-synthetic tenant. load_test_store builds the store, people and approval policies (with --setup it publishes the pt.approve.opening policy carrying auto_approve_test_store_opening from setup.json opening.approval=false). open_test_store stages the PT as --uploader, who must hold opening.import.stage at the store, and queues the same opening_load job the upload does (pt_opening_services.request_load: the uploader, or an owner while approvals are on); --foreground runs it in-process under the same advisory lock.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [],
@@ -186554,8 +186519,8 @@
           "C08"
         ],
         "lifecycle": "temporary_supported_legacy",
-        "data_ownership": "Store test run only. PT workbooks become one SohImport (normalised evidence workbook) staged through accounts.test_store_loader.OpeningDriver; stock moves only through the canonical SOH -> manifest -> opening PT -> acceptance writers, queued as one opening_load outbox job.",
-        "authorization": "Operator shell only; exactly one synthetic tenant and require_test_store refuse a real store. --uploader is an active login whose AccessContext comes from accounts.principal.access_for_user (effective RoleAssignments) and must cover opening.import.stage at the store; queueing the load re-checks pt_opening_services.may_load. The job then acts as the store's opening preparer.",
+        "data_ownership": "Tenant-owned goods receiving/PT evidence with legacy receiving history",
+        "authorization": "Operator shell only; refuses a non-synthetic tenant. load_test_store builds the store, people and approval policies (with --setup it publishes the pt.approve.opening policy carrying auto_approve_test_store_opening from setup.json opening.approval=false). open_test_store stages the PT as --uploader, who must hold opening.import.stage at the store, and queues the same opening_load job the upload does (pt_opening_services.request_load: the uploader, or an owner while approvals are on); --foreground runs it in-process under the same advisory lock.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [],
@@ -186659,14 +186624,19 @@
         },
         "access_contract": {
           "trace_status": "pending",
-          "required_action": "opening.import.stage / opening.load.enqueue",
-          "reviewed_chain": "open_test_store -> tenant_context(synthetic) -> require_test_store -> pt_opening_services.job_access (access_for_user) -> covers_all(opening.import.stage) -> OpeningDriver.stage -> request_load (may_load, preparer_for) -> execute_command(opening.load.enqueue) -> opening_load job."
+          "actor_type": "unreviewed",
+          "required_action": "unreviewed",
+          "scope_source": "unreviewed",
+          "protected_fields": "unreviewed",
+          "delivery_recheck": "unreviewed",
+          "named_tests": [],
+          "reviewed_chain": "Static candidates do not establish runtime access coverage."
         },
         "replacement": "`/goods/receive/*`, `/goods/pt-work`, `/goods/labels` retain receiving, PT and labels. Old `/goods/arrivals`, `/goods/receipts`, `/goods/accept`, `/goods/pt/prepare`, `/goods/pt/approvals` are bookmark redirects",
-        "migration_requirements": "Test-tenant coexistence decision: docs/planning/store-test-run-decision.md. A second full opening stays refused (SOH_RECONCILIATION_REQUIRED); an SOH sync before any opening is refused (OPENING_REQUIRED).",
-        "acceptance_evidence": "backend/tests/test_pt_opening.py on the exact revision; store test run journey in docs/planning/store-test-run-runbook.md.",
-        "removal_condition": "Retire with the store test run at real-store cutover (SO-22): the synthetic tenant is closed and no real tenant can reach these surfaces.",
-        "rule_id": "STORE-TEST-600"
+        "migration_requirements": "Map arrival, claimed invoice, count, GRN, PT rows, number, cost basis, label jobs and approval evidence with source IDs.",
+        "acceptance_evidence": "Reconcile physical count and official value once; prove history and separate-person approval before removing separate screens or old write services.",
+        "removal_condition": "Retire with the store test run at real-store cutover (SO-22).",
+        "rule_id": "STORE-TEST-400"
       },
       {
         "kind": "command",
@@ -188896,8 +188866,8 @@
           "C15"
         ],
         "lifecycle": "temporary_supported_legacy",
-        "data_ownership": "Store test run only: the legacy software is the only real book. Runs the same stock_sync_services commands as the Legacy sync page: one StockSync with its uploaded evidence, stock moved only through one P22 journal batch per apply, never a bill, tax document or GL entry.",
-        "authorization": "Operator shell only; exactly one synthetic tenant and stock_sync_services.require_test_store refuse a real store. --uploader gets a fresh stepped-up ServerSession (test_store_loader.access_for -> resolve_access) and must hold opening.import.stage at the exact store; each step runs through execute_command, which replays the demand before commit.",
+        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. Every row that differs from the book is categorised (SOH_ONLY, PT_ONLY, SOH_ABOVE, SOH_BELOW, MRP_DIFFERS) with book and SOH MRP and flagged to the store's store_person through one stock_sync_review exception per sync, never one per row. SOH-only barcodes are flagged only: no item, stock or top-up SohImport is created (the old _top_up path is removed); they become real only when a PT containing them is opened. Acknowledging a row records review_state/reviewed_by/reviewed_at and changes no stock or item.",
+        "authorization": "Operator shell only; refuses a non-synthetic tenant. Runs the same stock_sync_services commands as the Legacy sync page as --uploader's own login, refused unless it holds opening.import.stage at the store; only the web password re-entry is skipped.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [],
@@ -189013,13 +188983,13 @@
         "access_contract": {
           "trace_status": "pending",
           "required_action": "opening.import.stage",
-          "reviewed_chain": "sync_soh -> tenant_context(synthetic) -> test_store_loader.access_for -> AccessContext.require(opening.import.stage, site) -> require_test_store -> files.goods_services.stage_upload -> execute_command -> stock_sync_services.create_sync / apply -> stockledger.goods_engine P22 post."
+          "reviewed_chain": "ptmapper.management.commands.sync_soh -> AccessContext.require(opening.import.stage, site) -> execute_command -> stock_sync_services stage/apply (require_test_store) -> stockledger.goods_engine P22 post."
         },
         "replacement": "`/goods/counts/*` is the count target; `/stock-count/*` schedule, adjustments and write-offs, `/stock/vflips/*` become one controlled correction/count journey",
         "migration_requirements": "Map snapshots, blind passes, recounts, variances, reasons, approval bands and corrections to one journal. Later full SOH snapshots belong to C08/SO-08 retained correction/count, never another opening. The narrow sole-online-alpha trading snapshot adapter is implemented in outbound.goods_soh_reconciliation with exact persisted pause/frontier, SITE-before-DOCUMENT lock order and actual concurrency denial proof. Initial-parent repeat protection is implemented in ptmapper.soh_services. Generic non-trading counts retain their existing gate. Only zero/reduction closure is supported; gains, encumbrances, nonordinary custody, offline frontiers and real-tenant acceptance remain inactive or pending. SohImport independently reviewed source and cutoff -> outbound.goods_soh_views Start/Detail/Mutation -> goods_soh_reconciliation begin/submit/cancel/_decide -> SiteGuard SITE lock before RegisteredTill DOCUMENT lock -> snapshot_pause_evidence persisted TillPause, allocation/frontier/reservation/UUID reconciliation -> frozen canonical GoodsStocktake book -> independent versioned count.review -> zero-close or P13 reduction at original origin cost -> retained journal and goods stock readers; access revalidation before commit and DTO delivery. Fresh source inputs, stable identity/governance, working set, book/journal watermark, count reasons and approval versions are rechecked. Full offline till reconciliation and gains/encumbered/nonordinary differences remain unsupported/inactive.",
-        "acceptance_evidence": "backend/tests/test_legacy_sync.py on the exact revision; store test run journey in docs/planning/store-test-run-runbook.md.",
-        "removal_condition": "Retire with the store test run at real-store cutover (SO-22): the synthetic tenant is closed and no real tenant can reach these surfaces.",
-        "rule_id": "STORE-TEST-604"
+        "acceptance_evidence": "Reconcile before/after balances and preserve approval evidence. Later full SOH snapshots belong to C08/SO-08, using the retained goods count/correction journey; they must not replay opening balances or historical source movements. Pending dependencies: ptmapper.soh_services.requires_inventory_reconciliation and apply_batch initial-parent fence; outbound.goods_counts.start_count/current_declaration SiteGuard freeze and journal snapshot; C10/SO-09 registered-till pause, unresolved UUID outcomes and numbered-bill reconciliation; C06 retained stock journal/readers. Trading-store counts remain inactive until the separately approved R-INV-009/ST-INV-3/OQ-57 pause, source cutoff and independent delta review contracts have current evidence.",
+        "removal_condition": "Retire with the store test run at real-store cutover (SO-22).",
+        "rule_id": "STORE-TEST-403"
       },
       {
         "kind": "display_window",
@@ -189358,8 +189328,8 @@
           "C08"
         ],
         "lifecycle": "temporary_supported_legacy",
-        "data_ownership": "Store test run only. PT workbooks become one SohImport (normalised evidence workbook) staged through accounts.test_store_loader.OpeningDriver; stock moves only through the canonical SOH -> manifest -> opening PT -> acceptance writers, queued as one opening_load outbox job.",
-        "authorization": "Runs only from an opening_load intent queued by execute_command(opening.load.enqueue) after may_load; acts as the store's opening preparer rebuilt from current RoleAssignments (pt_opening_services.preparer_for -> access_for_user) before every step; _loadable refuses a real store, a withdrawn or already loaded source.",
+        "data_ownership": "Progress only in SohImport.reconciliation.quick_load (outside the review hash); running state is the job's own OutboxIntent. A session-level pg advisory lock per source replaces the 30-minute stale lock; each job works about 90 s then queues its continuation (uuid5 request key) inside the 120 s lease. All stock and document writes stay with the canonical opening writers.",
+        "authorization": "Queues and runs a test store's opening load as a durable core.outbox job (opening_load, command opening.load.enqueue), never a web thread. request_load admits the uploader, or an owner with opening.manifest.approve (cost, financial) only while approvals are on; refuses a real store, a withdrawn or finished source and a store with no opening preparer. The job acts as the preparer through a session-free AccessContext compiled from current RoleAssignments (job_access, as files.goods_exports.requester_access).",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [],
@@ -189429,14 +189399,14 @@
         },
         "access_contract": {
           "trace_status": "pending",
-          "required_action": "opening.import.stage / stock.accept / opening.import.prepare",
-          "reviewed_chain": "core.outbox worker -> tenant_context(intent tenant) -> pt_opening_services.run_load -> source_lock -> drive -> driver_for -> preparer_for (access_for_user of the source's preparer, covers opening.import.stage, stock.accept and opening.import.prepare with cost) -> OpeningDriver steps -> soh_services / goods_manifest_services / goods_acceptance; continuation re-queued via execute_command(opening.load.enqueue)."
+          "required_action": "opening.load.enqueue",
+          "reviewed_chain": "ptmapper.apps registers opening_load -> pt_opening_services.run_load -> source_lock (pg_try_advisory_lock) -> preparer_for/job_access -> drive -> accounts.test_store_loader.OpeningDriver.next_step -> canonical opening writers; continuation via enqueue(after=...)."
         },
         "replacement": "`/goods/receive/*`, `/goods/pt-work`, `/goods/labels` retain receiving, PT and labels. Old `/goods/arrivals`, `/goods/receipts`, `/goods/accept`, `/goods/pt/prepare`, `/goods/pt/approvals` are bookmark redirects",
-        "migration_requirements": "Test-tenant coexistence decision: docs/planning/store-test-run-decision.md. A second full opening stays refused (SOH_RECONCILIATION_REQUIRED); an SOH sync before any opening is refused (OPENING_REQUIRED).",
-        "acceptance_evidence": "backend/tests/test_pt_opening.py on the exact revision.",
+        "migration_requirements": "Map arrival, claimed invoice, count, GRN, PT rows, number, cost basis, label jobs and approval evidence with source IDs.",
+        "acceptance_evidence": "backend/tests/test_pt_opening.py and test_opening_auto_approval.py on the exact revision; scripts/rehearse_store_opening.sh --twice results recorded against that revision.",
         "removal_condition": "Retire with the store test run at real-store cutover (SO-22): the synthetic tenant is closed and no real tenant can reach these surfaces.",
-        "rule_id": "STORE-TEST-602"
+        "rule_id": "STORE-TEST-503"
       },
       {
         "kind": "middleware",
@@ -204709,7 +204679,7 @@
           "C15"
         ],
         "lifecycle": "temporary_supported_legacy",
-        "data_ownership": "Adds review state, category and MRP evidence to StockSyncRow (store test run only); reviewed_by links HumanIdentity with PROTECT.",
+        "data_ownership": "Tenant-owned goods counts with legacy store-linked count/correction history",
         "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
@@ -204757,7 +204727,7 @@
         "migration_requirements": "Map snapshots, blind passes, recounts, variances, reasons, approval bands and corrections to one journal. Later full SOH snapshots belong to C08/SO-08 retained correction/count, never another opening. The narrow sole-online-alpha trading snapshot adapter is implemented in outbound.goods_soh_reconciliation with exact persisted pause/frontier, SITE-before-DOCUMENT lock order and actual concurrency denial proof. Initial-parent repeat protection is implemented in ptmapper.soh_services. Generic non-trading counts retain their existing gate. Only zero/reduction closure is supported; gains, encumbrances, nonordinary custody, offline frontiers and real-tenant acceptance remain inactive or pending. SohImport independently reviewed source and cutoff -> outbound.goods_soh_views Start/Detail/Mutation -> goods_soh_reconciliation begin/submit/cancel/_decide -> SiteGuard SITE lock before RegisteredTill DOCUMENT lock -> snapshot_pause_evidence persisted TillPause, allocation/frontier/reservation/UUID reconciliation -> frozen canonical GoodsStocktake book -> independent versioned count.review -> zero-close or P13 reduction at original origin cost -> retained journal and goods stock readers; access revalidation before commit and DTO delivery. Fresh source inputs, stable identity/governance, working set, book/journal watermark, count reasons and approval versions are rechecked. Full offline till reconciliation and gains/encumbered/nonordinary differences remain unsupported/inactive.",
         "acceptance_evidence": "Reconcile before/after balances and preserve approval evidence. Later full SOH snapshots belong to C08/SO-08, using the retained goods count/correction journey; they must not replay opening balances or historical source movements. Pending dependencies: ptmapper.soh_services.requires_inventory_reconciliation and apply_batch initial-parent fence; outbound.goods_counts.start_count/current_declaration SiteGuard freeze and journal snapshot; C10/SO-09 registered-till pause, unresolved UUID outcomes and numbered-bill reconciliation; C06 retained stock journal/readers. Trading-store counts remain inactive until the separately approved R-INV-009/ST-INV-3/OQ-57 pause, source cutoff and independent delta review contracts have current evidence.",
         "removal_condition": "Retire with the store test run at real-store cutover (SO-22).",
-        "rule_id": "STORE-TEST-606"
+        "rule_id": "STORE-TEST-107"
       },
       {
         "kind": "migration",
@@ -241249,7 +241219,7 @@
           "C15"
         ],
         "lifecycle": "temporary_supported_legacy",
-        "data_ownership": "Tenant-owned goods counts with legacy store-linked count/correction history",
+        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. Every row that differs from the book is categorised (SOH_ONLY, PT_ONLY, SOH_ABOVE, SOH_BELOW, MRP_DIFFERS) with book and SOH MRP and flagged to the store's store_person through one stock_sync_review exception per sync, never one per row. SOH-only barcodes are flagged only: no item, stock or top-up SohImport is created (the old _top_up path is removed); they become real only when a PT containing them is opened. Acknowledging a row records review_state/reviewed_by/reviewed_at and changes no stock or item.",
         "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
@@ -241363,7 +241333,7 @@
           "C15"
         ],
         "lifecycle": "temporary_supported_legacy",
-        "data_ownership": "Tenant-owned goods counts with legacy store-linked count/correction history",
+        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. Every row that differs from the book is categorised (SOH_ONLY, PT_ONLY, SOH_ABOVE, SOH_BELOW, MRP_DIFFERS) with book and SOH MRP and flagged to the store's store_person through one stock_sync_review exception per sync, never one per row. SOH-only barcodes are flagged only: no item, stock or top-up SohImport is created (the old _top_up path is removed); they become real only when a PT containing them is opened. Acknowledging a row records review_state/reviewed_by/reviewed_at and changes no stock or item.",
         "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
@@ -260448,7 +260418,7 @@
         ],
         "lifecycle": "temporary_supported_legacy",
         "data_ownership": "Tenant-owned goods receiving/PT evidence with legacy receiving history",
-        "authorization": "Operator shell only; refuses a non-synthetic tenant. Drives the canonical SOH → manifest → opening PT → acceptance writers with distinct synthetic people.",
+        "authorization": "Operator shell only; refuses a non-synthetic tenant. load_test_store builds the store, people and approval policies (with --setup it publishes the pt.approve.opening policy carrying auto_approve_test_store_opening from setup.json opening.approval=false). open_test_store stages the PT as --uploader, who must hold opening.import.stage at the store, and queues the same opening_load job the upload does (pt_opening_services.request_load: the uploader, or an owner while approvals are on); --foreground runs it in-process under the same advisory lock.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [],
@@ -263352,7 +263322,7 @@
         ],
         "lifecycle": "temporary_supported_legacy",
         "data_ownership": "Tenant-owned goods receiving/PT evidence with legacy receiving history",
-        "authorization": "Operator shell only; refuses a non-synthetic tenant. Drives the canonical SOH → manifest → opening PT → acceptance writers with distinct synthetic people.",
+        "authorization": "Operator shell only; refuses a non-synthetic tenant. Drives the canonical SOH → manifest → opening PT → acceptance writers one idempotent step at a time (OpeningDriver.next_step) as the store's opening preparer; each approval is either the preparer's NO_APPROVAL_REQUIRED decision under the flagged policy or waits for a normal approver.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
@@ -300521,8 +300491,8 @@
           "C08"
         ],
         "lifecycle": "temporary_supported_legacy",
-        "data_ownership": "Store test run only. PT workbooks become one SohImport (normalised evidence workbook) staged through accounts.test_store_loader.OpeningDriver; stock moves only through the canonical SOH -> manifest -> opening PT -> acceptance writers, queued as one opening_load outbox job.",
-        "authorization": "Operator shell only; exactly one synthetic tenant and require_test_store refuse a real store. --uploader is an active login whose AccessContext comes from accounts.principal.access_for_user (effective RoleAssignments) and must cover opening.import.stage at the store; queueing the load re-checks pt_opening_services.may_load. The job then acts as the store's opening preparer.",
+        "data_ownership": "Tenant-owned goods receiving/PT evidence with legacy receiving history",
+        "authorization": "Operator shell only; refuses a non-synthetic tenant. load_test_store builds the store, people and approval policies (with --setup it publishes the pt.approve.opening policy carrying auto_approve_test_store_opening from setup.json opening.approval=false). open_test_store stages the PT as --uploader, who must hold opening.import.stage at the store, and queues the same opening_load job the upload does (pt_opening_services.request_load: the uploader, or an owner while approvals are on); --foreground runs it in-process under the same advisory lock.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [],
@@ -300627,8 +300597,8 @@
         "replacement": "`/goods/receive/*`, `/goods/pt-work`, `/goods/labels` retain receiving, PT and labels. Old `/goods/arrivals`, `/goods/receipts`, `/goods/accept`, `/goods/pt/prepare`, `/goods/pt/approvals` are bookmark redirects",
         "migration_requirements": "Map arrival, claimed invoice, count, GRN, PT rows, number, cost basis, label jobs and approval evidence with source IDs.",
         "acceptance_evidence": "Reconcile physical count and official value once; prove history and separate-person approval before removing separate screens or old write services.",
-        "removal_condition": "Retire with the store test run at real-store cutover (SO-22): the synthetic tenant is closed and no real tenant can reach these surfaces.",
-        "rule_id": "STORE-TEST-601"
+        "removal_condition": "Retire with the store test run at real-store cutover (SO-22).",
+        "rule_id": "STORE-TEST-401"
       },
       {
         "kind": "module",
@@ -300677,8 +300647,8 @@
           "C15"
         ],
         "lifecycle": "temporary_supported_legacy",
-        "data_ownership": "Tenant-owned goods counts with legacy store-linked count/correction history",
-        "authorization": "Operator shell only; exactly one synthetic tenant and stock_sync_services.require_test_store refuse a real store. --uploader gets a fresh stepped-up ServerSession (test_store_loader.access_for -> resolve_access) and must hold opening.import.stage at the exact store; each step runs through execute_command, which replays the demand before commit.",
+        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. Every row that differs from the book is categorised (SOH_ONLY, PT_ONLY, SOH_ABOVE, SOH_BELOW, MRP_DIFFERS) with book and SOH MRP and flagged to the store's store_person through one stock_sync_review exception per sync, never one per row. SOH-only barcodes are flagged only: no item, stock or top-up SohImport is created (the old _top_up path is removed); they become real only when a PT containing them is opened. Acknowledging a row records review_state/reviewed_by/reviewed_at and changes no stock or item.",
+        "authorization": "Operator shell only; refuses a non-synthetic tenant. Runs the same stock_sync_services commands as the Legacy sync page as --uploader's own login, refused unless it holds opening.import.stage at the store; only the web password re-entry is skipped.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [],
@@ -300794,8 +300764,8 @@
         "replacement": "`/goods/counts/*` is the count target; `/stock-count/*` schedule, adjustments and write-offs, `/stock/vflips/*` become one controlled correction/count journey",
         "migration_requirements": "Map snapshots, blind passes, recounts, variances, reasons, approval bands and corrections to one journal. Later full SOH snapshots belong to C08/SO-08 retained correction/count, never another opening. The narrow sole-online-alpha trading snapshot adapter is implemented in outbound.goods_soh_reconciliation with exact persisted pause/frontier, SITE-before-DOCUMENT lock order and actual concurrency denial proof. Initial-parent repeat protection is implemented in ptmapper.soh_services. Generic non-trading counts retain their existing gate. Only zero/reduction closure is supported; gains, encumbrances, nonordinary custody, offline frontiers and real-tenant acceptance remain inactive or pending. SohImport independently reviewed source and cutoff -> outbound.goods_soh_views Start/Detail/Mutation -> goods_soh_reconciliation begin/submit/cancel/_decide -> SiteGuard SITE lock before RegisteredTill DOCUMENT lock -> snapshot_pause_evidence persisted TillPause, allocation/frontier/reservation/UUID reconciliation -> frozen canonical GoodsStocktake book -> independent versioned count.review -> zero-close or P13 reduction at original origin cost -> retained journal and goods stock readers; access revalidation before commit and DTO delivery. Fresh source inputs, stable identity/governance, working set, book/journal watermark, count reasons and approval versions are rechecked. Full offline till reconciliation and gains/encumbered/nonordinary differences remain unsupported/inactive.",
         "acceptance_evidence": "Reconcile before/after balances and preserve approval evidence. Later full SOH snapshots belong to C08/SO-08, using the retained goods count/correction journey; they must not replay opening balances or historical source movements. Pending dependencies: ptmapper.soh_services.requires_inventory_reconciliation and apply_batch initial-parent fence; outbound.goods_counts.start_count/current_declaration SiteGuard freeze and journal snapshot; C10/SO-09 registered-till pause, unresolved UUID outcomes and numbered-bill reconciliation; C06 retained stock journal/readers. Trading-store counts remain inactive until the separately approved R-INV-009/ST-INV-3/OQ-57 pause, source cutoff and independent delta review contracts have current evidence.",
-        "removal_condition": "Retire with the store test run at real-store cutover (SO-22): the synthetic tenant is closed and no real tenant can reach these surfaces.",
-        "rule_id": "STORE-TEST-605"
+        "removal_condition": "Retire with the store test run at real-store cutover (SO-22).",
+        "rule_id": "STORE-TEST-404"
       },
       {
         "kind": "module",
@@ -300915,8 +300885,8 @@
           "C15"
         ],
         "lifecycle": "temporary_supported_legacy",
-        "data_ownership": "Writes nothing itself; the decision is an ApprovalDecision APPROVED with NO_APPROVAL_REQUIRED naming the flagged policy version (C15 evidence).",
-        "authorization": "No new authority: registers approvals.goods_services auto rules for the SOH source, opening manifest and opening PT approvals. decide_without_second_person lets only the request's maker confirm, and only while the pt.approve.opening policy in force at a non-real store carries auto_approve_test_store_opening; the policy is locked and rechecked before commit. Otherwise the request stays pending (AUTO_APPROVAL_NOT_ALLOWED), never a fallback.",
+        "data_ownership": "Writes nothing itself. Each decision is one APPROVED ApprovalDecision with reason NO_APPROVAL_REQUIRED by the maker, pinning the policy version, so the approval evidence trail is kept.",
+        "authorization": "Domain rule for approvals.goods_services.register_auto_rule / decide_without_second_person (C15 core, with approvals.goods_policy.enforce_auto): returns the pt.approve.opening policy version in force at the store only when the store is not real (masters.store_features.is_real_store) and the policy carries auto_approve_test_store_opening (closed schema in masters.goods_services, opening approval only, single-step route). Registered for soh_import and manifest opening.manifest.approve and document pt.approve.opening. The caller must be the request's maker; the pinned policy is rechecked in force and flagged; otherwise AUTO_APPROVAL_NOT_ALLOWED and the request stays pending. No fallback to another permission source.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
@@ -300992,9 +300962,9 @@
         },
         "replacement": "`/goods/receive/*`, `/goods/pt-work`, `/goods/labels` retain receiving, PT and labels. Old `/goods/arrivals`, `/goods/receipts`, `/goods/accept`, `/goods/pt/prepare`, `/goods/pt/approvals` are bookmark redirects",
         "migration_requirements": "Map arrival, claimed invoice, count, GRN, PT rows, number, cost basis, label jobs and approval evidence with source IDs.",
-        "acceptance_evidence": "backend/tests/test_pt_opening.py and approvals auto-decision tests on the exact revision.",
-        "removal_condition": "Retire with the store test run at real-store cutover (SO-22): the synthetic tenant is closed and no real tenant can reach these surfaces.",
-        "rule_id": "STORE-TEST-603"
+        "acceptance_evidence": "backend/tests/test_opening_auto_approval.py (flag on; denied on a real store, without the flag, after the flag is removed, for a non-maker; transfers unaffected) on the exact revision.",
+        "removal_condition": "Retire with the store test run at real-store cutover (SO-22): remove this rule and its registration in ptmapper.apps, and the auto_approve_test_store_opening schema key; decide_without_second_person must then have no test-store rule registered.",
+        "rule_id": "STORE-TEST-505"
       },
       {
         "kind": "module",
@@ -301210,8 +301180,8 @@
           "C08"
         ],
         "lifecycle": "temporary_supported_legacy",
-        "data_ownership": "Tenant-owned goods receiving/PT evidence with legacy receiving history",
-        "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
+        "data_ownership": "Progress only in SohImport.reconciliation.quick_load (outside the review hash); running state is the job's own OutboxIntent. A session-level pg advisory lock per source replaces the 30-minute stale lock; each job works about 90 s then queues its continuation (uuid5 request key) inside the 120 s lease. All stock and document writes stay with the canonical opening writers.",
+        "authorization": "Queues and runs a test store's opening load as a durable core.outbox job (opening_load, command opening.load.enqueue), never a web thread. request_load admits the uploader, or an owner with opening.manifest.approve (cost, financial) only while approvals are on; refuses a real store, a withdrawn or finished source and a store with no opening preparer. The job acts as the preparer through a session-free AccessContext compiled from current RoleAssignments (job_access, as files.goods_exports.requester_access).",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
@@ -302251,7 +302221,7 @@
           "C15"
         ],
         "lifecycle": "temporary_supported_legacy",
-        "data_ownership": "Tenant-owned goods counts with legacy store-linked count/correction history",
+        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. Every row that differs from the book is categorised (SOH_ONLY, PT_ONLY, SOH_ABOVE, SOH_BELOW, MRP_DIFFERS) with book and SOH MRP and flagged to the store's store_person through one stock_sync_review exception per sync, never one per row. SOH-only barcodes are flagged only: no item, stock or top-up SohImport is created (the old _top_up path is removed); they become real only when a PT containing them is opened. Acknowledging a row records review_state/reviewed_by/reviewed_at and changes no stock or item.",
         "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
@@ -302400,7 +302370,7 @@
           "C15"
         ],
         "lifecycle": "temporary_supported_legacy",
-        "data_ownership": "Tenant-owned goods counts with legacy store-linked count/correction history",
+        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. Every row that differs from the book is categorised (SOH_ONLY, PT_ONLY, SOH_ABOVE, SOH_BELOW, MRP_DIFFERS) with book and SOH MRP and flagged to the store's store_person through one stock_sync_review exception per sync, never one per row. SOH-only barcodes are flagged only: no item, stock or top-up SohImport is created (the old _top_up path is removed); they become real only when a PT containing them is opened. Acknowledging a row records review_state/reviewed_by/reviewed_at and changes no stock or item.",
         "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
@@ -341586,12 +341556,15 @@
           ],
           "authorization_candidates": []
         },
-        "primary_id": "P00",
-        "owner": "SO-02",
-        "related_ids": [],
-        "lifecycle": "canonical",
-        "data_ownership": "Platform-owned configuration and infrastructure",
-        "authorization": "Platform exposure and operator authentication require separate review.",
+        "primary_id": "C05",
+        "owner": "SO-07",
+        "related_ids": [
+          "C08",
+          "P00"
+        ],
+        "lifecycle": "temporary_supported_legacy",
+        "data_ownership": "Local only: rebuilds deploy/compose.rehearsal.yaml from empty, opens the store from the git-ignored PT and SOH and asserts totals; never touches the server.",
+        "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [],
@@ -341630,11 +341603,11 @@
           "named_tests": [],
           "reviewed_chain": "Static candidates do not establish runtime access coverage."
         },
-        "replacement": "Supported platform endpoints with security review",
-        "migration_requirements": "No business transaction migration.",
-        "acceptance_evidence": "Platform exposure and deployment checks.",
-        "removal_condition": "Retain while required by deployment; remove only through platform change review.",
-        "rule_id": "platform-operational-files"
+        "replacement": "`/goods/receive/*`, `/goods/pt-work`, `/goods/labels` retain receiving, PT and labels. Old `/goods/arrivals`, `/goods/receipts`, `/goods/accept`, `/goods/pt/prepare`, `/goods/pt/approvals` are bookmark redirects",
+        "migration_requirements": "Map arrival, claimed invoice, count, GRN, PT rows, number, cost basis, label jobs and approval evidence with source IDs.",
+        "acceptance_evidence": "Reconcile physical count and official value once; prove history and separate-person approval before removing separate screens or old write services.",
+        "removal_condition": "Retire with the store test run at real-store cutover (SO-22).",
+        "rule_id": "STORE-TEST-506"
       },
       {
         "kind": "operational_file",
@@ -341643,12 +341616,15 @@
         "detail": {
           "format": ".sh"
         },
-        "primary_id": "P00",
-        "owner": "SO-02",
-        "related_ids": [],
-        "lifecycle": "canonical",
-        "data_ownership": "Platform-owned configuration and infrastructure",
-        "authorization": "Platform exposure and operator authentication require separate review.",
+        "primary_id": "C05",
+        "owner": "SO-07",
+        "related_ids": [
+          "C08",
+          "P00"
+        ],
+        "lifecycle": "temporary_supported_legacy",
+        "data_ownership": "Local only: rebuilds deploy/compose.rehearsal.yaml from empty, opens the store from the git-ignored PT and SOH and asserts totals; never touches the server.",
+        "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [],
@@ -341687,11 +341663,11 @@
           "named_tests": [],
           "reviewed_chain": "Static candidates do not establish runtime access coverage."
         },
-        "replacement": "Supported platform endpoints with security review",
-        "migration_requirements": "No business transaction migration.",
-        "acceptance_evidence": "Platform exposure and deployment checks.",
-        "removal_condition": "Retain while required by deployment; remove only through platform change review.",
-        "rule_id": "platform-operational-files"
+        "replacement": "`/goods/receive/*`, `/goods/pt-work`, `/goods/labels` retain receiving, PT and labels. Old `/goods/arrivals`, `/goods/receipts`, `/goods/accept`, `/goods/pt/prepare`, `/goods/pt/approvals` are bookmark redirects",
+        "migration_requirements": "Map arrival, claimed invoice, count, GRN, PT rows, number, cost basis, label jobs and approval evidence with source IDs.",
+        "acceptance_evidence": "Reconcile physical count and official value once; prove history and separate-person approval before removing separate screens or old write services.",
+        "removal_condition": "Retire with the store test run at real-store cutover (SO-22).",
+        "rule_id": "STORE-TEST-506"
       },
       {
         "kind": "operational_file",
@@ -347236,8 +347212,8 @@
           "C15"
         ],
         "lifecycle": "temporary_supported_legacy",
-        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. New barcodes are staged as a C05 top-up SohImport for review, never invented.",
-        "authorization": "opening.import.stage at the exact store in one scoped assignment; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. SITE-before-DOCUMENT lock order.",
+        "data_ownership": "Store test run only: the legacy software is the only real book. StockSync/LegacySalesImport rows keep the uploaded source evidence (no customer data); stock moves only through one P22 journal batch per apply, never a bill, tax document or GL entry. Every row that differs from the book is categorised (SOH_ONLY, PT_ONLY, SOH_ABOVE, SOH_BELOW, MRP_DIFFERS) with book and SOH MRP and flagged to the store's store_person through one stock_sync_review exception per sync, never one per row. SOH-only barcodes are flagged only: no item, stock or top-up SohImport is created (the old _top_up path is removed); they become real only when a PT containing them is opened. Acknowledging a row records review_state/reviewed_by/reviewed_at and changes no stock or item.",
+        "authorization": "opening.import.stage at the exact store in one scoped assignment (store_person, warehouse or operations_head; owner keeps it for visibility) for upload, preview, apply, discard, the review row list and acknowledge; refused with TEST_TENANT_ONLY unless the tenant is synthetic (masters.store_features.is_real_store) and with CONTRACT_DISABLED unless the store is goods-v1. A stale export is refused at upload and apply (STOCK_SYNC_STALE); the same file and export time is a no-op. SITE-before-DOCUMENT lock order.",
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [],
@@ -347276,7 +347252,7 @@
         "access_contract": {
           "trace_status": "pending",
           "required_action": "opening.import.stage",
-          "reviewed_chain": "ptmapper.stock_sync_views / legacy_sales_views -> AccessContext.require(opening.import.stage, site) -> stock_sync_services / legacy_sales_services (require_test_store) -> stockledger.goods_engine P22 post."
+          "reviewed_chain": "ptmapper.stock_sync_views (upload, detail, rows, rows/acknowledge, apply/discard) / legacy_sales_views -> AccessContext.require(opening.import.stage, site) -> stock_sync_services / legacy_sales_services (require_test_store) -> stockledger.goods_engine P22 post; one alerts.goods_services stock_sync_review exception per applied sync, resolved when every flagged row is acknowledged."
         },
         "replacement": "`/goods/counts/*` is the count target; `/stock-count/*` schedule, adjustments and write-offs, `/stock/vflips/*` become one controlled correction/count journey",
         "migration_requirements": "Test-tenant coexistence decision: docs/planning/store-test-run-decision.md. Test bills are reversed from their own sale journal (goods-v1 bill cancel does not restore stock); a reversed portion is never reversed twice. A sales report covered by an applied SOH is refused.",

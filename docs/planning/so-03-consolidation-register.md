@@ -69,12 +69,12 @@ The [machine-readable inventory](so-03-consolidation-inventory.json) records eve
 | Retirement item / owner | Discovered surfaces by kind | Unresolved | Untraced temporary APIs |
 | --- | --- | ---: | ---: |
 | A00 · SO-03 | api: 36, api_consumer: 36, bookmark: 4, command: 6, middleware: 2, migration: 31, model: 13, module: 56, navigation: 2, screen: 3 | 9 | 0 |
-| P00 · SO-02 | api: 205, api_consumer: 13, command: 2, job_handler: 1, middleware: 9, migration: 12, model: 30, module: 46, navigation: 1, operational_file: 58, screen: 1 | 214 | 0 |
+| P00 · SO-02 | api: 205, api_consumer: 13, command: 2, job_handler: 1, middleware: 9, migration: 12, model: 30, module: 46, navigation: 1, operational_file: 56, screen: 1 | 214 | 0 |
 | C01 · SO-04 | api: 121, api_consumer: 131, bookmark: 5, command: 2, migration: 27, model: 34, module: 34, navigation: 12, screen: 12 | 10 | 12 |
 | C02 · SO-05 | api: 9, api_consumer: 7, command: 2, migration: 7, model: 4, module: 5, navigation: 2, screen: 2 | 0 | 2 |
 | C03 · SO-06 | api: 23, api_consumer: 20, bookmark: 4, command: 3, migration: 11, model: 9, module: 28, navigation: 12, scheduled_job: 2, screen: 12 | 11 | 0 |
 | C04 · SO-07 | api: 14, api_consumer: 15, bookmark: 2, migration: 13, model: 8, module: 18, navigation: 3, screen: 3 | 0 | 0 |
-| C05 · SO-07 | api: 57, api_consumer: 80, bookmark: 5, command: 3, job_handler: 1, migration: 32, model: 24, module: 48, navigation: 6, print_output: 2, screen: 6, subview: 1 | 14 | 0 |
+| C05 · SO-07 | api: 57, api_consumer: 80, bookmark: 5, command: 3, job_handler: 1, migration: 32, model: 24, module: 48, navigation: 6, operational_file: 2, print_output: 2, screen: 6, subview: 1 | 14 | 0 |
 | C06 · SO-08 | api: 51, api_consumer: 41, bookmark: 2, command: 1, migration: 31, model: 29, module: 30, navigation: 12, screen: 11 | 5 | 4 |
 | C07 · SO-08 | api: 49, api_consumer: 29, bookmark: 3, command: 2, migration: 26, model: 20, module: 29, navigation: 8, print_output: 2, screen: 13 | 4 | 12 |
 | C08 · SO-08 | api: 56, api_consumer: 45, bookmark: 4, command: 3, migration: 14, model: 23, module: 26, navigation: 8, scheduled_job: 2, screen: 14 | 2 | 15 |
