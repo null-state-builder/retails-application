@@ -257,26 +257,58 @@ export function persistScope(scope: string, client: QueryClient = queryClient): 
   });
 }
 
+/** The reference data a write may have changed, as `/masters/…` and
+ *  `/vendors` prefixes. The goods-v1 master screens write through
+ *  `/goods-v1/masters/<kind>` and `/goods-v1/vendors`, while the reference
+ *  reads (and the sign-in bootstrap's blocks, which are seeded under the same
+ *  URLs) live under `/masters/<kind>` and `/vendors`: the two families must
+ *  move together. */
+export function referenceTouchedBy(url: string): string[] {
+  const parts = pathOf(url).split("/").filter(Boolean);
+  const touched = new Set<string>();
+  let rest = parts;
+  if (rest[0] === "goods-v1") rest = rest.slice(1);
+  if (rest[0] === "vendors") touched.add("/vendors");
+  if (rest[0] === "masters" && rest[1]) {
+    const kind = rest[1];
+    if (kind === "vendors") touched.add("/vendors");
+    else touched.add(`/masters/${kind === "subbrands" ? "brands" : kind}`);
+    // A store's locations are written under the store.
+    if (kind === "stores" && rest.includes("locations")) touched.add("/masters/locations");
+  }
+  return [...touched].filter((prefix) => isReferenceUrl(prefix));
+}
+
 /** After a successful change, the screen should end on what the server says.
- *  Lists under the same first path segment (`/outbound/…`, `/masters/…`,
- *  `/approvals/…`) refetch now if shown; every other non-reference answer is
- *  marked stale, so it is re-asked (behind the cached copy) next time it is
- *  shown. */
+ *  - Every mounted answer refetches now: the changed family's (first path
+ *    segment: `/outbound/…`, `/goods-v1/…`) and every other family's too,
+ *    except reference data the write cannot have touched. What is not on
+ *    screen is marked stale and is re-asked (behind the cached copy) next
+ *    time it is shown.
+ *  - Reference data the write did touch (`referenceTouchedBy`, across the
+ *    legacy and goods-v1 families): mounted reads refetch now, and copies not
+ *    on screen are dropped, so the device copy loses them on its next write
+ *    rather than restoring a superseded master for up to 24 h. */
 export function invalidateAfterMutation(url: string, client: QueryClient = queryClient): void {
   const segment = pathOf(url).split("/").filter(Boolean)[0];
   if (!segment || segment === "auth") return;
   const family = `/${segment}`;
+  const touched = referenceTouchedBy(url);
+  const isTouched = (u: string) => touched.some((prefix) => under(pathOf(u), prefix));
+  if (touched.length > 0) {
+    client.removeQueries({
+      predicate: (q) => {
+        const u = urlOf(q);
+        return u !== null && isTouched(u) && !q.isActive();
+      },
+    });
+  }
   void client.invalidateQueries({
     predicate: (q) => {
       const u = urlOf(q);
-      return u !== null && under(pathOf(u), family);
-    },
-  });
-  void client.invalidateQueries({
-    refetchType: "none",
-    predicate: (q) => {
-      const u = urlOf(q);
-      return u !== null && !under(pathOf(u), family) && !isReferenceUrl(u);
+      if (u === null) return false;
+      if (isTouched(u)) return true;
+      return under(pathOf(u), family) || !isReferenceUrl(u);
     },
   });
 }
