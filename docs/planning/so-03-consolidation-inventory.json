@@ -6449,6 +6449,45 @@
       "gate": "Shared GET fetcher behind useList/useDoc (app loading and caching plan, Phase 1); the URL is each screen's own. Read-only, in-memory, keyed by user/store/brand/roles and cleared on logout, expiry, store and role change. Trace each calling screen's URL to its mounted API, tenant, scope and field authority."
     },
     {
+      "id": "APP-CACHE-002",
+      "kind": "api",
+      "key_regex": "^api:GET:/api/auth/bootstrap$",
+      "primary_id": "A00",
+      "related_ids": [
+        "C01",
+        "C04",
+        "C15"
+      ],
+      "lifecycle": "canonical",
+      "gate": "Sign-in bootstrap (app loading and caching plan, Phase 2). Adds no authority or data: each block is the named endpoint's own 200 answer, produced by dispatching that endpoint's view with the caller's request (session, permission classes, unit/brand header, scoping, serializer); a refused block is omitted. Blocks mirror the legacy masters/vendors readers (C01/C04) and count the approvals/alerts inboxes (C15) without copying rows. When SO-04/SO-07/SO-14 move a screen's URL, move the block with it in accounts/bootstrap.py; tests/test_session_bootstrap.py proves block equality and denial."
+    },
+    {
+      "id": "APP-CACHE-003",
+      "kind": "module",
+      "key_regex": "^module:accounts\\.bootstrap$",
+      "primary_id": "A00",
+      "related_ids": [
+        "C01",
+        "C04",
+        "C15"
+      ],
+      "lifecycle": "canonical",
+      "gate": "View module behind APP-CACHE-002 (GET /api/auth/bootstrap). Adds no authority or data: each block is the named endpoint's own 200 answer, produced by dispatching that endpoint's view with the caller's request (session, permission classes, unit/brand header, scoping, serializer); a refused block is omitted. Blocks mirror the legacy masters/vendors readers (C01/C04) and count the approvals/alerts inboxes (C15) without copying rows. When SO-04/SO-07/SO-14 move a screen's URL, move the block with it in accounts/bootstrap.py; tests/test_session_bootstrap.py proves block equality and denial."
+    },
+    {
+      "id": "APP-CACHE-004",
+      "kind": "api_consumer",
+      "key_regex": "^api_consumer:frontend/src/lib/bootstrap\\.ts:050c8a714f00$",
+      "primary_id": "A00",
+      "related_ids": [
+        "C01",
+        "C04",
+        "C15"
+      ],
+      "lifecycle": "canonical",
+      "gate": "Sign-in warm-up caller of APP-CACHE-002, run from the shell (useSessionWarmup) after the device restore; failures are silent. Seeds each block into [scope, url] of the in-memory QueryClient; the device copy keeps reference blocks only (isPersistableUrl). Server side, adds no authority or data: each block is the named endpoint's own 200 answer, produced by dispatching that endpoint's view with the caller's request (session, permission classes, unit/brand header, scoping, serializer); a refused block is omitted. Blocks mirror the legacy masters/vendors readers (C01/C04) and count the approvals/alerts inboxes (C15) without copying rows. When SO-04/SO-07/SO-14 move a screen's URL, move the block with it in accounts/bootstrap.py; tests/test_session_bootstrap.py proves block equality and denial."
+    },
+    {
       "id": "S0819",
       "kind": "api_consumer",
       "key_regex": "^api_consumer:frontend/src/lib/mail\\.ts:1d17567b44e1$",
@@ -25114,7 +25153,7 @@
     }
   ],
   "discovered": {
-    "checksum": "1ecc94b450a308ef67264b81c3e13268731f74792b5ce126ad43a938f7b294ac",
+    "checksum": "e620310e82ba853bdcb651350e470a14255fec4ed5219072e9b223ba3cebda58",
     "records": [
       {
         "kind": "api",
@@ -35539,6 +35578,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.bootstrap",
             "module:accounts.unified_urls",
             "module:accounts.views"
           ],
@@ -35635,6 +35675,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.bootstrap",
             "module:accounts.unified_urls",
             "module:accounts.views"
           ],
@@ -35925,6 +35966,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.bootstrap",
             "module:accounts.unified_urls",
             "module:accounts.views"
           ],
@@ -36017,6 +36059,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.bootstrap",
             "module:accounts.unified_urls",
             "module:accounts.views"
           ],
@@ -36279,6 +36322,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.bootstrap",
             "module:accounts.unified_urls",
             "module:accounts.views"
           ],
@@ -36375,6 +36419,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.bootstrap",
             "module:accounts.unified_urls",
             "module:accounts.views"
           ],
@@ -36477,6 +36522,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.bootstrap",
             "module:accounts.unified_urls",
             "module:accounts.views"
           ],
@@ -36573,6 +36619,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.bootstrap",
             "module:accounts.unified_urls",
             "module:accounts.views"
           ],
@@ -36992,6 +37039,111 @@
         "acceptance_evidence": "Idempotent migration reconciliation, session invalidation, direct denial matrix and browser journeys.",
         "removal_condition": "Retire old grant editors, access writes and direct permission bridges after every active access consumer is switched and history remains resolvable.",
         "rule_id": "S0161"
+      },
+      {
+        "kind": "api",
+        "key": "api:GET:/api/auth/bootstrap",
+        "source": "backend/accounts/bootstrap.py",
+        "detail": {
+          "handler": "accounts.bootstrap.BootstrapView",
+          "route_name": "bootstrap",
+          "dynamic_permissions": false
+        },
+        "primary_id": "A00",
+        "owner": "SO-03",
+        "related_ids": [
+          "C01",
+          "C04",
+          "C15"
+        ],
+        "lifecycle": "canonical",
+        "data_ownership": "Tenant-owned identity and policy with retained legacy authority evidence",
+        "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [
+            "module:accounts.urls"
+          ],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": [
+            "api_consumer:frontend/src/lib/bootstrap.ts:050c8a714f00"
+          ]
+        },
+        "dependencies": {
+          "basis": "source_module_static",
+          "source_module": "module:accounts.bootstrap",
+          "callback_component": null,
+          "static_imports": [
+            "accounts.goods_admin_views",
+            "core.tenancy",
+            "masters.models",
+            "vendors.models"
+          ],
+          "local_component_keys": [
+            "module:accounts.goods_admin_views",
+            "module:core.tenancy",
+            "module:masters.models",
+            "module:vendors.models"
+          ],
+          "candidate_model_keys": [
+            "model:masters.Brand",
+            "model:masters.CategoryMargin",
+            "model:masters.Cohort",
+            "model:masters.Customer",
+            "model:masters.CustomerNumber",
+            "model:masters.GstSlab",
+            "model:masters.Gstin",
+            "model:masters.LegalEntity",
+            "model:masters.PriceChange",
+            "model:masters.Season",
+            "model:masters.Sku",
+            "model:masters.StaffTarget",
+            "model:masters.Store",
+            "model:masters.StoreTarget",
+            "model:vendors.Booking",
+            "model:vendors.BookingLine",
+            "model:vendors.Vendor",
+            "model:vendors.VendorBrand"
+          ],
+          "frontend_api_callsites": [
+            "api_consumer:frontend/src/lib/bootstrap.ts:050c8a714f00"
+          ],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "source_file_static_candidates",
+          "read_candidates": [
+            "VendorBrand.objects.filter",
+            "VendorBrand.objects.filter(tenant_id=tenant_id).aggregate",
+            "blocks.get",
+            "model._default_manager.all",
+            "rows.aggregate",
+            "rows.filter"
+          ],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "access_contract": {
+          "trace_status": "pending",
+          "actor_type": "unreviewed",
+          "required_action": "unreviewed",
+          "scope_source": "unreviewed",
+          "protected_fields": "unreviewed",
+          "delivery_recheck": "unreviewed",
+          "named_tests": [],
+          "reviewed_chain": "Static candidates do not establish runtime access coverage."
+        },
+        "replacement": "One /api/auth/* authority, effective scoped role assignments, AccessContext, People & Access and one policy editor",
+        "migration_requirements": "Link old users, grants and policy evidence to effective-dated tenant assignments and versioned policy.",
+        "acceptance_evidence": "Idempotent migration reconciliation, session invalidation, direct denial matrix and browser journeys.",
+        "removal_condition": "Retire old grant editors, access writes and direct permission bridges after every active access consumer is switched and history remains resolvable.",
+        "rule_id": "APP-CACHE-002"
       },
       {
         "kind": "api",
@@ -86516,6 +86668,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.bootstrap",
             "module:accounts.unified_urls",
             "module:accounts.views"
           ],
@@ -86608,6 +86761,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.bootstrap",
             "module:accounts.unified_urls",
             "module:accounts.views"
           ],
@@ -86710,6 +86864,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.bootstrap",
             "module:accounts.unified_urls",
             "module:accounts.views"
           ],
@@ -93290,6 +93445,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.bootstrap",
             "module:accounts.unified_urls",
             "module:accounts.views"
           ],
@@ -93386,6 +93542,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.bootstrap",
             "module:accounts.unified_urls",
             "module:accounts.views"
           ],
@@ -93478,6 +93635,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.bootstrap",
             "module:accounts.unified_urls",
             "module:accounts.views"
           ],
@@ -93580,6 +93738,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.bootstrap",
             "module:accounts.unified_urls",
             "module:accounts.views"
           ],
@@ -93676,6 +93835,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.bootstrap",
             "module:accounts.unified_urls",
             "module:accounts.views"
           ],
@@ -93778,6 +93938,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.bootstrap",
             "module:accounts.unified_urls",
             "module:accounts.views"
           ],
@@ -93874,6 +94035,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.bootstrap",
             "module:accounts.unified_urls",
             "module:accounts.views"
           ],
@@ -93970,6 +94132,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.bootstrap",
             "module:accounts.unified_urls",
             "module:accounts.views"
           ],
@@ -146594,6 +146757,63 @@
         "removal_condition": "Retain while required by deployment; remove only through platform change review.",
         "gate": "Trace this dynamic/indirect call to a mounted API and test tenant, scope and field authority.",
         "rule_id": "S0810"
+      },
+      {
+        "kind": "api_consumer",
+        "key": "api_consumer:frontend/src/lib/bootstrap.ts:050c8a714f00",
+        "source": "frontend/src/lib/bootstrap.ts",
+        "detail": {
+          "invocation": "api.get",
+          "method": "GET",
+          "argument": "\"/auth/bootstrap\"",
+          "api_reference": "/api/auth/bootstrap",
+          "resolution": "literal_or_constant"
+        },
+        "primary_id": "A00",
+        "owner": "SO-03",
+        "related_ids": [
+          "C01",
+          "C04",
+          "C15"
+        ],
+        "lifecycle": "canonical",
+        "data_ownership": "Tenant-owned identity and policy with retained legacy authority evidence",
+        "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "frontend_declaration",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [
+            "api:GET:/api/auth/bootstrap"
+          ],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "unknown",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "replacement": "One /api/auth/* authority, effective scoped role assignments, AccessContext, People & Access and one policy editor",
+        "migration_requirements": "Link old users, grants and policy evidence to effective-dated tenant assignments and versioned policy.",
+        "acceptance_evidence": "Idempotent migration reconciliation, session invalidation, direct denial matrix and browser journeys.",
+        "removal_condition": "Retire old grant editors, access writes and direct permission bridges after every active access consumer is switched and history remains resolvable.",
+        "rule_id": "APP-CACHE-004"
       },
       {
         "kind": "api_consumer",
@@ -223968,6 +224188,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.bootstrap",
             "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
@@ -224736,6 +224957,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.bootstrap",
             "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
@@ -225054,6 +225276,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.bootstrap",
             "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
@@ -225817,6 +226040,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.bootstrap",
             "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
@@ -226137,6 +226361,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.bootstrap",
             "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
@@ -226784,6 +227009,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.bootstrap",
             "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
@@ -227104,6 +227330,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.bootstrap",
             "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
@@ -227679,6 +227906,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.bootstrap",
             "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
@@ -228638,6 +228866,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.bootstrap",
             "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
@@ -229264,6 +229493,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.bootstrap",
             "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
@@ -229946,6 +230176,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.bootstrap",
             "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
@@ -230558,6 +230789,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.bootstrap",
             "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
@@ -230884,6 +231116,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.bootstrap",
             "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
@@ -231293,6 +231526,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.bootstrap",
             "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
@@ -256365,6 +256599,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.bootstrap",
             "module:accounts.management.commands.load_real_masters",
             "module:accounts.management.commands.seed_foundation",
             "module:files.views",
@@ -256629,6 +256864,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.bootstrap",
             "module:accounts.management.commands.load_real_masters",
             "module:accounts.management.commands.seed_foundation",
             "module:files.views",
@@ -257262,6 +257498,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.bootstrap",
             "module:accounts.management.commands.load_real_masters",
             "module:accounts.management.commands.seed_foundation",
             "module:files.views",
@@ -257399,6 +257636,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.bootstrap",
             "module:accounts.management.commands.load_real_masters",
             "module:accounts.management.commands.seed_foundation",
             "module:files.views",
@@ -258431,6 +258669,111 @@
       },
       {
         "kind": "module",
+        "key": "module:accounts.bootstrap",
+        "source": "backend/accounts/bootstrap.py",
+        "detail": {
+          "imports": [
+            "accounts.goods_admin_views",
+            "core.tenancy",
+            "masters.models",
+            "vendors.models"
+          ],
+          "read_candidates": [
+            "VendorBrand.objects.filter",
+            "VendorBrand.objects.filter(tenant_id=tenant_id).aggregate",
+            "blocks.get",
+            "model._default_manager.all",
+            "rows.aggregate",
+            "rows.filter"
+          ],
+          "write_candidates": [],
+          "authorization_candidates": [],
+          "tags": []
+        },
+        "primary_id": "A00",
+        "owner": "SO-03",
+        "related_ids": [
+          "C01",
+          "C04",
+          "C15"
+        ],
+        "lifecycle": "canonical",
+        "data_ownership": "Tenant-owned identity and policy with retained legacy authority evidence",
+        "authorization": "SO-03 unified server evaluator; owner must prove resource and field denials at cutover.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [
+            "module:accounts.urls"
+          ],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "source_module_static",
+          "source_module": "module:accounts.bootstrap",
+          "callback_component": null,
+          "static_imports": [
+            "accounts.goods_admin_views",
+            "core.tenancy",
+            "masters.models",
+            "vendors.models"
+          ],
+          "local_component_keys": [
+            "module:accounts.goods_admin_views",
+            "module:core.tenancy",
+            "module:masters.models",
+            "module:vendors.models"
+          ],
+          "candidate_model_keys": [
+            "model:masters.Brand",
+            "model:masters.CategoryMargin",
+            "model:masters.Cohort",
+            "model:masters.Customer",
+            "model:masters.CustomerNumber",
+            "model:masters.GstSlab",
+            "model:masters.Gstin",
+            "model:masters.LegalEntity",
+            "model:masters.PriceChange",
+            "model:masters.Season",
+            "model:masters.Sku",
+            "model:masters.StaffTarget",
+            "model:masters.Store",
+            "model:masters.StoreTarget",
+            "model:vendors.Booking",
+            "model:vendors.BookingLine",
+            "model:vendors.Vendor",
+            "model:vendors.VendorBrand"
+          ],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "source_file_static_candidates",
+          "read_candidates": [
+            "VendorBrand.objects.filter",
+            "VendorBrand.objects.filter(tenant_id=tenant_id).aggregate",
+            "blocks.get",
+            "model._default_manager.all",
+            "rows.aggregate",
+            "rows.filter"
+          ],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "replacement": "One /api/auth/* authority, effective scoped role assignments, AccessContext, People & Access and one policy editor",
+        "migration_requirements": "Link old users, grants and policy evidence to effective-dated tenant assignments and versioned policy.",
+        "acceptance_evidence": "Idempotent migration reconciliation, session invalidation, direct denial matrix and browser journeys.",
+        "removal_condition": "Retire old grant editors, access writes and direct permission bridges after every active access consumer is switched and history remains resolvable.",
+        "rule_id": "APP-CACHE-003"
+      },
+      {
+        "kind": "module",
         "key": "module:accounts.change_password",
         "source": "backend/accounts/change_password.py",
         "detail": {
@@ -259265,6 +259608,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.bootstrap",
             "module:accounts.unified_urls",
             "module:accounts.views"
           ],
@@ -264219,6 +264563,7 @@
         "source": "backend/accounts/urls.py",
         "detail": {
           "imports": [
+            "accounts.bootstrap",
             "accounts.registration_views",
             "accounts.views"
           ],
@@ -264244,10 +264589,12 @@
           "source_module": "module:accounts.urls",
           "callback_component": null,
           "static_imports": [
+            "accounts.bootstrap",
             "accounts.registration_views",
             "accounts.views"
           ],
           "local_component_keys": [
+            "module:accounts.bootstrap",
             "module:accounts.registration_views",
             "module:accounts.views"
           ],
@@ -271717,6 +272064,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.bootstrap",
             "module:accounts.custom_roles",
             "module:accounts.goods_demo",
             "module:accounts.goods_setup",
@@ -282975,6 +283323,7 @@
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
             "module:accounts.assignment_migration",
+            "module:accounts.bootstrap",
             "module:accounts.custom_roles",
             "module:accounts.goods_admin_services",
             "module:accounts.goods_demo",
@@ -328284,6 +328633,7 @@
         "callers": {
           "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
           "static_backend_importers": [
+            "module:accounts.bootstrap",
             "module:accounts.management.commands.load_real_masters",
             "module:accounts.management.commands.seed_foundation",
             "module:files.views",
