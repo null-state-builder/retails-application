@@ -384,7 +384,7 @@ _CALL = re.compile(
     r"\b(?:(?P<client>api|typedApi|authApi|axios)\."
     r"(?P<method>get|post|put|patch|delete|request|me|login|logout|csrf|stepUp|changePassword)"
     r"|(?P<function>fetch|EventSource|useList|useDoc|useGoodsFetch|useAllPages|"
-    r"useResourceList|useResourceDoc|useResourceListRaw|useCachedGet))\b"
+    r"useResourceList|useResourceDoc|useResourceListRaw|useCachedGet|useCachedQuery))\b"
 )
 
 
@@ -478,11 +478,23 @@ def _api_reference(argument: str, constants: dict[str, str]) -> tuple[str | None
         first = _call_argument(expression, _mask(expression), len("withQuery"))
         if first is not None:
             expression = first
+    # `cond ? URL : null` (and `cond ? null : URL`), where URL is a literal, a
+    # template or a named URL constant: a cached read that waits for a store,
+    # a permission or a selection before it asks anything.
+    url = r'(`[^`]+`|["\'][^"\']+["\']|[A-Z][A-Z_\d]+)'
     conditional = re.fullmatch(
-        r'.*\?\s*(`[^`]+`|["\'][^"\']+["\'])\s*:\s*null', expression, re.DOTALL
+        r".*\?\s*" + url + r"\s*:\s*null", expression, re.DOTALL
+    ) or re.fullmatch(
+        r"[^?]*\?\s*null\s*:\s*" + r"(withQuery\(.*\)|" + url[1:],
+        expression,
+        re.DOTALL,
     )
     if conditional:
         expression = conditional.group(1)
+    if expression.startswith("withQuery("):
+        first = _call_argument(expression, _mask(expression), len("withQuery"))
+        if first is not None:
+            expression = first
     if expression in constants:
         expression = constants[expression]
     if expression.startswith("apiUrl(") and expression.endswith(")"):

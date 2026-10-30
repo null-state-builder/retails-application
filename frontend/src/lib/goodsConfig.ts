@@ -12,7 +12,6 @@ import { useEffect, useRef, useState } from "react";
 import { api, apiErrorMessage } from "./api";
 import type { paths } from "./api-schema";
 import { useCachedQuery } from "./cachedQuery";
-import { fetchUrl } from "./queryCache";
 import { useResourceList, type Page, type ResourceDTO } from "./goodsScreen";
 
 /** The registered configuration kinds (backend `masters.goods_services.CONFIG_KINDS`). */
@@ -225,7 +224,9 @@ function readEffectiveProfiles(wanted: string): Promise<EffectiveProfile[]> {
       if (!draftId || !versionId || !version || !Number.isSafeInteger(Number(version))) {
         throw new Error("Invalid effective identity profile reference");
       }
-      const data = await fetchUrl<ResourceDTO<ConfigData>>(
+      // Each effective version, read by the same client as every other GET
+      // (the cache keeps the joined answer, under the list's own URL).
+      const { data } = await api.get<ResourceDTO<ConfigData>>(
         `/goods-v1/masters/configurations/${draftId}?version=${version}`,
       );
       return {
