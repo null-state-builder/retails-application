@@ -1298,7 +1298,7 @@ export function Signup() {
           <section className="card signup-section">
             <h2>Company registered</h2>
             <p>Sign in and change your temporary password to continue store setup.</p>
-            <Link className="btn btn-cta" to="/login">
+            <Link className="btn btn-primary" to="/login">
               Sign in to continue setup
             </Link>
           </section>
@@ -1306,7 +1306,7 @@ export function Signup() {
           <section className="card signup-section" data-testid="signup-closed">
             <h2>Company signup is closed</h2>
             <p>{CLOSED}</p>
-            <Link className="btn btn-cta" to="/login">
+            <Link className="btn btn-primary" to="/login">
               Sign in
             </Link>
           </section>
@@ -1442,7 +1442,7 @@ export function Signup() {
                   company, store, people and exact access summary.
                 </label>
                 <button
-                  className="btn btn-cta"
+                  className="btn btn-primary"
                   onClick={() => void confirm()}
                   disabled={busy || !acknowledged}
                   data-testid="signup-confirm"
@@ -1489,7 +1489,7 @@ export function Signup() {
                   )}
                   <button
                     type="button"
-                    className="btn btn-cta"
+                    className="btn btn-primary"
                     disabled={busy}
                     onClick={() => void stage()}
                   >
@@ -1854,7 +1854,7 @@ export function Signup() {
                 </section>
                 <div className="signup-submit">
                   <button
-                    className="btn btn-cta"
+                    className="btn btn-primary"
                     disabled={busy || !options}
                     data-testid="signup-submit"
                   >

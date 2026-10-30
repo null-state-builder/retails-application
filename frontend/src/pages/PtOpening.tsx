@@ -154,7 +154,7 @@ export function PtOpeningPanel({ siteId }: { siteId: string }) {
             />
           </Field>
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             disabled={busy || files.length === 0}
             onClick={() => run(upload)}
             data-testid="pt-upload"

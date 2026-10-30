@@ -1118,7 +1118,7 @@ function ScanForm({
             data-testid="accept-qty"
           />
         </Field>
-        <button className="btn btn-cta" onClick={submit} data-testid="accept-submit-scan">
+        <button className="btn btn-primary" onClick={submit} data-testid="accept-submit-scan">
           Add scan
         </button>
       </div>

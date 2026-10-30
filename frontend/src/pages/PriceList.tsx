@@ -123,7 +123,7 @@ export function PriceListPage() {
         {selected.size > 0 && (
           <button
             type="button"
-            className="btn btn-cta"
+            className="btn btn-primary"
             onClick={() =>
               setPrintingRows((data?.rows || []).filter((r) => selected.has(r.barcode)))
             }

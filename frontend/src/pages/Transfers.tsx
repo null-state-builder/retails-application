@@ -17,6 +17,7 @@ import { useAuth } from "../auth/AuthContext";
 import { canAccess } from "../auth/routeAccess";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { SegmentedControl } from "../components/SegmentedControl";
 import { SearchBox } from "../components/SearchBox";
 import { formatDateTime } from "../lib/format";
 import { Field, listState, useAllPages } from "../lib/goodsScreen";
@@ -119,7 +120,7 @@ export function TransfersPage() {
               </Link>
             )}
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               onClick={() => setDrafting((open) => !open)}
               data-testid="transfers-new"
             >
@@ -159,25 +160,18 @@ export function TransfersPage() {
           </Field>
         )}
         {/* Three choices, all visible: a switch, not a dropdown to open. */}
-        <div
-          className="seg transfers-direction"
-          role="group"
-          aria-label="Direction"
-          data-testid="transfers-direction"
-        >
-          {DIRECTIONS.map((d) => (
-            <button
-              key={d.key}
-              type="button"
-              className={`seg-btn ${direction === d.key ? "active" : ""}`}
-              aria-pressed={direction === d.key}
-              onClick={() => setDirection(d.key)}
-              data-testid={`transfers-direction-${d.key}`}
-            >
-              {d.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          label="Direction"
+          className="transfers-direction"
+          testId="transfers-direction"
+          value={direction}
+          options={DIRECTIONS.map((d) => ({
+            value: d.key,
+            label: d.label,
+            testId: `transfers-direction-${d.key}`,
+          }))}
+          onChange={setDirection}
+        />
         <SearchBox
           value={term}
           onChange={setTerm}

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { SegmentedControl } from "../components/SegmentedControl";
 import { api, apiErrorMessage } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
@@ -231,28 +232,18 @@ export function GstReportPage() {
             Export to Excel
           </button>
         </div>
-        <div
-          className="seg"
-          role="tablist"
-          aria-label="View"
-          data-testid="gst-views"
-          style={{ flexWrap: "wrap" }}
-        >
-          {GST_VIEWS.map((v) => (
-            <button
-              key={v.key}
-              type="button"
-              role="tab"
-              aria-selected={filters.view === v.key}
-              className={`seg-btn ${filters.view === v.key ? "active" : ""}`}
-              data-testid={`gst-view-${v.key}`}
-              disabled={disabled}
-              onClick={() => set("view", v.key as GstView)}
-            >
-              {v.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          label="View"
+          testId="gst-views"
+          disabled={disabled}
+          value={filters.view as GstView}
+          options={GST_VIEWS.map((v) => ({
+            value: v.key as GstView,
+            label: v.label,
+            testId: `gst-view-${v.key}`,
+          }))}
+          onChange={(next) => set("view", next)}
+        />
         <p className="muted-cell" data-testid="gst-as-of">
           {asOfText(data.as_of)}
           {data.as_of &&

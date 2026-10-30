@@ -457,7 +457,7 @@ export function DistributionGridPage() {
           ))}
           <div className="toolbar" style={{ marginTop: 14 }}>
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               onClick={() => navigate("/transfer")}
               data-testid="distribution-view-transfers"
             >
@@ -741,7 +741,7 @@ export function DistributionGridPage() {
             <span className="spacer" />
             <button
               type="button"
-              className="btn btn-cta"
+              className="btn btn-primary"
               disabled={saving || styles.length === 0}
               onClick={() => void submit()}
               data-testid="distribution-submit"

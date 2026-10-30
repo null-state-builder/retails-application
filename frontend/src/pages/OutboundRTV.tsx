@@ -39,6 +39,7 @@ import { INVENTORY_FOLD, foldTabsFor } from "../shell/navConfig";
 import { useWideScreen } from "../lib/useWideScreen";
 import "./Booking.css";
 import { PageHeader } from "../components/PageHeader";
+import { SegmentedControl } from "../components/SegmentedControl";
 
 // ---------------------------------------------------------------------------
 // Helpers & controlled vocab
@@ -322,7 +323,7 @@ export function RTVListPage() {
               </Link>
             )}
             {mayCreate && (
-              <Link className="btn btn-cta" to="/return-to-brand/new" data-testid="new-rtv-btn">
+              <Link className="btn btn-primary" to="/return-to-brand/new" data-testid="new-rtv-btn">
                 <Plus size={16} /> New return
               </Link>
             )}
@@ -332,20 +333,21 @@ export function RTVListPage() {
 
       <div className="toolbar">
         {/* Two kinds of return, both visible: a switch, not two big buttons. */}
-        <div className="seg" role="group" aria-label="Kind of return" data-testid="rtv-type-toggle">
-          {RETURN_TYPES.map(({ key, label, icon: Icon }) => (
-            <button
-              key={key}
-              type="button"
-              className={`seg-btn ${tab === key ? "active" : ""}`}
-              aria-pressed={tab === key}
-              onClick={() => setTab(key)}
-              data-testid={`rtv-tab-${key}`}
-            >
-              <Icon size={14} /> {label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          label="Kind of return"
+          testId="rtv-type-toggle"
+          value={tab}
+          options={RETURN_TYPES.map(({ key, label, icon: Icon }) => ({
+            value: key,
+            label: (
+              <>
+                <Icon size={14} aria-hidden="true" /> {label}
+              </>
+            ),
+            testId: `rtv-tab-${key}`,
+          }))}
+          onChange={setTab}
+        />
         <div className="filter-chips" role="group" aria-label="Where it stands">
           {RTV_FILTERS.map(({ key, label }) => (
             <button
@@ -962,7 +964,7 @@ export function RTVNewPage() {
               {rows.length > 0 && (
                 <button
                   type="button"
-                  className="btn btn-cta"
+                  className="btn btn-primary"
                   style={{ marginTop: 14 }}
                   onClick={() => setScanning(true)}
                   data-testid="rtv-scan-btn"

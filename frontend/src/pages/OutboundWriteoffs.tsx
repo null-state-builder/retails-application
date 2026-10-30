@@ -92,7 +92,7 @@ export function WriteOffListPage() {
         actions={
           writable && (
             <Link
-              className="btn btn-cta"
+              className="btn btn-primary"
               to="/stock-count/writeoffs/new"
               data-testid="new-writeoff-btn"
             >

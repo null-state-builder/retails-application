@@ -435,7 +435,7 @@ export function NewArrival({
       )}
 
       <button
-        className="btn btn-cta"
+        className="btn btn-primary"
         onClick={save}
         disabled={busy || !ready}
         data-testid="ga-save"
@@ -687,7 +687,7 @@ function HandoverPanel({
               </button>
               <div className="spacer" />
               <button
-                className="btn btn-cta"
+                className="btn btn-primary"
                 onClick={onHandOver}
                 disabled={busy || !toHumanId.trim() || !reason.trim()}
                 data-testid="ga-handover-submit"
@@ -1051,7 +1051,7 @@ function CountPanel({
         )}
         <Feedback error={error} ok={ok} />
         <button
-          className="btn btn-cta"
+          className="btn btn-primary"
           onClick={open.failure ? reload : openSession}
           disabled={busy}
           data-testid={open.failure ? "ga-count-retry" : "ga-count-open"}
@@ -1273,7 +1273,7 @@ function CountPanel({
         </button>
         <div className="spacer" />
         <button
-          className="btn btn-cta"
+          className="btn btn-primary"
           onClick={record}
           disabled={busy || unchosen.length > 0}
           data-testid="ga-record"
@@ -1340,7 +1340,7 @@ function CountPanel({
           later, on a PT.
         </p>
         <button
-          className="btn btn-cta"
+          className="btn btn-primary"
           onClick={issue}
           disabled={busy || recorded.length === 0}
           data-testid="ga-issue"
@@ -1520,7 +1520,7 @@ function InvoicePanel({
         </button>
         <div className="spacer" />
         <button
-          className="btn btn-cta btn-sm"
+          className="btn btn-primary btn-sm"
           onClick={submit}
           disabled={busy || !number || !date || badCost || matchPending}
           data-testid="ga-inv-submit"

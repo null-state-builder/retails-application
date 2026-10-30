@@ -98,7 +98,7 @@ export function VFlipListPage() {
         lead="An ownership correction: SOR ⇄ owned, without moving a piece."
         actions={
           writable && (
-            <Link className="btn btn-cta" to="/stock/vflips/new" data-testid="new-vflip-btn">
+            <Link className="btn btn-primary" to="/stock/vflips/new" data-testid="new-vflip-btn">
               <Plus size={16} /> New V-flip
             </Link>
           )
@@ -514,7 +514,7 @@ export function VFlipDetailPage() {
         {canSubmit && (
           <button
             type="button"
-            className="btn btn-cta"
+            className="btn btn-primary"
             onClick={() => setShowConfirm(true)}
             data-testid="flip-action-btn"
           >

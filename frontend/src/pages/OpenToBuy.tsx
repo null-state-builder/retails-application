@@ -309,7 +309,7 @@ export function OpenToBuyPage() {
           <div className="otb-actions">
             <button
               type="button"
-              className="btn btn-cta"
+              className="btn btn-primary"
               data-testid="otb-save"
               disabled={offline || busy}
               onClick={() => void save()}

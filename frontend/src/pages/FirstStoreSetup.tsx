@@ -262,7 +262,7 @@ export function FirstStoreSetupPage() {
                 ))}
               </ol>
               {setup.setup_complete ? (
-                <Link to="/sell" className="btn btn-cta">
+                <Link to="/sell" className="btn btn-primary">
                   Open the assigned counter
                 </Link>
               ) : (

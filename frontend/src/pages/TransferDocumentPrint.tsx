@@ -168,7 +168,7 @@ export function TransferDocumentPage() {
         <div className="spacer" />
         <button
           type="button"
-          className="btn btn-cta"
+          className="btn btn-primary"
           disabled={!document}
           onClick={() => window.print()}
           data-testid="document-print"

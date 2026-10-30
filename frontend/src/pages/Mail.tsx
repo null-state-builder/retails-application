@@ -455,7 +455,7 @@ export function MailPage() {
             goes.
             <button
               type="button"
-              className="btn btn-cta"
+              className="btn btn-danger"
               onClick={() => {
                 setConfirmingDisconnect(false);
                 mailbox.disconnect();

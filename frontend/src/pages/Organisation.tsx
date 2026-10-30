@@ -44,6 +44,7 @@ import {
 } from "../lib/goodsScreen";
 import { useAuth } from "../auth/AuthContext";
 import { PageHeader } from "../components/PageHeader";
+import { SegmentedControl } from "../components/SegmentedControl";
 import "./Organisation.css";
 
 // --------------------------------------------------------------------------
@@ -265,16 +266,19 @@ function EntitiesPanel({
         <h3 className="h3">Legal entities</h3>
         <div className="spacer" />
         {canReadHistory && (
-          <button
-            className="btn btn-sm"
-            onClick={() => setShowRetired((shown) => !shown)}
-            data-testid="entities-retired-toggle"
-          >
-            {showRetired ? "Show active" : "Show retired"}
-          </button>
+          <SegmentedControl
+            label="Which to show"
+            testId="entities-retired-toggle"
+            value={showRetired ? "retired" : "active"}
+            options={[
+              { value: "active", label: "Active" },
+              { value: "retired", label: "Retired" },
+            ]}
+            onChange={(v) => setShowRetired(v === "retired")}
+          />
         )}
         {canEdit && (
-          <button className="btn btn-cta" onClick={add} data-testid="entity-new-button">
+          <button className="btn btn-primary" onClick={add} data-testid="entity-new-button">
             <Plus size={15} /> New legal entity
           </button>
         )}
@@ -333,7 +337,7 @@ function EntitiesPanel({
               data-testid="entity-books-code-input"
             />
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               onClick={save}
               disabled={!form.code || !form.name}
               data-testid="entity-save-button"
@@ -554,17 +558,20 @@ function RegistrationsPanel({
         <h3 className="h3">Registrations</h3>
         <div className="spacer" />
         {canReadHistory && (
-          <button
-            className="btn btn-sm"
-            onClick={() => setShowRetired((shown) => !shown)}
-            data-testid="registrations-retired-toggle"
-          >
-            {showRetired ? "Show active" : "Show retired"}
-          </button>
+          <SegmentedControl
+            label="Which to show"
+            testId="registrations-retired-toggle"
+            value={showRetired ? "retired" : "active"}
+            options={[
+              { value: "active", label: "Active" },
+              { value: "retired", label: "Retired" },
+            ]}
+            onChange={(v) => setShowRetired(v === "retired")}
+          />
         )}
         {canEdit && (
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             onClick={add}
             disabled={!entities.items.length}
             data-testid="registration-new-button"
@@ -629,7 +636,7 @@ function RegistrationsPanel({
               data-testid="registration-state-name-input"
             />
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               onClick={save}
               disabled={!form.entity_id || !form.gstin || !form.state_code || !form.state_name}
               data-testid="registration-save-button"
@@ -887,16 +894,19 @@ function SiteListView({ onOpen }: { onOpen: (id: string) => void }) {
         <h3 className="h3">Sites</h3>
         <div className="spacer" />
         {canReadHistory && (
-          <button
-            className="btn btn-sm"
-            onClick={() => setShowRetired((shown) => !shown)}
-            data-testid="sites-retired-toggle"
-          >
-            {showRetired ? "Show active" : "Show retired"}
-          </button>
+          <SegmentedControl
+            label="Which to show"
+            testId="sites-retired-toggle"
+            value={showRetired ? "retired" : "active"}
+            options={[
+              { value: "active", label: "Active" },
+              { value: "retired", label: "Retired" },
+            ]}
+            onChange={(v) => setShowRetired(v === "retired")}
+          />
         )}
         {canEdit && (
-          <button className="btn btn-cta" onClick={add} data-testid="site-new-button">
+          <button className="btn btn-primary" onClick={add} data-testid="site-new-button">
             <Plus size={15} /> New site
           </button>
         )}
@@ -1017,7 +1027,7 @@ function SiteListView({ onOpen }: { onOpen: (id: string) => void }) {
             </div>
           </div>
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             style={{ marginTop: 12 }}
             onClick={save}
             disabled={!form.code || !form.name || !form.entity_id || !form.registration_id}
@@ -1384,7 +1394,7 @@ function SiteOverviewTab({
             </div>
           </div>
           <div className="toolbar" style={{ marginTop: 12 }}>
-            <button className="btn btn-cta" onClick={save} data-testid="site-overview-save">
+            <button className="btn btn-primary" onClick={save} data-testid="site-overview-save">
               <Save size={15} /> Save
             </button>
             <button
@@ -1685,7 +1695,7 @@ function SiteLocationsTab({ siteId, siteType }: { siteId: string; siteType: stri
         <div className="spacer" />
         {canEdit && (
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             onClick={() => setOpen((o) => !o)}
             data-testid="location-new-button"
           >
@@ -1731,7 +1741,7 @@ function SiteLocationsTab({ siteId, siteType }: { siteId: string; siteType: stri
               ))}
             </select>
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               onClick={create}
               disabled={!name}
               data-testid="location-create-button"
@@ -1956,7 +1966,7 @@ function SiteReadinessTab({ siteId }: { siteId: string }) {
         <div className="spacer" />
         {canApprove && !doc.data.goods_ready && failing.length === 0 && (
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             onClick={() => act("approve_goods")}
             disabled={busy}
             data-testid="readiness-approve-goods-button"
@@ -1985,7 +1995,7 @@ function SiteReadinessTab({ siteId }: { siteId: string }) {
             </p>
             {canApprove && !doc.data.opening_setup_ready && (
               <button
-                className="btn btn-cta"
+                className="btn btn-primary"
                 onClick={() => act("approve_opening_setup")}
                 disabled={busy || failing.length > 0}
                 data-testid="readiness-approve-opening-button"
@@ -2041,7 +2051,7 @@ function SiteReadinessTab({ siteId }: { siteId: string }) {
               ))}
               {canApprove && !doc.data.sell_ready && (
                 <button
-                  className="btn btn-cta"
+                  className="btn btn-primary"
                   onClick={() => act("approve_sell")}
                   disabled={busy || sellingGaps.length > 0}
                   data-testid="readiness-approve-sell-button"
@@ -2191,7 +2201,7 @@ function SiteClosureTab({ siteId }: { siteId: string }) {
       </p>
       {canApprove && doc.data.lifecycle === "active" && (
         <button
-          className="btn btn-cta"
+          className="btn btn-primary"
           onClick={startClosing}
           disabled={busy || residuals.completeness !== "complete"}
           data-testid="closure-start-button"
@@ -2364,7 +2374,7 @@ function TenantPanel() {
             />
           </div>
           <div className="toolbar" style={{ marginTop: 12 }}>
-            <button className="btn btn-cta" onClick={save} data-testid="tenant-save-button">
+            <button className="btn btn-primary" onClick={save} data-testid="tenant-save-button">
               <Save size={15} /> Save
             </button>
             <button

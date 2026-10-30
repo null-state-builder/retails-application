@@ -417,7 +417,7 @@ function RequestPanel({
       )}
 
       <button
-        className="btn btn-cta"
+        className="btn btn-primary"
         disabled={saving}
         onClick={raise}
         data-testid="availability-raise-request"

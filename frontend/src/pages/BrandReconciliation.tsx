@@ -194,7 +194,7 @@ export function BrandReconciliationPanel() {
         onChange={(event) => setPassword(event.target.value)}
       />
       <button
-        className="btn btn-cta"
+        className="btn btn-primary"
         disabled={busy || page.loading || !chosen.length || !password}
         onClick={() => void apply()}
       >

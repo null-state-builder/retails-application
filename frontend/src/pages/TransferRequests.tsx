@@ -191,7 +191,7 @@ export function TransferRequestsPage() {
           </OperationsTable>
         )}
         <button
-          className="btn btn-cta"
+          className="btn btn-primary"
           disabled={busy || !source || chosen.length === 0}
           onClick={raise}
           data-testid="request-raise"

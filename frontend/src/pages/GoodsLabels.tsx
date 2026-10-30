@@ -144,7 +144,7 @@ export function LabelsPanel({
               data-testid="labels-pt-input"
             />
           </Field>
-          <button className="btn btn-cta" type="submit" data-testid="labels-pt-load">
+          <button className="btn btn-primary" type="submit" data-testid="labels-pt-load">
             Load
           </button>
         </form>
@@ -343,7 +343,7 @@ function PrintForm({
       </div>
 
       <button
-        className="btn btn-cta"
+        className="btn btn-primary"
         disabled={busy || selected.length === 0 || !templateVersionId || !ptVersionId}
         onClick={submit}
         data-testid={reprintOf ? "labels-reprint-submit" : "labels-print-submit"}
@@ -601,7 +601,7 @@ function PrintJobCard({
       )}
 
       <button
-        className="btn btn-cta"
+        className="btn btn-primary"
         disabled={busy}
         onClick={recordOutcome}
         data-testid={`labels-outcome-submit-${job.id}`}

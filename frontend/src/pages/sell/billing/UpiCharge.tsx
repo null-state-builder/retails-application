@@ -210,7 +210,7 @@ export function UpiCharge({
           {card.canCheck && (
             <button
               type="button"
-              className="btn btn-cta"
+              className="btn btn-primary"
               data-testid="bill-upi-check"
               disabled={checking}
               onClick={() => void recheck()}
@@ -222,7 +222,7 @@ export function UpiCharge({
           {card.canRetry && (
             <button
               type="button"
-              className="btn btn-cta"
+              className="btn btn-primary"
               data-testid="bill-upi-again"
               onClick={() => setAttempt((n) => n + 1)}
             >

@@ -991,40 +991,9 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   color: var(--muted);
   font-weight: 600;
 }
-.theme-seg {
-  display: inline-flex;
-  gap: 2px;
-  padding: 3px;
-  background: var(--inner);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-round);
-}
-.theme-seg-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  border: 1px solid transparent;
-  background: transparent;
-  color: var(--muted);
-  border-radius: var(--radius-round);
-  padding: 5px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    background-color 0.12s,
-    color 0.12s;
-}
-.theme-seg-btn:hover {
-  color: var(--ink);
-}
-.theme-seg-btn.active {
-  background: var(--surface);
-  border-color: var(--hairline);
-  color: var(--ink);
-}
-.theme-seg-compact .theme-seg-btn {
-  padding: 6px;
+/* The theme picker is a SegmentedControl; compact shows icons only. */
+.theme-seg-compact .seg-btn {
+  padding: 0 8px;
 }
 
 /* ---------- mobile (off-canvas drawer) ---------- */

@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { Switch } from "../components/Switch";
 import { api, apiErrorCode, apiErrorMessage, goodsMeta } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
@@ -497,12 +498,28 @@ function Rules({
                   <td>{categoryText(rule.category)}</td>
                   <td>{rule.core_sizes.join(", ")}</td>
                   <td className="num">{rule.missing_percent}% missing</td>
-                  <td>{rule.active ? "Yes" : "Removed"}</td>
+                  <td>
+                    {canSet ? (
+                      <Switch
+                        checked={rule.active}
+                        busy={disabled}
+                        ariaLabel={`${categoryText(rule.category)} rule in use`}
+                        testId={`broken-rule-toggle-${rule.category || "none"}`}
+                        onChange={(on) =>
+                          void onSave(rule.category, rule.core_sizes, rule.missing_percent, on)
+                        }
+                      />
+                    ) : rule.active ? (
+                      "On"
+                    ) : (
+                      "Off"
+                    )}
+                  </td>
                   {canSet && (
-                    <td>
+                    <td className="act">
                       <button
                         type="button"
-                        className="btn"
+                        className="btn btn-sm"
                         data-testid={`broken-rule-edit-${rule.category || "none"}`}
                         disabled={disabled}
                         onClick={() => {
@@ -513,22 +530,6 @@ function Rules({
                         }}
                       >
                         Edit
-                      </button>{" "}
-                      <button
-                        type="button"
-                        className="btn"
-                        data-testid={`broken-rule-toggle-${rule.category || "none"}`}
-                        disabled={disabled}
-                        onClick={() =>
-                          void onSave(
-                            rule.category,
-                            rule.core_sizes,
-                            rule.missing_percent,
-                            !rule.active,
-                          )
-                        }
-                      >
-                        {rule.active ? "Remove" : "Use again"}
                       </button>
                     </td>
                   )}

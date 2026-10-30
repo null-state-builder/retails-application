@@ -170,7 +170,7 @@ export function OffersEossPage() {
             </select>
             <button
               type="button"
-              className="btn btn-cta"
+              className="btn btn-primary"
               disabled={!season || genBusy}
               onClick={generate}
               data-testid="eoss-generate-btn"
@@ -543,7 +543,7 @@ function EossConfigPanel({ brands }: { brands: BrandRow[] }) {
       <div style={{ marginTop: 16, display: "flex", gap: 10, alignItems: "center" }}>
         <button
           type="button"
-          className="btn btn-cta"
+          className="btn btn-primary"
           disabled={saving}
           onClick={save}
           data-testid="eoss-config-save"

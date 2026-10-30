@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { PageHeader } from "../components/PageHeader";
+import { SegmentedControl } from "../components/SegmentedControl";
 import { api, apiErrorMessage } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
@@ -211,22 +212,18 @@ export function DiscountFundingPage() {
             Export to Excel
           </button>
         </div>
-        <div className="seg" role="tablist" aria-label="Group by" data-testid="funding-groupings">
-          {FUNDING_GROUPINGS.map((g) => (
-            <button
-              key={g.key}
-              type="button"
-              role="tab"
-              aria-selected={filters.group_by === g.key}
-              className={`seg-btn ${filters.group_by === g.key ? "active" : ""}`}
-              data-testid={`funding-group-${g.key}`}
-              disabled={disabled}
-              onClick={() => set("group_by", g.key as FundingGrouping)}
-            >
-              {g.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          label="Group by"
+          testId="funding-groupings"
+          disabled={disabled}
+          value={filters.group_by as FundingGrouping}
+          options={FUNDING_GROUPINGS.map((v) => ({
+            value: v.key as FundingGrouping,
+            label: v.label,
+            testId: `funding-group-${v.key}`,
+          }))}
+          onChange={(next) => set("group_by", next)}
+        />
         <p className="muted-cell" data-testid="funding-as-of">
           {asOfText(data.as_of)}
           {data.as_of &&

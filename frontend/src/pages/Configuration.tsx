@@ -576,7 +576,12 @@ function DraftPanel({
               Tick every affected document above before this can be sent.
             </span>
           )}
-          <button className="btn btn-cta" onClick={save} disabled={busy} data-testid="config-save">
+          <button
+            className="btn btn-primary"
+            onClick={save}
+            disabled={busy}
+            data-testid="config-save"
+          >
             <Save size={15} /> Save draft
           </button>
           <button
@@ -641,7 +646,7 @@ function KindPanel({
         <h3 className="h3">{CONFIG_KIND_LABEL[kind] ?? kind}</h3>
         <div className="spacer" />
         {canDraft && EDITABLE_KINDS.has(kind) && (
-          <button className="btn btn-cta" onClick={onNew} data-testid="config-new">
+          <button className="btn btn-primary" onClick={onNew} data-testid="config-new">
             Start a change
           </button>
         )}

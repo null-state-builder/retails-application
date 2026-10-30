@@ -132,7 +132,7 @@ export function OpenToBuyPanel({
         {check.allowed_actions.includes("ask_owner") && (
           <button
             type="button"
-            className="btn btn-cta"
+            className="btn btn-primary"
             data-testid="otb-ask-owner"
             disabled={busy}
             onClick={() => void askOwner()}

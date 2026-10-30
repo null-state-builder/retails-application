@@ -81,33 +81,6 @@
   padding: 14px 16px 14px 0;
   border-bottom: 1px solid var(--hairline);
 }
-.bill-mode {
-  display: inline-flex;
-  height: 38px;
-  padding: 3px;
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-inner);
-  background: var(--surface);
-}
-.bill-mode-button {
-  border: 0;
-  border-radius: var(--radius-control);
-  background: transparent;
-  color: var(--muted);
-  padding: 0 14px;
-  font: inherit;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-}
-.bill-mode-button.is-active {
-  background: var(--navy-fill);
-  color: var(--on-fill);
-}
-.bill-mode-button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
 /* Mode+identity group, separated from Sold-by by a vertical divider. */
 .bill-bar-left {
   display: flex;
@@ -175,9 +148,6 @@
   --navy: var(--counter-return-blue, var(--blue));
   --navy-fill: var(--counter-return-blue, var(--blue));
   --navy-fill-hover: var(--counter-return-blue, var(--blue));
-}
-.bill-page[data-mode="return"] .bill-mode-button.is-active {
-  background: var(--counter-return-blue, var(--blue));
 }
 .bill-page[data-mode="return"] .scan-hero-input-wrap {
   border-color: var(--counter-return-blue, var(--blue));
@@ -2307,7 +2277,7 @@ main.content:has(> .bill-page) {
   .bill-bar-divider {
     display: none;
   }
-  .bill-mode-button {
+  .bill-bar .seg-btn {
     white-space: nowrap;
   }
   .bill-identity {
@@ -2513,7 +2483,7 @@ main.content:has(> .bill-page) {
 
 /* Fingers, not a mouse (tablets and phones): every control at least 44px. */
 @media (pointer: coarse) {
-  .bill-mode,
+  .bill-bar .seg-btn,
   .bill-sold-by-field .select,
   .bill-bar-actions .btn {
     height: 44px;

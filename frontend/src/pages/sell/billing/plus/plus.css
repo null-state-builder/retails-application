@@ -310,22 +310,6 @@
   font-size: 12px;
   color: var(--muted);
 }
-.plus-due button {
-  height: 32px;
-  padding: 0 12px;
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-round);
-  background: var(--surface);
-  color: var(--ink);
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-}
-.plus-due button.is-on {
-  background: var(--navy-fill);
-  border-color: var(--navy-fill);
-  color: var(--on-fill);
-}
 .plus-refusal {
   margin: 0;
   padding: 8px 10px;
@@ -383,9 +367,6 @@
   .plus-step,
   .plus-menu button {
     min-height: 44px;
-    height: 44px;
-  }
-  .plus-due button {
     height: 44px;
   }
   .plus-x {

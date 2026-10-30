@@ -25,6 +25,7 @@ import { ListSearchBar } from "../components/SearchBox";
 import { ApprovalPill, ApprovalTrail, isCleared, type ApprovalT } from "../components/approval";
 import "./Booking.css";
 import { PageHeader } from "../components/PageHeader";
+import { SegmentedControl } from "../components/SegmentedControl";
 
 // ---------------------------------------------------------------------------
 // Shared helpers
@@ -283,35 +284,39 @@ export function TransferListPage() {
       <PageHeader
         actions={
           writable && (
-            <Link className="btn btn-cta" to="/transfer/new" data-testid="new-transfer-btn">
+            <Link className="btn btn-primary" to="/transfer/new" data-testid="new-transfer-btn">
               <Plus size={16} /> New transfer
             </Link>
           )
         }
       />
 
-      <div
-        className="mode-toggle"
-        data-testid="transfer-type-toggle"
-        style={{ maxWidth: 520, marginBottom: 18 }}
-      >
-        <button
-          type="button"
-          className={`mode-btn ${tab === "inter_store" ? "active" : ""}`}
-          onClick={() => setTab("inter_store")}
-          data-testid="transfer-tab-inter"
-        >
-          <ArrowRight size={16} /> Inter-store
-        </button>
-        <button
-          type="button"
-          className={`mode-btn ${tab === "store_split" ? "active" : ""}`}
-          onClick={() => setTab("store_split")}
-          data-testid="transfer-tab-split"
-        >
-          <Boxes size={16} /> Store split (WH → store)
-        </button>
-      </div>
+      <SegmentedControl
+        label="Kind of transfer"
+        testId="transfer-type-toggle"
+        value={tab}
+        options={[
+          {
+            value: "inter_store",
+            label: (
+              <>
+                <ArrowRight size={16} aria-hidden="true" /> Inter-store
+              </>
+            ),
+            testId: "transfer-tab-inter",
+          },
+          {
+            value: "store_split",
+            label: (
+              <>
+                <Boxes size={16} aria-hidden="true" /> Store split (WH → store)
+              </>
+            ),
+            testId: "transfer-tab-split",
+          },
+        ]}
+        onChange={setTab}
+      />
 
       <ListSearchBar
         value={q}
@@ -799,7 +804,11 @@ function TransferPtCard({ t }: { t: TransferT }) {
         typed and cannot be edited - send it with the goods.
       </p>
       <div className="toolbar" style={{ marginTop: 14, marginBottom: 0 }}>
-        <Link className="btn btn-cta" to={`/transfer/${t.id}/pt`} data-testid="transfer-pt-open">
+        <Link
+          className="btn btn-primary"
+          to={`/transfer/${t.id}/pt`}
+          data-testid="transfer-pt-open"
+        >
           <Printer size={15} /> View &amp; print
         </Link>
         <button
@@ -877,7 +886,7 @@ export function TransferPtPage() {
         <div className="toolbar pt-print-hide" style={{ marginBottom: 0 }}>
           <button
             type="button"
-            className="btn btn-cta"
+            className="btn btn-primary"
             onClick={() => window.print()}
             data-testid="transfer-pt-print"
           >
@@ -1060,7 +1069,7 @@ export function TransferDetailPage() {
         {canDispatch && (
           <button
             type="button"
-            className="btn btn-cta"
+            className="btn btn-primary"
             onClick={() => {
               setScanError("");
               setScanMode("dispatch");
@@ -1073,7 +1082,7 @@ export function TransferDetailPage() {
         {canReceive && (
           <button
             type="button"
-            className="btn btn-cta"
+            className="btn btn-primary"
             onClick={() => {
               setScanError("");
               setScanMode("receive");

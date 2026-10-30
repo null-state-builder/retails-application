@@ -6,6 +6,7 @@ import { initTheme } from "./theme/theme";
 import "./index.css";
 import "./theme/fonts.css";
 import "./theme/counter.css";
+import "./theme/components.css";
 
 initTheme();
 

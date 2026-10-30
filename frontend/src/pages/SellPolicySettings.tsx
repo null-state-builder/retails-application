@@ -115,7 +115,7 @@ export function SellPolicySettingsPage() {
               </label>
               <button
                 type="button"
-                className="btn btn-cta"
+                className="btn btn-primary"
                 data-testid="sell-policy-save"
                 disabled={saving}
                 onClick={() => void save()}

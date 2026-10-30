@@ -1524,7 +1524,7 @@ function MovementDetail({
 
       {doc.allowed_actions.includes("submit") && (
         <button
-          className="btn btn-cta"
+          className="btn btn-primary"
           onClick={submitForApproval}
           disabled={busy}
           data-testid="mv-submit-for-approval"

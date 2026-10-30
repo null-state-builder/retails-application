@@ -95,8 +95,7 @@
   margin-bottom: 12px;
 }
 .cash-kind {
-  display: flex;
-  gap: 8px;
+  align-self: flex-start;
 }
 
 @media (max-width: 900px) {

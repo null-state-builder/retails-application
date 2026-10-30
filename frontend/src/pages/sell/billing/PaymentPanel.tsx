@@ -108,7 +108,7 @@ export function PaymentPanel({
           <button
             key={mode}
             type="button"
-            className={`btn bill-allocate${payment.mode === mode ? " btn-cta" : ""}`}
+            className={`btn bill-allocate${payment.mode === mode ? " btn-primary" : ""}`}
             data-testid={`bill-all-${mode}`}
             aria-pressed={payment.mode === mode}
             disabled={disabled || bill.payable_paise <= 0}

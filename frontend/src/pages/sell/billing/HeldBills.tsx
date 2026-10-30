@@ -72,7 +72,7 @@ export function HeldBills({ holds, toReview, blocked, onResume, onKeep, onLetGo 
               <div className="bill-hold-actions">
                 <button
                   type="button"
-                  className="btn btn-cta"
+                  className="btn btn-primary"
                   data-testid={`bill-hold-resume-${hold.held_uuid}`}
                   disabled={Boolean(blocked)}
                   onClick={() => onResume(hold)}

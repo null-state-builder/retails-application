@@ -7,6 +7,7 @@ import { rupeesToPaiseString, sha256Hex } from "../lib/goodsPt";
 import { formatPaiseString, paiseStringToRupees } from "../lib/format";
 import { Feedback, Field, hold, useStepUp, type Page, type ResourceDTO } from "../lib/goodsScreen";
 import { SohReconciliationPanel } from "./SohReconciliation";
+import { FilterChip } from "../components/FilterChip";
 
 type Mapping = Record<string, string>;
 interface Configuration {
@@ -512,7 +513,7 @@ export function SohImportPanel({ siteId }: { siteId: string }) {
                 />
               </Field>
               <button
-                className="btn btn-cta"
+                className="btn btn-primary"
                 disabled={busy || !file}
                 onClick={() =>
                   run(async () => {
@@ -598,7 +599,7 @@ export function SohImportPanel({ siteId }: { siteId: string }) {
           <p className="muted-cell">Source SHA-256: {selected.source_hash}</p>
           {selected.allowed_actions.includes("claim") && (
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               disabled={busy}
               onClick={() =>
                 run(async () => {
@@ -615,7 +616,7 @@ export function SohImportPanel({ siteId }: { siteId: string }) {
               : ["source", "physical", "opening"]
             ).map((name) => (
               <button
-                className={`btn btn-sm ${tab === name ? "btn-cta" : ""}`}
+                className={`btn btn-sm ${tab === name ? "btn-primary" : ""}`}
                 key={name}
                 onClick={() => setTab(name)}
               >
@@ -625,14 +626,12 @@ export function SohImportPanel({ siteId }: { siteId: string }) {
           </div>
           {tab === "source" && (
             <>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={includeCatalogue}
-                  onChange={(e) => setIncludeCatalogue(e.target.checked)}
-                />{" "}
-                Include zero-stock catalogue and negative rows retained for review
-              </label>
+              <FilterChip
+                pressed={includeCatalogue}
+                onClick={() => setIncludeCatalogue(!includeCatalogue)}
+              >
+                Include zero stock and negative rows
+              </FilterChip>
               <input
                 className="input"
                 placeholder="Search barcode or source brand"
@@ -925,7 +924,7 @@ export function SohImportPanel({ siteId }: { siteId: string }) {
             canPrepare &&
             !selected.data.batches.length && (
               <button
-                className="btn btn-cta"
+                className="btn btn-primary"
                 disabled={busy}
                 onClick={() =>
                   run(async () => {
@@ -950,7 +949,7 @@ export function SohImportPanel({ siteId }: { siteId: string }) {
               />
               {canVerify && (
                 <button
-                  className="btn btn-cta"
+                  className="btn btn-primary"
                   disabled={busy || !counts || !!selected.data.batches.length}
                   onClick={() =>
                     run(async () => {
@@ -984,7 +983,7 @@ export function SohImportPanel({ siteId }: { siteId: string }) {
               {selected.allowed_actions.includes("submit") &&
                 ["review", "uploaded"].includes(selected.state) && (
                   <button
-                    className="btn btn-cta"
+                    className="btn btn-primary"
                     disabled={busy}
                     onClick={() =>
                       run(async () => {

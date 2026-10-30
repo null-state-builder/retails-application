@@ -5,6 +5,8 @@ import { AlertTriangle, Check, CircleCheck, HardDriveDownload, RefreshCw } from 
 
 import { PageHeader } from "../../components/PageHeader";
 import { useAuth } from "../../auth/AuthContext";
+import { SettingRow, Settings } from "../../components/SettingRow";
+import { Switch } from "../../components/Switch";
 import { api, apiErrorMessage } from "../../lib/api";
 import { Money, formatDateTime } from "../../lib/format";
 import { userCan } from "../../shell/navConfig";
@@ -181,7 +183,7 @@ function StatusBand({ engine, till }: { engine: TillEngine; till: TillSnapshot }
           action={
             <button
               type="button"
-              className={cta ? "btn btn-cta" : "btn"}
+              className={cta ? "btn btn-primary" : "btn"}
               data-testid="till-halt-retry"
               onClick={() => void engine.retryHalted()}
             >
@@ -395,7 +397,7 @@ function RecoverRow({ engine, busy, cta }: { engine: TillEngine; busy: boolean; 
         action={
           <button
             type="button"
-            className={cta ? "btn btn-cta" : "btn"}
+            className={cta ? "btn btn-primary" : "btn"}
             data-testid="till-recover-go"
             disabled={busy}
             onClick={() => void outcome.run(() => engine.recover())}
@@ -434,7 +436,7 @@ function ExpiredRow({
         action={
           <button
             type="button"
-            className={cta ? "btn btn-cta" : "btn"}
+            className={cta ? "btn btn-primary" : "btn"}
             data-testid="till-renew"
             disabled={till.busy || !till.online}
             onClick={() =>
@@ -506,7 +508,7 @@ function PausedRow({
             )}
             <button
               type="button"
-              className={cta ? "btn btn-cta" : "btn"}
+              className={cta ? "btn btn-primary" : "btn"}
               data-testid="till-pause-resume"
               disabled={busy}
               onClick={() =>
@@ -553,7 +555,7 @@ function UnregisteredRow({
           may && (
             <button
               type="button"
-              className={cta ? "btn btn-cta" : "btn"}
+              className={cta ? "btn btn-primary" : "btn"}
               data-testid="till-register"
               disabled={till.busy || !till.online}
               onClick={() =>
@@ -735,11 +737,11 @@ function CounterTasks({ engine, till }: { engine: TillEngine; till: TillSnapshot
   return (
     <section className="card till-card till-tasks">
       <h2 className="h3">Counter tasks</h2>
-      <div className="till-task-list">
+      <Settings>
         {showPause && <PauseTask engine={engine} till={till} />}
         {mayMove && <MoveTask engine={engine} till={till} />}
         {till.onlineAlpha && <PairTask engine={engine} paired={till.devicePaired} />}
-      </div>
+      </Settings>
     </section>
   );
 }
@@ -764,17 +766,14 @@ function TaskRow({
   testId?: string;
 }) {
   return (
-    <div className="till-task" data-testid={testId}>
-      <div className="till-task-line">
-        <div className="till-task-body">
-          <h3 className="till-task-title">{title}</h3>
-          <p className="muted-cell">{text}</p>
-        </div>
-        {!open && button && <div className="till-control">{button}</div>}
-      </div>
-      {open && <div className="till-task-form">{children}</div>}
-      {after}
-    </div>
+    <SettingRow
+      title={title}
+      description={text}
+      control={button}
+      more={open ? <div className="till-task-form">{children}</div> : undefined}
+      after={after}
+      testId={testId}
+    />
   );
 }
 
@@ -1016,10 +1015,10 @@ function PersonalSettings({ engine, muted }: { engine: TillEngine; muted: boolea
   return (
     <section className="card till-card">
       <h2 className="h3">This counter and you</h2>
-      <div className="till-task-list">
+      <Settings>
         <ScanSounds engine={engine} muted={muted} />
         <CounterPin />
-      </div>
+      </Settings>
     </section>
   );
 }
@@ -1038,41 +1037,25 @@ function PersonalSettings({ engine, muted }: { engine: TillEngine; muted: boolea
  */
 function ScanSounds({ engine, muted }: { engine: TillEngine; muted: boolean }) {
   return (
-    <div className="till-task">
-      <div className="till-task-line">
-        <div className="till-task-body">
-          <h3 className="till-task-title" id="till-sound-title">
-            Scan sounds
-          </h3>
-          <p className="muted-cell">
-            A tick on a good scan, a buzz on a problem. This counter only.
-          </p>
-        </div>
-        <div className="till-control">
-          <span className="till-switch-state" data-testid="till-sound-state" aria-hidden="true">
-            {muted ? "Off" : "On"}
-          </span>
-          <button
-            type="button"
-            role="switch"
-            className="till-switch"
-            data-testid="till-sound-toggle"
-            aria-checked={!muted}
-            aria-labelledby="till-sound-title"
-            onClick={() => {
-              void engine.setMuted(!muted);
-              // Turning it back on plays the tick, so the answer to "did that
-              // work?" is the sound itself rather than a sentence about it.
-              if (muted) playTone("tick", false);
-            }}
-          >
-            <span className="till-switch-track">
-              <span className="till-switch-knob" />
-            </span>
-          </button>
-        </div>
-      </div>
-    </div>
+    <SettingRow
+      title="Scan sounds"
+      titleId="till-sound-title"
+      description="A tick on a good scan, a buzz on a problem. This counter only."
+      control={
+        <Switch
+          checked={!muted}
+          ariaLabelledBy="till-sound-title"
+          testId="till-sound-toggle"
+          stateTestId="till-sound-state"
+          onChange={(on) => {
+            void engine.setMuted(!on);
+            // Turning it back on plays the tick, so the answer to "did that
+            // work?" is the sound itself rather than a sentence about it.
+            if (on) playTone("tick", false);
+          }}
+        />
+      }
+    />
   );
 }
 
@@ -1423,9 +1406,9 @@ function NoCounter({ reason }: { reason?: string }) {
         )}
         {recoveryMessage && <p role="status">{recoveryMessage}</p>}
         <section className="card till-card">
-          <div className="till-task-list">
+          <Settings>
             <CounterPin />
-          </div>
+          </Settings>
         </section>
       </div>
     </div>
@@ -1465,14 +1448,11 @@ function TestBill() {
 
   return (
     <section className="card till-card till-dev">
-      <div className="till-task-line">
-        <div className="till-task-body">
-          <h2 className="till-task-title">Development only</h2>
-          <p className="muted-cell">
-            Queues a one-piece bill from the local price list and syncs it.
-          </p>
-        </div>
-        <div className="till-control">
+      <SettingRow
+        level={2}
+        title="Development only"
+        description="Queues a one-piece bill from the local price list and syncs it."
+        control={
           <button
             type="button"
             className="btn"
@@ -1482,13 +1462,15 @@ function TestBill() {
           >
             {working ? "Queueing…" : "Queue test bill"}
           </button>
-        </div>
-      </div>
-      {note && (
-        <p className="till-dev-note" data-testid="till-test-bill-note">
-          {note}
-        </p>
-      )}
+        }
+        after={
+          note && (
+            <p className="till-dev-note" data-testid="till-test-bill-note">
+              {note}
+            </p>
+          )
+        }
+      />
     </section>
   );
 }

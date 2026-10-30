@@ -1640,7 +1640,7 @@ export function PtEditor({ ptId, onClose }: { ptId: string; onClose?: () => void
           <Save size={14} /> Save changes
         </button>
         <button
-          className="btn btn-cta"
+          className="btn btn-primary"
           disabled={
             busy || readOnly || blockers.length > 0 || state !== "draft" || compare !== null
           }

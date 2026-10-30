@@ -22,6 +22,7 @@ import { withQuery } from "../lib/query";
 import "./Booking.css";
 import "./Shared.css";
 import { PageHeader } from "../components/PageHeader";
+import { SegmentedControl } from "../components/SegmentedControl";
 import { OperationsPage } from "../components/OperationsPage";
 import { stockParams } from "../lib/stockWorkspace";
 import type { StockWorkspaceFilter } from "./StockWorkspace";
@@ -439,18 +440,17 @@ export default function StockOnHand({
         {/* Hosted on Inventory, Quarantine is a tab of its own and the strip is
             only the three groupings - or nothing at all, on the damage tab. */}
         {groupings.length > 1 && (
-          <div className="seg" data-testid="onhand-tabs">
-            {groupings.map((t) => (
-              <button
-                key={t.key}
-                className={`seg-btn ${group === t.key ? "active" : ""}`}
-                onClick={() => setGroup(t.key)}
-                data-testid={`onhand-tab-${t.key}`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            label="Group by"
+            testId="onhand-tabs"
+            value={group}
+            options={groupings.map((t) => ({
+              value: t.key,
+              label: t.label,
+              testId: `onhand-tab-${t.key}`,
+            }))}
+            onChange={setGroup}
+          />
         )}
         {!isQuar && !workspace && (
           <div className="filter-bar" data-testid="onhand-search-bar">

@@ -63,8 +63,10 @@ import {
 } from "../components/ActionBits";
 import { useAuth, type GoodsSession } from "../auth/AuthContext";
 import { formatDateTime } from "../lib/format";
+import { SegmentedControl } from "../components/SegmentedControl";
 import { useWideScreen } from "../lib/useWideScreen";
 import "./GoodsExceptions.css";
+import { FilterChip } from "../components/FilterChip";
 
 type LiveStatus = "connecting" | "live" | "reconnecting" | "stopped";
 
@@ -436,16 +438,13 @@ export function ExceptionsPanel({
               ))}
             </select>
           </label>
-          <label className="an-check" htmlFor="exc-mine">
-            <input
-              id="exc-mine"
-              type="checkbox"
-              checked={mineOnly}
-              onChange={(e) => set("mine", e.target.checked ? "1" : "")}
-              data-testid="exc-filter-mine"
-            />
+          <FilterChip
+            pressed={mineOnly}
+            onClick={() => set("mine", mineOnly ? "" : "1")}
+            testId="exc-filter-mine"
+          >
             Only mine
-          </label>
+          </FilterChip>
           <LiveDot status={live} />
         </div>
       </div>
@@ -788,7 +787,7 @@ function ExceptionDrawer({
 
         <div className="exc-drawer-resolve">
           {resolution.to ? (
-            <Link className="btn btn-cta" to={resolution.to} data-testid="exc-resolve-link">
+            <Link className="btn btn-primary" to={resolution.to} data-testid="exc-resolve-link">
               Resolve via: {resolution.label}
             </Link>
           ) : (
@@ -980,26 +979,15 @@ export function GoodsNotificationsFeed() {
       />
 
       <div className="an-toolbar">
-        <div className="an-seg" role="group" aria-label="Which notifications">
-          <button
-            type="button"
-            className={`btn btn-sm${!showHistory ? " btn-active" : ""}`}
-            aria-pressed={!showHistory}
-            onClick={() => setShowHistory(false)}
-            data-testid="alerts-view-open"
-          >
-            Unread
-          </button>
-          <button
-            type="button"
-            className={`btn btn-sm${showHistory ? " btn-active" : ""}`}
-            aria-pressed={showHistory}
-            onClick={() => setShowHistory(true)}
-            data-testid="alerts-view-history"
-          >
-            All
-          </button>
-        </div>
+        <SegmentedControl
+          label="Which notifications"
+          value={showHistory ? "all" : "unread"}
+          options={[
+            { value: "unread", label: "Unread", testId: "alerts-view-open" },
+            { value: "all", label: "All", testId: "alerts-view-history" },
+          ]}
+          onChange={(v) => setShowHistory(v === "all")}
+        />
         <TopicFilter
           counts={topicCounts}
           total={rows.length}

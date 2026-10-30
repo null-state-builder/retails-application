@@ -172,7 +172,7 @@ export default function VendorLedger() {
                 <ReceiptText size={15} /> Record Bill
               </button>
               <button
-                className="btn btn-cta"
+                className="btn btn-primary"
                 onClick={() => {
                   setMode("payment");
                   setError("");

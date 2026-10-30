@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { SegmentedControl } from "../components/SegmentedControl";
 import { api, apiErrorMessage } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
@@ -226,28 +227,18 @@ export function ShrinkageReportPage() {
             Export to Excel
           </button>
         </div>
-        <div
-          className="seg"
-          role="tablist"
-          aria-label="Group by"
-          data-testid="shrinkage-groupings"
-          style={{ flexWrap: "wrap" }}
-        >
-          {SHRINKAGE_GROUPINGS.map((v) => (
-            <button
-              key={v.key}
-              type="button"
-              role="tab"
-              aria-selected={filters.group_by === v.key}
-              className={`seg-btn ${filters.group_by === v.key ? "active" : ""}`}
-              data-testid={`shrinkage-group-${v.key}`}
-              disabled={disabled}
-              onClick={() => set("group_by", v.key as ShrinkageGroupBy)}
-            >
-              {v.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          label="Group by"
+          testId="shrinkage-groupings"
+          disabled={disabled}
+          value={filters.group_by as ShrinkageGroupBy}
+          options={SHRINKAGE_GROUPINGS.map((v) => ({
+            value: v.key as ShrinkageGroupBy,
+            label: v.label,
+            testId: `shrinkage-group-${v.key}`,
+          }))}
+          onChange={(next) => set("group_by", next)}
+        />
         <p className="muted-cell" data-testid="shrinkage-as-of">
           {asOfText(data.as_of)}
           {data.as_of &&

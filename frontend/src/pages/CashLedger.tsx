@@ -111,7 +111,7 @@ export default function CashLedger() {
         actions={
           isFinance && (
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               onClick={() => {
                 setOpen(true);
                 setError("");

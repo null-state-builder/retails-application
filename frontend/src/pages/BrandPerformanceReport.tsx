@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { SegmentedControl } from "../components/SegmentedControl";
 import { api, apiErrorMessage } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
@@ -251,28 +252,18 @@ export function BrandPerformanceReportPage() {
             Export to Excel
           </button>
         </div>
-        <div
-          className="seg"
-          role="tablist"
-          aria-label="Group by"
-          data-testid="brand-performance-groupings"
-          style={{ flexWrap: "wrap" }}
-        >
-          {BRAND_PERFORMANCE_GROUPINGS.map((v) => (
-            <button
-              key={v.key}
-              type="button"
-              role="tab"
-              aria-selected={filters.group_by === v.key}
-              className={`seg-btn ${filters.group_by === v.key ? "active" : ""}`}
-              data-testid={`brand-performance-group-${v.key}`}
-              disabled={disabled}
-              onClick={() => set("group_by", v.key as BrandPerformanceGroupBy)}
-            >
-              {v.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          label="Group by"
+          testId="brand-performance-groupings"
+          disabled={disabled}
+          value={filters.group_by as BrandPerformanceGroupBy}
+          options={BRAND_PERFORMANCE_GROUPINGS.map((v) => ({
+            value: v.key as BrandPerformanceGroupBy,
+            label: v.label,
+            testId: `brand-performance-group-${v.key}`,
+          }))}
+          onChange={(next) => set("group_by", next)}
+        />
         <p className="muted-cell" data-testid="brand-performance-as-of">
           {asOfText(data.as_of)}
           {data.as_of &&

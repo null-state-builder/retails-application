@@ -10,6 +10,7 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { OperationsPage, OperationsTable } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { FilterChip } from "../components/FilterChip";
 import { api, apiErrorCode, apiErrorMessage, goodsMeta } from "../lib/api";
 import { sha256Hex } from "../lib/goodsPt";
 import { Feedback, Field, hold } from "../lib/goodsScreen";
@@ -334,7 +335,7 @@ export function StockSyncPage() {
           />
         </Field>
         <button
-          className="btn btn-cta"
+          className="btn btn-primary"
           disabled={busy || !file || !siteId}
           onClick={() => run(upload)}
         >
@@ -431,7 +432,7 @@ export function StockSyncPage() {
               </p>
               <div className="btn-row" role="group" aria-label="Filter by category">
                 <button
-                  className={category === "" ? "btn btn-cta" : "btn"}
+                  className={category === "" ? "btn btn-primary" : "btn"}
                   onClick={() => {
                     setOffset(0);
                     setCategory("");
@@ -442,7 +443,7 @@ export function StockSyncPage() {
                 {CATEGORIES.map((c) => (
                   <button
                     key={c}
-                    className={category === c ? "btn btn-cta" : "btn"}
+                    className={category === c ? "btn btn-primary" : "btn"}
                     onClick={() => {
                       setOffset(0);
                       setCategory(c);
@@ -452,17 +453,15 @@ export function StockSyncPage() {
                   </button>
                 ))}
               </div>
-              <label>
-                <input
-                  type="checkbox"
-                  checked={onlyOpen}
-                  onChange={(e) => {
-                    setOffset(0);
-                    setOnlyOpen(e.target.checked);
-                  }}
-                />{" "}
+              <FilterChip
+                pressed={onlyOpen}
+                onClick={() => {
+                  setOffset(0);
+                  setOnlyOpen(!onlyOpen);
+                }}
+              >
                 Only rows still to review
-              </label>
+              </FilterChip>
               <div className="btn-row">
                 <button
                   className="btn"

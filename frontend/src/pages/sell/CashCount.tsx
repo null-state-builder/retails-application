@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { AlertTriangle, Check, RefreshCw } from "lucide-react";
 
 import { PageHeader } from "../../components/PageHeader";
+import { SegmentedControl } from "../../components/SegmentedControl";
 import { OperationsPage } from "../../components/OperationsPage";
 import { useAuth } from "../../auth/AuthContext";
 import { api, apiErrorCode, apiErrorMessage } from "../../lib/api";
@@ -595,26 +596,16 @@ function Movements({
         </ul>
       )}
       <div className="cash-move-form">
-        <div className="cash-kind" role="radiogroup" aria-label="Kind">
-          <button
-            type="button"
-            className={`btn ${deposit ? "btn-cta" : ""}`}
-            aria-pressed={deposit}
-            data-testid="cash-move-deposit"
-            onClick={() => setKind("deposit")}
-          >
-            Bank deposit
-          </button>
-          <button
-            type="button"
-            className={`btn ${deposit ? "" : "btn-cta"}`}
-            aria-pressed={!deposit}
-            data-testid="cash-move-handover"
-            onClick={() => setKind("handover")}
-          >
-            Handover
-          </button>
-        </div>
+        <SegmentedControl
+          label="Kind"
+          className="cash-kind"
+          value={kind}
+          options={[
+            { value: "deposit", label: "Bank deposit", testId: "cash-move-deposit" },
+            { value: "handover", label: "Handover", testId: "cash-move-handover" },
+          ]}
+          onChange={setKind}
+        />
         <div className="field">
           <label htmlFor="cash-move-amount">Amount ₹</label>
           <RupeeInput

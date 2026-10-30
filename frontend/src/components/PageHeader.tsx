@@ -83,11 +83,14 @@ export function PageHeader({
   const showScreen =
     !hosted && !!item && item.label !== heading && itemPath(item) !== normalizePath(pathname);
 
+  // v2 PageHeader: the crumb, the title in navy at 20/600, one sentence on
+  // where things stand, the page's actions on the right (CTA last), and a
+  // hairline under it all. No tabs, filters or KPIs in here.
   return (
     <>
       {hosted?.tabs}
-      <div className="toolbar">
-        <div>
+      <header className="page-head">
+        <div className="page-head-text">
           <p className="page-crumb" data-testid="page-crumb">
             {hosted?.crumb ?? section?.label}
             {showScreen && (
@@ -104,9 +107,8 @@ export function PageHeader({
           </h1>
           {lead && <p className="lead">{lead}</p>}
         </div>
-        <div className="spacer" />
-        {actions}
-      </div>
+        {actions && <div className="page-head-actions">{actions}</div>}
+      </header>
     </>
   );
 }

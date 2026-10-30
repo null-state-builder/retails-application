@@ -125,7 +125,7 @@ export function ReceiveInboxPage({ view = "pending" }: { view?: "pending" | "his
           view === "pending" && canReceive ? (
             // The one way to start receiving a vendor delivery (PRD §5.1).
             <Link
-              className="btn btn-cta"
+              className="btn btn-primary"
               to={`/goods/receive/new${site ? `?site=${encodeURIComponent(site)}` : ""}`}
               data-testid="inbox-goods-arrived"
             >

@@ -510,7 +510,7 @@ export function NewTransferPanel({
       )}
       <div className="toolbar">
         <button
-          className="btn btn-cta"
+          className="btn btn-primary"
           disabled={busy || !destination || chosen.length === 0 || overdrawn}
           onClick={create}
           data-testid="transfer-new-create"
@@ -656,7 +656,7 @@ export function TransferDetailPage() {
         <div className="toolbar" data-testid="transfer-actions">
           {may("submit") && (
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               onClick={() =>
                 command(
                   "/submit",
@@ -1045,7 +1045,7 @@ function PreparationPanel({
           transfer; whatever is not sent stays reserved until it is sent or cancelled.
         </p>
         <button
-          className="btn btn-cta"
+          className="btn btn-primary"
           disabled={busy}
           onClick={() => start(false)}
           data-testid="transfer-prepare"
@@ -1650,7 +1650,7 @@ function CountForm({
       </button>
       {problems.length > 0 && <div className="warn-note">{problems[0]}</div>}
       <button
-        className="btn btn-cta"
+        className="btn btn-primary"
         disabled={problems.length > 0}
         onClick={() => {
           const body: CountBody = {

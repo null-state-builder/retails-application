@@ -129,6 +129,17 @@ Map each design-system component onto what exists, extending a component rather 
 
 Write each component's contract from its design-system README into a short comment at the top of the component file.
 
+**Done 30 Oct 2026.** The v2 component styles are in `frontend/src/theme/components.css` (loaded after `index.css`), and each component has a React wrapper in `frontend/src/components/` with its contract at the top: `Section`/`Box`, `KpiStrip`/`LeadFigure`, `Status`, `Note`, `SegmentedControl`, `FilterChip`/`FilterChips`, `Switch`, `SettingRow`/`Settings`, `SplitView`/`Pane` (width 320–440, kept per person). `PageHeader` draws `.page-head` with a hairline; `EmptyState`/`ErrorState` are left-aligned with a heading. Adopted so far:
+
+- **Switch:** Till's scan sounds, Feature Switches (with "On, held off"), a product's No discounts, broken-size rules.
+- **SettingRow:** every Till & Sync task and setting (`TaskRow` is now a thin wrapper).
+- **SegmentedControl:** all `.seg` view switches (five reports, Transfers, Stock on hand, Return to Brand), the theme picker, Alerts' Unread/All, Outbound transfer kind, Billing's Sale/Return and customer search-by, credit due-days, Cash count's deposit/handover, Customers' search-by. `bill-mode`, `theme-seg`, `an-seg`, `mode-toggle` and the `plus-due` buttons are gone. Product lists' upload/lists/history strip switches panels, so it stays a tab strip.
+- **View filters:** Organisation's three "Show retired" buttons became Active / Retired; vendors' "Show retired", Alerts' "Only mine", Stock sync's "Only rows still to review" and SOH import's "Include zero stock" became FilterChips.
+- **Buttons:** of 213 `btn-cta`, 49 stay red (they commit money or stock on that press), 3 became `btn-danger` (red outline: disconnect, confirm retirement, cancel a booking) and 161 became `btn-primary` (navy), including drafts, Issue GRN, Record the invoice and submit-for-approval (decided 30 Oct).
+- **By CSS, without touching markup:** `table.data` rows follow density with `.p2`/`.p3` column priority and `.pin-col`; `.chip` is the 24px square-cornered v2 chip; `.ok-note`/`.warn-note`/`.ai-note`/`.till-alert` draw as v2 Notes; `.stat-grid` draws as an unboxed KPI strip with no icons; `.h1` is 20/28.
+
+Screens move from `.card` page dividers to `Section`, and from tone chips to `Status`, in Phase 5 as each is rebuilt.
+
 ### Phase 4: shell and motion (2 days)
 
 - **Shell sizes:** top bar 52px on `paper`, sidebar 232px with quieter section headers, rail items 44×40.

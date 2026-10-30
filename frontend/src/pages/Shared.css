@@ -5,11 +5,12 @@
   align-items: center;
   gap: 8px;
   background: var(--green-bg);
-  border: 1px solid var(--green-bd);
-  color: var(--green);
-  border-radius: var(--radius-box);
-  padding: 10px 13px;
-  font-size: 13px;
+  border-left: 3px solid var(--green);
+  color: var(--ink);
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
+  padding: 12px 16px;
+  font-size: 14px;
+  line-height: 20px;
   margin-top: 12px;
 }
 
@@ -43,64 +44,56 @@
   white-space: nowrap;
 }
 
-/* Stock Ledger — summary cards */
+/* The ledgers' summary figures, drawn as the v2 KpiStrip: one unboxed strip
+   between two hairlines, the label above each figure. New screens use
+   components/KpiStrip.tsx. */
 .stat-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 12px;
-  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  margin-top: 16px;
+  border-top: 1px solid var(--hairline);
+  border-bottom: 1px solid var(--hairline);
+}
+.stat-grid > .stat-card {
+  flex: 1 1 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 24px 12px 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.stat-grid > .stat-card + .stat-card {
+  padding-left: 24px;
+  border-left: 1px solid var(--hairline);
 }
 .stat-card {
-  padding: 12px 14px;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
+/* Figures carry no icons (KpiStrip): the label names the figure, and rust is
+   kept for "where you are". */
+.stat-card > svg {
+  display: none;
+}
 .stat-value {
   font-size: 24px;
   font-weight: 600;
-  color: var(--navy);
-  line-height: 1.15;
+  color: var(--ink);
+  line-height: 28px;
+  letter-spacing: -0.2px;
   font-variant-numeric: tabular-nums;
 }
 .stat-label {
-  font-size: 13px;
-  color: var(--muted);
-}
-
-/* Segmented control (Stock on Hand grouping) */
-.seg {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 2px;
-  padding: 3px;
-  margin-top: 12px;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-inner);
-}
-.seg-btn {
-  border: 0;
-  background: transparent;
-  padding: 6px 14px;
-  border-radius: var(--radius-control);
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
-  cursor: pointer;
-  transition:
-    background-color 0.15s,
-    color 0.15s;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-}
-.seg-btn:hover {
-  color: var(--ink);
-}
-.seg-btn.active {
-  background: var(--navy-fill);
-  color: var(--on-fill);
+  order: -1;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.32px;
+  color: var(--ink2);
 }
 
 /* Stock: the grouping strip and the search share one row under the totals,

@@ -491,7 +491,7 @@ function NewManifestForm({
 
       <div className="form-actions">
         <button
-          className="btn btn-cta"
+          className="btn btn-primary"
           onClick={submit}
           disabled={busy || !batchKey}
           data-testid="opening-create-manifest"
@@ -586,7 +586,7 @@ function OriginUnavailableRow({
       </div>
       <div className="form-actions">
         <button
-          className="btn btn-cta"
+          className="btn btn-primary"
           onClick={confirm}
           disabled={busy}
           data-testid={`opening-origin-${row.source_row_key}-confirm`}
@@ -855,7 +855,7 @@ function VarianceRow({
             />
           </Field>
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             onClick={propose}
             disabled={busy}
             data-testid={`opening-variance-propose-${row.source_row_key}`}
@@ -1108,7 +1108,7 @@ export function ManifestDetailView({
       {manifest.approved && hold(session, "pt.prepare.opening") && (
         <div className="form-actions">
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             onClick={createOpeningPt}
             disabled={busy || unresolved.length > 0}
             data-testid="opening-create-pt"
@@ -1197,7 +1197,7 @@ export function GoodsOpeningPage() {
           {siteId && <SohImportPanel key={siteId} siteId={siteId} />}
           {canPrepare && manifestPage.manual && !showForm && (
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               onClick={() => setShowForm(true)}
               data-testid="opening-new"
             >

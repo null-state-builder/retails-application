@@ -156,14 +156,8 @@
   min-width: 0;
 }
 
-.an-topics .btn,
-.an-seg .btn {
+.an-topics .btn {
   min-height: 36px;
-}
-
-.an-seg {
-  display: inline-flex;
-  gap: 6px;
 }
 
 .an-count {
@@ -194,23 +188,6 @@
   background: var(--surface);
   color: var(--ink);
   font-size: 14px;
-}
-
-.an-check {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 36px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ink);
-  cursor: pointer;
-}
-
-.an-check input {
-  width: 16px;
-  height: 16px;
-  margin: 0;
 }
 
 .an-showing {

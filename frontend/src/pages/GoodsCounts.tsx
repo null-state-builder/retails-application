@@ -159,7 +159,7 @@ export function GoodsCountsPage() {
               </select>
             </Field>
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               disabled={!siteId || busy}
               onClick={start}
               data-testid="cnt-start-go"
@@ -451,7 +451,12 @@ function MyPass({
               ))}
             </select>
           </Field>
-          <button className="btn btn-cta" disabled={busy} onClick={openPass} data-testid="cnt-open">
+          <button
+            className="btn btn-primary"
+            disabled={busy}
+            onClick={openPass}
+            data-testid="cnt-open"
+          >
             <ScanLine size={14} /> Start counting
           </button>
         </div>
@@ -722,7 +727,7 @@ function PassPanel({
           />
         </Field>
         <button
-          className="btn btn-cta"
+          className="btn btn-primary"
           disabled={!canRecord}
           onClick={record}
           data-testid="cnt-record"
@@ -1080,7 +1085,7 @@ function ReviewPanel({
             />
           </Field>
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             disabled={busy || !reason.trim()}
             onClick={submitReview}
             data-testid="cnt-submit-review"

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { PauseCircle } from "lucide-react";
+import { SegmentedControl } from "../../../components/SegmentedControl";
 
 export type CounterMode = "sale" | "return";
 
@@ -50,28 +51,20 @@ export function BillBar({
       <div className="bill-bar-inner">
         {/* Mode toggle + bill identity group, separated from Sold-by by a divider. */}
         <div className="bill-bar-left">
-          <div className="bill-mode" role="group" aria-label="Counter mode">
-            <button
-              type="button"
-              className={`bill-mode-button ${mode === "sale" ? "is-active" : ""}`}
-              aria-pressed={mode === "sale"}
-              title="Sale mode"
-              disabled={disabled}
-              onClick={() => onModeChange("sale")}
-            >
-              Sale
-            </button>
-            <button
-              type="button"
-              className={`bill-mode-button ${mode === "return" ? "is-active" : ""}`}
-              aria-pressed={mode === "return"}
-              title="Return & exchange mode"
-              disabled={disabled}
-              onClick={() => onModeChange("return")}
-            >
-              Return &amp; exchange
-            </button>
-          </div>
+          <SegmentedControl
+            label="Counter mode"
+            disabled={disabled}
+            value={mode}
+            options={[
+              { value: "sale", label: "Sale", title: "Sale mode" },
+              {
+                value: "return",
+                label: "Return & exchange",
+                title: "Return & exchange mode",
+              },
+            ]}
+            onChange={onModeChange}
+          />
 
           <div className="bill-identity" aria-live="polite">
             <strong>

@@ -111,7 +111,7 @@ export function TagPrintModal({ rows, onClose }: { rows: TagPrintRow[]; onClose:
 
         <button
           type="button"
-          className="btn btn-cta no-print"
+          className="btn btn-primary no-print"
           style={{ marginTop: 14, width: "100%" }}
           onClick={() => window.print()}
           data-testid="tag-print-confirm"

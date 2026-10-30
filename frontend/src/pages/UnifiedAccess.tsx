@@ -320,7 +320,7 @@ export function UnifiedAssignmentsTab({
         />
       </label>
       <button
-        className="btn btn-cta"
+        className="btn btn-primary"
         type="button"
         onClick={save}
         disabled={loading || saving}
@@ -514,7 +514,7 @@ export function UnifiedRolePolicyPanel() {
             />
           </label>
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             type="button"
             onClick={save}
             disabled={saving}
@@ -706,7 +706,7 @@ export function UnifiedWorkflowPolicyPanel() {
             />
           </label>
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             type="button"
             onClick={save}
             disabled={saving || revision === null}

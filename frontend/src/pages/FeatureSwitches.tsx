@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "../auth/AuthContext";
 import { PageHeader } from "../components/PageHeader";
+import { Switch } from "../components/Switch";
 import { api, apiErrorMessage, goodsMeta, typedApi } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { formatDateTime } from "../lib/format";
@@ -163,16 +164,14 @@ export function FeatureSwitchesPage() {
                         )}
                       </td>
                       <td>
-                        <label className="check-row">
-                          <input
-                            type="checkbox"
-                            data-testid={`feature-toggle-${f.key}`}
-                            checked={state.chosen}
-                            disabled={cannot || (locked && !state.chosen)}
-                            onChange={(event) => void change(f.key, event.target.checked)}
-                          />
-                          {state.enabled ? "On" : state.chosen ? "Chosen on, held off" : "Off"}
-                        </label>
+                        <Switch
+                          checked={state.chosen}
+                          held={state.chosen && !state.enabled}
+                          busy={cannot || (locked && !state.chosen)}
+                          ariaLabel={f.name}
+                          testId={`feature-toggle-${f.key}`}
+                          onChange={(on) => void change(f.key, on)}
+                        />
                       </td>
                       <td>
                         {f.has_modes ? (

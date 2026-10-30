@@ -39,6 +39,7 @@ import {
 } from "../lib/goodsConfig";
 import { useAuth } from "../auth/AuthContext";
 import { PageHeader } from "../components/PageHeader";
+import { Switch } from "../components/Switch";
 import { BrandReconciliationPanel } from "./BrandReconciliation";
 import "./ProductsParties.css";
 
@@ -412,7 +413,11 @@ function SimpleMasterPanel<T extends { code: string; name: string }>({
         <h3 className="h3">{title}</h3>
         <div className="spacer" />
         {canEdit && (
-          <button className="btn btn-cta" onClick={() => start(null)} data-testid={`${testid}-new`}>
+          <button
+            className="btn btn-primary"
+            onClick={() => start(null)}
+            data-testid={`${testid}-new`}
+          >
             <Plus size={15} /> New {noun.toLowerCase()}
           </button>
         )}
@@ -470,7 +475,7 @@ function SimpleMasterPanel<T extends { code: string; name: string }>({
             ))}
           </div>
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             onClick={save}
             disabled={!form.code || !form.name}
             data-testid={`${testid}-save`}
@@ -640,7 +645,7 @@ function StylesPanel({
         <div className="spacer" />
         {canManage && (
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             onClick={() => {
               setOpen(true);
               setError("");
@@ -717,7 +722,7 @@ function StylesPanel({
             </Field>
           </div>
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             onClick={create}
             disabled={!form.brand_id || !form.style_code || !form.profile_family}
             data-testid="style-save"
@@ -921,11 +926,15 @@ function SkuDiscountRule({ row, onChanged }: { row: ResourceDTO<SkuData>; onChan
   }
   return (
     <>
-      <span>{row.data.no_discount ? "No discounts" : "Policy discounts allowed"}</span>
-      {row.allowed_actions.includes("update") && (
-        <button className="btn btn-sm" disabled={busy} onClick={change}>
-          {row.data.no_discount ? "Allow policy discounts" : "Refuse discounts"}
-        </button>
+      {row.allowed_actions.includes("update") ? (
+        <Switch
+          label="No discounts"
+          checked={row.data.no_discount}
+          busy={busy}
+          onChange={() => void change()}
+        />
+      ) : (
+        <span>{row.data.no_discount ? "No discounts" : "Policy discounts allowed"}</span>
       )}
       {error && <p className="warn-note">{error}</p>}
       {stepUp.dialog}
@@ -1010,7 +1019,7 @@ function SingleSkuForm({
         ))}
       </div>
       <button
-        className="btn btn-cta"
+        className="btn btn-primary"
         onClick={save}
         disabled={missing.length > 0}
         data-testid="sku-single-save"
@@ -1226,7 +1235,7 @@ function CombinationsGrid({
             </table>
           </div>
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             onClick={() => setStage("review")}
             disabled={chosen.length === 0}
             data-testid="combo-review"
@@ -1251,7 +1260,7 @@ function CombinationsGrid({
             ← Change the ticks
           </button>
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             onClick={() => run(chosen)}
             disabled={busy}
             data-testid="combo-create"
@@ -1281,7 +1290,7 @@ function CombinationsGrid({
           })}
           {failed.length > 0 && (
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               onClick={() => run(failed.map((o) => o.key))}
               disabled={busy}
               data-testid="combo-retry"
@@ -1430,7 +1439,7 @@ function AliasesPanel({ search }: { search: string }) {
         <h3 className="h3">Aliases</h3>
         <div className="spacer" />
         {canManage && (
-          <button className="btn btn-cta" onClick={() => setOpen(true)} data-testid="alias-new">
+          <button className="btn btn-primary" onClick={() => setOpen(true)} data-testid="alias-new">
             <Plus size={15} /> New alias
           </button>
         )}
@@ -1528,7 +1537,7 @@ function AliasesPanel({ search }: { search: string }) {
             </Field>
           </div>
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             onClick={create}
             disabled={!form.sku_id || !form.issuer_key || !form.value}
             data-testid="alias-save"
@@ -1643,7 +1652,7 @@ function CrosswalksPanel({ search }: { search: string }) {
         <div className="spacer" />
         {(canManage || canPropose) && (
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             onClick={() => setOpen(true)}
             disabled={!configVersionId}
             data-testid="crosswalk-new"
@@ -1733,7 +1742,7 @@ function CrosswalksPanel({ search }: { search: string }) {
             </Field>
           </div>
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             onClick={create}
             disabled={!form.issuer_key || !form.source_key}
             data-testid="crosswalk-save"
@@ -1953,7 +1962,7 @@ function LookupPanel() {
           </Field>
         </div>
         <button
-          className="btn btn-cta"
+          className="btn btn-primary"
           onClick={look}
           disabled={busy || !form.value || !form.site_id || !form.issuer_key || !profileId}
           data-testid="lookup-run"
@@ -2016,7 +2025,7 @@ function LookupPanel() {
                   )}
                 </dl>
                 <button
-                  className="btn btn-cta"
+                  className="btn btn-primary"
                   onClick={() => choose(candidate)}
                   disabled={!scoped}
                   data-testid={`lookup-choose-${candidate.sku_id}`}

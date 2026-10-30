@@ -250,7 +250,7 @@ export function PartnerDuesPage() {
                           {isFinance && (
                             <button
                               type="button"
-                              className="btn btn-sm btn-cta"
+                              className="btn btn-sm btn-primary"
                               onClick={() => startSettle(s)}
                               data-testid={`partner-due-settle-${s.store_code}`}
                             >

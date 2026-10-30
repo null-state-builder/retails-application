@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Printer, Search } from "lucide-react";
 
 import { PageHeader } from "../../components/PageHeader";
+import { SegmentedControl } from "../../components/SegmentedControl";
 import { EmptyState, ErrorState } from "../../components/States";
 import { api, apiErrorMessage } from "../../lib/api";
 import type { ApiRead, ApiSchemas } from "../../lib/api";
@@ -152,24 +153,21 @@ export default function CustomerSearchPage() {
       />
 
       <div className="card section-card find-bar" data-testid="find-bar">
-        <div className="seg find-keys" role="group" aria-label="Search by">
-          {KEYS.map((option) => (
-            <button
-              key={option.key}
-              type="button"
-              className={`seg-btn${key === option.key ? " active" : ""}`}
-              aria-pressed={key === option.key}
-              data-testid={`find-key-${option.key}`}
-              onClick={() => {
-                setKey(option.key);
-                setRows(null);
-                setOpen(null);
-              }}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          label="Search by"
+          className="find-keys"
+          value={key}
+          options={KEYS.map((option) => ({
+            value: option.key,
+            label: option.label,
+            testId: `find-key-${option.key}`,
+          }))}
+          onChange={(next) => {
+            setKey(next);
+            setRows(null);
+            setOpen(null);
+          }}
+        />
         <div className="field find-field">
           <label htmlFor="find-term">{KEYS.find((o) => o.key === key)!.label}</label>
           <input
@@ -309,7 +307,7 @@ function BillDetail({ bill, onReprint }: { bill: PostedBill; onReprint: () => vo
         <div className="spacer" />
         <button
           type="button"
-          className="btn btn-cta"
+          className="btn btn-primary"
           data-testid="find-reprint"
           onClick={onReprint}
         >

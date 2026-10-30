@@ -270,7 +270,7 @@ function CounterForm({ grn, onDone }: { grn: ResourceDTO<GrnCoverage>; onDone: (
         </div>
       )}
       <button
-        className="btn btn-cta btn-sm"
+        className="btn btn-primary btn-sm"
         onClick={submit}
         disabled={busy || !reason || !lineKey}
         data-testid="gg-c-submit"
@@ -607,7 +607,7 @@ function DispositionForm({
         </div>
       )}
       <button
-        className="btn btn-cta btn-sm"
+        className="btn btn-primary btn-sm"
         onClick={submit}
         disabled={
           busy ||

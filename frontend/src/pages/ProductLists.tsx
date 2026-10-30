@@ -467,7 +467,7 @@ function Review({
               <X size={14} /> Withdraw
             </button>
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               disabled={busy || !item.allowed_actions.includes("submit")}
               onClick={onSubmit}
               data-testid="pl-submit"
@@ -497,7 +497,7 @@ function Review({
               Send back
             </button>
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               disabled={busy}
               onClick={() => onDecide("approve")}
               data-testid="pl-approve"
@@ -853,7 +853,7 @@ function Done({ item, onAnother }: { item: MasterSheetImport; onAnother: () => v
         <Link className="btn" to="/goods/pt-work">
           PT Work
         </Link>
-        <button className="btn btn-cta" onClick={onAnother}>
+        <button className="btn btn-primary" onClick={onAnother}>
           <FileUp size={14} /> Upload another sheet
         </button>
       </div>
@@ -883,7 +883,7 @@ function CurrentLists({
           </p>
         </div>
         <button
-          className="btn btn-cta"
+          className="btn btn-primary"
           disabled={busy}
           onClick={onDownload}
           data-testid="pl-download"

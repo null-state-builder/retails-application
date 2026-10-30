@@ -277,7 +277,7 @@ function PeopleListPanel({ onOpen }: { onOpen: (staffId: string) => void }) {
         <h3 className="h3">People</h3>
         <div className="spacer" />
         {canCreate && (
-          <button className="btn btn-cta" onClick={startCreate} data-testid="person-new-button">
+          <button className="btn btn-primary" onClick={startCreate} data-testid="person-new-button">
             <UserPlus size={15} /> New person
           </button>
         )}
@@ -389,7 +389,7 @@ function PeopleListPanel({ onOpen }: { onOpen: (staffId: string) => void }) {
               </div>
             )}
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               onClick={save}
               disabled={!form.site_id && !canCreateUnplaced}
               data-testid="person-save-button"
@@ -593,7 +593,7 @@ function PersonTab({ doc, reload }: { doc: ResourceDTO<StaffData>; reload: () =>
             Counts as a salesperson
           </label>
           {canEdit && (
-            <button className="btn btn-cta" onClick={save} data-testid="pa-person-save-button">
+            <button className="btn btn-primary" onClick={save} data-testid="pa-person-save-button">
               <Save size={15} /> Save
             </button>
           )}
@@ -631,7 +631,7 @@ function PersonTab({ doc, reload }: { doc: ResourceDTO<StaffData>; reload: () =>
                 data-testid="pa-retire-reason-input"
               />
               <button
-                className="btn btn-cta"
+                className="btn btn-danger"
                 onClick={retire}
                 data-testid="pa-retire-confirm-button"
               >
@@ -746,7 +746,7 @@ function AssignmentTab({ doc, reload }: { doc: ResourceDTO<StaffData>; reload: (
                 data-testid="pa-assign-reason-input"
               />
             </div>
-            <button className="btn btn-cta" onClick={assign} data-testid="pa-assign-button">
+            <button className="btn btn-primary" onClick={assign} data-testid="pa-assign-button">
               Move
             </button>
           </div>
@@ -923,7 +923,7 @@ function LoginTab({
                 I confirmed this person's identity and ownership of this login email
               </label>
               <button
-                className="btn btn-cta"
+                className="btn btn-primary"
                 onClick={createLogin}
                 data-testid="pa-login-create-button"
               >
@@ -1026,7 +1026,7 @@ function LoginTab({
                 </label>
               )}
               <button
-                className="btn btn-cta"
+                className="btn btn-primary"
                 onClick={saveLogin}
                 data-testid="pa-login-save-button"
               >

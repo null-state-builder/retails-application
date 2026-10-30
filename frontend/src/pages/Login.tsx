@@ -137,7 +137,7 @@ export function Login() {
           )}
 
           <button
-            className="btn btn-cta btn-block btn-lg"
+            className="btn btn-primary btn-block btn-lg"
             disabled={busy}
             data-testid="login-submit"
           >

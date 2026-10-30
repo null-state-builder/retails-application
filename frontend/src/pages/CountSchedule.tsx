@@ -314,7 +314,7 @@ export function CountSchedulePage() {
             </label>
             <button
               type="button"
-              className="btn btn-cta"
+              className="btn btn-primary"
               data-testid="sched-save"
               disabled={disabled || !draft.site_id || !draft.first_due_on}
               onClick={() => void create()}
@@ -459,7 +459,7 @@ function ScheduleRow({
             <>
               <button
                 type="button"
-                className="btn btn-cta"
+                className="btn btn-primary"
                 data-testid="sched-edit-save"
                 disabled={disabled || !first}
                 onClick={() => void change()}

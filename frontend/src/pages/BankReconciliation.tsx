@@ -144,7 +144,7 @@ export function BankReconciliationPage() {
             data-testid="bank-upload-label-input"
           />
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             disabled={!file || busy}
             onClick={upload}
             data-testid="bank-upload-submit"
@@ -209,7 +209,7 @@ export function BankReconciliationPage() {
             {TABS.map((t) => (
               <button
                 key={t.key || "all"}
-                className={`btn btn-sm ${tab === t.key ? "btn-cta" : ""}`}
+                className={`btn btn-sm ${tab === t.key ? "btn-primary" : ""}`}
                 onClick={() => setTab(t.key)}
                 data-testid={`bank-tab-${t.key || "all"}`}
               >

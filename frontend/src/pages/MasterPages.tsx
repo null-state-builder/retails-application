@@ -13,6 +13,7 @@ import {
   rupeesToPaise,
 } from "../lib/format";
 import { PageHeader } from "../components/PageHeader";
+import { FilterChip } from "../components/FilterChip";
 import { OperationsPage } from "../components/OperationsPage";
 import { SearchBox } from "../components/SearchBox";
 import { financialYear, financialYearChoices, financialYearMonths } from "../lib/fiscal";
@@ -181,7 +182,7 @@ export function StoresPage() {
       count={data.length}
       action={
         canEdit && (
-          <button className="btn btn-cta" onClick={add} data-testid="store-new-button">
+          <button className="btn btn-primary" onClick={add} data-testid="store-new-button">
             <Plus size={15} /> New store
           </button>
         )
@@ -271,7 +272,7 @@ export function StoresPage() {
               Partner store (franchisee — billed at Purchase Price on every transfer)
             </label>
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               onClick={save}
               disabled={!form.code || !form.name || !form.gstin}
               data-testid="store-save-button"
@@ -554,7 +555,7 @@ export function StoreTargetsPage() {
               data-testid="target-amount-input"
             />
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               onClick={save}
               disabled={busy || !edit.rupees.trim()}
               data-testid="target-save-button"
@@ -715,7 +716,7 @@ export function BrandsPage() {
       count={data.length}
       action={
         canEdit && (
-          <button className="btn btn-cta" onClick={add} data-testid="brand-new-button">
+          <button className="btn btn-primary" onClick={add} data-testid="brand-new-button">
             <Plus size={15} /> New brand
           </button>
         )
@@ -813,7 +814,7 @@ export function BrandsPage() {
               Active
             </label>
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               onClick={save}
               disabled={!form.code || !form.name}
               data-testid="brand-save-button"
@@ -948,7 +949,7 @@ export function SeasonsPage() {
       count={data.length}
       action={
         canEdit && (
-          <button className="btn btn-cta" onClick={add} data-testid="season-new-button">
+          <button className="btn btn-primary" onClick={add} data-testid="season-new-button">
             <Plus size={15} /> New season
           </button>
         )
@@ -1009,7 +1010,7 @@ export function SeasonsPage() {
               data-testid="season-sort-input"
             />
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               onClick={save}
               disabled={!form.code || !form.name}
               data-testid="season-save-button"
@@ -1144,7 +1145,7 @@ export function GstinsPage() {
       count={data.length}
       action={
         canEdit && (
-          <button className="btn btn-cta" onClick={add} data-testid="gstin-new-button">
+          <button className="btn btn-primary" onClick={add} data-testid="gstin-new-button">
             <Plus size={15} /> New GSTIN
           </button>
         )
@@ -1216,7 +1217,7 @@ export function GstinsPage() {
               Active
             </label>
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               onClick={save}
               disabled={!form.gstin || !form.state_code || !form.state_name || !form.legal_entity}
               data-testid="gstin-save-button"
@@ -1398,17 +1399,15 @@ export function VendorsPage() {
       count={data.length}
       action={
         <>
-          <label className="check-row" style={{ marginRight: 10 }}>
-            <input
-              type="checkbox"
-              checked={showRetired}
-              onChange={(e) => setShowRetired(e.target.checked)}
-              data-testid="vendor-show-retired"
-            />
+          <FilterChip
+            pressed={showRetired}
+            onClick={() => setShowRetired(!showRetired)}
+            testId="vendor-show-retired"
+          >
             Show retired
-          </label>
+          </FilterChip>
           {canEdit && (
-            <button className="btn btn-cta" onClick={add} data-testid="vendor-new-button">
+            <button className="btn btn-primary" onClick={add} data-testid="vendor-new-button">
               <Plus size={15} /> New vendor
             </button>
           )}
@@ -1508,7 +1507,7 @@ export function VendorsPage() {
             </div>
           </div>
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             style={{ marginTop: 12 }}
             onClick={save}
             disabled={!form.code || !form.name}

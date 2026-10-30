@@ -1,5 +1,4 @@
-/* Customers (store operations ticket 16): the facts on a customer's page and
-   the one destructive button, erase. */
+/* Customers (store operations ticket 16): the facts on a customer's page. */
 
 .customer-facts {
   display: grid;
@@ -14,12 +13,6 @@
 
 .customer-facts dd {
   margin: 0;
-}
-
-.btn.btn-danger {
-  background: var(--red-bg);
-  color: var(--red);
-  border-color: var(--red-bd);
 }
 
 @media (max-width: 480px) {

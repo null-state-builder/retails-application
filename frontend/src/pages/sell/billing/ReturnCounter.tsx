@@ -5,6 +5,7 @@ import { describeOriginal, refundFor, returnableQty } from "../../../till/exchan
 import type { OriginalLine, PickedReturn, PickedReturns } from "../../../till/exchange";
 import type { FoundBill } from "../../../till/original";
 import type { TillKnownCustomer } from "../../../till/types";
+import { SegmentedControl } from "../../../components/SegmentedControl";
 
 export type ReturnSearchKey = "mobile" | "name";
 
@@ -60,19 +61,15 @@ export function ReturnCustomerSearch({
         )}
       </div>
       <div className="return-customer-form">
-        <div className="bill-mode" role="group" aria-label="Search customer by">
-          {(["mobile", "name"] as const).map((key) => (
-            <button
-              key={key}
-              type="button"
-              className={`bill-mode-button ${searchKey === key ? "is-active" : ""}`}
-              aria-pressed={searchKey === key}
-              onClick={() => onSearchKey(key)}
-            >
-              {key === "mobile" ? "Mobile" : "Name"}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          label="Search customer by"
+          value={searchKey}
+          options={[
+            { value: "mobile", label: "Mobile" },
+            { value: "name", label: "Name" },
+          ]}
+          onChange={onSearchKey}
+        />
         <input
           className="input"
           autoComplete="off"
@@ -88,7 +85,7 @@ export function ReturnCustomerSearch({
         />
         <button
           type="button"
-          className="btn btn-cta"
+          className="btn btn-primary"
           data-testid="return-customer-submit"
           disabled={looking || !term.trim()}
           onClick={onSearch}

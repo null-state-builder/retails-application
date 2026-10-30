@@ -105,7 +105,7 @@ function StepPanel({ item, step }: { item: InboxItem; step: ReceivingStep }) {
     const transferPath = transferReceivingPath(item);
     if (!transferPath) return <Denied what="transfer shipment" />;
     return (
-      <Link className="btn btn-cta" to={transferPath} data-testid="delivery-open-transfer">
+      <Link className="btn btn-primary" to={transferPath} data-testid="delivery-open-transfer">
         Open transfer shipment
       </Link>
     );

@@ -6,6 +6,7 @@ import { Money } from "../../../../lib/format";
 import { RupeeInput } from "../RupeeInput";
 import { DUE_DAY_CHOICES, creditRefusal, creditRoomPaise } from "./usePlusPreview";
 import type { MoreMode, Plus } from "./usePlusPreview";
+import { SegmentedControl } from "../../../../components/SegmentedControl";
 
 const MODES: { mode: MoreMode; label: string; icon: ReactNode }[] = [
   { mode: "bank", label: "Bank transfer", icon: <Building2 size={16} aria-hidden /> },
@@ -211,19 +212,14 @@ function Details({ mode, plus, locked }: { mode: MoreMode; plus: Plus; locked: b
           </p>
         </>
       )}
-      <div className="plus-due" role="group" aria-label="Due in">
+      <div className="plus-due">
         <span>Due in</span>
-        {DUE_DAY_CHOICES.map((d) => (
-          <button
-            key={d}
-            type="button"
-            className={d === dueDays ? "is-on" : ""}
-            aria-pressed={d === dueDays}
-            onClick={() => plus.patch({ dueDays: d })}
-          >
-            {d} days
-          </button>
-        ))}
+        <SegmentedControl
+          label="Due in"
+          value={String(dueDays)}
+          options={DUE_DAY_CHOICES.map((d) => ({ value: String(d), label: `${d} days` }))}
+          onChange={(d) => plus.patch({ dueDays: Number(d) })}
+        />
       </div>
       {refusal && (
         <p className="plus-refusal" role="alert" data-testid="plus-credit-refusal">

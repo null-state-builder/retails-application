@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { PageHeader } from "../components/PageHeader";
+import { SegmentedControl } from "../components/SegmentedControl";
 import { api, apiErrorMessage } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
@@ -226,22 +227,18 @@ export function GiftStockReportPage() {
             Export to Excel
           </button>
         </div>
-        <div className="seg" role="tablist" aria-label="View" data-testid="gift-views">
-          {GIFT_VIEWS.map((v) => (
-            <button
-              key={v.key}
-              type="button"
-              role="tab"
-              aria-selected={filters.view === v.key}
-              className={`seg-btn ${filters.view === v.key ? "active" : ""}`}
-              data-testid={`gift-view-${v.key}`}
-              disabled={disabled}
-              onClick={() => set("view", v.key as GiftView)}
-            >
-              {v.label}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl
+          label="View"
+          testId="gift-views"
+          disabled={disabled}
+          value={filters.view as GiftView}
+          options={GIFT_VIEWS.map((v) => ({
+            value: v.key as GiftView,
+            label: v.label,
+            testId: `gift-view-${v.key}`,
+          }))}
+          onChange={(next) => set("view", next)}
+        />
         <p className="muted-cell" data-testid="gift-as-of">
           {asOfText(data.as_of)}
           {data.as_of &&

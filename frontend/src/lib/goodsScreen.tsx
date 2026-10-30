@@ -231,7 +231,7 @@ export function useStepUp() {
             />
           </label>
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             type="submit"
             disabled={busy || !password}
             data-testid="org-stepup-confirm"

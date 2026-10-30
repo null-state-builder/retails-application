@@ -157,7 +157,7 @@ export function SohReconciliationPanel({
           </label>
           <br />
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             disabled={busy || !reasonCode.trim() || !fullExport || !physical || !omissions}
             onClick={() =>
               run(async () => {
@@ -275,7 +275,7 @@ export function SohReconciliationPanel({
           )}
           {count.allowed_actions.includes("submit") && (
             <button
-              className="btn btn-cta"
+              className="btn btn-primary"
               disabled={busy}
               onClick={() =>
                 run(async () => {

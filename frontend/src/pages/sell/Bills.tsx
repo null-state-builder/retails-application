@@ -435,7 +435,7 @@ function BillDetail({
         </button>
         <button
           type="button"
-          className="btn btn-cta"
+          className="btn btn-primary"
           data-testid="bills-reprint"
           onClick={onReprint}
         >

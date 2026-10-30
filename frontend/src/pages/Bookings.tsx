@@ -164,7 +164,7 @@ export function BookingsPage() {
         }
         actions={
           canPlace && (
-            <Link className="btn btn-cta" to="/booking/new" data-testid="new-booking-btn">
+            <Link className="btn btn-primary" to="/booking/new" data-testid="new-booking-btn">
               <Plus size={16} /> New booking
             </Link>
           )
@@ -1247,7 +1247,7 @@ function EndBooking({ booking, onDone }: { booking: BookingT; onDone: () => void
         </div>
       )}
       <button
-        className="btn btn-cta"
+        className="btn btn-danger"
         style={{ marginTop: 12 }}
         disabled={reason.trim().length < 3 || saving}
         onClick={submit}
@@ -1285,7 +1285,7 @@ function SendBookingForApproval({ booking, onDone }: { booking: BookingT; onDone
   return (
     <>
       <button
-        className="btn btn-cta"
+        className="btn btn-primary"
         disabled={saving}
         onClick={submit}
         data-testid="booking-send-approval"

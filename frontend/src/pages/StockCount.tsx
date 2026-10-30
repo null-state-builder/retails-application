@@ -300,7 +300,7 @@ export function StockCountListPage() {
             </div>
           )}
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             disabled={opening}
             onClick={openCount}
             data-testid="open-count-btn"
@@ -619,7 +619,7 @@ export function StockCountDetailPage() {
             )}
           </div>
           <button
-            className="btn btn-cta"
+            className="btn btn-primary"
             disabled={busy}
             onClick={startSession}
             data-testid="start-session-btn"

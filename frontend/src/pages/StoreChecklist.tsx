@@ -327,7 +327,7 @@ function ChecklistItem({
         <span className="cl-actions">
           <button
             type="button"
-            className="btn btn-sm btn-cta"
+            className="btn btn-sm btn-primary"
             data-testid="checklist-tick"
             disabled={disabled}
             onClick={() => void onTick(list, item, null)}

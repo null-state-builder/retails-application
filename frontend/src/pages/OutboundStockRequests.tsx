@@ -133,7 +133,7 @@ export function StockRequestListPage() {
         actions={
           writable && (
             <Link
-              className="btn btn-cta"
+              className="btn btn-primary"
               to="/transfer/requests/new"
               data-testid="new-stock-request-btn"
             >
@@ -655,7 +655,7 @@ function FulfilPanel({ r, onDone }: { r: StockRequestT; onDone: () => void }) {
         </div>
       )}
       <button
-        className="btn btn-cta"
+        className="btn btn-primary"
         style={{ marginTop: 12 }}
         disabled={busy}
         onClick={fulfil}
