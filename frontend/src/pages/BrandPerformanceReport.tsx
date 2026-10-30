@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Note } from "../components/Note";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { UpdatedAgo } from "../components/UpdatedAgo";
+import { useCachedGet } from "../lib/cachedQuery";
 import { SegmentedControl } from "../components/SegmentedControl";
 import { api, apiErrorMessage } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
@@ -64,50 +66,50 @@ export function BrandPerformanceReportPage() {
   const [filters, setFilters] = useState<BrandPerformanceFilters>(() =>
     defaultBrandPerformanceFilters(),
   );
-  const [data, setData] = useState<Payload | null>(null);
-  const [error, setError] = useState("");
+  const [exportError, setError] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
-  // The browser says it is online, but the last request got no answer at all.
-  const [lost, setLost] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const request = useRef(0);
+  // The browser says it is online, but the last export got no answer at all.
+  const [exportLost, setLost] = useState(false);
+  // Half-way through changing both dates the period can run backwards; say
+  // so rather than ask the server a question it will refuse. The last good
+  // period stays on screen.
+  const backwards = Boolean(
+    filters.date_from && filters.date_to && filters.date_to < filters.date_from,
+  );
+  const [asked, setAsked] = useState(filters);
+  if (!backwards && asked !== filters) setAsked(filters);
+  // Through the shared cache: a report seen before shows at once and is always
+  // read again behind it. Offline, the request waits for the connection.
+  const read = useCachedGet<Payload>("/reports/brand-performance", {
+    params: brandPerformanceParams(asked),
+  });
+  useEffect(() => setError(""), [filters]);
+  const data = read.data ?? null;
+  const busy = read.fetching;
+  const lost = exportLost || (read.error != null && isConnectionLost(read.error));
+  const readError =
+    read.error != null && !isConnectionLost(read.error) ? apiErrorMessage(read.error) : "";
+  const error = backwards
+    ? "The period ends before it starts. Choose a To date on or after the From date."
+    : exportError || readError;
+  useEffect(() => {
+    if (read.updatedAt) setLost(false);
+  }, [read.updatedAt]);
 
-  const load = useCallback(async (wanted: BrandPerformanceFilters) => {
+  const { reload } = read;
+  const load = useCallback(() => {
     if (!navigator.onLine) {
       setOnline(false);
       return;
     }
-    const mine = ++request.current;
-    if (wanted.date_from && wanted.date_to && wanted.date_to < wanted.date_from) {
-      setError("The period ends before it starts. Choose a To date on or after the From date.");
-      return;
-    }
-    setBusy(true);
     setError("");
-    try {
-      const response = await api.get<Payload>("/reports/brand-performance", {
-        params: brandPerformanceParams(wanted),
-      });
-      if (mine !== request.current) return;
-      setLost(false);
-      setData(response.data);
-    } catch (reason) {
-      if (mine !== request.current) return;
-      if (isConnectionLost(reason)) setLost(true);
-      else setError(apiErrorMessage(reason));
-    } finally {
-      if (mine === request.current) setBusy(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load(filters);
-  }, [filters, load]);
+    reload();
+  }, [reload]);
 
   useEffect(() => {
     const up = () => {
       setOnline(true);
-      void load(filters);
+      load();
     };
     const down = () => setOnline(false);
     window.addEventListener("online", up);
@@ -161,7 +163,7 @@ export function BrandPerformanceReportPage() {
             className="btn btn-sm"
             data-testid="brand-performance-retry"
             disabled={busy}
-            onClick={() => void load(filters)}
+            onClick={() => load()}
           >
             Try again
           </button>
@@ -203,7 +205,11 @@ export function BrandPerformanceReportPage() {
 
   return (
     <OperationsPage>
-      <PageHeader title="Brand Performance" lead={lead} />
+      <PageHeader
+        title="Brand Performance"
+        lead={lead}
+        actions={<UpdatedAgo updatedAt={read.updatedAt} fetching={read.fetching} />}
+      />
       {offlineNote}
       <div className="toolbar" data-testid="brand-performance-filters">
         <label className="field">

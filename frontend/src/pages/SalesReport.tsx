@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Download } from "lucide-react";
 
@@ -7,6 +7,8 @@ import type { Kpi } from "../components/KpiStrip";
 import { Note } from "../components/Note";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { UpdatedAgo } from "../components/UpdatedAgo";
+import { useCachedGet } from "../lib/cachedQuery";
 import { Section } from "../components/Section";
 import { SegmentedControl } from "../components/SegmentedControl";
 import { EmptyState, Loading } from "../components/States";
@@ -40,50 +42,49 @@ const OFFLINE = "Reports need a connection. Reconnect to see or export this repo
  *  It reads live data only: offline it says it needs a connection. */
 export function SalesReportPage() {
   const [filters, setFilters] = useState<SalesFilters>(() => defaultFilters());
-  const [data, setData] = useState<Payload | null>(null);
-  const [error, setError] = useState("");
+  const [exportError, setError] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
-  // The browser says it is online, but the last request got no answer at all.
-  const [lost, setLost] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const request = useRef(0);
+  // The browser says it is online, but the last export got no answer at all.
+  const [exportLost, setLost] = useState(false);
 
-  const load = useCallback(async (wanted: SalesFilters) => {
+  // Half-way through changing both dates the period can run backwards; say
+  // so rather than ask the server a question it will refuse.
+  const backwards = Boolean(
+    filters.date_from && filters.date_to && filters.date_to < filters.date_from,
+  );
+  // A backwards period is not asked; the last good period stays on screen.
+  const [asked, setAsked] = useState(filters);
+  if (!backwards && asked !== filters) setAsked(filters);
+  // Through the shared cache: a period seen before shows at once, and (a report)
+  // is always read again behind it. Offline, the cache holds the request until
+  // the connection is back.
+  const read = useCachedGet<Payload>("/reports/sales", { params: filterParams(asked) });
+  useEffect(() => setError(""), [filters]);
+  const lost = exportLost || (read.error != null && isConnectionLost(read.error));
+  const error = backwards
+    ? "The period ends before it starts. Choose a To date on or after the From date."
+    : exportError ||
+      (read.error != null && !isConnectionLost(read.error) ? apiErrorMessage(read.error) : "");
+  const data = read.data ?? null;
+  const busy = read.fetching;
+  useEffect(() => {
+    if (read.updatedAt) setLost(false);
+  }, [read.updatedAt]);
+
+  const { reload } = read;
+  const load = useCallback(() => {
     if (!navigator.onLine) {
       setOnline(false);
       return;
     }
-    const mine = ++request.current;
-    // Half-way through changing both dates the period can run backwards; say
-    // so rather than ask the server a question it will refuse.
-    if (wanted.date_from && wanted.date_to && wanted.date_to < wanted.date_from) {
-      setError("The period ends before it starts. Choose a To date on or after the From date.");
-      return;
-    }
-    setBusy(true);
     setError("");
-    try {
-      const response = await api.get<Payload>("/reports/sales", { params: filterParams(wanted) });
-      if (mine !== request.current) return;
-      setLost(false);
-      setData(response.data);
-    } catch (reason) {
-      if (mine !== request.current) return;
-      if (isConnectionLost(reason)) setLost(true);
-      else setError(apiErrorMessage(reason));
-    } finally {
-      if (mine === request.current) setBusy(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load(filters);
-  }, [filters, load]);
+    reload();
+  }, [reload]);
 
   useEffect(() => {
     const up = () => {
       setOnline(true);
-      void load(filters);
+      load();
     };
     const down = () => setOnline(false);
     window.addEventListener("online", up);
@@ -144,7 +145,7 @@ export function SalesReportPage() {
             className="btn btn-sm"
             data-testid="sales-retry"
             disabled={busy}
-            onClick={() => void load(filters)}
+            onClick={() => load()}
           >
             Try again
           </button>
@@ -281,7 +282,16 @@ export function SalesReportPage() {
 
   return (
     <OperationsPage>
-      <PageHeader title="Sales" lead={lead} actions={filterBar} />
+      <PageHeader
+        title="Sales"
+        lead={lead}
+        actions={
+          <>
+            <UpdatedAgo updatedAt={read.updatedAt} fetching={read.fetching} />
+            {filterBar}
+          </>
+        }
+      />
       <div className="page">
         {offlineNote}
         {errorNote}

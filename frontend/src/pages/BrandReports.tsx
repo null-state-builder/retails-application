@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { UpdatedAgo } from "../components/UpdatedAgo";
+import { useCachedGet } from "../lib/cachedQuery";
 import { Section } from "../components/Section";
 import { api, apiErrorCode, apiErrorMessage } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
@@ -58,49 +60,42 @@ function saveBlob(data: Blob, name: string) {
 export function BrandReportsPage() {
   const [store, setStore] = useState("");
   const [month, setMonth] = useState(() => lastMonth());
-  const [data, setData] = useState<Month | null>(null);
-  const [error, setError] = useState("");
+  const [fileError, setError] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
-  // The browser says it is online, but the last request got no answer at all.
-  const [lost, setLost] = useState(false);
-  const [busy, setBusy] = useState(false);
+  // The browser says it is online, but the last file request got no answer at all.
+  const [fileLost, setLost] = useState(false);
   const [making, setMaking] = useState("");
   const [otherBrand, setOtherBrand] = useState("");
   const [otherKind, setOtherKind] = useState<ReportKind>("sale");
-  const request = useRef(0);
 
-  const load = useCallback(async (wantedStore: string, wantedMonth: string) => {
+  // Through the shared cache: a month seen before shows at once and is always
+  // read again behind it. Offline, the request waits for the connection.
+  const read = useCachedGet<Month>(MONTH_API, { params: { month, store } });
+  useEffect(() => setError(""), [store, month]);
+  const data = read.data ?? null;
+  const busy = read.fetching;
+  const lost = fileLost || (read.error != null && isConnectionLost(read.error));
+  const error =
+    fileError ||
+    (read.error != null && !isConnectionLost(read.error) ? apiErrorMessage(read.error) : "");
+  useEffect(() => {
+    if (read.updatedAt) setLost(false);
+  }, [read.updatedAt]);
+
+  const { reload } = read;
+  const load = useCallback(() => {
     if (!navigator.onLine) {
       setOnline(false);
       return;
     }
-    const mine = ++request.current;
-    setBusy(true);
     setError("");
-    try {
-      const params: Record<string, string> = { month: wantedMonth };
-      if (wantedStore) params.store = wantedStore;
-      const response = await api.get<Month>(MONTH_API, { params });
-      if (mine !== request.current) return;
-      setLost(false);
-      setData(response.data);
-    } catch (reason) {
-      if (mine !== request.current) return;
-      if (isConnectionLost(reason)) setLost(true);
-      else setError(apiErrorMessage(reason));
-    } finally {
-      if (mine === request.current) setBusy(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void load(store, month);
-  }, [store, month, load]);
+    reload();
+  }, [reload]);
 
   useEffect(() => {
     const up = () => {
       setOnline(true);
-      void load(store, month);
+      load();
     };
     const down = () => setOnline(false);
     window.addEventListener("online", up);
@@ -109,7 +104,7 @@ export function BrandReportsPage() {
       window.removeEventListener("online", up);
       window.removeEventListener("offline", down);
     };
-  }, [store, month, load]);
+  }, [load]);
 
   async function make(brand: { id: number; code: string }, kind: ReportKind, fileType?: string) {
     if (!navigator.onLine) {
@@ -165,7 +160,7 @@ export function BrandReportsPage() {
             className="btn btn-sm"
             data-testid="brand-reports-retry"
             disabled={busy}
-            onClick={() => void load(store, month)}
+            onClick={() => load()}
           >
             Try again
           </button>
@@ -197,7 +192,11 @@ export function BrandReportsPage() {
   const onePicked = Boolean(data.store);
   return (
     <div className="page-pad">
-      <PageHeader title="Brand Reports" lead={lead} />
+      <PageHeader
+        title="Brand Reports"
+        lead={lead}
+        actions={<UpdatedAgo updatedAt={read.updatedAt} fetching={read.fetching} />}
+      />
       {offlineNote}
       <div className="toolbar" data-testid="brand-reports-filters">
         <label className="field">
@@ -452,11 +451,7 @@ export function BrandReportsPage() {
         )}
       </Section>
 
-      <LayoutEditor
-        online={online}
-        onLost={() => setLost(true)}
-        onSaved={() => void load(store, month)}
-      />
+      <LayoutEditor online={online} onLost={() => setLost(true)} onSaved={() => load()} />
     </div>
   );
 }

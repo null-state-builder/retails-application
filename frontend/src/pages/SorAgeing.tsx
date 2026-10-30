@@ -3,6 +3,8 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { UpdatedAgo } from "../components/UpdatedAgo";
+import { useCachedGet } from "../lib/cachedQuery";
 import { Section } from "../components/Section";
 import { Status } from "../components/Status";
 import { api, apiErrorCode, apiErrorMessage, goodsMeta } from "../lib/api";
@@ -82,63 +84,60 @@ function deliveriesOf(rows: Row[]): Delivery[] {
 export function SorAgeingPage() {
   const [params, setParams] = useSearchParams();
   const siteId = Number(params.get("site_id")) || null;
-  const [data, setData] = useState<Payload | null>(null);
-  const [error, setError] = useState("");
+  const [commandError, setError] = useState("");
   const [refused, setRefused] = useState("");
   const [saved, setSaved] = useState("");
   const [online, setOnline] = useState(navigator.onLine);
-  const [lost, setLost] = useState(false);
-  const [busy, setBusy] = useState(false);
+  const [commandLost, setLost] = useState(false);
+  const [sending, setBusy] = useState(false);
   const [drafts, setDrafts] = useState<Record<string, Draft>>({});
   /** The press whose answer was lost, if any (`pendingCommand`). */
   const pending = useRef<PendingCommand | null>(null);
-  const request = useRef(0);
 
-  const load = useCallback(
-    async (site: number | null) => {
-      if (!navigator.onLine) {
-        setOnline(false);
-        return;
-      }
-      const mine = ++request.current;
-      setBusy(true);
-      setError("");
-      try {
-        const response = await api.get<Payload>(PAGE_API, {
-          params: site ? { site_id: site } : {},
-        });
-        if (mine !== request.current) return;
-        setLost(false);
-        setData(response.data);
-      } catch (reason) {
-        if (mine !== request.current) return;
-        if (isConnectionLost(reason)) setLost(true);
-        else if (site && apiErrorCode(reason) === "NOT_FOUND") {
-          setRefused(apiErrorMessage(reason));
-          setParams(
-            (current) => {
-              const next = new URLSearchParams(current);
-              next.delete("site_id");
-              return next;
-            },
-            { replace: true },
-          );
-        } else setError(apiErrorMessage(reason));
-      } finally {
-        if (mine === request.current) setBusy(false);
-      }
-    },
-    [setParams],
-  );
-
+  // Through the shared cache: the store's ageing seen before shows at once and
+  // is read again behind. Offline, the request waits for the connection.
+  const read = useCachedGet<Payload>(PAGE_API, { params: { site_id: siteId } });
+  const data = read.data ?? null;
+  const busy = sending || read.fetching;
+  const readError = read.error;
+  const outOfScope = readError != null && siteId != null && apiErrorCode(readError) === "NOT_FOUND";
+  const lost = commandLost || (readError != null && isConnectionLost(readError));
+  const error =
+    commandError ||
+    (readError != null && !outOfScope && !isConnectionLost(readError)
+      ? apiErrorMessage(readError)
+      : "");
   useEffect(() => {
-    void load(siteId);
-  }, [load, siteId]);
+    if (read.updatedAt) setLost(false);
+  }, [read.updatedAt]);
+  // A store outside this person's scope: say so and fall back to the default.
+  useEffect(() => {
+    if (!outOfScope) return;
+    setRefused(apiErrorMessage(readError));
+    setParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete("site_id");
+        return next;
+      },
+      { replace: true },
+    );
+  }, [outOfScope, readError, setParams]);
+
+  const { reload } = read;
+  const load = useCallback(() => {
+    if (!navigator.onLine) {
+      setOnline(false);
+      return;
+    }
+    setError("");
+    reload();
+  }, [reload]);
 
   useEffect(() => {
     const up = () => {
       setOnline(true);
-      void load(siteId);
+      load();
     };
     const down = () => setOnline(false);
     window.addEventListener("online", up);
@@ -147,7 +146,7 @@ export function SorAgeingPage() {
       window.removeEventListener("online", up);
       window.removeEventListener("offline", down);
     };
-  }, [load, siteId]);
+  }, [load]);
 
   const deliveries = useMemo(() => deliveriesOf(data?.rows ?? []), [data]);
 
@@ -189,7 +188,7 @@ export function SorAgeingPage() {
       pending.current = null;
       setSaved(said);
       edit(arrivalId, clear);
-      await load(siteId);
+      load();
     } catch (reason) {
       if (isConnectionLost(reason)) setLost(true);
       else {
@@ -214,7 +213,7 @@ export function SorAgeingPage() {
             className="btn btn-sm"
             data-testid="sor-retry"
             disabled={busy}
-            onClick={() => void load(siteId)}
+            onClick={() => load()}
           >
             Try again
           </button>
@@ -228,6 +227,7 @@ export function SorAgeingPage() {
     <PageHeader
       title="SOR Ageing"
       lead="Stock on sale or return, aged from the brand's dispatch date. Each piece is flagged a month before the brand must invoice it, so it can be sold, returned to the brand, or invoiced by the brand in time. Nothing is guessed: pieces with no dispatch date, and brands with no approved model, are listed apart."
+      actions={<UpdatedAgo updatedAt={read.updatedAt} fetching={read.fetching} />}
     />
   );
   const errorNote = (error || refused) && (
