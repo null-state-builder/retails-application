@@ -32,6 +32,7 @@ import type { NavFoldDef, NavItem, NavRow, VisibleSection } from "./navConfig";
 import { contextKey, optionKey, switcherModel } from "./unitSwitcher";
 import type { SwitcherOption } from "./unitSwitcher";
 import { usePositionedPopover } from "./usePositionedPopover";
+import { useDensity } from "../theme/density";
 import "./AppShell.css";
 
 const SIDEBAR_WIDTH_KEY = "kdps-sidebar-width";
@@ -340,6 +341,7 @@ function Sidebar({
   // Attendance is standing under Home. It runs on arrival only - never on the
   // fold itself - so a person can still fold the section they are standing in.
   const roleCode = user?.role?.code ?? "";
+  useDensity(roleCode);
   // Goods lines follow the session's current action grants (GSA-T02).
   const rows = user ? sidebarRows(user, session?.display_actions ?? [], featuresOn) : [];
   // The one drawn line that lights here, asked of the rows actually drawn.

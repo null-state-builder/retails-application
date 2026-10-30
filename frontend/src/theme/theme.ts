@@ -9,8 +9,8 @@ export type ResolvedTheme = "light" | "dark";
 
 export const THEME_KEY = "kdps-theme";
 
-const META_LIGHT = "#faf7f2"; // --paper (light)
-const META_DARK = "#201d18"; // --paper (dark)
+const META_LIGHT = "#f7f6f3"; // --paper (light)
+const META_DARK = "#1d1c1a"; // --paper (dark)
 
 /** Keep browser chrome in step with the resolved application theme. */
 export function refreshThemeColour(): void {

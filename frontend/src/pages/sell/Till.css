@@ -10,13 +10,6 @@
   align-items: start;
 }
 
-/* One button size on this page: 13px type on a 36px button, so an action never
-   outweighs the line it acts on (the house 14px button sat above 13.5px row
-   titles and read louder than them). */
-.till-page .btn {
-  font-size: 13px;
-  min-height: 36px;
-}
 .till-main {
   display: flex;
   flex-direction: column;

@@ -1,10 +1,8 @@
 /* Billing is a scanner-first workspace inside KDPS, not a separate visual
-   application. Palette and UI typography intentionally inherit the global
-   light/dark theme; only operational data receives a dedicated mono face. */
+   application. Palette and typography inherit the global theme: IBM Plex Mono
+   is the app-wide face for identifiers (index.css --mono), and amounts stay in
+   Plex Sans with tabular figures here as everywhere. */
 html[data-room="counter"] {
-  --mono-counter: "IBM Plex Mono", ui-monospace, monospace;
-  --mono: var(--mono-counter);
-  --tabular-font: var(--mono-counter);
   --counter-return-blue: #6ea8ff;
 }
 
