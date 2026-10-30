@@ -80,8 +80,8 @@
   --halo-ok: 0 0 0 3px var(--green-bg);
   --halo-error: 0 0 0 3px var(--red-bg);
 
-  --sidebar-w: 240px;
-  --topbar-h: 56px;
+  --sidebar-w: 232px;
+  --topbar-h: 52px;
   --mono: var(--font-mono);
 
   /* bridge tokens — light values are byte-identical to literals swept below,
@@ -124,8 +124,7 @@
   --shadow-float: 0 6px 20px rgba(28, 27, 25, 0.1);
   --pin-shadow: 6px 0 8px -6px rgba(28, 27, 25, 0.16);
 
-  /* v2 space, size, layout, motion and type tokens (design system tokens.css).
-     --topbar-h and --sidebar-w keep their v1 values until Phase 4 (shell). */
+  /* v2 space, size, layout, motion and type tokens (design system tokens.css). */
   --space-4: 4px;
   --space-8: 8px;
   --space-12: 12px;

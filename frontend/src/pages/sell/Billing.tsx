@@ -384,9 +384,9 @@ function Counter({
    * price its tax off the wrong slab.
    *
    * **Derived from the address and the counter's live state, never held in
-   * state.** Each Sell route mounts its own `TillProvider`, so arriving here
-   * from the handover list means a brand-new engine whose first snapshot knows
-   * nothing yet - no register, no handover, no counter. A mode resolved once at
+   * state.** Arriving at the counter room from another screen starts the
+   * till's engine afresh, and its first snapshot knows nothing yet - no
+   * register, no handover, no counter. A mode resolved once at
    * mount would therefore resolve to "not a paper bill" every single time, and
    * the screen would quietly hand the cashier an ordinary counter: Save & Print
    * would take a *new* number, print a second receipt, and leave the hole

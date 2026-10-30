@@ -11,6 +11,7 @@ import { X } from "lucide-react";
 import { api, apiErrorCode, apiErrorMessage, authApi, type ApiRead } from "./api";
 import type { paths } from "./api-schema";
 import { SearchBox } from "../components/SearchBox";
+import { Loading } from "../components/States";
 
 export interface ResourceDTO<T> {
   id: string;
@@ -777,7 +778,7 @@ export function listState(
   { loading, failure, empty }: { loading: boolean; failure: string; empty: boolean },
   emptyText: string,
 ): ReactNode | null {
-  if (loading) return <span className="muted">Loading…</span>;
+  if (loading) return <Loading />;
   if (failure) return <span className="warn-note">{failure}</span>;
   if (empty) return <span className="muted">{emptyText}</span>;
   return null;

@@ -7,9 +7,9 @@
 // Both the word and the sentence behind it come from `deriveStatus`, so this
 // renders the light and decides nothing about it.
 //
-// Billing lifts its till provider above the shell so this same light can live in
-// the top bar while the counter room is open. Other Sell screens keep their
-// route-local provider and render it where their own screen needs it.
+// The till provider sits above the shell and is switched on in the counter room
+// (Billing, Bills, Till & Sync, Cash count), so this same light lives in the top
+// bar on every counter screen.
 
 import { useTill } from "./TillProvider";
 

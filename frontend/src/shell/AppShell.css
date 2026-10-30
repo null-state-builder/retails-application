@@ -161,43 +161,49 @@ body.sidebar-resizing .sidebar-resizer::after {
   transform: rotate(0deg);
 }
 .nav-group-label.holds-active {
-  color: var(--navy);
+  color: var(--ink);
+  font-weight: 600;
 }
+/* Section icons are muted; rust marks only the section you are in. */
 .nav-ic {
   width: 24px;
   height: 24px;
   border-radius: 0;
   background: transparent;
   border: 0;
+  color: var(--muted);
   display: flex;
   align-items: center;
   justify-content: center;
   flex: none;
 }
 .nav-group-toggle:has(+ .nav-items .nav-item.active) .nav-ic {
-  color: var(--rust) !important;
+  color: var(--rust);
 }
-/* A section is read, not decoded: sentence case at menu size in ink2, the same
-   weight as a one-line row, rather than 12px grey capitals (desktop revision). */
+/* A section header is quieter than the screens under it (v2 Sidebar): 13px
+   500 in muted, sentence case, never capitals. The one holding the screen you
+   are on reads in ink at 600. */
 .nav-group-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ink2);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
 }
 /* A one-line row is a link the whole way across, so its transient interaction
    state covers the icon as well as the label. */
 .nav-grouplink {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--ink2);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
 }
+/* Where you are: surface, rust text and a 2px rust bar - rust's one job. */
 .nav-grouplink.active {
-  background: rgba(var(--rust-rgb), 0.14);
+  background: var(--surface);
   color: var(--rust-ink);
   font-weight: 600;
+  box-shadow: inset 2px 0 0 var(--rust);
 }
 .nav-grouplink.active .nav-ic {
-  color: var(--rust) !important;
+  color: var(--rust);
 }
 /* #96's grouping heading, which nested section heads one step in, is gone:
    D10 folds those sections onto one page instead, and a fold draws as a plain
@@ -213,10 +219,10 @@ body.sidebar-resizing .sidebar-resizer::after {
 .nav-item {
   display: flex;
   align-items: center;
-  font-size: 14px;
+  font-size: 13px;
   color: var(--ink2);
-  padding: 6px 10px;
-  min-height: 32px;
+  padding: 4px 10px;
+  min-height: 30px;
   border-radius: var(--radius-control);
   transition:
     background-color 0.12s,
@@ -230,9 +236,10 @@ body.sidebar-resizing .sidebar-resizer::after {
   cursor: grabbing;
 }
 .nav-item.active {
-  background: rgba(var(--rust-rgb), 0.14);
+  background: var(--surface);
   color: var(--rust-ink);
   font-weight: 600;
+  box-shadow: inset 2px 0 0 var(--rust);
 }
 
 /* ---------- icon rail (#230) ----------
@@ -245,28 +252,30 @@ body.sidebar-resizing .sidebar-resizer::after {
   padding: 4px 8px 20px;
 }
 
+/* Rail items are 44 x 40 (v2 Rail). */
 .rail-link,
 .rail-flyout-trigger {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  min-height: 44px;
-  padding: 4px 0;
+  width: 44px;
+  min-height: 40px;
+  padding: 0;
   border: 0;
   background: transparent;
-  border-radius: var(--radius-box);
+  border-radius: var(--radius-control);
   cursor: pointer;
   position: relative;
 }
 .rail-link.active,
 .rail-flyout-trigger.active {
-  background: rgba(var(--rust-rgb), 0.14);
+  background: var(--surface);
+  box-shadow: inset 2px 0 0 var(--rust);
 }
 .rail-link.active .nav-ic,
 .rail-flyout-trigger.active .nav-ic {
   background: transparent;
-  color: var(--rust) !important;
+  color: var(--rust);
 }
 
 /* Hover and press are transient state layers; keyboard focus remains visible
@@ -278,7 +287,7 @@ body.sidebar-resizing .sidebar-resizer::after {
 .rail-flyout-trigger:hover,
 .sidebar-rail-toggle:hover,
 .profile-btn:hover {
-  background: rgba(var(--rust-rgb), 0.08);
+  background: var(--inner-hover);
 }
 .nav-group-toggle:active,
 .nav-grouplink:active,
@@ -287,7 +296,7 @@ body.sidebar-resizing .sidebar-resizer::after {
 .rail-flyout-trigger:active,
 .sidebar-rail-toggle:active,
 .profile-btn:active {
-  background: rgba(var(--rust-rgb), 0.14);
+  background: var(--inner);
 }
 .nav-grouplink:not(.active):hover,
 .nav-item:not(.active):hover {
@@ -366,7 +375,7 @@ body.sidebar-resizing .sidebar-resizer::after {
 .topbar {
   height: var(--topbar-h);
   flex: none;
-  background: var(--surface);
+  background: var(--paper);
   border-bottom: 1px solid var(--hairline);
   display: flex;
   align-items: center;
@@ -495,6 +504,22 @@ html[data-theme="dark"] .topbar-brand path[fill="#333333"] {
   flex: 1;
   min-width: 0;
   overflow-y: auto;
+}
+/* A new screen fades in over 100ms, opacity only: no rise, and the shell
+   around it never animates (v2 Motion). The shell stays mounted, so only the
+   screen's own root is new and only it plays this. */
+.content > * {
+  animation: kd-fade var(--dur-1) linear both;
+}
+@keyframes kd-fade {
+  from {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .content > * {
+    animation: none;
+  }
 }
 
 /* ---------- the bell popup (#226) ----------

@@ -311,12 +311,14 @@ for (const width of WIDTHS) {
       });
       await page.goto("/goods/counts");
       try {
-        await expect(page.getByText("Loading…", { exact: true })).toBeVisible();
+        // The skeleton (components/States.tsx `Loading`) names itself to
+        // assistive technology; it shows no visible "Loading…" text.
+        await expect(page.getByRole("status", { name: "Loading" })).toBeVisible();
         await expectFrame(page, width);
       } finally {
         release();
       }
-      await expect(page.getByText("Loading…", { exact: true })).toBeHidden();
+      await expect(page.getByRole("status", { name: "Loading" })).toBeHidden();
       await page.unroute("**/api/goods-v1/outbound/stocktakes");
     });
 

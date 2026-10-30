@@ -411,7 +411,7 @@ function Sidebar({
           className={`rail-link ${row.active ? "active" : ""}`}
           data-testid={row.testId}
         >
-          <span className="nav-ic" style={{ color: `var(--layer-${row.layer})` }}>
+          <span className="nav-ic">
             <Icon size={16} />
           </span>
         </Link>
@@ -428,7 +428,7 @@ function Sidebar({
           className={`nav-group-head nav-grouplink ${row.active ? "active" : ""}`}
           data-testid={row.testId}
         >
-          <span className="nav-ic" style={{ color: `var(--layer-${row.layer})` }}>
+          <span className="nav-ic">
             <Icon size={16} />
           </span>
           {row.label}
@@ -457,7 +457,7 @@ function Sidebar({
           onClick={() => setOpenFlyout((current) => (current === s.def.code ? null : s.def.code))}
           data-testid={`nav-section-${s.def.code}`}
         >
-          <span className="nav-ic" style={{ color: `var(--layer-${s.def.layer})` }}>
+          <span className="nav-ic">
             <Icon size={16} />
           </span>
         </button>
@@ -530,7 +530,7 @@ function Sidebar({
             onClick={() => toggleSection(s.def.code)}
             data-testid={`nav-section-${s.def.code}`}
           >
-            <span className="nav-ic" style={{ color: `var(--layer-${s.def.layer})` }}>
+            <span className="nav-ic">
               <Icon size={16} />
             </span>
             <span className={`nav-group-label ${holdsActive ? "holds-active" : ""}`}>
@@ -707,7 +707,7 @@ export function AppShell({ children, room }: { children: ReactNode; room?: Room 
   );
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY));
-    return Number.isFinite(saved) && saved >= MIN_SIDEBAR && saved <= MAX_SIDEBAR ? saved : 240;
+    return Number.isFinite(saved) && saved >= MIN_SIDEBAR && saved <= MAX_SIDEBAR ? saved : 232;
   });
 
   // The drag in progress, or null. Holding it as state means the listeners are

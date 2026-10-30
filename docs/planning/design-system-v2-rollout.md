@@ -149,6 +149,13 @@ Screens move from `.card` page dividers to `Section`, and from tone chips to `St
   - This depends on the loading plan's Phase 1 (lazy routes and cached data). If that ships first, this phase only styles it.
   - If not, this phase adds the delay and the minimum hold to the existing `LoadingRows`.
 
+**Done 30 Oct 2026.**
+
+- **Shell:** top bar 52px on `paper`, sidebar 232px. Section headers are 13/500 muted (ink 600 for the one you are in) and section icons are muted; the screen you are on is `surface` with rust text and a 2px rust bar instead of a rust wash. Rail items are 44×40.
+- **The shell never remounts:** `ProtectedRoute` keeps one `TillProvider` above `AppShell` and switches it on only in the counter room (`TillProvider enabled`). Billing, Bills, Till & Sync and Cash count all declare `room: "counter"`, so moving between them keeps the shell and the running counter, and moving to any other screen keeps the shell. `withTill` is gone.
+- **Motion:** a new screen fades in over 100ms, opacity only (`.content > *`); Home's tiles no longer lift on hover. Reduced motion turns both off.
+- **Loading:** the app-loading plan has not shipped, so this phase adds `Loading` (skeleton lines, nothing shown for the first 300ms) and `useDelayedLoading` (300ms delay, 400ms minimum hold) in `components/States.tsx`. The goods screens' shared `listState` uses `Loading`; other screens adopt it in Phase 5.
+
 ### Phase 5: cashier screens (folds into audit batches 3–6, about 12–15 days)
 
 In order of cashier traffic. Each screen is one PR, built to its board on the canvas.

@@ -63,8 +63,7 @@
   cursor: pointer;
 }
 .kpi:hover {
-  box-shadow: var(--shadow-hover);
-  transform: translateY(-1px);
+  border-color: var(--line);
 }
 .kpi-top {
   display: flex;
@@ -290,8 +289,7 @@
     transform 0.15s;
 }
 .quick-btn:hover {
-  box-shadow: var(--shadow-hover);
-  transform: translateY(-1px);
+  border-color: var(--line);
 }
 .quick-ic {
   width: 38px;

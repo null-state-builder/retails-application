@@ -65,13 +65,17 @@ export function tillStoreCode(user: { stores?: { code: string }[] } | null): str
 export function TillProvider({
   children,
   transport,
+  enabled = true,
 }: {
   children: ReactNode;
   /** Injected by tests and by nothing else. */
   transport?: TillTransport;
+  /** False away from the counter screens: the provider stays mounted, so the
+   *  shell under it never remounts, but no counter database is opened. */
+  enabled?: boolean;
 }) {
   const { user } = useAuth();
-  const storeCode = tillStoreCode(user);
+  const storeCode = enabled ? tillStoreCode(user) : "";
 
   const [identity, setIdentity] = useState<{
     user: typeof user;

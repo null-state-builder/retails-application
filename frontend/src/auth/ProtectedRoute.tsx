@@ -47,7 +47,10 @@ export function ProtectedRoute() {
   const shell = (
     <AppShell {...(room ? { room } : {})}>{allowed ? <Outlet /> : <AccessDenied />}</AppShell>
   );
-  // Billing's till must sit above the shell so the top bar can show its live
-  // status. Other Sell screens keep their route-local provider.
-  return room === "counter" ? <TillProvider>{shell}</TillProvider> : shell;
+  // The till sits above the shell so the top bar can show its live status. It
+  // is always mounted, and only switched on in the counter room: if it came and
+  // went with the room, every move between a Sell screen and any other screen
+  // would remount the whole shell, and moving between Sell screens would stop
+  // and restart the counter (design system v2 rollout, Phase 4).
+  return <TillProvider enabled={room === "counter"}>{shell}</TillProvider>;
 }
