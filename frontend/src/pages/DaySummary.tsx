@@ -12,12 +12,18 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { AlertTriangle, Check, EyeOff, Receipt, RefreshCw } from "lucide-react";
+import { Check, EyeOff, RefreshCw } from "lucide-react";
 
 import { api, apiErrorMessage } from "../lib/api";
 import { Money } from "../lib/format";
 import { PageHeader } from "../components/PageHeader";
 import { OperationsPage } from "../components/OperationsPage";
+import { KpiStrip } from "../components/KpiStrip";
+import type { Kpi } from "../components/KpiStrip";
+import { Note } from "../components/Note";
+import { Section } from "../components/Section";
+import { EmptyState, Loading } from "../components/States";
+import { Status } from "../components/Status";
 import { useAuth } from "../auth/AuthContext";
 import { tillToday } from "../till/pricing";
 import "./DaySummary.css";
@@ -204,6 +210,18 @@ function fmtDate(iso: string): string {
   });
 }
 
+/** A bill's time as its day, "Thu 29 Oct", in India time. */
+function fmtDay(iso: string): string {
+  const when = new Date(iso);
+  if (Number.isNaN(when.getTime())) return iso;
+  return when.toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+}
+
 /** Saying something about one exception. Two answers and no way back to open -
  *  "dealt with" and "looked at, needs nothing" are different sentences, and the
  *  second takes a reason because nothing else evidences it. */
@@ -239,26 +257,28 @@ function ClearPanel({ flag, onDone }: { flag: FlagT; onDone: () => void }) {
       />
       <button
         type="button"
-        className="btn btn-primary"
+        className="btn btn-primary btn-sm"
         disabled={busy}
         onClick={() => void send("resolved")}
         data-testid={`flag-resolve-${flag.id}`}
       >
-        <Check size={14} /> Dealt with
+        <Check size={14} aria-hidden="true" /> Dealt with
       </button>
       <button
         type="button"
-        className="btn"
+        className="btn btn-sm"
         disabled={busy || !note.trim()}
         title={note.trim() ? "" : "Say why this one needs nothing doing"}
         onClick={() => void send("ignored")}
         data-testid={`flag-ignore-${flag.id}`}
       >
-        <EyeOff size={14} /> Needs nothing
+        <EyeOff size={14} aria-hidden="true" /> Needs nothing
       </button>
       {error && (
-        <div className="login-error flag-error" data-testid={`flag-error-${flag.id}`}>
-          {error}
+        <div className="flag-error">
+          <Note tone="error" testId={`flag-error-${flag.id}`}>
+            {error}
+          </Note>
         </div>
       )}
     </div>
@@ -337,168 +357,266 @@ function DaySummaryScreen() {
       <PageHeader
         lead={DAY_LEAD}
         actions={
-          <button className="btn" data-testid="day-retry" disabled={loading} onClick={load}>
-            <RefreshCw size={15} /> Read again
-          </button>
+          <>
+            {summary && <span className="muted-cell">{summary.store}</span>}
+            <label className="sr-only" htmlFor="day-summary-date">
+              Day
+            </label>
+            <input
+              id="day-summary-date"
+              type="date"
+              className="input day-picker"
+              value={day}
+              max={tillToday()}
+              onChange={(e) => setParams(e.target.value ? { date: e.target.value } : {})}
+              data-testid="day-picker"
+            />
+            <button className="btn" data-testid="day-retry" disabled={loading} onClick={load}>
+              <RefreshCw size={15} aria-hidden="true" /> Read again
+            </button>
+          </>
         }
       />
 
-      <div className="day-picker">
-        <label className="day-picker-label" htmlFor="day-summary-date">
-          Day
-        </label>
-        <input
-          id="day-summary-date"
-          type="date"
-          className="input"
-          value={day}
-          max={tillToday()}
-          onChange={(e) => setParams(e.target.value ? { date: e.target.value } : {})}
-          data-testid="day-picker"
-        />
-        {summary && <span className="chip chip-grey">{summary.store}</span>}
+      <div className="page">
+        {error && (
+          <Note tone="error" testId="day-error">
+            {error}
+          </Note>
+        )}
+
+        {loading || !summary ? (
+          !error && <Loading label="Loading the day" />
+        ) : (
+          <>
+            <DayMoney summary={summary} />
+            <DayFlags open={open} settled={settled} onDone={load} />
+          </>
+        )}
+      </div>
+    </OperationsPage>
+  );
+}
+
+/** What the counter took: the day's figures, then the money by tender. */
+function DayMoney({ summary }: { summary: SummaryT }) {
+  // Folded over `MODES` rather than adding the four by name: a fifth place the
+  // tender list is spelled is a fifth place it can fall out of step.
+  const taken =
+    MODES.reduce((sum, m) => sum + summary.modes[m.key], 0) + (summary.modes.bank_offer ?? 0);
+  const share = (paise: number) => (taken > 0 ? (paise / taken) * 100 : 0);
+  // Ticket 11: only on a day that took one - a bank instant discount recorded
+  // as a payment the bank owes, never cash in the drawer.
+  const tenders: { key: string; label: string; paise: number; quiet?: boolean }[] = [
+    ...MODES.map((m) => ({
+      key: m.key,
+      label: m.label,
+      paise: summary.modes[m.key],
+      quiet: m.key === "credit_note",
+    })),
+    ...((summary.modes.bank_offer ?? 0) > 0
+      ? [
+          {
+            key: "bank_offer",
+            label: "Bank offer",
+            paise: summary.modes.bank_offer ?? 0,
+            quiet: true,
+          },
+        ]
+      : []),
+  ];
+
+  const kpis: Kpi[] = [
+    { label: "Taken in all", value: <Money paise={taken} />, detail: fmtDate(summary.date) },
+    { label: "Bills", value: summary.bills },
+    { label: "Pieces back", value: summary.returns },
+    {
+      label: "Credit notes given",
+      value: <Money paise={summary.credit_notes_issued_paise} />,
+      detail: "Not money in the drawer",
+    },
+    {
+      label: "Cash in the drawer for this day",
+      value: <Money paise={summary.modes.cash} />,
+    },
+  ];
+
+  return (
+    <div className="page" data-testid="day-money">
+      <div data-testid="day-counts">
+        <KpiStrip items={kpis} label={`The day, ${fmtDate(summary.date)}`} />
       </div>
 
-      {error && (
-        <div className="login-error" data-testid="day-error">
-          {error}
+      <Section heading="Collected by tender">
+        <div className="table-wrap day-tenders">
+          <table className="data" data-testid="day-modes">
+            <thead>
+              <tr>
+                <th scope="col">Tender</th>
+                <th scope="col" className="num">
+                  Amount
+                </th>
+                <th scope="col" className="num">
+                  Share of the day
+                </th>
+                <th scope="col">
+                  <span className="sr-only">Notes</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {tenders.map((t) => (
+                <tr key={t.key} data-testid={`day-mode-${t.key}`}>
+                  <td>
+                    <b>{t.label}</b>
+                  </td>
+                  <td className="num">
+                    <Money paise={t.paise} />
+                  </td>
+                  <td className="num">
+                    <span className="day-share">
+                      <span className="day-share-track" aria-hidden="true">
+                        <span
+                          className={`day-share-fill ${t.quiet ? "quiet" : ""}`.trim()}
+                          style={{ width: `${Math.min(100, share(t.paise))}%` }}
+                        />
+                      </span>
+                      <span className="day-share-n">{share(t.paise).toFixed(1)}%</span>
+                    </span>
+                  </td>
+                  <td>
+                    {t.key === "upi" && summary.upi_split && (
+                      // The UPI row's only control: visibility, not a gate (#241).
+                      <span className="day-upi-split" data-testid="day-upi-split">
+                        <Status tone="green">
+                          <Money paise={summary.upi_split.confirmed} /> confirmed
+                        </Status>
+                        <Status tone={summary.upi_split.manual > 0 ? "amber" : "grey"}>
+                          <Money paise={summary.upi_split.manual} /> manual
+                        </Status>
+                      </span>
+                    )}
+                    {t.key === "credit_note" && <span className="sub">Taken as payment</span>}
+                    {t.key === "bank_offer" && <span className="sub">Owed by the bank</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td>Taken in all</td>
+                <td className="num">
+                  <Money paise={taken} />
+                </td>
+                <td className="num">{taken > 0 ? "100%" : "—"}</td>
+                <td />
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        {/* Credit notes are not money in the drawer - they close a liability
+            the shop already owed - so the one figure a person counts cash
+            against is said out loud rather than left to be worked out. */}
+        <p className="lead" data-testid="day-drawer">
+          Cash in the drawer for this day:{" "}
+          <b className="tabular">
+            <Money paise={summary.modes.cash} />
+          </b>
+          . Credit notes given, <Money paise={summary.credit_notes_issued_paise} /> on{" "}
+          {summary.returns} {summary.returns === 1 ? "piece" : "pieces"} back, close what the shop
+          already owed.
+        </p>
+      </Section>
+    </div>
+  );
+}
+
+/** The day's exceptions: every one still open, then what was answered on the
+ *  picked day. */
+function DayFlags({
+  open,
+  settled,
+  onDone,
+}: {
+  open: FlagT[];
+  settled: FlagT[];
+  onDone: () => void;
+}) {
+  return (
+    <Section
+      ruled
+      testId="day-flags"
+      heading={
+        open.length === 0
+          ? "Exceptions, nothing to look at"
+          : `Exceptions, ${open.length} to look at`
+      }
+      aside={
+        // Said out loud, because it is the one block on this screen the day
+        // picker does not govern - and a person who had just moved the picker
+        // would otherwise read these as that day's.
+        <span className="muted-cell day-flags-scope">
+          Every exception still open at this store, whichever day it came from.
+          {settled.length > 0 && " Below them, what was answered on the day picked above."}
+        </span>
+      }
+    >
+      {open.length === 0 && settled.length === 0 ? (
+        <EmptyState testId="day-flags-empty">
+          Nothing is waiting - every bill arrived, and the tax and offers agree with the rulebook.
+        </EmptyState>
+      ) : (
+        <div className="table-wrap">
+          <table className="data flag-table">
+            <thead>
+              <tr>
+                <th scope="col">Bill</th>
+                <th scope="col">Billed on</th>
+                <th scope="col">What disagrees</th>
+                <th scope="col">State</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[...open, ...settled].map((flag) => (
+                <tr key={flag.id} data-status={flag.status} data-testid={`flag-${flag.id}`}>
+                  <td>
+                    {flag.doc_number ? (
+                      <Link
+                        className="mono"
+                        to={`/sell/customers?doc=${encodeURIComponent(flag.doc_number)}`}
+                        data-testid={`flag-bill-${flag.id}`}
+                      >
+                        {flag.doc_number}
+                      </Link>
+                    ) : (
+                      <span className="muted-cell">—</span>
+                    )}
+                  </td>
+                  <td className="day-flag-when">{flag.billed_at ? fmtDay(flag.billed_at) : "—"}</td>
+                  <td className="flag-what">
+                    <b>{flag.kind_label}</b>
+                    <span className="sub">{flagLine(flag)}</span>
+                    {flag.cleared_note && (
+                      <span className="sub flag-note">“{flag.cleared_note}”</span>
+                    )}
+                    {flag.status === "open" && <ClearPanel flag={flag} onDone={onDone} />}
+                  </td>
+                  <td>
+                    {flag.status === "open" ? (
+                      <Status tone="red">Open</Status>
+                    ) : (
+                      <Status tone={flag.status === "resolved" ? "green" : "grey"}>
+                        {flag.status === "resolved" ? "Dealt with" : "Needs nothing"}
+                        {flag.resolved_by_name ? ` · ${flag.resolved_by_name}` : ""}
+                      </Status>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
-
-      {loading || !summary ? (
-        <p className="lead">Loading…</p>
-      ) : (
-        <>
-          <div className="card day-panel" data-testid="day-money">
-            <div className="day-panel-head">
-              <p className="eyebrow">Collected</p>
-              <h3 className="h3">{fmtDate(summary.date)}</h3>
-            </div>
-            <div className="day-modes" data-testid="day-modes">
-              {MODES.map((mode) => (
-                <div className="day-cell" key={mode.key} data-testid={`day-mode-${mode.key}`}>
-                  <span className="day-num mono">
-                    <Money paise={summary.modes[mode.key]} />
-                  </span>
-                  <span className="day-label">{mode.label}</span>
-                  {mode.key === "upi" && summary.upi_split && (
-                    <span className="day-upi-split" data-testid="day-upi-split">
-                      <Money paise={summary.upi_split.confirmed} /> confirmed ·{" "}
-                      <Money paise={summary.upi_split.manual} /> manual
-                    </span>
-                  )}
-                </div>
-              ))}
-              {/* Ticket 11: only on a day that took one - a bank instant discount
-                  recorded as a payment the bank owes, never cash in the drawer. */}
-              {(summary.modes.bank_offer ?? 0) > 0 && (
-                <div className="day-cell" data-testid="day-mode-bank_offer">
-                  <span className="day-num mono">
-                    <Money paise={summary.modes.bank_offer ?? 0} />
-                  </span>
-                  <span className="day-label">Bank offer</span>
-                </div>
-              )}
-            </div>
-            <div className="day-counts" data-testid="day-counts">
-              <span className="day-count">
-                <b className="mono">
-                  {/* Folded over `MODES` rather than adding the four by name:
-                      a fifth place the tender list is spelled is a fifth place
-                      it can fall out of step with the other four. */}
-                  <Money
-                    paise={
-                      MODES.reduce((sum, m) => sum + summary.modes[m.key], 0) +
-                      (summary.modes.bank_offer ?? 0)
-                    }
-                  />
-                </b>
-                Taken in all
-              </span>
-              <span className="day-count">
-                <b className="mono">{summary.bills}</b>Bills
-              </span>
-              <span className="day-count">
-                <b className="mono">{summary.returns}</b>Pieces back
-              </span>
-              <span className="day-count">
-                <b className="mono">
-                  <Money paise={summary.credit_notes_issued_paise} />
-                </b>
-                Credit notes given
-              </span>
-            </div>
-            {/* Credit notes are not money in the drawer - they close a liability
-                the shop already owed - so the one figure a person counts cash
-                against is said out loud rather than left to be worked out. */}
-            <p className="lead day-drawer" data-testid="day-drawer">
-              Cash in the drawer for this day:{" "}
-              <b className="mono">
-                <Money paise={summary.modes.cash} />
-              </b>
-            </p>
-          </div>
-
-          <div className="card day-panel" data-testid="day-flags">
-            <div className="day-panel-head">
-              <p className="eyebrow">Exceptions</p>
-              <h3 className="h3">
-                {open.length === 0 ? "Nothing to look at" : `${open.length} to look at`}
-              </h3>
-              {/* Said out loud, because it is the one block on this screen the
-                  day picker does not govern - and a person who had just moved
-                  the picker would otherwise read these as that day's. */}
-              <p className="lead day-flags-scope">
-                Every exception still open at this store, whichever day it came from.
-                {settled.length > 0 && " Below them, what was answered on the day picked above."}
-              </p>
-            </div>
-
-            {open.length === 0 && settled.length === 0 ? (
-              <p className="lead" data-testid="day-flags-empty">
-                <Receipt size={15} /> Nothing is waiting - every bill arrived, and the tax and
-                offers agree with the rulebook.
-              </p>
-            ) : (
-              <div className="flag-list">
-                {[...open, ...settled].map((flag) => (
-                  <div
-                    className="flag-row"
-                    key={flag.id}
-                    data-status={flag.status}
-                    data-testid={`flag-${flag.id}`}
-                  >
-                    <div className="flag-head">
-                      <AlertTriangle size={15} className="flag-ic" />
-                      <b>{flag.kind_label}</b>
-                      {flag.doc_number && (
-                        <Link
-                          className="flag-bill mono"
-                          to={`/sell/customers?doc=${encodeURIComponent(flag.doc_number)}`}
-                          data-testid={`flag-bill-${flag.id}`}
-                        >
-                          {flag.doc_number}
-                        </Link>
-                      )}
-                      {flag.status !== "open" && (
-                        <span
-                          className={`chip chip-${flag.status === "resolved" ? "green" : "grey"}`}
-                        >
-                          {flag.status === "resolved" ? "Dealt with" : "Needs nothing"}
-                          {flag.resolved_by_name ? ` · ${flag.resolved_by_name}` : ""}
-                        </span>
-                      )}
-                    </div>
-                    <p className="flag-say">{flagLine(flag)}</p>
-                    {flag.cleared_note && <p className="flag-note">“{flag.cleared_note}”</p>}
-                    {flag.status === "open" && <ClearPanel flag={flag} onDone={load} />}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </>
-      )}
-    </OperationsPage>
+    </Section>
   );
 }

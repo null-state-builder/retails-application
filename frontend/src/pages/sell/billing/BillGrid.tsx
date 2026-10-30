@@ -38,9 +38,13 @@ export function Lines({
   onUndo,
   canUndo,
   footer,
+  lastScannedKey = null,
   splitAllowed = false,
 }: {
   lines: PricedLine[];
+  /** The line the last scan landed on - a new line or a rescan's qty bump. It
+   *  carries the rust bar: rust marks where you are (design system v2). */
+  lastScannedKey?: string | null;
   salespeople: { id: string; name: string }[];
   /** Ticket 08: whether this store's till may split a line between two people. */
   splitAllowed?: boolean;
@@ -92,7 +96,10 @@ export function Lines({
             <tbody>
               {lines.map((line) => (
                 <Fragment key={line.key}>
-                  <tr className="bill-line" data-testid={`bill-line-${line.line_no}`}>
+                  <tr
+                    className={line.key === lastScannedKey ? "bill-line is-last-scan" : "bill-line"}
+                    data-testid={`bill-line-${line.line_no}`}
+                  >
                     <td className="bill-line-number bill-col-no">{line.line_no}</td>
                     <td className="bill-col-item">
                       <ItemIdentityCell
@@ -120,7 +127,7 @@ export function Lines({
                               {line.barcode}
                             </span>
                             {line.offer_credits.map((credit) => (
-                              <span className="bill-offer" key={credit.offer_id}>
+                              <span className="chip chip-blue bill-offer" key={credit.offer_id}>
                                 {credit.offer_name || "Offer"}
                               </span>
                             ))}

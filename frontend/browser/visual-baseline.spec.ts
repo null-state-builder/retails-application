@@ -11,13 +11,28 @@ const OUT = fileURLToPath(new URL(`../../.local/visual-baseline/${LABEL}/`, impo
 // The rehearsal tenant's "Cashier 1" demo chip (KDPS_DEMO_LOGINS); dev server only.
 const CASHIER_CHIP = process.env.KDPS_VISUAL_CHIP ?? "demo-cashier1";
 
-const WIDTHS = [
+// Narrow a run to some of it, e.g. while building one screen:
+//   KDPS_VISUAL_SCREENS=billing,bills   only these ids
+//   KDPS_VISUAL_PATHS=cash:/sell/cash-count,cust:/sell/customers   extra screens
+//   KDPS_VISUAL_WIDTHS=1440   KDPS_VISUAL_THEMES=light
+const list = (name: string) =>
+  (process.env[name] ?? "")
+    .split(",")
+    .map((v) => v.trim())
+    .filter(Boolean);
+
+const ALL_WIDTHS = [
   { name: "1280", width: 1280, height: 800 },
   { name: "1440", width: 1440, height: 900 },
   { name: "1920", width: 1920, height: 1080 },
 ];
-const THEMES = ["light", "dark"] as const;
-const SCREENS = [
+const WIDTHS = list("KDPS_VISUAL_WIDTHS").length
+  ? ALL_WIDTHS.filter((w) => list("KDPS_VISUAL_WIDTHS").includes(w.name))
+  : ALL_WIDTHS;
+const THEMES = (
+  list("KDPS_VISUAL_THEMES").length ? list("KDPS_VISUAL_THEMES") : ["light", "dark"]
+) as ("light" | "dark")[];
+const BASE_SCREENS = [
   { id: "home", path: "/" },
   { id: "action-needed", path: "/action-needed" },
   { id: "billing", path: "/sell" },
@@ -33,6 +48,15 @@ const SCREENS = [
   { id: "stock", path: "/goods/stock" },
   { id: "counts", path: "/goods/counts" },
   { id: "movements", path: "/goods/movements" },
+];
+const EXTRA_SCREENS = list("KDPS_VISUAL_PATHS").map((entry) => {
+  const [id = entry, path = "/"] = entry.split(/:(.*)/s);
+  return { id, path };
+});
+const ONLY = list("KDPS_VISUAL_SCREENS");
+const SCREENS = [
+  ...(ONLY.length ? BASE_SCREENS.filter((s) => ONLY.includes(s.id)) : BASE_SCREENS),
+  ...EXTRA_SCREENS,
 ];
 
 async function signIn(page: Page) {

@@ -229,7 +229,7 @@ function ConsentFor({
         </p>
       )}
       {refused > 0 && (
-        <p className="bill-alert bill-consent-note" data-testid="consent-refused">
+        <p className="note note-warn bill-consent-note" data-testid="consent-refused">
           Head office refused {refused === 1 ? "1 answer" : `${refused} answers`} from this counter.
           Ask the customer again if it still matters.
         </p>

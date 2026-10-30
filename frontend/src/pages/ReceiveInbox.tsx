@@ -14,12 +14,15 @@
 // print jobs, acceptance scans - stay exactly the documents they were.
 import { useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { PackagePlus, Truck } from "lucide-react";
+import { PackagePlus } from "lucide-react";
 
 import { useAuth } from "../auth/AuthContext";
+import { FilterChip, FilterChips } from "../components/FilterChip";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
 import { SearchBox } from "../components/SearchBox";
+import { EmptyState } from "../components/States";
+import { Status, type StatusTone } from "../components/Status";
 import { formatDateTime } from "../lib/format";
 import { Field, hold, listState, useAllPages } from "../lib/goodsScreen";
 import {
@@ -46,6 +49,21 @@ export function deliveryPath(item: InboxItem): string {
         ? "return"
         : "delivery";
   return `/goods/receive/${kind}/${encodeURIComponent(item.id)}`;
+}
+
+/** The step a delivery waits on, as a dot and a word: green when it is put
+ *  away, blue while it waits on somebody else's decision, amber otherwise. */
+export function stepTone(step: ReceivingStep): StatusTone {
+  if (step === "done") return "green";
+  if (step === "discrepancies" || step === "pt_approve") return "blue";
+  return "amber";
+}
+
+/** Who the delivery came from, as the list's "From" column says it. */
+function kindWord(item: InboxItem): string {
+  if (item.kind === "transfer_dispatch") return "Transfer in";
+  if (item.kind === "customer_return") return "Customer return";
+  return "Vendor";
 }
 
 function matches(item: InboxItem, term: string): boolean {
@@ -157,29 +175,27 @@ export function ReceiveInboxPage({ view = "pending" }: { view?: "pending" | "his
           </Field>
         )}
         {stageCounts.length > 1 && (
-          <div className="filter-chips" role="group" aria-label="Waiting on">
-            <button
-              type="button"
-              className="filter-chip"
-              aria-pressed={activeStage === ""}
+          <FilterChips label="Waiting on">
+            <FilterChip
+              pressed={activeStage === ""}
               onClick={() => setStage("")}
-              data-testid="inbox-stage-all"
+              count={searched.length}
+              testId="inbox-stage-all"
             >
-              All <span className="filter-chip-n">{searched.length}</span>
-            </button>
+              All
+            </FilterChip>
             {stageCounts.map((s) => (
-              <button
+              <FilterChip
                 key={s.step}
-                type="button"
-                className="filter-chip"
-                aria-pressed={activeStage === s.step}
+                pressed={activeStage === s.step}
                 onClick={() => setStage(activeStage === s.step ? "" : s.step)}
-                data-testid={`inbox-stage-${s.step}`}
+                count={s.n}
+                testId={`inbox-stage-${s.step}`}
               >
-                {STEP_LABEL[s.step]} <span className="filter-chip-n">{s.n}</span>
-              </button>
+                {STEP_LABEL[s.step]}
+              </FilterChip>
             ))}
-          </div>
+          </FilterChips>
         )}
         <div className="spacer" />
         <SearchBox
@@ -192,12 +208,9 @@ export function ReceiveInboxPage({ view = "pending" }: { view?: "pending" | "his
       </div>
 
       {inbox.denied ? (
-        <div className="card section-card" data-testid="inbox-denied">
-          <h3 className="h3">There is no receiving inbox here for you</h3>
-          <p className="lead">
-            Either this site does not exist, or it is outside what you may see.
-          </p>
-        </div>
+        <EmptyState heading="There is no receiving inbox here for you" testId="inbox-denied">
+          Either this site does not exist, or it is outside what you may see.
+        </EmptyState>
       ) : (
         (state ?? (
           <div className="table-wrap capped">
@@ -208,68 +221,62 @@ export function ReceiveInboxPage({ view = "pending" }: { view?: "pending" | "his
               </caption>
               <thead>
                 <tr>
-                  <th>What</th>
-                  <th>Reference</th>
-                  <th>Arrived</th>
-                  <th>Next step</th>
-                  <th>Waiting on</th>
-                  <th>Records</th>
+                  <th scope="col">Delivery</th>
+                  <th scope="col">From</th>
+                  <th scope="col">Arrived</th>
+                  <th scope="col">Next step</th>
+                  <th scope="col" className="p2">
+                    Records
+                  </th>
+                  <th scope="col" className="p3">
+                    What it means
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((item) => (
-                  <tr
-                    key={item.id}
-                    data-testid={`inbox-row-${item.id}`}
-                    onClick={() => navigate(deliveryPath(item))}
-                    style={{ cursor: "pointer" }}
-                  >
-                    <td>
-                      <span className="chip chip-navy">
-                        {item.kind === "transfer_dispatch" ? (
-                          <>
-                            <Truck size={13} /> Transfer in
-                          </>
-                        ) : (
-                          <>
-                            <PackagePlus size={13} />
-                            {item.kind === "customer_return" ? "Customer return" : "Vendor"}
-                          </>
-                        )}
-                      </span>
-                    </td>
-                    <td>
-                      <button
-                        className="btn btn-sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(deliveryPath(item));
-                        }}
-                        data-testid={`inbox-open-${item.id}`}
-                      >
-                        {item.reference}
-                      </button>
-                    </td>
-                    <td>{formatDateTime(item.arrived_at)}</td>
-                    <td data-testid={`inbox-step-${item.id}`}>
-                      <span
-                        className={`chip chip-${item.next_step === "done" ? "green" : "amber"}`}
-                      >
-                        {STEP_LABEL[item.next_step]}
-                      </span>
-                      <span className="muted"> {STEP_HELP[item.next_step]}</span>
-                    </td>
-                    <td data-testid={`inbox-owner-${item.id}`}>
-                      {ownerRoleName(item.next_step_owner_role)}
-                    </td>
-                    <td className="muted">
-                      {[item.grn_number, item.pt_number].filter(Boolean).join(" · ") || "—"}
-                      {bookingProgress(item) && (
-                        <div data-testid={`inbox-booking-${item.id}`}>{bookingProgress(item)}</div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
+                {rows.map((item) => {
+                  const booking = bookingProgress(item);
+                  const records = [item.grn_number, item.pt_number].filter(Boolean).join(" · ");
+                  return (
+                    <tr
+                      key={item.id}
+                      data-testid={`inbox-row-${item.id}`}
+                      onClick={() => navigate(deliveryPath(item))}
+                      style={{ cursor: "pointer" }}
+                    >
+                      <td>
+                        {/* A place, so a link; the row's own click goes to the same place. */}
+                        <Link
+                          className="mono"
+                          to={deliveryPath(item)}
+                          onClick={(e) => e.stopPropagation()}
+                          data-testid={`inbox-open-${item.id}`}
+                        >
+                          {item.reference}
+                        </Link>
+                        {booking ? (
+                          <span className="sub" data-testid={`inbox-booking-${item.id}`}>
+                            {booking}
+                          </span>
+                        ) : records ? (
+                          <span className="sub">{records}</span>
+                        ) : null}
+                      </td>
+                      <td>{kindWord(item)}</td>
+                      <td>{formatDateTime(item.arrived_at)}</td>
+                      <td data-testid={`inbox-step-${item.id}`}>
+                        <Status tone={stepTone(item.next_step)}>
+                          {STEP_LABEL[item.next_step]}
+                        </Status>
+                        <span className="sub" data-testid={`inbox-owner-${item.id}`}>
+                          {ownerRoleName(item.next_step_owner_role)}
+                        </span>
+                      </td>
+                      <td className="p2 muted">{records || "—"}</td>
+                      <td className="p3 muted">{STEP_HELP[item.next_step]}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

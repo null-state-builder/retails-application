@@ -178,6 +178,19 @@ In order of cashier traffic. Each screen is one PR, built to its board on the ca
    - Charts use navy plus a warm grey; rust appears in no chart.
 8. **Sign-in and standalone** (Batch 6).
 
+**Done 30 Oct 2026**, as one commit rather than a PR per screen. Presentation only: no API, route, permission or writer changed, and every testid stayed. Where a board shows data the API does not carry, that part was left out rather than fetched:
+
+- **Billing:** rail order is customer, Sold by (new `billing/SoldBy.tsx`, moved out of the bill bar), a GSTIN row that opens itself at ₹50,000 net or when a GSTIN is entered, the tenders, then To pay at 44px above Save & print. Rust bar on the last-scanned line and the tender being typed into. Every `.bill-alert` and banner is a `Note`; `UpiCharge` is the only payment overlay. Totals stay under the lines (in the rail they push the tenders off a 1366×768 screen).
+- **Bills:** `SplitView` with the selected bill in a `Pane`: number, Reprint (navy), Exchange, lines, tenders and a receipt preview built from what the list already holds. Synced / Not yet synced are on-screen `FilterChips`. **Till & sync** and **Cash count:** Sections, notes and status words; Cash count shows expected, counted and difference side by side. **Day close** has no screen yet (`DailyCash` is money in/out), so its board waits.
+- **Home:** "Today, Fri 30 Oct" with a sentence built from loaded data, net sales as the `LeadFigure`, a `KpiStrip`, "Needs you" as links, tenders ranked. Salesperson and brand rankings and the same-weekday comparison are not in the dashboard data, so they are left out. The store checklist is a `Section`.
+- **Customers, Reservations, Special orders, Alterations, Find a bill:** one wide table each with `.p2`/`.p3` columns, `Status` for state, `FilterChips` with counts, the open record in a side pane (kept in `?open=`). The "New …" forms open from a header button.
+- **Receive, Goods arrived, Transfers, Requests:** wide tables with column priorities, the stage tiles are `FilterChips`, Goods arrived has a numbered stepper, cards became Sections and Boxes.
+- **Stock, Counts, Count schedule, Labels:** the stock view switch is a `SegmentedControl` (it only changes `?view=`), totals are a `KpiStrip`, tables use `table.data`, states are `Status`.
+- **Reports:** Sales report is a lead figure plus strip, one wide table and a navy bar chart by day; Day summary has a tender table with navy and warm-grey share bars and an exceptions table. **Login** and **Change password** share one layout (`SignInFrame`); the demo chips are unchanged.
+- **Shared:** `.dl` (description list), `.section > p` and `.section > .btn` spacing, and `a.seg-btn` joined `components.css`; `goodsScreen`'s `Feedback` and the PIN refusal render `Note`. Dead rules (`.transfers-stage*`, `.stock-limitation`, `.bill-alert`, `--hero-navy`) are gone.
+
+Not seen on screen with data, because the demo cashier gets "No access" or the rehearsal tenant has no rows: Sales report, Customers, the order screens, transfer detail and the receive stepper. Their tests pass; they need a look with a manager login on seeded data.
+
 ### Phase 6: other roles and clean-up (3–4 days)
 
 - Manager, warehouse and head-office pages adopt the same components (Desk or Compact density).

@@ -71,11 +71,7 @@ export function TagPrintModal({ rows, onClose }: { rows: TagPrintRow[]; onClose:
           </button>
         </div>
 
-        <div
-          className="card section-card no-print"
-          style={{ marginTop: 14 }}
-          data-testid="tag-preview"
-        >
+        <div className="box no-print" style={{ marginTop: 14 }} data-testid="tag-preview">
           {rows.map((r) => (
             <div key={r.barcode} style={{ textAlign: "center", padding: many ? "6px 0" : 0 }}>
               <p className="eyebrow">{r.item || "Piece"}</p>

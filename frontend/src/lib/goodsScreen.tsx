@@ -11,6 +11,7 @@ import { X } from "lucide-react";
 import { api, apiErrorCode, apiErrorMessage, authApi, type ApiRead } from "./api";
 import type { paths } from "./api-schema";
 import { SearchBox } from "../components/SearchBox";
+import { Note } from "../components/Note";
 import { Loading } from "../components/States";
 
 export interface ResourceDTO<T> {
@@ -45,14 +46,14 @@ export function Feedback({ error, ok }: { error: string; ok: string }) {
   return (
     <>
       {error && (
-        <div className="warn-note" role="alert" data-testid="org-error">
+        <Note tone="error" testId="org-error">
           {error}
-        </div>
+        </Note>
       )}
       {ok && (
-        <div className="ok-note" data-testid="org-ok">
+        <Note tone="success" testId="org-ok">
           {ok}
-        </div>
+        </Note>
       )}
     </>
   );
@@ -210,11 +211,7 @@ export function useStepUp() {
           This change needs your password again — it has been more than a moment since you last
           confirmed it.
         </p>
-        {error && (
-          <p className="warn-note" role="alert">
-            {error}
-          </p>
-        )}
+        {error && <Note tone="error">{error}</Note>}
         <div className="form-grid">
           <label className="field" htmlFor={passwordId}>
             Password
@@ -704,7 +701,7 @@ export function PickerField({
           </option>
         ))}
       </select>
-      {picker.failure && <p className="warn-note">{picker.failure}</p>}
+      {picker.failure && <Note tone="warn">{picker.failure}</Note>}
       {/* A failed read is not an empty one: "none available" would misreport it. */}
       {!disabled && !picker.loading && !picker.failure && picker.options.length === 0 && (
         <p className="goods-hint" data-testid={`${id}-none`}>

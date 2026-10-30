@@ -1,66 +1,39 @@
-/* Greeting on the left, the one control on the right: the header is one row,
-   so the cards start higher on a desktop screen. */
-.home-greet {
-  margin-bottom: 16px;
-  position: relative;
+/* Home for the network and warehouse views (the store's own Home is
+   StoreDashboard.css). Design system v2: sections on paper, no boxed panels,
+   no hover lifts. */
+
+.home-body {
   display: flex;
-  align-items: flex-end;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-.home-greet-text {
-  flex: 1 1 420px;
+  flex-direction: column;
+  gap: var(--space-32);
   min-width: 0;
 }
-.home-greet .lead {
-  margin-top: 4px;
-  display: flex;
-  align-items: center;
+
+/* Quick actions: places, so links drawn as large buttons. */
+.home-quick {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: var(--space-12);
+}
+.home-quick-link {
   gap: 10px;
-  flex-wrap: wrap;
-}
-.dash-config-btn {
-  margin-top: 0;
-}
-.ctx-chip {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--navy);
-  background: var(--inner);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-round);
-  padding: 3px 11px;
 }
 
-.sample-tag {
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  color: var(--caption);
-  background: var(--inner);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-control);
-  padding: 1px 5px;
-  margin-left: 6px;
-  vertical-align: middle;
-}
-
-/* KPI tiles: as many to a row as the desktop is wide, not a fixed three. */
+/* KPI tiles: the configurable, draggable ones. Each tile is a button that
+   opens the screen owning its number, so it keeps an edge; no shadow, no lift. */
 .kpi-row {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: var(--space-12);
 }
 .kpi {
   padding: 12px 14px;
-  transition:
-    box-shadow 0.15s,
-    transform 0.15s;
+  background: var(--surface);
   border: 1px solid var(--hairline);
+  border-radius: var(--radius-box);
   text-align: left;
   cursor: pointer;
+  transition: border-color 0.15s;
 }
 .kpi:hover {
   border-color: var(--line);
@@ -76,48 +49,56 @@
   color: var(--caption);
 }
 .kpi-ic {
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-control);
-  background: var(--inner);
-  border: 1px solid var(--hairline);
-  color: var(--navy);
   display: flex;
-  align-items: center;
-  justify-content: center;
   flex: none;
+  color: var(--ink2);
 }
 .kpi-label {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
   font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
+  font-weight: 500;
+  color: var(--ink2);
 }
 .kpi-value {
   font-size: 24px;
+  line-height: 28px;
   font-weight: 600;
-  color: var(--navy);
-  letter-spacing: -0.3px;
+  color: var(--ink);
+  letter-spacing: -0.2px;
 }
 .kpi-sub {
   font-size: 12px;
   color: var(--muted);
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 /* two-column layout */
 .home-cols {
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-  gap: 16px;
+  gap: var(--space-32);
   align-items: start;
 }
 .home-stack {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-32);
+  min-width: 0;
+}
+.home-copy {
+  margin: 0;
+  color: var(--ink2);
+  max-width: var(--prose-max);
+}
+.home-ai-mark {
+  vertical-align: -2px;
 }
 
-/* panels */
+/* The store checklist card (StoreChecklist.tsx) is still a `.card` with a
+   `.panel-head`; it is drawn on the store's Home. */
 .panel {
   padding: 16px 18px;
 }
@@ -127,31 +108,32 @@
 .panel-head .eyebrow {
   margin-bottom: 2px;
 }
+
+/* Network counts: an unboxed grid of figures divided by hairlines. */
 .net-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  border-top: 1px solid var(--hairline);
 }
 .net-cell {
-  background: var(--inner);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-inner);
-  padding: 10px 12px;
   display: flex;
   flex-direction: column;
   gap: 2px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--hairline);
 }
 .net-num {
   font-size: 20px;
+  line-height: 28px;
   font-weight: 600;
-  color: var(--navy);
+  color: var(--ink);
 }
 .net-label {
   font-size: 12px;
   color: var(--muted);
 }
 .net-foot {
-  margin-top: 14px;
+  margin: 0;
   font-size: 13px;
   color: var(--muted);
   display: flex;
@@ -161,22 +143,6 @@
 
 .dashboard-modal {
   max-width: 620px;
-}
-.mini-graph {
-  height: 190px;
-  display: flex;
-  align-items: end;
-  gap: 10px;
-  padding: 18px;
-  background: var(--inner);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-inner);
-}
-.mini-graph span {
-  flex: 1;
-  min-width: 20px;
-  border-radius: var(--radius-control);
-  background: linear-gradient(180deg, var(--rust), var(--navy));
 }
 .dash-card-list {
   display: flex;
@@ -193,122 +159,20 @@
   background: var(--inner);
   cursor: pointer;
 }
-.dash-card-choice span {
+.dash-card-choice > span {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
+.dash-card-choice b {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
 .dash-card-choice small {
   color: var(--muted);
   font-size: 12px;
-}
-
-/* tinted bands */
-.band {
-  border-radius: var(--radius);
-  padding: 14px 16px;
-}
-.band-edge {
-  background: var(--band-edge-bg);
-  border: 1px solid var(--band-edge-bd);
-}
-.band-ledger {
-  background: var(--band-ledger-bg);
-  border: 1px solid var(--band-ledger-bd);
-}
-.band-ai {
-  background: var(--band-ai-bg);
-  border: 1px solid var(--band-ai-bd);
-}
-.band-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 13px;
-}
-.band-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-}
-.band-row {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 12px;
-  align-items: center;
-  background: var(--band-row-bg);
-  border: 1px solid var(--band-row-bd);
-  border-radius: var(--radius-inner);
-  padding: 11px 14px;
-  font-size: 14px;
-}
-.band-row .mono {
-  font-weight: 600;
-  color: var(--navy);
-}
-.ai-line {
-  font-size: 14px;
-  color: var(--ink);
-  line-height: 1.55;
-  margin: 0 0 12px;
-}
-.ai-fence {
-  font-size: 12px;
-  color: var(--purple);
-  background: var(--ai-fence-bg);
-  border: 1px dashed var(--purple-bd);
-  border-radius: var(--radius-control);
-  padding: 9px 12px;
-}
-
-/* quick actions: a row of wide buttons, icon beside the word, rather than
-   tall tiles that spend a third of the screen on three words. */
-.quick-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
-}
-.quick-btn {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  background: var(--surface);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow-rest);
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--navy);
-  text-align: left;
-  transition:
-    box-shadow 0.15s,
-    transform 0.15s;
-}
-.quick-btn:hover {
-  border-color: var(--line);
-}
-.quick-ic {
-  width: 38px;
-  height: 38px;
-  border-radius: var(--radius-control);
-  background: var(--inner);
-  border: 1px solid var(--hairline);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--navy);
-}
-.quick-cta .quick-ic {
-  background: var(--cta);
-  border-color: var(--cta);
-  color: var(--on-fill);
-}
-.quick-cta {
-  color: var(--cta);
 }
 
 @media (max-width: 1040px) {

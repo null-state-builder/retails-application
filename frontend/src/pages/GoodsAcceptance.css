@@ -233,19 +233,6 @@
   padding-left: 16px;
 }
 
-.stock-layout .stock-limitation {
-  border: 1px solid color-mix(in srgb, var(--amber) 60%, var(--sidebar-border));
-  background: color-mix(in srgb, var(--amber) 8%, transparent);
-  border-radius: var(--radius-inner);
-  padding: 10px 12px;
-  font-size: 13px;
-  margin: 10px 0;
-}
-
-.stock-layout .stock-limitation-intro {
-  margin: 0;
-}
-
 /* One line per limitation the server declared: the list length is the answer,
    so the reasons stay countable rather than running into one paragraph. */
 .stock-layout .stock-limitation-list {

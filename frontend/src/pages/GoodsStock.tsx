@@ -9,7 +9,7 @@
 // not see this": the quantity view of the very same rows is still open.
 import { useState } from "react";
 import type { ReactNode } from "react";
-import { AlertTriangle, ChevronRight, History, ShieldAlert } from "lucide-react";
+import { History, ShieldAlert } from "lucide-react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
@@ -38,6 +38,9 @@ import {
 import { useAuth } from "../auth/AuthContext";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { Note } from "../components/Note";
+import { SegmentedControl } from "../components/SegmentedControl";
+import { EmptyState } from "../components/States";
 import { formatDateTime, formatPaiseString } from "../lib/format";
 import "./GoodsAcceptance.css";
 
@@ -270,20 +273,18 @@ export function GoodsStockPage({
               : "Physical, valued and available quantities, with holds, reservations and reasons."
         }
         actions={
-          <>
-            {views}
-            {damageWorkspace &&
-              (hold(session, "movement.draft") || hold(session, "movement.approve")) && (
-                <Link
-                  className="btn btn-sm"
-                  to={`/goods/movements${siteId ? `?site_id=${siteId}` : ""}`}
-                >
-                  Movements &amp; damage reviews
-                </Link>
-              )}
-          </>
+          damageWorkspace &&
+          (hold(session, "movement.draft") || hold(session, "movement.approve")) ? (
+            <Link className="btn" to={`/goods/movements${siteId ? `?site_id=${siteId}` : ""}`}>
+              Movements &amp; damage reviews
+            </Link>
+          ) : undefined
         }
       />
+
+      {/* The host's switch between Stock on hand's views comes first, apart from
+          this screen's own filters and its narrower switch below them. */}
+      {views && <div className="onhand-controls">{views}</div>}
 
       <div className="form-grid">
         <Field id="stock-site" label="Site">
@@ -362,10 +363,8 @@ export function GoodsStockPage({
       </div>
 
       {limitations.length > 0 && (
-        <div className="stock-limitation" data-testid="stock-limitations">
-          <p className="stock-limitation-intro">
-            <AlertTriangle size={14} /> {LIMITATION_INTRO}
-          </p>
+        <Note tone="warn" testId="stock-limitations">
+          {LIMITATION_INTRO}
           <ul className="stock-limitation-list">
             {limitations.map((code) => (
               <li key={code} data-testid={`stock-limitation-${code}`}>
@@ -373,44 +372,49 @@ export function GoodsStockPage({
               </li>
             ))}
           </ul>
-        </div>
+        </Note>
       )}
 
       {unavailableSite && (
-        <p className="warn-note">
+        <Note tone="warn">
           This bookmarked site is no longer in your available site choices. Select an authorised
           site to read its stock.
-        </p>
+        </Note>
       )}
 
+      {/* This screen's own switch: which half of the goods journal the list
+          shows. It changes the view, not the place. */}
       {stockView !== "in-transit" && (
-        <div className="toolbar">
-          {(damageWorkspace
-            ? (["quarantine", "on-hand"] as ViewKind[])
-            : stockView === "location"
-              ? (["on-hand", "availability"] as ViewKind[])
-              : (Object.keys(VIEW_PATH) as ViewKind[])
-          ).map((v) => (
-            <button
-              key={v}
-              className={`btn btn-sm${v === view ? " btn-active" : ""}`}
-              onClick={() =>
-                stockView === "quarantine"
-                  ? set("find", v === "on-hand" ? "1" : "")
-                  : stockView === "location"
-                    ? set("goods_view", v === "on-hand" ? "" : v)
-                    : set("view", v)
-              }
-              data-testid={`stock-view-${v}`}
-            >
-              {damageWorkspace && v === "on-hand" ? "Find physical stock to report" : VIEW_LABEL[v]}
-            </button>
-          ))}
+        <div className="onhand-controls">
+          <SegmentedControl
+            label="Show"
+            value={view}
+            options={(damageWorkspace
+              ? (["quarantine", "on-hand"] as ViewKind[])
+              : stockView === "location"
+                ? (["on-hand", "availability"] as ViewKind[])
+                : (Object.keys(VIEW_PATH) as ViewKind[])
+            ).map((v) => ({
+              value: v,
+              label:
+                damageWorkspace && v === "on-hand"
+                  ? "Find physical stock to report"
+                  : VIEW_LABEL[v],
+              testId: `stock-view-${v}`,
+            }))}
+            onChange={(v) =>
+              stockView === "quarantine"
+                ? set("find", v === "on-hand" ? "1" : "")
+                : stockView === "location"
+                  ? set("goods_view", v === "on-hand" ? "" : v)
+                  : set("view", v)
+            }
+          />
         </div>
       )}
 
       {damageWorkspace && (
-        <p className="muted">Summary totals cover all stock in the selected scope.</p>
+        <p className="lead">Summary totals cover all stock in the selected scope.</p>
       )}
       <SummaryPanel summary={summary} />
 
@@ -430,18 +434,18 @@ export function GoodsStockPage({
 
 function SummaryPanel({ summary }: { summary: ReadState<StockSummary> }) {
   if (summary.loading) return <span className="muted">Loading summary…</span>;
-  if (summary.failure) return <p className="warn-note">{summary.failure}</p>;
+  if (summary.failure) return <Note tone="warn">{summary.failure}</Note>;
   if (summary.deniedField) {
     return (
-      <p className="warn-note" data-testid="stock-summary-field-denied">
+      <Note tone="info" testId="stock-summary-field-denied">
         Value totals need the cost field grant. Showing without them.
-      </p>
+      </Note>
     );
   }
   if (summary.deniedAction || !summary.data) return null;
   const t = summary.data.totals;
-  // Tiles in the shared stat style (desktop redesign rule 6): grouped figures,
-  // and a dash for anything the server did not send.
+  // The shared stat strip (drawn as the v2 KpiStrip): grouped figures, and a
+  // dash for anything the server did not send.
   const n = (v: number | string | null | undefined) =>
     typeof v === "number" ? v.toLocaleString("en-IN") : (v ?? "—");
   const tiles: [string, ReactNode][] = [
@@ -455,13 +459,13 @@ function SummaryPanel({ summary }: { summary: ReadState<StockSummary> }) {
   return (
     <div className="stat-grid" data-testid="stock-summary">
       {tiles.map(([label, value]) => (
-        <div className="card stat-card" key={label}>
+        <div className="stat-card" key={label}>
           <div className="stat-value">{value}</div>
           <div className="stat-label">{label}</div>
         </div>
       ))}
       {summary.data.basis !== "quantity" && (
-        <div className="card stat-card">
+        <div className="stat-card">
           <div className="stat-value" data-testid="stock-summary-value">
             {t.value_paise !== undefined ? formatPaiseString(t.value_paise) : "Unknown"}
           </div>
@@ -494,14 +498,10 @@ function StockTable({
 }) {
   if (rows.deniedField) {
     return (
-      <div className="card section-card" data-testid="stock-field-denied">
-        <p className="eyebrow">Not shown</p>
-        <h3 className="h3">Value needs the cost grant</h3>
-        <p className="lead">
-          Requesting {BASIS_LABEL[basis].toLowerCase()} here is refused without the cost field
-          grant. Switch the basis to "Quantity only" to see these rows without value.
-        </p>
-      </div>
+      <EmptyState heading="Value needs the cost grant" testId="stock-field-denied">
+        Requesting {BASIS_LABEL[basis].toLowerCase()} here is refused without the cost field grant.
+        Switch the basis to "Quantity only" to see these rows without value.
+      </EmptyState>
     );
   }
   if (rows.deniedAction) return <Denied what="stock" />;
@@ -521,25 +521,25 @@ function StockTable({
 
   const items = rows.data?.items ?? [];
   return (
-    <div className="stock-table-wrap">
-      <table data-testid="stock-table">
+    <div className="table-wrap capped" role="region" aria-label="Goods stock" tabIndex={0}>
+      <table className="data" data-testid="stock-table">
         <thead>
           <tr>
             <th>Location</th>
             <th>SKU / description</th>
-            <th>Season</th>
+            <th className="p2">Season</th>
             <th>Condition</th>
             <th className="num">Physical</th>
-            <th className="num">Valued</th>
-            <th className="num">Unvalued</th>
+            <th className="num p2">Valued</th>
+            <th className="num p2">Unvalued</th>
             <th className="num">Accepted</th>
             <th className="num">{view === "in-transit" ? "In transit" : "ATS / Transfer"}</th>
             <th className="num">Held</th>
-            <th className="num">Reserved</th>
+            <th className="num p2">Reserved</th>
             {basis !== "quantity" && <th className="num">Value</th>}
-            <th>Reasons</th>
+            <th className="p2">Reasons</th>
             {view === "quarantine" && <th>Damage review</th>}
-            {onMarkDamaged && view !== "in-transit" && <th>Found damaged?</th>}
+            {onMarkDamaged && view !== "in-transit" && <th className="act">Found damaged?</th>}
           </tr>
         </thead>
         <tbody>
@@ -594,19 +594,17 @@ function StockRowView({
       <td>
         {row.description || (row.sku_id ? row.sku_id.slice(0, 8) : "Unidentified")}
         {row.origin_id && (
-          <Link
-            to={`/goods/stock/origins/${row.origin_id}`}
-            className="chip chip-navy"
-            data-testid="stock-journey-link"
-          >
-            Journey <ChevronRight size={12} />
-          </Link>
+          <span className="sub">
+            <Link to={`/goods/stock/origins/${row.origin_id}`} data-testid="stock-journey-link">
+              Journey
+            </Link>
+          </span>
         )}
       </td>
       {/* The season these goods are in now. A later governed correction is
           what shows; the season the row opened under stays beside it, because
           a correction adds a fact and never rewrites one (OPS-03). */}
-      <td data-testid="stock-season-label">
+      <td className="p2" data-testid="stock-season-label">
         {seasonLabel(row)}
         {row.season_original && (
           <span className="muted"> (was {row.season_original.season_label || "—"})</span>
@@ -614,8 +612,8 @@ function StockRowView({
       </td>
       <td>{row.condition}</td>
       <td className="num">{row.physical_qty}</td>
-      <td className="num">{row.valued_qty}</td>
-      <td className="num">{unvaluedQty(row)}</td>
+      <td className="num p2">{row.valued_qty}</td>
+      <td className="num p2">{unvaluedQty(row)}</td>
       {/* Approval values goods; only acceptance makes them usable, and the two
           numbers differ for as long as a receipt sits unchecked. A stock screen
           that showed only "valued" would read as though it were already on the
@@ -627,9 +625,9 @@ function StockRowView({
         {available}
       </td>
       <td className="num">{row.held_qty}</td>
-      <td className="num">{row.reserved_qty}</td>
+      <td className="num p2">{row.reserved_qty}</td>
       {basis !== "quantity" && <td className="num">{formatPaiseString(valueKey ?? null)}</td>}
-      <td>
+      <td className="p2">
         {row.eligibility_reasons.length > 0 ? (
           <details>
             <summary>{row.eligibility_reasons.length} reason(s)</summary>
@@ -649,7 +647,7 @@ function StockRowView({
         </td>
       )}
       {onMarkDamaged && (
-        <td>
+        <td className="act">
           <MarkDamaged row={row} onMark={onMarkDamaged} />
         </td>
       )}

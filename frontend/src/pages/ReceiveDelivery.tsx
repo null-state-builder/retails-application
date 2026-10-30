@@ -24,6 +24,8 @@ import { ArrowLeft, Check, RefreshCw } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { ErrorState, Loading } from "../components/States";
+import { Status } from "../components/Status";
 import { formatDateTime } from "../lib/format";
 import { Denied, hold, useAllPages, useGoodsFetch, type Page } from "../lib/goodsScreen";
 import { useWideScreen } from "../lib/useWideScreen";
@@ -48,7 +50,8 @@ import { PtApprovePanel } from "./PtApprovals";
 import { LabelsPanel } from "./GoodsLabels";
 import { AcceptPanel } from "./GoodsAccept";
 import { ReturnedGoodsAcceptance } from "./ReturnedGoodsAcceptance";
-import { deliveryPath } from "./ReceiveInbox";
+import { deliveryPath, stepTone } from "./ReceiveInbox";
+import "./GoodsReceiving.css";
 
 /** The rail never shows "done" as a step of its own: it is the end, not a
  *  thing anybody opens. */
@@ -63,26 +66,40 @@ function StepRail({
   showing: ReceivingStep;
   onShow: (step: ReceivingStep) => void;
 }) {
+  // The design system's Stepper: done steps in green, the step the delivery
+  // waits on marked as where it is, the rest still to do. Each step opens its
+  // panel once it can be opened; the one open is underlined.
   return (
-    <div className="page-tabs" data-testid="delivery-rail">
-      {RAIL.map((step) => {
+    <ol className="receive-steps" aria-label="Delivery steps" data-testid="delivery-rail">
+      {RAIL.map((step, index) => {
         const done = stepIsDone(item, step);
         const reachable = stepIsReachable(item, step);
+        const current = !done && step === item.next_step;
         return (
-          <button
+          <li
             key={step}
-            className={`page-tab ${step === showing ? "active" : ""}`}
-            disabled={!reachable}
-            aria-current={step === showing ? "page" : undefined}
-            title={STEP_HELP[step]}
-            onClick={() => onShow(step)}
-            data-testid={`delivery-step-${step}`}
+            className={done ? "is-done" : current ? "is-current" : undefined}
+            aria-current={current ? "step" : undefined}
           >
-            {done && <Check size={13} />} {STEP_LABEL[step]}
-          </button>
+            <button
+              type="button"
+              className="receive-step"
+              disabled={!reachable}
+              aria-pressed={step === showing}
+              title={STEP_HELP[step]}
+              onClick={() => onShow(step)}
+              data-testid={`delivery-step-${step}`}
+            >
+              <b aria-hidden="true">{done ? <Check size={12} /> : index + 1}</b>
+              <span>
+                {STEP_LABEL[step]}
+                {done && <span className="sr-only"> (done)</span>}
+              </span>
+            </button>
+          </li>
         );
       })}
-    </div>
+    </ol>
   );
 }
 
@@ -215,7 +232,7 @@ function DeliveryQueue({ siteId, currentId }: { siteId: string; currentId: strin
         )}
       </p>
       {inbox.loading && inbox.items.length === 0 ? (
-        <p className="muted side-queue-note">Loading…</p>
+        <Loading lines={2} label="Loading pending deliveries" />
       ) : inbox.items.length === 0 ? (
         <p className="muted side-queue-note">Nothing else is on its way in.</p>
       ) : (
@@ -229,9 +246,7 @@ function DeliveryQueue({ siteId, currentId }: { siteId: string; currentId: strin
               >
                 <span className="side-queue-ref">{row.reference}</span>
                 <span className="side-queue-meta">
-                  <span className={`chip chip-${row.next_step === "done" ? "green" : "amber"}`}>
-                    {STEP_LABEL[row.next_step]}
-                  </span>
+                  <Status tone={stepTone(row.next_step)}>{STEP_LABEL[row.next_step]}</Status>
                   {formatDateTime(row.arrived_at)}
                 </span>
               </Link>
@@ -284,18 +299,14 @@ function DeliveryPage() {
     return (
       <OperationsPage>
         <PageHeader title="Receive goods" />
-        <p className="muted" role="status">
-          Loading…
-        </p>
+        <Loading />
       </OperationsPage>
     );
   if (found.failure)
     return (
       <OperationsPage>
         <PageHeader title="Receive goods" />
-        <p className="warn-note" role="status">
-          {found.failure}
-        </p>
+        <ErrorState heading="This delivery could not load" message={found.failure} />
       </OperationsPage>
     );
   if (!item) {
@@ -315,7 +326,7 @@ function DeliveryPage() {
               </Link>
             }
           />
-          <div className="card section-card" data-testid="delivery-panel-pt">
+          <div data-testid="delivery-panel-pt">
             <AcceptPanel onlyPts={[id]} />
           </div>
         </OperationsPage>
@@ -348,9 +359,7 @@ function DeliveryPage() {
             {booking && (
               <>
                 {" "}
-                <span className="chip chip-navy" data-testid="delivery-booking">
-                  {booking}
-                </span>
+                <span data-testid="delivery-booking">{booking}</span>.
               </>
             )}
           </>
@@ -385,7 +394,7 @@ function DeliveryPage() {
           </p>
           {/* The record's own kind, whichever address opened it; the record itself
               says which it is. */}
-          <div className="card section-card" data-testid={`delivery-panel-${recordKind}`}>
+          <div data-testid={`delivery-panel-${recordKind}`}>
             <StepPanel item={item} step={panelStep} />
           </div>
         </div>
@@ -415,14 +424,12 @@ export function ReceiveNewPage() {
           </Link>
         }
       />
-      <div className="card section-card">
-        <NewArrival
-          initialSiteId={params.get("site") ?? ""}
-          initialBookingId={params.get("booking") ?? ""}
-          onSaved={(arrivalId) => navigate(deliveryStepPath("delivery", arrivalId, "arrival"))}
-          onClose={() => navigate("/goods/receive")}
-        />
-      </div>
+      <NewArrival
+        initialSiteId={params.get("site") ?? ""}
+        initialBookingId={params.get("booking") ?? ""}
+        onSaved={(arrivalId) => navigate(deliveryStepPath("delivery", arrivalId, "arrival"))}
+        onClose={() => navigate("/goods/receive")}
+      />
     </OperationsPage>
   );
 }

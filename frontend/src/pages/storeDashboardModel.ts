@@ -187,3 +187,103 @@ export function shortDay(iso: string): string {
     return iso;
   return new Date(y, m - 1, d).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
 }
+
+/** "Today, Thu 29 Oct" - the Home heading (design system v2 Dashboard: open on
+ *  the day, not on a greeting). Built from the parts so en-IN's "Thu, 29 Oct"
+ *  comma does not land between the weekday and the date. */
+export function todayHeading(now: Date = new Date()): string {
+  const parts = new Intl.DateTimeFormat("en-IN", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  }).formatToParts(now);
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((p) => p.type === type)?.value ?? "";
+  return `Today, ${part("weekday")} ${part("day")} ${part("month")}`;
+}
+
+/** Each queue key as a clause, singular and plural, for the sentence under the
+ *  heading. A key with no clause here still shows in the list; it is only left
+ *  out of the sentence's two named items and counted in "more". */
+const QUEUE_CLAUSE: Record<string, [string, string]> = {
+  approvals_pending: ["item waits for your approval", "items wait for your approval"],
+  transfers_to_receive: ["carton waits to be received", "cartons wait to be received"],
+  quarantine_to_confirm: [
+    "damage report waits to be confirmed",
+    "damage reports wait to be confirmed",
+  ],
+  rtb_windows_closing: ["return window is closing", "return windows are closing"],
+  open_count_session: ["stock count is open", "stock counts are open"],
+  held_bills: ["bill is on hold", "bills are on hold"],
+  uncosted_sale_lines: ["line was sold before inward", "lines were sold before inward"],
+  continuity_flags: ["exception waits to be looked at", "exceptions wait to be looked at"],
+  counts_due_today: ["count is due today", "counts are due today"],
+  checklist_missed: ["checklist item was missed", "checklist items were missed"],
+};
+
+/** What is waiting, as one sentence: the first two non-zero rows in the
+ *  server's order, then how many more. Built from the rows the person may open,
+ *  so the sentence never names work the list below does not show. */
+export function waitingSentence(rows: QueueRow[]): string {
+  const waiting = rows.filter((r) => r.count > 0);
+  if (waiting.length === 0) return "Nothing is waiting on you.";
+  const named = waiting.filter((r) => QUEUE_CLAUSE[r.key]).slice(0, 2);
+  const clauses = named.map((r) => {
+    const [one, many] = QUEUE_CLAUSE[r.key] ?? ["", ""];
+    return `${r.count.toLocaleString("en-IN")} ${r.count === 1 ? one : many}`;
+  });
+  const more = waiting.length - named.length;
+  if (clauses.length === 0) return `${more} kinds of work wait on you below.`;
+  const head = clauses.join(" and ");
+  const sentence = `${head.charAt(0).toUpperCase()}${head.slice(1)}`;
+  return more > 0 ? `${sentence}, with ${more} more below.` : `${sentence}.`;
+}
+
+export interface TenderRank {
+  label: string;
+  paise: number;
+  /** Share of the day's collections, 0-100; null when nothing was collected. */
+  sharePct: number | null;
+  /** Bar length against the leader, 0-100. */
+  barPct: number;
+}
+
+/** The day's collections ranked by tender, largest first. All four are kept -
+ *  dropping one would hide money from the list - and ties keep the counter's
+ *  usual order (cash, card, UPI, credit note). */
+export function tenderRanks(c: DashboardPayload["today"]["collections"]): TenderRank[] {
+  const rows: [string, number][] = [
+    ["Cash", c.cash],
+    ["Card", c.card],
+    ["UPI", c.upi],
+    ["Credit note", c.credit_note],
+  ];
+  const total = rows.reduce((sum, [, p]) => sum + Math.max(0, p), 0);
+  const peak = Math.max(0, ...rows.map(([, p]) => p));
+  return rows
+    .map(([label, paise], i) => ({ label, paise, i }))
+    .sort((a, b) => b.paise - a.paise || a.i - b.i)
+    .map(({ label, paise }) => ({
+      label,
+      paise,
+      sharePct: total > 0 ? Math.round((Math.max(0, paise) / total) * 100) : null,
+      barPct: peak > 0 ? Math.max(0, Math.round((paise / peak) * 100)) : 0,
+    }));
+}
+
+/** The week's best day and its total, for the line under the strip; null for a
+ *  week with no sales. */
+export function weekSummary(last7: DashboardPayload["last7"]): {
+  totalPaise: number;
+  best: { date: string; paise: number } | null;
+} {
+  const totalPaise = last7.reduce((sum, d) => sum + d.net_sales_paise, 0);
+  const top = last7.reduce<{ date: string; paise: number } | null>(
+    (acc, d) =>
+      d.net_sales_paise > 0 && (!acc || d.net_sales_paise > acc.paise)
+        ? { date: d.date, paise: d.net_sales_paise }
+        : acc,
+    null,
+  );
+  return { totalPaise, best: top };
+}

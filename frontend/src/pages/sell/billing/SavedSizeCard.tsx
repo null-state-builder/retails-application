@@ -234,7 +234,7 @@ function CorrectionForm({
         </p>
       )}
       {message && (
-        <p className="bill-alert bill-consent-note" data-testid="saved-size-message">
+        <p className="note note-warn bill-consent-note" data-testid="saved-size-message">
           {message}
         </p>
       )}

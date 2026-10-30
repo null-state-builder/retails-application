@@ -11,7 +11,13 @@ import {
   prefillFor,
   restTenderPatch,
 } from "../../../till/tender";
-import type { Payment, PaymentField, TenderMode, TenderSplit } from "../../../till/tender";
+import type {
+  BalanceTone,
+  Payment,
+  PaymentField,
+  TenderMode,
+  TenderSplit,
+} from "../../../till/tender";
 import { RupeeInput } from "./RupeeInput";
 
 /** One tender row's offer: the balance if the row is standing empty, nothing if
@@ -87,13 +93,13 @@ export function PaymentPanel({
   }
 
   return (
-    <section className="bill-payment-panel" data-return-ready={returnReady ? undefined : "false"}>
-      <div className="bill-payment-heading">
-        <p className="eyebrow">To pay</p>
-        <p className="bill-due" data-testid="bill-due">
-          {returnReady ? <Money paise={bill.payable_paise} /> : <>Nothing yet &middot; ₹0</>}
-        </p>
-      </div>
+    <section
+      className="bill-rail-section bill-payment-panel"
+      data-return-ready={returnReady ? undefined : "false"}
+    >
+      {/* "To pay" itself sits in the rail foot, directly above Save & print
+          (design system v2 TillLayout); this section is the split. */}
+      <p className="eyebrow">Payment</p>
 
       {/* Return mode before original bill is found: brief explanation. */}
       {!returnReady && (
@@ -234,10 +240,25 @@ export function PaymentPanel({
  * with its own tests, because the green line is an instruction to open the
  * drawer and this component is only allowed to draw it.
  */
+/** The balance line's tone as a design system v2 note: amber while money is
+ *  still to allocate, red when the split is wrong, green when it is settled. */
+const BALANCE_NOTE: Record<BalanceTone, string> = {
+  unallocated: "note-warn",
+  short: "note-warn",
+  over: "note-error",
+  stranded: "note-error",
+  change: "note-success",
+  settled: "note-success",
+};
+
 function BalanceLine({ split }: { split: TenderSplit }) {
   const { tone, says, paise } = balanceStandingOf(split);
   return (
-    <p className={`bill-balance-line is-${tone}`} data-testid="bill-balance-line" data-tone={tone}>
+    <p
+      className={`note ${BALANCE_NOTE[tone]} bill-balance-line is-${tone}`}
+      data-testid="bill-balance-line"
+      data-tone={tone}
+    >
       <span>{says}</span>
       <span data-testid="bill-balance">
         <Money paise={paise} />
@@ -318,7 +339,7 @@ function UpiProof({
     <div className="bill-upi-proof">
       <button
         type="button"
-        className="btn bill-upi-open"
+        className="btn btn-sm bill-upi-open"
         data-testid="bill-upi-show-qr"
         disabled={locked}
         onClick={onShowQr}
@@ -405,7 +426,12 @@ function TenderRow({
 
 function RestButton({ disabled, onClick }: { disabled: boolean; onClick: () => void }) {
   return (
-    <button type="button" className="btn bill-tender-rest" disabled={disabled} onClick={onClick}>
+    <button
+      type="button"
+      className="btn btn-sm bill-tender-rest"
+      disabled={disabled}
+      onClick={onClick}
+    >
       Rest
     </button>
   );

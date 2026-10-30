@@ -38,6 +38,12 @@ import { ScanScreen, type ScanResult, type ScanTarget } from "../components/Scan
 import "./Booking.css";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { KpiStrip } from "../components/KpiStrip";
+import { Note } from "../components/Note";
+import { Section } from "../components/Section";
+import { EmptyState } from "../components/States";
+import { Status } from "../components/Status";
+import type { StatusTone } from "../components/Status";
 
 // ---------------------------------------------------------------------------
 // Types + helpers
@@ -157,7 +163,11 @@ const SCOPES = [
   { value: "section", label: "One section" },
 ];
 
-const STATUS_TONE: Record<string, string> = { open: "amber", submitted: "navy", closed: "green" };
+const STATUS_TONE: Record<string, StatusTone> = {
+  open: "amber",
+  submitted: "blue",
+  closed: "green",
+};
 const STATUS_LABEL: Record<string, string> = {
   open: "Counting",
   submitted: "Submitted",
@@ -177,11 +187,7 @@ function skuLabel(l: { design: string; color: string; size: string; brand: strin
 }
 
 function StatusPill({ status }: { status: string }) {
-  return (
-    <span className={`chip chip-${STATUS_TONE[status] ?? "grey"} status-pill`}>
-      {STATUS_LABEL[status] ?? status}
-    </span>
-  );
+  return <Status tone={STATUS_TONE[status]}>{STATUS_LABEL[status] ?? status}</Status>;
 }
 
 function Signed({ n }: { n: number }) {
@@ -234,7 +240,7 @@ export function StockCountListPage() {
   }
 
   return (
-    <OperationsPage>
+    <OperationsPage className="page">
       <PageHeader
         lead="Counters scan blind; the book appears when the count is submitted."
         actions={
@@ -256,9 +262,8 @@ export function StockCountListPage() {
       />
 
       {writable && (
-        <div className="card section-card" data-testid="open-count-card">
-          <p className="eyebrow">Start a count</p>
-          <div className="form-row" style={{ marginTop: 10 }}>
+        <Section heading="Start a count" testId="open-count-card">
+          <div className="form-row">
             <div className="field">
               <label htmlFor={storeLocked ? undefined : "count-store"}>Location</label>
               {storeLocked && lockedStore ? (
@@ -295,27 +300,29 @@ export function StockCountListPage() {
             </div>
           </div>
           {error && (
-            <div className="login-error" style={{ maxWidth: 480 }} data-testid="count-open-error">
+            <Note tone="error" testId="count-open-error">
               {error}
-            </div>
+            </Note>
           )}
-          <button
-            className="btn btn-primary"
-            disabled={opening}
-            onClick={openCount}
-            data-testid="open-count-btn"
-          >
-            <Plus size={16} /> {opening ? "Opening…" : "Open a count"}
-          </button>
-        </div>
+          <div>
+            <button
+              className="btn btn-primary"
+              disabled={opening}
+              onClick={openCount}
+              data-testid="open-count-btn"
+            >
+              <Plus size={16} /> {opening ? "Opening…" : "Open a count"}
+            </button>
+          </div>
+        </Section>
       )}
 
       {loading ? (
         <p className="lead">Loading…</p>
       ) : data.length === 0 ? (
-        <div className="card section-card" data-testid="count-empty">
+        <EmptyState testId="count-empty">
           No counts yet. Open one to start counting a store, a brand or a section.
-        </div>
+        </EmptyState>
       ) : (
         <div className="table-wrap">
           <table className="data" data-testid="count-table">
@@ -327,7 +334,7 @@ export function StockCountListPage() {
                 <th className="num">Pieces counted</th>
                 <th>Status</th>
                 <th>Correction</th>
-                <th>Opened</th>
+                <th className="p2">Opened</th>
               </tr>
             </thead>
             <tbody>
@@ -359,7 +366,7 @@ export function StockCountListPage() {
                       "—"
                     )}
                   </td>
-                  <td>{fmtDate(t.created_at)}</td>
+                  <td className="p2">{fmtDate(t.created_at)}</td>
                 </tr>
               ))}
             </tbody>
@@ -409,17 +416,13 @@ export function StockCountDetailPage() {
   // waits for something that is never coming.
   if (loadError || !take) {
     return (
-      <OperationsPage data-testid="count-not-found">
-        <Link to="/stock-count" className="btn" style={{ marginBottom: 16 }}>
+      <OperationsPage className="page" data-testid="count-not-found">
+        <Link to="/stock-count">
           <ArrowLeft size={15} /> Stock counts
         </Link>
-        <div className="card section-card">
-          <p className="eyebrow">Not found</p>
-          <h3 className="h3">There is no count here for you</h3>
-          <p className="lead">
-            Either this count does not exist, or it belongs to a location you do not cover.
-          </p>
-        </div>
+        <EmptyState heading="There is no count here for you">
+          Either this count does not exist, or it belongs to a location you do not cover.
+        </EmptyState>
       </OperationsPage>
     );
   }
@@ -548,27 +551,24 @@ export function StockCountDetailPage() {
   }
 
   return (
-    <OperationsPage>
-      <Link
-        to="/stock-count"
-        className="btn"
-        style={{ marginBottom: 16 }}
-        data-testid="count-detail-back"
-      >
-        <ArrowLeft size={15} /> Stock counts
-      </Link>
-      <div className="toolbar">
-        <div>
-          <p className="eyebrow">Count #{take.id}</p>
-          <h1 className="h1">Stock Count — {take.store_code}</h1>
-          <p className="lead">
-            {take.store_name}
+    <OperationsPage className="page">
+      <PageHeader
+        title={`Stock Count — ${take.store_code}`}
+        lead={
+          <>
+            Count #{take.id} · {take.store_name}
             {take.note ? ` · ${take.note}` : ""} · opened by {take.opened_by_name || "—"}
-          </p>
-        </div>
-        <div className="spacer" />
-        <StatusPill status={take.status} />
-      </div>
+          </>
+        }
+        actions={
+          <>
+            <StatusPill status={take.status} />
+            <Link to="/stock-count" className="btn" data-testid="count-detail-back">
+              <ArrowLeft size={15} /> Stock counts
+            </Link>
+          </>
+        }
+      />
 
       {/* Shown here only while the variance is not on screen. Once it is, the
        * page is long enough to scroll and the buttons that fail are all down
@@ -576,16 +576,14 @@ export function StockCountDetailPage() {
        * refusal a screen-height away from the button that caused it reads as
        * nothing happening at all. */}
       {error && !variance && (
-        <div className="login-error" style={{ maxWidth: 560 }} data-testid="count-detail-error">
+        <Note tone="error" testId="count-detail-error">
           {error}
-        </div>
+        </Note>
       )}
 
       {writable && take.status === "open" && (
-        <div className="card section-card" data-testid="new-session-card">
-          <p className="eyebrow">Add a counter</p>
-          <h3 className="h3">New session</h3>
-          <div className="form-row" style={{ marginTop: 10 }}>
+        <Section heading="New session" testId="new-session-card">
+          <div className="form-row">
             <div className="field">
               <label htmlFor="count-session-scope">Scope</label>
               <select
@@ -618,26 +616,32 @@ export function StockCountDetailPage() {
               </div>
             )}
           </div>
-          <button
-            className="btn btn-primary"
-            disabled={busy}
-            onClick={startSession}
-            data-testid="start-session-btn"
-          >
-            <Play size={15} /> Start counting
-          </button>
-        </div>
+          <div>
+            <button
+              className="btn btn-primary"
+              disabled={busy}
+              onClick={startSession}
+              data-testid="start-session-btn"
+            >
+              <Play size={15} /> Start counting
+            </button>
+          </div>
+        </Section>
       )}
 
-      <div className="card section-card">
-        <p className="eyebrow">Sessions</p>
-        <h3 className="h3">
-          {take.sessions.length} counter{take.sessions.length === 1 ? "" : "s"}
-        </h3>
+      <Section
+        heading="Sessions"
+        ruled
+        aside={
+          <span className="lead">
+            {take.sessions.length} counter{take.sessions.length === 1 ? "" : "s"}
+          </span>
+        }
+      >
         {take.sessions.length === 0 ? (
           <p className="lead">Nobody is counting yet.</p>
         ) : (
-          <div className="table-wrap" style={{ marginTop: 10 }}>
+          <div className="table-wrap">
             <table className="data" data-testid="session-table">
               <thead>
                 <tr>
@@ -645,7 +649,9 @@ export function StockCountDetailPage() {
                   <th>Counter</th>
                   <th className="num">Pieces scanned</th>
                   <th>Status</th>
-                  <th />
+                  <th className="act">
+                    <span className="sr-only">Actions</span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -657,12 +663,12 @@ export function StockCountDetailPage() {
                     <td>
                       <StatusPill status={s.status} />
                     </td>
-                    <td>
+                    <td className="act">
                       {s.status === "open" && writable && (
                         <>
                           <button
                             type="button"
-                            className="btn"
+                            className="btn btn-sm"
                             onClick={() => {
                               setError("");
                               setScanning(s);
@@ -673,7 +679,7 @@ export function StockCountDetailPage() {
                           </button>{" "}
                           <button
                             type="button"
-                            className="btn btn-cta"
+                            className="btn btn-sm btn-primary"
                             disabled={busy}
                             onClick={() => void submitSession(s)}
                             data-testid={`submit-session-${s.id}`}
@@ -689,67 +695,55 @@ export function StockCountDetailPage() {
             </table>
           </div>
         )}
-      </div>
+      </Section>
 
       {submitted.length > 0 && (
-        <div className="card section-card" data-testid="variance-card">
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div>
-              <p className="eyebrow">Book vs counted · every submitted session merged</p>
-              <h3 className="h3">Variance report</h3>
-            </div>
+        <Section
+          heading="Variance report"
+          ruled
+          testId="variance-card"
+          aside={
             <button
               type="button"
-              className="btn"
+              className="btn btn-sm"
               onClick={() => void loadVariance()}
               data-testid="load-variance-btn"
             >
               <ClipboardCheck size={15} /> {variance ? "Refresh" : "Show variance"}
             </button>
-          </div>
+          }
+        >
+          <p className="lead">Book vs counted · every submitted session merged</p>
 
           {variance && (
             <>
-              <div className="form-row" style={{ margin: "14px 0" }}>
-                <div className="card section-card">
-                  <p className="eyebrow">Net pieces</p>
-                  <h3 className="h3">
-                    <Signed n={variance.net_pieces} />
-                  </h3>
-                </div>
-                <div className="card section-card">
-                  <p className="eyebrow">Net value</p>
-                  <h3
-                    className="h3"
-                    style={{ color: variance.net_variance_paise < 0 ? "var(--red)" : undefined }}
-                  >
-                    <Money paise={variance.net_variance_paise} />
-                  </h3>
-                </div>
-                <div className="card section-card">
-                  <p className="eyebrow">Lines</p>
-                  <h3 className="h3">{variance.lines.length}</h3>
-                </div>
-              </div>
+              <KpiStrip
+                label="Variance totals"
+                items={[
+                  { label: "Net pieces", value: <Signed n={variance.net_pieces} /> },
+                  { label: "Net value", value: <Money paise={variance.net_variance_paise} /> },
+                  { label: "Lines", value: variance.lines.length },
+                ]}
+              />
 
               {variance.unpriced.length > 0 && (
-                <div className="chip chip-amber" data-testid="variance-unpriced">
+                <Note tone="warn" testId="variance-unpriced">
                   The books cannot price {variance.unpriced.length} piece
                   {variance.unpriced.length === 1 ? "" : "s"} — bring them in on a PT before
                   correcting.
-                </div>
+                </Note>
               )}
 
               {awaiting.length > 0 && (
-                <div className="chip chip-amber" data-testid="variance-awaiting-recount">
+                <Note tone="warn" testId="variance-awaiting-recount">
                   {awaiting.length} piece{awaiting.length === 1 ? " is" : "s are"} out by more than{" "}
                   <Money paise={variance.recount_tolerance_paise} /> — too much for one count.
                   Somebody who did not count {awaiting.length === 1 ? "it" : "them"} has to count
                   again before this correction can be made.
-                </div>
+                </Note>
               )}
 
-              <div className="table-wrap" style={{ marginTop: 10 }}>
+              <div className="table-wrap">
                 <table className="data" data-testid="variance-table">
                   <thead>
                     <tr>
@@ -758,9 +752,11 @@ export function StockCountDetailPage() {
                       <th className="num">Book</th>
                       <th className="num">Counted</th>
                       <th className="num">Difference</th>
-                      <th className="num">Cost</th>
+                      <th className="num p2">Cost</th>
                       <th className="num">Value</th>
-                      <th />
+                      <th className="act">
+                        <span className="sr-only">Actions</span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -772,41 +768,33 @@ export function StockCountDetailPage() {
                         <td>
                           {skuLabel(l)}
                           {l.moved && (
-                            <span
-                              className="chip chip-amber"
-                              style={{ marginLeft: 8 }}
-                              data-testid={`moved-${l.sku_code}`}
-                            >
-                              moved since the count
+                            <span className="sub">
+                              <Status tone="amber" testId={`moved-${l.sku_code}`}>
+                                moved since the count
+                              </Status>
                             </span>
                           )}
                           {l.needs_recount && (
-                            <span
-                              className="chip chip-amber"
-                              style={{ marginLeft: 8 }}
-                              data-testid={`needs-recount-${l.sku_code}`}
-                            >
-                              needs a recount
+                            <span className="sub">
+                              <Status tone="amber" testId={`needs-recount-${l.sku_code}`}>
+                                needs a recount
+                              </Status>
                             </span>
                           )}
                           {l.recount && !l.recount.stale && (
-                            <span
-                              className="chip chip-green"
-                              style={{ marginLeft: 8 }}
-                              data-testid={`recounted-${l.sku_code}`}
-                            >
-                              recounted by {l.recount.recounted_by_name || "—"} ·{" "}
-                              {l.recount.reason_label}
+                            <span className="sub">
+                              <Status tone="green" testId={`recounted-${l.sku_code}`}>
+                                recounted by {l.recount.recounted_by_name || "—"} ·{" "}
+                                {l.recount.reason_label}
+                              </Status>
                             </span>
                           )}
                           {l.recount?.stale && (
-                            <span
-                              className="chip chip-grey"
-                              style={{ marginLeft: 8 }}
-                              data-testid={`recount-stale-${l.sku_code}`}
-                            >
-                              {l.recount.recounted_by_name || "—"}&rsquo;s recount is out of date —
-                              somebody counted more of this piece afterwards
+                            <span className="sub">
+                              <Status tone="grey" testId={`recount-stale-${l.sku_code}`}>
+                                {l.recount.recounted_by_name || "—"}&rsquo;s recount is out of date
+                                — somebody counted more of this piece afterwards
+                              </Status>
                             </span>
                           )}
                         </td>
@@ -824,19 +812,19 @@ export function StockCountDetailPage() {
                         <td className="num">
                           <Signed n={l.adj_qty} />
                         </td>
-                        <td className="num">
+                        <td className="num p2">
                           {l.cost_known ? <Money paise={l.unit_cost_paise} /> : "unknown"}
                         </td>
                         <td className="num">
                           {l.cost_known ? <Money paise={l.variance_paise} /> : "—"}
                         </td>
-                        <td>
+                        <td className="act">
                           {l.needs_recount &&
                             writable &&
                             (l.may_recount ? (
                               <button
                                 type="button"
-                                className="btn"
+                                className="btn btn-sm"
                                 disabled={busy}
                                 onClick={() => askRecount(l)}
                                 data-testid={`recount-btn-${l.sku_code}`}
@@ -859,40 +847,41 @@ export function StockCountDetailPage() {
               </div>
 
               {error && (
-                <div
-                  className="login-error"
-                  style={{ maxWidth: 560, marginTop: 14 }}
-                  data-testid="count-variance-error"
-                >
+                <Note tone="error" testId="count-variance-error">
                   {error}
-                </div>
+                </Note>
               )}
 
               {canApply && (
-                <button
-                  className="btn btn-primary btn-lg"
-                  style={{ marginTop: 14 }}
-                  disabled={busy}
-                  onClick={() => void apply()}
-                  data-testid="apply-variance-btn"
-                >
-                  <ClipboardCheck size={16} /> {busy ? "Applying…" : "Apply the variance"}
-                </button>
+                <div>
+                  {/* Applying the variance corrects stock: the one commit button. */}
+                  <button
+                    className="btn btn-cta btn-lg"
+                    disabled={busy}
+                    onClick={() => void apply()}
+                    data-testid="apply-variance-btn"
+                  >
+                    <ClipboardCheck size={16} /> {busy ? "Applying…" : "Apply the variance"}
+                  </button>
+                </div>
               )}
             </>
           )}
-        </div>
+        </Section>
       )}
 
       {recountAsk && (
-        <div className="card section-card" data-testid="recount-card">
-          <p className="eyebrow">A second count · {recountAsk.sku_code}</p>
-          <h3 className="h3">Count {skuLabel(recountAsk)} again</h3>
+        <Section
+          heading={`Count ${skuLabel(recountAsk)} again`}
+          ruled
+          testId="recount-card"
+          aside={<span className="lead mono">{recountAsk.sku_code}</span>}
+        >
           <p className="lead">
             The books say {recountAsk.book_qty}. What the first count found is not shown — count
             what is there, then say why it is out. Both answers are kept.
           </p>
-          <div className="form-row" style={{ marginTop: 10 }}>
+          <div className="form-row">
             <div className="field">
               <label htmlFor="count-recount-qty">How many are actually there</label>
               <input
@@ -924,7 +913,7 @@ export function StockCountDetailPage() {
               </select>
             </div>
           </div>
-          <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+          <div style={{ display: "flex", gap: 10 }}>
             <button
               className="btn btn-primary"
               disabled={busy}
@@ -941,35 +930,32 @@ export function StockCountDetailPage() {
               Not now
             </button>
           </div>
-        </div>
+        </Section>
       )}
 
       {take.adjustment && (
-        <div className="card section-card" data-testid="count-adjustment-card">
-          <p className="eyebrow">The correction this count produced</p>
-          <h3 className="h3">
+        <Section heading="The correction this count produced" ruled testId="count-adjustment-card">
+          <p>
             <Link to={`/stock-count/adjustments/${take.adjustment}`} className="mono">
               {take.adjustment_doc_number || `Draft #${take.adjustment}`}
             </Link>
-          </h3>
+          </p>
           <p className="lead">
             {take.adjustment_docstatus === 1
               ? "Within tolerance — adjusted and logged, no second person asked."
               : "Above tolerance — waiting for a second person to approve it."}
           </p>
-        </div>
+        </Section>
       )}
 
       {movedAsk && (
-        <div className="card section-card" data-testid="moved-confirm-card">
-          <p className="eyebrow">Confirm before applying</p>
-          <h3 className="h3">These pieces moved since the count</h3>
+        <Section heading="These pieces moved since the count" ruled testId="moved-confirm-card">
           <p className="lead">
             Somebody sold, transferred or corrected them after the count was submitted. The
             difference the count found still applies — the later movement is already on the books —
             but nothing is overwritten until you say so.
           </p>
-          <div className="table-wrap" style={{ marginTop: 10 }}>
+          <div className="table-wrap">
             <table className="data" data-testid="moved-table">
               <thead>
                 <tr>
@@ -997,9 +983,9 @@ export function StockCountDetailPage() {
               </tbody>
             </table>
           </div>
-          <div style={{ display: "flex", gap: 10, marginTop: 12 }}>
+          <div style={{ display: "flex", gap: 10 }}>
             <button
-              className="btn btn-primary"
+              className="btn btn-cta"
               disabled={busy}
               onClick={() => void apply(movedAsk.map((l) => l.sku_code))}
               data-testid="confirm-moved-btn"
@@ -1014,7 +1000,7 @@ export function StockCountDetailPage() {
               Not now
             </button>
           </div>
-        </div>
+        </Section>
       )}
 
       {scanning && (

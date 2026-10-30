@@ -1,17 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import {
-  Boxes,
-  CheckCircle2,
-  IndianRupee,
-  Layers,
-  Minus,
-  Plus,
-  Repeat,
-  ScrollText,
-  ShieldAlert,
-  X,
-} from "lucide-react";
+import { Minus, Plus, Repeat, ScrollText, ShieldAlert, X } from "lucide-react";
 
 import { fmtApprovalWhen } from "../components/approval";
 import type { ApprovalT } from "../components/approval";
@@ -22,7 +12,12 @@ import { withQuery } from "../lib/query";
 import "./Booking.css";
 import "./Shared.css";
 import { PageHeader } from "../components/PageHeader";
-import { SegmentedControl } from "../components/SegmentedControl";
+import { KpiStrip } from "../components/KpiStrip";
+import type { Kpi } from "../components/KpiStrip";
+import { Note } from "../components/Note";
+import { Section } from "../components/Section";
+import { EmptyState, Loading } from "../components/States";
+import { Status } from "../components/Status";
 import { OperationsPage } from "../components/OperationsPage";
 import { stockParams } from "../lib/stockWorkspace";
 import type { StockWorkspaceFilter } from "./StockWorkspace";
@@ -124,6 +119,17 @@ export function StockValue({
   return <span className="muted">{loading ? "Loading…" : "Unavailable"}</span>;
 }
 
+/** The board's "Item, design" cell: the item, with its design beneath. */
+function ItemDesign({ item, design }: { item: string; design: string }) {
+  if (!item) return <>{design}</>;
+  return (
+    <>
+      {item}
+      {design && <span className="sub">{design}</span>}
+    </>
+  );
+}
+
 export function stockQuantity(value: number | undefined, loading: boolean): string {
   if (value !== undefined) return value.toLocaleString("en-IN");
   return loading ? "Loading…" : "Unavailable";
@@ -145,7 +151,13 @@ function groupingsFor(view: StockView | undefined): typeof TABS {
 export default function StockOnHand({
   view,
   workspace,
-}: { view?: StockView; workspace?: StockWorkspaceFilter } = {}) {
+  views,
+}: {
+  view?: StockView;
+  workspace?: StockWorkspaceFilter;
+  /** The host's view switch, drawn first in this panel's control row. */
+  views?: ReactNode;
+} = {}) {
   // Where a global-search result lands (#86): one barcode, or one brand, with
   // its stock wherever the caller may see it. Both filters are the server's, so
   // the answer survives the on-hand line cap.
@@ -334,37 +346,24 @@ export default function StockOnHand({
   // half. Standing alone it is one screen with a strip you switch on, and the
   // header must stay the screen's - unchanged from before the fold.
   const hostedQuar = view === "quarantine";
-  const cards = isQuar
+  // A value this login may not see is a dash with the reason, never a zero.
+  const valueKpi = (paise: number | undefined): Pick<Kpi, "value" | "detail"> =>
+    typeof paise === "number" || loading
+      ? { value: <StockValue paise={paise} loading={loading} short /> }
+      : { value: "—", detail: "Not visible to your login" };
+  const kpis: Kpi[] = isQuar
     ? [
         {
-          icon: ShieldAlert,
           label: "Units quarantined",
           value: stockQuantity(quar?.summary.units_quarantined, loading),
         },
-        {
-          icon: IndianRupee,
-          label: "Quarantine value",
-          value: <StockValue paise={quar?.summary.value_paise} loading={loading} short />,
-        },
-        {
-          icon: Layers,
-          label: "Quarantine lines",
-          value: stockQuantity(quar?.summary.lines, loading),
-        },
+        { label: "Quarantine value", ...valueKpi(quar?.summary.value_paise) },
+        { label: "Quarantine lines", value: stockQuantity(quar?.summary.lines, loading) },
       ]
     : [
+        { label: "Units on hand", value: stockQuantity(data?.summary.units_on_hand, loading) },
+        { label: "Stock value", ...valueKpi(data?.summary.value_paise) },
         {
-          icon: Boxes,
-          label: "Units on hand",
-          value: stockQuantity(data?.summary.units_on_hand, loading),
-        },
-        {
-          icon: IndianRupee,
-          label: "Stock value",
-          value: <StockValue paise={data?.summary.value_paise} loading={loading} short />,
-        },
-        {
-          icon: Layers,
           label: group === "store" ? "Stores" : group === "brand" ? "Brands" : "SKU lines",
           value: stockQuantity(data?.summary.lines, loading),
         },
@@ -405,27 +404,68 @@ export default function StockOnHand({
       )}
 
       {flash && (
-        <div className="ok-note" data-testid="onhand-flash">
-          <CheckCircle2 size={16} /> {flash}
-          <span className="spacer" />
-          <button onClick={() => setFlash("")} aria-label="Dismiss">
-            <X size={15} />
-          </button>
+        <Note
+          tone="success"
+          role="status"
+          testId="onhand-flash"
+          action={
+            <button className="btn btn-sm" onClick={() => setFlash("")} aria-label="Dismiss">
+              <X size={15} />
+            </button>
+          }
+        >
+          {flash}
+        </Note>
+      )}
+
+      {/* How to cut the list and what to look for, on one row above the totals:
+          the view switch the host passes, then the grouping. */}
+      {(views || groupings.length > 1 || (!isQuar && !workspace)) && (
+        <div className="onhand-controls">
+          {views}
+          {/* Hosted on Inventory, Quarantine is a tab of its own and the choice
+              is only the three groupings - or nothing at all, on the damage tab. */}
+          {groupings.length > 1 && (
+            <>
+              <label className="lead" htmlFor="onhand-group">
+                Group by
+              </label>
+              <select
+                id="onhand-group"
+                className="select"
+                style={{ width: "auto" }}
+                value={group}
+                onChange={(e) => setGroup(e.target.value as Group)}
+                data-testid="onhand-tabs"
+              >
+                {groupings.map((t) => (
+                  <option key={t.key} value={t.key} data-testid={`onhand-tab-${t.key}`}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+          {!isQuar && !workspace && (
+            <div className="filter-bar" data-testid="onhand-search-bar">
+              <SearchBox
+                value={q}
+                onChange={setQ}
+                placeholder="Search or scan — style, barcode, brand"
+                label="Search stock"
+                testId="onhand-search"
+              />
+            </div>
+          )}
         </div>
       )}
 
-      <div className="stat-grid" data-testid="onhand-summary">
-        {cards.map((c) => (
-          <div className="card stat-card" key={c.label}>
-            <c.icon size={18} style={{ color: "var(--rust)" }} />
-            <div className="stat-value mono">{c.value}</div>
-            <div className="stat-label">{c.label}</div>
-          </div>
-        ))}
+      <div data-testid="onhand-summary">
+        <KpiStrip label={isQuar ? "Quarantine totals" : "Stock totals"} items={kpis} />
       </div>
 
       {!isQuar && data?.summary.scope === "current_access" && (
-        <p className="muted" data-testid="onhand-scope-note">
+        <p className="stock-scope" data-testid="onhand-scope-note">
           Totals cover the stock you may currently access.
           {data.summary.identity_complete === false &&
             " Some stock has unresolved item identities."}
@@ -433,37 +473,6 @@ export default function StockOnHand({
             " A complete valuation is unavailable for this selection."}
         </p>
       )}
-
-      {/* The totals first, then how to cut the list and what to look for, on one
-          row: a desktop has the width, and the table starts higher. */}
-      <div className="onhand-controls">
-        {/* Hosted on Inventory, Quarantine is a tab of its own and the strip is
-            only the three groupings - or nothing at all, on the damage tab. */}
-        {groupings.length > 1 && (
-          <SegmentedControl
-            label="Group by"
-            testId="onhand-tabs"
-            value={group}
-            options={groupings.map((t) => ({
-              value: t.key,
-              label: t.label,
-              testId: `onhand-tab-${t.key}`,
-            }))}
-            onChange={setGroup}
-          />
-        )}
-        {!isQuar && !workspace && (
-          <div className="filter-bar" data-testid="onhand-search-bar">
-            <SearchBox
-              value={q}
-              onChange={setQ}
-              placeholder="Search or scan — style, barcode, brand"
-              label="Search stock"
-              testId="onhand-search"
-            />
-          </div>
-        )}
-      </div>
 
       {!isQuar && deepFilter && (
         <div className="filter-bar" data-testid="onhand-deep-filter">
@@ -489,6 +498,7 @@ export default function StockOnHand({
         <div className="filter-bar" data-testid="quarantine-filters">
           <select
             className="select"
+            aria-label="Store"
             value={qStore}
             onChange={(e) => setQStore(e.target.value)}
             data-testid="quarantine-filter-store"
@@ -502,6 +512,7 @@ export default function StockOnHand({
           </select>
           <select
             className="select"
+            aria-label="Brand"
             value={qBrand}
             onChange={(e) => setQBrand(e.target.value)}
             data-testid="quarantine-filter-brand"
@@ -529,23 +540,16 @@ export default function StockOnHand({
       )}
 
       {isQuar && !loading && !error && flagsErr && (
-        <div className="warn-note" style={{ marginTop: 16 }} data-testid="damage-flags-error">
+        <Note tone="error" testId="damage-flags-error">
           Could not load the damage reports waiting to be confirmed — {flagsErr}
-        </div>
+        </Note>
       )}
 
       {/* A sibling of the quarantine table, not one of its states: a store can
           have reports waiting whether or not anything has reached quarantine. */}
       {isQuar && !loading && !error && openFlags.length > 0 && (
-        <div className="card section-card" style={{ marginTop: 16 }} data-testid="damage-flags">
-          <h3 className="h3" style={{ marginBottom: 4 }}>
-            <ShieldAlert
-              size={16}
-              style={{ color: "var(--rust)", verticalAlign: "-2px", marginRight: 6 }}
-            />
-            Damage reported, not in quarantine
-          </h3>
-          <p className="stat-label" style={{ marginBottom: 12 }}>
+        <Section heading="Damage reported, not in quarantine" testId="damage-flags">
+          <p className="lead">
             These pieces are still sellable — either waiting for a warehouse or HO person to confirm
             the report, or looked at and sent back as sellable.
           </p>
@@ -565,8 +569,8 @@ export default function StockOnHand({
                   <th>Size</th>
                   <th>Store</th>
                   <th className="num">Units</th>
-                  <th>Reported by</th>
-                  <th>When</th>
+                  <th className="p2">Reported by</th>
+                  <th className="p2">When</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -580,15 +584,20 @@ export default function StockOnHand({
                       <td>{l.color}</td>
                       <td>{l.size}</td>
                       <td>{f.store_code}</td>
-                      <td className="num" style={{ fontWeight: 600 }}>
-                        {l.qty}
+                      <td className="num">
+                        <b>{l.qty}</b>
                       </td>
-                      <td>{f.created_by_name || "—"}</td>
-                      <td>{fmtApprovalWhen(f.created_at)}</td>
+                      <td className="p2">{f.created_by_name || "—"}</td>
+                      <td className="p2">{fmtApprovalWhen(f.created_at)}</td>
                       <td>
-                        {f.flag_status === "rejected"
-                          ? `Not damaged — ${f.approval?.reason ?? ""}`
-                          : "Waiting to be confirmed"}
+                        {f.flag_status === "rejected" ? (
+                          <>
+                            <Status tone="grey">Not damaged</Status>
+                            {f.approval?.reason && <span className="sub">{f.approval.reason}</span>}
+                          </>
+                        ) : (
+                          <Status tone="amber">Waiting to be confirmed</Status>
+                        )}
                       </td>
                     </tr>
                   )),
@@ -596,26 +605,25 @@ export default function StockOnHand({
               </tbody>
             </table>
           </div>
-        </div>
+        </Section>
       )}
 
       {loading ? (
-        <p className="lead">Loading…</p>
+        <Loading lines={6} label="Loading stock" />
       ) : error ? (
-        <div className="warn-note" data-testid="onhand-error">
+        <Note tone="error" testId="onhand-error">
           {error}
-        </div>
+        </Note>
       ) : isQuar ? (
         emptyQuar ? (
-          <div className="card section-card" data-testid="quarantine-empty">
+          <EmptyState testId="quarantine-empty">
             {qStore || qBrand
               ? "No quarantined stock matches these filters."
               : "Nothing in quarantine. “Mark damaged” on any SKU reports a piece; a warehouse or HO person's confirmation moves it here."}
-          </div>
+          </EmptyState>
         ) : (
           <div
             className="table-wrap kdps-scroll"
-            style={{ marginTop: 16 }}
             role="region"
             aria-label="Earlier quarantined stock"
             tabIndex={0}
@@ -625,15 +633,15 @@ export default function StockOnHand({
                 <tr>
                   <th>Barcode (SKU)</th>
                   <th>Brand</th>
-                  <th>Design</th>
+                  <th>Item, design</th>
                   <th>Colour</th>
                   <th>Size</th>
-                  <th>Season</th>
+                  <th className="p2">Season</th>
                   <th>Store</th>
                   <th className="num">Units</th>
-                  <th className="num">Value ₹</th>
-                  <th>Marked by</th>
-                  <th>When</th>
+                  <th className="num">Value</th>
+                  <th className="p2">Marked by</th>
+                  <th className="p3">When</th>
                 </tr>
               </thead>
               <tbody>
@@ -641,19 +649,23 @@ export default function StockOnHand({
                   <tr key={i} data-testid={`quarantine-row-${i}`}>
                     <td className="mono">{r.sku_code}</td>
                     <td>{r.brand}</td>
-                    <td>{r.design}</td>
+                    <td>
+                      <ItemDesign item={r.item} design={r.design} />
+                    </td>
                     <td>{r.color}</td>
                     <td>{r.size}</td>
-                    <td>{r.season}</td>
+                    <td className="p2">{r.season}</td>
                     <td>{r.store_code}</td>
-                    <td className="num" style={{ fontWeight: 600 }}>
-                      {r.qty}
+                    <td className="num">
+                      <b>{r.qty}</b>
                     </td>
-                    <td className="num mono">
+                    <td className="num">
                       <StockValue paise={r.value_paise} />
                     </td>
-                    <td>{r.marked_by ?? "—"}</td>
-                    <td>{r.marked_at ? new Date(r.marked_at).toLocaleString("en-IN") : "—"}</td>
+                    <td className="p2">{r.marked_by ?? "—"}</td>
+                    <td className="p3">
+                      {r.marked_at ? new Date(r.marked_at).toLocaleString("en-IN") : "—"}
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -661,129 +673,129 @@ export default function StockOnHand({
           </div>
         )
       ) : emptyOnHand ? (
-        <div className="card section-card" data-testid="onhand-empty">
+        <EmptyState testId="onhand-empty">
           {q
             ? `Nothing matching “${q}” in any location you can see.`
             : deepFilter
               ? `No stock of ${deepFilter} in any location you can see.`
               : "No stock on hand in your current scope. Reviewed receipts become inventory after physical acceptance."}
-        </div>
+        </EmptyState>
       ) : (
-        <div
-          className="table-wrap kdps-scroll"
-          style={{ marginTop: 16 }}
-          role="region"
-          aria-label="Stock on hand"
-          tabIndex={0}
-        >
+        <>
           {data!.summary.truncated && (
-            <div
-              className="warn-note"
-              data-testid="onhand-truncated-banner"
-              style={{ marginBottom: 10 }}
-            >
+            <Note tone="warn" testId="onhand-truncated-banner">
               Showing the first {data!.summary.displayed ?? data!.rows.length} of{" "}
               {data!.summary.lines} lines. Filter by store or brand to narrow the view.
-            </div>
+            </Note>
           )}
-          <table className="data kdps-table" data-testid="onhand-table">
-            <thead>
-              <tr>
-                {group === "sku" && (
-                  <>
-                    <th>Barcode (SKU)</th>
-                    <th>Brand</th>
-                    <th>Design</th>
-                    <th>Colour</th>
-                    <th>Size</th>
-                    <th>Item</th>
-                    <th>Season</th>
-                    <th>Store</th>
-                  </>
-                )}
-                {group === "brand" && (
-                  <>
-                    <th>Brand</th>
-                    <th>Store</th>
-                    <th className="num">SKUs</th>
-                  </>
-                )}
-                {group === "store" && (
-                  <>
-                    <th>Store</th>
-                    <th>Name</th>
-                    <th className="num">SKUs</th>
-                  </>
-                )}
-                <th className="num">Units</th>
-                <th className="num">Value ₹</th>
-                {group === "sku" && <th />}
-              </tr>
-            </thead>
-            <tbody>
-              {data!.rows.map((r, i) => (
-                <tr key={i} data-testid={`onhand-row-${i}`}>
+          <div
+            className="table-wrap capped kdps-scroll"
+            role="region"
+            aria-label="Stock on hand"
+            tabIndex={0}
+          >
+            <table className="data kdps-table" data-testid="onhand-table">
+              <thead>
+                <tr>
                   {group === "sku" && (
                     <>
-                      <td className="mono">{r.sku_code}</td>
-                      <td>{r.brand}</td>
-                      <td>{r.design}</td>
-                      <td>{r.color}</td>
-                      <td>{r.size}</td>
-                      <td>{r.item}</td>
-                      <td>{r.season}</td>
-                      <td>{r.store_code}</td>
+                      <th>Barcode (SKU)</th>
+                      <th>Brand</th>
+                      <th>Item, design</th>
+                      <th>Colour</th>
+                      <th>Size</th>
+                      <th className="p2">Season</th>
+                      <th>Store</th>
                     </>
                   )}
                   {group === "brand" && (
                     <>
-                      <td>
-                        <b>{r.brand}</b>
-                      </td>
-                      <td>{r.store_code}</td>
-                      <td className="num">{r.skus}</td>
+                      <th>Brand</th>
+                      <th>Store</th>
+                      <th className="num">SKUs</th>
                     </>
                   )}
                   {group === "store" && (
                     <>
-                      <td className="mono">{r.store_code}</td>
-                      <td>{r.store_name}</td>
-                      <td className="num">{r.skus}</td>
+                      <th>Store</th>
+                      <th>Name</th>
+                      <th className="num">SKUs</th>
                     </>
                   )}
-                  <td className="num" style={{ fontWeight: 600 }}>
-                    {r.net_qty}
-                  </td>
-                  <td className="num mono">
-                    <StockValue paise={r.net_value_paise} />
-                  </td>
+                  <th className="num">Units</th>
+                  <th className="num">Value</th>
                   {group === "sku" && (
-                    <td>
-                      {r.record_contract === "goods-v1" ? (
-                        <Link
-                          className="btn btn-sm"
-                          to={withQuery("/goods/stock", { site_id: r.store_id })}
-                          data-testid={`canonical-stock-${i}`}
-                        >
-                          Review stock
-                        </Link>
-                      ) : (
-                        <button
-                          className="btn btn-sm"
-                          onClick={() => openDamage(r)}
-                          data-testid={`mark-damaged-${i}`}
-                          title="Report a piece as damaged"
-                        >
-                          <ShieldAlert size={14} /> Mark damaged
-                        </button>
-                      )}
-                    </td>
+                    <th className="act">
+                      <span className="sr-only">Actions</span>
+                    </th>
                   )}
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {data!.rows.map((r, i) => (
+                  <tr key={i} data-testid={`onhand-row-${i}`}>
+                    {group === "sku" && (
+                      <>
+                        <td className="mono">{r.sku_code}</td>
+                        <td>{r.brand}</td>
+                        <td>
+                          <ItemDesign item={r.item} design={r.design} />
+                        </td>
+                        <td>{r.color}</td>
+                        <td>{r.size}</td>
+                        <td className="p2">{r.season}</td>
+                        <td>{r.store_code}</td>
+                      </>
+                    )}
+                    {group === "brand" && (
+                      <>
+                        <td>
+                          <b>{r.brand}</b>
+                        </td>
+                        <td>{r.store_code}</td>
+                        <td className="num">{r.skus}</td>
+                      </>
+                    )}
+                    {group === "store" && (
+                      <>
+                        <td className="mono">{r.store_code}</td>
+                        <td>{r.store_name}</td>
+                        <td className="num">{r.skus}</td>
+                      </>
+                    )}
+                    <td className="num">
+                      <b>{r.net_qty}</b>
+                    </td>
+                    <td className="num">
+                      <StockValue paise={r.net_value_paise} />
+                    </td>
+                    {group === "sku" && (
+                      <td className="act">
+                        {r.record_contract === "goods-v1" ? (
+                          <Link
+                            to={withQuery("/goods/stock", { site_id: r.store_id })}
+                            data-testid={`canonical-stock-${i}`}
+                          >
+                            Review stock
+                          </Link>
+                        ) : (
+                          <button
+                            className="btn btn-sm"
+                            onClick={() => openDamage(r)}
+                            data-testid={`mark-damaged-${i}`}
+                            title="Report a piece as damaged"
+                          >
+                            <ShieldAlert size={14} /> Mark damaged
+                          </button>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
       {/* Mark-damaged confirm dialog — set the exact count, then post. */}
@@ -796,10 +808,7 @@ export default function StockOnHand({
           <div className="modal" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
               <h3 className="h3">
-                <ShieldAlert
-                  size={17}
-                  style={{ color: "var(--rust)", verticalAlign: "-3px", marginRight: 6 }}
-                />
+                <ShieldAlert size={17} style={{ verticalAlign: "-3px", marginRight: 6 }} />
                 Mark damaged
               </h3>
               <button
@@ -863,9 +872,9 @@ export default function StockOnHand({
             </p>
 
             {dmgErr && (
-              <div className="warn-note" data-testid="mark-damaged-error">
+              <Note tone="error" testId="mark-damaged-error">
                 {dmgErr}
-              </div>
+              </Note>
             )}
 
             <button

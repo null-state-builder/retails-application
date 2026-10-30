@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import { KpiStrip } from "../../components/KpiStrip";
+import { Note } from "../../components/Note";
 import { PageHeader } from "../../components/PageHeader";
+import { Box, Section } from "../../components/Section";
+import { EmptyState, Loading } from "../../components/States";
+import { Status } from "../../components/Status";
+import type { StatusTone } from "../../components/Status";
 import { api, apiErrorMessage, goodsMeta } from "../../lib/api";
 import type { ApiRead, ApiSchemas } from "../../lib/api";
 import { isConnectionLost } from "../../lib/auditLog";
@@ -273,34 +279,37 @@ export function CustomerPage() {
   const offline = !online || lost;
   const writable = !offline && !busy && siteId !== null;
   const offlineNote = offline && (
-    <p className="warn-note" data-testid="customer-offline" role="status">
-      {CUSTOMERS_OFFLINE}
-      {online && (
-        <>
-          {" "}
+    <Note
+      tone="warn"
+      role="status"
+      testId="customer-offline"
+      action={
+        online && (
           <button
             type="button"
-            className="btn"
+            className="btn btn-sm"
             data-testid="customer-retry"
             onClick={() => void load()}
           >
             Try again
           </button>
-        </>
-      )}
-    </p>
+        )
+      }
+    >
+      {CUSTOMERS_OFFLINE}
+    </Note>
   );
   const notes = (
     <>
       {error && (
-        <p className="warn-note" data-testid="customer-error">
+        <Note tone="error" testId="customer-error">
           {error}
-        </p>
+        </Note>
       )}
       {done && (
-        <p className="ok-note" data-testid="customer-done">
+        <Note tone="success" role="status" testId="customer-done">
           {done}
-        </p>
+        </Note>
       )}
     </>
   );
@@ -309,13 +318,17 @@ export function CustomerPage() {
     return (
       <div className="page-pad">
         <PageHeader title="Customer erased" />
-        <p className="ok-note" data-testid="customer-erased">
-          Erased. The profile and consents are gone, here and from every till at its next sync.
-          Bills stay, as the tax law needs.
-        </p>
-        <Link className="btn" to="/customers" data-testid="customer-back">
-          Back to customers
-        </Link>
+        <div className="page">
+          <Note tone="success" role="status" testId="customer-erased">
+            Erased. The profile and consents are gone, here and from every till at its next sync.
+            Bills stay, as the tax law needs.
+          </Note>
+          <p>
+            <Link className="link" to="/customers" data-testid="customer-back">
+              Back to customers
+            </Link>
+          </p>
+        </div>
       </div>
     );
   }
@@ -324,117 +337,78 @@ export function CustomerPage() {
     return (
       <div className="page-pad">
         <PageHeader title="Customer" />
-        {offlineNote}
-        {missing ? (
-          <p className="warn-note" data-testid="customer-missing">
-            No customer like that at your stores. <Link to="/customers">Back to customers</Link>
-          </p>
-        ) : error ? (
-          <p className="warn-note" data-testid="customer-error">
-            {error}
-          </p>
-        ) : (
-          !offline && <p>Loading customer…</p>
-        )}
+        <div className="page">
+          {offlineNote}
+          {missing ? (
+            <EmptyState
+              testId="customer-missing"
+              action={
+                <Link className="link" to="/customers">
+                  Back to customers
+                </Link>
+              }
+            >
+              No customer like that at your stores.
+            </EmptyState>
+          ) : error ? (
+            <Note tone="error" testId="customer-error">
+              {error}
+            </Note>
+          ) : (
+            !offline && <Loading label="Loading customer" />
+          )}
+        </div>
       </div>
     );
   }
+
+  const latest = customer.bills[0];
 
   return (
     <div className="page-pad">
       <PageHeader
         title={customer.name || "No name held"}
-        lead={`${customer.mobile}${customer.gstin ? ` · GSTIN ${customer.gstin}` : ""}`}
+        lead={
+          <>
+            <span className="mono">{customer.mobile}</span>
+            {customer.gstin ? (
+              <>
+                , GSTIN <span className="mono">{customer.gstin}</span>
+              </>
+            ) : (
+              ", no GSTIN"
+            )}
+          </>
+        }
       />
       <div className={wide ? "queue-split" : undefined}>
         {wide && <CustomerQueue currentId={id ?? ""} />}
-        <div className="queue-work">
-          <p>
-            <Link to="/customers" data-testid="customer-back">
+        <div className="queue-work page">
+          <p className="customer-back">
+            <Link className="link" to="/customers" data-testid="customer-back">
               ← Customers
             </Link>
           </p>
           {offlineNote}
           {notes}
 
-          <section className="card section-card" data-testid="customer-profile">
-            <h2 className="h3">Held about this customer</h2>
-            <dl className="customer-facts">
-              <dt>Name</dt>
-              <dd data-testid="customer-name">{customer.name || "No name held"}</dd>
-              <dt>Number</dt>
-              <dd className="mono" data-testid="customer-mobile">
-                {customer.mobile}
-              </dd>
-              <dt>GSTIN</dt>
-              <dd className="mono" data-testid="customer-gstin">
-                {customer.gstin || "None"}
-              </dd>
-              {customer.numbers.length > 0 && (
-                <>
-                  <dt>Other numbers</dt>
-                  <dd data-testid="customer-numbers">
-                    {customer.numbers.map((n) => (
-                      <div
-                        key={`${n.reason}-${n.mobile}`}
-                        data-testid={`customer-number-${n.mobile}`}
-                      >
-                        <span className="mono">{n.mobile}</span>{" "}
-                        <span className="muted-cell">
-                          {otherNumberNote(n.reason, n.until ?? null, formatDateTime)}
-                        </span>
-                      </div>
-                    ))}
-                  </dd>
-                </>
-              )}
-            </dl>
-          </section>
+          <KpiStrip
+            label="This customer at your stores"
+            items={[
+              {
+                label: "Bills at your stores",
+                value: customer.bills_total.toLocaleString("en-IN"),
+              },
+              {
+                label: "Last bill",
+                value: latest ? formatDateTime(latest.billed_at) : "—",
+                detail: latest ? latest.store_code : "No bill yet",
+              },
+            ]}
+          />
 
-          <section className="card section-card" data-testid="customer-consents">
-            <h2 className="h3">Consents</h2>
-            <table className="data">
-              <tbody>
-                {CONSENT_QUESTIONS.map(({ key, label }) => {
-                  const standing = customer.consent[key];
-                  const chip = consentChip(standing);
-                  return (
-                    <tr key={key} data-testid={`consent-${key}`}>
-                      <td>{label}</td>
-                      <td>
-                        <span className={`chip ${chip.chip}`} data-testid={`consent-${key}-state`}>
-                          {chip.label}
-                        </span>
-                        {standing && (
-                          <span className="muted-cell">
-                            {" "}
-                            {answeredHow(standing.how)}, {formatDateTime(standing.answered_at)}
-                          </span>
-                        )}
-                      </td>
-                      <td>
-                        {customer.can_act && standing?.given && (
-                          <button
-                            type="button"
-                            className="btn"
-                            disabled={!writable}
-                            data-testid={`consent-${key}-withdraw`}
-                            onClick={() => void withdraw(key)}
-                          >
-                            Withdraw
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </section>
-
-          <section className="card section-card" data-testid="customer-bills">
-            <h2 className="h3">Bills</h2>
-            <p className="muted-cell">
+          <Section heading="Bills" testId="customer-bills">
+            <p className="customer-sub">
               {customer.bills_total === 1 ? "1 bill" : `${customer.bills_total} bills`} at your
               stores.
               {customer.bills_total > customer.bills.length
@@ -447,25 +421,41 @@ export function CustomerPage() {
                 <table className="data" data-testid="customer-bill-rows">
                   <thead>
                     <tr>
-                      <th>Bill</th>
-                      <th>When</th>
-                      <th>Store</th>
-                      <th className="num">Total</th>
-                      <th />
+                      <th scope="col">Bill</th>
+                      <th scope="col">When</th>
+                      <th scope="col">Store</th>
+                      <th scope="col" className="p2">
+                        Name on the bill
+                      </th>
+                      <th scope="col" className="p3">
+                        GSTIN on the bill
+                      </th>
+                      <th scope="col" className="num">
+                        Total
+                      </th>
+                      <th scope="col">
+                        <span className="sr-only">Kind</span>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
                     {customer.bills.map((bill) => (
                       <tr key={bill.id} data-testid={`customer-bill-${bill.id}`}>
-                        <td className="mono">{bill.doc_number || "not numbered"}</td>
+                        <td className="mono customer-bill-no">
+                          {bill.doc_number || "not numbered"}
+                        </td>
                         <td>{formatDateTime(bill.billed_at)}</td>
                         <td>{bill.store_code}</td>
+                        <td className="p2">{bill.customer_name || "—"}</td>
+                        <td className="p3 mono">{bill.buyer_gstin || "—"}</td>
                         <td className="num">
                           <Money paise={bill.net_paise} />
                         </td>
                         <td>
-                          {bill.exchange && <span className="chip chip-navy">Exchange</span>}
-                          {bill.cancelled && <span className="chip chip-red">Cancelled</span>}
+                          <span className="customer-flags">
+                            {bill.exchange && <Status tone="blue">Exchange</Status>}
+                            {bill.cancelled && <Status tone="red">Cancelled</Status>}
+                          </span>
                         </td>
                       </tr>
                     ))}
@@ -473,22 +463,106 @@ export function CustomerPage() {
                 </table>
               </div>
             )}
-          </section>
+          </Section>
 
-          <section className="card section-card" data-testid="customer-rights">
-            <h2 className="h3">The customer's rights</h2>
+          <div className="customer-pair">
+            <Section heading="Held about this customer" ruled testId="customer-profile">
+              <dl className="dl customer-facts">
+                <dt>Name</dt>
+                <dd data-testid="customer-name">{customer.name || "No name held"}</dd>
+                <dt>Number</dt>
+                <dd className="mono" data-testid="customer-mobile">
+                  {customer.mobile}
+                </dd>
+                <dt>GSTIN</dt>
+                <dd className="mono" data-testid="customer-gstin">
+                  {customer.gstin || "None"}
+                </dd>
+                {customer.numbers.length > 0 && (
+                  <>
+                    <dt>Other numbers</dt>
+                    <dd data-testid="customer-numbers">
+                      {customer.numbers.map((n) => (
+                        <div
+                          key={`${n.reason}-${n.mobile}`}
+                          data-testid={`customer-number-${n.mobile}`}
+                        >
+                          <span className="mono">{n.mobile}</span>{" "}
+                          <span className="muted-cell">
+                            {otherNumberNote(n.reason, n.until ?? null, formatDateTime)}
+                          </span>
+                        </div>
+                      ))}
+                    </dd>
+                  </>
+                )}
+              </dl>
+            </Section>
+
+            <Section heading="Consents" ruled testId="customer-consents">
+              <div className="table-wrap">
+                <table className="data">
+                  <thead>
+                    <tr>
+                      <th scope="col">Question</th>
+                      <th scope="col">Answer</th>
+                      <th scope="col" className="act">
+                        <span className="sr-only">Action</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {CONSENT_QUESTIONS.map(({ key, label }) => {
+                      const standing = customer.consent[key];
+                      const chip = consentChip(standing);
+                      return (
+                        <tr key={key} data-testid={`consent-${key}`}>
+                          <td>{label}</td>
+                          <td>
+                            <Status tone={CONSENT_TONE[chip.chip]} testId={`consent-${key}-state`}>
+                              {chip.label}
+                            </Status>
+                            {standing && (
+                              <span className="sub">
+                                {answeredHow(standing.how)}, {formatDateTime(standing.answered_at)}
+                              </span>
+                            )}
+                          </td>
+                          <td className="act">
+                            {customer.can_act && standing?.given && (
+                              <button
+                                type="button"
+                                className="btn btn-sm"
+                                disabled={!writable}
+                                data-testid={`consent-${key}-withdraw`}
+                                onClick={() => void withdraw(key)}
+                              >
+                                Withdraw
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Section>
+          </div>
+
+          <Section heading="The customer's rights" ruled testId="customer-rights">
             {!customer.can_act ? (
-              <p className="muted-cell" data-testid="customer-read-only">
+              <p className="customer-sub" data-testid="customer-read-only">
                 You can read this page. Store staff act on a customer's request.
               </p>
             ) : (
               <>
-                <p className="muted-cell">
+                <p className="customer-sub">
                   Only at the customer's own request, with the customer present. Each action is
                   recorded.
                 </p>
                 {customer.stores.length > 1 && (
-                  <label className="field">
+                  <label className="field customer-store">
                     <span>The customer is at</span>
                     <select
                       className="input"
@@ -504,7 +578,7 @@ export function CustomerPage() {
                     </select>
                   </label>
                 )}
-                <div className="toolbar">
+                <div className="customer-actions">
                   <button
                     type="button"
                     className="btn"
@@ -551,7 +625,7 @@ export function CustomerPage() {
                   )}
                   <button
                     type="button"
-                    className="btn btn-danger"
+                    className="btn btn-danger customer-erase"
                     disabled={!writable || confirming}
                     data-testid="rights-erase"
                     onClick={() => setConfirming(true)}
@@ -561,7 +635,7 @@ export function CustomerPage() {
                 </div>
 
                 {draft && (
-                  <div className="card section-card" data-testid="rights-correct-form">
+                  <Box className="customer-form" data-testid="rights-correct-form">
                     <label className="field">
                       <span>Name</span>
                       <input
@@ -582,10 +656,10 @@ export function CustomerPage() {
                         onChange={(e) => setDraft({ ...draft, gstin: e.target.value })}
                       />
                     </label>
-                    <p className="muted-cell">
+                    <p className="customer-sub">
                       A new number is not a correction: it moves the record (a separate step).
                     </p>
-                    <div className="toolbar">
+                    <div className="customer-actions">
                       <button
                         type="button"
                         className="btn btn-primary"
@@ -607,12 +681,12 @@ export function CustomerPage() {
                         Cancel
                       </button>
                     </div>
-                  </div>
+                  </Box>
                 )}
 
                 {merging && (
-                  <div className="card section-card" data-testid="rights-merge-form">
-                    <p className="muted-cell">
+                  <Box className="customer-form" data-testid="rights-merge-form">
+                    <p className="customer-sub">
                       Two records for the same person. This record is kept; the other one is closed,
                       never deleted, and its bills become this customer's. Only with the customer
                       here.
@@ -626,7 +700,7 @@ export function CustomerPage() {
                         onChange={(e) => setMergeTerm(e.target.value)}
                       />
                     </label>
-                    <div className="toolbar">
+                    <div className="customer-actions">
                       <button
                         type="button"
                         className="btn"
@@ -638,7 +712,7 @@ export function CustomerPage() {
                       </button>
                     </div>
                     {mergeFound !== null && mergeFound.length === 0 && (
-                      <p className="muted-cell" data-testid="rights-merge-none">
+                      <p className="customer-sub" data-testid="rights-merge-none">
                         No other record like that at your stores.
                       </p>
                     )}
@@ -646,13 +720,16 @@ export function CustomerPage() {
                       <table className="data" data-testid="rights-merge-found">
                         <tbody>
                           {mergeFound.map((row) => (
-                            <tr key={row.id}>
+                            <tr
+                              key={row.id}
+                              className={mergePick?.id === row.id ? "is-selected" : undefined}
+                            >
                               <td className="mono">{row.mobile}</td>
                               <td>{row.name || "No name held"}</td>
-                              <td>
+                              <td className="act">
                                 <button
                                   type="button"
-                                  className={`btn${mergePick?.id === row.id ? " btn-primary" : ""}`}
+                                  className={`btn btn-sm${mergePick?.id === row.id ? " btn-primary" : ""}`}
                                   data-testid={`rights-merge-pick-${row.mobile}`}
                                   onClick={() => {
                                     setMergePick(row);
@@ -694,7 +771,7 @@ export function CustomerPage() {
                         </label>
                       </>
                     )}
-                    <div className="toolbar">
+                    <div className="customer-actions">
                       <button
                         type="button"
                         className="btn btn-primary"
@@ -718,12 +795,12 @@ export function CustomerPage() {
                         Cancel
                       </button>
                     </div>
-                  </div>
+                  </Box>
                 )}
 
                 {moving && (
-                  <div className="card section-card" data-testid="rights-move-form">
-                    <p className="muted-cell">
+                  <Box className="customer-form" data-testid="rights-move-form">
+                    <p className="customer-sub">
                       The customer has a new number. The record moves to it; bills on the old number
                       stay theirs. The old number's consents are withdrawn, and the customer answers
                       again on the display. Only with the customer here.
@@ -748,7 +825,7 @@ export function CustomerPage() {
                       />{" "}
                       The customer is here and asked for this
                     </label>
-                    <div className="toolbar">
+                    <div className="customer-actions">
                       <button
                         type="button"
                         className="btn btn-primary"
@@ -769,16 +846,16 @@ export function CustomerPage() {
                         Cancel
                       </button>
                     </div>
-                  </div>
+                  </Box>
                 )}
 
                 {confirming && (
-                  <div className="card section-card" data-testid="rights-erase-form">
-                    <p className="warn-note">
+                  <Box className="customer-form" data-testid="rights-erase-form">
+                    <Note tone="warn">
                       Erasing removes this customer's profile and both consents, here and from every
                       till. It cannot be undone. Bills stay: the name, number and GSTIN printed on a
                       tax invoice are kept with it, as the law needs.
-                    </p>
+                    </Note>
                     <label className="field">
                       <span>Type the last four digits of the customer's number to confirm</span>
                       <input
@@ -790,7 +867,7 @@ export function CustomerPage() {
                         onChange={(e) => setLastFour(e.target.value)}
                       />
                     </label>
-                    <div className="toolbar">
+                    <div className="customer-actions">
                       <button
                         type="button"
                         className="btn btn-danger"
@@ -812,11 +889,11 @@ export function CustomerPage() {
                         Cancel
                       </button>
                     </div>
-                  </div>
+                  </Box>
                 )}
               </>
             )}
-          </section>
+          </Section>
 
           {held && <HeldPanel held={held} />}
         </div>
@@ -825,12 +902,19 @@ export function CustomerPage() {
   );
 }
 
+/** A consent's standing as a Status dot: given is green, refused or
+ *  withdrawn amber, never asked grey. */
+const CONSENT_TONE: Record<string, StatusTone> = {
+  "chip-green": "green",
+  "chip-amber": "amber",
+  "": "grey",
+};
+
 /** Everything held, as shown to the customer. Read-only. */
 function HeldPanel({ held }: { held: Held }) {
   return (
-    <section className="card section-card" data-testid="rights-held">
-      <h2 className="h3">Everything held about this customer</h2>
-      <dl className="customer-facts">
+    <Section heading="Everything held about this customer" ruled testId="rights-held">
+      <dl className="dl customer-facts">
         <dt>Name</dt>
         <dd>{held.profile.name || "None"}</dd>
         <dt>Number</dt>
@@ -875,35 +959,38 @@ function HeldPanel({ held }: { held: Held }) {
         <dt>Messages sent</dt>
         <dd>None recorded</dd>
       </dl>
-      <h3 className="h3">Consent answers</h3>
-      {held.consent_answers.length === 0 ? (
-        <p className="muted-cell">None given.</p>
-      ) : (
-        <table className="data" data-testid="rights-held-answers">
-          <thead>
-            <tr>
-              <th>Question</th>
-              <th>Answer</th>
-              <th>Where</th>
-              <th>When</th>
-              <th>Wording</th>
-            </tr>
-          </thead>
-          <tbody>
-            {held.consent_answers.map((answer, index) => (
-              <tr key={`${answer.answered_at}-${index}`}>
-                <td>{answer.question === "bill" ? "Send my bill" : "Send me offers"}</td>
-                <td>{answer.given ? "Yes" : "No"}</td>
-                <td>
-                  {answer.store_code}, {answeredHow(answer.how)}
-                </td>
-                <td>{formatDateTime(answer.answered_at)}</td>
-                <td>v{answer.wording_version}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-    </section>
+      <Section heading="Consent answers" level={3}>
+        {held.consent_answers.length === 0 ? (
+          <p className="customer-sub">None given.</p>
+        ) : (
+          <div className="table-wrap">
+            <table className="data" data-testid="rights-held-answers">
+              <thead>
+                <tr>
+                  <th scope="col">Question</th>
+                  <th scope="col">Answer</th>
+                  <th scope="col">Where</th>
+                  <th scope="col">When</th>
+                  <th scope="col">Wording</th>
+                </tr>
+              </thead>
+              <tbody>
+                {held.consent_answers.map((answer, index) => (
+                  <tr key={`${answer.answered_at}-${index}`}>
+                    <td>{answer.question === "bill" ? "Send my bill" : "Send me offers"}</td>
+                    <td>{answer.given ? "Yes" : "No"}</td>
+                    <td>
+                      {answer.store_code}, {answeredHow(answer.how)}
+                    </td>
+                    <td>{formatDateTime(answer.answered_at)}</td>
+                    <td>v{answer.wording_version}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Section>
+    </Section>
   );
 }

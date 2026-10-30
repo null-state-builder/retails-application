@@ -7,21 +7,18 @@ export type CounterMode = "sale" | "return";
 /** The counter's bill identity and lifecycle controls. It deliberately owns no
  * cart state: Billing keeps the existing hold, draft and actor safeguards.
  *
- * The Look-up button has been removed: the scan hero (F3) is the only door. */
+ * The Look-up button has been removed: the scan hero (F3) is the only door.
+ * The bill-level Sold by moved to the payment rail (`SoldBy`, design system v2
+ * TillLayout: customer, then salesperson). */
 export function BillBar({
   mode,
   nextNumber,
   draftSaved,
-  salespeople,
-  soldBy,
-  differingLines,
   heldCount,
   showingHolds,
   disabled,
   canHold,
   onModeChange,
-  onSoldByChange,
-  onApplySoldBy,
   onShowHolds,
   onHold,
   onNewBill,
@@ -30,16 +27,11 @@ export function BillBar({
   mode: CounterMode;
   nextNumber: string;
   draftSaved: boolean;
-  salespeople: { id: string; name: string }[];
-  soldBy: string | null;
-  differingLines: number;
   heldCount: number;
   showingHolds: boolean;
   disabled: boolean;
   canHold: boolean;
   onModeChange: (mode: CounterMode) => void;
-  onSoldByChange: (salesperson: string | null) => void;
-  onApplySoldBy: () => void;
   onShowHolds: () => void;
   onHold: () => void;
   onNewBill: () => void;
@@ -49,7 +41,6 @@ export function BillBar({
   return (
     <header className="bill-bar" data-testid="bill-bar">
       <div className="bill-bar-inner">
-        {/* Mode toggle + bill identity group, separated from Sold-by by a divider. */}
         <div className="bill-bar-left">
           <SegmentedControl
             label="Counter mode"
@@ -74,39 +65,6 @@ export function BillBar({
           </div>
         </div>
 
-        <span className="bill-bar-divider" aria-hidden="true" />
-
-        {/* Sold-by: self-contained field. */}
-        <label className="bill-sold-by-field">
-          <span>Sold by</span>
-          <select
-            className="select"
-            data-testid="bill-sold-by"
-            disabled={disabled}
-            value={soldBy ?? ""}
-            onChange={(event) => onSoldByChange(event.target.value || null)}
-          >
-            <option value="">Nobody</option>
-            {salespeople.map((salesperson) => (
-              <option key={salesperson.id} value={salesperson.id}>
-                {salesperson.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        {differingLines > 0 && soldBy !== null && (
-          <button
-            type="button"
-            className="btn"
-            data-testid="bill-apply-sold-by"
-            title="Apply the bill-level Sold by choice to every line"
-            disabled={disabled}
-            onClick={onApplySoldBy}
-          >
-            Apply to all {differingLines} {differingLines === 1 ? "line" : "lines"}
-          </button>
-        )}
-
         {/* Held bills, Hold, and New bill pushed far right. */}
         <div className="bill-bar-actions">
           {extraActions}
@@ -126,20 +84,28 @@ export function BillBar({
             className="btn"
             data-testid="bill-hold"
             title="Hold bill (F2)"
+            aria-keyshortcuts="F2"
             disabled={disabled || !canHold}
             onClick={onHold}
           >
             <PauseCircle size={15} /> Hold
+            <kbd className="bill-key" aria-hidden="true">
+              F2
+            </kbd>
           </button>
           <button
             type="button"
             className="btn"
             data-testid="bill-new"
             title="New bill (F4)"
+            aria-keyshortcuts="F4"
             disabled={disabled}
             onClick={onNewBill}
           >
             New bill
+            <kbd className="bill-key" aria-hidden="true">
+              F4
+            </kbd>
           </button>
         </div>
       </div>

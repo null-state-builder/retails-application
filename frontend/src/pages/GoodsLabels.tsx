@@ -19,6 +19,7 @@ import {
   type ResourceDTO,
 } from "../lib/goodsScreen";
 import type { PtData, PtLine } from "../lib/goodsPt";
+import type { PrintJobStatus } from "../lib/goodsLabels";
 import {
   OUTCOME_OPTIONS,
   allowsUsableCounts,
@@ -32,7 +33,12 @@ import {
 } from "../lib/goodsLabels";
 import { formatPaiseString } from "../lib/format";
 import { useAuth } from "../auth/AuthContext";
+import { Note } from "../components/Note";
 import { PageHeader } from "../components/PageHeader";
+import { Section } from "../components/Section";
+import { EmptyState } from "../components/States";
+import { Status } from "../components/Status";
+import type { StatusTone } from "../components/Status";
 import "./GoodsLabels.css";
 
 const PT_FILES = "/goods-v1/ptmapper/files";
@@ -48,6 +54,18 @@ interface TemplateOption {
   label: string;
   copiesLimit: number;
 }
+
+/** A print job's state as a dot and a word: green once the printer's own
+ *  outcome says every copy is usable, amber while someone still has to say
+ *  what came out or reprint the rest, red when nothing printed. */
+const JOB_TONE: Record<PrintJobStatus, StatusTone> = {
+  prepared: "grey",
+  attempted: "amber",
+  confirmed: "green",
+  partial: "amber",
+  failed: "red",
+  unknown: "amber",
+};
 
 function templateOptions(rows: ResourceDTO<LabelConfigData>[]): TemplateOption[] {
   const out: TemplateOption[] = [];
@@ -129,11 +147,14 @@ export function LabelsPanel({
   const officialVersionId = summary.doc?.context?.official_version_id as string | undefined;
   const lines = detail.doc?.data.lines.items ?? [];
   const options = templateOptions(templates.value);
+  // Standing alone the panel's parts sit under the page's h1; hosted in a
+  // delivery's Labels step they sit under that step's own heading.
+  const level = fixed ? 3 : 2;
 
   return (
     <>
       {!fixed && (
-        <form className="card section-card form-grid" onSubmit={loadPt}>
+        <form className="form-grid" onSubmit={loadPt}>
           <Field id="labels-pt" label="Official PT">
             <input
               id="labels-pt"
@@ -151,11 +172,11 @@ export function LabelsPanel({
       )}
 
       {ptId && summary.denied && (
-        <div className="card section-card" data-testid="labels-pt-denied">
-          <p className="lead">There is no PT here for you, or it does not exist.</p>
-        </div>
+        <EmptyState testId="labels-pt-denied">
+          There is no PT here for you, or it does not exist.
+        </EmptyState>
       )}
-      {ptId && summary.failure && <div className="warn-note">{summary.failure}</div>}
+      {ptId && summary.failure && <Note tone="warn">{summary.failure}</Note>}
 
       {ptId && summary.doc && (
         <PrintForm
@@ -165,11 +186,18 @@ export function LabelsPanel({
           templates={options}
           templatesLoading={templates.loading}
           onCreated={addJob}
+          level={level}
         />
       )}
 
       {jobs.map((job) => (
-        <PrintJobCard key={job.id} job={job} onUpdated={updateJob} onReprint={addJob} />
+        <PrintJobCard
+          key={job.id}
+          job={job}
+          onUpdated={updateJob}
+          onReprint={addJob}
+          level={level}
+        />
       ))}
     </>
   );
@@ -187,6 +215,7 @@ function PrintForm({
   templatesLoading,
   onCreated,
   reprintOf,
+  level = 2,
 }: {
   ptVersionId: string | null;
   lines: PtLine[];
@@ -195,6 +224,7 @@ function PrintForm({
   templatesLoading: boolean;
   onCreated: (job: ResourceDTO<PrintJobData>) => void;
   reprintOf?: { jobId: string; presetCopies: Map<string, number> };
+  level?: 2 | 3;
 }) {
   const [copies, setCopies] = useState<Record<string, number>>({});
   const [templateVersionId, setTemplateVersionId] = useState("");
@@ -253,63 +283,67 @@ function PrintForm({
   }
 
   return (
-    <div
-      className="card section-card"
-      data-testid={reprintOf ? "labels-reprint-form" : "labels-print-form"}
+    <Section
+      heading={reprintOf ? "Reprint the missing copies" : "Choose what to print"}
+      level={level}
+      ruled={!reprintOf}
+      className="labels-print"
+      testId={reprintOf ? "labels-reprint-form" : "labels-print-form"}
     >
-      <h3 className="h3">{reprintOf ? "Reprint the missing copies" : "Choose what to print"}</h3>
       <Feedback error={error} ok="" />
       {listState(
         { loading: loadingLines, failure: "", empty: !loadingLines && printable.length === 0 },
         "This PT has no official lines with a frozen id yet.",
       ) ?? (
-        <table className="table" data-testid="labels-lines">
-          <thead>
-            <tr>
-              <th>Print</th>
-              <th>Alias</th>
-              <th>MRP</th>
-              <th>Copies</th>
-            </tr>
-          </thead>
-          <tbody>
-            {printable.map((line) => {
-              const lineId = line.official_line_id!;
-              const qty = copies[lineId] ?? 0;
-              return (
-                <tr key={lineId}>
-                  <td>
-                    <input
-                      type="checkbox"
-                      checked={qty > 0}
-                      onChange={(e) => toggle(lineId, e.target.checked)}
-                      data-testid={`labels-line-${lineId}`}
-                    />
-                  </td>
-                  <td className="mono">{line.alias_as_used}</td>
-                  <td className="mono">
-                    {formatPaiseString(line.calculated?.mrp_paise ?? line.supplied.mrp_paise)}
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      min={1}
-                      max={copiesLimit}
-                      className="input input-sm"
-                      value={qty || ""}
-                      disabled={qty === 0}
-                      onChange={(e) => {
-                        const next = Math.max(1, Number(e.target.value) || 1);
-                        setQty(lineId, copiesLimit ? Math.min(next, copiesLimit) : next);
-                      }}
-                      data-testid={`labels-copies-${lineId}`}
-                    />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <div className="table-wrap">
+          <table className="table" data-testid="labels-lines">
+            <thead>
+              <tr>
+                <th>Print</th>
+                <th>Alias</th>
+                <th className="num">MRP</th>
+                <th>Copies</th>
+              </tr>
+            </thead>
+            <tbody>
+              {printable.map((line) => {
+                const lineId = line.official_line_id!;
+                const qty = copies[lineId] ?? 0;
+                return (
+                  <tr key={lineId}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={qty > 0}
+                        onChange={(e) => toggle(lineId, e.target.checked)}
+                        data-testid={`labels-line-${lineId}`}
+                      />
+                    </td>
+                    <td className="mono">{line.alias_as_used}</td>
+                    <td className="num">
+                      {formatPaiseString(line.calculated?.mrp_paise ?? line.supplied.mrp_paise)}
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        min={1}
+                        max={copiesLimit}
+                        className="input input-sm"
+                        value={qty || ""}
+                        disabled={qty === 0}
+                        onChange={(e) => {
+                          const next = Math.max(1, Number(e.target.value) || 1);
+                          setQty(lineId, copiesLimit ? Math.min(next, copiesLimit) : next);
+                        }}
+                        data-testid={`labels-copies-${lineId}`}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <div className="form-grid">
@@ -350,7 +384,7 @@ function PrintForm({
       >
         <Printer size={14} /> {reprintOf ? "Reprint" : "Print"}
       </button>
-    </div>
+    </Section>
   );
 }
 
@@ -362,10 +396,12 @@ function PrintJobCard({
   job,
   onUpdated,
   onReprint,
+  level = 2,
 }: {
   job: ResourceDTO<PrintJobData>;
   onUpdated: (job: ResourceDTO<PrintJobData>) => void;
   onReprint: (job: ResourceDTO<PrintJobData>) => void;
+  level?: 2 | 3;
 }) {
   const [outcome, setOutcome] = useState<PrintOutcomeKind>("confirmed");
   const [usable, setUsable] = useState<Record<string, string>>({});
@@ -493,11 +529,18 @@ function PrintJobCard({
   );
 
   return (
-    <div className="card section-card labels-job" data-testid={`labels-job-${job.id}`}>
-      <h3 className="h3">
-        Print job {job.id.slice(0, 8)} —{" "}
-        <span data-testid={`labels-job-status-${job.id}`}>{statusLabel(job.data.state)}</span>
-      </h3>
+    <Section
+      heading={<span className="mono">Print job {job.id.slice(0, 8)}</span>}
+      aside={
+        <Status tone={JOB_TONE[job.data.state]} testId={`labels-job-status-${job.id}`}>
+          {statusLabel(job.data.state)}
+        </Status>
+      }
+      level={level}
+      ruled
+      className="labels-job"
+      testId={`labels-job-${job.id}`}
+    >
       {job.data.reprint_of_id && (
         <p className="muted">
           Reprint of {job.data.reprint_of_id.slice(0, 8)}: {job.data.reason_code}
@@ -568,36 +611,38 @@ function PrintJobCard({
       </div>
 
       {allowsUsableCounts(outcome) && (
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Alias</th>
-              <th>Requested</th>
-              <th>Usable copies</th>
-            </tr>
-          </thead>
-          <tbody>
-            {job.data.labels.map((label) => (
-              <tr key={label.official_line_id}>
-                <td className="mono">{label.alias_as_used}</td>
-                <td>{label.copies}</td>
-                <td>
-                  <input
-                    type="number"
-                    min={0}
-                    max={label.copies}
-                    className="input input-sm"
-                    value={usable[label.official_line_id] ?? ""}
-                    onChange={(e) =>
-                      setUsable((prev) => ({ ...prev, [label.official_line_id]: e.target.value }))
-                    }
-                    data-testid={`labels-usable-${job.id}-${label.official_line_id}`}
-                  />
-                </td>
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Alias</th>
+                <th className="num">Requested</th>
+                <th>Usable copies</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {job.data.labels.map((label) => (
+                <tr key={label.official_line_id}>
+                  <td className="mono">{label.alias_as_used}</td>
+                  <td className="num">{label.copies}</td>
+                  <td>
+                    <input
+                      type="number"
+                      min={0}
+                      max={label.copies}
+                      className="input input-sm"
+                      value={usable[label.official_line_id] ?? ""}
+                      onChange={(e) =>
+                        setUsable((prev) => ({ ...prev, [label.official_line_id]: e.target.value }))
+                      }
+                      data-testid={`labels-usable-${job.id}-${label.official_line_id}`}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       <button
@@ -713,8 +758,9 @@ function PrintJobCard({
             setReprinting(false);
           }}
           reprintOf={reprintOf}
+          level={3}
         />
       )}
-    </div>
+    </Section>
   );
 }

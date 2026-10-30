@@ -8,16 +8,20 @@
   gap: 16px;
 }
 
+/* The sheet as it will come out: white labels on a warm ground, at their
+ * real proportions. */
 .labels-sheet {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
-  margin: 12px 0;
+  gap: 8px;
+  padding: 10px;
+  border-radius: var(--radius-inner);
+  background: var(--inner);
 }
 
 .labels-label {
-  border: 1px solid var(--line);
   padding: 4px;
+  border-radius: 4px;
   background: #fff;
 }
 
@@ -27,8 +31,9 @@
   height: auto;
 }
 
-.labels-job .table {
-  margin: 8px 0;
+/* A Section lays its parts out as a column; its actions keep their own width. */
+:is(.labels-job, .labels-print) > .btn {
+  align-self: flex-start;
 }
 
 /* Design language §10: print always uses the light palette, and only the
@@ -46,5 +51,7 @@
     position: absolute;
     top: 0;
     left: 0;
+    padding: 0;
+    background: none;
   }
 }

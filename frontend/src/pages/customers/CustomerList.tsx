@@ -2,14 +2,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Search } from "lucide-react";
 
+import { Note } from "../../components/Note";
 import { PageHeader } from "../../components/PageHeader";
+import "../../components/SearchBox.css";
+import { EmptyState } from "../../components/States";
 import { api, apiErrorMessage } from "../../lib/api";
 import type { ApiRead, ApiSchemas } from "../../lib/api";
 import { isConnectionLost } from "../../lib/auditLog";
 import { CUSTOMERS_OFFLINE, searchQuery } from "../../lib/customerRights";
 import { formatDateTime } from "../../lib/format";
 import { withQuery } from "../../lib/query";
-import "../sell/Bills.css";
+import "./Customers.css";
 
 type Listing = ApiRead<ApiSchemas["CustomerList"]>;
 
@@ -73,102 +76,115 @@ export function CustomerListPage() {
 
   const offline = !online || lost;
 
+  const count = data?.customers.length ?? 0;
+
   return (
     <div className="page-pad">
       <PageHeader
         title="Customers"
         lead="Find a customer by number or name, then open their page. Needs a connection."
       />
-      {offline && (
-        <p className="warn-note" data-testid="customers-offline" role="status">
-          {CUSTOMERS_OFFLINE}
-          {online && (
-            <>
-              {" "}
-              <button
-                type="button"
-                className="btn"
-                data-testid="customers-retry"
-                onClick={() => void load(term.trim())}
-              >
-                Try again
-              </button>
-            </>
+      <div className="page">
+        {offline && (
+          <Note
+            tone="warn"
+            role="status"
+            testId="customers-offline"
+            action={
+              online && (
+                <button
+                  type="button"
+                  className="btn btn-sm"
+                  data-testid="customers-retry"
+                  onClick={() => void load(term.trim())}
+                >
+                  Try again
+                </button>
+              )
+            }
+          >
+            {CUSTOMERS_OFFLINE}
+          </Note>
+        )}
+
+        <div className="filter-bar customers-find" data-testid="customers-search-bar">
+          <div className="searchbox">
+            <Search size={16} aria-hidden="true" />
+            <input
+              type="search"
+              aria-label="Number or name"
+              autoComplete="off"
+              placeholder="Number or name: 9876543210, or Sharma"
+              data-testid="customers-search"
+              value={term}
+              onChange={(e) => setTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                e.preventDefault();
+                void load(term.trim());
+              }}
+            />
+          </div>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={loading || offline}
+            data-testid="customers-search-go"
+            onClick={() => void load(term.trim())}
+          >
+            {loading ? "Searching…" : "Search"}
+          </button>
+          {data && count > 0 && (
+            <span className="customers-count" role="status">
+              {count === 1 ? "1 customer" : `${count.toLocaleString("en-IN")} customers`}
+              {searched.current ? ` at your stores match “${searched.current}”` : ""}
+              {data.truncated ? ", the most recent. Search to narrow it." : ""}
+            </span>
           )}
-        </p>
-      )}
+        </div>
 
-      <div className="card section-card toolbar" data-testid="customers-search-bar">
-        <label className="field" style={{ flex: 1 }}>
-          <span>Number or name</span>
-          <input
-            className="input"
-            autoComplete="off"
-            placeholder="9876543210, or Sharma"
-            data-testid="customers-search"
-            value={term}
-            onChange={(e) => setTerm(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key !== "Enter") return;
-              e.preventDefault();
-              void load(term.trim());
-            }}
-          />
-        </label>
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={loading || offline}
-          data-testid="customers-search-go"
-          onClick={() => void load(term.trim())}
-        >
-          <Search size={15} /> {loading ? "Searching…" : "Search"}
-        </button>
-      </div>
+        {error && (
+          <Note tone="error" testId="customers-error">
+            {error}
+          </Note>
+        )}
 
-      {error && (
-        <p className="warn-note" data-testid="customers-error">
-          {error}
-        </p>
-      )}
+        {data && count === 0 && (
+          <EmptyState testId="customers-empty">
+            {searched.current
+              ? "No customer at your stores matches that. Check the number, or search by name."
+              : "No customer has bought at your stores yet."}
+          </EmptyState>
+        )}
 
-      {data && data.customers.length === 0 && (
-        <p className="muted-cell" data-testid="customers-empty">
-          {searched.current
-            ? "No customer at your stores matches that. Check the number, or search by name."
-            : "No customer has bought at your stores yet."}
-        </p>
-      )}
-
-      {data && data.customers.length > 0 && (
-        <section className="card section-card">
-          <p className="bills-count">
-            {data.customers.length === 1
-              ? "1 customer"
-              : `${data.customers.length.toLocaleString("en-IN")} customers`}
-            {data.truncated ? " - the most recent. Search to narrow it." : ""}
-          </p>
+        {data && count > 0 && (
           <div className="table-wrap capped">
             <table className="data" data-testid="customers-rows">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Number</th>
-                  <th>GSTIN</th>
-                  <th className="num">Bills</th>
-                  <th>Last bought</th>
+                  <th scope="col">Name</th>
+                  <th scope="col">Number</th>
+                  <th scope="col">GSTIN</th>
+                  <th scope="col" className="num">
+                    Bills
+                  </th>
+                  <th scope="col">Last bought</th>
                 </tr>
               </thead>
               <tbody>
                 {data.customers.map((row) => (
                   <tr key={row.id} data-testid={`customer-row-${row.mobile}`}>
                     <td>
-                      <Link to={`/customers/${row.id}`} data-testid={`customer-open-${row.mobile}`}>
+                      <Link
+                        className="customer-name"
+                        to={`/customers/${row.id}`}
+                        data-testid={`customer-open-${row.mobile}`}
+                      >
                         {row.name || "No name held"}
                       </Link>
                     </td>
                     <td className="mono">{row.mobile}</td>
-                    <td className="mono">{row.gstin || "—"}</td>
+                    <td className={row.gstin ? "mono" : "muted-cell"}>{row.gstin || "None"}</td>
                     <td className="num">{row.bills}</td>
                     <td>{row.last_bill_at ? formatDateTime(row.last_bill_at) : "—"}</td>
                   </tr>
@@ -176,8 +192,8 @@ export function CustomerListPage() {
               </tbody>
             </table>
           </div>
-        </section>
-      )}
+        )}
+      </div>
     </div>
   );
 }

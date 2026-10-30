@@ -1,32 +1,241 @@
-/* Customer Orders > Reservations (ticket 20): cards that stack on a phone. */
-.reservation-cards {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr));
-}
+/* Customer orders: Reservations (ticket 20), Special orders (21) and
+   Alterations (22). One wide table of records, the open one in the record
+   pane beside it (design system v2 SplitView). Tokens only. */
 
-.reservation-card {
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-box);
-  padding: 12px;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.reservation-card p {
-  margin: 6px 0;
-}
-
-.reservation-card-head {
+/* The list's view filters, then its search, last. */
+.orders-bar {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-8) var(--space-16);
+}
+.orders-bar .searchbox {
+  margin-left: auto;
+  flex: 0 1 360px;
 }
 
-.reservation-card .toolbar {
+/* A record's number, as the row's one link: mono, ink, underlined on hover. */
+.order-ref {
+  font-family: var(--mono);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+}
+.order-ref:hover,
+.order-ref[aria-current="true"] {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.order-who {
+  font-weight: 600;
+}
+
+/* The record pane: its head, then facts, then the steps and actions. */
+.order-pane-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+.order-pane-title {
+  display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8);
+}
+.order-pane-title .heading {
+  font-family: var(--mono);
+}
+.order-sub {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--muted);
+}
+.order-close {
+  flex: none;
+}
+
+/* The pieces held on a reservation: one line each, a total under them. */
+.order-pieces {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.order-pieces li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px var(--space-12);
+  padding: var(--space-8) 0;
+  border-top: 1px solid var(--hairline);
+}
+.order-pieces li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.order-pieces .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A group of actions at the foot of the pane, under one hairline. */
+.order-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+}
+.order-cancel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  padding-top: var(--space-12);
+  border-top: 1px solid var(--hairline);
+}
+.order-cancel-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink2);
+}
+
+/* Stepper (design system v2): numbered steps, done / current / to do. A
+   3px rule over each; green when done, rust only on the current step. */
+.order-steps {
+  list-style: none;
+  display: grid;
+  grid-auto-columns: minmax(0, 1fr);
+  grid-auto-flow: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+}
+.order-steps li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: var(--space-8);
+  border-top: 3px solid var(--line);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  min-width: 0;
+}
+.order-steps b {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-round);
+  border: 1px solid var(--line);
+  font-size: 12px;
+}
+.order-steps li.is-done {
+  border-top-color: var(--green);
+  color: var(--green);
+}
+.order-steps li.is-done b {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--on-fill);
+}
+.order-steps li.is-current {
+  border-top-color: var(--rust);
+  color: var(--ink);
+  font-weight: 600;
+}
+.order-steps li.is-current b {
+  background: var(--rust-fill);
+  border-color: var(--rust-fill);
+  color: var(--on-fill);
+}
+
+/* The same steps standing, for a special order whose current step is where
+   its next action is done. */
+.order-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.order-timeline li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: var(--space-12);
+  padding-bottom: var(--space-16);
+}
+.order-timeline li::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 26px;
+  bottom: 2px;
+  width: 2px;
+  background: var(--line);
+}
+.order-timeline li.is-done::before {
+  background: var(--green);
+}
+.order-timeline li:last-child {
+  padding-bottom: 0;
+}
+.order-timeline li:last-child::before {
+  display: none;
+}
+.order-timeline-n {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-round);
+  border: 1px solid var(--line);
+  background: var(--inner);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  box-sizing: border-box;
+}
+.order-timeline li.is-done .order-timeline-n {
+  background: var(--green);
+  border-color: var(--green);
+  color: var(--on-fill);
+}
+.order-timeline li.is-current .order-timeline-n {
+  background: var(--rust-fill);
+  border-color: var(--rust-fill);
+  color: var(--on-fill);
+}
+.order-timeline-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  min-width: 0;
+}
+.order-timeline-word {
+  margin-top: 2px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.order-timeline li:not(.is-done, .is-current) .order-timeline-word {
+  color: var(--muted);
+}
+.order-timeline-body .order-sub {
+  margin: 0;
+}
+
+/* A step's controls inside the pane: one field and its button. */
+.order-step-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-8);
+}
+.order-step-row .input {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+/* A receipt voucher, as the customer takes it away. */
+.order-voucher p {
+  margin: 0 0 var(--space-8);
 }

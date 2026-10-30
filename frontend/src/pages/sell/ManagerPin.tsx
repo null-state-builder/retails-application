@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, KeyRound } from "lucide-react";
+import { KeyRound } from "lucide-react";
 
+import { Note } from "../../components/Note";
 import { Money } from "../../lib/format";
 import { CASH_VARIANCE, LATE_RETURN, whoAuthorised } from "../../till/pin";
 import type { Ask, Authorisation, AuthorisationKind } from "../../till/pin";
@@ -204,10 +205,9 @@ export function ManagerPin({
               />
             </div>
             {refused && (
-              <p className="bill-alert" data-testid="bill-pin-refused">
-                <AlertTriangle size={15} />
+              <Note tone="warn" testId="bill-pin-refused">
                 {refused}
-              </p>
+              </Note>
             )}
             {waiting && (
               <p className="warn-note" data-testid="bill-pin-waiting">

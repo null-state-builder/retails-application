@@ -73,7 +73,7 @@ export function FinishOverlay({
         </header>
 
         {printProblem && (
-          <p className="bill-alert bill-finish-print-problem" role="status">
+          <p className="note note-warn bill-finish-print-problem" role="status">
             <AlertTriangle size={16} />
             <span>{printProblem}</span>
           </p>

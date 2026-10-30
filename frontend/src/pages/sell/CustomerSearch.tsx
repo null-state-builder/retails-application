@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Printer, Search } from "lucide-react";
+import { Printer, Search, X } from "lucide-react";
 
+import { Note } from "../../components/Note";
 import { PageHeader } from "../../components/PageHeader";
+import "../../components/SearchBox.css";
 import { SegmentedControl } from "../../components/SegmentedControl";
+import { Pane, SplitView } from "../../components/SplitView";
 import { EmptyState, ErrorState } from "../../components/States";
+import { Status } from "../../components/Status";
 import { api, apiErrorMessage } from "../../lib/api";
 import type { ApiRead, ApiSchemas } from "../../lib/api";
 import { withQuery } from "../../lib/query";
@@ -15,7 +19,6 @@ import { tenderWords } from "../../till/tender";
 import type { PostedBill } from "../../till/receipt";
 import { BillScope } from "./BillScope";
 import "./CustomerSearch.css";
-import "./Bills.css";
 
 // ---------------------------------------------------------------------------
 // Find a bill (#185, requirements E1 and E2)
@@ -152,229 +155,254 @@ export default function CustomerSearchPage() {
         actions={<BillScope />}
       />
 
-      <div className="card section-card find-bar" data-testid="find-bar">
-        <SegmentedControl
-          label="Search by"
-          className="find-keys"
-          value={key}
-          options={KEYS.map((option) => ({
-            value: option.key,
-            label: option.label,
-            testId: `find-key-${option.key}`,
-          }))}
-          onChange={(next) => {
-            setKey(next);
-            setRows(null);
-            setOpen(null);
-          }}
-        />
-        <div className="field find-field">
-          <label htmlFor="find-term">{KEYS.find((o) => o.key === key)!.label}</label>
-          <input
-            id="find-term"
-            className="input"
-            autoComplete="off"
-            value={term}
-            placeholder={KEYS.find((o) => o.key === key)!.placeholder}
-            data-testid="find-term"
-            onChange={(e) => setTerm(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key !== "Enter") return;
-              e.preventDefault();
-              void search();
+      <div className="page">
+        <div className="filter-bar find-bar" data-testid="find-bar">
+          <SegmentedControl
+            label="Search by"
+            className="find-keys"
+            value={key}
+            options={KEYS.map((option) => ({
+              value: option.key,
+              label: option.label,
+              testId: `find-key-${option.key}`,
+            }))}
+            onChange={(next) => {
+              setKey(next);
+              setRows(null);
+              setOpen(null);
             }}
           />
+          <div className="searchbox find-field">
+            <Search size={16} aria-hidden="true" />
+            <input
+              id="find-term"
+              type="search"
+              aria-label={KEYS.find((o) => o.key === key)!.label}
+              autoComplete="off"
+              value={term}
+              placeholder={KEYS.find((o) => o.key === key)!.placeholder}
+              data-testid="find-term"
+              onChange={(e) => setTerm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                e.preventDefault();
+                void search();
+              }}
+            />
+          </div>
+          <button
+            type="button"
+            className="btn btn-primary"
+            disabled={loading}
+            data-testid="find-search"
+            onClick={() => void search()}
+          >
+            {loading ? "Searching…" : "Search"}
+          </button>
         </div>
-        <button
-          type="button"
-          className="btn btn-primary"
-          disabled={loading}
-          data-testid="find-search"
-          onClick={() => void search()}
+
+        {error && <ErrorState message={error} testId="find-error" />}
+        {printProblem && (
+          <Note tone="warn" testId="find-print-problem">
+            {printProblem} The bill is unchanged - try again when the printer is ready.
+          </Note>
+        )}
+
+        {rows === null && !error && (
+          <EmptyState testId="find-start">
+            Search by mobile number, customer name or bill number to find a bill.
+          </EmptyState>
+        )}
+        {rows !== null && rows.length === 0 && !error && (
+          <EmptyState testId="find-empty">
+            No bill matches that. Check the number, or try the mobile the customer gave at the
+            counter.
+          </EmptyState>
+        )}
+
+        {/* The list and the open bill side by side, as on the counter's own list. */}
+        <SplitView
+          pane={
+            open && (
+              <Pane label={`Bill ${open.doc_number}`} testId="find-detail">
+                <BillDetail
+                  bill={open}
+                  onReprint={() => void reprint(open)}
+                  onClose={() => setOpen(null)}
+                />
+              </Pane>
+            )
+          }
         >
-          <Search size={15} />
-          {loading ? "Searching…" : "Search"}
-        </button>
-      </div>
-
-      {error && <ErrorState message={error} testId="find-error" />}
-      {printProblem && (
-        <div className="warn-note" data-testid="find-print-problem">
-          {printProblem} The bill is unchanged - try again when the printer is ready.
-        </div>
-      )}
-
-      {rows === null && !error && (
-        <EmptyState testId="find-start">
-          Search by mobile number, customer name or bill number to find a bill.
-        </EmptyState>
-      )}
-      {rows !== null && rows.length === 0 && !error && (
-        <EmptyState testId="find-empty">
-          No bill matches that. Check the number, or try the mobile the customer gave at the
-          counter.
-        </EmptyState>
-      )}
-
-      {/* The list and the open bill side by side, as on the counter's own list. */}
-      <div className={open ? "split-view" : undefined}>
-        {rows !== null && rows.length > 0 && (
-          <div className="card section-card" data-testid="find-results">
-            <p className="bills-count">
-              {rows.length === 1 ? "1 bill" : `${rows.length} bills`}
-              {/* The server caps the list rather than paging it: this is for
-                finding one customer's bill, not for exporting the day. */}
-              {rows.length === 50 ? " - the most recent 50. Narrow the search." : ""}
-            </p>
-            <table className="lines-table" data-testid="find-rows">
-              <thead>
-                <tr>
-                  <th>Bill</th>
-                  <th>When</th>
-                  <th>Customer</th>
-                  <th>What</th>
-                  <th className="num">Total</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className={`bills-row${open?.doc_number === row.doc_number ? " bills-row-open" : ""}`}
-                    data-testid={`find-row-${row.id}`}
-                    onClick={() => void openBill(row)}
-                  >
-                    <td className="mono">{row.doc_number || "not numbered"}</td>
-                    <td>{formatDateTime(row.billed_at)}</td>
-                    <td>
-                      {row.customer_name || "—"}
-                      {row.customer_mobile ? (
-                        <span className="lead"> · {row.customer_mobile}</span>
-                      ) : null}
-                    </td>
-                    <td>{row.lines_summary}</td>
-                    <td className="num">
-                      <Money paise={row.net_paise} />
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        className="btn btn-sm"
-                        data-testid={`find-open-${row.id}`}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          void openBill(row);
-                        }}
-                      >
-                        {open?.doc_number === row.doc_number ? "Close" : "Open"}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {open && (
-          <div className="split-view-aside">
-            <BillDetail bill={open} onReprint={() => void reprint(open)} />
-          </div>
-        )}
+          {rows !== null && rows.length > 0 && (
+            <div className="find-results" data-testid="find-results">
+              <p className="find-count" role="status">
+                {rows.length === 1 ? "1 bill" : `${rows.length} bills`}
+                {/* The server caps the list rather than paging it: this is for
+                  finding one customer's bill, not for exporting the day. */}
+                {rows.length === 50 ? ", the most recent 50. Narrow the search." : ""}
+              </p>
+              <div className="table-wrap capped">
+                <table className="data" data-testid="find-rows">
+                  <thead>
+                    <tr>
+                      <th scope="col">Bill</th>
+                      <th scope="col">When</th>
+                      <th scope="col">Customer</th>
+                      <th scope="col">What</th>
+                      <th scope="col" className="num">
+                        Total
+                      </th>
+                      <th scope="col" className="act">
+                        <span className="sr-only">Action</span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row) => {
+                      const selected = open?.doc_number === row.doc_number;
+                      return (
+                        <tr
+                          key={row.id}
+                          className={`find-row${selected ? " is-selected" : ""}`}
+                          data-testid={`find-row-${row.id}`}
+                          onClick={() => void openBill(row)}
+                        >
+                          <td className="mono find-doc">{row.doc_number || "not numbered"}</td>
+                          <td>{formatDateTime(row.billed_at)}</td>
+                          <td>
+                            {row.customer_name || "—"}
+                            {row.customer_mobile ? (
+                              <span className="sub">{row.customer_mobile}</span>
+                            ) : null}
+                          </td>
+                          <td>{row.lines_summary}</td>
+                          <td className="num">
+                            <Money paise={row.net_paise} />
+                          </td>
+                          <td className="act">
+                            <button
+                              type="button"
+                              className="btn btn-sm"
+                              data-testid={`find-open-${row.id}`}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                void openBill(row);
+                              }}
+                            >
+                              {selected ? "Close" : "Open"}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </SplitView>
       </div>
     </div>
   );
 }
 
 /** The whole bill, read-only. Every field is text - there is not an input, a
- *  select or a save on this card, because there is nothing a person is allowed
+ *  select or a save in this pane, because there is nothing a person is allowed
  *  to change about a bill that has printed. */
-function BillDetail({ bill, onReprint }: { bill: PostedBill; onReprint: () => void }) {
+function BillDetail({
+  bill,
+  onReprint,
+  onClose,
+}: {
+  bill: PostedBill;
+  onReprint: () => void;
+  onClose: () => void;
+}) {
   return (
-    <div className="card section-card" data-testid="find-detail">
-      <div className="toolbar" style={{ marginBottom: 10 }}>
+    <>
+      <div className="find-detail-head">
         <div>
-          <p className="eyebrow">{bill.store_name || bill.store_code}</p>
-          <h3 className="h3 mono">{bill.doc_number}</h3>
-          <p className="lead">
+          <p className="find-sub">{bill.store_name || bill.store_code}</p>
+          <h2 className="heading mono">{bill.doc_number}</h2>
+          <p className="find-sub">
             {formatDateTime(bill.billed_at)}
             {bill.customer_name || bill.customer_mobile
-              ? ` · ${[bill.customer_name, bill.customer_mobile].filter(Boolean).join(" · ")}`
+              ? `, ${[bill.customer_name, bill.customer_mobile].filter(Boolean).join(", ")}`
               : ""}
           </p>
         </div>
-        <div className="spacer" />
         <button
           type="button"
-          className="btn btn-primary"
-          data-testid="find-reprint"
-          onClick={onReprint}
+          className="btn btn-sm find-close"
+          aria-label="Close the bill"
+          onClick={onClose}
         >
-          <Printer size={15} /> Print again
+          <X size={16} aria-hidden="true" />
         </button>
       </div>
+      <button
+        type="button"
+        className="btn btn-primary"
+        data-testid="find-reprint"
+        onClick={onReprint}
+      >
+        <Printer size={16} aria-hidden="true" /> Print again
+      </button>
 
-      <table className="lines-table" data-testid="find-detail-lines">
-        <thead>
-          <tr>
-            <th>Item</th>
-            <th>Barcode</th>
-            <th>Season</th>
-            <th>Salesman</th>
-            <th className="num">Qty</th>
-            <th className="num">Rate</th>
-            <th className="num">Net</th>
-          </tr>
-        </thead>
-        <tbody>
-          {bill.lines.map((line) => (
-            <tr key={line.line_no} data-testid={`find-detail-line-${line.line_no}`}>
-              <td>
-                {[line.brand, line.item, line.design, line.size, line.color]
-                  .filter(Boolean)
-                  .join(" · ") ||
-                  line.manual_desc ||
-                  "—"}
-                {line.direction === "return" ? (
-                  <span className="chip chip-navy">Returned</span>
-                ) : null}
-              </td>
-              <td className="mono">{line.barcode}</td>
-              <td>{line.season || "—"}</td>
-              <td>{line.salesman_name || line.salesman_code || "—"}</td>
-              <td className="num">{line.qty}</td>
-              <td className="num">
-                <Money paise={line.mrp_paise} />
-              </td>
-              <td className="num">
-                <Money paise={line.net_paise} />
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <ul className="find-lines" data-testid="find-detail-lines" aria-label="Lines">
+        {bill.lines.map((line) => (
+          <li key={line.line_no} data-testid={`find-detail-line-${line.line_no}`}>
+            <span className="find-line-item">
+              {[line.brand, line.item, line.design, line.size, line.color]
+                .filter(Boolean)
+                .join(" · ") ||
+                line.manual_desc ||
+                "—"}
+              {line.direction === "return" ? (
+                <>
+                  {" "}
+                  <Status tone="blue">Returned</Status>
+                </>
+              ) : null}
+            </span>
+            <span className="num">
+              <Money paise={line.net_paise} />
+            </span>
+            <span className="find-sub">
+              <span className="mono">{line.barcode}</span>, {line.qty} ×{" "}
+              <Money paise={line.mrp_paise} />
+              {line.season ? `, ${line.season}` : ""}
+              {line.salesman_name || line.salesman_code
+                ? `, sold by ${line.salesman_name || line.salesman_code}`
+                : ""}
+            </span>
+          </li>
+        ))}
+      </ul>
 
-      <div className="find-totals">
-        <Figure label="Gross" paise={bill.gross_paise} />
-        <Figure label="You saved" paise={bill.discount_paise} />
-        <Figure label="Tax included" paise={bill.gst_paise} />
-        <Figure label="Paid" paise={bill.net_paise} strong />
-        <span className="find-tenders" data-testid="find-detail-tenders">
+      <dl className="dl find-totals">
+        <dt>Gross</dt>
+        <dd>
+          <Money paise={bill.gross_paise} />
+        </dd>
+        <dt>You saved</dt>
+        <dd>
+          <Money paise={bill.discount_paise} />
+        </dd>
+        <dt>Tax included</dt>
+        <dd>
+          <Money paise={bill.gst_paise} />
+        </dd>
+        <dt className="find-paid">Paid</dt>
+        <dd className="find-paid">
+          <Money paise={bill.net_paise} />
+        </dd>
+        <dt>Taken by</dt>
+        <dd className="find-tenders" data-testid="find-detail-tenders">
           {bill.tenders.map((t) => tenderWords(t)).join(" + ") || "Nothing taken"}
-        </span>
-      </div>
-    </div>
-  );
-}
-
-function Figure({ label, paise, strong }: { label: string; paise: number; strong?: boolean }) {
-  return (
-    <span className="find-figure">
-      <span className="find-figure-label">{label}</span>
-      <span className={strong ? "find-figure-strong" : undefined}>
-        <Money paise={paise} />
-      </span>
-    </span>
+        </dd>
+      </dl>
+    </>
   );
 }

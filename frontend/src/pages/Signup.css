@@ -43,13 +43,15 @@
 .signup-checklist li::before {
   content: "•";
   margin-right: 8px;
-  color: var(--rust);
+  color: var(--muted);
 }
 
-/* Sections and grids */
+/* Sections and grids. v2: a part of the form is a section on the paper with
+   one hairline above it, not a boxed card. */
 .signup-section {
-  padding: 18px;
-  margin: 16px 0;
+  margin: 24px 0;
+  padding-top: 24px;
+  border-top: 1px solid var(--hairline);
   scroll-margin-top: 16px;
 }
 .signup-section h2 {
@@ -430,7 +432,7 @@
   color: var(--muted);
   font-size: 14px;
 }
-.signup-person-status .chip {
+.signup-person-status .status {
   flex-shrink: 0;
 }
 .signup-credentials {
@@ -566,7 +568,6 @@
     font-size: 24px;
     line-height: 1.25;
   }
-  .signup-section,
   .signup-person,
   .signup-summary-group {
     padding: 16px;

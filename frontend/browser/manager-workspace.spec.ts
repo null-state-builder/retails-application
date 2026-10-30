@@ -121,10 +121,10 @@ for (const width of WIDTHS) {
     await expect(main.getByTestId("dashboard-loading")).toHaveCount(0);
     await expect(main.getByTestId("dashboard-error")).toHaveCount(0);
     await expect(main.getByRole("heading", { name: "The day so far", exact: true })).toBeVisible();
-    await expect(main.getByTestId("today-bills").locator(".net-num")).toHaveText(
+    await expect(main.getByTestId("today-bills").locator(".kpi-v")).toHaveText(
       String(data.today.bills),
     );
-    await expect(main.getByTestId("today-pieces").locator(".net-num")).toHaveText(
+    await expect(main.getByTestId("today-pieces").locator(".kpi-v")).toHaveText(
       String(data.today.pieces),
     );
     await expect(main.getByTestId("today-collections")).toContainText("Cash");

@@ -4,7 +4,9 @@ import { allowedUnits, useAuth } from "../auth/AuthContext";
 import { PageHeader } from "../components/PageHeader";
 import { OperationsPage } from "../components/OperationsPage";
 import { hold } from "../lib/goodsScreen";
+import { Note } from "../components/Note";
 import { SearchBox } from "../components/SearchBox";
+import { SegmentedControl } from "../components/SegmentedControl";
 import {
   GOODS_STOCK_VIEWS,
   STOCK_VIEWS,
@@ -31,31 +33,35 @@ export function StockBookmark() {
 
 /** The one switch between Stock on hand's views (desktop redesign Q3). A
  *  goods-journal view is offered only to a person holding a grant its own
- *  screen answers to (`stockViewOpen`). */
+ *  screen answers to (`stockViewOpen`). Each view stays a bookmarkable
+ *  `?view=` on the same screen, so this changes the view, not the place. */
 export function StockViews() {
   const { session } = useAuth();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
   const view = stockView(params);
   const offered = STOCK_VIEWS.filter((v) => stockViewOpen(v.key, (g) => hold(session, g)));
   return (
-    <div className="seg stock-views" aria-label="Stock view" data-testid="stock-workspace-views">
-      {offered.map((v) => (
-        <Link
-          key={v.key}
-          className={`seg-btn ${view === v.key ? "active" : ""}`}
-          aria-current={view === v.key ? "page" : undefined}
-          to={`?${stockParams(params, {
+    <SegmentedControl
+      label="Stock view"
+      className="stock-views"
+      testId="stock-workspace-views"
+      value={view}
+      options={offered.map((v) => ({
+        value: v.key,
+        label: v.label,
+        testId: `stock-workspace-view-${v.key}`,
+      }))}
+      onChange={(next) =>
+        setParams(
+          stockParams(params, {
             tab: "stock",
-            view: v.key === "on-hand" ? "" : v.key,
+            view: next === "on-hand" ? "" : next,
             find: "",
             goods_view: "",
-          })}`}
-          data-testid={`stock-workspace-view-${v.key}`}
-        >
-          {v.label}
-        </Link>
-      ))}
-    </div>
+          }),
+        )
+      }
+    />
   );
 }
 
@@ -98,7 +104,11 @@ export function StockWorkspace() {
           ) : undefined
         }
       />
-      <div className="filter-bar" data-testid="stock-workspace-filters">
+      <div
+        className="filter-bar"
+        style={{ alignItems: "flex-end" }}
+        data-testid="stock-workspace-filters"
+      >
         <div className="field">
           <label htmlFor="stock-workspace-store">Store</label>
           <select
@@ -132,20 +142,34 @@ export function StockWorkspace() {
           label="Search stock"
           testId="stock-workspace-search"
         />
-        <StockViews />
       </div>
       <p className="muted stock-scope" data-testid="stock-workspace-scope">
         {scopedLabel}. Totals include only the stock you may read; unavailable values are not zero.
       </p>
       {selection.invalid ? (
-        <p className="warn-note" role="alert">
-          This bookmarked store is no longer in your available store choices. Select an authorised
-          store to continue.
-        </p>
+        <>
+          <div className="onhand-controls">
+            <StockViews />
+          </div>
+          <Note tone="warn" role="alert">
+            This bookmarked store is no longer in your available store choices. Select an authorised
+            store to continue.
+          </Note>
+        </>
       ) : view === "availability" ? (
-        <CrossStoreSearch key={`availability:${filters.storeId}`} workspace={filters} />
+        <>
+          <div className="onhand-controls">
+            <StockViews />
+          </div>
+          <CrossStoreSearch key={`availability:${filters.storeId}`} workspace={filters} />
+        </>
       ) : (
-        <StockOnHand key={`on-hand:${filters.storeId}`} view="stock" workspace={filters} />
+        <StockOnHand
+          key={`on-hand:${filters.storeId}`}
+          view="stock"
+          workspace={filters}
+          views={<StockViews />}
+        />
       )}
     </OperationsPage>
   );

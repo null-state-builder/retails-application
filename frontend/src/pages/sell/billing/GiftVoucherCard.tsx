@@ -170,7 +170,7 @@ export function GiftVoucherCard({
         </div>
       ))}
       {held.length > 0 && !online && (
-        <p className="bill-alert bill-consent-note" data-testid="gift-voucher-offline">
+        <p className="note note-warn bill-consent-note" data-testid="gift-voucher-offline">
           {GIFT_VOUCHER_OFFLINE_REFUSAL}
         </p>
       )}
@@ -309,7 +309,11 @@ export function GiftVoucherCard({
         </p>
       )}
       {note && (
-        <p className="bill-alert bill-consent-note" data-testid="gift-voucher-note" role="alert">
+        <p
+          className="note note-warn bill-consent-note"
+          data-testid="gift-voucher-note"
+          role="alert"
+        >
           {note}
         </p>
       )}

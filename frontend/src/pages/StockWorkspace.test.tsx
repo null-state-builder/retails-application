@@ -50,7 +50,9 @@ describe("one operator-facing stock frame", () => {
     expect(html.match(/class="page-pad operations-page/g)).toHaveLength(1);
     expect(html).toContain("Costs, margins and values are unavailable in this view");
     expect(html).toContain("A request reserves nothing");
-    expect(html).toContain("group=brand");
+    // The view switch is a set of pressed buttons on the same screen now; switching
+    // goes through `stockParams`, which keeps every other filter (`group` included).
+    expect(html).toContain('aria-pressed="true" data-testid="stock-workspace-view-availability"');
     expect(html).not.toContain('data-testid="availability-search"');
   });
 });

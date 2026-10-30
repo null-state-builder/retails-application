@@ -1,9 +1,12 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { AlertTriangle, Check, CircleCheck, HardDriveDownload, RefreshCw } from "lucide-react";
+import { AlertTriangle, CircleCheck, HardDriveDownload, RefreshCw } from "lucide-react";
 
+import { Note } from "../../components/Note";
 import { PageHeader } from "../../components/PageHeader";
+import { Section } from "../../components/Section";
+import { Status } from "../../components/Status";
 import { useAuth } from "../../auth/AuthContext";
 import { SettingRow, Settings } from "../../components/SettingRow";
 import { Switch } from "../../components/Switch";
@@ -116,16 +119,14 @@ function Outcome({ failed, said, id }: { failed: string; said: string; id: strin
   return (
     <>
       {failed && (
-        <p className="till-alert" data-testid={`${id}-failed`}>
-          <AlertTriangle size={15} />
+        <Note tone="error" testId={`${id}-failed`}>
           {failed}
-        </p>
+        </Note>
       )}
       {said && (
-        <p className="ok-note till-said" data-testid={`${id}-said`}>
-          <Check size={15} />
+        <Note tone="success" role="status" testId={`${id}-said`}>
           {said}
-        </p>
+        </Note>
       )}
     </>
   );
@@ -622,20 +623,23 @@ function PaperReentry({
   const stillHidden = Math.max(0, (till.register?.hole_count ?? 0) - outstanding.length);
 
   return (
-    <section className="card till-card" data-testid="till-reentry">
-      <div className="till-section-head">
-        <h2 className="h3">Bills to key in from the printed copies</h2>
+    <Section
+      heading="Bills to key in from the printed copies"
+      aside={
         <span className="till-progress">
           {ticked.length} of {listed.length} keyed in
         </span>
-      </div>
-      <p className="muted-cell">
+      }
+      className="till-reentry"
+      testId="till-reentry"
+    >
+      <p className="till-text">
         Handed over {formatDateTime(handover.at)}. Key in each printed bill under its own number.
         {stillHidden > 0 && <> {stillHidden} more appear as these sync.</>}
       </p>
 
       {listed.length === 0 ? (
-        <p className="muted-cell" data-testid="till-reentry-none">
+        <p className="till-text" data-testid="till-reentry-none">
           Nothing left to enter.
         </p>
       ) : (
@@ -644,9 +648,9 @@ function PaperReentry({
             <li key={seq} className={done.has(seq) ? "till-reentry-done" : ""}>
               <span className="till-reentry-no">Bill {seq}</span>
               {done.has(seq) ? (
-                <span className="ok-note" data-testid={`till-reentry-done-${seq}`}>
-                  <Check size={14} /> keyed in
-                </span>
+                <Status tone="green" testId={`till-reentry-done-${seq}`}>
+                  Keyed in
+                </Status>
               ) : (
                 <Link className="btn" data-testid={`till-reentry-${seq}`} to={`/sell?paper=${seq}`}>
                   Enter this bill
@@ -671,7 +675,7 @@ function PaperReentry({
       >
         {outstanding.length > 0 ? `${outstanding.length} still to enter` : "Put this list away"}
       </button>
-    </section>
+    </Section>
   );
 }
 
@@ -683,10 +687,14 @@ function QueueTable({ till }: { till: TillSnapshot }) {
     (a, b) => Number(b.doc_number === halted) - Number(a.doc_number === halted),
   );
   return (
-    <section className="till-queue">
-      <h2 className="h3 till-section-head">
-        Waiting to sync <span className="chip">{till.pending}</span>
-      </h2>
+    <Section
+      heading={
+        <>
+          Waiting to sync <span className="till-count">{till.pending}</span>
+        </>
+      }
+      ruled
+    >
       <div className="table-wrap">
         <table className="data" data-testid="till-queue">
           <thead>
@@ -714,7 +722,7 @@ function QueueTable({ till }: { till: TillSnapshot }) {
           </tbody>
         </table>
       </div>
-    </section>
+    </Section>
   );
 }
 
@@ -735,14 +743,13 @@ function CounterTasks({ engine, till }: { engine: TillEngine; till: TillSnapshot
   const showPause = !till.pause;
   if (!showPause && !mayMove && !till.onlineAlpha) return null;
   return (
-    <section className="card till-card till-tasks">
-      <h2 className="h3">Counter tasks</h2>
+    <Section heading="Counter tasks" ruled>
       <Settings>
         {showPause && <PauseTask engine={engine} till={till} />}
         {mayMove && <MoveTask engine={engine} till={till} />}
         {till.onlineAlpha && <PairTask engine={engine} paired={till.devicePaired} />}
       </Settings>
-    </section>
+    </Section>
   );
 }
 
@@ -1013,13 +1020,12 @@ function PairTask({ engine, paired }: { engine: TillEngine; paired: boolean }) {
 
 function PersonalSettings({ engine, muted }: { engine: TillEngine; muted: boolean }) {
   return (
-    <section className="card till-card">
-      <h2 className="h3">This counter and you</h2>
+    <Section heading="This counter and you" ruled>
       <Settings>
         <ScanSounds engine={engine} muted={muted} />
         <CounterPin />
       </Settings>
-    </section>
+    </Section>
   );
 }
 
@@ -1114,16 +1120,14 @@ function CounterPin() {
       after={
         <>
           {failed && (
-            <p className="till-alert" data-testid="till-pin-failed">
-              <AlertTriangle size={15} />
+            <Note tone="error" testId="till-pin-failed">
               {failed}
-            </p>
+            </Note>
           )}
           {said && (
-            <p className="ok-note till-said" data-testid="till-pin-said">
-              <Check size={15} />
+            <Note tone="success" role="status" testId="till-pin-said">
               {said}
-            </p>
+            </Note>
           )}
         </>
       }
@@ -1204,7 +1208,7 @@ function FactsRail({ till }: { till: TillSnapshot }) {
   const [allCounts, setAllCounts] = useState(false);
 
   return (
-    <aside className="card till-rail" aria-label="Counter details">
+    <aside className="box till-rail" aria-label="Counter details">
       <section className="till-facts" data-testid="till-registration">
         <h2 className="till-facts-head">Counter</h2>
         <Row label="Store" value={till.storeCode} />
@@ -1261,7 +1265,7 @@ function FactsRail({ till }: { till: TillSnapshot }) {
             />
           </>
         ) : (
-          <p className="muted-cell">Not checked yet. Sync to find out.</p>
+          <p className="till-text">Not checked yet. Sync to find out.</p>
         )}
       </section>
 
@@ -1296,7 +1300,7 @@ function FactsRail({ till }: { till: TillSnapshot }) {
           <h2 className="till-facts-head">Local copy</h2>
           <button
             type="button"
-            className="btn"
+            className="btn btn-sm"
             aria-expanded={allCounts}
             aria-controls="till-local-more"
             onClick={() => setAllCounts(!allCounts)}
@@ -1379,12 +1383,12 @@ function NoCounter({ reason }: { reason?: string }) {
     <div className="page-pad">
       <PageHeader />
       <div className="till-main till-no-counter">
-        <p className="warn-note" data-testid="till-no-counter">
+        <Note tone="warn" testId="till-no-counter">
           {reason ||
             (singleStore
               ? "The counter is unavailable. Complete store setup and confirm this login's store access, then retry."
               : "A counter signs in to one store. Use the store login for billing; company setup is available from First store setup.")}
-        </p>
+        </Note>
         {(singleStore || recoverPending) && (
           <div className="till-actions">
             {singleStore && (
@@ -1405,11 +1409,9 @@ function NoCounter({ reason }: { reason?: string }) {
           </div>
         )}
         {recoveryMessage && <p role="status">{recoveryMessage}</p>}
-        <section className="card till-card">
-          <Settings>
-            <CounterPin />
-          </Settings>
-        </section>
+        <Settings>
+          <CounterPin />
+        </Settings>
       </div>
     </div>
   );
@@ -1447,7 +1449,7 @@ function TestBill() {
   }
 
   return (
-    <section className="card till-card till-dev">
+    <section className="till-dev">
       <SettingRow
         level={2}
         title="Development only"

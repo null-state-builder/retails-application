@@ -4,6 +4,7 @@ import { Link, Navigate, Outlet, useLocation } from "react-router-dom";
 
 import { useAuth } from "../auth/AuthContext";
 import { KdpsLogo } from "../components/KdpsLogo";
+import { Status } from "../components/Status";
 import { api, apiErrorCode, apiErrorMessage } from "../lib/api";
 import "./Signup.css";
 
@@ -1295,7 +1296,7 @@ export function Signup() {
             )}
           </>
         ) : pending?.state === "registered" ? (
-          <section className="card signup-section">
+          <section className="signup-section">
             <h2>Company registered</h2>
             <p>Sign in and change your temporary password to continue store setup.</p>
             <Link className="btn btn-primary" to="/login">
@@ -1303,7 +1304,7 @@ export function Signup() {
             </Link>
           </section>
         ) : !state.available ? (
-          <section className="card signup-section" data-testid="signup-closed">
+          <section className="signup-section" data-testid="signup-closed">
             <h2>Company signup is closed</h2>
             <p>{CLOSED}</p>
             <Link className="btn btn-primary" to="/login">
@@ -1311,7 +1312,7 @@ export function Signup() {
             </Link>
           </section>
         ) : !revisionMode && (state.pending_confirmation || pending) ? (
-          <section className="card signup-section">
+          <section className="signup-section">
             <div className="signup-confirm-header">
               <h2>Confirm company setup</h2>
               <button
@@ -1368,11 +1369,9 @@ export function Signup() {
                       </strong>
                       <p>{pending.summary?.[role].email}</p>
                     </div>
-                    <span
-                      className={`chip ${pending.confirmed?.[role] ? "chip-green" : "chip-amber"}`}
-                    >
+                    <Status tone={pending.confirmed?.[role] ? "green" : "amber"}>
                       {pending.confirmed?.[role] ? "Confirmed" : "Awaiting confirmation"}
-                    </span>
+                    </Status>
                   </div>
                 ))}
               </div>
@@ -1455,7 +1454,7 @@ export function Signup() {
         ) : (
           <>
             {reviewing ? (
-              <section className="card signup-section" id="signup-review" tabIndex={-1}>
+              <section className="signup-section" id="signup-review" tabIndex={-1}>
                 <h2>Review setup</h2>
                 <p className="signup-section-lead">
                   Check each section. After saving, Owner and Admin each confirm this setup.
@@ -1515,7 +1514,7 @@ export function Signup() {
                 data-testid="signup-form"
               >
                 {revisionMode && (
-                  <section className="card signup-section signup-edit-banner">
+                  <section className="signup-section signup-edit-banner">
                     <div>
                       <h2>Edit setup</h2>
                       <p>Editing the saved setup. Nothing changes until you save.</p>
@@ -1542,7 +1541,7 @@ export function Signup() {
                     </button>
                   </section>
                 )}
-                <section className="card signup-section" id="signup-section-company">
+                <section className="signup-section" id="signup-section-company">
                   <h2>Company</h2>
                   <div className="signup-grid">
                     <Input
@@ -1610,7 +1609,7 @@ export function Signup() {
                     />
                   </div>
                 </section>
-                <section className="card signup-section" id="signup-section-regional">
+                <section className="signup-section" id="signup-section-regional">
                   <h2>Regional settings</h2>
                   <p className="signup-section-lead">Only option in this release.</p>
                   <dl className="signup-values signup-regional">
@@ -1622,7 +1621,7 @@ export function Signup() {
                     ))}
                   </dl>
                 </section>
-                <section className="card signup-section" id="signup-section-store">
+                <section className="signup-section" id="signup-section-store">
                   <h2>First store</h2>
                   <div className="signup-grid">
                     <Input
@@ -1731,7 +1730,7 @@ export function Signup() {
                     />
                   </div>
                 </section>
-                <section className="card signup-section" id="signup-section-people">
+                <section className="signup-section" id="signup-section-people">
                   <h2>People</h2>
                   <p className="signup-section-lead">
                     Two different people. Each confirms separately on the next screen with their own

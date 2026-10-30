@@ -7,13 +7,18 @@
 // empty state, never an invented figure. What is new is that a *zero* now has to
 // carry the same honesty - until the till lands, "₹0 today" is not a quiet
 // morning, and `sales_live` is what lets the card say so.
+//
+// Design system v2 (Dashboard): one lead figure, a strip, ranked lists and
+// unboxed sections. The board's salesperson and brand rankings, the same-weekday
+// comparison and each queue row's detail line are not in this payload, so they
+// are not drawn.
 
-import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   ArrowLeftRight,
-  ArrowRight,
   CalendarCheck,
+  ChevronRight,
   PackageCheck,
   Search,
   ShoppingCart,
@@ -22,6 +27,11 @@ import {
 } from "lucide-react";
 
 import { useAuth } from "../auth/AuthContext";
+import { KpiStrip, LeadFigure } from "../components/KpiStrip";
+import { Note } from "../components/Note";
+import { Section } from "../components/Section";
+import { Loading } from "../components/States";
+import { Status } from "../components/Status";
 import { api, apiErrorMessage } from "../lib/api";
 import { Money } from "../lib/format";
 import { userCan } from "../shell/navConfig";
@@ -31,14 +41,16 @@ import {
   shortDay,
   sparkBars,
   targetProgressPct,
+  tenderRanks,
+  weekSummary,
   type DashboardPayload,
 } from "./storeDashboardModel";
-// The quick-action row, `.card`/`.panel`/`.net-grid` and the two-column layout
-// are Home's and index.css's; only what this screen invented lives here.
 import "./StoreDashboard.css";
 
+// Places, so links (decision 5). New bill is the first and the navy one; red is
+// kept for the button that commits money or stock (decision 3).
 const QUICK_ACTIONS = [
-  { label: "New Bill", to: "/sell", icon: <ShoppingCart size={20} />, cta: true },
+  { label: "New Bill", to: "/sell", icon: <ShoppingCart size={20} />, primary: true },
   // Receive Goods' one way in (OPS-17): the inbox, not the legacy screen.
   { label: "Receive", to: "/goods/receive", icon: <PackageCheck size={20} /> },
   { label: "Transfer", to: "/transfer", icon: <ArrowLeftRight size={20} /> },
@@ -50,176 +62,218 @@ const QUICK_ACTIONS = [
 ];
 
 function QuickActions() {
-  const navigate = useNavigate();
   return (
-    <div className="quick-grid">
+    <nav className="quick-row" aria-label="Quick actions">
       {QUICK_ACTIONS.map((a) => (
-        <button
+        <Link
           key={a.label}
-          className={`quick-btn ${a.cta ? "quick-cta" : ""}`}
-          onClick={() => navigate(a.to)}
+          to={a.to}
+          className={`btn btn-lg quick-link ${a.primary ? "btn-primary" : ""}`}
           data-testid={`quick-${a.label.toLowerCase().replace(/ /g, "-")}`}
         >
-          <span className="quick-ic">{a.icon}</span>
+          {a.icon}
           {a.label}
-        </button>
+        </Link>
       ))}
-    </div>
+    </nav>
+  );
+}
+
+function count(n: number): string {
+  return n.toLocaleString("en-IN");
+}
+
+/** "12% more than yesterday": the one comparison the payload carries. */
+function VsYesterday({ pct }: { pct: number | null }) {
+  if (pct === null) return null;
+  if (pct === 0) return <>Level with yesterday.</>;
+  return (
+    <span className={pct > 0 ? "up" : "down"}>
+      {Math.abs(pct).toLocaleString("en-IN")}% {pct > 0 ? "more" : "less"} than yesterday
+    </span>
   );
 }
 
 function TodayRow({ d }: { d: DashboardPayload }) {
   const t = d.today;
-  const tiles: { id: string; label: string; value: React.ReactNode }[] = [
-    { id: "net-sales", label: "Net sales", value: <Money paise={t.net_sales_paise} short /> },
-    { id: "bills", label: "Bills", value: t.bills },
-    { id: "avg-bill", label: "Average bill", value: <Money paise={t.avg_bill_paise} short /> },
-    { id: "pieces", label: "Pieces sold", value: t.pieces },
-  ];
+  const tenders = tenderRanks(t.collections);
   return (
-    <div className="card panel dash-block" data-testid="today-card">
-      <div className="panel-head">
-        <p className="eyebrow">Today</p>
-        <h3 className="h3">The day so far</h3>
-      </div>
-      <div className="net-grid today-grid" data-testid="today-tiles">
-        {tiles.map((tile) => (
-          <div className="net-cell" key={tile.id} data-testid={`today-${tile.id}`}>
-            <span className="net-num mono">{tile.value}</span>
-            <span className="net-label">{tile.label}</span>
-          </div>
-        ))}
-      </div>
-      <div className="collect-row" data-testid="today-collections">
-        {(
-          [
-            ["Cash", t.collections.cash],
-            ["Card", t.collections.card],
-            ["UPI", t.collections.upi],
-            ["Credit note", t.collections.credit_note],
-          ] as const
-        ).map(([label, paise]) => (
-          <span key={label} className="collect-cell">
-            <b className="mono">
-              <Money paise={paise} short />
-            </b>
-            {label}
-          </span>
-        ))}
+    <Section heading="The day so far" testId="today-card">
+      <div className="today-split">
+        <div className="today-figures" data-testid="today-tiles">
+          <LeadFigure
+            label="Net sales"
+            value={<Money paise={t.net_sales_paise} />}
+            testId="today-net-sales"
+          >
+            <VsYesterday pct={t.vs_yesterday_pct} />
+          </LeadFigure>
+          <KpiStrip
+            label="Today's figures"
+            items={[
+              { label: "Bills", value: count(t.bills), testId: "today-bills" },
+              {
+                label: "Average bill",
+                value: <Money paise={t.avg_bill_paise} />,
+                testId: "today-avg-bill",
+              },
+              {
+                label: "Pieces sold",
+                value: count(t.pieces),
+                detail:
+                  t.bills > 0
+                    ? `${(t.pieces / t.bills).toLocaleString("en-IN", { maximumFractionDigits: 1 })} a bill`
+                    : undefined,
+                testId: "today-pieces",
+              },
+            ]}
+          />
+        </div>
+        <Section heading="By tender" level={3} className="today-tenders" testId="today-collections">
+          <ol className="ranked">
+            {tenders.map((r, i) => (
+              <li key={r.label}>
+                <span className="ranked-r">{i + 1}</span>
+                <span className="ranked-name">
+                  {r.label}
+                  <span className="ranked-bar" aria-hidden="true">
+                    <span style={{ width: `${r.barPct}%` }} />
+                  </span>
+                </span>
+                <span className="ranked-v">
+                  <Money paise={r.paise} />
+                  {r.sharePct !== null && <span className="ranked-share">{r.sharePct}%</span>}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </Section>
       </div>
       {!d.sales_live && (
         // Without this the four zeros read as a store that has sold nothing.
-        <p className="warn-note" data-testid="today-not-live">
+        <Note tone="warn" testId="today-not-live">
           Billing is not live here yet - these stay at nil until the Sell screen opens.
-        </p>
+        </Note>
       )}
-    </div>
+    </Section>
   );
 }
 
 function ActionQueue({ d }: { d: DashboardPayload }) {
-  const navigate = useNavigate();
   const { user } = useAuth();
   // A row whose screen this person's sections do not reach is dropped rather
   // than drawn as a number that opens onto a refusal - the same rule Home holds
   // to with the payable tile.
   const rows = queueRows(d, (section, capability) => userCan(user, section, capability));
   return (
-    <div className="card panel" data-testid="action-queue">
-      <div className="panel-head">
-        <p className="eyebrow">Needs your action</p>
-        <h3 className="h3">What is waiting</h3>
-      </div>
-      <div className="queue-list">
+    <Section
+      heading="Needs you"
+      testId="action-queue"
+      aside={
+        <Link className="link" to="/action-needed">
+          All on Action needed
+        </Link>
+      }
+    >
+      <ul className="queue-list">
         {rows.map((row) => (
-          <button
-            key={row.key}
-            className="queue-row"
-            data-testid={`queue-${row.key}`}
-            data-empty={row.count === 0 ? "true" : "false"}
-            onClick={() => navigate(row.to)}
-          >
-            <span className="queue-count mono">{row.count}</span>
-            <span className="queue-label">{row.label}</span>
-            <ArrowRight size={15} className="queue-go" />
-          </button>
+          <li key={row.key}>
+            <Link
+              to={row.to}
+              className="queue-row"
+              data-testid={`queue-${row.key}`}
+              data-empty={row.count === 0 ? "true" : "false"}
+            >
+              <span className="queue-label">{row.label}</span>
+              <span className="queue-count tabular">{count(row.count)}</span>
+              <ChevronRight size={16} className="queue-go" aria-hidden="true" />
+            </Link>
+          </li>
         ))}
-      </div>
+      </ul>
       {/* A queue that shortens as work is cleared is one you stop trusting to
           be the whole list, so nought rows stay and grey out instead. */}
       {rows.every((r) => r.count === 0) && (
-        <p className="lead queue-clear" data-testid="queue-all-clear">
+        <p className="queue-clear" data-testid="queue-all-clear">
           Nothing is waiting on you right now.
         </p>
       )}
-    </div>
+    </Section>
   );
 }
 
 function LiveInStore({ d }: { d: DashboardPayload }) {
-  // Each carton opens its own transfer, which is where the Receive button is.
-  const navigate = useNavigate();
   return (
-    <div className="card panel" data-testid="live-card">
-      <div className="panel-head">
-        <p className="eyebrow">Live in store</p>
-        <h3 className="h3">Right now</h3>
+    <Section heading="Live in store" testId="live-card">
+      <div className="live-group">
+        <p className="live-head">
+          <Tag size={14} aria-hidden="true" /> Offers running
+          {d.live.offers.length > 0 && <>, {count(d.live.offers.length)}</>}
+        </p>
+        {d.live.offers.length === 0 ? (
+          <p className="live-empty" data-testid="live-offers-empty">
+            No offers are running here today.
+          </p>
+        ) : (
+          <ul className="live-list" data-testid="live-offers">
+            {d.live.offers.map((o) => (
+              <li key={o.id}>
+                <Status tone="blue">{o.brand}</Status>
+                <span>{o.one_liner}</span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
-      <p className="live-head">
-        <Tag size={14} /> Offers running
-      </p>
-      {d.live.offers.length === 0 ? (
-        <p className="lead live-empty" data-testid="live-offers-empty">
-          No offers are running here today.
+      <div className="live-group">
+        <p className="live-head">
+          <Truck size={14} aria-hidden="true" /> Stock on the way
         </p>
-      ) : (
-        <ul className="live-list" data-testid="live-offers">
-          {d.live.offers.map((o) => (
-            <li key={o.id}>
-              <span className="chip chip-purple">{o.brand}</span> {o.one_liner}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <p className="live-head">
-        <Truck size={14} /> Stock on the way
-      </p>
-      {d.live.in_transit.length === 0 ? (
-        <p className="lead live-empty" data-testid="live-transit-empty">
-          Nothing is on the road to this store.
-        </p>
-      ) : (
-        <ul className="live-list" data-testid="live-transit">
-          {d.live.in_transit.map((t, i) => (
-            // Keyed by position as well as number: a transfer posted without one
-            // would otherwise collide with the next on the empty string.
-            <li key={`${t.doc_number}-${i}`}>
-              <button
-                className="live-link"
-                data-testid={`live-transit-${t.doc_number}`}
-                onClick={() => navigate(`/transfer/${t.id}`)}
-              >
-                <b className="mono">{t.doc_number}</b> · {t.pieces} pc
-                {t.expected && <span className="live-when"> · {t.expected}</span>}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+        {d.live.in_transit.length === 0 ? (
+          <p className="live-empty" data-testid="live-transit-empty">
+            Nothing is on the road to this store.
+          </p>
+        ) : (
+          // Each carton opens its own transfer, which is where Receive is.
+          <ul className="live-list" data-testid="live-transit">
+            {d.live.in_transit.map((t, i) => (
+              // Keyed by position as well as number: a transfer posted without one
+              // would otherwise collide with the next on the empty string.
+              <li key={`${t.doc_number}-${i}`}>
+                <Link
+                  className="link"
+                  to={`/transfer/${t.id}`}
+                  data-testid={`live-transit-${t.doc_number}`}
+                >
+                  <span className="mono">{t.doc_number}</span>
+                </Link>
+                <span className="live-when">
+                  {count(t.pieces)} pc{t.expected && <>, {t.expected}</>}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </Section>
   );
 }
 
 function Sparkline({ d }: { d: DashboardPayload }) {
   const bars = sparkBars(d.last7);
+  const week = weekSummary(d.last7);
   return (
-    <div className="card panel" data-testid="sparkline-card">
-      <div className="panel-head">
-        <p className="eyebrow">Last 7 days</p>
-        <h3 className="h3">Net sales</h3>
-      </div>
+    <Section
+      heading="Last 7 days"
+      ruled
+      testId="sparkline-card"
+      aside={
+        <span className="spark-total">
+          <Money paise={week.totalPaise} />
+        </span>
+      }
+    >
       <div className="spark" data-testid="sparkline">
         {bars.map((b) => (
           <div className="spark-col" key={b.date} data-testid={`spark-${b.date}`}>
@@ -230,62 +284,71 @@ function Sparkline({ d }: { d: DashboardPayload }) {
           </div>
         ))}
       </div>
-      {bars.every((b) => b.paise === 0) && (
-        <p className="lead live-empty" data-testid="sparkline-empty">
+      {week.best ? (
+        <p className="spark-note">
+          Best day {shortDay(week.best.date)},{" "}
+          <b className="tabular">
+            <Money paise={week.best.paise} />
+          </b>
+        </p>
+      ) : (
+        <p className="spark-note" data-testid="sparkline-empty">
           No billing history yet.
         </p>
       )}
-    </div>
+    </Section>
   );
 }
 
 function ManagerRow({ m }: { m: NonNullable<DashboardPayload["manager"]> }) {
   const pct = targetProgressPct(m.mtd_net_paise, m.target_paise);
   return (
-    <div className="card panel dash-block" data-testid="manager-row">
-      <div className="panel-head">
-        <p className="eyebrow">Manager</p>
-        <h3 className="h3">This month</h3>
-      </div>
-      <div className="mtd-line">
-        <span className="mtd-figure mono">
-          <Money paise={m.mtd_net_paise} short />
-        </span>
-        <span className="mtd-of">
-          of{" "}
-          <b className="mono">
-            <Money paise={m.target_paise} short />
-          </b>{" "}
-          target
-        </span>
-      </div>
+    <Section heading="This month" ruled testId="manager-row">
+      <LeadFigure label="Net sales this month" value={<Money paise={m.mtd_net_paise} />}>
+        of{" "}
+        <b>
+          <Money paise={m.target_paise} />
+        </b>{" "}
+        target
+      </LeadFigure>
       {pct === null ? (
-        <p className="lead live-empty" data-testid="mtd-no-target">
+        <p className="live-empty" data-testid="mtd-no-target">
           No target set for this month.
         </p>
       ) : (
-        <div className="mtd-bar" data-testid="mtd-bar" data-pct={pct}>
+        <div className="mtd-bar" data-testid="mtd-bar" data-pct={pct} aria-hidden="true">
           <span style={{ width: `${pct}%` }} />
         </div>
       )}
       <p className="day-close" data-testid="day-close">
-        <CalendarCheck size={14} /> Day close
-        <span className="sample-tag">Not built</span>
+        <CalendarCheck size={14} aria-hidden="true" /> Day close
+        <Status>Not built</Status>
       </p>
-    </div>
+    </Section>
   );
 }
 
-export function StoreDashboard() {
+export function StoreDashboard({
+  onLoaded,
+}: {
+  /** Home writes its heading sentence from the same payload, so it is not read twice. */
+  onLoaded?: ((d: DashboardPayload) => void) | undefined;
+} = {}) {
   const { featuresOn } = useAuth();
   const [data, setData] = useState<DashboardPayload | null>(null);
   const [error, setError] = useState("");
+  const loaded = useRef(onLoaded);
+  loaded.current = onLoaded;
 
   useEffect(() => {
     let live = true;
     api
       .get<DashboardPayload>("/store/dashboard")
-      .then((r) => live && setData(r.data))
+      .then((r) => {
+        if (!live) return;
+        setData(r.data);
+        loaded.current?.(r.data);
+      })
       .catch((e) => live && setError(apiErrorMessage(e)));
     return () => {
       live = false;
@@ -294,35 +357,29 @@ export function StoreDashboard() {
 
   if (error) {
     return (
-      <div className="card section-card warn-note" data-testid="dashboard-error">
+      <Note tone="error" testId="dashboard-error">
         {error}
-      </div>
+      </Note>
     );
   }
   if (!data) {
-    return (
-      <p className="lead" data-testid="dashboard-loading">
-        Loading…
-      </p>
-    );
+    return <Loading lines={4} label="Loading the store's day" testId="dashboard-loading" />;
   }
 
   return (
-    <>
+    <div className="store-dash">
       <QuickActions />
       <TodayRow d={data} />
       {/* Store operations ticket 49: the day's task checklists, where switched on. */}
       {featuresOn.has("store-checklists") && <StoreChecklistCard store={data.store} />}
       {data.manager && <ManagerRow m={data.manager} />}
-      <div className="home-cols">
-        <div className="home-stack">
-          <ActionQueue d={data} />
-        </div>
-        <div className="home-stack">
+      <div className="dash-cols">
+        <ActionQueue d={data} />
+        <div className="dash-side">
           <LiveInStore d={data} />
           <Sparkline d={data} />
         </div>
       </div>
-    </>
+    </div>
   );
 }

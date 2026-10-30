@@ -2,10 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MutableRefObject, RefObject } from "react";
 import { createPortal } from "react-dom";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { AlertTriangle, Gift, MonitorSmartphone, Undo2, X } from "lucide-react";
+import { AlertTriangle, MonitorSmartphone, Undo2, X } from "lucide-react";
 
 import { useAuth } from "../../auth/AuthContext";
 import { PlusRail } from "./billing/plus/PlusRail";
+import { Note } from "../../components/Note";
 import { PageHeader } from "../../components/PageHeader";
 import { api, apiErrorMessage, typedApi } from "../../lib/api";
 import { Money } from "../../lib/format";
@@ -104,6 +105,7 @@ import { FinishOverlay } from "./billing/FinishOverlay";
 import { HeldBills } from "./billing/HeldBills";
 import { PaymentPanel } from "./billing/PaymentPanel";
 import { RailFoot } from "./billing/RailFoot";
+import { SoldBy } from "./billing/SoldBy";
 import { TaxFigure } from "./billing/TaxFigure";
 import { UpiCharge } from "./billing/UpiCharge";
 import { AgainstBill, RecentBills, ReturnCustomerSearch } from "./billing/ReturnCounter";
@@ -201,6 +203,10 @@ function Counter({
   const [params, setParams] = useSearchParams();
   const { cart, setCart, take: takeScanned } = useCart();
   const [customer, setCustomer] = useState<TillCustomer>(NO_CUSTOMER);
+  /** The tag the last scan took, for the rust bar on its line - presentation
+   *  only (design system v2: rust marks where you are). Put down with the bill. */
+  const [lastScan, setLastScan] = useState<{ barcode: string; season: string } | null>(null);
+  if (lastScan && cart.lines.length === 0) setLastScan(null);
   const [saving, setSaving] = useState(false);
   const [holding, setHolding] = useState(false);
   const [note, setNote] = useState("");
@@ -781,6 +787,7 @@ function Counter({
       takeScanned(piece, { stock, alternatives }, soldBy, (next) => {
         onScreenRef.current = { ...onScreenRef.current, cart: next };
       });
+      setLastScan({ barcode: piece.barcode, season: piece.season });
       // The undo snapshot is one render behind under the same race - a burst
       // pushes the same pre-burst cart onto the stack more than once rather
       // than one entry per scan. Nothing is lost: an extra identical entry
@@ -1889,6 +1896,30 @@ function Counter({
 
   const returnReady = mode !== "return" || returnFound !== null;
 
+  // The line a rescan bumps is the one `scanPiece` matches, so the bar follows
+  // the same rule rather than the newest line.
+  const lastScannedKey =
+    (lastScan &&
+      bill.lines.find(
+        (line) =>
+          line.barcode === lastScan.barcode &&
+          line.season === lastScan.season &&
+          !line.sold_before_inward &&
+          line.kind !== "alteration",
+      )?.key) ??
+    null;
+
+  const soldByRow = (
+    <SoldBy
+      salespeople={world.salespeople}
+      soldBy={soldBy}
+      differingLines={differingSalespeople}
+      disabled={counterBlocked || locked}
+      onChange={pickBillSalesperson}
+      onApply={applyBillSalesperson}
+    />
+  );
+
   return (
     <div className="bill-page" data-mode={mode}>
       {/* BillBar spans the full width of the counter frame (grid-column: 1 / -1). */}
@@ -1896,16 +1927,11 @@ function Counter({
         mode={mode}
         nextNumber={till?.nextNumber ?? ""}
         draftSaved={draftSaved}
-        salespeople={world.salespeople}
-        soldBy={soldBy}
-        differingLines={differingSalespeople}
         heldCount={holds.length}
         showingHolds={showHolds}
         disabled={counterBlocked || locked}
         canHold={cart.lines.length > 0}
         onModeChange={changeMode}
-        onSoldByChange={pickBillSalesperson}
-        onApplySoldBy={applyBillSalesperson}
         onShowHolds={() => setShowHolds((open) => !open)}
         onHold={() => void holdBill()}
         onNewBill={newBill}
@@ -1994,94 +2020,101 @@ function Counter({
           )}
 
           {pendingDraft && (
-            <div className="bill-alert bill-pending-draft" data-testid="bill-pending-draft">
-              <AlertTriangle size={15} />
-              <span>
-                {pendingDraft.reason === "stale"
-                  ? "A bill was left in progress on a previous business day."
-                  : pendingDraft.draft.paper !== null
-                    ? `A bill was left in progress mid paper re-entry (bill ${pendingDraft.draft.paper}), ` +
-                      "which the counter no longer matches to what is open now."
-                    : "A bill was left in progress while the counter was mid a paper re-entry."}{" "}
-                Resume it, or start fresh.
-              </span>
-              <span className="bill-pending-draft-actions">
-                <button
-                  type="button"
-                  className="btn"
-                  data-testid="bill-pending-draft-resume"
-                  onClick={resumePendingDraft}
-                >
-                  Resume
-                </button>
-                <button
-                  type="button"
-                  className="btn"
-                  data-testid="bill-pending-draft-discard"
-                  onClick={discardPendingDraft}
-                >
-                  Discard
-                </button>
-              </span>
-            </div>
+            <Note
+              tone="warn"
+              testId="bill-pending-draft"
+              action={
+                <span className="bill-pending-draft-actions">
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    data-testid="bill-pending-draft-resume"
+                    onClick={resumePendingDraft}
+                  >
+                    Resume
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-sm"
+                    data-testid="bill-pending-draft-discard"
+                    onClick={discardPendingDraft}
+                  >
+                    Discard
+                  </button>
+                </span>
+              }
+            >
+              {pendingDraft.reason === "stale"
+                ? "A bill was left in progress on a previous business day."
+                : pendingDraft.draft.paper !== null
+                  ? `A bill was left in progress mid paper re-entry (bill ${pendingDraft.draft.paper}), ` +
+                    "which the counter no longer matches to what is open now."
+                  : "A bill was left in progress while the counter was mid a paper re-entry."}{" "}
+              Resume it, or start fresh.
+            </Note>
           )}
 
-          {alert === "loading" && <p className="warn-note">Opening the counter…</p>}
+          {alert === "loading" && <Note tone="info">Opening the counter…</Note>}
           {alert === "no-price-list" && (
-            <p className="warn-note" data-testid="bill-no-price-list">
+            <Note tone="warn" testId="bill-no-price-list">
               This counter has no local price list yet. Sync from Till &amp; Sync before billing.
-            </p>
+            </Note>
           )}
           {till?.onlinePending && (
-            <section className="card" role="status" data-testid="online-sale-pending">
+            <Note
+              tone={till.onlinePending.state === "rejected" ? "error" : "warn"}
+              role="status"
+              testId="online-sale-pending"
+              action={
+                till.onlinePending.state === "rejected" ? (
+                  <button
+                    className="btn btn-sm"
+                    onClick={() =>
+                      void engine!
+                        .reviseOnline()
+                        .then(() =>
+                          setNote("Prices refreshed. Review the bill before submitting again."),
+                        )
+                        .catch((error) => setNote(messageOf(error)))
+                    }
+                  >
+                    Review and revise bill
+                  </button>
+                ) : (
+                  <button
+                    className="btn btn-sm btn-primary"
+                    disabled={saving || !till.online}
+                    onClick={() => void recoverOnlineBill()}
+                  >
+                    Retry same submission
+                  </button>
+                )
+              }
+            >
               <strong>
                 {till.onlinePending.state === "rejected"
                   ? "Bill not issued"
                   : "Checking whether the sale completed"}
               </strong>
-              <p>
+              <p className="bill-note-line">
                 {till.onlinePending.error || "Keep this submission. Do not collect payment again."}
               </p>
-              {till.onlinePending.state === "rejected" ? (
-                <button
-                  className="btn"
-                  onClick={() =>
-                    void engine!
-                      .reviseOnline()
-                      .then(() =>
-                        setNote("Prices refreshed. Review the bill before submitting again."),
-                      )
-                      .catch((error) => setNote(messageOf(error)))
-                  }
-                >
-                  Review and revise bill
-                </button>
-              ) : (
-                <button
-                  className="btn btn-primary"
-                  disabled={saving || !till.online}
-                  onClick={() => void recoverOnlineBill()}
-                >
-                  Retry same submission
-                </button>
-              )}
-            </section>
+            </Note>
           )}
           {alert === "print-problem" && (
-            <p className="bill-alert" data-testid="bill-print-problem">
-              <AlertTriangle size={15} />
+            <Note tone="warn" testId="bill-print-problem">
               {printProblem}
-            </p>
+            </Note>
           )}
           {alert === "note" && (
-            <p className="ok-note" data-testid="bill-note">
+            <Note tone="success" testId="bill-note">
               {note}
-            </p>
+            </Note>
           )}
           {alert === "gift" &&
             bill.entitlements.map((gift) => (
-              <p className="ok-note" data-testid={`bill-gift-${gift.offer_id}`} key={gift.offer_id}>
-                <Gift size={15} /> This bill earns a gift: {gift.offer_name}. Scan it onto the bill
+              <Note tone="success" testId={`bill-gift-${gift.offer_id}`} key={gift.offer_id}>
+                This bill earns a gift: {gift.offer_name}. Scan it onto the bill
                 {gift.token_price_paise > 0 ? (
                   <>
                     {" "}
@@ -2091,33 +2124,40 @@ function Counter({
                   " free of charge"
                 )}
                 , and hand it over.
-              </p>
+              </Note>
             ))}
           {alert === "holds-due" && (
-            <p className="bill-alert" data-testid="bill-holds-due">
-              <AlertTriangle size={15} />
+            <Note
+              tone="warn"
+              testId="bill-holds-due"
+              action={
+                <button type="button" className="btn btn-sm" onClick={() => setShowHolds(true)}>
+                  Review them
+                </button>
+              }
+            >
               {toReview.length === 1
                 ? "1 bill has been on hold since before today."
                 : `${toReview.length} bills have been on hold since before today.`}{" "}
               Keep each one for tomorrow or let it go.
-              <button type="button" className="btn" onClick={() => setShowHolds(true)}>
-                Review them
-              </button>
-            </p>
+            </Note>
           )}
         </div>
 
         {till?.blocked ? (
-          <p
-            className="bill-alert bill-alert-stop bill-blocked-area"
-            data-testid="bill-counter-blocked"
-          >
-            <AlertTriangle size={18} />
-            {till.blocked}{" "}
-            <Link className="btn" to="/sell/till">
-              Open Till &amp; Sync
-            </Link>
-          </p>
+          <div className="bill-blocked-area">
+            <Note
+              tone="error"
+              testId="bill-counter-blocked"
+              action={
+                <Link className="btn btn-sm" to="/sell/till">
+                  Open Till &amp; Sync
+                </Link>
+              }
+            >
+              {till.blocked}
+            </Note>
+          </div>
         ) : (
           <>
             {showHolds && (
@@ -2172,15 +2212,38 @@ function Counter({
               onRemove={removeLine}
               onUndo={undo}
               canUndo={undoStack.length > 0}
+              lastScannedKey={lastScannedKey}
               footer={<Totals bill={bill} taxKind={taxKind} />}
             />
           </>
         )}
       </section>
 
-      {/* Payment rail: right column (grid-column: 2). */}
-      <aside className="bill-pay">
+      {/* Payment rail: right column (grid-column: 2). Design system v2 order:
+          customer, salesperson, the Tax invoice (GSTIN) row, the tenders, then
+          the foot - To pay and Save & print. */}
+      <aside className="bill-pay" aria-label="Payment">
         <div className="bill-rail-body">
+          {params.get("preview") === "plus" ? (
+            <>
+              <PlusRail
+                payablePaise={bill.payable_paise}
+                online={till?.online ?? true}
+                locked={locked}
+              />
+              {soldByRow}
+            </>
+          ) : (
+            <CustomerStrip
+              value={customer}
+              storeStateCode={storeState}
+              db={engine?.db ?? null}
+              locked={locked}
+              billPaise={bill.net_paise}
+              salesperson={soldByRow}
+              onChange={editCustomer}
+            />
+          )}
           <PaymentPanel
             bill={bill}
             payment={bill.payment}
@@ -2193,22 +2256,6 @@ function Counter({
               setCharging(true);
             }}
           />
-          {params.get("preview") === "plus" && (
-            <PlusRail
-              payablePaise={bill.payable_paise}
-              online={till?.online ?? true}
-              locked={locked}
-            />
-          )}
-          {params.get("preview") !== "plus" && (
-            <CustomerStrip
-              value={customer}
-              storeStateCode={storeState}
-              db={engine?.db ?? null}
-              locked={locked}
-              onChange={editCustomer}
-            />
-          )}
           {/* Ticket 20: collecting a customer reservation. Only where the store
               has it on (or this bill already carries one), and only in the tab
               that holds the counter. */}
@@ -2814,7 +2861,7 @@ function Totals({ bill, taxKind }: { bill: ReturnType<typeof priceCart>; taxKind
         />
       )}
       {bill.lines.some((line) => line.tax_rule_missing) && (
-        <p className="warn-note" data-testid="bill-tax-rule-missing">
+        <p className="note note-warn bill-totals-note" data-testid="bill-tax-rule-missing">
           No tax rule covers the HSN of{" "}
           {bill.lines
             .filter((line) => line.tax_rule_missing)
@@ -2854,7 +2901,7 @@ function Totals({ bill, taxKind }: { bill: ReturnType<typeof priceCart>; taxKind
         />
       )}
       {bill.credit_note?.late && (
-        <p className="warn-note" data-testid="bill-credit-note-late">
+        <p className="note note-warn bill-totals-note" data-testid="bill-credit-note-late">
           This piece is back after its credit-note deadline, so the customer gets its value but the
           credit note reduces no tax. Head office is told.
         </p>
@@ -2912,11 +2959,11 @@ function NoCounter() {
   return (
     <div className="page-pad">
       <PageHeader lead="The counter." />
-      <p className="warn-note" data-testid="bill-no-counter">
+      <Note tone="warn" testId="bill-no-counter">
         This login is not a counter. A till signs in as one store: the local price list and manager
         authorisations belong to a single shop, so a login that can see several has no counter to
         bill from.
-      </p>
+      </Note>
     </div>
   );
 }

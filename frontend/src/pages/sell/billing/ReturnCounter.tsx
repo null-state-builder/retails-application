@@ -111,7 +111,7 @@ export function ReturnCustomerSearch({
           </div>
         </div>
       )}
-      {error && <p className="bill-alert">{error}</p>}
+      {error && <p className="note note-warn">{error}</p>}
       {matches?.length === 0 && !error && (
         <p className="muted-cell">No bill this counter can see matches that customer.</p>
       )}

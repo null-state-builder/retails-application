@@ -1,10 +1,14 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Printer, RefreshCw, Replace, Search } from "lucide-react";
+import { Printer, RefreshCw, Replace, Search, X } from "lucide-react";
 
+import { FilterChip, FilterChips } from "../../components/FilterChip";
+import { Note } from "../../components/Note";
+import { OperationsPage } from "../../components/OperationsPage";
 import { PageHeader } from "../../components/PageHeader";
+import { Pane, SplitView } from "../../components/SplitView";
 import { EmptyState, ErrorState } from "../../components/States";
-import { OperationsPage, OperationsTable } from "../../components/OperationsPage";
+import { Status } from "../../components/Status";
 import { api, apiErrorMessage } from "../../lib/api";
 import type { ApiRead, ApiSchemas } from "../../lib/api";
 import { Money, formatDateTime } from "../../lib/format";
@@ -26,7 +30,6 @@ import { useTill } from "../../till/TillProvider";
 import { useTillWorld } from "../../till/useTillWorld";
 import type { QueuedBill } from "../../till/types";
 import { BillScope } from "./BillScope";
-import "./CustomerSearch.css";
 import "./Bills.css";
 
 // ---------------------------------------------------------------------------
@@ -73,6 +76,8 @@ export default function BillsPage() {
   const [error, setError] = useState("");
   const [open, setOpen] = useState<OpenBill | null>(null);
   const [printProblem, setPrintProblem] = useState("");
+  const [onlySynced, setOnlySynced] = useState(false);
+  const [onlyUnsynced, setOnlyUnsynced] = useState(false);
 
   const db = engine?.db ?? null;
 
@@ -167,6 +172,28 @@ export default function BillsPage() {
     navigate(`/sell?mode=return&doc=${encodeURIComponent(row.doc_number)}`);
   }
 
+  // Synced / Not yet synced narrow the list on screen; both or neither is all.
+  const syncedCount = rows?.filter((r) => r.synced).length ?? 0;
+  const unsyncedCount = (rows?.length ?? 0) - syncedCount;
+  const shown =
+    rows === null || onlySynced === onlyUnsynced
+      ? rows
+      : rows.filter((r) => r.synced === onlySynced);
+  const shownTotal = (shown ?? []).reduce((sum, r) => sum + r.net_paise, 0);
+  // One day's list needs only the time; a range keeps the date on every row.
+  const oneDay = from === to;
+
+  // The open bill as it prints, for the preview in the pane. The same function
+  // the reprint uses, from the copy already on screen - nothing is fetched.
+  const store = world.store;
+  const receipt = useMemo(() => {
+    if (!open) return null;
+    if (open.posted) return postedReceiptHtml(open.posted);
+    if (open.queued)
+      return receiptHtml(open.queued, store ?? { code: "", gstin: "", state_code: "" });
+    return null;
+  }, [open, store]);
+
   return (
     <OperationsPage>
       <PageHeader
@@ -175,7 +202,7 @@ export default function BillsPage() {
         actions={<BillScope />}
       />
 
-      <div className="card section-card bills-bar" data-testid="bills-bar">
+      <div className="bills-bar" data-testid="bills-bar">
         <div className="field">
           <label htmlFor="bills-from">From</label>
           <input
@@ -198,6 +225,39 @@ export default function BillsPage() {
             onChange={(e) => setTo(e.target.value)}
           />
         </div>
+        <button
+          type="button"
+          className="btn"
+          disabled={loading}
+          data-testid="bills-today"
+          onClick={() => {
+            setTerm("");
+            setFrom(today);
+            setTo(today);
+          }}
+        >
+          <RefreshCw size={15} /> Today
+        </button>
+        {rows !== null && rows.length > 0 && (
+          <FilterChips label="Sync" testId="bills-sync-filter">
+            <FilterChip
+              pressed={onlySynced}
+              count={syncedCount}
+              onClick={() => setOnlySynced((on) => !on)}
+              testId="bills-filter-synced"
+            >
+              Synced
+            </FilterChip>
+            <FilterChip
+              pressed={onlyUnsynced}
+              count={unsyncedCount}
+              onClick={() => setOnlyUnsynced((on) => !on)}
+              testId="bills-filter-unsynced"
+            >
+              Not yet synced
+            </FilterChip>
+          </FilterChips>
+        )}
         <div className="field bills-search">
           <label htmlFor="bills-term">Customer or bill number</label>
           <input
@@ -217,7 +277,7 @@ export default function BillsPage() {
         </div>
         <button
           type="button"
-          className="btn btn-primary"
+          className="btn"
           disabled={loading}
           data-testid="bills-search"
           onClick={() => void load()}
@@ -225,75 +285,103 @@ export default function BillsPage() {
           <Search size={15} />
           {loading ? "Looking…" : "Search"}
         </button>
-        <button
-          type="button"
-          className="btn"
-          disabled={loading}
-          data-testid="bills-today"
-          onClick={() => {
-            setTerm("");
-            setFrom(today);
-            setTo(today);
-          }}
-        >
-          <RefreshCw size={15} /> Today
-        </button>
       </div>
 
       {error && <ErrorState message={error} testId="bills-error" />}
-      {printProblem && (
-        <div className="warn-note" data-testid="bills-print-problem">
-          {printProblem} The bill is unchanged - try again when the printer is ready.
-        </div>
-      )}
 
       {rows !== null && rows.length === 0 && (
         <EmptyState testId="bills-empty">
           {term.trim() ? "No bill in this range matches that." : "No bills in this range."}
         </EmptyState>
       )}
+      {rows !== null && rows.length > 0 && shown?.length === 0 && (
+        <EmptyState testId="bills-filtered-empty">
+          {onlySynced
+            ? "No bill in this range has synced yet."
+            : "Every bill in this range has synced."}
+        </EmptyState>
+      )}
 
-      {/* The list and the open bill side by side on a desktop, so the next bill
-          is one click away instead of a scroll back up past the one just read. */}
-      <div className={open ? "split-view" : undefined}>
-        {rows !== null && rows.length > 0 && (
-          <div className="card section-card" data-testid="bills-results">
-            <p className="bills-count">
-              {rows.length === 1 ? "1 bill" : `${rows.length.toLocaleString("en-IN")} bills`}
-              {" · "}
-              <Money paise={rows.reduce((sum, r) => sum + r.net_paise, 0)} />
-            </p>
-            <OperationsTable label="Bill history">
-              <table className="lines-table" data-testid="bills-rows">
-                <thead>
-                  <tr>
-                    <th>Bill</th>
-                    <th>When</th>
-                    <th>Customer</th>
-                    <th>Paid with</th>
-                    <th className="num">Total</th>
-                    <th>Sync</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => (
+      {/* The list and the open bill side by side, so the next bill is one click
+          away instead of a scroll back up past the one just read. */}
+      <SplitView
+        pane={
+          open ? (
+            <Pane label={`Bill ${open.row.doc_number || "not numbered"}`} testId="bills-pane">
+              <BillDetail
+                bill={open}
+                receipt={receipt}
+                printProblem={printProblem}
+                onReprint={() => void reprint(open)}
+                onExchange={() => exchange(open.row)}
+                onClose={() => {
+                  setPrintProblem("");
+                  setOpen(null);
+                }}
+              />
+            </Pane>
+          ) : undefined
+        }
+      >
+        {shown !== null && shown.length > 0 && (
+          <div
+            className="table-wrap"
+            role="region"
+            aria-label="Bill history"
+            tabIndex={0}
+            data-testid="bills-results"
+          >
+            <table className="data" data-testid="bills-rows">
+              <thead>
+                <tr>
+                  <th>Bill</th>
+                  <th>When</th>
+                  <th>Customer</th>
+                  <th>Paid with</th>
+                  <th className="num">Total</th>
+                  <th>Sync</th>
+                </tr>
+              </thead>
+              <tbody>
+                {shown.map((row) => {
+                  const selected = open?.row.doc_number === row.doc_number;
+                  return (
                     <tr
                       key={row.doc_number}
-                      className={`bills-row${
-                        open?.row.doc_number === row.doc_number ? " bills-row-open" : ""
-                      }`}
+                      className={`bills-row${selected ? " is-selected" : ""}`}
                       data-testid={`bills-row-${row.doc_number}`}
-                      // The row opens the bill beside the list; the button is
-                      // the same action for a keyboard.
+                      // The row opens the bill beside the list; the bill number
+                      // is the same action for a keyboard.
                       onClick={() => void openBill(row)}
                     >
-                      <td className="mono">{row.doc_number || "not numbered"}</td>
-                      <td>{formatDateTime(row.billed_at)}</td>
                       <td>
-                        {row.customer_name || "—"}
+                        <button
+                          type="button"
+                          className="bills-billno mono"
+                          aria-current={selected ? "true" : undefined}
+                          data-testid={`bills-open-${row.doc_number}`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void openBill(row);
+                          }}
+                        >
+                          {row.doc_number || "not numbered"}
+                        </button>
+                      </td>
+                      <td className="bills-when">
+                        {oneDay ? timeOf(row.billed_at) : formatDateTime(row.billed_at)}
+                      </td>
+                      <td>
+                        {row.customer_name ? (
+                          <span className="bills-customer">{row.customer_name}</span>
+                        ) : null}
                         {row.customer_mobile ? (
-                          <span className="lead"> · {row.customer_mobile}</span>
+                          <span className={row.customer_name ? "sub" : undefined}>
+                            {row.customer_mobile}
+                          </span>
+                        ) : null}
+                        {!row.customer_name && !row.customer_mobile ? (
+                          <span className="sub">—</span>
                         ) : null}
                       </td>
                       <td>{tenderSummary(row)}</td>
@@ -302,46 +390,36 @@ export default function BillsPage() {
                       </td>
                       <td>
                         {row.synced ? (
-                          <span className="chip" data-testid="bills-synced">
+                          <Status tone="green" testId="bills-synced">
                             Synced
-                          </span>
+                          </Status>
                         ) : (
-                          <span className="chip chip-amber" data-testid="bills-unsynced">
+                          <Status tone="amber" testId="bills-unsynced">
                             Not yet synced
-                          </span>
+                          </Status>
                         )}
                       </td>
-                      <td>
-                        <button
-                          type="button"
-                          className="btn btn-sm"
-                          data-testid={`bills-open-${row.doc_number}`}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            void openBill(row);
-                          }}
-                        >
-                          {open?.row.doc_number === row.doc_number ? "Close" : "Open"}
-                        </button>
-                      </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </OperationsTable>
+                  );
+                })}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan={4} data-testid="bills-count">
+                    {shown.length === 1
+                      ? "1 bill"
+                      : `${shown.length.toLocaleString("en-IN")} bills`}
+                  </td>
+                  <td className="num">
+                    <Money paise={shownTotal} />
+                  </td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
           </div>
         )}
-
-        {open && (
-          <div className="split-view-aside">
-            <BillDetail
-              bill={open}
-              onReprint={() => void reprint(open)}
-              onExchange={() => exchange(open.row)}
-            />
-          </div>
-        )}
-      </div>
+      </SplitView>
     </OperationsPage>
   );
 }
@@ -351,6 +429,14 @@ interface OpenBill {
   row: BillRow;
   posted: PostedBill | null;
   queued: QueuedBill | null;
+}
+
+/** "10:38 am": the time alone, for a list that is all one day. */
+function timeOf(iso: string): string {
+  const at = new Date(iso);
+  return Number.isNaN(at.getTime())
+    ? iso
+    : at.toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
 }
 
 function serverAsRow(row: SaleRow): BillRow {
@@ -384,12 +470,19 @@ function serverAsRow(row: SaleRow): BillRow {
  */
 function BillDetail({
   bill,
+  receipt,
+  printProblem,
   onReprint,
   onExchange,
+  onClose,
 }: {
   bill: OpenBill;
+  /** The bill as it prints, or null when there is no whole copy to draw. */
+  receipt: string | null;
+  printProblem: string;
   onReprint: () => void;
   onExchange: () => void;
+  onClose: () => void;
 }) {
   const { row, posted, queued } = bill;
   const lines = posted
@@ -413,39 +506,58 @@ function BillDetail({
         returned: line.direction === "return",
       }));
   const tenders = posted?.tenders ?? queued?.tenders ?? [];
+  const docNumber = row.doc_number || "not numbered";
 
   return (
-    <div className="card section-card" data-testid="bills-detail">
-      <div className="toolbar" style={{ marginBottom: 10 }}>
-        <div>
-          <p className="eyebrow">
-            {row.synced ? "At head office" : "In this counter's queue - not yet synced"}
-          </p>
-          <h3 className="h3 mono">{row.doc_number}</h3>
-          <p className="lead">
+    <div className="bills-detail" data-testid="bills-detail">
+      <div className="pane-head">
+        <div className="bills-detail-title">
+          <h3 className="heading mono">{docNumber}</h3>
+          <p className="bills-detail-sub">
             {formatDateTime(row.billed_at)}
             {row.customer_name || row.customer_mobile
-              ? ` · ${[row.customer_name, row.customer_mobile].filter(Boolean).join(" · ")}`
+              ? `, ${[row.customer_name, row.customer_mobile].filter(Boolean).join(", ")}`
               : ""}
           </p>
+          {row.synced ? (
+            <Status tone="green">At head office</Status>
+          ) : (
+            <Status tone="amber">In this counter&apos;s queue - not yet synced</Status>
+          )}
         </div>
-        <div className="spacer" />
-        <button type="button" className="btn" data-testid="bills-exchange" onClick={onExchange}>
-          <Replace size={15} /> Exchange
+        <button
+          type="button"
+          className="btn btn-sm bills-detail-close"
+          aria-label="Close the bill"
+          onClick={onClose}
+        >
+          <X size={16} aria-hidden="true" />
         </button>
+      </div>
+
+      <div className="bills-detail-actions">
         <button
           type="button"
           className="btn btn-primary"
           data-testid="bills-reprint"
           onClick={onReprint}
         >
-          <Printer size={15} /> Print again
+          <Printer size={15} /> Reprint
+        </button>
+        <button type="button" className="btn" data-testid="bills-exchange" onClick={onExchange}>
+          <Replace size={15} /> Exchange
         </button>
       </div>
 
+      {printProblem && (
+        <Note tone="warn" role="status" testId="bills-print-problem">
+          {printProblem} The bill is unchanged - try again when the printer is ready.
+        </Note>
+      )}
+
       {/* Ticket 13: the credit note this exchange issued beside the invoice. */}
       {posted?.credit_note ? (
-        <p className="lead" data-testid="bills-credit-note">
+        <p className="bills-detail-sub" data-testid="bills-credit-note">
           Credit note{" "}
           <strong className="mono">
             {posted.credit_note.number || "not yet numbered - head office is told"}
@@ -455,49 +567,85 @@ function BillDetail({
         </p>
       ) : null}
 
-      <OperationsTable label="Bill lines">
-        <table className="lines-table" data-testid="bills-detail-lines">
-          <thead>
-            <tr>
-              <th>Item</th>
-              <th>Barcode</th>
-              <th className="num">Qty</th>
-              <th className="num">Net</th>
+      <table className="data bills-detail-lines" data-testid="bills-detail-lines">
+        <caption className="sr-only">Bill lines</caption>
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th className="num">Qty</th>
+            <th className="num">Net</th>
+          </tr>
+        </thead>
+        <tbody>
+          {lines.map((line) => (
+            <tr key={line.line_no} data-testid={`bills-detail-line-${line.line_no}`}>
+              <td>
+                {line.what}
+                {line.returned ? (
+                  <>
+                    {" "}
+                    <Status tone="blue">Returned</Status>
+                  </>
+                ) : null}
+                <span className="sub mono">{line.barcode}</span>
+              </td>
+              <td className="num">{line.qty}</td>
+              <td className="num">
+                <Money paise={line.net_paise} />
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {lines.map((line) => (
-              <tr key={line.line_no} data-testid={`bills-detail-line-${line.line_no}`}>
-                <td>
-                  {line.what}
-                  {line.returned ? <span className="chip chip-navy">Returned</span> : null}
-                </td>
-                <td className="mono">{line.barcode}</td>
-                <td className="num">{line.qty}</td>
-                <td className="num">
-                  <Money paise={line.net_paise} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </OperationsTable>
+          ))}
+        </tbody>
+      </table>
 
-      <div className="bills-tenders" data-testid="bills-detail-tenders">
+      <dl className="bills-tenders" data-testid="bills-detail-tenders">
         {tenders.map((tender, index) => (
-          <span key={index} className="bills-tender" data-testid={`bills-tender-${tender.mode}`}>
-            <span>{tenderWords(tender)}</span>
-            <Money paise={tender.amount_paise} />
-            <span className="bills-tender-proof">{tenderProofWords(tender.upi_state)}</span>
-          </span>
+          <div key={index} className="bills-tender" data-testid={`bills-tender-${tender.mode}`}>
+            <dt>
+              {tenderWords(tender)}
+              <span className="bills-tender-proof">{tenderProofWords(tender.upi_state)}</span>
+            </dt>
+            <dd>
+              <Money paise={tender.amount_paise} />
+            </dd>
+          </div>
         ))}
-        <span className="find-figure">
-          <span className="find-figure-label">Paid</span>
-          <span className="find-figure-strong">
+        <div className="bills-tender bills-tender-total">
+          <dt>Paid</dt>
+          <dd>
             <Money paise={row.net_paise} />
-          </span>
-        </span>
-      </div>
+          </dd>
+        </div>
+      </dl>
+
+      {receipt && <ReceiptPreview html={receipt} label={`Bill ${docNumber}, print preview`} />}
+    </div>
+  );
+}
+
+/**
+ * The 80 mm paper on screen: the very document the reprint sends, drawn in a
+ * frame of its own so its print styles never meet the app's. Black on white in
+ * both themes, because it shows the paper. The frame runs no script; it is
+ * same-origin only so its height can follow the bill's length.
+ */
+function ReceiptPreview({ html, label }: { html: string; label: string }) {
+  const frame = useRef<HTMLIFrameElement>(null);
+  const [height, setHeight] = useState(480);
+  return (
+    <div className="bills-receipt-tray">
+      <iframe
+        ref={frame}
+        className="bills-receipt"
+        title={label}
+        sandbox="allow-same-origin"
+        srcDoc={html}
+        style={{ height }}
+        onLoad={() => {
+          const doc = frame.current?.contentDocument;
+          if (doc) setHeight(Math.ceil(doc.documentElement.scrollHeight));
+        }}
+      />
     </div>
   );
 }

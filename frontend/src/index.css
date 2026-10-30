@@ -86,11 +86,9 @@
 
   /* bridge tokens — light values are byte-identical to literals swept below,
      so the light theme is unchanged; only the dark block re-values them. */
-  --hero-navy: #1f2d4d; /* login brand panel — theme-invariant */
   /* A mail body is somebody else's HTML, written against white. Recolouring it
      for dark mode is how a sender's own dark-on-light table goes invisible, so
-     these two stay put in both themes — the same "theme-invariant on purpose"
-     exception as --hero-navy above. Mirrored as literals inside the sandboxed
+     these two stay put in both themes, theme-invariant on purpose. Mirrored as literals inside the sandboxed
      frame, which no custom property can reach (see BODY_RESET in Mail.tsx). */
   --mail-paper: #ffffff;
   --mail-paper-ink: #222222;
@@ -211,7 +209,6 @@ html[data-theme="dark"] {
   --rust-soft: #b06a4a;
   --rust-rgb: 224, 123, 82;
   --brand-red: #ff5a4f;
-  /* --hero-navy intentionally NOT overridden — login hero stays deep navy */
 
   /* semantic status ×6 */
   --green: #5fc98d;

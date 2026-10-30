@@ -1,53 +1,86 @@
-/* Find a bill (#185). House tokens only, so the dark theme's single override
-   block keeps working without touching this file. */
+/* Find a bill (#185). Design system v2: the search on paper, one wide table,
+   the open bill in the record pane. Tokens only. */
 
-.find-bar {
-  display: flex;
-  align-items: flex-end;
-  gap: 12px;
-  flex-wrap: wrap;
-  padding: 14px 16px;
-  margin-bottom: 16px;
-}
 /* The search-by switch is a `.seg`: it chooses a mode, it is not an action. */
 .find-keys {
   flex-wrap: wrap;
 }
-.find-field {
-  flex: 1;
-  min-width: 220px;
-}
-.find-bar .btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
+.find-bar .find-field {
+  min-height: var(--control);
+  padding-top: 0;
+  padding-bottom: 0;
+  flex: 1 1 280px;
+  max-width: 560px;
+  border-color: var(--line-strong);
 }
 
-.find-totals {
-  display: flex;
-  align-items: baseline;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-top: 14px;
-}
-.find-figure {
+.find-results {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  font-size: 14px;
+  gap: var(--space-8);
 }
-.find-figure-label {
-  font-size: 12px;
-  font-weight: 600;
+.find-count {
+  margin: 0;
+  font-size: 13px;
   color: var(--muted);
 }
-.find-figure-strong {
-  font-size: 20px;
+.find-row {
+  cursor: pointer;
+}
+.find-doc {
   font-weight: 600;
 }
-.find-tenders {
-  margin-left: auto;
+
+/* The open bill. */
+.find-detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-8);
+}
+.find-detail-head .heading {
+  margin: 2px 0;
+}
+.find-sub {
+  margin: 0;
   font-size: 12px;
-  color: var(--caption);
+  line-height: 16px;
+  color: var(--muted);
+}
+.find-close {
+  flex: none;
+}
+
+.find-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--hairline);
+}
+.find-lines li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px var(--space-12);
+  padding: var(--space-8) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.find-lines .find-sub {
+  grid-column: 1 / -1;
+}
+.find-lines .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Totals read as a column of money: values on the right. */
+.find-totals dd {
+  text-align: right;
+}
+.find-totals .find-paid {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.find-tenders {
   text-transform: capitalize;
 }

@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
+import { Note } from "../components/Note";
 import { OperationsPage } from "../components/OperationsPage";
 import { PageHeader } from "../components/PageHeader";
+import { Box, Section } from "../components/Section";
+import { EmptyState } from "../components/States";
+import { Status } from "../components/Status";
 import { api, apiErrorMessage, goodsMeta } from "../lib/api";
 import type { ApiRead, ApiSchemas } from "../lib/api";
 import { isConnectionLost } from "../lib/auditLog";
@@ -133,47 +137,50 @@ export function CountSchedulePage() {
     />
   );
   const offlineNote = (!online || lost) && (
-    <p className="warn-note" data-testid="sched-offline" role="status">
-      {OFFLINE}
-      {online && (
-        <>
-          {" "}
+    <Note
+      tone="warn"
+      testId="sched-offline"
+      role="status"
+      action={
+        online && (
           <button
             type="button"
-            className="btn"
+            className="btn btn-sm"
             data-testid="sched-retry"
             onClick={() => void load()}
           >
             Try again
           </button>
-        </>
-      )}
-    </p>
+        )
+      }
+    >
+      {OFFLINE}
+    </Note>
   );
   const errorNote = error && (
-    <p className="warn-note" data-testid="sched-error">
+    <Note tone="error" testId="sched-error">
       {error}
-    </p>
+    </Note>
   );
 
   if (!data) {
     return (
-      <OperationsPage>
+      <OperationsPage className="page">
         {header}
         {offlineNote}
-        {errorNote || (online && !lost && <p>Loading…</p>)}
+        {errorNote || (online && !lost && <p className="lead">Loading…</p>)}
       </OperationsPage>
     );
   }
   if (data.sites.length === 0) {
     return (
-      <OperationsPage>
+      <OperationsPage className="page">
         {header}
         {offlineNote}
         {errorNote}
-        <p className="muted-cell" data-testid="sched-none">
+        <EmptyState testId="sched-none">
           Scheduled counts are not switched on at any store you work at.
-        </p>
+        </EmptyState>
       </OperationsPage>
     );
   }
@@ -182,15 +189,22 @@ export function CountSchedulePage() {
   const shown = <T extends { site_id: number }>(rows: T[]) =>
     siteFilter && siteOf(siteFilter) ? rows.filter((r) => r.site_id === siteFilter) : rows;
 
+  // Where each schedule stands is the server's answer (its due-today and missed
+  // lists), never worked out here from the dates.
+  const missedIds = new Set(data.missed.map((r) => r.schedule_id));
+  const dueIds = new Set(data.due_today.map((r) => r.schedule_id));
+  const standing = (id: string): Standing =>
+    missedIds.has(id) ? "missed" : dueIds.has(id) ? "due" : "on-time";
+
   return (
-    <OperationsPage>
+    <OperationsPage className="page">
       {header}
       {offlineNote}
       {errorNote}
       {saved && (
-        <p className="ok-note" data-testid="sched-saved">
+        <Note tone="success" role="status" testId="sched-saved">
           {saved}
-        </p>
+        </Note>
       )}
 
       <DueList
@@ -199,6 +213,7 @@ export function CountSchedulePage() {
         rows={shown(data.due_today)}
         empty="No count is due today."
         siteOf={siteOf}
+        lead
       />
       {data.missed.length > 0 && (
         <DueList
@@ -210,10 +225,9 @@ export function CountSchedulePage() {
         />
       )}
 
-      <section className="card section-card" data-testid="sched-list">
-        <h3 className="section-title">Schedules</h3>
+      <Section heading="Schedules" ruled testId="sched-list">
         {data.schedules.length === 0 ? (
-          <p className="muted-cell" data-testid="sched-empty">
+          <p className="lead" data-testid="sched-empty">
             No count is scheduled yet.
           </p>
         ) : (
@@ -221,12 +235,18 @@ export function CountSchedulePage() {
             <table className="data">
               <thead>
                 <tr>
+                  <th>What to count</th>
                   <th>Store</th>
-                  <th>What</th>
                   <th>How often</th>
+                  <th className="p2">First count on</th>
                   <th>Next due</th>
                   <th>Last counted</th>
-                  {data.can_edit && <th />}
+                  <th>State</th>
+                  {data.can_edit && (
+                    <th className="act">
+                      <span className="sr-only">Actions</span>
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody>
@@ -234,6 +254,7 @@ export function CountSchedulePage() {
                   <ScheduleRow
                     key={row.id}
                     row={row}
+                    standing={standing(row.id)}
                     canEdit={data.can_edit}
                     today={data.today}
                     disabled={disabled}
@@ -244,11 +265,10 @@ export function CountSchedulePage() {
             </table>
           </div>
         )}
-      </section>
+      </Section>
 
       {data.can_edit && (
-        <section className="card section-card" data-testid="sched-new">
-          <h3 className="section-title">Set a schedule</h3>
+        <Section heading="Set a schedule" ruled testId="sched-new">
           <div className="form-grid">
             <label className="field">
               <span>Store</span>
@@ -322,79 +342,74 @@ export function CountSchedulePage() {
               Save schedule
             </button>
           </div>
-        </section>
+        </Section>
       )}
     </OperationsPage>
   );
 }
 
+/** The counts due today, or missed, as one tile each: what to count, where,
+ *  and the way into that store's blind count. */
 function DueList({
   title,
   testId,
   rows,
   empty,
   siteOf,
+  lead = false,
 }: {
   title: string;
   testId: string;
   rows: DueCount[];
   empty: string;
   siteOf: (id: number) => { id: number; goods_v1: boolean } | undefined;
+  /** The list the page leads with: its way in is the page's primary action. */
+  lead?: boolean;
 }) {
   return (
-    <section className="card section-card" data-testid={testId}>
-      <h3 className="section-title">{title}</h3>
+    <Section heading={title} testId={testId}>
       {rows.length === 0 ? (
-        <p className="muted-cell">{empty}</p>
+        <p className="lead">{empty}</p>
       ) : (
-        <div className="table-wrap">
-          <table className="data">
-            <thead>
-              <tr>
-                <th>What</th>
-                <th>Store</th>
-                <th>Due</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => {
-                const site = siteOf(row.site_id);
-                return (
-                  <tr key={`${row.schedule_id}-${row.due_on}`} data-testid={`${testId}-row`}>
-                    <td>{scopeText(row.brand_name)}</td>
-                    <td>{row.site_code}</td>
-                    <td>{dayText(row.due_on)}</td>
-                    <td>
-                      {site && (
-                        <Link
-                          className="btn"
-                          to={countScreenPath(site)}
-                          data-testid={`${testId}-count`}
-                        >
-                          Count now
-                        </Link>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <div className="tiles">
+          {rows.map((row) => {
+            const site = siteOf(row.site_id);
+            return (
+              <Box key={`${row.schedule_id}-${row.due_on}`} data-testid={`${testId}-row`}>
+                <p className="lead">
+                  {lead ? "Due" : "Was due"} {dayText(row.due_on)} · {row.site_code}
+                </p>
+                <h3 className="heading">{scopeText(row.brand_name)}</h3>
+                {site && (
+                  <Link
+                    className={lead ? "btn btn-primary" : "btn"}
+                    to={countScreenPath(site)}
+                    data-testid={`${testId}-count`}
+                  >
+                    Count now
+                  </Link>
+                )}
+              </Box>
+            );
+          })}
         </div>
       )}
-    </section>
+    </Section>
   );
 }
 
+type Standing = "missed" | "due" | "on-time";
+
 function ScheduleRow({
   row,
+  standing,
   canEdit,
   today,
   disabled,
   send,
 }: {
   row: Row;
+  standing: Standing;
   canEdit: boolean;
   today: string;
   disabled: boolean;
@@ -416,8 +431,10 @@ function ScheduleRow({
 
   return (
     <tr data-testid={`sched-row-${row.site_code}-${what}`}>
+      <td>
+        <b>{what}</b>
+      </td>
       <td>{row.site_code}</td>
-      <td>{what}</td>
       <td>
         {editing ? (
           <select
@@ -437,6 +454,7 @@ function ScheduleRow({
           everyText(row.every)
         )}
       </td>
+      <td className="p2">{dayText(row.first_due_on)}</td>
       <td>
         {editing ? (
           <input
@@ -453,20 +471,29 @@ function ScheduleRow({
         )}
       </td>
       <td>{row.last_counted_on ? dayText(row.last_counted_on) : "Not yet"}</td>
+      <td>
+        {standing === "missed" ? (
+          <Status tone="red">Missed</Status>
+        ) : standing === "due" ? (
+          <Status tone="amber">Due today</Status>
+        ) : (
+          <Status tone="green">On time</Status>
+        )}
+      </td>
       {canEdit && (
-        <td>
+        <td className="act">
           {editing ? (
             <>
               <button
                 type="button"
-                className="btn btn-primary"
+                className="btn btn-sm btn-primary"
                 data-testid="sched-edit-save"
                 disabled={disabled || !first}
                 onClick={() => void change()}
               >
                 Save
               </button>{" "}
-              <button type="button" className="btn" onClick={() => setEditing(false)}>
+              <button type="button" className="btn btn-sm" onClick={() => setEditing(false)}>
                 Cancel
               </button>
             </>
@@ -474,7 +501,7 @@ function ScheduleRow({
             <>
               <button
                 type="button"
-                className="btn"
+                className="btn btn-sm"
                 data-testid="sched-edit"
                 disabled={disabled}
                 onClick={() => setEditing(true)}
@@ -483,7 +510,7 @@ function ScheduleRow({
               </button>{" "}
               <button
                 type="button"
-                className="btn"
+                className="btn btn-sm btn-danger"
                 data-testid="sched-stop"
                 disabled={disabled}
                 onClick={() =>

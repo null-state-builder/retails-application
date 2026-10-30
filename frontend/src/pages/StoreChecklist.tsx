@@ -10,7 +10,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Camera, Check, ClipboardCheck } from "lucide-react";
+import { Camera, Check } from "lucide-react";
 
 import { PageHeader } from "../components/PageHeader";
 import { api, apiErrorMessage, apiUrl } from "../lib/api";
@@ -21,6 +21,7 @@ import { dueByText, opensPath, progressText, tickKey } from "../lib/storeCheckli
 import { newUuid } from "../till/uuid";
 import "./Shared.css";
 import "./StoreChecklist.css";
+import { Section } from "../components/Section";
 import { StoreGate } from "../components/StoreGate";
 
 type Payload = ApiRead<ApiSchemas["ChecklistToday"]>;
@@ -362,15 +363,9 @@ function ChecklistItem({
 /** Today's card on the store's Dashboard. Drawn only where the switch is on. */
 export function StoreChecklistCard({ store }: { store: string }) {
   return (
-    <div className="card panel dash-block" data-testid="checklist-card">
-      <div className="panel-head">
-        <p className="eyebrow">Today's checklist</p>
-        <h3 className="h3">
-          <ClipboardCheck size={16} /> Tasks for today
-        </h3>
-      </div>
+    <Section heading="Today's checklist" testId="checklist-card">
       <StoreChecklist store={store} compact />
-    </div>
+    </Section>
   );
 }
 
