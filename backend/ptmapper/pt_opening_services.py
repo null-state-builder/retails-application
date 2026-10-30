@@ -34,7 +34,7 @@ from typing import Any
 from django.db import connection
 from django.utils import timezone
 
-from accounts.principal import AccessContext, effective_grants
+from accounts.principal import AccessContext, access_for_user
 from core.commands import CommandResult, CommandRun, CommandSpec, execute_command
 from core.outbox import JobOutcome
 from core.refusals import Refusal
@@ -96,10 +96,10 @@ def job_access(tenant_id: uuid.UUID, human_id: Any) -> AccessContext:
     """A person's authority now, with no session: a job is not a browser request (``files.goods_exports``)."""
     from accounts.models import User
 
-    if not User.objects.filter(tenant_id=tenant_id, human_id=human_id, is_active=True).exists():
+    user = User.objects.filter(tenant_id=tenant_id, human_id=human_id, is_active=True).first()
+    if user is None:
         raise Refusal("OPENING_PREPARER_MISSING", "The store's opening preparer has no active login.", status=409)
-    return AccessContext(user=None, human_id=human_id, tenant_id=tenant_id, session=None,
-                         grants=effective_grants(human_id))
+    return access_for_user(user)
 
 
 def preparer_for(source: SohImport) -> AccessContext:

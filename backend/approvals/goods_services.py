@@ -265,11 +265,15 @@ def _lock_pending(run: CommandRun, request_id: uuid.UUID) -> ApprovalRequest:
 
 def _maker_access(run: CommandRun) -> Any:
     """The maker's authority now, without a session (a job or a server shell has none)."""
-    from accounts.principal import AccessContext, effective_grants
+    from accounts.models import User
+    from accounts.principal import access_for_user
 
     assert run.principal.human_id is not None
-    return AccessContext(user=None, human_id=run.principal.human_id, tenant_id=run.tenant_id,
-                         session=None, grants=effective_grants(run.principal.human_id))
+    maker = User.objects.filter(tenant_id=run.tenant_id, human_id=run.principal.human_id).first()
+    if maker is None:
+        raise Refusal("ACTION_DENIED", "Only the person who submitted this confirms it.", status=403)
+    # The canonical adapter: current RoleAssignments, none at all for an inactive login.
+    return access_for_user(maker)
 
 
 def decide_without_second_person(

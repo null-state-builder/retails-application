@@ -306,7 +306,7 @@ class SohImportLoadView(GoodsAPIView):
     The uploader may always; an owner who approves openings may while they need approval.
     """
 
-    @extend_schema(operation_id="goods_v1_soh_import_load", responses={202: SCHEMA})
+    @extend_schema(operation_id="goods_v1_soh_import_load", request=None, responses={202: SCHEMA})
     def post(self, request: Request, pk: uuid.UUID) -> Response:
         access = self.access(request)
         source = _load(access, pk)
