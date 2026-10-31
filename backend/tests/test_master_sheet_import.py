@@ -369,13 +369,13 @@ def test_generated_pt_file_round_trips_and_carries_the_sheet_dropdowns(world: Te
     maker, checker = _people(world)
     source = _choose(maker, _upload(maker, sheet_bytes()), skip_values={"colour": ["GREE"]})
     approve(checker, _request(_submit(maker, source)))
-    data = template_bytes(world.tenant.pk, timezone.now(), Decimal("1.1"))
+    data = template_bytes(world.tenant.pk, timezone.now(), Decimal("1.2"))
     again = _upload(maker, data)
     assert again.plan["change_count"] == 0
     book = load_workbook(io.BytesIO(data))
     work = book["Work Sheet"]
     assert [c.value for c in work[2]][:9] == HEADER[:9]
-    assert work["P3"].value == '=IF(O3<>"",O3*1.1,"")'
+    assert work["P3"].value == '=IF(O3<>"",O3*1.2,"")'
     ranges = {str(dv.sqref): dv.formula1 for dv in work.data_validations.dataValidation}
     assert ranges["C3:C1002"] == "'Master Sheet'!$C$2:$C$3"  # BLACK, GREEN
     master = book["Master Sheet"]

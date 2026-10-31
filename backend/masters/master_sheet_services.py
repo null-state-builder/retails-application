@@ -66,9 +66,10 @@ SELECTION_KEYS = frozenset(
     }
 )
 MAX_SELECTIONS = 5000
-#: KDPS buys at P RATE = BASIC x 1.1: ``rates.transport_pct`` 10 (owner's decision,
-#: 2026-10-01). Product lists warns when the rates in force say otherwise.
-EXPECTED_TRANSPORT_PCT = Decimal("10")
+#: KDPS buys at P RATE = BASIC x 1.2: ``rates.transport_pct`` 20 (owner's decision,
+#: 2026-11-01, replacing the x 1.1 recorded on 2026-10-01). Product lists warns when
+#: the rates in force say otherwise.
+EXPECTED_TRANSPORT_PCT = Decimal("20")
 
 
 # ----------------------------------------------------------------------------- the live lists
