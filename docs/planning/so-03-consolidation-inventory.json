@@ -25358,7 +25358,7 @@
     }
   ],
   "discovered": {
-    "checksum": "0e10c705303af1ab263de0d2032a03c02bbbf899a66a39cd2522f1d62a25ac50",
+    "checksum": "b1b0b06f2e479201a11bc601ee6e7d866adce2db142cd5ca75043c7db77448a5",
     "records": [
       {
         "kind": "api",
@@ -344282,6 +344282,79 @@
       },
       {
         "kind": "operational_file",
+        "key": "operational_file:scripts/soh_to_pt.py",
+        "source": "scripts/soh_to_pt.py",
+        "detail": {
+          "format": ".py",
+          "imports": [
+            "ptmapper.legacy_season"
+          ],
+          "read_candidates": [
+            "HSN_MAP.get",
+            "f.get",
+            "left_out.values",
+            "mapped.get",
+            "r.get",
+            "row.get",
+            "usual.get"
+          ],
+          "write_candidates": [
+            "seasons[legacy, season or 'unknown historical'].add"
+          ],
+          "authorization_candidates": []
+        },
+        "primary_id": "P00",
+        "owner": "SO-02",
+        "related_ids": [],
+        "lifecycle": "canonical",
+        "data_ownership": "Platform-owned configuration and infrastructure",
+        "authorization": "Platform exposure and operator authentication require separate review.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "declared_metadata_only",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "unknown",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "access_contract": {
+          "trace_status": "pending",
+          "actor_type": "unreviewed",
+          "required_action": "unreviewed",
+          "scope_source": "unreviewed",
+          "protected_fields": "unreviewed",
+          "delivery_recheck": "unreviewed",
+          "named_tests": [],
+          "reviewed_chain": "Static candidates do not establish runtime access coverage."
+        },
+        "replacement": "Supported platform endpoints with security review",
+        "migration_requirements": "No business transaction migration.",
+        "acceptance_evidence": "Platform exposure and deployment checks.",
+        "removal_condition": "Retain while required by deployment; remove only through platform change review.",
+        "rule_id": "platform-operational-files"
+      },
+      {
+        "kind": "operational_file",
         "key": "operational_file:scripts/test_check_so03_boundaries.py",
         "source": "scripts/test_check_so03_boundaries.py",
         "detail": {
@@ -344713,6 +344786,67 @@
         "acceptance_evidence": "Platform exposure and deployment checks.",
         "removal_condition": "Retain while required by deployment; remove only through platform change review.",
         "rule_id": "S2657"
+      },
+      {
+        "kind": "operational_file",
+        "key": "operational_file:scripts/test_soh_to_pt.py",
+        "source": "scripts/test_soh_to_pt.py",
+        "detail": {
+          "format": ".py",
+          "imports": [],
+          "read_candidates": [],
+          "write_candidates": [],
+          "authorization_candidates": []
+        },
+        "primary_id": "P00",
+        "owner": "SO-02",
+        "related_ids": [],
+        "lifecycle": "canonical",
+        "data_ownership": "Platform-owned configuration and infrastructure",
+        "authorization": "Platform exposure and operator authentication require separate review.",
+        "callers": {
+          "declared": "Static backend imports and frontend API callsites are linked where discoverable; owner must trace runtime and background callers.",
+          "static_backend_importers": [],
+          "static_frontend_importers": [],
+          "frontend_api_callsites": []
+        },
+        "dependencies": {
+          "basis": "declared_metadata_only",
+          "source_module": null,
+          "callback_component": null,
+          "static_imports": [],
+          "local_component_keys": [],
+          "candidate_model_keys": [],
+          "frontend_api_callsites": [],
+          "api_targets": [],
+          "model_relations": [],
+          "migration_dependencies": [],
+          "runtime_edges": "unknown; static discovery is not execution tracing"
+        },
+        "data_access": {
+          "basis": "unknown",
+          "read_candidates": [],
+          "write_candidates": [],
+          "model_fields": [],
+          "schema_operations": [],
+          "storage_markers": [],
+          "completeness": "static leads only; route-specific and dynamic data access unverified"
+        },
+        "access_contract": {
+          "trace_status": "pending",
+          "actor_type": "unreviewed",
+          "required_action": "unreviewed",
+          "scope_source": "unreviewed",
+          "protected_fields": "unreviewed",
+          "delivery_recheck": "unreviewed",
+          "named_tests": [],
+          "reviewed_chain": "Static candidates do not establish runtime access coverage."
+        },
+        "replacement": "Supported platform endpoints with security review",
+        "migration_requirements": "No business transaction migration.",
+        "acceptance_evidence": "Platform exposure and deployment checks.",
+        "removal_condition": "Retain while required by deployment; remove only through platform change review.",
+        "rule_id": "platform-operational-files"
       },
       {
         "kind": "print_output",
